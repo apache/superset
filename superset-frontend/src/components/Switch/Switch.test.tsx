@@ -16,8 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SwitchProps } from 'antd-v5/lib/switch';
-import { Switch as AntdSwitch } from 'antd-v5';
 
-export const Switch = (props: SwitchProps) => <AntdSwitch {...props} />;
-export type { SwitchProps };
+import { render, screen } from 'spec/helpers/testing-library';
+import { Switch } from '.';
+
+const mockedProps = {
+  label: 'testLabel',
+  dataTest: 'dataTest',
+  checked: false,
+};
+
+test('should render', () => {
+  const { container } = render(<Switch {...mockedProps} />);
+  expect(container).toBeInTheDocument();
+});
+
+test('should have the correct checked prop', () => {
+  render(<Switch {...mockedProps} />);
+
+  const switchElement = screen.getByRole('switch');
+
+  expect(switchElement).toBeInTheDocument();
+  expect(switchElement).not.toBeChecked();
+});

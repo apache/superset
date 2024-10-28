@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SupersetTheme, t } from '@superset-ui/core';
-import { AntdSwitch } from 'src/components';
+import { Switch } from 'src/components/Switch';
 import InfoTooltip from 'src/components/InfoTooltip';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import { FieldPropTypes } from '../../types';
@@ -296,7 +296,7 @@ export const forceSSLField = ({
   sslForced,
 }: FieldPropTypes) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-    <AntdSwitch
+    <Switch
       disabled={sslForced && !isEditMode}
       checked={db?.parameters?.encryption || sslForced}
       onChange={changed => {
