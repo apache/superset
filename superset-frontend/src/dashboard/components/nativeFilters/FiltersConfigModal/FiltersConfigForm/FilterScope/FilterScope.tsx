@@ -17,13 +17,8 @@
  * under the License.
  */
 
-import { FC, useCallback, useRef, useState } from 'react';
-import {
-  NativeFilterScope,
-  styled,
-  t,
-  useComponentDidUpdate,
-} from '@superset-ui/core';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NativeFilterScope, styled, t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { AntdForm, Typography } from 'src/components';
 import { ScopingType } from './types';
@@ -64,17 +59,19 @@ const FilterScope: FC<FilterScopeProps> = ({
   chartId,
   initiallyExcludedCharts,
 }) => {
-  const [initialFilterScope] = useState(
-    filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
+  const currentFilterScope = useMemo(
+    () => filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
+    [chartId, filterScope, initiallyExcludedCharts],
   );
-  const lastSpecificScope = useRef(initialFilterScope);
-  const [initialScopingType] = useState(
-    isScopingAll(initialFilterScope, chartId)
-      ? ScopingType.All
-      : ScopingType.Specific,
+  const lastSpecificScope = useRef(currentFilterScope);
+  const currentScopingType = useMemo(
+    () =>
+      isScopingAll(currentFilterScope, chartId)
+        ? ScopingType.All
+        : ScopingType.Specific,
+    [chartId, currentFilterScope],
   );
-  const [hasScopeBeenModified, setHasScopeBeenModified] =
-    useState(!!filterScope);
+  const [hasScopeBeenModified, setHasScopeBeenModified] = useState(false);
 
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
@@ -87,32 +84,30 @@ const FilterScope: FC<FilterScopeProps> = ({
     [formScopingType, updateFormValues],
   );
 
-  const updateScopes = useCallback(() => {
-    if (filterScope || hasScopeBeenModified) {
-      return;
-    }
+  const updateScopes = useCallback(
+    updatedFormValues => {
+      if (hasScopeBeenModified) {
+        return;
+      }
 
-    const newScope = getDefaultScopeValue(chartId, initiallyExcludedCharts);
-    updateFormValues({
-      scope: newScope,
-      scoping: isScopingAll(newScope, chartId)
-        ? ScopingType.All
-        : ScopingType.Specific,
-    });
-  }, [
-    chartId,
-    filterScope,
-    hasScopeBeenModified,
-    initiallyExcludedCharts,
-    updateFormValues,
-  ]);
-  useComponentDidUpdate(updateScopes);
+      updateFormValues(updatedFormValues);
+    },
+    [hasScopeBeenModified, updateFormValues],
+  );
+
+  useEffect(() => {
+    const updatedFormValues = {
+      scope: currentFilterScope,
+      scoping: currentScopingType,
+    };
+    updateScopes(updatedFormValues);
+  }, [currentFilterScope, currentScopingType, updateScopes]);
 
   return (
     <Wrapper>
       <CleanFormItem
         name={[...pathToFormValue, 'scoping']}
-        initialValue={initialScopingType}
+        initialValue={currentScopingType}
       >
         <Radio.Group
           onChange={({ target: { value } }) => {
@@ -132,14 +127,14 @@ const FilterScope: FC<FilterScopeProps> = ({
         </Radio.Group>
       </CleanFormItem>
       <Typography.Text type="secondary">
-        {(formScopingType ?? initialScopingType) === ScopingType.Specific
+        {(formScopingType ?? currentScopingType) === ScopingType.Specific
           ? t('Only selected panels will be affected by this filter')
           : t('All panels with this column will be affected by this filter')}
       </Typography.Text>
-      {(formScopingType ?? initialScopingType) === ScopingType.Specific && (
+      {(formScopingType ?? currentScopingType) === ScopingType.Specific && (
         <ScopingTree
           updateFormValues={onUpdateFormValues}
-          initialScope={initialFilterScope}
+          initialScope={currentFilterScope}
           formScope={formFilterScope}
           forceUpdate={forceUpdate}
           chartId={chartId}
@@ -149,7 +144,7 @@ const FilterScope: FC<FilterScopeProps> = ({
       <CleanFormItem
         name={[...pathToFormValue, 'scope']}
         hidden
-        initialValue={initialFilterScope}
+        initialValue={currentFilterScope}
       />
     </Wrapper>
   );
