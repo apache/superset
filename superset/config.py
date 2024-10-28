@@ -394,7 +394,14 @@ LANGUAGES = {
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
-LANGUAGES = {}
+LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "es": {"flag": "es", "name": "Spanish"},
+    "it": {"flag": "it", "name": "Italian"},
+    "fr": {"flag": "fr", "name": "French"},
+    "de": {"flag": "de", "name": "German"},
+    "nl": {"flag": "nl", "name": "Dutch"}
+}
 
 
 # Override the default d3 locale format
