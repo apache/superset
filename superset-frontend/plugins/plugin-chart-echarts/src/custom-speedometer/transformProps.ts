@@ -1,4 +1,3 @@
-import { min } from "lodash";
 import { DEFAULT_FORM_DATA, SpeedometerTransformProps } from "./types";
 
 type RGBA = {r: number, g: number, b: number, a: number };
@@ -15,8 +14,12 @@ const calculatePercentage = (min: number, max: number, value: any): number => {
     return final;
 }
 
-function rgbaToHex(rgba: RGBA): string {
-    const {r, g, b, a }= rgba 
+function rgbaToHex(color: RGBA | string): string {    
+    if (typeof color === 'string' && /^#([A-Fa-f0-9]{3}|[A-Fa-f0-9]{6})$/.test(color)) {
+        return color;
+    }
+
+    const {r, g, b, a }= color as RGBA
 
     const redHex = r.toString(16).padStart(2, '0');
     const greenHex = g.toString(16).padStart(2, '0');
@@ -30,7 +33,7 @@ function checkIfStartIsGeaterThanEnd(s1Start: number, s1End: number) {
     var temp = s1Start;
     if(s1Start > s1End) {
         s1Start = s1End;
-        s1End = temp
+        s1End = temp      
         return { s1Start, s1End }
     } else {
         return { s1Start, s1End }
