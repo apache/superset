@@ -58,7 +58,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
     }
 
-    is_query_id_associated_connect = False
+    has_query_id_before_execute = False
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

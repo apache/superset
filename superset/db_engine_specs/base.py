@@ -443,7 +443,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # When this is changed to false in a DB engine spec it means the query id
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
-    is_query_id_associated_connect = True
+    has_query_id_before_execute = True
 
     @classmethod
     def is_oauth2_enabled(cls) -> bool:
@@ -1342,7 +1342,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         logger.debug("Query %d: Running query: %s", query.id, sql)
         cls.execute(cursor, sql, query.database, async_=True)
-        if not cls.is_query_id_associated_connect:
+        if not cls.has_query_id_before_execute:
             cancel_query_id = query.database.db_engine_spec.get_cancel_query_id(
                 cursor, query
             )
