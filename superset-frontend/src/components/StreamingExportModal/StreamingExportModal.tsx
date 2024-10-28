@@ -17,7 +17,12 @@
  * under the License.
  */
 import { styled, t, useTheme } from '@superset-ui/core';
-import { Modal, Button, Typography, Progress } from 'antd';
+import {
+  Modal,
+  Button,
+  Typography,
+  Progress,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
 const { Text } = Typography;
@@ -28,6 +33,9 @@ export enum ExportStatus {
   ERROR = 'error',
   CANCELLED = 'cancelled',
 }
+
+const MAX_PROGRESS_PERCENT = 99;
+const COMPLETED_PERCENT = 100;
 
 export interface StreamingProgress {
   totalRows?: number;
@@ -51,104 +59,194 @@ interface StreamingExportModalProps {
 }
 
 const ModalContent = styled.div`
-  padding: ${({ theme }) => theme.sizeUnit * 4}px 0
-    ${({ theme }) => theme.sizeUnit * 2}px;
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit * 4}px 0 ${theme.sizeUnit * 2}px;
+  `}
 `;
 
 const ProgressSection = styled.div`
-  margin: ${({ theme }) => theme.sizeUnit * 6}px 0;
-  position: relative;
+  ${({ theme }) => `
+    margin: ${theme.sizeUnit * 6}px 0;
+    position: relative;
+  `}
 `;
 
 const ProgressWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${({ theme }) => theme.sizeUnit * 3}px;
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit * 3}px;
+  `}
+`;
+
+const StyledProgress = styled(Progress)`
+  flex: 1;
 `;
 
 const SuccessIcon = styled(Icons.CheckCircleFilled)`
-  color: ${({ theme }) => theme.colorSuccess};
-  font-size: 24px;
-  flex-shrink: 0;
+  ${({ theme }) => `
+    color: ${theme.colorSuccess};
+    font-size: ${theme.sizeUnit * 6}px;
+    flex-shrink: 0;
+  `}
 `;
 
 const ErrorIconWrapper = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  background-color: ${({ theme }) => theme.colorError};
-  border-radius: 50%;
-  flex-shrink: 0;
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: ${theme.sizeUnit * 4}px;
+    height: ${theme.sizeUnit * 4}px;
+    background-color: ${theme.colorError};
+    border-radius: 50%;
+    flex-shrink: 0;
+  `}
 `;
 
 const ErrorIconStyled = styled(Icons.CloseOutlined)`
-  color: ${({ theme }) => theme.colorWhite};
-  font-size: 10px;
+  ${({ theme }) => `
+    color: ${theme.colorWhite};
+    font-size: ${theme.sizeUnit * 2.5}px;
+  `}
 `;
 
 const ActionButtons = styled.div`
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit * 2}px;
-  justify-content: flex-end;
+  ${({ theme }) => `
+    display: flex;
+    gap: ${theme.sizeUnit * 2}px;
+    justify-content: flex-end;
+  `}
 `;
 
-const ProgressText = styled(Text)`
-  display: block;
-  text-align: center;
-  margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+const CenteredText = styled(Text)`
+  ${({ theme }) => `
+    display: block;
+    text-align: center;
+    margin-top: ${theme.sizeUnit * 4}px;
+  `}
 `;
 
-const ErrorText = styled(Text)`
-  display: block;
-  text-align: center;
-  margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+const ErrorText = styled(CenteredText)`
+  ${({ theme }) => `
+    color: ${theme.colorError};
+  `}
 `;
 
 const CancelButton = styled(Button)`
-  background-color: ${({ theme }) => theme.colorSuccessBg};
-  color: ${({ theme }) => theme.colorSuccess};
-  border-color: ${({ theme }) => theme.colorSuccessBg};
+  ${({ theme }) => `
+    background-color: ${theme.colorSuccessBg};
+    color: ${theme.colorSuccess};
+    border-color: ${theme.colorSuccessBg};
 
-  &:hover {
-    background-color: ${({ theme }) => theme.colorSuccessBg};
-    color: ${({ theme }) => theme.colorSuccess};
-    border-color: ${({ theme }) => theme.colorSuccess};
-  }
+    &:hover {
+      background-color: ${theme.colorSuccessBg};
+      color: ${theme.colorSuccess};
+      border-color: ${theme.colorSuccess};
+    }
 
-  &:focus {
-    background-color: ${({ theme }) => theme.colorSuccessBg};
-    color: ${({ theme }) => theme.colorSuccess};
-    border-color: ${({ theme }) => theme.colorSuccess};
-  }
+    &:focus {
+      background-color: ${theme.colorSuccessBg};
+      color: ${theme.colorSuccess};
+      border-color: ${theme.colorSuccess};
+    }
+  `}
 `;
 
 const DownloadButton = styled(Button)`
-  &.ant-btn-primary {
-    background-color: ${({ theme }) => theme.colorSuccess};
-    border-color: ${({ theme }) => theme.colorSuccess};
-    color: ${({ theme }) => theme.colorWhite};
+  ${({ theme }) => `
+    background-color: ${theme.colorSuccess};
+    border-color: ${theme.colorSuccess};
+    color: ${theme.colorWhite};
 
     &:hover:not(:disabled) {
-      background-color: ${({ theme }) => theme.colorSuccessActive};
-      border-color: ${({ theme }) => theme.colorSuccessActive};
-      color: ${({ theme }) => theme.colorWhite};
+      background-color: ${theme.colorSuccessActive};
+      border-color: ${theme.colorSuccessActive};
+      color: ${theme.colorWhite};
     }
 
     &:focus:not(:disabled) {
-      background-color: ${({ theme }) => theme.colorSuccess};
-      border-color: ${({ theme }) => theme.colorSuccess};
-      color: ${({ theme }) => theme.colorWhite};
+      background-color: ${theme.colorSuccess};
+      border-color: ${theme.colorSuccess};
+      color: ${theme.colorWhite};
     }
 
     &:disabled {
-      background-color: ${({ theme }) => theme.colorBgContainerDisabled};
-      border-color: ${({ theme }) => theme.colorBgContainerDisabled};
-      color: ${({ theme }) => theme.colorTextDisabled};
+      background-color: ${theme.colorBgContainerDisabled};
+      border-color: ${theme.colorBgContainerDisabled};
+      color: ${theme.colorTextDisabled};
     }
-  }
+  `}
 `;
+
+const triggerFileDownload = (url: string, filename: string) => {
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const calculateProgressPercentage = (
+  status: ExportStatus,
+  totalRows?: number,
+  rowsProcessed?: number,
+): number => {
+  if (status === ExportStatus.COMPLETED) return COMPLETED_PERCENT;
+
+  if (!totalRows || totalRows <= 0 || !rowsProcessed) return 0;
+
+  const percentage = (rowsProcessed / totalRows) * 100;
+  return Math.round(Math.min(MAX_PROGRESS_PERCENT, percentage));
+};
+
+const getProgressStatus = (
+  status: ExportStatus,
+): 'success' | 'exception' | 'normal' => {
+  switch (status) {
+    case ExportStatus.COMPLETED:
+      return 'success';
+    case ExportStatus.ERROR:
+    case ExportStatus.CANCELLED:
+      return 'exception';
+    case ExportStatus.STREAMING:
+    default:
+      return 'normal';
+  }
+};
+
+const getMessageText = (
+  status: ExportStatus,
+  filename?: string,
+  error?: string,
+): string => {
+  switch (status) {
+    case ExportStatus.ERROR:
+      return error || t('Export failed');
+    case ExportStatus.CANCELLED:
+      return t('Export cancelled');
+    case ExportStatus.COMPLETED:
+      return t('Export successful: %s', filename || 'export');
+    case ExportStatus.STREAMING:
+    default:
+      return filename
+        ? t('Processing export for %s', filename)
+        : t('Processing export...');
+  }
+};
+
+const getButtonText = (status: ExportStatus): string => {
+  switch (status) {
+    case ExportStatus.ERROR:
+    case ExportStatus.CANCELLED:
+    case ExportStatus.COMPLETED:
+      return t('Close');
+    case ExportStatus.STREAMING:
+    default:
+      return t('Cancel');
+  }
+};
 
 interface ModalStateContentProps {
   status: ExportStatus;
@@ -159,147 +257,6 @@ interface ModalStateContentProps {
   getProgressPercentage: () => number;
 }
 
-const ErrorContent = ({
-  error,
-  onCancel,
-  onRetry,
-  getProgressPercentage,
-}: {
-  error?: string;
-  onCancel: () => void;
-  onRetry?: () => void;
-  getProgressPercentage: () => number;
-}) => (
-  <ModalContent>
-    <ProgressSection>
-      <ProgressWrapper>
-        <Progress
-          percent={getProgressPercentage()}
-          status="exception"
-          showInfo={false}
-          style={{ flex: 1 }}
-        />
-        <ErrorIconWrapper>
-          <ErrorIconStyled />
-        </ErrorIconWrapper>
-      </ProgressWrapper>
-      <ErrorText type="danger">{error || t('Export failed')}</ErrorText>
-    </ProgressSection>
-    <ActionButtons>
-      <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
-      {onRetry && (
-        <DownloadButton type="primary" onClick={onRetry}>
-          {t('Retry')}
-        </DownloadButton>
-      )}
-    </ActionButtons>
-  </ModalContent>
-);
-
-const CancelledContent = ({
-  getProgressPercentage,
-  onCancel,
-  onRetry,
-}: {
-  getProgressPercentage: () => number;
-  onCancel: () => void;
-  onRetry?: () => void;
-}) => (
-  <ModalContent>
-    <ProgressSection>
-      <Progress
-        percent={getProgressPercentage()}
-        status="exception"
-        showInfo={false}
-      />
-      <ProgressText>{t('Export cancelled')}</ProgressText>
-    </ProgressSection>
-    <ActionButtons>
-      <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
-      {onRetry && (
-        <DownloadButton type="primary" onClick={onRetry}>
-          {t('Retry')}
-        </DownloadButton>
-      )}
-    </ActionButtons>
-  </ModalContent>
-);
-
-const CompletedContent = ({
-  filename,
-  downloadUrl,
-  onCancel,
-  onDownload,
-}: {
-  filename?: string;
-  downloadUrl?: string;
-  onCancel: () => void;
-  onDownload: () => void;
-}) => (
-  <ModalContent>
-    <ProgressSection>
-      <ProgressWrapper>
-        <Progress
-          percent={100}
-          status="success"
-          showInfo={false}
-          style={{ flex: 1 }}
-        />
-        <SuccessIcon />
-      </ProgressWrapper>
-      <ProgressText>
-        {t('Export successful: %s', filename || 'export')}
-      </ProgressText>
-    </ProgressSection>
-    <ActionButtons>
-      <CancelButton onClick={onCancel}>{t('Close')}</CancelButton>
-      <DownloadButton
-        type="primary"
-        onClick={onDownload}
-        disabled={!downloadUrl}
-      >
-        {t('Download')}
-      </DownloadButton>
-    </ActionButtons>
-  </ModalContent>
-);
-
-const StreamingContent = ({
-  filename,
-  getProgressPercentage,
-  onCancel,
-}: {
-  filename?: string;
-  getProgressPercentage: () => number;
-  onCancel: () => void;
-}) => {
-  const theme = useTheme();
-  return (
-    <ModalContent>
-      <ProgressSection>
-        <Progress
-          percent={getProgressPercentage()}
-          status="normal"
-          strokeColor={theme.colorSuccess}
-          showInfo
-          format={percent => `${Math.round(percent || 0)}%`}
-        />
-        <ProgressText>
-          {filename
-            ? t('Processing export for %s', filename)
-            : t('Processing export...')}
-        </ProgressText>
-      </ProgressSection>
-      <ActionButtons>
-        <CancelButton onClick={onCancel}>{t('Cancel')}</CancelButton>
-        <DownloadButton type="primary" disabled>
-          {t('Download')}
-        </DownloadButton>
-      </ActionButtons>
-    </ModalContent>
-  );
-};
-
 const ModalStateContent = ({
   status,
   progress,
@@ -308,44 +265,69 @@ const ModalStateContent = ({
   onDownload,
   getProgressPercentage,
 }: ModalStateContentProps) => {
+  const theme = useTheme();
   const { downloadUrl, filename, error } = progress;
 
-  switch (status) {
-    case ExportStatus.ERROR:
-      return (
-        <ErrorContent
-          error={error}
-          onCancel={onCancel}
-          onRetry={onRetry}
-          getProgressPercentage={getProgressPercentage}
-        />
-      );
-    case ExportStatus.CANCELLED:
-      return (
-        <CancelledContent
-          getProgressPercentage={getProgressPercentage}
-          onCancel={onCancel}
-          onRetry={onRetry}
-        />
-      );
-    case ExportStatus.COMPLETED:
-      return (
-        <CompletedContent
-          filename={filename}
-          downloadUrl={downloadUrl}
-          onCancel={onCancel}
-          onDownload={onDownload}
-        />
-      );
-    default:
-      return (
-        <StreamingContent
-          filename={filename}
-          getProgressPercentage={getProgressPercentage}
-          onCancel={onCancel}
-        />
-      );
-  }
+  const isError = status === ExportStatus.ERROR;
+  const isCancelled = status === ExportStatus.CANCELLED;
+  const isCompleted = status === ExportStatus.COMPLETED;
+  const isStreaming = status === ExportStatus.STREAMING;
+
+  const hasIcon = isError || isCompleted;
+  const shouldShowRetry = (isError || isCancelled) && onRetry;
+
+  const progressStatus = getProgressStatus(status);
+  const progressPercent = isCompleted ? 100 : getProgressPercentage();
+  const messageText = getMessageText(status, filename, error);
+  const buttonText = getButtonText(status);
+
+  const progressProps = {
+    percent: progressPercent,
+    status: progressStatus,
+    showInfo: isStreaming,
+    ...(isStreaming && {
+      strokeColor: theme.colorSuccess,
+      format: (percent?: number) => `${Math.round(percent || 0)}%`,
+    }),
+  };
+
+  return (
+    <ModalContent>
+      <ProgressSection>
+        {hasIcon ? (
+          <ProgressWrapper>
+            <StyledProgress {...progressProps} />
+            {isError && (
+              <ErrorIconWrapper>
+                <ErrorIconStyled />
+              </ErrorIconWrapper>
+            )}
+            {isCompleted && <SuccessIcon />}
+          </ProgressWrapper>
+        ) : (
+          <Progress {...progressProps} />
+        )}
+        {isError ? (
+          <ErrorText>{messageText}</ErrorText>
+        ) : (
+          <CenteredText>{messageText}</CenteredText>
+        )}
+      </ProgressSection>
+      <ActionButtons>
+        <CancelButton onClick={onCancel}>{buttonText}</CancelButton>
+        {shouldShowRetry ? (
+          <DownloadButton onClick={onRetry}>{t('Retry')}</DownloadButton>
+        ) : (
+          <DownloadButton
+            onClick={onDownload}
+            disabled={!isCompleted || !downloadUrl}
+          >
+            {t('Download')}
+          </DownloadButton>
+        )}
+      </ActionButtons>
+    </ModalContent>
+  );
 };
 
 const StreamingExportModal = ({
@@ -356,26 +338,16 @@ const StreamingExportModal = ({
 }: StreamingExportModalProps) => {
   const { status, downloadUrl, filename } = progress;
 
-  const getProgressPercentage = (): number => {
-    if (status === ExportStatus.COMPLETED) return 100;
-    if (progress.totalRows && progress.totalRows > 0) {
-      const percentage = Math.min(
-        99,
-        (progress.rowsProcessed / progress.totalRows) * 100,
-      );
-      return Math.round(percentage);
-    }
-    return 0;
-  };
+  const getProgressPercentage = (): number =>
+    calculateProgressPercentage(
+      status,
+      progress.totalRows,
+      progress.rowsProcessed,
+    );
 
   const handleDownload = () => {
     if (downloadUrl && filename) {
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      triggerFileDownload(downloadUrl, filename);
       onCancel();
     }
   };
@@ -383,9 +355,9 @@ const StreamingExportModal = ({
   return (
     <Modal
       title={t('Exporting Data')}
-      open={visible}
-      onCancel={onCancel}
-      footer={null}
+      show={visible}
+      onHide={onCancel}
+      hideFooter
       width={600}
       maskClosable={false}
       centered
