@@ -283,8 +283,12 @@ def test_get_dashboard_urls_with_multiple_tabs(
     assert result == expected_uris
 
 
+@patch(
+    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
+)
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_exporting_dashboard_only(
+    mock_run,
     mocker: MockerFixture,
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
@@ -303,6 +307,7 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
             "urlParams": None,
         }
     }
+    mock_run.return_value = "url1"
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -311,10 +316,7 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
 
     result: list[str] = class_instance.get_dashboard_urls()
 
-    assert (
-        "http://0.0.0.0:8080/superset/dashboard/%3CMock%20name='mock.dashboard.uuid"
-        in result[0]
-    )
+    assert "http://0.0.0.0:8080/superset/dashboard/p/url1/" == result[0]
 
 
 @patch(
