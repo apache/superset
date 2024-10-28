@@ -1,4 +1,7 @@
+import { ControlSetRow } from "@superset-ui/chart-controls";
 import { DEFAULT_FORM_DATA, SpeedometerTransformProps } from "./types";
+import { number } from "prop-types";
+import { createSegmentControlCP } from "./controlPanel";
 
 type RGBA = {r: number, g: number, b: number, a: number };
 
@@ -40,6 +43,8 @@ function checkIfStartIsGeaterThanEnd(s1Start: number, s1End: number) {
     }
 }
 
+export let gSegmentTestValue = 1
+
 
 export default function transformProps(chartProps: SpeedometerTransformProps) {
     const { width, height, formData, queriesData } = chartProps;
@@ -59,16 +64,15 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     const progress = calculatePercentage(minVal, maxVal, metricValue);    
 
     // Segements 2nd arch
-    const segmentAmt = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
+    const segmentAmount = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
     const s1ChartColor:any = formData.s1ChartColor ?? DEFAULT_FORM_DATA.s1ChartColor ?? 0;    
     const { s1Start, s1End } = checkIfStartIsGeaterThanEnd( formData.s1Start ?? DEFAULT_FORM_DATA.s1Start ?? 0, formData.s1End ?? DEFAULT_FORM_DATA.s1End ?? 0);
-
+    
     const convertedColorCode = rgbaToHex(s1ChartColor);
 
-    console.log("s1ChartColor: ", s1ChartColor);
-    console.log("convertedColorCode: ", convertedColorCode);
-    console.log("Form Data:", formData);
-    console.log("Default Form Data:", DEFAULT_FORM_DATA);
+    gSegmentTestValue = segmentAmount
+    console.log(gSegmentTestValue);
+    createSegmentControlCP(segmentAmount, true);
 
     return {
         width,
@@ -76,7 +80,7 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
         minValue: minVal,
         maxValue: maxVal,
         progress: progress,
-        segmentAmt: segmentAmt,
+        segmentAmt: segmentAmount,
         s1ChartColor: convertedColorCode,
         s1Start: s1Start,
         s1End: s1End,
