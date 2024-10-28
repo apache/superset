@@ -64,8 +64,7 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
     fi
 
 # Runs the webpack build process
-COPY --chown=superset:superset superset-frontend /app/superset-frontend
-RUN chmod 777 -R scripts
+COPY superset-frontend /app/superset-frontend
 
 # This copies the .po files needed for translation
 RUN mkdir -p /app/superset/translations
