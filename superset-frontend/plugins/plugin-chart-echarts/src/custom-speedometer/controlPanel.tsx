@@ -6,7 +6,19 @@ import {
   D3_FORMAT_OPTIONS,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { DEFAULT_FORM_DATA } from './types';
+import { DEFAULT_FORM_DATA, SpeedometerChartFormData } from './types';
+
+// Create segment option based ont he amt of segments selected in the slider
+const createSegmentControl = (sAmt: number) => {
+  const segmentsControls = [];
+
+  for (let i = 1; i <= sAmt; i++) {
+    segmentsControls.push(
+      [<ControlSubSectionHeader>{t('Segment '+i)}</ControlSubSectionHeader>]
+    )
+  }
+  return segmentsControls;
+}
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -116,10 +128,14 @@ const config: ControlPanelConfig = {
             }
           },
         ],
-        // [<ControlSubSectionHeader>{t('Segement 2')}</ControlSubSectionHeader>],
       ],
     }
   ]
 }
+
+function getDataToUse(props: SpeedometerChartFormData){
+
+}
+
 
 export default config;
