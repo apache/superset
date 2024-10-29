@@ -984,13 +984,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onCustomWidthChange = (value: number | string | null | undefined) => {
-    // Convert string to number if needed and handle empty/invalid values
     const numValue =
-      value === undefined || value === ''
-        ? undefined
-        : typeof value === 'string'
-          ? Number(value) || null
-          : value;
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && Number.isNaN(Number(value)))
+        ? null
+        : Number(value);
     updateAlertState('custom_width', numValue);
   };
 
