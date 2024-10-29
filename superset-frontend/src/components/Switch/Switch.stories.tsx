@@ -35,13 +35,10 @@ export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {
 };
 
 InteractiveSwitch.args = {
-  autoFocus: false,
   checked: false,
   disabled: false,
   loading: false,
   title: 'Switch',
-  className: 'test',
-  defaultChecked: false,
 };
 
 InteractiveSwitch.argTypes = {
