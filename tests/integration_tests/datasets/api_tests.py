@@ -449,7 +449,7 @@ class TestDatasetApi(SupersetTestCase):
         uri = (
             f"api/v1/dataset/{dataset.id}?"
             "q=(columns:!(id,sql,columns.column_name,columns.expression,metrics.metric_name,metrics.expression))"
-            "&render=true&multiplier=4"
+            "&include_rendered_sql=true&multiplier=4"
         )
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 200
@@ -458,7 +458,8 @@ class TestDatasetApi(SupersetTestCase):
 
         assert response["result"] == {
             "id": dataset.id,
-            "sql": f"SELECT {admin.id} as my_user_id",
+            "sql": "SELECT {{ current_user_id() }} as my_user_id",
+            "rendered_sql": f"SELECT {admin.id} as my_user_id",
             "columns": [
                 {
                     "column_name": "my_user_id",
@@ -466,13 +467,15 @@ class TestDatasetApi(SupersetTestCase):
                 },
                 {
                     "column_name": "calculated_test",
-                    "expression": f"'{admin.username}'",
+                    "expression": "'{{ current_username() }}'",
+                    "rendered_expression": f"'{admin.username}'",
                 },
             ],
             "metrics": [
                 {
                     "metric_name": "param_test",
-                    "expression": "4 * 1.4",
+                    "expression": "{{ url_param('multiplier') }} * 1.4",
+                    "rendered_expression": "4 * 1.4",
                 },
             ],
         }

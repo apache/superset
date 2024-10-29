@@ -1144,7 +1144,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         response["id"] = pk
         response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
 
-        if parse_boolean_string(request.args.get("render")):
+        if parse_boolean_string(request.args.get("include_rendered_sql")):
             processor = get_template_processor(database=item.database)
             response["result"] = self.render_dataset_fields(
                 response["result"], processor
@@ -1166,7 +1166,12 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         def render_item_list(item_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return [
-                {**item, "expression": processor.process_template(item["expression"])}
+                {
+                    **item,
+                    "rendered_expression": processor.process_template(
+                        item["expression"]
+                    ),
+                }
                 if item.get("expression")
                 else item
                 for item in item_list
@@ -1179,6 +1184,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             data["columns"] = render_item_list(columns)
 
         if sql := data.get("sql"):
-            data["sql"] = processor.process_template(sql)
+            data["rendered_sql"] = processor.process_template(sql)
 
         return data
