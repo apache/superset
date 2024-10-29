@@ -368,7 +368,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: `#`,
+            label: t('# Previous value'),
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -381,7 +381,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: `△`,
+            label: t('△ Difference'),
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -394,7 +394,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: `%`,
+            label: t('% Difference'),
             key: `% ${col.key}`,
             config: getComparisonColConfig(`%`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
