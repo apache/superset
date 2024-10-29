@@ -42,7 +42,9 @@ export function checkNoOfverlapping(segment :  {color:string; end: number; start
     for (let i = 0; i <= 2; i++) {
         if(i === segmentEnd-1) {
             if(segment[i].end > 100) {  
-                segment[i].end = 100
+            console.log("before: ",segment[i].end)
+            segment[i].end = 100
+            console.log("after: ",segment[i].end)
                 break;
             } else {
                 break;

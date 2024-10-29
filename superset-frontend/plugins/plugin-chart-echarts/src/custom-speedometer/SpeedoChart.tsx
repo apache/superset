@@ -14,7 +14,6 @@ const calculatePercentage = (progressVal: number): number => {
   return progressVal;
 }
 
-// const SpeedoChart: React.FC<SpeedoChartProps> = ({ minValue, maxValue, progress, segmentAmt, s1ChartColor, s1Start, s1Start, testVal }) => {
 const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -44,9 +43,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     {start: s3Start, end: s3End, color: s3ChartColor},
   ]
   const segments2 = controlledSegments
-
   
-
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
 
@@ -115,97 +112,29 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
             fontWeight: 'bold'
           }
         },
-        {
-          type: 'text',
-          left: 400,
-          top: 230,
-          style: {
-            text: `S1 Color: ${s1ChartColor}`,
-            fontSize: 16,
-            fontWeight: 'bold',
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 250,
-          style: {
-            text: `S1 Start: ${s1Start}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 270,
-          style: {
-            text: `S1 End: ${s1End}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 290,
-          style: {
-            text: `S2 Color: ${s2ChartColor}`,
-            fontSize: 16,
-            fontWeight: 'bold',
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 310,
-          style: {
-            text: `S2 Start: ${s2Start}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 330,
-          style: {
-            text: `S2 End: ${s2End}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 350,
-          style: {
-            text: `S3 Color: ${s3ChartColor}`,
-            fontSize: 16,
-            fontWeight: 'bold',
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 370,
-          style: {
-            text: `S3 Start: ${s3Start}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 390,
-          style: {
-            text: `S3 End: ${s3End}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        
+        // Loop here             
+        ...segments2.flatMap((segment) => [
+          {
+            type: 'text',
+            left: 400,
+            top: 210, // Adjust this based on your requirements
+            style: {
+              text: `minValue: 50`, // Use backticks for template literals
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+          },
+          {
+            type: 'text',
+            left: 400,
+            top: 230, // Adjust this based on your requirements
+            style: {
+              text: `maxValue: 10`, // Example for another value, adjust as needed
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+          },
+        ])            
       ],
       series: [{
         type: 'custom',
