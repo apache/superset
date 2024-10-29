@@ -22,7 +22,7 @@ import { useState } from 'react';
 import Collapse from 'src/components/Collapse';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
-import { FieldPropTypes, Engines } from '../../types';
+import { FieldPropTypes } from '../../types';
 
 const LABELS = {
   CLIENT_ID: 'Client ID',
@@ -30,7 +30,6 @@ const LABELS = {
   AUTH_URI: 'Authorization Request URI',
   TOKEN_URI: 'Token Request URI',
   SCOPE: 'Scope',
-  PROJECT: 'Project ID',
 };
 
 interface OAuth2ClientInfo {
@@ -39,7 +38,6 @@ interface OAuth2ClientInfo {
   authorization_request_uri: string;
   token_request_uri: string;
   scope: string;
-  project_id?: string;
 }
 
 export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
@@ -52,12 +50,7 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
     token_request_uri:
       encryptedExtra.oauth2_client_info?.token_request_uri || '',
     scope: encryptedExtra.oauth2_client_info?.scope || '',
-    project_id: encryptedExtra.oauth2_client_info?.project_id || '',
   });
-
-  if (db?.engine_information?.supports_oauth2 !== true) {
-    return null;
-  }
 
   const handleChange = (key: any) => (e: any) => {
     const updatedInfo = {
@@ -117,15 +110,6 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
             onChange={handleChange('scope')}
           />
         </FormItem>
-        {db.engine === Engines.BigQuery && (
-          <FormItem label={LABELS.PROJECT}>
-            <Input
-              data-test="project_id"
-              value={oauth2ClientInfo.project_id}
-              onChange={handleChange('project_id')}
-            />
-          </FormItem>
-        )}
       </Collapse.Panel>
     </Collapse>
   );

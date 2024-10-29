@@ -78,6 +78,7 @@ export type DatabaseObject = {
     role?: string;
     account?: string;
     ssh?: boolean;
+    project_id?: string;
   };
 
   // Performance
