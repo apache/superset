@@ -330,7 +330,7 @@ export const projectIdfield = ({
       id="project_id"
       name="project_id"
       required
-      value={db?.project_id}
+      value={db?.parameters?.project_id}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.project_id}
       placeholder="your-project-1234"
