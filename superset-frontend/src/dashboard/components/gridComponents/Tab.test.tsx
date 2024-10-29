@@ -116,7 +116,7 @@ test('Render tab (no content)', () => {
     useDnd: true,
   });
   expect(screen.getByText('🚀 Aspiring Developers')).toBeInTheDocument();
-  expect(EditableTitle).toBeCalledTimes(1);
+  expect(EditableTitle).toHaveBeenCalledTimes(1);
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 });
 
@@ -129,7 +129,7 @@ test('Render tab (no content) editMode:true', () => {
     useDnd: true,
   });
   expect(screen.getByText('🚀 Aspiring Developers')).toBeInTheDocument();
-  expect(EditableTitle).toBeCalledTimes(1);
+  expect(EditableTitle).toHaveBeenCalledTimes(1);
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 });
 
@@ -222,12 +222,12 @@ test('Edit table title', () => {
     useDnd: true,
   });
 
-  expect(EditableTitle).toBeCalledTimes(1);
+  expect(EditableTitle).toHaveBeenCalledTimes(1);
   expect(getByTestId('dragdroppable-object')).toBeInTheDocument();
 
-  expect(props.updateComponents).not.toBeCalled();
+  expect(props.updateComponents).not.toHaveBeenCalled();
   userEvent.click(screen.getByText('🚀 Aspiring Developers'));
-  expect(props.updateComponents).toBeCalled();
+  expect(props.updateComponents).toHaveBeenCalled();
 });
 
 test('Render tab (with content)', () => {
@@ -237,7 +237,7 @@ test('Render tab (with content)', () => {
     useRedux: true,
     useDnd: true,
   });
-  expect(DashboardComponent).toBeCalledTimes(2);
+  expect(DashboardComponent).toHaveBeenCalledTimes(2);
   expect(DashboardComponent).toHaveBeenNthCalledWith(
     1,
     expect.objectContaining({
@@ -316,7 +316,7 @@ test('Render tab (with content) editMode:true', () => {
     useRedux: true,
     useDnd: true,
   });
-  expect(DashboardComponent).toBeCalledTimes(2);
+  expect(DashboardComponent).toHaveBeenCalledTimes(2);
   expect(DashboardComponent).toHaveBeenNthCalledWith(
     1,
     expect.objectContaining({
@@ -369,14 +369,14 @@ test('Should call "handleDrop" and "handleTopDropTargetDrop"', () => {
     },
   );
 
-  expect(props.handleComponentDrop).not.toBeCalled();
+  expect(props.handleComponentDrop).not.toHaveBeenCalled();
   userEvent.click(getAllByTestId('MockDroppable')[0]);
-  expect(props.handleComponentDrop).toBeCalledTimes(1);
-  expect(props.onDropOnTab).not.toBeCalled();
+  expect(props.handleComponentDrop).toHaveBeenCalledTimes(1);
+  expect(props.onDropOnTab).not.toHaveBeenCalled();
   rerender(<Tab {...props} />);
   userEvent.click(getAllByTestId('MockDroppable')[1]);
-  expect(props.onDropOnTab).toBeCalledTimes(1);
-  expect(props.handleComponentDrop).toBeCalledTimes(2);
+  expect(props.onDropOnTab).toHaveBeenCalledTimes(1);
+  expect(props.handleComponentDrop).toHaveBeenCalledTimes(2);
 });
 
 test('Render tab content with no children, editMode: true, canEdit: true', () => {
