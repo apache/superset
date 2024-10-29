@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-22.04
     strategy:
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize"]
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311"]
       fail-fast: false
     steps:
       - name: Set up QEMU
