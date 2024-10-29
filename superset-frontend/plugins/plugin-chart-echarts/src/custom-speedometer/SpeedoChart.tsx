@@ -14,11 +14,21 @@ const calculatePercentage = (progressVal: number): number => {
   return progressVal;
 }
 
-// const SpeedoChart: React.FC<SpeedoChartProps> = ({ minValue, maxValue, progress, segmentAmt, s1ChartColor, s1Start, s1Start, testVal }) => {
 const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, s1Start, s1End } = props;
+  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, 
+    s1Start, 
+    s1End, 
+    s2ChartColor, 
+    s2Start, 
+    s2End, 
+    s3ChartColor, 
+    s3Start, 
+    s3End,
+    controlledSegments,
+  } = props;
+  // Assuming props includes segmentChartFormData
 
   var calculatedData = calculatePercentage(progress);
   //var calculatedData = 90
@@ -29,10 +39,11 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   var innerRadiusSecondChart = 122;
   const segments = [
     {start: s1Start, end: s1End, color: s1ChartColor},
-    {start: 70, end: 85, color: "#dba307"},
-    {start: 85, end: 100, color: "#db0707"},
+    {start: s2Start, end: s2End, color: s2ChartColor},
+    {start: s3Start, end: s3End, color: s3ChartColor},
   ]
-
+  const segments2 = controlledSegments
+  
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
 
@@ -101,36 +112,39 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
             fontWeight: 'bold'
           }
         },
-        {
-          type: 'text',
-          left: 400,
-          top: 210,
-          style: {
-            text: `S1 Color: ${s1ChartColor}`,
-            fontSize: 16,
-            fontWeight: 'bold',
+        // Loop here             
+        ...segments2.flatMap((segment, index) => [
+          {
+            type: 'text',
+            left: 400,
+            top: 210 + index * 60,
+            style: {
+              text: `S${index+1}Start: ${segment.start}`,
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+          },
+          {
+            type: 'text',
+            left: 400,
+            top: 230 + index * 60,
+            style: {
+              text: `S${index+1}End: ${segment.end}`,
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+          },
+          {
+            type: 'text',
+            left: 400,
+            top: 250 + index * 60,
+            style: {
+              text: `S${index+1}Colorcode: ${segment.Colorcode}`,
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
           }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 230,
-          style: {
-            text: `S1 Start: ${s1Start}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'text',
-          left: 400,
-          top: 250,
-          style: {
-            text: `S1 Start: ${s1End}`,
-            fontSize: 16,
-            fontWeight: 'bold'
-          }
-        },
+        ])            
       ],
       series: [{
         type: 'custom',
@@ -174,7 +188,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           const cx = api.coord([0,0])[1];  // Center x
           const cy = api.coord([0,0])[1];  // Center y
 
-          const segmentArcs = segments.map((segment) => {
+          const segmentArcs = segments2.map((segment) => {
             const startAngle = -Math.PI + (Math.PI * (segment.start / 100)); // Convert start percentage to radians
             const endAngle = -Math.PI + (Math.PI * (segment.end / 100)); // Convert end percentage to radians
 

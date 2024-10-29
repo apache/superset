@@ -7,59 +7,6 @@ import {
 import { DEFAULT_FORM_DATA } from './types';
 
 
-// Add props for segmentAmt and setSegmentAmt
-export function createSegmentControlCP(segmentAmt: number, rand:boolean) {
-  console.log("In createSegment funct", segmentAmt)
-
-  if(rand) {
-    console.log("TP",segmentAmt)
-  } else {
-    console.log("CP",segmentAmt)
-  }
-
-  const segmentControls = [];
-  for (let i = 1; i <= segmentAmt; i++) {
-    segmentControls.push(
-      [<ControlSubSectionHeader key={i}>{t('Segment ' + i)}</ControlSubSectionHeader>],
-      [
-        {
-          name: 's${i}ChartColor', // Unique name for the control
-          config: {
-            type: 'ColorPickerControl', // Type set to ColorPickerControl
-            default: DEFAULT_FORM_DATA.s1ChartColor,
-            renderTrigger: true,
-            label: t('Chart Color'), // Label for the control
-            description: t('Select the color for the chart'), // Description
-          },
-        },
-        {
-          name: 's1Start',
-          config: {
-            type: 'TextControl',
-            isInt: true,
-            default: DEFAULT_FORM_DATA.s1Start,
-            renderTrigger: true,
-            label: t('Start'),
-            description: t('Start value of the first Segment'),
-          },
-        },
-        {
-          name: 's1End',
-          config: {
-            type: 'TextControl',
-            isInt: true,
-            default: DEFAULT_FORM_DATA.s1End,
-            renderTrigger: true,
-            label: t('Ending point'),
-            description: t('The Ending degrees of the first segment'),
-          }
-        },
-      ],       
-    );
-  }
-  return segmentControls;
-}
-
 const config: ControlPanelConfig = {
   controlPanelSections: [
     {
@@ -166,9 +113,78 @@ const config: ControlPanelConfig = {
               label: t('Ending point'),
               description: t('The Ending degrees of the first segment'),
             }
-          },
+          },        
         ],       
-        ...createSegmentControlCP(DEFAULT_FORM_DATA.segmentAmt ?? 6, false),
+        [<ControlSubSectionHeader>{t('Segement 2')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 's2ChartColor', // Unique name for the control
+            config: {
+              type: 'ColorPickerControl', // Type set to ColorPickerControl
+              default: DEFAULT_FORM_DATA.s2ChartColor,
+              renderTrigger: true,
+              label: t('Chart Color'), // Label for the control
+              description: t('Select the color for the Second chart'), // Description
+            },
+          },        
+          {
+            name: 's2Start',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: DEFAULT_FORM_DATA.s2Start,
+              renderTrigger: true,
+              label: t('Start'),
+              description: t('Start value of the Second Segment'),
+            },
+          },
+          {
+            name: 's2End',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: DEFAULT_FORM_DATA.s2End,
+              renderTrigger: true,
+              label: t('Ending point'),
+              description: t('The Ending degrees of the Second segment'),
+            }
+          },
+        ],
+        [<ControlSubSectionHeader>{t('Segement 3')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 's3ChartColor', // Unique name for the control
+            config: {
+              type: 'ColorPickerControl', // Type set to ColorPickerControl
+              default: DEFAULT_FORM_DATA.s3ChartColor,
+              renderTrigger: true,
+              label: t('Chart Color'), // Label for the control
+              description: t('Select the color for the Third chart'), // Description
+            },
+          },        
+          {
+            name: 's3Start',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: DEFAULT_FORM_DATA.s3Start,
+              renderTrigger: true,
+              label: t('Start'),
+              description: t('Start value of the Third Segment'),
+            },
+          },
+          {
+            name: 's3End',
+            config: {
+              type: 'TextControl',
+              isInt: true,
+              default: DEFAULT_FORM_DATA.s3End,
+              renderTrigger: true,
+              label: t('Ending point'),
+              description: t('The Ending degrees of the Third segment'),
+            }
+          },
+        ],              
     ]}
   ]
 }
