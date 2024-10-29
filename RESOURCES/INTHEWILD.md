@@ -103,6 +103,7 @@ Join our growing community!
 - [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
+- [PlaidCloud](https://www.plaidcloud.com)
 - [Preset, Inc.](https://preset.io)
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
