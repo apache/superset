@@ -37,7 +37,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
   const segments = [
-    {start: s1Start, end: s2End, color: s2ChartColor},
+    {start: s1Start, end: s1End, color: s1ChartColor},
     {start: s2Start, end: s2End, color: s2ChartColor},
     {start: s3Start, end: s3End, color: s3ChartColor},
   ]
@@ -143,7 +143,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 2700,
+          top: 290,
           style: {
             text: `S2 Color: ${s2ChartColor}`,
             fontSize: 16,
@@ -153,7 +153,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 290,
+          top: 310,
           style: {
             text: `S2 Start: ${s2Start}`,
             fontSize: 16,
@@ -163,9 +163,9 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 310,
+          top: 330,
           style: {
-            text: `S2 Start: ${s2End}`,
+            text: `S2 End: ${s2End}`,
             fontSize: 16,
             fontWeight: 'bold'
           }
@@ -173,7 +173,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 330,
+          top: 350,
           style: {
             text: `S3 Color: ${s3ChartColor}`,
             fontSize: 16,
@@ -183,7 +183,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 350,
+          top: 370,
           style: {
             text: `S3 Start: ${s3Start}`,
             fontSize: 16,
@@ -193,7 +193,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         {
           type: 'text',
           left: 400,
-          top: 370,
+          top: 390,
           style: {
             text: `S3 Start: ${s3End}`,
             fontSize: 16,
