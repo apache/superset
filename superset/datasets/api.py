@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Optional
+from typing import Any
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -1117,7 +1119,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        item: Optional[SqlaTable] = self.datamodel.get(
+        item: SqlaTable | None = self.datamodel.get(
             pk,
             self._base_filters,
             self.show_select_columns,
