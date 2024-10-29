@@ -270,9 +270,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
-    { key: '#', label: '#' },
-    { key: '△', label: '△' },
-    { key: '%', label: '%' },
+    { key: '#', label: t('Previous value') },
+    { key: '△', label: t('Difference') },
+    { key: '%', label: t('% Difference') },
   ];
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -407,7 +407,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     };
   };
 
-  const comparisonLabels = [t('Main'), '#', '△', '%'];
+  const comparisonLabels = [t('Main'), t('Previous value'), t('Difference'), t('% Difference')];
   const filteredColumnsMeta = useMemo(() => {
     if (!isUsingTimeComparison) {
       return columnsMeta;
