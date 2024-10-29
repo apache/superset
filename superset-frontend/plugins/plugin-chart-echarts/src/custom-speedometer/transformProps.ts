@@ -50,9 +50,12 @@ export function checkNoOfverlapping(segment :  {color:string; end: number; start
         }
         else if(segment[i].end > segment[i+1].start) {
             console.log(segment[i].end ," end is larger then ", segment[i+1].start," start")
+            console.log("Before: ",segment[i], segment[i+1])
             segment[i].end = segment[i+1].start
+            console.log("after: ",segment[i], segment[i+1])
         } else {
             console.log(segment[i].end ," end is smaller then ", segment[i+1].start," start")
+            console.log(segment[i], segment[i+1])
         }   
     }    
     return segment
@@ -81,9 +84,9 @@ export function configureSegmentCharts(formData:any) {
    );
 
    const segmentarray = [
-    {color: s1ChartColor, end: s1End,  start: s1Start},
-    {color: s2ChartColor, end: s2End,  start: s2Start},
-    {color: s3ChartColor, end: s3End,  start: s3Start},
+    {color: s1ChartColor, end: s1End,  start: s1Start, name: 's1'},
+    {color: s2ChartColor, end: s2End,  start: s2Start, name: 's2'},
+    {color: s3ChartColor, end: s3End,  start: s3Start, name: 's3'},
    ]
 
    const controlledSegments =  checkNoOfverlapping(segmentarray)        

@@ -44,8 +44,6 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     {start: s3Start, end: s3End, color: s3ChartColor},
   ]
   const segments2 = controlledSegments
-  console.log(segments)
-  console.log(controlledSegments)
 
   
 
