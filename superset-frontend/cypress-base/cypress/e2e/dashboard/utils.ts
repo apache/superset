@@ -369,14 +369,11 @@ export function saveNativeFilterSettings(charts: ChartSpec[]) {
  * @returns {None}
  * @summary helper for cancel native filters settings
  ************************************************************************* */
-export function cancelNativeFilterSettings(confirm = false) {
-  if (!confirm) {
-    cy.get(nativeFilters.modal.footer)
-      .find(nativeFilters.modal.cancelButton)
-      .should('be.visible')
-      .click();
-  }
-
+export function cancelNativeFilterSettings() {
+  cy.get(nativeFilters.modal.footer)
+    .find(nativeFilters.modal.cancelButton)
+    .should('be.visible')
+    .click();
   cy.get(nativeFilters.modal.alertXUnsavedFilters)
     .should('be.visible')
     .should('have.text', 'There are unsaved changes.');
