@@ -33,7 +33,6 @@ export { default as Button } from './Button';
  */
 export {
   AutoComplete,
-  Avatar,
   Col,
   Divider,
   Empty,

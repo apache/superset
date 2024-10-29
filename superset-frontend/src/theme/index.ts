@@ -52,6 +52,11 @@ const baseConfig: ThemeConfig = {
     zIndexPopupBase: supersetTheme.zIndex.max,
   },
   components: {
+    Avatar: {
+      containerSize: 32,
+      fontSize: supersetTheme.typography.sizes.s,
+      lineHeight: 32,
+    },
     Badge: {
       paddingXS: supersetTheme.gridUnit * 2,
     },
