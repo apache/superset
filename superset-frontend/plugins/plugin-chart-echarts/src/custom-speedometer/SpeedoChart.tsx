@@ -146,6 +146,8 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           }
         ])            
       ],
+      // GBT Chat about the Math:
+      // https://chatgpt.com/share/67210a5b-6828-8003-86ac-e572362fb259
       series: [{
         type: 'custom',
         renderItem: (params: any, api: any) => {
