@@ -113,7 +113,7 @@ const config: ControlPanelConfig = {
               label: t('Ending point'),
               description: t('The Ending degrees of the first segment'),
             }
-          },          
+          },        
         ],       
         [<ControlSubSectionHeader>{t('Segement 2')}</ControlSubSectionHeader>],
         [
