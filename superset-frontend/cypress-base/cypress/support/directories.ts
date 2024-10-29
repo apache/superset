@@ -322,7 +322,9 @@ export const nativeFilters = {
     footer: '.ant-modal-footer',
     saveButton: dataTestLocator('native-filter-modal-save-button'),
     cancelButton: dataTestLocator('native-filter-modal-cancel-button'),
-    yesCancelButton: '[type="button"]',
+    confirmCancelButton: dataTestLocator(
+      'native-filter-modal-confirm-cancel-button',
+    ),
     alertXUnsavedFilters: '.ant-alert-message',
     tabsList: {
       filterItemsContainer: dataTestLocator('filter-title-container'),

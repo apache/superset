@@ -286,7 +286,7 @@ describe('Native filters', () => {
 
     it('User can cancel creating a new filter', () => {
       enterNativeFilterEditModal(false);
-      cancelNativeFilterSettings();
+      cancelNativeFilterSettings(true);
     });
 
     it('Verify setting options and tooltips for value filter', () => {

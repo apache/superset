@@ -21,6 +21,7 @@ import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NativeFilterScope, styled, t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { AntdForm, Typography } from 'src/components';
+import { areObjectsEqual } from 'src/reduxUtils';
 import { ScopingType } from './types';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue, isScopingAll } from './utils';
@@ -86,13 +87,16 @@ const FilterScope: FC<FilterScopeProps> = ({
 
   const updateScopes = useCallback(
     updatedFormValues => {
-      if (hasScopeBeenModified) {
+      if (
+        hasScopeBeenModified ||
+        areObjectsEqual(updatedFormValues.scope, filterScope)
+      ) {
         return;
       }
 
       updateFormValues(updatedFormValues);
     },
-    [hasScopeBeenModified, updateFormValues],
+    [filterScope, hasScopeBeenModified, updateFormValues],
   );
 
   useEffect(() => {
