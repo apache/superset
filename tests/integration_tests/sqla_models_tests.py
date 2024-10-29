@@ -970,8 +970,8 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
 @patch("superset.jinja_context.get_user_id", return_value=1)
 @patch("superset.jinja_context.get_username", return_value="abc")
 def test_extra_cache_keys_in_dataset_metrics_and_columns(
-    mock_username,
-    mock_user_id,
+    mock_username: Mock,
+    mock_user_id: Mock,
 ):
     table = SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
@@ -992,7 +992,7 @@ def test_extra_cache_keys_in_dataset_metrics_and_columns(
             ),
         ],
     )
-    query_obj = {
+    query_obj: dict[str, Any] = {
         "granularity": None,
         "from_dttm": None,
         "to_dttm": None,

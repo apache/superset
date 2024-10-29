@@ -1993,8 +1993,10 @@ class SqlaTable(
                 m.metric_name: m.expression for m in self.metrics
             }
             for metric in metrics:
-                if utils.is_adhoc_metric(metric):
-                    templatable_statements.append(metric["sqlExpression"])  # type: ignore
+                if utils.is_adhoc_metric(metric) and (
+                    sql := metric.get("sqlExpression")
+                ):
+                    templatable_statements.append(sql)
                 elif isinstance(metric, str) and metric in metrics_by_name:
                     templatable_statements.append(metrics_by_name[metric])
         if self.is_rls_supported:
