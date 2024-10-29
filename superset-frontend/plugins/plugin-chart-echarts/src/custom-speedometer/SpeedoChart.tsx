@@ -113,13 +113,13 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           }
         },
         // Loop here             
-        ...segments2.flatMap((segment) => [
+        ...segments2.flatMap((segment, index) => [
           {
             type: 'text',
             left: 400,
-            top: 210, // Adjust this based on your requirements
+            top: 210 + index * 60,
             style: {
-              text: `minValue: 50`, // Use backticks for template literals
+              text: `S${index+1}Start: ${segment.start}`,
               fontSize: 16,
               fontWeight: 'bold',
             },
@@ -127,13 +127,23 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           {
             type: 'text',
             left: 400,
-            top: 230, // Adjust this based on your requirements
+            top: 230 + index * 60,
             style: {
-              text: `maxValue: 10`, // Example for another value, adjust as needed
+              text: `S${index+1}End: ${segment.end}`,
               fontSize: 16,
               fontWeight: 'bold',
             },
           },
+          {
+            type: 'text',
+            left: 400,
+            top: 250 + index * 60,
+            style: {
+              text: `S${index+1}Colorcode: ${segment.Colorcode}`,
+              fontSize: 16,
+              fontWeight: 'bold',
+            },
+          }
         ])            
       ],
       series: [{
