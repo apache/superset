@@ -199,7 +199,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
       return () => clearTimeout(timeoutId);
     }
     return undefined;
-  }, [lastFilteredColumn, colId, isFilterVisible, column, api, lastFilteredInputPosition]);
+  }, [lastFilteredColumn, colId, lastFilteredInputPosition]);
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.stopPropagation();
