@@ -29,6 +29,13 @@ logger = logging.getLogger(__name__)
 def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
 
+    @app.after_request
+    def add_security_headers(response):
+        response.headers['Cross-Origin-Opener-Policy'] = 'unsafe-none' #'same-origin-allow-popups'
+        response.headers['Cross-Origin-Embedder-Policy'] = 'unsafe-none'
+        response.headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
+        return response
+    
     try:
         # Allow user to override our config completely
         config_module = superset_config_module or os.environ.get(
