@@ -26,7 +26,9 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     s2End, 
     s3ChartColor, 
     s3Start, 
-    s3End } = props;
+    s3End,
+    controlledSegments,
+  } = props;
   // Assuming props includes segmentChartFormData
 
   var calculatedData = calculatePercentage(progress);
@@ -41,6 +43,11 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     {start: s2Start, end: s2End, color: s2ChartColor},
     {start: s3Start, end: s3End, color: s3ChartColor},
   ]
+  const segments2 = controlledSegments
+  console.log(segments)
+  console.log(controlledSegments)
+
+  
 
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
@@ -135,7 +142,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           left: 400,
           top: 270,
           style: {
-            text: `S1 Start: ${s1End}`,
+            text: `S1 End: ${s1End}`,
             fontSize: 16,
             fontWeight: 'bold'
           }
@@ -195,7 +202,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           left: 400,
           top: 390,
           style: {
-            text: `S3 Start: ${s3End}`,
+            text: `S3 End: ${s3End}`,
             fontSize: 16,
             fontWeight: 'bold'
           }
@@ -244,7 +251,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           const cx = api.coord([0,0])[1];  // Center x
           const cy = api.coord([0,0])[1];  // Center y
 
-          const segmentArcs = segments.map((segment) => {
+          const segmentArcs = segments2.map((segment) => {
             const startAngle = -Math.PI + (Math.PI * (segment.start / 100)); // Convert start percentage to radians
             const endAngle = -Math.PI + (Math.PI * (segment.end / 100)); // Convert end percentage to radians
 

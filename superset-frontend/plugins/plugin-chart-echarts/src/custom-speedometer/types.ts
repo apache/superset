@@ -23,6 +23,7 @@ export type SpeedometerChartFormData = QueryFormData & {
     s3ChartColor: string;
     s3Start: number;
     s3End: number;
+    controlledSegments: any[]   // Create type for this (interface)
 }
 
 // Define the strucute for the query data returned by Superset
@@ -58,6 +59,7 @@ export interface SpeedometerChartProps {
     s3ChartColor: string;
     s3Start: number;
     s3End: number;
+    controlledSegments: any[]   // Create type for this (interface)
 }
 
 // Defines defailt values for the SpeedometerChartFormData (fallback values)

@@ -37,6 +37,27 @@ function checkIfStartIsGreaterThanEnd(start: number, end: number) {
     return { start, end }; // Otherwise return as is
 }
 
+export function checkNoOfverlapping(segment :  {color:string; end: number; start: number }[]) {
+    const segmentEnd = segment.length;
+    for (let i = 0; i <= 2; i++) {
+        if(i === segmentEnd-1) {
+            if(segment[i].end > 100) {  
+                segment[i].end = 100
+                break;
+            } else {
+                break;
+            }
+        }
+        else if(segment[i].end > segment[i+1].start) {
+            console.log(segment[i].end ," end is larger then ", segment[i+1].start," start")
+            segment[i].end = segment[i+1].start
+        } else {
+            console.log(segment[i].end ," end is smaller then ", segment[i+1].start," start")
+        }   
+    }    
+    return segment
+}
+
 
 export function configureSegmentCharts(formData:any) {
    // Process colors with fallback to default
@@ -59,7 +80,15 @@ export function configureSegmentCharts(formData:any) {
        formData.s3End ?? DEFAULT_FORM_DATA.s3End ?? 0
    );
 
-    console.log(s2ChartColor)
+   const segmentarray = [
+    {color: s1ChartColor, end: s1End,  start: s1Start},
+    {color: s2ChartColor, end: s2End,  start: s2Start},
+    {color: s3ChartColor, end: s3End,  start: s3Start},
+   ]
+
+   const controlledSegments =  checkNoOfverlapping(segmentarray)        
+
+
     return {
         s1ChartColor,
         s1Start,
@@ -70,6 +99,7 @@ export function configureSegmentCharts(formData:any) {
         s3ChartColor,
         s3Start,
         s3End,
+        controlledSegments,
     };
 }
 
@@ -94,8 +124,6 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     const segmentAmount = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
     
     const segmentChartFormData = configureSegmentCharts(formData)
-    console.log(segmentChartFormData)
-
 
     return {
         width,
@@ -113,5 +141,6 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
         s3ChartColor: segmentChartFormData.s3ChartColor,
         s3Start: segmentChartFormData.s3Start,
         s3End: segmentChartFormData.s3End,
+        controlledSegments: segmentChartFormData.controlledSegments
     };
 }
