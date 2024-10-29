@@ -48,7 +48,7 @@ jobs:
       - name: Determine Image Tag
         id: tag
         run: |
-          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+          if [[ "${GITHUB_REF##*/}" == "master" ]]; then
             echo "IMAGE_PERMANENT_TAG=latest" >> $GITHUB_ENV
           elif [[ "${GITHUB_REF##*/}" == "dev" ]]; then
             echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
