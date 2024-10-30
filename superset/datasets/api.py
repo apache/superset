@@ -32,6 +32,7 @@ from flask_appbuilder.const import (
 )
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
 
 from superset import event_logger
@@ -72,6 +73,7 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
+from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
@@ -83,6 +85,7 @@ from superset.views.base_api import (
     requires_json,
     statsd_metrics,
 )
+from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
@@ -1070,6 +1073,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @rison(get_item_schema)
     @statsd_metrics
+    @handle_api_exception
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".get",
         log_to_statsd=False,
@@ -1147,11 +1151,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         response[API_RESULT_RES_KEY] = show_model_schema.dump(item, many=False)
 
         if parse_boolean_string(request.args.get("include_rendered_sql")):
-            processor = get_template_processor(database=item.database)
-            response["result"] = self.render_dataset_fields(
-                response["result"], processor
-            )
-
+            try:
+                processor = get_template_processor(database=item.database)
+                response["result"] = self.render_dataset_fields(
+                    response["result"], processor
+                )
+            except SupersetTemplateException as ex:
+                return self.response_400(message=str(ex))
         return self.response(200, **response)
 
     @staticmethod
@@ -1179,13 +1185,22 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 for item in item_list
             ]
 
-        if metrics := data.get("metrics"):
-            data["metrics"] = render_item_list(metrics)
+        item_type: str | None = None
+        try:
+            if metrics := data.get("metrics"):
+                item_type = "metric"
+                data["metrics"] = render_item_list(metrics)
 
-        if columns := data.get("columns"):
-            data["columns"] = render_item_list(columns)
+            if columns := data.get("columns"):
+                item_type = "column"
+                data["columns"] = render_item_list(columns)
 
-        if sql := data.get("sql"):
-            data["rendered_sql"] = processor.process_template(sql)
+            if sql := data.get("sql"):
+                item_type = "query"
+                data["rendered_sql"] = processor.process_template(sql)
+        except TemplateSyntaxError as ex:
+            raise SupersetTemplateException(
+                f"Unable to render expression from dataset {item_type}.",
+            ) from ex
 
         return data
