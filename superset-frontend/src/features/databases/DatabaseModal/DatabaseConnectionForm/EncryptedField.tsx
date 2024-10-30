@@ -57,10 +57,11 @@ export const EncryptedField = ({
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
   const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
   const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
+  const paramValue = db?.parameters?.[encryptedField];
   const encryptedValue =
-    typeof db?.parameters?.[encryptedField] === 'object'
-      ? JSON.stringify(db?.parameters?.[encryptedField])
-      : db?.parameters?.[encryptedField];
+    paramValue && typeof paramValue === 'object'
+      ? JSON.stringify(paramValue)
+      : paramValue;
   return (
     <CredentialInfoForm>
       {db?.engine === 'gsheets' && (
