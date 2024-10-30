@@ -381,7 +381,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: t('△ Difference'),
+            label: t('Difference'),
             key: `△ ${col.key}`,
             config: getComparisonColConfig(`△`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
