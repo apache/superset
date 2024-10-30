@@ -31,17 +31,11 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   // Assuming props includes segmentChartFormData
 
   var calculatedData = calculatePercentage(progress);
-  //var calculatedData = 90
-
+  var calculatedData = 100
 
   // Hardcoded values for 2nd chart
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
-  const segments = [
-    {start: s1Start, end: s1End, color: s1ChartColor},
-    {start: s2Start, end: s2End, color: s2ChartColor},
-    {start: s3Start, end: s3End, color: s3ChartColor},
-  ]
   const segments2 = controlledSegments
   
   useEffect(() => {
@@ -139,21 +133,21 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
             left: 400,
             top: 250 + index * 60,
             style: {
-              text: `S${index+1}Colorcode: ${segment.Colorcode}`,
+              text: `S${index+1}Colorcode: ${segment.color}`,
               fontSize: 16,
               fontWeight: 'bold',
             },
           }
         ])            
       ],
-      // GBT Chat about the Math:
-      // https://chatgpt.com/share/67210a5b-6828-8003-86ac-e572362fb259
       series: [{
+        // Data Showcase Chart
         type: 'custom',
         renderItem: (params: any, api: any) => {
-          const startAngle = -Math.PI; // Starting angle for the arc (180 degrees)
-          const hardCap = Math.min(calculatedData, 100);
-          const endAngle = startAngle + (Math.PI * (hardCap / 100)); // Ending angle based on progress
+          const startAngle = (170 * Math.PI) / 180; // Convert 170° to radians
+          const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
+          const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100
+          
 
           const outerRadius = 110;
           const innerRadius = 80;
@@ -171,7 +165,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
                 L ${cx + outerRadius * Math.cos(endAngle)} ${cy + outerRadius * Math.sin(endAngle)}
                 A ${outerRadius} ${outerRadius} 0 0 0
                   ${cx + outerRadius * Math.cos(startAngle)} ${cy + outerRadius * Math.sin(startAngle)}
-                Z
+                Z                
               `,
             },
             style: {
@@ -184,6 +178,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         data: [{}], // Single data item to trigger renderItem
       },
       {
+        // Segments Chart
         type: 'custom',
         renderItem: (params: any, api:any) => {
 
