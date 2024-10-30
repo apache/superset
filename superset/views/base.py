@@ -347,8 +347,7 @@ def menu_data(user: User) -> dict[str, Any]:
         "brand": {
             "path": appbuilder.app.config["LOGO_TARGET_PATH"]
             or url_for("Superset.welcome"),
-            "icon": f"{appbuilder.app.config['STATIC_ASSETS_PREFIX']}"
-            f"{appbuilder.app_icon}",
+            "icon": f"{appbuilder.app_icon}",
             "alt": appbuilder.app_name,
             "tooltip": appbuilder.app.config["LOGO_TOOLTIP"],
             "text": brand_text,
