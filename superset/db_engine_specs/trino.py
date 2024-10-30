@@ -175,6 +175,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         """
         Return a modified URL with the username set.
 
+        :param access_token: Personal access token for OAuth2
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
