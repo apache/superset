@@ -355,7 +355,7 @@ const processComparisonColumns = (
         return [
           {
             ...col,
-            label: t('Main'),
+            label: t('Current value'),
             key: `${t('Main')} ${col.key}`,
             config: getComparisonColConfig(t('Main'), col.key, columnConfig),
             formatter: getComparisonColFormatter(
@@ -368,7 +368,7 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: t('# Previous value'),
+            label: t('Previous value'),
             key: `# ${col.key}`,
             config: getComparisonColConfig(`#`, col.key, columnConfig),
             formatter: getComparisonColFormatter(
