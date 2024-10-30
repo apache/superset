@@ -17,13 +17,8 @@
  * under the License.
  */
 
-import { FC, useCallback, useRef, useState } from 'react';
-import {
-  NativeFilterScope,
-  styled,
-  t,
-  useComponentDidUpdate,
-} from '@superset-ui/core';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NativeFilterScope, styled, t } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import { AntdForm, Typography } from 'src/components';
 import { ScopingType } from './types';
@@ -32,7 +27,7 @@ import { getDefaultScopeValue, isScopingAll } from './utils';
 
 type FilterScopeProps = {
   pathToFormValue?: string[];
-  updateFormValues: (values: any) => void;
+  updateFormValues: (values: any, triggerFormChange?: boolean) => void;
   formFilterScope?: NativeFilterScope;
   forceUpdate: Function;
   filterScope?: NativeFilterScope;
@@ -64,17 +59,19 @@ const FilterScope: FC<FilterScopeProps> = ({
   chartId,
   initiallyExcludedCharts,
 }) => {
-  const [initialFilterScope] = useState(
-    filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
+  const initialFilterScope = useMemo(
+    () => filterScope || getDefaultScopeValue(chartId, initiallyExcludedCharts),
+    [chartId, filterScope, initiallyExcludedCharts],
   );
   const lastSpecificScope = useRef(initialFilterScope);
-  const [initialScopingType] = useState(
-    isScopingAll(initialFilterScope, chartId)
-      ? ScopingType.All
-      : ScopingType.Specific,
+  const initialScopingType = useMemo(
+    () =>
+      isScopingAll(initialFilterScope, chartId)
+        ? ScopingType.All
+        : ScopingType.Specific,
+    [chartId, initialFilterScope],
   );
-  const [hasScopeBeenModified, setHasScopeBeenModified] =
-    useState(!!filterScope);
+  const [hasScopeBeenModified, setHasScopeBeenModified] = useState(false);
 
   const onUpdateFormValues = useCallback(
     (formValues: any) => {
@@ -87,26 +84,24 @@ const FilterScope: FC<FilterScopeProps> = ({
     [formScopingType, updateFormValues],
   );
 
-  const updateScopes = useCallback(() => {
-    if (filterScope || hasScopeBeenModified) {
-      return;
-    }
+  const updateScopes = useCallback(
+    updatedFormValues => {
+      if (hasScopeBeenModified) {
+        return;
+      }
 
-    const newScope = getDefaultScopeValue(chartId, initiallyExcludedCharts);
-    updateFormValues({
-      scope: newScope,
-      scoping: isScopingAll(newScope, chartId)
-        ? ScopingType.All
-        : ScopingType.Specific,
-    });
-  }, [
-    chartId,
-    filterScope,
-    hasScopeBeenModified,
-    initiallyExcludedCharts,
-    updateFormValues,
-  ]);
-  useComponentDidUpdate(updateScopes);
+      updateFormValues(updatedFormValues, false);
+    },
+    [hasScopeBeenModified, updateFormValues],
+  );
+
+  useEffect(() => {
+    const updatedFormValues = {
+      scope: initialFilterScope,
+      scoping: initialScopingType,
+    };
+    updateScopes(updatedFormValues);
+  }, [initialFilterScope, initialScopingType, updateScopes]);
 
   return (
     <Wrapper>
