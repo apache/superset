@@ -20,14 +20,22 @@ PYTHON=`command -v python3.11 || command -v python3.10`
 
 .PHONY: install superset venv pre-commit
 
-install: superset pre-commit
+install: uv superset pre-commit
+
+uv:
+	# install uv
+	pip install uv
+
+	# create virtualenv
+	uv venv
 
 superset:
+
 	# Install external dependencies
-	pip install -r requirements/development.txt
+	uv pip install -r requirements/development.txt
 
 	# Install Superset in editable (development) mode
-	pip install -e .
+	uv pip install -e .
 
 	# Create an admin user in your metadata database
 	superset fab create-admin \
@@ -49,7 +57,7 @@ superset:
 	# Install node packages
 	cd superset-frontend; npm ci
 
-update: update-py update-js
+update: uv update-py update-js
 
 update-py:
 	# Install external dependencies
