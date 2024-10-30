@@ -47,15 +47,15 @@ test('Should call download image on click', async () => {
   const props = createProps();
   renderComponent();
   await waitFor(() => {
-    expect(downloadAsImage).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(downloadAsImage).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Download as Image' }));
 
   await waitFor(() => {
-    expect(downloadAsImage).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(downloadAsImage).toHaveBeenCalledTimes(1);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 });
 

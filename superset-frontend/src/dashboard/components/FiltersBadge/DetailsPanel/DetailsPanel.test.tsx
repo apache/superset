@@ -123,10 +123,10 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
     screen.getByRole('button', { name: 'Clinical Stage' }),
   ).toBeInTheDocument();
 
-  expect(props.onHighlightFilterSource).toBeCalledTimes(0);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Clinical Stage' }));
-  expect(props.onHighlightFilterSource).toBeCalledTimes(1);
-  expect(props.onHighlightFilterSource).toBeCalledWith([
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
     'TABS-wUKya7eQ0Z',
     'TAB-BCIJF4NvgQ',
@@ -153,10 +153,10 @@ test('Should render "appliedIndicators"', async () => {
   expect(await screen.findByText('Applied filters (1)')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Country' })).toBeInTheDocument();
 
-  expect(props.onHighlightFilterSource).toBeCalledTimes(0);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Country' }));
-  expect(props.onHighlightFilterSource).toBeCalledTimes(1);
-  expect(props.onHighlightFilterSource).toBeCalledWith([
+  expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
+  expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
     'TABS-wUKya7eQ0Z',
     'TAB-BCIJF4NvgQ',
