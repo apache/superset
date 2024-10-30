@@ -82,6 +82,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     # OAuth 2.0
     supports_oauth2 = True
     oauth2_exception = TrinoAuthError
+    oauth2_token_request_type = "data"
 
     @classmethod
     def get_extra_table_metadata(
