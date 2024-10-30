@@ -318,3 +318,25 @@ export const forceSSLField = ({
     />
   </div>
 );
+
+export const projectIdfield = ({
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <>
+    <ValidatedInput
+      id="project_id"
+      name="project_id"
+      required
+      value={db?.parameters?.project_id}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.project_id}
+      placeholder="your-project-1234-a1"
+      label={t('Project Id')}
+      onChange={changeMethods.onParametersChange}
+      helpText={t('Enter the unique project id for your database.')}
+    />
+  </>
+);
