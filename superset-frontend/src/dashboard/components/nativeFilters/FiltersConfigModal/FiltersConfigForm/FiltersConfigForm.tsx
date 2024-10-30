@@ -568,9 +568,9 @@ const FiltersConfigForm = (
   }, [form]);
 
   const updateFormValues = useCallback(
-    (values: any) => {
+    (values: any, triggerFormChange = true) => {
       setNativeFilterFieldValues(form, filterId, values);
-      formChanged();
+      if (triggerFormChange) formChanged();
     },
     [filterId, form, formChanged],
   );

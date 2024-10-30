@@ -20,56 +20,31 @@
 import {
   AppliedCrossFilterType,
   AppliedNativeFilterType,
-  ensureIsArray,
   Filter,
   isAppliedCrossFilterType,
   isAppliedNativeFilterType,
   isNativeFilter,
 } from '@superset-ui/core';
 import { Slice } from 'src/types/Chart';
-import { DatasourcesState } from '../types';
 
-function checkForExpression(formData?: Record<string, any>) {
-  const groupby = ensureIsArray(formData?.groupby) ?? [];
-  const allColumns = ensureIsArray(formData?.all_columns) ?? [];
-  const checkColumns = groupby.concat(allColumns);
-  return checkColumns.some(
-    (col: string | Record<string, any>) =>
-      typeof col !== 'string' && col.expressionType !== undefined,
-  );
+function isGlobalScope(scope: number[], slices: Record<string, Slice>) {
+  return scope.length === Object.keys(slices).length;
 }
 
 function getRelatedChartsForSelectFilter(
   nativeFilter: AppliedNativeFilterType | Filter,
   slices: Record<string, Slice>,
   chartsInScope: number[],
-  datasources: DatasourcesState,
 ) {
   return Object.values(slices)
     .filter(slice => {
-      const { datasource, slice_id } = slice;
-      // not in scope, ignore
-      if (!chartsInScope.includes(slice_id)) return false;
+      const { slice_id } = slice;
+      // all have been selected, always apply
+      if (isGlobalScope(chartsInScope, slices)) return true;
+      // hand-picked in scope, always apply
+      if (chartsInScope.includes(slice_id)) return true;
 
-      const chartDatasource = datasource
-        ? datasources[datasource]
-        : Object.values(datasources).find(ds => ds.id === slice.datasource_id);
-
-      const { column, datasetId } = nativeFilter.targets?.[0] ?? {};
-      const datasourceColumnNames = chartDatasource?.column_names ?? [];
-
-      // same datasource, always apply
-      if (chartDatasource?.id === datasetId) return true;
-
-      // let backend deal with adhoc columns and jinja
-      const hasSqlExpression = checkForExpression(slice.form_data);
-      if (hasSqlExpression) {
-        return true;
-      }
-
-      return datasourceColumnNames.some(
-        col => col === column?.name || col === column?.displayName,
-      );
+      return false;
     })
     .map(slice => slice.slice_id);
 }
@@ -78,52 +53,23 @@ function getRelatedChartsForCrossFilter(
   crossFilter: AppliedCrossFilterType,
   slices: Record<string, Slice>,
   scope: number[],
-  datasources: DatasourcesState,
 ): number[] {
   const sourceSlice = slices[filterKey];
-  const filters = crossFilter?.values?.filters ?? [];
 
   if (!sourceSlice) return [];
-
-  const sourceDatasource = sourceSlice.datasource
-    ? datasources[sourceSlice.datasource]
-    : Object.values(datasources).find(
-        ds => ds.id === sourceSlice.datasource_id,
-      );
 
   return Object.values(slices)
     .filter(slice => {
       // cross-filter emitter
       if (slice.slice_id === Number(filterKey)) return false;
-      // not in scope, ignore
-      if (!scope.includes(slice.slice_id)) return false;
-
-      const targetDatasource = slice.datasource
-        ? datasources[slice.datasource]
-        : Object.values(datasources).find(ds => ds.id === slice.datasource_id);
-
-      // same datasource, always apply
-      if (targetDatasource === sourceDatasource) return true;
-
-      const targetColumnNames = targetDatasource?.column_names ?? [];
-
-      // let backend deal with adhoc columns and jinja
-      const hasSqlExpression = checkForExpression(slice.form_data);
-      if (hasSqlExpression) {
-        return true;
-      }
-
-      for (const filter of filters) {
-        // let backend deal with adhoc columns
-        if (
-          typeof filter.col !== 'string' &&
-          filter.col.expressionType !== undefined
-        ) {
-          return true;
-        }
-        // shared column names, different datasources, apply filter
-        if (targetColumnNames.includes(filter.col)) return true;
-      }
+      // hand-picked in the scope, always apply
+      const fullScope = [
+        ...scope.filter(s => String(s) !== filterKey),
+        Number(filterKey),
+      ];
+      if (isGlobalScope(fullScope, slices)) return true;
+      // hand-picked in the scope, always apply
+      if (scope.includes(slice.slice_id)) return true;
 
       return false;
     })
@@ -140,7 +86,6 @@ export function getRelatedCharts(
     AppliedNativeFilterType | AppliedCrossFilterType | Filter
   > | null,
   slices: Record<string, Slice>,
-  datasources: DatasourcesState,
 ) {
   const related = Object.entries(filters).reduce((acc, [filterKey, filter]) => {
     const isCrossFilter =
@@ -168,7 +113,6 @@ export function getRelatedCharts(
           actualCrossFilter,
           slices,
           chartsInScope,
-          datasources,
         ),
       };
     }
@@ -186,7 +130,6 @@ export function getRelatedCharts(
           nativeFilter,
           slices,
           chartsInScope,
-          datasources,
         ),
       };
     }

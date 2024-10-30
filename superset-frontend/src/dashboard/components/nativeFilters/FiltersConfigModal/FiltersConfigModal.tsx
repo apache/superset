@@ -16,28 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
-import { uniq, isEqual, sortBy, debounce, isEmpty } from 'lodash';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
   NativeFilterType,
-  Divider,
-  styled,
   SLOW_DEBOUNCE,
-  t,
   css,
+  styled,
+  t,
   useTheme,
 } from '@superset-ui/core';
+import { debounce, isEmpty, isEqual, sortBy, uniq } from 'lodash';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { AntdForm } from 'src/components';
-import Icons from 'src/components/Icons';
 import ErrorBoundary from 'src/components/ErrorBoundary';
+import Icons from 'src/components/Icons';
 import { StyledModal } from 'src/components/Modal';
-import { testWithId } from 'src/utils/testUtils';
 import { updateCascadeParentIds } from 'src/dashboard/actions/nativeFilters';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import { testWithId } from 'src/utils/testUtils';
 import { useFilterConfigMap, useFilterConfiguration } from '../state';
+import DividerConfigForm from './DividerConfigForm';
 import FilterConfigurePane from './FilterConfigurePane';
 import FiltersConfigForm, {
   FilterPanels,
@@ -46,15 +47,14 @@ import Footer from './Footer/Footer';
 import { useOpenModal, useRemoveCurrentFilter } from './state';
 import { FilterRemoval, NativeFiltersForm } from './types';
 import {
-  createHandleSave,
+  NATIVE_FILTER_DIVIDER_PREFIX,
   createHandleRemoveItem,
+  createHandleSave,
   generateFilterId,
   getFilterIds,
-  validateForm,
-  NATIVE_FILTER_DIVIDER_PREFIX,
   hasCircularDependency,
+  validateForm,
 } from './utils';
-import DividerConfigForm from './DividerConfigForm';
 
 const MODAL_MARGIN = 16;
 const MIN_WIDTH = 880;
@@ -435,7 +435,8 @@ function FiltersConfigModal({
       unsavedFiltersIds.length > 0 ||
       form.isFieldsTouched() ||
       changed ||
-      didChangeOrder
+      didChangeOrder ||
+      Object.values(removedFilters).some(f => f?.isPending)
     ) {
       setSaveAlertVisible(true);
     } else {
