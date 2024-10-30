@@ -153,6 +153,7 @@ export interface SliceHeaderControlsProps {
   addDangerToast: (message: string) => void;
   addSuccessToast: (message: string) => void;
 
+  chartCanEdit?: boolean;
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
   supersetCanCSV?: boolean;
@@ -403,7 +404,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {props.chartCanEdit && (
         <Menu.Item key={MENU_KEYS.EXPLORE_CHART}>
           <Link to={props.exploreUrl}>
             <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
@@ -422,7 +423,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </>
       )}
 
-      {props.supersetCanExplore && (
+      {props.chartCanEdit && (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
@@ -437,7 +438,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {props.supersetCanExplore && (
+      {props.chartCanEdit && (
         <Menu.Item key={MENU_KEYS.VIEW_RESULTS}>
           <ViewResultsModalTrigger
             exploreUrl={props.exploreUrl}

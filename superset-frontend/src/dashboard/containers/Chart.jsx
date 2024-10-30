@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import {
@@ -93,6 +94,7 @@ function mapStateToProps(
     editMode: dashboardState.editMode,
     isExpanded: !!dashboardState.expandedSlices[id],
     supersetCanExplore: !!dashboardInfo.superset_can_explore,
+    chartCanEdit: !!dashboardInfo.chart_can_edit,
     supersetCanShare: !!dashboardInfo.superset_can_share,
     supersetCanCSV: !!dashboardInfo.superset_can_csv,
     ownState: dataMask[id]?.ownState,

@@ -147,6 +147,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   isCached = [],
   isExpanded = false,
   sliceName = '',
+  chartCanEdit = false,
   supersetCanExplore = false,
   supersetCanShare = false,
   supersetCanCSV = false,
@@ -198,23 +199,28 @@ const SliceHeader: FC<SliceHeaderProps> = ({
     `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`,
   );
 
+  // @ts-ignore
   return (
     <ChartHeaderStyles data-test="slice-header" ref={innerRef}>
       <div className="header-title" ref={headerRef}>
-        <Tooltip title={headerTooltip}>
-          <EditableTitle
-            title={
-              sliceName ||
-              (editMode
-                ? '---' // this makes an empty title clickable
-                : '')
-            }
-            canEdit={editMode}
-            onSaveTitle={updateSliceName}
-            showTooltip={false}
-            url={canExplore ? exploreUrl : undefined}
-          />
-        </Tooltip>
+        {chartCanEdit ? (
+          <Tooltip title={headerTooltip}>
+            <EditableTitle
+              title={
+                sliceName ||
+                (editMode
+                  ? '---' // this makes an empty title clickable
+                  : '')
+              }
+              canEdit={editMode}
+              onSaveTitle={updateSliceName}
+              showTooltip={false}
+              url={canExplore ? exploreUrl : undefined}
+            />
+          </Tooltip>
+        ) : (
+          sliceName
+        )}
         {!!Object.values(annotationQuery).length && (
           <Tooltip
             id="annotations-loading-tooltip"
@@ -279,6 +285,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 exportFullCSV={exportFullCSV}
                 exportXLSX={exportXLSX}
                 exportFullXLSX={exportFullXLSX}
+                chartCanEdit={chartCanEdit}
                 supersetCanExplore={supersetCanExplore}
                 supersetCanShare={supersetCanShare}
                 supersetCanCSV={supersetCanCSV}

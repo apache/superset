@@ -70,7 +70,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 
   const uri = URI(window.location.search);
   return uri
-    .pathname('/api/v1/chart/data')
+    .pathname(withPrefix('/api/v1/chart/data'))
     .search({
       form_data: safeStringify({ slice_id }),
       force,
@@ -258,7 +258,7 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = '/api/v1/chart/data';
+    url = withPrefix('/api/v1/chart/data');
     payload = buildV1ChartDataPayload({
       formData,
       force,
@@ -269,7 +269,9 @@ export const exportChart = ({
     });
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  SupersetClient.postForm(url, {
+    form_data: safeStringify(payload),
+  });
 };
 
 export const exploreChart = (formData, requestParams) => {

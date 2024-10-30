@@ -344,6 +344,7 @@ export const hydrateDashboard =
             'Superset',
             roles,
           ),
+          chart_can_edit: findPermission('can_write', 'Chart', roles),
           superset_can_explore: findPermission(
             'can_explore',
             'Superset',

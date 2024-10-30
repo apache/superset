@@ -75,6 +75,7 @@ const propTypes = {
   editMode: PropTypes.bool.isRequired,
   isExpanded: PropTypes.bool.isRequired,
   isCached: PropTypes.bool,
+  chartCanEdit: PropTypes.bool.isRequired,
   supersetCanExplore: PropTypes.bool.isRequired,
   supersetCanShare: PropTypes.bool.isRequired,
   supersetCanCSV: PropTypes.bool.isRequired,
@@ -390,6 +391,7 @@ class Chart extends React.Component {
       sliceName,
       toggleExpandSlice,
       timeout,
+      chartCanEdit,
       supersetCanExplore,
       supersetCanShare,
       supersetCanCSV,
@@ -457,6 +459,7 @@ class Chart extends React.Component {
           exportFullXLSX={this.exportFullXLSX}
           updateSliceName={updateSliceName}
           sliceName={sliceName}
+          chartCanEdit={chartCanEdit}
           supersetCanExplore={supersetCanExplore}
           supersetCanShare={supersetCanShare}
           supersetCanCSV={supersetCanCSV}
