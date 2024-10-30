@@ -333,9 +333,9 @@ export const projectIdfield = ({
       value={db?.parameters?.project_id}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.project_id}
-      placeholder="your-project-1234"
-      label={t('Display Name')}
-      onChange={changeMethods.onChange}
+      placeholder="your-project-1234-a1"
+      label={t('Project Id')}
+      onChange={changeMethods.onParametersChange}
       helpText={t('Enter the unique project id for your database.')}
     />
   </>
