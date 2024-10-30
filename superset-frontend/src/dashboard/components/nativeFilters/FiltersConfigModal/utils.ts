@@ -170,7 +170,6 @@ export const createHandleRemoveItem =
       val: string[] | ((prevState: string[]) => string[]),
     ) => void,
     setSaveAlertVisible: Function,
-    filterChanges: FilterChangesType,
     removeFilter: (filterId: string) => void,
   ) =>
   (filterId: string) => {

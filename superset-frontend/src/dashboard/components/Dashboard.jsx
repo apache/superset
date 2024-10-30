@@ -212,7 +212,7 @@ class Dashboard extends PureComponent {
 
   applyFilters() {
     const { appliedFilters } = this;
-    const { activeFilters, ownDataCharts, datasources, slices } = this.props;
+    const { activeFilters, ownDataCharts, slices } = this.props;
 
     // refresh charts if a filter was removed, added, or changed
 
@@ -231,22 +231,12 @@ class Dashboard extends PureComponent {
       ) {
         // filterKey is removed?
         affectedChartIds.push(
-          ...getRelatedCharts(
-            appliedFilters,
-            activeFilters,
-            slices,
-            datasources,
-          )[filterKey],
+          ...getRelatedCharts(appliedFilters, activeFilters, slices)[filterKey],
         );
       } else if (!appliedFilterKeys.includes(filterKey)) {
         // filterKey is newly added?
         affectedChartIds.push(
-          ...getRelatedCharts(
-            activeFilters,
-            appliedFilters,
-            slices,
-            datasources,
-          )[filterKey],
+          ...getRelatedCharts(activeFilters, appliedFilters, slices)[filterKey],
         );
       } else {
         // if filterKey changes value,
@@ -261,12 +251,9 @@ class Dashboard extends PureComponent {
           )
         ) {
           affectedChartIds.push(
-            ...getRelatedCharts(
-              activeFilters,
-              appliedFilters,
-              slices,
-              datasources,
-            )[filterKey],
+            ...getRelatedCharts(activeFilters, appliedFilters, slices)[
+              filterKey
+            ],
           );
         }
 
