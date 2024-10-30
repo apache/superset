@@ -32,6 +32,8 @@ import {
   CustomHeaderParams,
   SortState,
   UserProvidedColDef,
+  FilterInputPosition,
+  AGGridFilterInstance,
 } from '../../types';
 import CustomPopover from './CustomPopover';
 import {
@@ -43,8 +45,12 @@ import {
   SortIconWrapper,
 } from '../../styles';
 import { GridApi } from 'ag-grid-community';
-
-const FILTER_POPOVER_OPEN_DELAY = 200;
+import {
+  FILTER_POPOVER_OPEN_DELAY,
+  FILTER_INPUT_POSITIONS,
+  FILTER_CONDITION_BODY_INDEX,
+  FILTER_INPUT_SELECTOR,
+} from '../../consts';
 
 const getSortIcon = (sortState: SortState[], colId: string | null) => {
   if (!sortState?.length || !colId) return null;
@@ -67,21 +73,20 @@ const getSortIcon = (sortState: SortState[], colId: string | null) => {
  * @param api - AG Grid API instance
  * @param filterRef - React ref to the filter DOM container
  * @param setFilterVisible - State setter to control filter popover visibility
- * @param lastFilteredInputPosition - Position of the last filtered input ('first' or 'second')
+ * @param lastFilteredInputPosition - Position of the last filtered input
  */
 const autoOpenFilterAndFocus = async (
   column: Column,
   api: GridApi,
   filterRef: React.RefObject<HTMLDivElement>,
   setFilterVisible: (visible: boolean) => void,
-  lastFilteredInputPosition?: 'first' | 'second',
+  lastFilteredInputPosition?: FilterInputPosition,
 ) => {
   setFilterVisible(true);
 
-  const filterInstance = (await api.getColumnFilterInstance(column)) as {
-    eGui?: HTMLElement;
-    eConditionBodies?: HTMLElement[];
-  } | null;
+  const filterInstance = (await api.getColumnFilterInstance(
+    column,
+  )) as AGGridFilterInstance | null;
   const filterEl = filterInstance?.eGui;
 
   if (!filterEl || !filterRef.current) return;
@@ -95,14 +100,15 @@ const autoOpenFilterAndFocus = async (
   // Focus the correct input based on lastFilteredInputPosition
   if (filterInstance?.eConditionBodies) {
     const conditionBodies = filterInstance.eConditionBodies;
-    const targetBody =
-      lastFilteredInputPosition === 'second'
-        ? conditionBodies[1]
-        : conditionBodies[0];
+    const targetIndex =
+      lastFilteredInputPosition === FILTER_INPUT_POSITIONS.SECOND
+        ? FILTER_CONDITION_BODY_INDEX.SECOND
+        : FILTER_CONDITION_BODY_INDEX.FIRST;
+    const targetBody = conditionBodies[targetIndex];
 
     if (targetBody) {
       const input = targetBody.querySelector(
-        'input[data-ref="eInput"]',
+        FILTER_INPUT_SELECTOR,
       ) as HTMLInputElement | null;
       input?.focus();
     }
@@ -169,9 +175,9 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
     }
     setFilterVisible(!isFilterVisible);
 
-    const filterInstance = (await api.getColumnFilterInstance(column)) as {
-      eGui?: HTMLElement;
-    } | null;
+    const filterInstance = (await api.getColumnFilterInstance(
+      column,
+    )) as AGGridFilterInstance | null;
     const filterEl = filterInstance?.eGui;
     if (filterEl && filterRef.current) {
       // Clear children safely without innerHTML to prevent XSS

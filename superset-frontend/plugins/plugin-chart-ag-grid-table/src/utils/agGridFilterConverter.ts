@@ -124,10 +124,21 @@ const AG_GRID_TO_SQLA_OPERATOR_MAP: Record<AgGridFilterOperator, string> = {
   [FILTER_OPERATORS.NOT_BLANK]: SQL_OPERATORS.IS_NOT_NULL,
 };
 
+/**
+ * Escapes single quotes in SQL strings to prevent SQL injection
+ * @param value - String value to escape
+ * @returns Escaped string safe for SQL queries
+ */
 function escapeSQLString(value: string): string {
   return value.replace(/'/g, "''");
 }
 
+/**
+ * Validates a column name to prevent SQL injection
+ * Checks for: non-empty string, length limit, allowed characters
+ * @param columnName - Column name to validate
+ * @returns True if the column name is valid, false otherwise
+ */
 function validateColumnName(columnName: string): boolean {
   if (!columnName || typeof columnName !== 'string') {
     return false;
@@ -144,6 +155,13 @@ function validateColumnName(columnName: string): boolean {
   return true;
 }
 
+/**
+ * Validates a filter value for a given operator
+ * BLANK and NOT_BLANK operators don't require values
+ * @param value - Filter value to validate
+ * @param operator - AG Grid filter operator
+ * @returns True if the value is valid for the operator, false otherwise
+ */
 function validateFilterValue(
   value: FilterValue | undefined,
   operator: AgGridFilterOperator,
@@ -321,16 +339,10 @@ export function convertAgGridFiltersToSQL(
 
   Object.entries(filterModel).forEach(([columnName, filter]) => {
     if (!validateColumnName(columnName)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[AG Grid Filter] Invalid column name filtered: ${columnName}`);
-      }
       return;
     }
 
     if (!filter || typeof filter !== 'object') {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[AG Grid Filter] Invalid filter object for column: ${columnName}`);
-      }
       return;
     }
 
@@ -372,17 +384,11 @@ export function convertAgGridFiltersToSQL(
     const { type, filter: value } = simpleFilter;
 
     if (!type) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[AG Grid Filter] Missing filter type for column: ${columnName}`);
-      }
       return;
     }
 
     const operator = AG_GRID_TO_SQLA_OPERATOR_MAP[type];
     if (!operator) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[AG Grid Filter] Unknown filter operator '${type}' for column: ${columnName}`);
-      }
       return;
     }
 
@@ -413,9 +419,6 @@ export function convertAgGridFiltersToSQL(
     }
 
     if (!validateFilterValue(value, type)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`[AG Grid Filter] Invalid filter value for column '${columnName}', operator '${type}':`, value);
-      }
       return;
     }
 
@@ -437,14 +440,14 @@ export function convertAgGridFiltersToSQL(
 
   let complexWhere;
   if (complexWhereClauses.length === 1) {
-    complexWhere = complexWhereClauses[0];
+    [complexWhere] = complexWhereClauses;
   } else if (complexWhereClauses.length > 1) {
     complexWhere = `(${complexWhereClauses.join(' AND ')})`;
   }
 
   let havingClause;
   if (complexHavingClauses.length === 1) {
-    havingClause = complexHavingClauses[0];
+    [havingClause] = complexHavingClauses;
   } else if (complexHavingClauses.length > 1) {
     havingClause = `(${complexHavingClauses.join(' AND ')})`;
   }

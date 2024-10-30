@@ -25,6 +25,11 @@ import type {
   SQLAlchemyFilter,
 } from './agGridFilterConverter';
 import type { AgGridReact } from '@superset-ui/core/components/ThemedAgGridReact';
+import type { FilterInputPosition, AGGridFilterInstance } from '../types';
+import {
+  FILTER_INPUT_POSITIONS,
+  FILTER_CONDITION_BODY_INDEX,
+} from '../consts';
 
 export interface FilterState {
   originalFilterModel: AgGridFilterModel;
@@ -32,7 +37,7 @@ export interface FilterState {
   complexWhere?: string;
   havingClause?: string;
   lastFilteredColumn?: string;
-  inputPosition?: 'first' | 'second' | 'unknown';
+  inputPosition?: FilterInputPosition;
 }
 
 /**
@@ -48,30 +53,38 @@ async function detectLastFilteredInput(
   activeElement: HTMLElement,
 ): Promise<{
   lastFilteredColumn?: string;
-  inputPosition: 'first' | 'second' | 'unknown';
+  inputPosition: FilterInputPosition;
 }> {
-  let inputPosition: 'first' | 'second' | 'unknown' = 'unknown';
+  let inputPosition: FilterInputPosition = FILTER_INPUT_POSITIONS.UNKNOWN;
   let lastFilteredColumn: string | undefined;
 
   // Loop through filtered columns to find which one contains the active element
   for (const [colId] of Object.entries(filterModel)) {
-    const filterInstance = (await gridApi.getColumnFilterInstance(colId)) as {
-      eConditionBodies?: HTMLElement[];
-    } | null;
+    const filterInstance = (await gridApi.getColumnFilterInstance(
+      colId,
+    )) as AGGridFilterInstance | null;
 
     if (filterInstance?.eConditionBodies) {
       const conditionBodies = filterInstance.eConditionBodies;
 
       // Check first condition body
-      if (conditionBodies[0]?.contains(activeElement)) {
-        inputPosition = 'first';
+      if (
+        conditionBodies[FILTER_CONDITION_BODY_INDEX.FIRST]?.contains(
+          activeElement,
+        )
+      ) {
+        inputPosition = FILTER_INPUT_POSITIONS.FIRST;
         lastFilteredColumn = colId;
         break;
       }
 
       // Check second condition body
-      if (conditionBodies[1]?.contains(activeElement)) {
-        inputPosition = 'second';
+      if (
+        conditionBodies[FILTER_CONDITION_BODY_INDEX.SECOND]?.contains(
+          activeElement,
+        )
+      ) {
+        inputPosition = FILTER_INPUT_POSITIONS.SECOND;
         lastFilteredColumn = colId;
         break;
       }
@@ -100,7 +113,7 @@ export async function getCompleteFilterState(
       complexWhere: undefined,
       havingClause: undefined,
       lastFilteredColumn: undefined,
-      inputPosition: 'unknown',
+      inputPosition: FILTER_INPUT_POSITIONS.UNKNOWN,
     };
   }
 

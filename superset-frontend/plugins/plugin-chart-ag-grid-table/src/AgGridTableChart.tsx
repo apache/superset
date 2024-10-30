@@ -158,8 +158,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
 
       updateTableOwnState(setDataMask, modifiedOwnState);
-
-     
     },
     [setDataMask, serverPagination, serverPaginationData, onChartStateChange, chartState],
   );
