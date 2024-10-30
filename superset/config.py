@@ -54,7 +54,7 @@ from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
-from superset.key_value.types import JsonKeyValueCodec
+from superset.key_value.types import JsonKeyValueCodec, PickleKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
@@ -478,6 +478,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
+    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Requires configuring Celery and a cache.
+    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
+    # Generate screenshots (PDF or JPG) of dashboards using the web driver.
+    # When disabled, screenshots are generated on the fly by the browser.
+    # This feature flag is used by the download feature in the dashboard view.
+    # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
+    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
@@ -789,6 +797,21 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     # The following parameter only applies to `MetastoreCache`:
     # How should entries be serialized/deserialized?
     "CODEC": JsonKeyValueCodec(),
+}
+
+# Cache for thumbnail images. `CACHE_TYPE` defaults to `SupersetMetastoreCache`
+# that stores the values in the key-value table in the Superset metastore, as it's
+# required for Superset to operate correctly, but can be replaced by any
+# `Flask-Caching` backend.
+THUMBNAIL_CACHE_CONFIG = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    # Should the timeout be reset when retrieving a cached value?
+    "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
+    # The following parameter only applies to `MetastoreCache`:
+    # How should entries be serialized/deserialized?
+    # Using PickleKeyValueCodec may be unsafe, use at your own risk.
+    "CODEC": PickleKeyValueCodec(),
 }
 
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
