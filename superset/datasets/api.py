@@ -20,7 +20,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any
+from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -1185,22 +1185,20 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 for item in item_list
             ]
 
-        item_type: str | None = None
-        try:
-            if metrics := data.get("metrics"):
-                item_type = "metric"
-                data["metrics"] = render_item_list(metrics)
+        items: list[tuple[str, str, str, Callable[[Any], Any]]] = [
+            ("query", "sql", "rendered_sql", processor.process_template),
+            ("metric", "metrics", "metrics", render_item_list),
+            ("calculated column", "columns", "columns", render_item_list),
+        ]
+        for item_type, key, new_key, func in items:
+            if not data.get(key):
+                continue
 
-            if columns := data.get("columns"):
-                item_type = "column"
-                data["columns"] = render_item_list(columns)
-
-            if sql := data.get("sql"):
-                item_type = "query"
-                data["rendered_sql"] = processor.process_template(sql)
-        except TemplateSyntaxError as ex:
-            raise SupersetTemplateException(
-                f"Unable to render expression from dataset {item_type}.",
-            ) from ex
+            try:
+                data[new_key] = func(data[key])
+            except TemplateSyntaxError as ex:
+                raise SupersetTemplateException(
+                    f"Unable to render expression from dataset {item_type}.",
+                ) from ex
 
         return data
