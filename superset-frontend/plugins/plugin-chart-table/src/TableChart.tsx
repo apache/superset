@@ -407,7 +407,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     };
   };
 
-  const comparisonLabels = [t('Main'), t('Previous value'), t('Difference'), t('% Difference')];
+  const comparisonLabels = [t('Current value'), t('Previous value'), t('Difference'), t('% Difference')];
   const filteredColumnsMeta = useMemo(() => {
     if (!isUsingTimeComparison) {
       return columnsMeta;
