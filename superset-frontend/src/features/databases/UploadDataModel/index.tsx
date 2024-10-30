@@ -571,9 +571,9 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   const uploadTitles = {
-    csv: t('CSV Upload'),
-    excel: t('Excel Upload'),
-    columnar: t('Columnar Upload'),
+    csv: t('CSV upload'),
+    excel: t('Excel upload'),
+    columnar: t('Columnar upload'),
   };
 
   const UploadTitle: FC = () => {
