@@ -1097,8 +1097,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/get_item_schema'
           - in: query
-            name: render
-            description: Should Jinja macros from sql, metrics and columns be rendered
+            name: include_rendered_sql
+            description: >-
+              Should Jinja macros from sql, metrics and columns be rendered
+              and included in the response
             schema:
               type: boolean
           responses:
