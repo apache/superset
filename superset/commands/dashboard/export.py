@@ -164,8 +164,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
             model.tags  # Assuming `tags` is a relationship in the `Slice` model
             if hasattr(model, "tags") else []
         )
-        # Filter out any tags that contain "type:" in their name
-        payload["tag"] = [tag.name for tag in tags if "type:" not in tag.name]
+        # Filter out any tags that contain "type:" and "owner:"in their name
+        payload["tag"] = [tag.name for tag in tags if not any(prefix in tag.name for prefix in ["type:", "owner:"])]
         
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
