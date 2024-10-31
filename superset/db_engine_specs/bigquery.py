@@ -353,20 +353,21 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         ) as engine:
             if partition_column:
                 max_partition_id = cls.get_max_partition_id(database, table)
+                sql = cls.select_star(
+                    database,
+                    table,
+                    engine,
+                    indent=False,
+                    show_cols=False,
+                    latest_partition=True,
+                )
                 payload.update(
                     {
                         "partitions": {
                             "cols": [partition_column],
                             "latest": {"ds": max_partition_id},
+                            "partitionQuery": sql,
                         },
-                        "partitionQuery": cls.select_star(
-                            database,
-                            table,
-                            engine,
-                            indent=False,
-                            show_cols=False,
-                            latest_partition=True,
-                        ),
                         "indexes": [
                             {
                                 "name": "partitioned",
