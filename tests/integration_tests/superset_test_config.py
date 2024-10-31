@@ -122,12 +122,6 @@ FILTER_STATE_CACHE_CONFIG = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
 }
 
-THUMBNAIL_CACHE_CONFIG = {
-    "CACHE_TYPE": "SimpleCache",
-    "CACHE_THRESHOLD": math.inf,
-    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
-}
-
 EXPLORE_FORM_DATA_CACHE_CONFIG = {
     "CACHE_TYPE": "SimpleCache",
     "CACHE_THRESHOLD": math.inf,
