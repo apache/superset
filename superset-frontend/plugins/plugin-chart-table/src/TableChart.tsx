@@ -1204,8 +1204,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
+                    const isFilterable = columnsMeta.find(
+                      (cm: DataColumnMeta) => cm.key === key,
+                    )?.isFilterable;
                     // allow selecting text in a cell
-                    if (!getSelectedText()) {
+                    if (!getSelectedText() && isFilterable !== false) {
                       toggleFilter(key, value);
                     }
                   }
