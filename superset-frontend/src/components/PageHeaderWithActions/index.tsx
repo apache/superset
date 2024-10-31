@@ -147,7 +147,6 @@ export const PageHeaderWithActions = ({
               <CertifiedBadge {...certificatiedBadgeProps} />
             )}
             {showFaveStar && <FaveStar {...faveStarProps} />}
-            {/* {titlePanelAdditionalItems} */}
           </div>
         )}
       </div>
