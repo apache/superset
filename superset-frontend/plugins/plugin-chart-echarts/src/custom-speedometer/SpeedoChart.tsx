@@ -41,11 +41,15 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
 
+    // Offsets
+    const xOffset = 100;
+    const yOffset = 50;
+
     const options = {
       title: {
         text: `Progress: ${calculatedData}%\n\nNumber Being Given: ${progress} `,
-        // left: 100,
-        // top: 270,
+        left: 100 + xOffset,
+        top: 270 + yOffset,
         textStyle: {
           fontSize: 16,
           fontWeight: 'bold',
