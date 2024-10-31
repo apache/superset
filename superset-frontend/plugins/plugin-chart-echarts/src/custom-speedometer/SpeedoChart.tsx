@@ -146,24 +146,23 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         renderItem: (params: any, api: any) => {
           const startAngle = (170 * Math.PI) / 180; // Convert 170° to radians
           const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
-          const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100
+          const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
           
-
           const outerRadius = 110;
           const innerRadius = 80;
           
-          const cx = api.coord([0, 0])[1]; // Center x
-          const cy = api.coord([0, 0])[1]; // Center y
-      
+          // Get center coordinates
+          const [cx, cy] = api.coord([0, 0]);
+        
           return {
             type: 'path',
             shape: {
               pathData: `
                 M ${cx + innerRadius * Math.cos(startAngle)} ${cy + innerRadius * Math.sin(startAngle)}
-                A ${innerRadius} ${innerRadius} 0 0 1
+                A ${innerRadius} ${innerRadius} 0 1 1
                   ${cx + innerRadius * Math.cos(endAngle)} ${cy + innerRadius * Math.sin(endAngle)}
                 L ${cx + outerRadius * Math.cos(endAngle)} ${cy + outerRadius * Math.sin(endAngle)}
-                A ${outerRadius} ${outerRadius} 0 0 0
+                A ${outerRadius} ${outerRadius} 0 1 0
                   ${cx + outerRadius * Math.cos(startAngle)} ${cy + outerRadius * Math.sin(startAngle)}
                 Z                
               `,
@@ -184,7 +183,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
 
           const cx = api.coord([0,0])[1];  // Center x
           const cy = api.coord([0,0])[1];  // Center y
-
+          
           const segmentArcs = segments2.map((segment) => {
             const startAngle = -Math.PI + (Math.PI * (segment.start / 100)); // Convert start percentage to radians
             const endAngle = -Math.PI + (Math.PI * (segment.end / 100)); // Convert end percentage to radians
