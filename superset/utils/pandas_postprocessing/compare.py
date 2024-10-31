@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import warnings
 from typing import Optional
 
 import pandas as pd
@@ -82,7 +81,10 @@ def compare(  # pylint: disable=too-many-arguments
         df = pd.concat([df, diff_df], axis=1)
 
     if drop_original_columns:
-        # we don't need to log performance warnings here
-        with warnings.catch_warnings():
-            df = df.drop(source_columns + compare_columns, axis=1)
+        level = (
+            0
+            if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1
+            else None
+        )
+        df = df.drop(source_columns + compare_columns, axis=1, level=level)
     return df
