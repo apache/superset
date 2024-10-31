@@ -168,8 +168,8 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
               `,
             },
             style: {
-              fill: '#4caf50', // Progress color (green)
-              stroke: '#000', // Outline color
+              fill: '#4caf50', 
+              stroke: '#000',
               lineWidth: 2, 
             },
           };
@@ -180,36 +180,35 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         // Segments Chart
         type: 'custom',
         renderItem: (params: any, api: any) => {
-            const cx = api.coord([0, 0])[1];  // Center x
-            const cy = api.coord([0, 0])[1] - 50; // Offset the y-coordinate to position above first chart
+            const [cx, cy] = api.coord([0, 0]);
         
             const startAngleOffset = (170 * Math.PI) / 180;  // 170° in radians
             const arcSpan = (200 * Math.PI) / 180;           // 200° in radians
         
             const segmentArcs = segments2.map((segment) => {
-                // Calculate start and end angles for each segment
-                const startAngle = startAngleOffset + (arcSpan * (segment.start / 100)); // Map start percentage to radians
-                const endAngle = startAngleOffset + (arcSpan * (segment.end / 100));     // Map end percentage to radians
-            
-                return {
-                    type: 'path',
-                    shape: {
-                        pathData: `
-                            M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
-                            A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
-                              ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
-                            L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
-                            A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
-                              ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
-                            Z
-                        `,
-                    },
-                    style: {
-                        fill: segment.color,
-                        stroke: '#000',
-                        lineWidth: 2,
-                    },
-                };
+            // Calculate start and end angles for each segment
+            const startAngle = startAngleOffset + (arcSpan * (segment.start / 100)); // Map start percentage to radians
+            const endAngle = startAngleOffset + (arcSpan * (segment.end / 100));     // Map end percentage to radians
+              
+            return {
+                type: 'path',
+                shape: {
+                    pathData: `
+                        M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
+                        A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
+                          ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
+                        L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
+                        A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
+                          ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
+                        Z
+                    `,
+                },
+                style: {
+                    fill: segment.color,
+                    stroke: '#000',
+                    lineWidth: 1,
+                },
+            };
             });
           
             return {
