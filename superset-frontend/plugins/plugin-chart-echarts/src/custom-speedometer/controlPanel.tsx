@@ -11,7 +11,7 @@ const config: ControlPanelConfig = {
   controlPanelSections: [
     {
       label: t('Query'),
-      expanded: false,
+      expanded: true,
       controlSetRows: [
         [
           {

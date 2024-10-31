@@ -31,17 +31,11 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   // Assuming props includes segmentChartFormData
 
   var calculatedData = calculatePercentage(progress);
-  //var calculatedData = 90
-
+  var calculatedData = 100
 
   // Hardcoded values for 2nd chart
   var outerRadiusSecondChart = 114;
   var innerRadiusSecondChart = 122;
-  const segments = [
-    {start: s1Start, end: s1End, color: s1ChartColor},
-    {start: s2Start, end: s2End, color: s2ChartColor},
-    {start: s3Start, end: s3End, color: s3ChartColor},
-  ]
   const segments2 = controlledSegments
   
   useEffect(() => {
@@ -139,7 +133,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
             left: 400,
             top: 250 + index * 60,
             style: {
-              text: `S${index+1}Colorcode: ${segment.Colorcode}`,
+              text: `S${index+1}Colorcode: ${segment.color}`,
               fontSize: 16,
               fontWeight: 'bold',
             },
@@ -147,29 +141,30 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         ])            
       ],
       series: [{
+        // Data Showcase Chart
         type: 'custom',
         renderItem: (params: any, api: any) => {
-          const startAngle = -Math.PI; // Starting angle for the arc (180 degrees)
-          const hardCap = Math.min(calculatedData, 100);
-          const endAngle = startAngle + (Math.PI * (hardCap / 100)); // Ending angle based on progress
-
+          const startAngle = (170 * Math.PI) / 180; // Convert 170° to radians
+          const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
+          const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
+          
           const outerRadius = 110;
           const innerRadius = 80;
           
-          const cx = api.coord([0, 0])[1]; // Center x
-          const cy = api.coord([0, 0])[1]; // Center y
-      
+          // Get center coordinates
+          const [cx, cy] = api.coord([0, 0]);
+        
           return {
             type: 'path',
             shape: {
               pathData: `
                 M ${cx + innerRadius * Math.cos(startAngle)} ${cy + innerRadius * Math.sin(startAngle)}
-                A ${innerRadius} ${innerRadius} 0 0 1
+                A ${innerRadius} ${innerRadius} 0 1 1
                   ${cx + innerRadius * Math.cos(endAngle)} ${cy + innerRadius * Math.sin(endAngle)}
                 L ${cx + outerRadius * Math.cos(endAngle)} ${cy + outerRadius * Math.sin(endAngle)}
-                A ${outerRadius} ${outerRadius} 0 0 0
+                A ${outerRadius} ${outerRadius} 0 1 0
                   ${cx + outerRadius * Math.cos(startAngle)} ${cy + outerRadius * Math.sin(startAngle)}
-                Z
+                Z                
               `,
             },
             style: {
@@ -182,12 +177,13 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         data: [{}], // Single data item to trigger renderItem
       },
       {
+        // Segments Chart
         type: 'custom',
         renderItem: (params: any, api:any) => {
 
           const cx = api.coord([0,0])[1];  // Center x
           const cy = api.coord([0,0])[1];  // Center y
-
+          
           const segmentArcs = segments2.map((segment) => {
             const startAngle = -Math.PI + (Math.PI * (segment.start / 100)); // Convert start percentage to radians
             const endAngle = -Math.PI + (Math.PI * (segment.end / 100)); // Convert end percentage to radians
