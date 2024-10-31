@@ -905,22 +905,26 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
 
     def test_estimate_statement_cost(self):
+        mock_database = mock.MagicMock()
         mock_cursor = mock.MagicMock()
         estimate_json = {"a": "b"}
         mock_cursor.fetchone.return_value = [
             '{"a": "b"}',
         ]
         result = PrestoEngineSpec.estimate_statement_cost(
-            "SELECT * FROM brth_names", mock_cursor
+            mock_database,
+            "SELECT * FROM brth_names",
+            mock_cursor,
         )
         assert result == estimate_json
 
     def test_estimate_statement_cost_invalid_syntax(self):
+        mock_database = mock.MagicMock()
         mock_cursor = mock.MagicMock()
         mock_cursor.execute.side_effect = Exception()
         with self.assertRaises(Exception):
             PrestoEngineSpec.estimate_statement_cost(
-                "DROP TABLE brth_names", mock_cursor
+                mock_database, "DROP TABLE brth_names", mock_cursor
             )
 
     def test_get_create_view(self):

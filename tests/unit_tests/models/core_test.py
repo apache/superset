@@ -432,6 +432,31 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
 
 
+def test_add_database_to_signature():
+    args = ["param1", "param2"]
+
+    def func_without_db(param1, param2):
+        pass
+
+    def func_with_db_start(database, param1, param2):
+        pass
+
+    def func_with_db_end(param1, param2, database):
+        pass
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    args1 = database.add_database_to_signature(func_without_db, args.copy())
+    assert args1 == ["param1", "param2"]
+    args2 = database.add_database_to_signature(func_with_db_start, args.copy())
+    assert args2 == [database, "param1", "param2"]
+    args3 = database.add_database_to_signature(func_with_db_end, args.copy())
+    assert args3 == ["param1", "param2", database]
+
+
 @with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
 def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None:
     """

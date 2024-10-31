@@ -219,9 +219,9 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
     expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(props.handleError).toHaveBeenCalledTimes(0);
+    expect(props.onDbChange).toHaveBeenCalledTimes(0);
+    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   });
 
   // click schema reload
@@ -230,9 +230,9 @@ test('Refresh should work', async () => {
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
     expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
-    expect(props.handleError).toBeCalledTimes(0);
-    expect(props.onDbChange).toBeCalledTimes(0);
-    expect(props.onSchemaChange).toBeCalledTimes(0);
+    expect(props.handleError).toHaveBeenCalledTimes(0);
+    expect(props.onDbChange).toHaveBeenCalledTimes(0);
+    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
   });
 });
 

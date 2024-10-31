@@ -410,6 +410,145 @@ class TestDatasetApi(SupersetTestCase):
         assert len(response["result"]["columns"]) == 3
         assert len(response["result"]["metrics"]) == 2
 
+    def test_get_dataset_render_jinja(self):
+        """
+        Dataset API: Test get dataset with the render parameter.
+        """
+        database = get_example_database()
+        dataset = SqlaTable(
+            table_name="test_sql_table_with_jinja",
+            database=database,
+            schema=get_example_default_schema(),
+            main_dttm_col="default_dttm",
+            columns=[
+                TableColumn(
+                    column_name="my_user_id",
+                    type="INTEGER",
+                    is_dttm=False,
+                ),
+                TableColumn(
+                    column_name="calculated_test",
+                    type="VARCHAR(255)",
+                    is_dttm=False,
+                    expression="'{{ current_username() }}'",
+                ),
+            ],
+            metrics=[
+                SqlMetric(
+                    metric_name="param_test",
+                    expression="{{ url_param('multiplier') }} * 1.4",
+                )
+            ],
+            sql="SELECT {{ current_user_id() }} as my_user_id",
+        )
+        db.session.add(dataset)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        admin = self.get_user(ADMIN_USERNAME)
+        uri = (
+            f"api/v1/dataset/{dataset.id}?"
+            "q=(columns:!(id,sql,columns.column_name,columns.expression,metrics.metric_name,metrics.expression))"
+            "&include_rendered_sql=true&multiplier=4"
+        )
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert response["result"] == {
+            "id": dataset.id,
+            "sql": "SELECT {{ current_user_id() }} as my_user_id",
+            "rendered_sql": f"SELECT {admin.id} as my_user_id",
+            "columns": [
+                {
+                    "column_name": "my_user_id",
+                    "expression": None,
+                },
+                {
+                    "column_name": "calculated_test",
+                    "expression": "'{{ current_username() }}'",
+                    "rendered_expression": f"'{admin.username}'",
+                },
+            ],
+            "metrics": [
+                {
+                    "metric_name": "param_test",
+                    "expression": "{{ url_param('multiplier') }} * 1.4",
+                    "rendered_expression": "4 * 1.4",
+                },
+            ],
+        }
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    def test_get_dataset_render_jinja_exceptions(self):
+        """
+        Dataset API: Test get dataset with the render parameter
+        when rendering raises an exception.
+        """
+        database = get_example_database()
+        dataset = SqlaTable(
+            table_name="test_sql_table_with_incorrect_jinja",
+            database=database,
+            schema=get_example_default_schema(),
+            main_dttm_col="default_dttm",
+            columns=[
+                TableColumn(
+                    column_name="my_user_id",
+                    type="INTEGER",
+                    is_dttm=False,
+                ),
+                TableColumn(
+                    column_name="calculated_test",
+                    type="VARCHAR(255)",
+                    is_dttm=False,
+                    expression="'{{ current_username() }'",
+                ),
+            ],
+            metrics=[
+                SqlMetric(
+                    metric_name="param_test",
+                    expression="{{ url_param('multiplier') } * 1.4",
+                )
+            ],
+            sql="SELECT {{ current_user_id() } as my_user_id",
+        )
+        db.session.add(dataset)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+
+        uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["message"] == "Unable to render expression from dataset query."
+
+        uri = (
+            f"api/v1/dataset/{dataset.id}?q=(columns:!(id,metrics.expression))"
+            "&include_rendered_sql=true&multiplier=4"
+        )
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["message"] == "Unable to render expression from dataset metric."
+
+        uri = (
+            f"api/v1/dataset/{dataset.id}?q=(columns:!(id,columns.expression))"
+            "&include_rendered_sql=true"
+        )
+        rv = self.get_assert_metric(uri, "get")
+        assert rv.status_code == 400
+        response = json.loads(rv.data.decode("utf-8"))
+        assert (
+            response["message"]
+            == "Unable to render expression from dataset calculated column."
+        )
+
+        db.session.delete(dataset)
+        db.session.commit()
+
     def test_get_dataset_distinct_schema(self):
         """
         Dataset API: Test get dataset distinct schema

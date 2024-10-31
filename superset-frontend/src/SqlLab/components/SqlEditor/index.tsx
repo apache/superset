@@ -56,7 +56,8 @@ import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
 import Timer from 'src/components/Timer';
 import ResizableSidebar from 'src/components/ResizableSidebar';
-import { AntdDropdown, AntdSwitch, Skeleton } from 'src/components';
+import { AntdDropdown, Skeleton } from 'src/components';
+import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -698,7 +699,7 @@ const SqlEditor: FC<Props> = ({
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Render HTML')}</span>{' '}
-          <AntdSwitch
+          <Switch
             checked={renderHTMLEnabled}
             onChange={handleToggleRenderHTMLEnabled}
           />{' '}
@@ -706,7 +707,7 @@ const SqlEditor: FC<Props> = ({
         <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
           {' '}
           <span>{t('Autocomplete')}</span>{' '}
-          <AntdSwitch
+          <Switch
             checked={autocompleteEnabled}
             onChange={handleToggleAutocompleteEnabled}
           />{' '}

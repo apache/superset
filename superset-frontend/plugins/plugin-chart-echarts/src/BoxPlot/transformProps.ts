@@ -229,10 +229,10 @@ export default function transformProps(
             `Median: ${numberFormatter(value[3])}`,
             `1st Quartile: ${numberFormatter(value[2])}`,
             `Min: ${numberFormatter(value[1])}`,
-            `# Observations: ${numberFormatter(value[7])}`,
+            `# Observations: ${value[7]}`,
           ];
           if (value[8].length > 0) {
-            stats.push(`# Outliers: ${numberFormatter(value[8].length)}`);
+            stats.push(`# Outliers: ${value[8].length}`);
           }
           return headline + stats.join('<br/>');
         },
