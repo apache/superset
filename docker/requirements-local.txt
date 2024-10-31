@@ -1,0 +1,1 @@
+pyathena[pandas]==2.25.2
