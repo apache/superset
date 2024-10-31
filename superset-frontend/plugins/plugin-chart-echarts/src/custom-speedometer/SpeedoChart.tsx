@@ -34,43 +34,29 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   var calculatedData = 100
 
   // Hardcoded values for 2nd chart
-  var outerRadiusSecondChart = 114;
-  var innerRadiusSecondChart = 122;
+  var outerRadiusSecondChart = 195;
+  var innerRadiusSecondChart = 205;
   const segments2 = controlledSegments
   
   useEffect(() => {
     const chart = echarts.init(chartRef.current!);
 
-    // Offsets
-    const xOffset = 100;
-    const yOffset = 50;
-
     const options = {
       title: {
-        text: `Progress: ${calculatedData}%\n\nNumber Being Given: ${progress} `,
-        left: 100 + xOffset,
-        top: 270 + yOffset,
+        text: `${calculatedData} %`,
+        left: 'center',
+        top: '75%',
         textStyle: {
-          fontSize: 16,
+          fontSize: 58,
           fontWeight: 'bold',
         },
       },
       grid: {
-        left: '20%',
-        top: '20%',
-        containLabel: true,
+        left: '50%',
+        top: '50%',
       },
-      xAxis: {
-        type: 'value',
-        minValue: 0,
-        maxValue: 100,
-        show: false,
-      },
-      yAxis: {
-        type: 'category',
-        data: [''],
-        show: false,
-      },
+      xAxis: { show: false, }, 
+      yAxis: { show: false, },
       /*tooltip: {        
         shoz: true,
         trigger: 'item',
@@ -87,7 +73,17 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
       graphic: [
         {
           type: 'text',
-          left: 400,
+          left: 'center',
+          top: '90%',
+          style: {
+            text: 'MIN Profit',
+            fontSize: 20,
+            fontWeight: 100, 
+          }
+        },
+        {
+          type: 'text',
+          left: 1200,
           top: 150,
           style: {
             text: `minValue: ${minValue}`,
@@ -97,7 +93,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         },
         {
           type: 'text',
-          left: 400,
+          left: 1200,
           top: 170,
           style: {
             text: `maxValue: ${maxValue}`,
@@ -107,7 +103,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         },
         {
           type: 'text',
-          left: 400,
+          left: 1200,
           top: 190,
           style: {
             text: `Segment Amt: ${segmentAmt}`,
@@ -119,7 +115,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         ...segments2.flatMap((segment, index) => [
           {
             type: 'text',
-            left: 400,
+            left: 1200,
             top: 210 + index * 60,
             style: {
               text: `S${index+1}Start: ${segment.start}`,
@@ -129,7 +125,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           },
           {
             type: 'text',
-            left: 400,
+            left: 1200,
             top: 230 + index * 60,
             style: {
               text: `S${index+1}End: ${segment.end}`,
@@ -139,7 +135,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           },
           {
             type: 'text',
-            left: 400,
+            left: 1200,
             top: 250 + index * 60,
             style: {
               text: `S${index+1}Colorcode: ${segment.color}`,
@@ -157,8 +153,8 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
           const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
           
-          const outerRadius = 110;
-          const innerRadius = 80;
+          const outerRadius = 190;
+          const innerRadius = 140;
           
           // Get center coordinates
           const [cx, cy] = api.coord([0, 0]);
@@ -239,7 +235,10 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     };
   }, [calculatedData]);
 
-  return <div ref={chartRef} style={{ width: '100%', height: '520px' }} />;
+  return <div ref={chartRef} style={{ 
+    width: '100%', height: '520px',    
+  }} 
+  />;
 };
 
 export default SpeedoChart;
