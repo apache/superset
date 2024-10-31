@@ -20,7 +20,6 @@
 // Custom Charts
 import SpeedoChartPlugin from '../../../plugins/plugin-chart-echarts/src/custom-speedometer'
 
-// import MyCustomChartPlugin from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'; // Adjust based on the actual path
 import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
@@ -38,7 +37,6 @@ import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import TableChartPlugin from '@superset-ui/plugin-chart-table';
 import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
-// import CustomChart from '../../../plugins/plugin-chart-echarts/src/FirstCustom';   // First Custom
 import {
   AreaChartPlugin,
   BarChartPlugin,
@@ -78,7 +76,6 @@ import {
   BigNumberPeriodOverPeriodChartPlugin,
   EchartsHeatmapChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
-// import { MyCustomChartPlugin } from '../../../plugins/plugin-chart-echarts/src/MyCustomChart'
 import {
   SelectFilterPlugin,
   RangeFilterPlugin,
@@ -175,7 +172,6 @@ export default class MainPreset extends Preset {
           key: 'waterfall',
         }),
         new EchartsHeatmapChartPlugin().configure({ key: 'heatmap_v2' }),
-        // new CustomChart().configure({ key: 'customChart'  }),   // First Custom
         new EchartsHistogramChartPlugin().configure({ key: 'histogram_v2' }),
 
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),

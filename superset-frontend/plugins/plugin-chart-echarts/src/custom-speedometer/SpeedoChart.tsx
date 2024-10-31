@@ -44,12 +44,17 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     const options = {
       title: {
         text: `Progress: ${calculatedData}%\n\nNumber Being Given: ${progress} `,
-        left: 100,
-        top: 270,
+        // left: 100,
+        // top: 270,
         textStyle: {
           fontSize: 16,
           fontWeight: 'bold',
         },
+      },
+      grid: {
+        left: '20%',
+        top: '20%',
+        containLabel: true,
       },
       xAxis: {
         type: 'value',
@@ -153,6 +158,8 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           
           // Get center coordinates
           const [cx, cy] = api.coord([0, 0]);
+          // const cx = api.coord([0,0])[1] + 100;
+          // const cy = api.coord([0,0])[0] + 50;
         
           return {
             type: 'path',
@@ -194,13 +201,13 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
                 type: 'path',
                 shape: {
                     pathData: `
-                        M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
-                        A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
-                          ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
-                        L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
-                        A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
-                          ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
-                        Z
+                      M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
+                      A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
+                        ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
+                      L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
+                      A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
+                        ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
+                      Z
                     `,
                 },
                 style: {
