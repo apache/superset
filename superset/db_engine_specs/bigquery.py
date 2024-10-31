@@ -336,7 +336,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             client = cls._get_client(engine, database)
             bq_table = client.get_table(f"{table.schema}.{table.table}")
 
-            if bq_table.time_partitioning is not None:
+            if bq_table.time_partitioning:
                 return bq_table.time_partitioning.field
         return None
 
