@@ -42,7 +42,6 @@ import requests
 import sqlparse
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from deprecation import deprecated
 from flask import current_app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
@@ -1057,19 +1056,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if isinstance(type_code, str) and type_code != "":
             return type_code.upper()
         return None
-
-    @classmethod
-    @deprecated(deprecated_in="3.0")
-    def normalize_indexes(cls, indexes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """
-        Normalizes indexes for more consistency across db engines
-
-        noop by default
-
-        :param indexes: Raw indexes as returned by SQLAlchemy
-        :return: cleaner, more aligned index definition
-        """
-        return indexes
 
     @classmethod
     def get_table_metadata(
