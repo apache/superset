@@ -78,8 +78,8 @@ class ExportChartsCommand(ExportModelsCommand):
             if hasattr(model, "tags") else []
         )
         # Filter out any tags that contain "type:" in their name
-        payload["tag"] = [tag.name for tag in tags if "type:" not in tag.name]
-        
+        payload["tag"] = [tag.name for tag in tags if not any(x in tag.name for x in ["type:", "owner:"])]
+                
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 

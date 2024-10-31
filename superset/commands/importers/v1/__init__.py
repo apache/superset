@@ -73,7 +73,7 @@ class ImportModelsCommand(BaseCommand):
         self.validate()
 
         try:
-            self._import(self._configs, self.overwrite)
+            self._import(self._configs, self.overwrite, self.contents)
         except CommandException:
             raise
         except Exception as ex:
