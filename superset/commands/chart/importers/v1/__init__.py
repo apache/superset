@@ -19,6 +19,7 @@ from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
+from superset import db
 
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.chart.exceptions import ChartImportError
@@ -30,6 +31,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.commands.importers.v1.utils import import_tag
 
 
 class ImportChartsCommand(ImportModelsCommand):
@@ -46,7 +48,7 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False, contents: dict[str, Any] = None) -> None:
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
@@ -98,4 +100,9 @@ class ImportChartsCommand(ImportModelsCommand):
                 if "query_context" in config:
                     config["query_context"] = None
 
-                import_chart(config, overwrite=overwrite)
+                chart = import_chart(config, overwrite=overwrite)
+                
+                # Handle tags using import_tag function
+                if "tag" in config:
+                    new_tag_names = config["tag"]
+                    import_tag(new_tag_names, contents, chart.id, "chart", db.session)
