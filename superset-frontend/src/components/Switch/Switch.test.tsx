@@ -16,38 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useArgs } from '@storybook/preview-api';
-import { Switch, SwitchProps } from '.';
 
-export default {
-  title: 'Switch',
+import { render, screen } from 'spec/helpers/testing-library';
+import { Switch } from '.';
+
+const mockedProps = {
+  label: 'testLabel',
+  dataTest: 'dataTest',
+  checked: false,
 };
 
-export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {
-  const [, updateArgs] = useArgs();
-  return (
-    <Switch
-      {...rest}
-      checked={checked}
-      onChange={value => updateArgs({ checked: value })}
-    />
-  );
-};
-const defaultCheckedValue = true;
+test('should render', () => {
+  const { container } = render(<Switch {...mockedProps} />);
+  expect(container).toBeInTheDocument();
+});
 
-InteractiveSwitch.args = {
-  checked: defaultCheckedValue,
-  disabled: false,
-  loading: false,
-  title: 'Switch',
-  defaultChecked: defaultCheckedValue,
-  autoFocus: true,
-};
+test('should have the correct checked prop', () => {
+  render(<Switch {...mockedProps} />);
 
-InteractiveSwitch.argTypes = {
-  size: {
-    defaultValue: 'default',
-    control: { type: 'radio' },
-    options: ['small', 'default'],
-  },
-};
+  const switchElement = screen.getByRole('switch');
+
+  expect(switchElement).toBeInTheDocument();
+  expect(switchElement).not.toBeChecked();
+});

@@ -297,7 +297,6 @@ function FiltersConfigModal({
     setRemovedFilters,
     setOrderedFilters,
     setSaveAlertVisible,
-    filterChanges,
     filterId => {
       setFilterChanges(prev => ({
         ...prev,
@@ -510,7 +509,8 @@ function FiltersConfigModal({
       unsavedFiltersIds.length > 0 ||
       form.isFieldsTouched() ||
       changed ||
-      didChangeOrder
+      didChangeOrder ||
+      Object.values(removedFilters).some(f => f?.isPending)
     ) {
       setSaveAlertVisible(true);
     } else {

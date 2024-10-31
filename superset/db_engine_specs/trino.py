@@ -116,8 +116,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return metadata
 
     @classmethod
-    def update_impersonation_config(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
+        database: Database,
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
@@ -126,6 +127,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         """
         Update a configuration dictionary
         that can set the correct properties for impersonating users
+        :param database: the Database object
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
