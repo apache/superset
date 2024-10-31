@@ -2,36 +2,19 @@ import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 import { DEFAULT_FORM_DATA, SpeedometerChartProps, SpeedometerChartFormData } from './types';
 
-const calculatePercentage = (progressVal: number): number => {
-  progressVal = parseFloat(progressVal.toFixed(2));
-
-  // Ensure percentage does notfall below 0%
-  if (progressVal < 0) {
-    progressVal = 0;
-  }
-
-
-  return progressVal;
-}
 
 const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, 
-    s1Start, 
-    s1End, 
-    s2ChartColor, 
-    s2Start, 
-    s2End, 
-    s3ChartColor, 
-    s3Start, 
-    s3End,
+  const { minValue, 
+    maxValue, 
+    progress,
+    segmentAmt, 
     controlledSegments,
   } = props;
   // Assuming props includes segmentChartFormData
 
-  var calculatedData = calculatePercentage(progress);
-  var calculatedData = 100
+  var calculatedData = 70
 
   // Hardcoded values for 2nd chart
   var outerRadiusSecondChart = 195;
@@ -149,9 +132,9 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         // Data Showcase Chart
         type: 'custom',
         renderItem: (params: any, api: any) => {
-          const startAngle = (170 * Math.PI) / 180; // Convert 170° to radians
+          const startAngle = (160 * Math.PI) / 180; // Convert 170° to radians
           const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
-          const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
+          const endAngle = startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
           
           const outerRadius = 190;
           const innerRadius = 140;
@@ -189,8 +172,8 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         renderItem: (params: any, api: any) => {
             const [cx, cy] = api.coord([0, 0]);
         
-            const startAngleOffset = (170 * Math.PI) / 180;  // 170° in radians
-            const arcSpan = (200 * Math.PI) / 180;           // 200° in radians
+            const startAngleOffset = (160 * Math.PI) / 180;  // 170° in radians
+            const arcSpan = (220 * Math.PI) / 180;           // 200° in radians
         
             const segmentArcs = segments2.map((segment) => {
             // Calculate start and end angles for each segment
