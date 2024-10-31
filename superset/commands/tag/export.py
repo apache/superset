@@ -69,14 +69,12 @@ class ExportTagsCommand(ExportModelsCommand):
             dashboards = [dashboard for dashboard in dashboards if dashboard is not None]
 
             for dashboard in dashboards:
-                logger.debug(f"Processing Dashboard ID: {dashboard.id}")
                 tags = dashboard.tags if hasattr(dashboard, "tags") else []
                 filtered_tags = [
                     {"tag_name": tag.name, "description": tag.description}
                     for tag in tags
                     if "type:" not in tag.name and "owner:" not in tag.name
                 ]
-                logger.debug(f"Filtered Tags for Dashboard {dashboard.id}: {filtered_tags}")
                 dashboard_tags.extend(filtered_tags)
 
         # Fetch chart tags if provided
@@ -89,14 +87,12 @@ class ExportTagsCommand(ExportModelsCommand):
             charts = [chart for chart in charts if chart is not None]
 
             for chart in charts:
-                logger.debug(f"Processing Chart ID: {chart.id}")
                 tags = chart.tags if hasattr(chart, "tags") else []
                 filtered_tags = [
                     {"tag_name": tag.name, "description": tag.description}
                     for tag in tags
                     if "type:" not in tag.name and "owner:" not in tag.name
                 ]
-                logger.debug(f"Filtered Tags for Chart {chart.id}: {filtered_tags}")
                 chart_tags.extend(filtered_tags)
 
         # Merge the tags from both dashboards and charts
