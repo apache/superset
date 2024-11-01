@@ -46,6 +46,7 @@ jobs:
             https://wattbewerb.de/
             https://timbr.ai/
             https://opensource.org/license/apache-2-0
+            https://www.plaidcloud.com/
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04
