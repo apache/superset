@@ -381,7 +381,17 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
         # analytical DB. If we can't connect to the analytical DB during the migration
         # we should stop it, since we need the default catalog in order to update
         # existing models.
-        if default_catalog := database.get_default_catalog():
+        try:
+            default_catalog = database.get_default_catalog()
+        except GenericDBException as ex:
+            logger.warning(
+                "Error fetching default catalog for database %s: %s",
+                database.database_name,
+                ex,
+            )
+            continue
+
+        if default_catalog:
             upgrade_database_catalogs(database, default_catalog, session)
 
     session.flush()
@@ -558,7 +568,17 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
         ) or not db_engine_spec.supports_catalog:
             continue
 
-        if default_catalog := database.get_default_catalog():
+        try:
+            default_catalog = database.get_default_catalog()
+        except GenericDBException as ex:
+            logger.warning(
+                "Error fetching default catalog for database %s: %s",
+                database.database_name,
+                ex,
+            )
+            continue
+
+        if default_catalog:
             downgrade_database_catalogs(database, default_catalog, session)
 
     session.flush()
