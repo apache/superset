@@ -137,6 +137,7 @@
     "d3-scale": "^2.1.2",
     "dayjs": "^1.11.13",
     "dom-to-image-more": "^3.2.0",
+    "dom-to-pdf": "^0.3.2",
     "emotion-rgba": "0.0.12",
     "fast-glob": "^3.3.2",
     "fs-extra": "^11.2.0",

@@ -32,4 +32,4 @@ jobs:
           #   license: https://applitools.com/legal/open-source-terms-of-use/
           # pkg:npm/node-forge@1.3.1
           #   selecting BSD-3-Clause licensing terms for node-forge to ensure compatibility with Apache
-          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/applitools/core, pkg:npm/applitools/core-base, pkg:npm/applitools/css-tree, pkg:npm/applitools/ec-client, pkg:npm/applitools/eg-socks5-proxy-server, pkg:npm/applitools/eyes, pkg:npm/applitools/eyes-cypress, pkg:npm/applitools/nml-client, pkg:npm/applitools/tunnel-client, pkg:npm/applitools/utils, pkg:npm/node-forge@1.3.1
+          allow-dependencies-licenses: pkg:npm/store2@2.14.2, pkg:npm/applitools/core, pkg:npm/applitools/core-base, pkg:npm/applitools/css-tree, pkg:npm/applitools/ec-client, pkg:npm/applitools/eg-socks5-proxy-server, pkg:npm/applitools/eyes, pkg:npm/applitools/eyes-cypress, pkg:npm/applitools/nml-client, pkg:npm/applitools/tunnel-client, pkg:npm/applitools/utils, pkg:npm/node-forge@1.3.1, pkg:npm/rgbcolor

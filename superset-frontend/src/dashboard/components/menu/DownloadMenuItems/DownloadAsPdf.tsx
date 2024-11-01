@@ -19,11 +19,11 @@
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
-import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
-import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
+import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF } from 'src/logger/LogUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
-export default function DownloadAsImage({
+export default function DownloadAsPdf({
   text,
   logEvent,
   dashboardTitle,
@@ -35,19 +35,19 @@ export default function DownloadAsImage({
 }) {
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
   const { addDangerToast } = useToasts();
-  const onDownloadImage = async (e: SyntheticEvent) => {
+  const onDownloadPdf = async (e: SyntheticEvent) => {
     try {
-      downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
     }
-    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE);
+    logEvent?.(LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF);
   };
 
   return (
-    <Menu.Item key="download-image" {...rest}>
-      <div onClick={onDownloadImage} role="button" tabIndex={0}>
+    <Menu.Item key="download-pdf" {...rest}>
+      <div onClick={onDownloadPdf} role="button" tabIndex={0}>
         {text}
       </div>
     </Menu.Item>
