@@ -31,6 +31,7 @@ import {
   extractGroupbyLabel,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   formatSeriesName,
   getAxisType,
   getChartPadding,
@@ -1071,4 +1072,30 @@ describe('getTimeCompareStackId', () => {
     const result = getTimeCompareStackId('default', ['123', '456'], 123);
     expect(result).toEqual('123');
   });
+});
+
+const forecastValue = [
+  {
+    data: [0, 1],
+    seriesId: 'foo',
+  },
+  {
+    data: [0, 2],
+    seriesId: 'bar',
+  },
+];
+
+test('extractTooltipKeys with rich tooltip', () => {
+  const result = extractTooltipKeys(forecastValue, 1, true, false);
+  expect(result).toEqual(['foo', 'bar']);
+});
+
+test('extractTooltipKeys with rich tooltip and sorting by metrics', () => {
+  const result = extractTooltipKeys(forecastValue, 1, true, true);
+  expect(result).toEqual(['bar', 'foo']);
+});
+
+test('extractTooltipKeys with non-rich tooltip', () => {
+  const result = extractTooltipKeys(forecastValue, 1, false, false);
+  expect(result).toEqual(['foo']);
 });

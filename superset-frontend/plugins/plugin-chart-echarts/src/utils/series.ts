@@ -267,7 +267,11 @@ export function extractSeries(
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
   } = {},
-): [SeriesOption[], number[], number | undefined] {
+): [
+  { id: string; name: string; data: DataRecordValue[][] }[],
+  number[],
+  number | undefined,
+] {
   const {
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
@@ -641,4 +645,23 @@ export function getTimeCompareStackId(
       return name?.toString().includes(value);
     }) || defaultId
   );
+}
+
+const TOOLTIP_SERIES_KEY = 'seriesId';
+export function extractTooltipKeys(
+  forecastValue: any[],
+  yIndex: number,
+  richTooltip?: boolean,
+  tooltipSortByMetric?: boolean,
+): string[] {
+  if (richTooltip && tooltipSortByMetric) {
+    return forecastValue
+      .slice()
+      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .map(value => value[TOOLTIP_SERIES_KEY]);
+  }
+  if (richTooltip) {
+    return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
+  }
+  return [forecastValue[0][TOOLTIP_SERIES_KEY]];
 }
