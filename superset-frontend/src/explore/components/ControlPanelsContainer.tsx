@@ -541,7 +541,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           validationErrors={validationErrors}
           actions={props.actions}
           isVisible={isVisible}
-          hidden={isHidden}
+          isHidden={isHidden}
           {...restProps}
         />
       </StashFormDataContainer>

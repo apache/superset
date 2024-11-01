@@ -71,8 +71,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           renderTrigger: true,
           default: '',
           description: t('Changing this control takes effect instantly'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
         },
       },
     ],
@@ -88,8 +88,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: sections.TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           description: t('Changing this control takes effect instantly'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
         },
       },
     ],
@@ -102,8 +102,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           renderTrigger: true,
           default: '',
           description: t('Changing this control takes effect instantly'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -119,8 +119,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: sections.TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           description: t('Changing this control takes effect instantly'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -136,8 +136,8 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: sections.TITLE_POSITION_OPTIONS[0][0],
           choices: sections.TITLE_POSITION_OPTIONS,
           description: t('Changing this control takes effect instantly'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -158,8 +158,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           ...sharedControls.x_axis_time_format,
           default: 'smart_date',
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
         },
       },
     ],
@@ -168,8 +168,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         name: xAxisLabelRotation.name,
         config: {
           ...xAxisLabelRotation.config,
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isVertical(controls) : isHorizontal(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
         },
       },
     ],
@@ -179,8 +179,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         config: {
           ...sharedControls.y_axis_format,
           label: t('Axis Format'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -194,8 +194,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           renderTrigger: true,
           default: logAxis,
           description: t('Logarithmic axis'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -208,8 +208,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           renderTrigger: true,
           default: minorSplitLine,
           description: t('Draw split lines for minor axis ticks'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -222,8 +222,8 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           default: truncateYAxis,
           renderTrigger: true,
           description: t('It’s not recommended to truncate axis in Bar chart.'),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
-            isXAxis ? isHorizontal(controls) : isVertical(controls),
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isVertical(controls) : isHorizontal(controls),
         },
       },
     ],
@@ -241,9 +241,9 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
               "this feature will only expand the axis range. It won't " +
               "narrow the data's extent.",
           ),
-          visibility: ({ controls }: ControlPanelsContainerProps) =>
+          hidden: ({ controls }: ControlPanelsContainerProps) =>
             Boolean(controls?.truncateYAxis?.value) &&
-            (isXAxis ? isHorizontal(controls) : isVertical(controls)),
+            (isXAxis ? isVertical(controls) : isHorizontal(controls)),
         },
       },
     ],
