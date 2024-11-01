@@ -17,8 +17,11 @@
  * under the License.
  */
 import { Menu } from 'src/components/Menu';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import DownloadScreenshot from './DownloadScreenshot';
 import { DownloadScreenshotFormat } from './types';
+import DownloadAsPdf from './DownloadAsPdf';
+import DownloadAsImage from './DownloadAsImage';
 
 export interface DownloadMenuItemProps {
   pdfMenuItemTitle: string;
@@ -34,25 +37,48 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     imageMenuItemTitle,
     logEvent,
     dashboardId,
+    dashboardTitle,
     ...rest
   } = props;
+  const isWebDriverScreenshotEnabled =
+    isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
+    isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
   return (
     <Menu selectable={false}>
-      <DownloadScreenshot
-        text={pdfMenuItemTitle}
-        dashboardId={dashboardId}
-        logEvent={logEvent}
-        format={DownloadScreenshotFormat.PDF}
-        {...rest}
-      />
-      <DownloadScreenshot
-        text={imageMenuItemTitle}
-        dashboardId={dashboardId}
-        logEvent={logEvent}
-        format={DownloadScreenshotFormat.PNG}
-        {...rest}
-      />
+      {isWebDriverScreenshotEnabled ? (
+        <>
+          <DownloadScreenshot
+            text={pdfMenuItemTitle}
+            dashboardId={dashboardId}
+            logEvent={logEvent}
+            format={DownloadScreenshotFormat.PDF}
+            {...rest}
+          />
+          <DownloadScreenshot
+            text={imageMenuItemTitle}
+            dashboardId={dashboardId}
+            logEvent={logEvent}
+            format={DownloadScreenshotFormat.PNG}
+            {...rest}
+          />
+        </>
+      ) : (
+        <>
+          <DownloadAsPdf
+            text={pdfMenuItemTitle}
+            dashboardTitle={dashboardTitle}
+            logEvent={logEvent}
+            {...rest}
+          />
+          <DownloadAsImage
+            text={imageMenuItemTitle}
+            dashboardTitle={dashboardTitle}
+            logEvent={logEvent}
+            {...rest}
+          />
+        </>
+      )}
     </Menu>
   );
 };
