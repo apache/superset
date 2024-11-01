@@ -21,7 +21,7 @@
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
-x-superset-image: &superset-image us-central1-docker.pkg.dev/client-x-429512/client-x-registry/superset:${TAG:latest}
+x-superset-image: &superset-image us-central1-docker.pkg.dev/client-x-429512/client-x-registry/superset:${TAG:-latest}
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
