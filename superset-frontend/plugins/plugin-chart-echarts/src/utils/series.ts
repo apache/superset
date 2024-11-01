@@ -267,11 +267,7 @@ export function extractSeries(
     xAxisSortSeries?: SortSeriesType;
     xAxisSortSeriesAscending?: boolean;
   } = {},
-): [
-  { id: string; name: string; data: DataRecordValue[][] }[],
-  number[],
-  number | undefined,
-] {
+): [SeriesOption[], number[], number | undefined] {
   const {
     fillNeighborValue,
     xAxis = DTTM_ALIAS,
