@@ -197,7 +197,11 @@ function SelectPageSize({
   onChange,
 }: SelectPageSizeRendererProps) {
   return (
-    <span className="dt-select-page-size form-inline">
+    <span
+      className="dt-select-page-size form-inline"
+      role="group"
+      aria-label={t('Select page size')}
+    >
       {t('page_size.show')}{' '}
       <select
         className="form-control input-sm"
@@ -206,6 +210,7 @@ function SelectPageSize({
         onChange={e => {
           onChange(Number((e.target as HTMLSelectElement).value));
         }}
+        aria-label={t('Show entries per page')}
       >
         {options.map(option => {
           const [size, text] = Array.isArray(option)
@@ -227,6 +232,7 @@ function SelectPageSize({
     </span>
   );
 }
+
 
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
