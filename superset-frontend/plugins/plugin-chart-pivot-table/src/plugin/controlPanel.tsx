@@ -17,6 +17,13 @@
  * under the License.
  */
 import {
+  ControlPanelConfig,
+  D3_TIME_FORMAT_OPTIONS,
+  Dataset,
+  getStandardizedControls,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
@@ -25,13 +32,6 @@ import {
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import {
-  ControlPanelConfig,
-  D3_TIME_FORMAT_OPTIONS,
-  sharedControls,
-  Dataset,
-  getStandardizedControls,
-} from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
@@ -437,7 +437,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.'
+                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
               ),
             },
           },
