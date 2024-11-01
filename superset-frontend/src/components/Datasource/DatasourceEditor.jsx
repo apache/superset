@@ -895,7 +895,7 @@ class DatasourceEditor extends PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as /superset/dashboard/{id}/',
+            'Default URL to redirect to when accessing from the dataset list page. Accepts relative URLs such as \n/superset/dashboard/{id}/',
           )}
           control={<TextControl controlId="default_endpoint" />}
         />
