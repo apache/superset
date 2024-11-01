@@ -20,12 +20,12 @@ import { SyntheticEvent } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from 'src/components/Menu';
-import downloadAsImage from 'src/utils/downloadAsImage';
-import DownloadAsImage from './DownloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
+import DownloadAsPdf from './DownloadAsPdf';
 
 const mockAddDangerToast = jest.fn();
 
-jest.mock('src/utils/downloadAsImage', () => ({
+jest.mock('src/utils/downloadAsPdf', () => ({
   __esModule: true,
   default: jest.fn(() => (_e: SyntheticEvent) => {}),
 }));
@@ -37,7 +37,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 }));
 
 const createProps = () => ({
-  text: 'Download as Image',
+  text: 'Export as PDF',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
 });
@@ -45,31 +45,29 @@ const createProps = () => ({
 const renderComponent = () => {
   render(
     <Menu>
-      <DownloadAsImage {...createProps()} />
+      <DownloadAsPdf {...createProps()} />
     </Menu>,
-    {
-      useRedux: true,
-    },
+    { useRedux: true },
   );
 };
 
-test('Should call download image on click', async () => {
+test('Should call download pdf on click', async () => {
   renderComponent();
   await waitFor(() => {
-    expect(downloadAsImage).toHaveBeenCalledTimes(0);
+    expect(downloadAsPdf).toHaveBeenCalledTimes(0);
     expect(mockAddDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Download as Image' }));
+  userEvent.click(screen.getByRole('button', { name: 'Export as PDF' }));
 
   await waitFor(() => {
-    expect(downloadAsImage).toHaveBeenCalledTimes(1);
+    expect(downloadAsPdf).toHaveBeenCalledTimes(1);
     expect(mockAddDangerToast).toHaveBeenCalledTimes(0);
   });
 });
 
 test('Component is rendered with role="button"', async () => {
   renderComponent();
-  const button = screen.getByRole('button', { name: 'Download as Image' });
+  const button = screen.getByRole('button', { name: 'Export as PDF' });
   expect(button).toBeInTheDocument();
 });
