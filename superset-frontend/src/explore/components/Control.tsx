@@ -46,10 +46,10 @@ export type ControlProps = {
   formData?: QueryFormData | null;
   value?: JsonValue;
   validationErrors?: any[];
+  hidden?: boolean;
   renderTrigger?: boolean;
   default?: JsonValue;
   isVisible?: boolean;
-  isHidden?: boolean;
   resetOnHide?: boolean;
 };
 
@@ -68,7 +68,7 @@ export default function Control(props: ControlProps) {
     actions: { setControlValue },
     name,
     type,
-    isHidden,
+    hidden,
     isVisible,
     resetOnHide = true,
   } = props;
@@ -113,7 +113,7 @@ export default function Control(props: ControlProps) {
     <StyledControl
       className="Control"
       data-test={name}
-      style={isHidden ? { display: 'none' } : undefined}
+      style={hidden ? { display: 'none' } : undefined}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

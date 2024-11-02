@@ -259,6 +259,7 @@ export interface BaseControlConfig<
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  disableStash?: boolean;
   hidden?:
     | boolean
     | ((props: ControlPanelsContainerProps, controlData: AnyDict) => boolean);
