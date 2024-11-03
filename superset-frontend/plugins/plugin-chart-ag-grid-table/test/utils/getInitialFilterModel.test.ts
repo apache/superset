@@ -22,7 +22,7 @@ import type { AgGridChartState } from '@superset-ui/core';
 describe('getInitialFilterModel', () => {
   describe('Priority: chartState > serverPaginationData', () => {
     it('should prioritize chartState.filterModel over serverPaginationData', () => {
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-chart-state' } },
       };
 
@@ -36,7 +36,7 @@ describe('getInitialFilterModel', () => {
     });
 
     it('should use serverPaginationData when chartState.filterModel is unavailable', () => {
-      const chartState: AgGridChartState = {};
+      const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
         agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-server' } },
@@ -60,7 +60,7 @@ describe('getInitialFilterModel', () => {
 
   describe('Empty object handling', () => {
     it('should return undefined when chartState.filterModel is empty object', () => {
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: {},
       };
 
@@ -75,7 +75,7 @@ describe('getInitialFilterModel', () => {
     });
 
     it('should return undefined when serverPaginationData.agGridFilterModel is empty object', () => {
-      const chartState: AgGridChartState = {};
+      const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
         agGridFilterModel: {},
@@ -87,7 +87,7 @@ describe('getInitialFilterModel', () => {
     });
 
     it('should handle both being empty objects', () => {
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: {},
       };
 
@@ -115,7 +115,7 @@ describe('getInitialFilterModel', () => {
     });
 
     it('should return undefined when serverPagination is disabled', () => {
-      const chartState: AgGridChartState = {};
+      const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
         agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'test' } },
@@ -127,7 +127,7 @@ describe('getInitialFilterModel', () => {
     });
 
     it('should use chartState even when serverPagination is disabled', () => {
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-chart-state' } },
       };
 
@@ -144,7 +144,7 @@ describe('getInitialFilterModel', () => {
 
   describe('Complex filter models', () => {
     it('should handle complex chartState filter model', () => {
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: {
           name: { filterType: 'text', type: 'equals', filter: 'John' },
           age: {
@@ -179,7 +179,7 @@ describe('getInitialFilterModel', () => {
   describe('Real-world scenarios', () => {
     it('should handle permalink scenario with chartState', () => {
       // User shares a permalink with saved filter state
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: {
           state: { filterType: 'set', values: ['CA', 'NY', 'TX'] },
           revenue: { filterType: 'number', type: 'greaterThan', filter: 50000 },
@@ -211,7 +211,7 @@ describe('getInitialFilterModel', () => {
 
     it('should handle chart without any filters applied', () => {
       // No filters applied anywhere
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         columnState: [],
       };
 
@@ -227,7 +227,7 @@ describe('getInitialFilterModel', () => {
 
     it('should handle transition from no filters to filters via permalink', () => {
       // User applies filters, creates permalink, then loads it
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: {
           name: { filterType: 'text', type: 'startsWith', filter: 'Admin' },
         },
@@ -266,7 +266,7 @@ describe('getInitialFilterModel', () => {
     });
 
     it('should handle chartState with null filterModel', () => {
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: null as any,
       };
 
@@ -293,13 +293,13 @@ describe('getInitialFilterModel', () => {
       const originalFilterModel = {
         complexFilter: {
           filterType: 'number',
-          operator: 'OR',
+          operator: 'OR' as const,
           condition1: { filterType: 'number', type: 'equals', filter: 100 },
           condition2: { filterType: 'number', type: 'equals', filter: 200 },
         },
       };
 
-      const chartState: AgGridChartState = {
+      const chartState: Partial<AgGridChartState> = {
         filterModel: originalFilterModel,
       };
 

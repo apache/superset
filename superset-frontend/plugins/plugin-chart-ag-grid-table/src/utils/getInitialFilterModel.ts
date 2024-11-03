@@ -23,13 +23,13 @@ import type { AgGridChartState } from '@superset-ui/core';
  * Determines the initial filter model for AG Grid
  * Priority: chartState.filterModel > serverPaginationData.agGridFilterModel
  *
- * @param chartState - Saved chart state from permalink
+ * @param chartState - Saved chart state from permalink (can be partial)
  * @param serverPaginationData - Server pagination data containing filter model
  * @param serverPagination - Whether server pagination is enabled
  * @returns Filter model object or undefined if no valid filter exists
  */
 const getInitialFilterModel = (
-  chartState?: AgGridChartState,
+  chartState?: Partial<AgGridChartState>,
   serverPaginationData?: Record<string, any>,
   serverPagination?: boolean,
 ): Record<string, any> | undefined => {
