@@ -74,6 +74,9 @@ const baseConfig: ThemeConfig = {
       colorText: supersetTheme.colors.text.label,
       remainingColor: supersetTheme.colors.grayscale.light4,
     },
+    Popover: {
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+    },
     Slider: {
       trackBgDisabled: supersetTheme.colors.grayscale.light1,
       colorBgElevated: supersetTheme.colors.grayscale.light5,
