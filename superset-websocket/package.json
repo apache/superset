@@ -39,7 +39,7 @@
     "@types/ws": "^8.5.12",
     "@typescript-eslint/eslint-plugin": "^8.8.0",
     "@typescript-eslint/parser": "^8.6.0",
-    "eslint": "^9.11.0",
+    "eslint": "^9.14.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-lodash": "^8.0.0",
     "globals": "^15.9.0",
