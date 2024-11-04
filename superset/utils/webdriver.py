@@ -383,7 +383,7 @@ class WebDriverSelenium(WebDriverProxy):
                 try:
                     WebDriverWait(driver, self._screenshot_locate_wait).until(
                         EC.visibility_of_all_elements_located(
-                            By.CLASS_NAME, "grid-container"
+                            (By.CLASS_NAME, "grid-container")
                         )
                     )
                 except:
