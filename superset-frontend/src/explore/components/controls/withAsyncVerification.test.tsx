@@ -94,8 +94,8 @@ describe('VerifiedMetricsControl', () => {
 
     expect(wrapper.find(MetricsControl).length).toBe(1);
 
-    expect(verifier).toBeCalledTimes(1);
-    expect(verifier).toBeCalledWith(
+    expect(verifier).toHaveBeenCalledTimes(1);
+    expect(verifier).toHaveBeenCalledWith(
       expect.objectContaining({ savedMetrics: props.savedMetrics }),
     );
 
@@ -104,8 +104,8 @@ describe('VerifiedMetricsControl', () => {
       wrapper.setProps({ validMetric: ['abc'] });
     });
 
-    expect(verifier).toBeCalledTimes(2);
-    expect(verifier).toBeCalledWith(
+    expect(verifier).toHaveBeenCalledTimes(2);
+    expect(verifier).toHaveBeenCalledWith(
       expect.objectContaining({ validMetric: ['abc'] }),
     );
   });
@@ -123,8 +123,8 @@ describe('VerifiedMetricsControl', () => {
     child.props().onChange?.(['abc']);
 
     expect(child.length).toBe(1);
-    expect(mockOnChange).toBeCalledTimes(1);
-    expect(mockOnChange).toBeCalledWith(['abc'], {
+    expect(mockOnChange).toHaveBeenCalledTimes(1);
+    expect(mockOnChange).toHaveBeenCalledWith(['abc'], {
       actions: defaultProps.actions,
       columns: defaultProps.columns,
       datasourceType: defaultProps.datasourceType,

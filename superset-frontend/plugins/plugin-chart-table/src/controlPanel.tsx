@@ -18,6 +18,23 @@
  * under the License.
  */
 import {
+  ColumnMeta,
+  ColumnOption,
+  ControlConfig,
+  ControlPanelConfig,
+  ControlPanelsContainerProps,
+  ControlPanelState,
+  ControlState,
+  ControlStateMapping,
+  D3_TIME_FORMAT_OPTIONS,
+  Dataset,
+  defineSavedMetrics,
+  getStandardizedControls,
+  QueryModeLabel,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+import {
   ensureIsArray,
   GenericDataType,
   isAdhocColumn,
@@ -27,23 +44,6 @@ import {
   SMART_DATE_ID,
   t,
 } from '@superset-ui/core';
-import {
-  ColumnOption,
-  ControlConfig,
-  ControlPanelConfig,
-  ControlPanelsContainerProps,
-  ControlStateMapping,
-  D3_TIME_FORMAT_OPTIONS,
-  QueryModeLabel,
-  sharedControls,
-  ControlPanelState,
-  ControlState,
-  Dataset,
-  ColumnMeta,
-  defineSavedMetrics,
-  getStandardizedControls,
-  sections,
-} from '@superset-ui/chart-controls';
 
 import { isEmpty } from 'lodash';
 import { PAGE_SIZE_OPTIONS } from './consts';
@@ -466,7 +466,9 @@ const config: ControlPanelConfig = {
               label: t('Render columns in HTML format'),
               renderTrigger: true,
               default: true,
-              description: t('Render data in HTML format if applicable.'),
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+              ),
             },
           },
         ],

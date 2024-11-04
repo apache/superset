@@ -103,6 +103,7 @@ Join our growing community!
 - [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
+- [PlaidCloud](https://www.plaidcloud.com)
 - [Preset, Inc.](https://preset.io)
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
@@ -155,6 +156,7 @@ Join our growing community!
 - [Care](https://www.getcare.io/) [@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
+- [Medic](https://medic.org) [@1yuv]
 - [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com/) [@famasya]
 - [WeSure](https://www.wesure.cn/)
@@ -164,9 +166,10 @@ Join our growing community!
 - [Symmetrics](https://www.symmetrics.fyi)
 - [bluquist](https://bluquist.com/)
 
-### Government
+### Government / Non-Profit
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 - [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
+- [NRLM - Sarathi, India](https://pib.gov.in/PressReleasePage.aspx?PRID=1999586)
 
 ### Travel
 - [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
@@ -183,6 +186,6 @@ Join our growing community!
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
 - [Onebeat](https://1beat.com/) [@GuyAttia]
-- [Twitter](https://twitter.com/)
+- [X](https://x.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)

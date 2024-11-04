@@ -583,9 +583,9 @@ const FiltersConfigForm = (
     !datasetId || datasetDetails || formFilter?.dataset?.label;
 
   const updateFormValues = useCallback(
-    (values: any) => {
+    (values: any, triggerFormChange = true) => {
       setNativeFilterFieldValues(form, filterId, values);
-      formChanged();
+      if (triggerFormChange) formChanged();
     },
     [filterId, form, formChanged],
   );
