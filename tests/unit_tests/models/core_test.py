@@ -521,6 +521,7 @@ def test_get_oauth2_config(app_context: None) -> None:
         "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
         "scope": "refresh_token session:role:USERADMIN",
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
     }
 
 
