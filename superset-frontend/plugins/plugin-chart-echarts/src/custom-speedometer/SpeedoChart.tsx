@@ -14,7 +14,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   } = props;
   // Assuming props includes segmentChartFormData
 
-  var calculatedData = 50
+  var calculatedData = 100
 
   // Hardcoded values for 2nd chart
   var outerRadiusSecondChart = 195;
@@ -133,28 +133,38 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         type: 'custom',
         renderItem: (params: any, api: any) => {
           const startAngle = (160 * Math.PI) / 180; // Convert 170° to radians
-          const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
-          const endAngle = startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
+          var hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
+          const endAngleRaw = startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100));
+          const endAngle = endAngleRaw > 2 * Math.PI ? endAngleRaw - 2 * Math.PI : endAngleRaw;
           
           const outerRadius = 190;
           const innerRadius = 140;
           
-          // Get center coordinates
           const [cx, cy] = api.coord([0, 0]);
-          // const cx = api.coord([0,0])[1] + 100;
-          // const cy = api.coord([0,0])[0] + 50;
+
+          const normalizedEndAngle = (startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100))) % (2 * Math.PI);
+          const largeArcFlag = (endAngleRaw - startAngle) > Math.PI ? 1 : 0;
+            
+          /*
+          if(hardCap >= 79) {
+            hardCap = 70
+            var endAngle = startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
+          }
+          */
+
+          console.log(startAngle, endAngle, hardCap)      
         
           return {
             type: 'path',
             shape: {
               pathData: `
                 M ${cx + innerRadius * Math.cos(startAngle)} ${cy + innerRadius * Math.sin(startAngle)}
-                A ${innerRadius} ${innerRadius} 0 0 1
+                A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1
                   ${cx + innerRadius * Math.cos(endAngle)} ${cy + innerRadius * Math.sin(endAngle)}
                 L ${cx + outerRadius * Math.cos(endAngle)} ${cy + outerRadius * Math.sin(endAngle)}
-                A ${outerRadius} ${outerRadius} 0 0 0
+                A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0
                   ${cx + outerRadius * Math.cos(startAngle)} ${cy + outerRadius * Math.sin(startAngle)}
-                Z                
+                Z         
               `,
             },
             style: {
