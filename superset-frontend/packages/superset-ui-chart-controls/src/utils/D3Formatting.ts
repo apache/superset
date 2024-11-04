@@ -54,6 +54,7 @@ const d3Formatted: [string, string][] = [
 export const D3_FORMAT_OPTIONS: [string, string][] = [
   [NumberFormats.SMART_NUMBER, t('Adaptive formatting')],
   ['~g', t('Original value')],
+  ['full_bangla', t('Full Bangla')],
   ...d3Formatted,
   ['DURATION', t('Duration in ms (66000 => 1m 6s)')],
   ['DURATION_SUB', t('Duration in ms (1.40008 => 1ms 400µs 80ns)')],
@@ -68,6 +69,7 @@ export const D3_TIME_FORMAT_DOCS = t(
 
 export const D3_TIME_FORMAT_OPTIONS: [string, string][] = [
   [SMART_DATE_ID, t('Adaptive formatting')],
+  ['full_bangla_date', t('full_bangla_date')],
   ['%d/%m/%Y', '%d/%m/%Y | 14/01/2019'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],

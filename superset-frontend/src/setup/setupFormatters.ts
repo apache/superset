@@ -18,17 +18,22 @@
  */
 import {
   createDurationFormatter,
+  createSmartDateDetailedFormatter,
+  createSmartDateFormatter,
+  createSmartDateVerboseFormatter,
   getNumberFormatter,
   getNumberFormatterRegistry,
-  NumberFormats,
   getTimeFormatterRegistry,
-  SMART_DATE_ID,
+  NumberFormats,
+  NumberFormatter,
   SMART_DATE_DETAILED_ID,
+  SMART_DATE_ID,
   SMART_DATE_VERBOSE_ID,
   createSmartDateFormatter,
   createSmartDateVerboseFormatter,
   createSmartDateDetailedFormatter,
   createMemoryFormatter,
+  TimeFormatter
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -74,6 +79,25 @@ export default function setupFormatters(
     .registerValue('$,0f', getNumberFormatter('$,.4f'))
     .registerValue('$,.f', getNumberFormatter('$,.4f'))
     .registerValue('DURATION', createDurationFormatter())
+    .registerValue('full_bangla', new NumberFormatter({
+      id: 'full_bangla',
+      formatFunc: (v: any) => {
+        const englishToBengaliDigits: any = {
+          '0': '০',
+          '1': '১',
+          '2': '২',
+          '3': '৩',
+          '4': '৪',
+          '5': '৫',
+          '6': '৬',
+          '7': '৭',
+          '8': '৮',
+          '9': '৯',
+        };
+
+        return v.toString().replace(/[0-9]/g, (digit: string) => englishToBengaliDigits[digit]);
+      }
+    }))
     .registerValue(
       'DURATION_SUB',
       createDurationFormatter({ formatSubMilliseconds: true }),
@@ -85,6 +109,7 @@ export default function setupFormatters(
     .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
     .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }));
 
+  getNumberFormatterRegistry();
   const timeFormatterRegistry = getTimeFormatterRegistry();
 
   timeFormatterRegistry
@@ -100,6 +125,15 @@ export default function setupFormatters(
     .registerValue(
       SMART_DATE_DETAILED_ID,
       createSmartDateDetailedFormatter(timeFormatterRegistry.d3Format),
+    )
+    .registerValue(
+      'full_bangla_date',
+      new TimeFormatter({
+        id: 'full_bangla_date',
+        formatFunc: (date: Date) => {
+          return date.toLocaleDateString('bn-BD'); // TODO: check if it's possible using local settings
+        },
+      })
     )
     .setDefaultKey(SMART_DATE_ID);
 }
