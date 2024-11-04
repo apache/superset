@@ -84,6 +84,7 @@ Join our growing community!
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
 - [Dremio](https://dremio.com) [@narendrans]
+- [EFinance](https://www.efinance.com.eg) [@habeeb556]
 - [Elestio](https://elest.io/) [@kaiwalyakoparkar]
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
 - [Endress+Hauser](https://www.endress.com/) [@rumbin]
