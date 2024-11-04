@@ -189,7 +189,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
                 // prevent window from jumping down when tabbing
                 // if already at the top of the page
                 // to help with accessibility when using keyboard navigation
-                window.scrollTo(window.scrollX, 0);
+                // Only scroll when needed for tab focus navigation
+                window.scrollTo(0, 0);
               }
             }}
           >
