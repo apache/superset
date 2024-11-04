@@ -23,7 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "uuid": "^10.0.0",
-    "winston": "^3.13.0",
+    "winston": "^3.15.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
