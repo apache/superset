@@ -49,6 +49,7 @@ from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
     ReportScheduleDAO,
 )
+from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorsException, SupersetException
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
@@ -206,11 +207,8 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            permalink_key = CreateDashboardPermalinkCommand(
-                dashboard_id=str(self._report_schedule.dashboard.uuid),
-                state=dashboard_state,
-            ).run()
-            return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+            return self._get_tab_url(dashboard_state)
+
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
             dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
@@ -223,12 +221,70 @@ class BaseReportState:
             **kwargs,
         )
 
+    def get_dashboard_urls(
+        self, user_friendly: bool = False, **kwargs: Any
+    ) -> list[str]:
+        """
+        Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
+        """
+        force = "true" if self._report_schedule.force_screenshot else "false"
+        if (
+            dashboard_state := self._report_schedule.extra.get("dashboard")
+        ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
+            if anchor := dashboard_state.get("anchor"):
+                try:
+                    anchor_list: list[str] = json.loads(anchor)
+                    return self._get_tabs_urls(anchor_list)
+                except json.JSONDecodeError:
+                    logger.debug("Anchor value is not a list, Fall back to single tab")
+            return [self._get_tab_url(dashboard_state)]
+
+        dashboard = self._report_schedule.dashboard
+        dashboard_id_or_slug = (
+            dashboard.uuid if dashboard and dashboard.uuid else dashboard.id
+        )
+
+        return [
+            get_url_path(
+                "Superset.dashboard",
+                user_friendly=user_friendly,
+                dashboard_id_or_slug=dashboard_id_or_slug,
+                force=force,
+                **kwargs,
+            )
+        ]
+
+    def _get_tab_url(self, dashboard_state: DashboardPermalinkState) -> str:
+        """
+        Get one tab url
+        """
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(self._report_schedule.dashboard.uuid),
+            state=dashboard_state,
+        ).run()
+        return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+
+    def _get_tabs_urls(self, tab_anchors: list[str]) -> list[str]:
+        """
+        Get multple tabs urls
+        """
+        return [
+            self._get_tab_url(
+                {
+                    "anchor": tab_anchor,
+                    "dataMask": None,
+                    "activeTabs": None,
+                    "urlParams": None,
+                }
+            )
+            for tab_anchor in tab_anchors
+        ]
+
     def _get_screenshots(self) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
         """
-        url = self._get_url()
         _, username = get_executor(
             executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
             model=self._report_schedule,
@@ -236,31 +292,41 @@ class BaseReportState:
         user = security_manager.find_user(username)
 
         if self._report_schedule.chart:
+            url = self._get_url()
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
             window_size = (
                 self._report_schedule.custom_width or window_width,
                 self._report_schedule.custom_height or window_height,
             )
-            screenshot: Union[ChartScreenshot, DashboardScreenshot] = ChartScreenshot(
-                url,
-                self._report_schedule.chart.digest,
-                window_size=window_size,
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
-            )
+            screenshots: list[Union[ChartScreenshot, DashboardScreenshot]] = [
+                ChartScreenshot(
+                    url,
+                    self._report_schedule.chart.digest,
+                    window_size=window_size,
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["slice"],
+                )
+            ]
         else:
+            urls = self.get_dashboard_urls()
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             window_size = (
                 self._report_schedule.custom_width or window_width,
                 self._report_schedule.custom_height or window_height,
             )
-            screenshot = DashboardScreenshot(
-                url,
-                self._report_schedule.dashboard.digest,
-                window_size=window_size,
-                thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
-            )
+            screenshots = [
+                DashboardScreenshot(
+                    url,
+                    self._report_schedule.dashboard.digest,
+                    window_size=window_size,
+                    thumb_size=app.config["WEBDRIVER_WINDOW"]["dashboard"],
+                )
+                for url in urls
+            ]
         try:
-            image = screenshot.get_screenshot(user=user)
+            imges = []
+            for screenshot in screenshots:
+                if imge := screenshot.get_screenshot(user=user):
+                    imges.append(imge)
         except SoftTimeLimitExceeded as ex:
             logger.warning("A timeout occurred while taking a screenshot.")
             raise ReportScheduleScreenshotTimeout() from ex
@@ -268,9 +334,9 @@ class BaseReportState:
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
             ) from ex
-        if not image:
+        if not imges:
             raise ReportScheduleScreenshotFailedError()
-        return [image]
+        return imges
 
     def _get_pdf(self) -> bytes:
         """
