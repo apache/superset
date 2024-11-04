@@ -9,9 +9,14 @@ const calculatePercentage = (min: number, max: number, value: any): number => {
 
     let percentage = ((value - min) / (max - min)) * 100;
     
-    let final = Math.round(percentage)
-    
-    return final;
+    percentage = parseFloat(percentage.toFixed(2));
+
+    // Ensure percentage does notfall below 0%
+    if (percentage < 0) {
+        percentage = 0;
+    }
+
+    return percentage;
 }
 
 function rgbaToHex(color: RGBA | string): string {    
@@ -87,7 +92,7 @@ export function configureSegmentCharts(formData:any) {
     {color: s3ChartColor, end: s3End,  start: s3Start, name: 's3'},
    ]
 
-   const controlledSegments =  checkNoOfverlapping(segmentarray)        
+    var controlledSegments =  checkNoOfverlapping(segmentarray)        
 
 
     return {
@@ -124,7 +129,7 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     // Segements 2nd arch
     const segmentAmount = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
     
-    const segmentChartFormData = configureSegmentCharts(formData)
+    const segmentChartFormData = configureSegmentCharts(formData)        
 
     return {
         width,
@@ -133,15 +138,6 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
         maxValue: maxVal,
         progress: progress,
         segmentAmt: segmentAmount,
-        s1ChartColor: segmentChartFormData.s1ChartColor,
-        s1Start: segmentChartFormData.s1Start,
-        s1End: segmentChartFormData.s1End,
-        s2ChartColor: segmentChartFormData.s2ChartColor,
-        s2Start: segmentChartFormData.s2Start,
-        s2End: segmentChartFormData.s2End,
-        s3ChartColor: segmentChartFormData.s3ChartColor,
-        s3Start: segmentChartFormData.s3Start,
-        s3End: segmentChartFormData.s3End,
         controlledSegments: segmentChartFormData.controlledSegments
     };
 }

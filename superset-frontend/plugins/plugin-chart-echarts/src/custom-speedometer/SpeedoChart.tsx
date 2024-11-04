@@ -2,40 +2,23 @@ import React, { useEffect, useRef } from 'react';
 import * as echarts from 'echarts';
 import { DEFAULT_FORM_DATA, SpeedometerChartProps, SpeedometerChartFormData } from './types';
 
-const calculatePercentage = (progressVal: number): number => {
-  progressVal = parseFloat(progressVal.toFixed(2));
-
-  // Ensure percentage does notfall below 0%
-  if (progressVal < 0) {
-    progressVal = 0;
-  }
-
-
-  return progressVal;
-}
 
 const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChartFormData) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
-  const { minValue, maxValue, progress,segmentAmt, s1ChartColor, 
-    s1Start, 
-    s1End, 
-    s2ChartColor, 
-    s2Start, 
-    s2End, 
-    s3ChartColor, 
-    s3Start, 
-    s3End,
+  const { minValue, 
+    maxValue, 
+    progress,
+    segmentAmt, 
     controlledSegments,
   } = props;
   // Assuming props includes segmentChartFormData
 
-  var calculatedData = calculatePercentage(progress);
   var calculatedData = 100
 
   // Hardcoded values for 2nd chart
-  var outerRadiusSecondChart = 114;
-  var innerRadiusSecondChart = 122;
+  var outerRadiusSecondChart = 195;
+  var innerRadiusSecondChart = 205;
   const segments2 = controlledSegments
   
   useEffect(() => {
@@ -43,25 +26,20 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
 
     const options = {
       title: {
-        text: `Progress: ${calculatedData}%\n\nNumber Being Given: ${progress} `,
-        left: 100,
-        top: 270,
+        text: `${calculatedData} %`,
+        left: 'center',
+        top: '75%',
         textStyle: {
-          fontSize: 16,
+          fontSize: 58,
           fontWeight: 'bold',
         },
       },
-      xAxis: {
-        type: 'value',
-        minValue: 0,
-        maxValue: 100,
-        show: false,
+      grid: {
+        left: '50%',
+        top: '50%',
       },
-      yAxis: {
-        type: 'category',
-        data: [''],
-        show: false,
-      },
+      xAxis: { show: false, }, 
+      yAxis: { show: false, },
       /*tooltip: {        
         shoz: true,
         trigger: 'item',
@@ -78,7 +56,17 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
       graphic: [
         {
           type: 'text',
-          left: 400,
+          left: 'center',
+          top: '90%',
+          style: {
+            text: 'MIN Profit',
+            fontSize: 20,
+            fontWeight: 100, 
+          }
+        },
+        {
+          type: 'text',
+          left: 1200,
           top: 150,
           style: {
             text: `minValue: ${minValue}`,
@@ -88,7 +76,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         },
         {
           type: 'text',
-          left: 400,
+          left: 1200,
           top: 170,
           style: {
             text: `maxValue: ${maxValue}`,
@@ -98,7 +86,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         },
         {
           type: 'text',
-          left: 400,
+          left: 1200,
           top: 190,
           style: {
             text: `Segment Amt: ${segmentAmt}`,
@@ -110,7 +98,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         ...segments2.flatMap((segment, index) => [
           {
             type: 'text',
-            left: 400,
+            left: 1200,
             top: 210 + index * 60,
             style: {
               text: `S${index+1}Start: ${segment.start}`,
@@ -120,7 +108,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           },
           {
             type: 'text',
-            left: 400,
+            left: 1200,
             top: 230 + index * 60,
             style: {
               text: `S${index+1}End: ${segment.end}`,
@@ -130,7 +118,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
           },
           {
             type: 'text',
-            left: 400,
+            left: 1200,
             top: 250 + index * 60,
             style: {
               text: `S${index+1}Colorcode: ${segment.color}`,
@@ -144,32 +132,44 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
         // Data Showcase Chart
         type: 'custom',
         renderItem: (params: any, api: any) => {
-          const startAngle = (170 * Math.PI) / 180; // Convert 170° to radians
-          const hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
-          const endAngle = startAngle + ((200 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
+          const startAngle = (160 * Math.PI) / 180; // Convert 170° to radians
+          var hardCap = Math.min(calculatedData, 100); // Ensure hardCap does not exceed 100
+          const endAngleRaw = startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100));
+          const endAngle = endAngleRaw > 2 * Math.PI ? endAngleRaw - 2 * Math.PI : endAngleRaw;
           
-          const outerRadius = 110;
-          const innerRadius = 80;
+          const outerRadius = 190;
+          const innerRadius = 140;
           
-          // Get center coordinates
           const [cx, cy] = api.coord([0, 0]);
+
+          const normalizedEndAngle = (startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100))) % (2 * Math.PI);
+          const largeArcFlag = (endAngleRaw - startAngle) > Math.PI ? 1 : 0;
+            
+          /*
+          if(hardCap >= 79) {
+            hardCap = 70
+            var endAngle = startAngle + ((220 / 360) * 2 * Math.PI * (hardCap / 100)); // Total span of 200° for hardCap = 100         
+          }
+          */
+
+          console.log(startAngle, endAngle, hardCap)      
         
           return {
             type: 'path',
             shape: {
               pathData: `
                 M ${cx + innerRadius * Math.cos(startAngle)} ${cy + innerRadius * Math.sin(startAngle)}
-                A ${innerRadius} ${innerRadius} 0 1 1
+                A ${innerRadius} ${innerRadius} 0 ${largeArcFlag} 1
                   ${cx + innerRadius * Math.cos(endAngle)} ${cy + innerRadius * Math.sin(endAngle)}
                 L ${cx + outerRadius * Math.cos(endAngle)} ${cy + outerRadius * Math.sin(endAngle)}
-                A ${outerRadius} ${outerRadius} 0 1 0
+                A ${outerRadius} ${outerRadius} 0 ${largeArcFlag} 0
                   ${cx + outerRadius * Math.cos(startAngle)} ${cy + outerRadius * Math.sin(startAngle)}
-                Z                
+                Z         
               `,
             },
             style: {
-              fill: '#4caf50', // Progress color (green)
-              stroke: '#000', // Outline color
+              fill: '#4caf50', 
+              stroke: '#000',
               lineWidth: 2, 
             },
           };
@@ -179,40 +179,42 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
       {
         // Segments Chart
         type: 'custom',
-        renderItem: (params: any, api:any) => {
-
-          const cx = api.coord([0,0])[1];  // Center x
-          const cy = api.coord([0,0])[1];  // Center y
-          
-          const segmentArcs = segments2.map((segment) => {
-            const startAngle = -Math.PI + (Math.PI * (segment.start / 100)); // Convert start percentage to radians
-            const endAngle = -Math.PI + (Math.PI * (segment.end / 100)); // Convert end percentage to radians
-
-
+        renderItem: (params: any, api: any) => {
+            const [cx, cy] = api.coord([0, 0]);
+        
+            const startAngleOffset = (160 * Math.PI) / 180;  // 170° in radians
+            const arcSpan = (220 * Math.PI) / 180;           // 200° in radians
+        
+            const segmentArcs = segments2.map((segment) => {
+            // Calculate start and end angles for each segment
+            const startAngle = startAngleOffset + (arcSpan * (segment.start / 100)); // Map start percentage to radians
+            const endAngle = startAngleOffset + (arcSpan * (segment.end / 100));     // Map end percentage to radians
+              
             return {
-              type: 'path',
-              shape: {
-                pathData:`
-                  M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
-                  A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
-                    ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
-                  L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
-                  A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
-                    ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
-                  Z
-                  `,
+                type: 'path',
+                shape: {
+                    pathData: `
+                      M ${cx + innerRadiusSecondChart * Math.cos(startAngle)} ${cy + innerRadiusSecondChart * Math.sin(startAngle)}
+                      A ${innerRadiusSecondChart} ${innerRadiusSecondChart} 0 0 1
+                        ${cx + innerRadiusSecondChart * Math.cos(endAngle)} ${cy + innerRadiusSecondChart * Math.sin(endAngle)}
+                      L ${cx + outerRadiusSecondChart * Math.cos(endAngle)} ${cy + outerRadiusSecondChart * Math.sin(endAngle)}
+                      A ${outerRadiusSecondChart} ${outerRadiusSecondChart} 0 0 0
+                        ${cx + outerRadiusSecondChart * Math.cos(startAngle)} ${cy + outerRadiusSecondChart * Math.sin(startAngle)}
+                      Z
+                    `,
                 },
                 style: {
-                  fill: segment.color,
-                  stroke: '#000',
-                  lineWidth: 2,
+                    fill: segment.color,
+                    stroke: '#000',
+                    lineWidth: 1,
                 },
             };
-          });
-          return {
-            type: 'group',
-            children: segmentArcs, // Add all arcs as children of the group
-          };
+            });
+          
+            return {
+                type: 'group',
+                children: segmentArcs, // Add all arcs as children of the group
+            };
         },
         data: [{}]
       }],      
@@ -226,7 +228,10 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
     };
   }, [calculatedData]);
 
-  return <div ref={chartRef} style={{ width: '100%', height: '520px' }} />;
+  return <div ref={chartRef} style={{ 
+    width: '100%', height: '520px',    
+  }} 
+  />;
 };
 
 export default SpeedoChart;
