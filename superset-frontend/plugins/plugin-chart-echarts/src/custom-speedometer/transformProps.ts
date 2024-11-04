@@ -129,7 +129,7 @@ export default function transformProps(chartProps: SpeedometerTransformProps) {
     // Segements 2nd arch
     const segmentAmount = formData.segmentAmt ?? DEFAULT_FORM_DATA.segmentAmt ?? 0;
     
-    const segmentChartFormData = configureSegmentCharts(formData)
+    const segmentChartFormData = configureSegmentCharts(formData)        
 
     return {
         width,

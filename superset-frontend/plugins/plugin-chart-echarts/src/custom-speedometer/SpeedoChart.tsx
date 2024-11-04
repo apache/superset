@@ -14,7 +14,7 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
   } = props;
   // Assuming props includes segmentChartFormData
 
-  var calculatedData = 70
+  var calculatedData = 50
 
   // Hardcoded values for 2nd chart
   var outerRadiusSecondChart = 195;
@@ -149,10 +149,10 @@ const SpeedoChart: React.FC<SpeedometerChartFormData> = (props: SpeedometerChart
             shape: {
               pathData: `
                 M ${cx + innerRadius * Math.cos(startAngle)} ${cy + innerRadius * Math.sin(startAngle)}
-                A ${innerRadius} ${innerRadius} 0 1 1
+                A ${innerRadius} ${innerRadius} 0 0 1
                   ${cx + innerRadius * Math.cos(endAngle)} ${cy + innerRadius * Math.sin(endAngle)}
                 L ${cx + outerRadius * Math.cos(endAngle)} ${cy + outerRadius * Math.sin(endAngle)}
-                A ${outerRadius} ${outerRadius} 0 1 0
+                A ${outerRadius} ${outerRadius} 0 0 0
                   ${cx + outerRadius * Math.cos(startAngle)} ${cy + outerRadius * Math.sin(startAngle)}
                 Z                
               `,
