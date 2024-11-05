@@ -20,7 +20,9 @@ jobs:
     continue-on-error: true # This will make the job advisory (non-blocking, no red X)
     steps:
       - uses: actions/checkout@v4
-      - uses: JustinBeckwith/linkinator-action@v1.11.0
+      # Do not bump this linkinator-action version without opening
+      # an ASF Infra ticket to allow the new verison first!
+      - uses: JustinBeckwith/linkinator-action@v1.10.4
         with:
           paths: "**/*.md, **/*.mdx"
           linksToSkip: >-
