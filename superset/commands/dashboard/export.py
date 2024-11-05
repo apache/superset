@@ -37,6 +37,7 @@ from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
+from superset.extensions import feature_flag_manager  # Import the feature flag manager
 
 logger = logging.getLogger(__name__)
 
@@ -160,13 +161,13 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         payload["version"] = EXPORT_VERSION
 
-        tags = (
-            model.tags  # Assuming `tags` is a relationship in the `Slice` model
-            if hasattr(model, "tags") else []
-        )
-        # Filter out any tags that contain "type:" and "owner:"in their name
-        payload["tag"] = [tag.name for tag in tags if not any(prefix in tag.name for prefix in ["type:", "owner:"])]
-        
+        # Check if the TAGGING_SYSTEM feature is enabled
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            tags = (
+                model.tags if hasattr(model, "tags") else []
+            )
+            payload["tag"] = [tag.name for tag in tags if not any(prefix in tag.name for prefix in ["type:", "owner:"])]
+
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
@@ -183,10 +184,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
             chart_ids = [chart.id for chart in model.slices]
             dashboard_ids = model.id
             yield from ExportChartsCommand(chart_ids, should_export_tags=False).run()
-            yield from ExportTagsCommand._export(dashboard_ids=dashboard_ids, chart_ids=chart_ids)
-
-
-
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                yield from ExportTagsCommand._export(dashboard_ids=dashboard_ids, chart_ids=chart_ids)
+                
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,
