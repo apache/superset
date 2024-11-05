@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       # Do not bump this linkinator-action version without opening
       # an ASF Infra ticket to allow the new verison first!
-      - uses: JustinBeckwith/linkinator-action@v1.10.4
+      - uses: JustinBeckwith/linkinator-action@v1.11.0
         with:
           paths: "**/*.md, **/*.mdx"
           linksToSkip: >-
