@@ -65,7 +65,7 @@
     "prettier": "npm run _prettier -- --write",
     "prettier-check": "npm run _prettier -- --check",
     "prod": "npm run build",
-    "prune": "rm -rf ./{packages,plugins}/*/{lib,esm,tsconfig.tsbuildinfo,package-lock.json}",
+    "prune": "rm -rf ./{packages,plugins}/*/{node_modules,lib,esm,tsconfig.tsbuildinfo,package-lock.json} ./.temp_cache",
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development storybook dev -p 6006",
     "tdd": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --watch",
     "test": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --max-workers=50%",
