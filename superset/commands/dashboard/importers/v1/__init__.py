@@ -41,7 +41,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.commands.importers.v1.utils import import_tag
-
+from superset.extensions import feature_flag_manager
 
 class ImportDashboardsCommand(ImportModelsCommand):
     """Import dashboards"""
@@ -125,9 +125,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 chart_ids[str(chart.uuid)] = chart.id
                 
                 # Handle tags using import_tag function
-                if "tag" in config:
-                    new_tag_names = config["tag"]
-                    import_tag(new_tag_names, contents, chart.id, "chart", db.session)
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tag" in config:
+                        new_tag_names = config["tag"]
+                        import_tag(new_tag_names, contents, chart.id, "chart", db.session)
 
         # store the existing relationship between dashboards and charts
         existing_relationships = db.session.execute(
@@ -150,9 +151,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
                         dashboard_chart_ids.append((dashboard.id, chart_id))
 
                 # Handle tags using import_tag function
-                if "tag" in config:
-                    new_tag_names = config["tag"]
-                    import_tag(new_tag_names, contents, dashboard.id, "dashboard", db.session)
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tag" in config:
+                        new_tag_names = config["tag"]
+                        import_tag(new_tag_names, contents, dashboard.id, "dashboard", db.session)
 
         # set ref in the dashboard_slices table
         values = [

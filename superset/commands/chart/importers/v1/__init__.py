@@ -32,7 +32,7 @@ from superset.daos.chart import ChartDAO
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.commands.importers.v1.utils import import_tag
-
+from superset.extensions import feature_flag_manager
 
 class ImportChartsCommand(ImportModelsCommand):
     """Import charts"""
@@ -103,6 +103,7 @@ class ImportChartsCommand(ImportModelsCommand):
                 chart = import_chart(config, overwrite=overwrite)
                 
                 # Handle tags using import_tag function
-                if "tag" in config:
-                    new_tag_names = config["tag"]
-                    import_tag(new_tag_names, contents, chart.id, "chart", db.session)
+                if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                    if "tag" in config:
+                        new_tag_names = config["tag"]
+                        import_tag(new_tag_names, contents, chart.id, "chart", db.session)

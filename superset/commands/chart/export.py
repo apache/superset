@@ -31,6 +31,7 @@ from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
+from superset.extensions import feature_flag_manager
 
 logger = logging.getLogger(__name__)
 
@@ -72,14 +73,13 @@ class ExportChartsCommand(ExportModelsCommand):
         if model.table:
             payload["dataset_uuid"] = str(model.table.uuid)
 
-        # Fetch tags from the database
-        tags = (
-            model.tags  # Assuming `tags` is a relationship in the `Slice` model
-            if hasattr(model, "tags") else []
-        )
-        # Filter out any tags that contain "type:" in their name
-        payload["tag"] = [tag.name for tag in tags if not any(x in tag.name for x in ["type:", "owner:"])]
-                
+        # Fetch tags from the database if TAGGING_SYSTEM is enabled
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            tags = (
+                model.tags if hasattr(model, "tags") else []
+            )
+            # Filter out any tags that contain "type:" in their name
+            payload["tag"] = [tag.name for tag in tags if not any(x in tag.name for x in ["type:", "owner:"])]
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
@@ -87,8 +87,6 @@ class ExportChartsCommand(ExportModelsCommand):
     def __init__(self, chart_ids, should_export_tags=True):
         super().__init__(chart_ids)
         self.should_export_tags = should_export_tags
-        
-
     # Change to an instance method
     def _export(
         self, model: Slice, export_related: bool = True
@@ -102,6 +100,6 @@ class ExportChartsCommand(ExportModelsCommand):
             yield from ExportDatasetsCommand([model.table.id]).run()
 
 
-        if export_related and self.should_export_tags:
+        if export_related and self.should_export_tags and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             chart_id = model.id
             yield from ExportTagsCommand._export(chart_ids=[chart_id])
