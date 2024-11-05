@@ -64,7 +64,11 @@ async function detectLastFilteredInput(
       colId,
     )) as AGGridFilterInstance | null;
 
-    if (filterInstance?.eConditionBodies) {
+    if (!filterInstance) {
+      continue;
+    }
+
+    if (filterInstance.eConditionBodies) {
       const conditionBodies = filterInstance.eConditionBodies;
 
       // Check first condition body
@@ -88,6 +92,28 @@ async function detectLastFilteredInput(
         lastFilteredColumn = colId;
         break;
       }
+    }
+
+    if (filterInstance.eJoinAnds) {
+      for (const joinAnd of filterInstance.eJoinAnds) {
+        if (joinAnd.eGui?.contains(activeElement)) {
+          inputPosition = FILTER_INPUT_POSITIONS.FIRST;
+          lastFilteredColumn = colId;
+          break;
+        }
+      }
+      if (lastFilteredColumn) break;
+    }
+
+    if (filterInstance.eJoinOrs) {
+      for (const joinOr of filterInstance.eJoinOrs) {
+        if (joinOr.eGui?.contains(activeElement)) {
+          inputPosition = FILTER_INPUT_POSITIONS.FIRST;
+          lastFilteredColumn = colId;
+          break;
+        }
+      }
+      if (lastFilteredColumn) break;
     }
   }
 

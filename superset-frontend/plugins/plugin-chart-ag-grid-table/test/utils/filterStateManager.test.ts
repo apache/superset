@@ -456,5 +456,169 @@ describe('filterStateManager', () => {
       // Should return the same reference
       expect(result.originalFilterModel).toBe(originalFilterModel);
     });
+
+    it('should detect active element in eJoinAnds array', async () => {
+      const filterModel = {
+        age: {
+          filterType: 'number',
+          operator: 'AND',
+          condition1: { filterType: 'number', type: 'greaterThan', filter: 18 },
+          condition2: { filterType: 'number', type: 'lessThan', filter: 65 },
+        },
+      };
+
+      const mockInput = document.createElement('input');
+      const mockJoinAndGui = document.createElement('div');
+      mockJoinAndGui.appendChild(mockInput);
+
+      const mockFilterInstance = {
+        eGui: document.createElement('div'),
+        eConditionBodies: [document.createElement('div'), document.createElement('div')],
+        eJoinAnds: [{ eGui: mockJoinAndGui }],
+      };
+
+      const mockApi = {
+        getFilterModel: jest.fn(() => filterModel),
+        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+      };
+
+      const gridRef = {
+        current: { api: mockApi } as any,
+      } as RefObject<AgGridReact>;
+
+      // Mock activeElement in join AND operator
+      Object.defineProperty(document, 'activeElement', {
+        writable: true,
+        configurable: true,
+        value: mockInput,
+      });
+
+      const result = await getCompleteFilterState(gridRef, []);
+
+      expect(result.lastFilteredColumn).toBe('age');
+      expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
+    });
+
+    it('should detect active element in eJoinOrs array', async () => {
+      const filterModel = {
+        status: {
+          filterType: 'text',
+          operator: 'OR',
+          condition1: { filterType: 'text', type: 'equals', filter: 'active' },
+          condition2: { filterType: 'text', type: 'equals', filter: 'pending' },
+        },
+      };
+
+      const mockInput = document.createElement('input');
+      const mockJoinOrGui = document.createElement('div');
+      mockJoinOrGui.appendChild(mockInput);
+
+      const mockFilterInstance = {
+        eGui: document.createElement('div'),
+        eConditionBodies: [document.createElement('div'), document.createElement('div')],
+        eJoinOrs: [{ eGui: mockJoinOrGui }],
+      };
+
+      const mockApi = {
+        getFilterModel: jest.fn(() => filterModel),
+        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+      };
+
+      const gridRef = {
+        current: { api: mockApi } as any,
+      } as RefObject<AgGridReact>;
+
+      // Mock activeElement in join OR operator
+      Object.defineProperty(document, 'activeElement', {
+        writable: true,
+        configurable: true,
+        value: mockInput,
+      });
+
+      const result = await getCompleteFilterState(gridRef, []);
+
+      expect(result.lastFilteredColumn).toBe('status');
+      expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
+    });
+
+    it('should check condition bodies before join operators', async () => {
+      const filterModel = {
+        name: { filterType: 'text', type: 'equals', filter: 'test' },
+      };
+
+      const mockInput = document.createElement('input');
+      const mockConditionBody2 = document.createElement('div');
+      mockConditionBody2.appendChild(mockInput);
+
+      const mockJoinAndGui = document.createElement('div');
+      // Input is NOT in join operator, only in condition body
+
+      const mockFilterInstance = {
+        eGui: document.createElement('div'),
+        eConditionBodies: [document.createElement('div'), mockConditionBody2],
+        eJoinAnds: [{ eGui: mockJoinAndGui }],
+      };
+
+      const mockApi = {
+        getFilterModel: jest.fn(() => filterModel),
+        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+      };
+
+      const gridRef = {
+        current: { api: mockApi } as any,
+      } as RefObject<AgGridReact>;
+
+      Object.defineProperty(document, 'activeElement', {
+        writable: true,
+        configurable: true,
+        value: mockInput,
+      });
+
+      const result = await getCompleteFilterState(gridRef, []);
+
+      expect(result.lastFilteredColumn).toBe('name');
+      // Should detect SECOND input position, not from join operator
+      expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.SECOND);
+    });
+
+    it('should handle multiple eJoinAnds elements', async () => {
+      const filterModel = {
+        score: { filterType: 'number', type: 'greaterThan', filter: 90 },
+      };
+
+      const mockInput = document.createElement('input');
+      const mockJoinAndGui2 = document.createElement('div');
+      mockJoinAndGui2.appendChild(mockInput);
+
+      const mockFilterInstance = {
+        eGui: document.createElement('div'),
+        eConditionBodies: [document.createElement('div')],
+        eJoinAnds: [
+          { eGui: document.createElement('div') },
+          { eGui: mockJoinAndGui2 },
+          { eGui: document.createElement('div') },
+        ],
+      };
+
+      const mockApi = {
+        getFilterModel: jest.fn(() => filterModel),
+        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+      };
+
+      const gridRef = {
+        current: { api: mockApi } as any,
+      } as RefObject<AgGridReact>;
+
+      Object.defineProperty(document, 'activeElement', {
+        writable: true,
+        configurable: true,
+        value: mockInput,
+      });
+
+      const result = await getCompleteFilterState(gridRef, []);
+
+      expect(result.lastFilteredColumn).toBe('score');
+      expect(result.inputPosition).toBe(FILTER_INPUT_POSITIONS.FIRST);
+    });
   });
 });

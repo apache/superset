@@ -196,6 +196,8 @@ export type FilterInputPosition = 'first' | 'second' | 'unknown';
 export interface AGGridFilterInstance {
   eGui?: HTMLElement;
   eConditionBodies?: HTMLElement[];
+  eJoinAnds?: Array<{ eGui?: HTMLElement }>;
+  eJoinOrs?: Array<{ eGui?: HTMLElement }>;
 }
 
 export interface CustomContext {
