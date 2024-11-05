@@ -219,7 +219,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
             height: maxHeight,
           }}
         >
-          {text}
+          {t(text)}
         </div>
       );
     }

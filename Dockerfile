@@ -28,7 +28,7 @@ ARG NPM_BUILD_CMD="build"
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
-ARG BUILD_TRANSLATIONS="false"
+ARG BUILD_TRANSLATIONS="true"
 
 # Used by docker-compose to skip the frontend build,
 # in dev we mount the repo and build the frontend inside docker
@@ -44,7 +44,8 @@ RUN apt-get update -qq \
         -yqq --no-install-recommends \
         build-essential \
         python3 \
-        zstd
+        zstd \
+        jq
 
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
@@ -66,9 +67,14 @@ RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
+
 # This copies the .po files needed for translation
 RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
+
+RUN mkdir -p /app/locales
+COPY locales /app/locales
+
 RUN if [ "$DEV_MODE" = "false" ]; then \
         BUILD_TRANSLATIONS=$BUILD_TRANSLATIONS npm run ${BUILD_CMD}; \
     else \
@@ -94,7 +100,7 @@ FROM python:${PY_VER} AS lean
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
-ARG BUILD_TRANSLATIONS="false"
+ARG BUILD_TRANSLATIONS="true"
 
 WORKDIR /app
 ENV LANG=C.UTF-8 \
