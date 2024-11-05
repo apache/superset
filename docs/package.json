@@ -48,7 +48,7 @@
   "devDependencies": {
     "@docusaurus/module-type-aliases": "^3.5.2",
     "@docusaurus/tsconfig": "^3.5.2",
-    "@types/react": "^18.3.10",
+    "@types/react": "^18.3.12",
     "typescript": "^5.6.3",
     "webpack": "^5.96.1"
   },
