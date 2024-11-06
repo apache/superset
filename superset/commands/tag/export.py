@@ -26,6 +26,7 @@ import yaml
 from superset.commands.export.models import ExportModelsCommand
 from superset.daos.chart import ChartDAO  # Import DAO for fetching charts
 from superset.daos.dashboard import DashboardDAO  # Import DAO for fetching dashboards
+from superset.extensions import feature_flag_manager
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,8 @@ class ExportTagsCommand(ExportModelsCommand):
         dashboard_ids: Union[int, List[int]] = None, 
         chart_ids: Union[int, List[int]] = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        if not feature_flag_manager.is_feature_enabled('TAGGING_SYSTEM'):
+            return iter([])
         yield (
             ExportTagsCommand._file_name(),
             lambda: ExportTagsCommand._file_content(dashboard_ids, chart_ids)

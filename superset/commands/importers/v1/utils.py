@@ -30,6 +30,8 @@ from superset.tags.models import Tag, TaggedObject
 from superset.utils.core import check_is_safe_zip
 from sqlalchemy.orm import Session
 
+from superset.extensions import feature_flag_manager
+
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
 
@@ -219,6 +221,10 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
 
 def import_tag(new_tag_names: list[str], contents: dict[str, Any], object_id: int, object_type: str, session: Session) -> list[int]:
     """ Handles the import logic for tags for charts and dashboards """
+    
+    if not feature_flag_manager.is_feature_enabled('TAGGING_SYSTEM'):
+        return []
+    
     tag_descriptions = {}
     new_tag_ids = []
     if "tags.yaml" in contents:
