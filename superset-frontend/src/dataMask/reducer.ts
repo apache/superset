@@ -47,6 +47,10 @@ export function getInitialDataMask(
 ): DataMaskWithId;
 export function getInitialDataMask(
   id?: string | number,
+  moreProps?: DataMask,
+): DataMask;
+export function getInitialDataMask(
+  id?: string | number,
   moreProps: DataMask = {},
 ): DataMask {
   return {
