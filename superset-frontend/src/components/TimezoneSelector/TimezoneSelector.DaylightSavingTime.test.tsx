@@ -35,9 +35,12 @@ const loadComponent = (mockCurrentTime?: string) => {
   return new Promise<FC<TimezoneSelectorProps>>(resolve => {
     const { default: TimezoneSelector } = module.require('./index');
     resolve(TimezoneSelector);
-    jest.useRealTimers();
   });
 };
+
+afterEach(() => {
+  jest.useRealTimers();
+});
 
 test('render timezones in correct order for daylight saving time', async () => {
   const TimezoneSelector = await loadComponent('2022-07-01');

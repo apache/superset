@@ -42,7 +42,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 
 const defaultProps = () => ({
   text: 'Download',
-  dashboardId: '123',
+  dashboardId: 123,
   format: DownloadScreenshotFormat.PDF,
   logEvent: mockLogEvent,
 });
@@ -130,6 +130,9 @@ describe('DownloadScreenshot component', () => {
     await waitFor(() => {
       expect(mockAddInfoToast).toHaveBeenCalledWith(
         'The screenshot is being generated. Please, do not leave the page.',
+        {
+          noDuplicate: true,
+        },
       );
     });
   });
@@ -202,7 +205,7 @@ describe('DownloadScreenshot component', () => {
     // Wait for the successful image retrieval message
     await waitFor(() => {
       expect(mockAddSuccessToast).toHaveBeenCalledWith(
-        'The screenshot is now being downloaded.',
+        'The screenshot has been downloaded.',
       );
     });
   });

@@ -51,9 +51,9 @@ test('Should call "onClick"', () => {
   const props = createProps();
   render(<FilterIndicator {...props} />);
 
-  expect(props.onClick).toBeCalledTimes(0);
+  expect(props.onClick).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Vaccine Approach' }));
-  expect(props.onClick).toBeCalledTimes(1);
+  expect(props.onClick).toHaveBeenCalledTimes(1);
 });
 
 test('Should render "value"', () => {

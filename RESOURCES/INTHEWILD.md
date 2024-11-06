@@ -84,6 +84,7 @@ Join our growing community!
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
 - [Dial Once](https://www.dial-once.com/)
 - [Dremio](https://dremio.com) [@narendrans]
+- [EFinance](https://www.efinance.com.eg) [@habeeb556]
 - [Elestio](https://elest.io/) [@kaiwalyakoparkar]
 - [ELMO Cloud HR & Payroll](https://elmosoftware.com.au/)
 - [Endress+Hauser](https://www.endress.com/) [@rumbin]
@@ -95,7 +96,7 @@ Join our growing community!
 - [jampp](https://jampp.com/)
 - [Konfío](https://konfio.mx) [@uis-rodriguez]
 - [Mainstrat](https://mainstrat.com/)
-- [mishmash io](https://mishmash.io/)[@mishmash-io]
+- [mishmash io](https://mishmash.io/) [@mishmash-io]
 - [Myra Labs](https://www.myralabs.com/) [@viksit]
 - [Nielsen](https://www.nielsen.com/) [@amitNielsen]
 - [Ona](https://ona.io) [@pld]
@@ -103,6 +104,7 @@ Join our growing community!
 - [Oslandia](https://oslandia.com)
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
+- [PlaidCloud](https://www.plaidcloud.com)
 - [Preset, Inc.](https://preset.io)
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
@@ -115,7 +117,7 @@ Join our growing community!
 - [timbr.ai](https://timbr.ai/) [@semantiDan]
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
-- [Unvired](https://unvired.com)[@srinisubramanian]
+- [Unvired](https://unvired.com) [@srinisubramanian]
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
@@ -128,7 +130,7 @@ Join our growing community!
 - [Kuaishou](https://www.kuaishou.com/) [@zhaoyu89730105]
 - [Netflix](https://www.netflix.com/)
 - [Prensa Iberica](https://www.prensaiberica.es/) [@zamar-roura]
-- [TME QQMUSIC/WESING](https://www.tencentmusic.com/)[@shenyuanli,@marklaw]
+- [TME QQMUSIC/WESING](https://www.tencentmusic.com/) [@shenyuanli,@marklaw]
 - [Xite](https://xite.com/) [@shashankkoppar]
 - [Zaihang](https://www.zaih.com/)
 
@@ -137,7 +139,7 @@ Join our growing community!
 - [Brilliant.org](https://brilliant.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
-- [The GRAPH Network](https://thegraphnetwork.org/)[@fccoelho]
+- [The GRAPH Network](https://thegraphnetwork.org/) [@fccoelho]
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 - [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
@@ -152,21 +154,24 @@ Join our growing community!
 ### Healthcare
 - [Amino](https://amino.com) [@shkr]
 - [Bluesquare](https://www.bluesquarehub.com/) [@madewulf]
-- [Care](https://www.getcare.io/)[@alandao2021]
+- [Care](https://www.getcare.io/) [@alandao2021]
 - [Living Goods](https://www.livinggoods.org) [@chelule]
 - [Maieutical Labs](https://maieuticallabs.it) [@xrmx]
+- [Medic](https://medic.org) [@1yuv]
 - [REDCap Cloud](https://www.redcapcloud.com/)
 - [TrustMedis](https://trustmedis.com/) [@famasya]
 - [WeSure](https://www.wesure.cn/)
+- [2070Health](https://2070health.com/)
 
 ### HR / Staffing
 - [Swile](https://www.swile.co/) [@PaoloTerzi]
 - [Symmetrics](https://www.symmetrics.fyi)
 - [bluquist](https://bluquist.com/)
 
-### Government
+### Government / Non-Profit
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 - [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
+- [NRLM - Sarathi, India](https://pib.gov.in/PressReleasePage.aspx?PRID=1999586)
 
 ### Travel
 - [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
@@ -183,6 +188,6 @@ Join our growing community!
 - [komoot](https://www.komoot.com/) [@christophlingg]
 - [Let's Roam](https://www.letsroam.com/)
 - [Onebeat](https://1beat.com/) [@GuyAttia]
-- [Twitter](https://twitter.com/)
+- [X](https://x.com/)
 - [VLMedia](https://www.vlmedia.com.tr/) [@ibotheperfect]
 - [Yahoo!](https://yahoo.com/)

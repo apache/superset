@@ -55,8 +55,7 @@ const TooltipSection = ({
   text: ReactNode;
 }) => (
   <TooltipSectionWrapper>
-    <TooltipSectionLabel>{label}</TooltipSectionLabel>
-    <span>{text}</span>
+    <TooltipSectionLabel>{label}</TooltipSectionLabel>: <span>{text}</span>
   </TooltipSectionWrapper>
 );
 
@@ -71,12 +70,7 @@ export const getColumnTypeTooltipNode = (column: ColumnMeta): ReactNode => {
     return null;
   }
 
-  return (
-    <TooltipSection
-      label={t('Column datatype')}
-      text={column.type.toLowerCase()}
-    />
-  );
+  return <TooltipSection label={t('Column type')} text={column.type} />;
 };
 
 export const getColumnTooltipNode = (

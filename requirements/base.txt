@@ -109,7 +109,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.5.0
+flask-appbuilder==4.5.2
     # via apache-superset
 flask-babel==2.0.0
     # via flask-appbuilder
@@ -385,7 +385,7 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
-werkzeug==3.0.3
+werkzeug==3.0.6
     # via
     #   -r requirements/base.in
     #   flask
@@ -394,7 +394,7 @@ werkzeug==3.0.3
     #   flask-login
 wrapt==1.16.0
     # via deprecated
-wtforms==3.1.2
+wtforms==3.2.1
     # via
     #   apache-superset
     #   flask-appbuilder

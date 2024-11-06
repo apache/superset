@@ -18058,7 +18058,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         initiallyExcludedCharts,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
   });
 
   it('Avoids runtime error with invalid inputs', () => {
@@ -18073,7 +18073,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         initiallyExcludedCharts,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
 
     expect(() => {
       buildTree(
@@ -18086,7 +18086,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         initiallyExcludedCharts,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
 
     expect(() => {
       buildTree(
@@ -18099,7 +18099,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         initiallyExcludedCharts,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
 
     expect(() => {
       buildTree(
@@ -18112,7 +18112,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         initiallyExcludedCharts,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
 
     expect(() => {
       buildTree(
@@ -18125,7 +18125,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         initiallyExcludedCharts,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
 
     expect(() => {
       buildTree(
@@ -18138,6 +18138,6 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
         null,
         () => 'Fake title',
       );
-    }).not.toThrowError();
+    }).not.toThrow();
   });
 });

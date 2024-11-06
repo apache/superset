@@ -85,6 +85,15 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         "published": False,
     }
 
+    dashboard_put_filters_data = {
+        "modified": [
+            {"id": "native_filter_1", "name": "Filter 1"},
+            {"id": "native_filter_2", "name": "Filter 2"},
+        ],
+        "deleted": [],
+        "reordered": [],
+    }
+
     @pytest.fixture()
     def create_dashboards(self):
         with self.create_app().app_context():
@@ -1719,6 +1728,175 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(model)
         db.session.commit()
 
+    def test_add_dashboard_filters(self):
+        """
+        Dashboard API: Test that a filter was added
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 1"
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modify_dashboard_filters_values(self):
+        """
+        Dashboard API: Test that a filter was added
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "native_filter_1",
+                    "name": "Filter X",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                }
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        rv = self.put_assert_metric(uri, self.dashboard_put_filters_data, "put_filters")
+
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 1"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modfify_dashboard_filters_order(self):
+        """
+        Dashboard API: Test filters reordered
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "native_filter_1",
+                    "name": "Filter 1",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+                {
+                    "id": "native_filter_2",
+                    "name": "Filter 2",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        put_data = {
+            **self.dashboard_put_filters_data,
+            "reordered": ["native_filter_2", "native_filter_1"],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_filters")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_dashboard_filters_deleted(self):
+        """
+        Dashboard API: Test filters deleted
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        json_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "native_filter_1",
+                    "name": "Filter 1",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+                {
+                    "id": "native_filter_2",
+                    "name": "Filter 2",
+                    "filterType": "filter_select",
+                    "cascadeParentIds": [],
+                },
+            ]
+        }
+        dashboard_id = self.insert_dashboard(
+            "title1",
+            "slug1",
+            [admin.id],
+            roles=[admin_role.id],
+            json_metadata=json.dumps(json_metadata),
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        put_data = {
+            **self.dashboard_put_filters_data,
+            "deleted": ["native_filter_1"],
+        }
+        rv = self.put_assert_metric(uri, put_data, "put_filters")
+        assert rv.status_code == 200
+        model = db.session.query(Dashboard).get(dashboard_id)
+        json_metadata = model.json_metadata
+        native_filter_config = json.loads(json_metadata)["native_filter_configuration"]
+
+        assert native_filter_config[0]["name"] == "Filter 2"
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_modify_dashboard_filters_invalid_data(self):
+        """
+        Dashboard API: Test modify filters with invalid data
+        """
+        admin = self.get_user("admin")
+        admin_role = self.get_role("Admin")
+        dashboard_id = self.insert_dashboard(
+            "title1", "slug1", [admin.id], roles=[admin_role.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard_id}/filters"
+        put_data = {"invalid_key": "invalid_value"}
+        rv = self.put_assert_metric(uri, put_data, "put_filters")
+        assert rv.status_code == 400
+
+        model = db.session.query(Dashboard).get(dashboard_id)
+        db.session.delete(model)
+        db.session.commit()
+
     def test_dashboard_get_list_no_username(self):
         """
         Dashboard API: Tests that no username is returned
@@ -2847,7 +3025,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         return self.client.get(uri)
 
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    def test_cache_dashboard_screenshot_success(self):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_success(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -2858,7 +3038,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.status_code == 202
 
     @pytest.mark.usefixtures("create_dashboard_with_tag")
-    def test_cache_dashboard_screenshot_dashboard_validation(self):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_dashboard_validation(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         dashboard = (
             db.session.query(Dashboard)
@@ -2874,7 +3056,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._cache_screenshot(dashboard.id, invalid_payload)
         assert response.status_code == 400
 
-    def test_cache_dashboard_screenshot_dashboard_not_found(self):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_dashboard_not_found(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
         response = self._cache_screenshot(non_existent_id)
@@ -2883,10 +3067,14 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_screenshot_success_png(self, mock_get_cache, mock_cache_task):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_success_png(
+        self, is_feature_enabled, mock_get_cache, mock_cache_task
+    ):
         """
         Validate screenshot returns png
         """
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_cache.return_value = BytesIO(b"fake image data")
@@ -2909,12 +3097,14 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.build_pdf_from_screenshots")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    @patch("superset.dashboards.api.is_feature_enabled")
     def test_screenshot_success_pdf(
-        self, mock_get_from_cache, mock_build_pdf, mock_cache_task
+        self, is_feature_enabled, mock_get_from_cache, mock_build_pdf, mock_cache_task
     ):
         """
         Validate screenshot can return pdf.
         """
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_from_cache.return_value = BytesIO(b"fake image data")
@@ -2937,7 +3127,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_screenshot_not_in_cache(self, mock_get_cache, mock_cache_task):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_not_in_cache(
+        self, is_feature_enabled, mock_get_cache, mock_cache_task
+    ):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_cache.return_value = None
@@ -2954,7 +3148,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = self._get_screenshot(dashboard.id, cache_key, "pdf")
         assert response.status_code == 404
 
-    def test_screenshot_dashboard_not_found(self):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_dashboard_not_found(self, is_feature_enabled):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         non_existent_id = 999
         response = self._get_screenshot(non_existent_id, "some_cache_key", "png")
@@ -2963,7 +3159,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_screenshot_invalid_download_format(self, mock_get_cache, mock_cache_task):
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_screenshot_invalid_download_format(
+        self, is_feature_enabled, mock_get_cache, mock_cache_task
+    ):
+        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_cache.return_value = BytesIO(b"fake png data")
@@ -2979,4 +3179,21 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
+        assert response.status_code == 404
+
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.is_feature_enabled")
+    def test_cache_dashboard_screenshot_feature_disabled(self, is_feature_enabled):
+        is_feature_enabled.return_value = False
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        assert dashboard is not None
+
+        response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 404

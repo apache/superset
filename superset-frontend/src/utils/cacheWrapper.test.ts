@@ -37,8 +37,8 @@ describe('cacheWrapper', () => {
     const returnedValue = wrappedFn(1, 2);
 
     expect(returnedValue).toEqual(fnResult);
-    expect(fn).toBeCalledTimes(1);
-    expect(fn).toBeCalledWith(1, 2);
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(1, 2);
   });
 
   describe('subsequent calls', () => {
@@ -48,14 +48,14 @@ describe('cacheWrapper', () => {
 
       expect(returnedValue1).toEqual(fnResult);
       expect(returnedValue2).toEqual(fnResult);
-      expect(fn).toBeCalledTimes(1);
+      expect(fn).toHaveBeenCalledTimes(1);
     });
 
     it('fn is called multiple times for different arguments', () => {
       wrappedFn(1, 2);
       wrappedFn(1, 3);
 
-      expect(fn).toBeCalledTimes(2);
+      expect(fn).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -77,7 +77,7 @@ describe('cacheWrapper', () => {
       wrappedFn(1, 2);
       wrappedFn(1, 3);
 
-      expect(fn).toBeCalledTimes(1);
+      expect(fn).toHaveBeenCalledTimes(1);
     });
   });
 });

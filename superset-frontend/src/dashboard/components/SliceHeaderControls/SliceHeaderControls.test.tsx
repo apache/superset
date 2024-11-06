@@ -180,21 +180,21 @@ test('Should render default props', () => {
 test('Should "export to CSV"', async () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.exportCSV).toBeCalledTimes(0);
+  expect(props.exportCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to .CSV'));
-  expect(props.exportCSV).toBeCalledTimes(1);
-  expect(props.exportCSV).toBeCalledWith(371);
+  expect(props.exportCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportCSV).toHaveBeenCalledWith(371);
 });
 
 test('Should "export to Excel"', async () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.exportXLSX).toBeCalledTimes(0);
+  expect(props.exportXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to Excel'));
-  expect(props.exportXLSX).toBeCalledTimes(1);
-  expect(props.exportXLSX).toBeCalledWith(371);
+  expect(props.exportXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportXLSX).toHaveBeenCalledWith(371);
 });
 
 test('Export full CSV is under featureflag', async () => {
@@ -214,11 +214,11 @@ test('Should "export full CSV"', async () => {
   };
   const props = createProps('table');
   renderWrapper(props);
-  expect(props.exportFullCSV).toBeCalledTimes(0);
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full .CSV'));
-  expect(props.exportFullCSV).toBeCalledTimes(1);
-  expect(props.exportFullCSV).toBeCalledWith(371);
+  expect(props.exportFullCSV).toHaveBeenCalledTimes(1);
+  expect(props.exportFullCSV).toHaveBeenCalledWith(371);
 });
 
 test('Should not show export full CSV if report is not table', async () => {
@@ -248,11 +248,11 @@ test('Should "export full Excel"', async () => {
   };
   const props = createProps('table');
   renderWrapper(props);
-  expect(props.exportFullXLSX).toBeCalledTimes(0);
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full Excel'));
-  expect(props.exportFullXLSX).toBeCalledTimes(1);
-  expect(props.exportFullXLSX).toBeCalledWith(371);
+  expect(props.exportFullXLSX).toHaveBeenCalledTimes(1);
+  expect(props.exportFullXLSX).toHaveBeenCalledWith(371);
 });
 
 test('Should not show export full Excel if report is not table', async () => {
@@ -268,29 +268,29 @@ test('Should not show export full Excel if report is not table', async () => {
 test('Should "Show chart description"', () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.toggleExpandSlice).toBeCalledTimes(0);
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Show chart description'));
-  expect(props.toggleExpandSlice).toBeCalledTimes(1);
-  expect(props.toggleExpandSlice).toBeCalledWith(371);
+  expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
+  expect(props.toggleExpandSlice).toHaveBeenCalledWith(371);
 });
 
 test('Should "Force refresh"', () => {
   const props = createProps();
   renderWrapper(props);
-  expect(props.forceRefresh).toBeCalledTimes(0);
+  expect(props.forceRefresh).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Force refresh'));
-  expect(props.forceRefresh).toBeCalledTimes(1);
-  expect(props.forceRefresh).toBeCalledWith(371, 26);
-  expect(props.addSuccessToast).toBeCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledTimes(1);
+  expect(props.forceRefresh).toHaveBeenCalledWith(371, 26);
+  expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
 });
 
 test('Should "Enter fullscreen"', () => {
   const props = createProps();
   renderWrapper(props);
 
-  expect(props.handleToggleFullSize).toBeCalledTimes(0);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Enter fullscreen'));
-  expect(props.handleToggleFullSize).toBeCalledTimes(1);
+  expect(props.handleToggleFullSize).toHaveBeenCalledTimes(1);
 });
 
 test('Drill to detail modal is under featureflag', () => {

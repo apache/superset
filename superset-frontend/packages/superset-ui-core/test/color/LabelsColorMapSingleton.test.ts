@@ -227,7 +227,7 @@ describe('LabelsColorMap', () => {
       labelsColorMap.updateColorMap(categoricalNamespace, 'testColors');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
-      expect(getAnalogousColorsSpy).not.toBeCalled();
+      expect(getAnalogousColorsSpy).not.toHaveBeenCalled();
     });
 
     it('should use analagous colors', () => {
@@ -242,7 +242,7 @@ describe('LabelsColorMap', () => {
       labelsColorMap.updateColorMap(categoricalNamespace, 'testColors');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).not.toEqual({});
-      expect(getAnalogousColorsSpy).toBeCalled();
+      expect(getAnalogousColorsSpy).toHaveBeenCalled();
     });
   });
 
