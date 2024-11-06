@@ -233,7 +233,6 @@ function SelectPageSize({
   );
 }
 
-
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
 
