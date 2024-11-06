@@ -704,7 +704,7 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
   const defaultScheme = categoricalSchemes.defaultKey;
   const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
   const colorSchemeDomain = metadata?.color_scheme_domain || [];
-  const sharedLabels = metadata?.shared_label_colors;
+  const sharedLabels = metadata?.shared_label_colors || [];
   let requiresUpdate = false;
 
   try {
