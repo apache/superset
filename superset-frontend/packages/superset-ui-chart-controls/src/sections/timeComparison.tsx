@@ -114,7 +114,7 @@ export const timeComparisonControls: ({
                 controlState.value === 'Invalid date')
             ) {
               newState.externalValidationErrors = [
-                t('A date is required when using Custom date shift'),
+                t('A date is required when using custom date shift'),
               ];
             } else {
               newState.externalValidationErrors = [];
