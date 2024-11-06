@@ -23,6 +23,7 @@ import {
   ControlPanelState,
   ControlState,
 } from '../types';
+import { INVALID_DATE } from '..';
 
 const fullChoices = [
   ['1 day ago', t('1 day ago')],
@@ -110,8 +111,7 @@ export const timeComparisonControls: ({
             const newState = { ...controlState };
             if (
               time_compare === 'custom' &&
-              (controlState.value === '' ||
-                controlState.value === 'Invalid date')
+              (controlState.value === '' || controlState.value === INVALID_DATE)
             ) {
               newState.externalValidationErrors = [
                 t('A date is required when using custom date shift'),

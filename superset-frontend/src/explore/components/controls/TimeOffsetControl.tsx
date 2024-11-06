@@ -34,7 +34,10 @@ import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { RootState } from 'src/views/store';
-import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
+import {
+  DEFAULT_DATE_PATTERN,
+  INVALID_DATE,
+} from '@superset-ui/chart-controls';
 
 export interface TimeOffsetControlsProps {
   label?: ReactNode;
@@ -45,7 +48,6 @@ export interface TimeOffsetControlsProps {
   onChange: (datetime: string) => void;
 }
 const MOMENT_FORMAT = 'YYYY-MM-DD';
-const INVALID_DATE = 'Invalid date';
 
 const isTimeRangeEqual = (
   left: BinaryAdhocFilter[],
