@@ -249,6 +249,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: pageNumber,
         pageSize,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -261,6 +263,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         currentPage: 0,
         pageSize,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -273,6 +277,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }
@@ -286,6 +292,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           serverPaginationData?.searchColumn || searchOptions[0]?.value,
         searchText,
         currentPage: 0, // Reset to first page when searching
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
@@ -298,6 +306,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },

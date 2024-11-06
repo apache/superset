@@ -358,6 +358,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         ...options?.ownState,
         currentPage: 0,
         pageSize: queryObject.row_limit ?? 0,
+        lastFilteredColumn: undefined,
+        lastFilteredInputPosition: undefined,
       };
       updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
