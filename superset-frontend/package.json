@@ -148,6 +148,7 @@
     "json-bigint": "^1.0.0",
     "json-stringify-pretty-compact": "^2.0.0",
     "lodash": "^4.17.21",
+    "luxon": "^3.5.0",
     "mapbox-gl": "^2.10.0",
     "markdown-to-jsx": "^7.4.7",
     "match-sorter": "^6.3.4",
