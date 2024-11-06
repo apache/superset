@@ -77,7 +77,10 @@ class CustomHistogram extends PureComponent {
       sliceId,
     } = this.props;
     const appliedScheme = colorScheme || ownColorScheme;
-    const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
+    const colorFn = CategoricalColorNamespace.getScale(
+      appliedScheme,
+      ownColorScheme,
+    );
     const keys = data.map(d => d.key);
     const colorScale = scaleOrdinal({
       domain: keys,

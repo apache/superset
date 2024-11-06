@@ -32,42 +32,43 @@ import {
 export const getColorNamespace = (namespace?: string) => namespace || undefined;
 
 /**
- * Get the labels color map entries
+ * Get labels shared across multiple charts
  *
- * @param shared - filter out labels not shared across multiple charts
  * @returns Record<string, string>
  */
-export const getLabelsColorMapEntries = (
-  shared = false,
-): Record<string, string> => {
+
+export const getSharedLabels = (): string[] => {
   const labelsColorMapInstance = getLabelsColorMap();
-  const updatedLabelsColorMapEntries = Object.fromEntries(
-    labelsColorMapInstance.getColorMap(),
-  );
-  // filter out all labels that are not shared across multiple charts
   const { chartsLabelsMap } = labelsColorMapInstance;
 
-  if (shared) {
-    const allLabels = new Set<string>();
-    const sharedLabels = new Set<string>();
-    chartsLabelsMap.forEach(({ labels }) => {
-      labels.forEach(label => {
-        if (allLabels.has(label)) {
-          sharedLabels.add(label);
-        }
-        allLabels.add(label);
-      });
+  const allLabels = new Set<string>();
+  const sharedLabels: string[] = [];
+  chartsLabelsMap.forEach(({ labels }) => {
+    labels.forEach(label => {
+      if (allLabels.has(label) && !sharedLabels.includes(label)) {
+        sharedLabels.push(label);
+      }
+      allLabels.add(label);
     });
-    const sharedLabelsColorMapEntries = Object.fromEntries(
-      Object.entries(updatedLabelsColorMapEntries).filter(([label]) =>
-        sharedLabels.has(label),
-      ),
-    );
+  });
 
-    return sharedLabelsColorMapEntries;
-  }
+  return sharedLabels;
+};
 
-  return updatedLabelsColorMapEntries;
+export const getSharedLabelsColorMapEntries = (
+  currentColorMap: Record<string, string>,
+): Record<string, string> => {
+  const sharedLabels = getSharedLabels();
+  return Object.fromEntries(
+    Object.entries(currentColorMap).filter(([label]) =>
+      sharedLabels.includes(label),
+    ),
+  );
+};
+
+export const getLabelsColorMapEntries = (): Record<string, string> => {
+  const labelsColorMapInstance = getLabelsColorMap();
+  return Object.fromEntries(labelsColorMapInstance.getColorMap());
 };
 
 export const getColorSchemeDomain = (colorScheme: string) =>
@@ -82,7 +83,7 @@ export const getColorSchemeDomain = (colorScheme: string) =>
 export const isLabelsColorMapSynced = (
   metadata: Record<string, any>,
 ): boolean => {
-  const currentLabelsColorMap = metadata?.full_label_colors || {};
+  const currentLabelsColorMap = metadata?.map_label_colors || {};
   const customLabelColors = metadata?.label_colors || {};
   const freshLabelsColorMap = getLabelsColorMap().getColorMap();
 
@@ -155,10 +156,20 @@ export const applyColors = (
     CategoricalColorNamespace.getNamespace(colorNameSpace);
   const colorScheme = metadata?.color_scheme;
   const customLabelColors = metadata?.label_colors || {};
-  const sharedLabelsColorMap = metadata?.shared_label_colors || {};
+  const sharedLabels = Array.isArray(metadata?.shared_label_colors)
+    ? metadata.shared_label_colors
+    : getSharedLabels();
+  const fullLabelsColor = metadata?.map_label_colors || {};
+  // filter the fullLabelsColor object to only shared labels
+  const sharedLabelsColors = Object.fromEntries(
+    Object.entries(fullLabelsColor).filter(([label]) =>
+      sharedLabels.includes(label),
+    ),
+  );
+
   const labelsColorMap = shared
-    ? sharedLabelsColorMap
-    : metadata?.full_label_colors || {};
+    ? sharedLabelsColors
+    : metadata?.map_label_colors || {};
 
   if (fresh) {
     // reset custom label colors
@@ -177,7 +188,9 @@ export const applyColors = (
     refreshLabelsColorMap(metadata?.color_namespace, colorScheme, merge);
   }
 
-  const currentColorMapEntries = getLabelsColorMapEntries(shared);
+  const currentColorMapEntries = shared
+    ? getSharedLabelsColorMapEntries(fullLabelsColor)
+    : getLabelsColorMapEntries();
 
   // get the fresh map that was just updated or existing
   const labelsColorMapEntries = fresh

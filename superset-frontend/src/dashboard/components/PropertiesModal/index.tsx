@@ -196,7 +196,7 @@ const PropertiesModal = ({
       const metaDataCopy = omit(metadata, [
         'positions',
         'shared_label_colors',
-        'full_label_colors',
+        'map_label_colors',
         'color_scheme_domain',
       ]);
 
@@ -334,8 +334,8 @@ const PropertiesModal = ({
     if (metadata?.shared_label_colors) {
       delete metadata.shared_label_colors;
     }
-    if (metadata?.full_label_colors) {
-      delete metadata.full_label_colors;
+    if (metadata?.map_label_colors) {
+      delete metadata.map_label_colors;
     }
     if (metadata?.color_scheme_domain) {
       delete metadata.color_scheme_domain;

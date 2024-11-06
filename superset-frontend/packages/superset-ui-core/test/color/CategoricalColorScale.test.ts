@@ -29,7 +29,7 @@ describe('CategoricalColorScale', () => {
     expect(CategoricalColorScale !== undefined).toBe(true);
   });
 
-  describe('new CategoricalColorScale(colors, forcedColors)', () => {
+  describe('new CategoricalColorScale(colors, forcedColors, colorScheme, originalScheme)', () => {
     it('can create new scale when forcedColors is not given', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale).toBeInstanceOf(CategoricalColorScale);
@@ -156,7 +156,7 @@ describe('CategoricalColorScale', () => {
 
       expect(scale.chartLabelsColorMap.has(value)).toBe(false);
 
-      scale.getColor(value, sliceId, colorScheme);
+      scale.getColor(value, sliceId, colorScheme, 'originalColorScheme');
 
       expect(scale.chartLabelsColorMap.has(value)).toBe(true);
       expect(scale.chartLabelsColorMap.get(value)).toBeDefined();
@@ -166,6 +166,7 @@ describe('CategoricalColorScale', () => {
         expect.any(String),
         sliceId,
         colorScheme,
+        'originalColorScheme',
       );
 
       const expectedColor = scale.chartLabelsColorMap.get(value);

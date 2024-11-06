@@ -132,8 +132,8 @@ export type DashboardInfo = {
     color_namespace: string;
     color_scheme_domain: string[];
     label_colors: JsonObject;
-    shared_label_colors: JsonObject;
-    full_label_colors: JsonObject;
+    shared_label_colors: string[];
+    map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
   };
   crossFiltersEnabled: boolean;

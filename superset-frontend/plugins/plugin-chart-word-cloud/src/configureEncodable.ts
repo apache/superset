@@ -73,7 +73,7 @@ const colorSchemeResolver: ColorSchemeResolver = ({
 const colorScaleResolver: CategoricalColorScaleResolver = ({
   name,
   namespace,
-} = {}) => CategoricalColorNamespace.getScale(name, namespace);
+} = {}) => CategoricalColorNamespace.getScale(name, name, namespace);
 
 export default function configureEncodable() {
   Encodable.setNumberFormatResolver(getNumberFormatter)

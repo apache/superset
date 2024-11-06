@@ -50,7 +50,7 @@ export interface ColorSchemeControlProps {
   hasCustomLabelsColor: boolean;
   hasDashboardColorScheme?: boolean;
   hasSharedLabelsColor?: boolean;
-  sharedLabelsColor: Record<string, string>;
+  sharedLabelsColors: string[];
   chartId?: number;
   dashboardId?: number;
   label: string;
@@ -125,7 +125,7 @@ const Label = ({
 const ColorSchemeControl = ({
   hasCustomLabelsColor = false,
   hasDashboardColorScheme = false,
-  sharedLabelsColor = {},
+  sharedLabelsColors = [],
   dashboardId,
   chartId,
   label = t('Color scheme'),
@@ -138,7 +138,7 @@ const ColorSchemeControl = ({
   isLinear,
   ...rest
 }: ColorSchemeControlProps) => {
-  const countSharedLabelsColor = Object.keys(sharedLabelsColor).length;
+  const countSharedLabelsColor = sharedLabelsColors.length;
   const colorMapInstance = getLabelsColorMap();
   const chartLabels = chartId
     ? colorMapInstance.chartsLabelsMap.get(chartId)?.labels || []
@@ -146,7 +146,7 @@ const ColorSchemeControl = ({
   const hasSharedLabelsColor = !!(
     dashboardId &&
     countSharedLabelsColor > 0 &&
-    chartLabels.some(label => sharedLabelsColor[label])
+    chartLabels.some(label => sharedLabelsColors.includes(label))
   );
   const hasDashboardScheme = dashboardId && hasDashboardColorScheme;
   const theme = useTheme();

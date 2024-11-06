@@ -93,7 +93,10 @@ function Rose(element, props) {
   const format = getNumberFormatter(numberFormat);
   const timeFormat = getTimeFormatter(dateTimeFormat);
   const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    ownColorScheme,
+  );
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();

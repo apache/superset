@@ -26,7 +26,7 @@ import { ChartConfiguration } from 'src/dashboard/types';
 export interface DashboardContextForExplore {
   labelsColor: Record<string, string>;
   labelsColorMap: Record<string, string>;
-  sharedLabelsColorMap: Record<string, string>;
+  sharedLabelsColors: string[];
   colorScheme: string;
   chartConfiguration: ChartConfiguration;
   nativeFilters: PartialFilters;

@@ -92,11 +92,17 @@ describe('LabelsColorMap', () => {
       expect(Object.fromEntries(colorMap)).toEqual({ b: 'green' });
     });
 
-    it('should do nothing when source is not dashboard', () => {
+    it('should set a new color only when source is dashboard', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Explore;
       labelsColorMap.addSlice('a', 'red', 1);
-      expect(Object.fromEntries(labelsColorMap.chartsLabelsMap)).toEqual({});
+      const colorMap = labelsColorMap.getColorMap();
+      expect(Object.fromEntries(colorMap)).toEqual({});
+
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+      labelsColorMap.addSlice('a', 'red', 1);
+      const colorMap2 = labelsColorMap.getColorMap();
+      expect(Object.fromEntries(colorMap2)).toEqual({ a: 'red' });
     });
   });
 
@@ -126,7 +132,7 @@ describe('LabelsColorMap', () => {
     });
   });
 
-  describe('.updateColorMap(namespace, scheme)', () => {
+  describe('.updateColorMap(namespace, scheme, merge)', () => {
     let categoricalNamespace: any;
     let mockedNamespace: any;
     let labelsColorMap: any;
@@ -141,6 +147,18 @@ describe('LabelsColorMap', () => {
       };
     });
 
+    it('should clear color map when not merge', () => {
+      labelsColorMap.addSlice('a', 'red', 1);
+      labelsColorMap.updateColorMap(mockedNamespace, 'testColors2', false);
+      expect(labelsColorMap.colorMap).toEqual(new Map([['a', 'mockColor']]));
+    });
+
+    it('should not clear color map when merge', () => {
+      labelsColorMap.addSlice('a', 'red', 1);
+      labelsColorMap.updateColorMap(mockedNamespace, 'testColors2', true);
+      expect(labelsColorMap.colorMap).not.toEqual(new Map());
+    });
+
     it('should use provided color scheme', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.updateColorMap(mockedNamespace, 'testColors2');
@@ -148,7 +166,7 @@ describe('LabelsColorMap', () => {
     });
 
     it('should fallback to original chart color scheme if no color scheme is provided', () => {
-      labelsColorMap.addSlice('a', 'red', 1, 'originalScheme');
+      labelsColorMap.addSlice('a', 'red', 1, 'currentScheme', 'originalScheme');
       labelsColorMap.updateColorMap(mockedNamespace);
       expect(mockedNamespace.getScale).toHaveBeenCalledWith('originalScheme');
     });
@@ -178,6 +196,23 @@ describe('LabelsColorMap', () => {
         a: 'yellow',
         b: 'green',
         c: 'yellow',
+      });
+    });
+
+    it('should update only new labels in the color map when merge', () => {
+      labelsColorMap.colorMap = new Map();
+
+      labelsColorMap.addSlice('a', 'yellow', 1);
+      labelsColorMap.addSlice('b', 'green', 1);
+      labelsColorMap.addSlice('c', 'purple', 1);
+
+      labelsColorMap.updateColorMap(categoricalNamespace, 'testColors2', true);
+
+      const mergedColorMap = labelsColorMap.getColorMap();
+      expect(Object.fromEntries(mergedColorMap)).toEqual({
+        a: 'yellow',
+        b: 'green',
+        c: 'purple',
       });
     });
 

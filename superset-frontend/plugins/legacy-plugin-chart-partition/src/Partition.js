@@ -132,7 +132,10 @@ function Icicle(element, props) {
   const format = getNumberFormatter(numberFormat);
   const timeFormat = getTimeFormatter(dateTimeFormat);
   const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    ownColorScheme,
+  );
 
   div.selectAll('*').remove();
   const tooltip = div.append('div').classed('partition-tooltip', true);

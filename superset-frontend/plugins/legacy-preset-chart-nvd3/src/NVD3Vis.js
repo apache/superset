@@ -660,9 +660,7 @@ function nvd3Vis(element, props) {
     } else if (vizType !== 'bullet') {
       const colorFn = getScale(appliedScheme, ownColorScheme);
       chart.color(
-        d =>
-          d.color ||
-          colorFn(cleanColorInput(d[colorKey]), sliceId),
+        d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
       );
     }
 

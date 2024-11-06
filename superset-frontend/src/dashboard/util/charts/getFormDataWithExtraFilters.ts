@@ -25,6 +25,7 @@ import {
 import { ChartConfiguration, ChartQueryPayload } from 'src/dashboard/types';
 import { getExtraFormData } from 'src/dashboard/components/nativeFilters/utils';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { isEqual } from 'lodash';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
@@ -46,7 +47,7 @@ export interface GetFormDataWithExtraFiltersArguments {
   extraControls: Record<string, string | boolean | null>;
   labelsColor?: Record<string, string>;
   labelsColorMap?: Record<string, string>;
-  sharedLabelsColorMap?: Record<string, string>;
+  sharedLabelsColors?: string[];
   allSliceIds: number[];
 }
 
@@ -66,7 +67,7 @@ export default function getFormDataWithExtraFilters({
   extraControls,
   labelsColor,
   labelsColorMap,
-  sharedLabelsColorMap,
+  sharedLabelsColors,
   allSliceIds,
 }: GetFormDataWithExtraFiltersArguments) {
   // if dashboard metadata + filters have not changed, use cache if possible
@@ -81,12 +82,10 @@ export default function getFormDataWithExtraFilters({
     areObjectsEqual(cachedFormData?.label_colors, labelsColor, {
       ignoreUndefined: true,
     }) &&
-    areObjectsEqual(cachedFormData?.full_label_colors, labelsColorMap, {
+    areObjectsEqual(cachedFormData?.map_label_colors, labelsColorMap, {
       ignoreUndefined: true,
     }) &&
-    areObjectsEqual(cachedFormData?.shared_label_colors, sharedLabelsColorMap, {
-      ignoreUndefined: true,
-    }) &&
+    isEqual(cachedFormData?.shared_label_colors, sharedLabelsColors) &&
     !!cachedFormData &&
     areObjectsEqual(cachedFormData?.dataMask, dataMask, {
       ignoreUndefined: true,
@@ -118,8 +117,8 @@ export default function getFormDataWithExtraFilters({
     ...chart.form_data,
     chart_id: chart.id,
     label_colors: labelsColor,
-    shared_label_colors: sharedLabelsColorMap,
-    full_label_colors: labelsColorMap,
+    shared_label_colors: sharedLabelsColors,
+    map_label_colors: labelsColorMap,
     ...(colorScheme && { color_scheme: colorScheme }),
     ...(ownColorScheme && {
       own_color_scheme: ownColorScheme,

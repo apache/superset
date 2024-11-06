@@ -150,7 +150,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
       hasDashboardColorScheme: dashboardId && !!state?.form_data?.color_scheme,
       hasCustomLabelsColor:
         Object.keys(state?.form_data?.label_colors || {}).length > 0,
-      sharedLabelsColor: state?.form_data?.shared_label_colors || {},
+      sharedLabelsColors: state?.form_data?.shared_label_colors || [],
     };
   },
 };
@@ -349,7 +349,7 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
       hasDashboardColorScheme: dashboardId && !!state?.form_data?.color_scheme,
       hasCustomLabelsColor:
         Object.keys(state?.form_data?.label_colors || {}).length > 0,
-      sharedLabelsColor: state?.form_data?.shared_label_colors || {},
+      sharedLabelsColors: state?.form_data?.shared_label_colors || [],
     };
   },
 };

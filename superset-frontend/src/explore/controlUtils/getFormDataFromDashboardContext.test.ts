@@ -151,10 +151,8 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
     girl: '#FF69B4',
     boy: '#ADD8E6',
   },
-  shared_label_colors: {
-    boy: '#ADD8E6',
-    girl: '#FF69B4',
-  },
+  shared_label_colors: ['boy', 'girl'],
+  own_color_scheme: 'supersetColors',
   extra_filters: [
     {
       col: '__time_range',

@@ -55,7 +55,6 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
-import { areObjectsEqual } from 'src/reduxUtils';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
@@ -69,9 +68,10 @@ import getOverwriteItems from '../util/getOverwriteItems';
 import {
   applyColors,
   isLabelsColorMapSynced,
-  getLabelsColorMapEntries,
   getColorSchemeDomain,
   getColorNamespace,
+  getLabelsColorMapEntries,
+  getSharedLabels,
 } from '../../utils/colorScheme';
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
@@ -278,8 +278,8 @@ export function saveDashboardRequest(data, id, saveType) {
           : [],
         expanded_slices: data.metadata?.expanded_slices || {},
         label_colors: data.metadata?.label_colors || {},
-        shared_label_colors: getLabelsColorMapEntries(true),
-        full_label_colors: getLabelsColorMapEntries(),
+        shared_label_colors: getSharedLabels(),
+        map_label_colors: getLabelsColorMapEntries(),
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
@@ -704,10 +704,18 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
   const defaultScheme = categoricalSchemes.defaultKey;
   const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
   const colorSchemeDomain = metadata?.color_scheme_domain || [];
+  const sharedLabels = metadata?.shared_label_colors;
+  let requiresUpdate = false;
 
   try {
     const updatedMetadata = { ...metadata };
     let updatedScheme = metadata?.color_scheme;
+
+    // sanitize shared labels color map for backward compatibility
+    if (!Array.isArray(sharedLabels) && Object.keys(sharedLabels).length > 0) {
+      updatedMetadata.shared_label_colors = getSharedLabels();
+      requiresUpdate = true;
+    }
 
     // Color scheme does not exist anymore, fallback to default
     if (colorScheme && !colorSchemeRegistry) {
@@ -718,6 +726,7 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
       dispatch(setColorScheme(updatedScheme));
       // must re-apply colors from fresh labels color map
       applyColors(updatedMetadata, true);
+      requiresUpdate = true;
     }
 
     // stored labels color map and applied might differ
@@ -729,8 +738,9 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
       // re-apply the color map first
       applyColors(updatedMetadata, false, true, !colorScheme);
       // store the just applied labels color map
-      updatedMetadata.shared_label_colors = getLabelsColorMapEntries(true);
-      updatedMetadata.full_label_colors = getLabelsColorMapEntries();
+      updatedMetadata.shared_label_colors = getSharedLabels();
+      updatedMetadata.map_label_colors = getLabelsColorMapEntries();
+      requiresUpdate = true;
     }
 
     // the stored color domain registry and fresh might differ at this point
@@ -741,23 +751,10 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
 
     if (!isRegistrySynced) {
       updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
+      requiresUpdate = true;
     }
 
-    if (
-      !areObjectsEqual(
-        metadata.color_scheme_domain,
-        updatedMetadata.color_scheme_domain,
-      ) ||
-      !areObjectsEqual(
-        metadata.shared_label_colors,
-        updatedMetadata.shared_label_colors,
-      ) ||
-      !areObjectsEqual(
-        metadata.full_label_colors,
-        updatedMetadata.full_label_colors,
-      ) ||
-      metadata.color_scheme !== updatedMetadata.color_scheme
-    ) {
+    if (requiresUpdate) {
       await updateDashboardMetadata(id, updatedMetadata, dispatch);
     }
   } catch (error) {

@@ -69,7 +69,10 @@ function Sankey(element, props) {
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
   const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
+  const colorFn = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    ownColorScheme,
+  );
 
   const sankey = d3Sankey()
     .nodeWidth(15)

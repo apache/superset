@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable react/sort-prop-types */
-import d3, { color } from 'd3';
+import d3 from 'd3';
 import PropTypes from 'prop-types';
 import { extent as d3Extent } from 'd3-array';
 import {
@@ -65,7 +65,10 @@ function CountryMap(element, props) {
     .get(linearColorScheme)
     .createLinearScale(d3Extent(data, v => v.metric));
   const appliedScheme = colorScheme || ownColorScheme;
-  const colorScale = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
+  const colorScale = CategoricalColorNamespace.getScale(
+    appliedScheme,
+    ownColorScheme,
+  );
 
   const colorMap = {};
   data.forEach(d => {
