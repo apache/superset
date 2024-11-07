@@ -18,7 +18,11 @@
  */
 
 import { ScaleOrdinal } from 'd3-scale';
-import { CategoricalColorScale, FeatureFlag } from '@superset-ui/core';
+import {
+  CategoricalColorScale,
+  FeatureFlag,
+  LabelsColorMapSource,
+} from '@superset-ui/core';
 
 describe('CategoricalColorScale', () => {
   beforeEach(() => {
@@ -43,7 +47,6 @@ describe('CategoricalColorScale', () => {
       expect(scale).toBeInstanceOf(CategoricalColorScale);
       expect(scale.forcedColors).toBe(forcedColors);
     });
-
     it('can refer to colors based on their index', () => {
       const forcedColors = { pig: 1, horse: 5 };
       const scale = new CategoricalColorScale(
@@ -89,6 +92,36 @@ describe('CategoricalColorScale', () => {
       jest.restoreAllMocks();
     });
 
+    it('uses labelsColorMapInstance color map when source is Dashboard, otherwise uses chartLabelsColorMap', () => {
+      const sliceId = 123;
+      const colorScheme = 'preset';
+
+      // Mock chartLabelsColorMap and labelsColorMapInstance's getColorMap
+      const chartColorMap = new Map([['testValueChart', 'chartColor']]);
+      const dashboardColorMap = new Map([['testValueDash', 'dashboardColor']]);
+      scale.chartLabelsColorMap = chartColorMap;
+      jest
+        .spyOn(scale.labelsColorMapInstance, 'getColorMap')
+        .mockReturnValue(dashboardColorMap);
+
+      // Test when source is Dashboard
+      scale.labelsColorMapInstance.source = LabelsColorMapSource.Dashboard;
+      const colorFromDashboard = scale.getColor(
+        'testValueDash',
+        sliceId,
+        colorScheme,
+      );
+      expect(colorFromDashboard).toBe('dashboardColor');
+
+      // Test when source is not Dashboard
+      scale.labelsColorMapInstance.source = LabelsColorMapSource.Explore;
+      const colorFromChart = scale.getColor(
+        'testValueChart',
+        sliceId,
+        colorScheme,
+      );
+      expect(colorFromChart).toBe('chartColor');
+    });
     it('returns same color for same value', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green'], {
         pig: 'red',

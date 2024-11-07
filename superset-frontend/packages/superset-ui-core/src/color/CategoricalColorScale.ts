@@ -21,7 +21,9 @@ import { scaleOrdinal, ScaleOrdinal } from 'd3-scale';
 import { ExtensibleFunction } from '../models';
 import { ColorsInitLookup, ColorsLookup } from './types';
 import stringifyAndTrim from './stringifyAndTrim';
-import getLabelsColorMap from './LabelsColorMapSingleton';
+import getLabelsColorMap, {
+  LabelsColorMapSource,
+} from './LabelsColorMapSingleton';
 import { getAnalogousColors } from './utils';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
@@ -127,7 +129,11 @@ class CategoricalColorScale extends ExtensibleFunction {
     const cleanedValue = stringifyAndTrim(value);
     // priority: forced color (aka custom label colors) > shared color > scale color
     const forcedColor = this.forcedColors?.[cleanedValue];
-    const currentColorMap = this.labelsColorMapInstance.getColorMap();
+    const { source } = this.labelsColorMapInstance;
+    const currentColorMap =
+      source === LabelsColorMapSource.Dashboard
+        ? this.labelsColorMapInstance.getColorMap()
+        : this.chartLabelsColorMap;
     const isExistingLabel = currentColorMap.has(cleanedValue);
     let color =
       forcedColor ||
