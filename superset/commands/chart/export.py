@@ -84,9 +84,11 @@ class ExportChartsCommand(ExportModelsCommand):
         return file_content
 
     # Add a parameter for should_export_tags in the constructor
-    def __init__(self, chart_ids, should_export_tags=True):
+    def __init__(self, chart_ids, should_export_tags=True, export_related=True):
         super().__init__(chart_ids)
         self.should_export_tags = should_export_tags
+        self.export_related = export_related
+        
     # Change to an instance method
     def _export(
         self, model: Slice, export_related: bool = True
