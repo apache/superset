@@ -51,8 +51,6 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     dashboardFilters,
   );
 
-  const datasources =
-    useSelector((state: RootState) => state.datasources) || {};
   const slices =
     useSelector((state: RootState) => state.sliceEntities.slices) || {};
 
@@ -60,7 +58,6 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     nativeFilters.filters as Record<string, Filter>,
     null,
     slices,
-    datasources,
   );
 
   const highlightedFilterId =

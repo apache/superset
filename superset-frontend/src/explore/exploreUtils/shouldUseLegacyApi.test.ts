@@ -23,11 +23,11 @@ test('Should return false', () => {
   const spy = jest.spyOn(Core, 'getChartMetadataRegistry');
   const get = jest.fn();
   spy.mockReturnValue({ get } as any);
-  expect(get).toBeCalledTimes(0);
+  expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
   expect(useLegacyApi).toBe(false);
-  expect(get).toBeCalledTimes(1);
-  expect(get).toBeCalledWith('name_test');
+  expect(get).toHaveBeenCalledTimes(1);
+  expect(get).toHaveBeenCalledWith('name_test');
 });
 
 test('Should return true', () => {
@@ -35,11 +35,11 @@ test('Should return true', () => {
   const get = jest.fn();
   get.mockReturnValue({ useLegacyApi: true });
   spy.mockReturnValue({ get } as any);
-  expect(get).toBeCalledTimes(0);
+  expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
   expect(useLegacyApi).toBe(true);
-  expect(get).toBeCalledTimes(1);
-  expect(get).toBeCalledWith('name_test');
+  expect(get).toHaveBeenCalledTimes(1);
+  expect(get).toHaveBeenCalledWith('name_test');
 });
 
 test('Should return false when useLegacyApi:false', () => {
@@ -47,9 +47,9 @@ test('Should return false when useLegacyApi:false', () => {
   const get = jest.fn();
   get.mockReturnValue({ useLegacyApi: false });
   spy.mockReturnValue({ get } as any);
-  expect(get).toBeCalledTimes(0);
+  expect(get).toHaveBeenCalledTimes(0);
   const [useLegacyApi] = getQuerySettings({ viz_type: 'name_test' });
   expect(useLegacyApi).toBe(false);
-  expect(get).toBeCalledTimes(1);
-  expect(get).toBeCalledWith('name_test');
+  expect(get).toHaveBeenCalledTimes(1);
+  expect(get).toHaveBeenCalledWith('name_test');
 });

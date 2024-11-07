@@ -385,7 +385,7 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
-werkzeug==3.0.3
+werkzeug==3.0.6
     # via
     #   -r requirements/base.in
     #   flask

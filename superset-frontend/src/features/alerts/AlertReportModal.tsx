@@ -823,10 +823,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       })
         .then(response => {
           const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          tabTree.push({
+            title: 'All Tabs',
+            // select tree only works with string value
+            value: JSON.stringify(Object.keys(allTabs)),
+          });
           setTabOptions(tabTree);
+
           const anchor = currentAlert?.extra?.dashboard?.anchor;
-          if (anchor && !(anchor in allTabs)) {
-            updateAnchorState(undefined);
+          if (anchor) {
+            try {
+              const parsedAnchor = JSON.parse(anchor);
+              if (Array.isArray(parsedAnchor)) {
+                // Check if all elements in parsedAnchor list are in allTabs
+                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                if (!isValidSubset) {
+                  updateAnchorState(undefined);
+                }
+              } else {
+                throw new Error('Parsed value is not an array');
+              }
+            } catch (error) {
+              if (!(anchor in allTabs)) {
+                updateAnchorState(undefined);
+              }
+            }
           }
         })
         .catch(() => {

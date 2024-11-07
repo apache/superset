@@ -48,12 +48,15 @@ WHERE (
     {% if to_dttm is not none %}
         dttm_col < '{{ to_dttm }}' AND
     {% endif %}
-    true
+    1 = 1
 )
 ```
 
-Note how the Jinja parameters are called within double brackets in the query, and without in the
-logic blocks.
+The `1 = 1` at the end ensures a value is present for the `WHERE` clause even when
+the time filter is not set. For many database engines, this could be replaced with `true`.
+
+Note that the Jinja parameters are called within _double_ brackets in the query and with
+_single_ brackets in the logic blocks.
 
 To add custom functionality to the Jinja context, you need to overload the default Jinja
 context in your environment by defining the `JINJA_CONTEXT_ADDONS` in your superset configuration
