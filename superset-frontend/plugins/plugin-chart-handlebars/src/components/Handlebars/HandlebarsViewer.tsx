@@ -81,11 +81,6 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
 });
 
 // usage: {{  }}
-Handlebars.registerHelper('parseJSON', function(jsonString) {
-  return JSON.parse(jsonString.replace(/'/g, '"'));
-});
-
-// usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument
   if (obj2 === undefined)
