@@ -23,7 +23,7 @@ runs:
       if: ${{ inputs.from-npm == 'false' }}
       uses: actions/checkout@v4
       with:
-        repository: apache-superset/supersetbot
+        repository: viveksingh-numerator/supersetbot
         path: supersetbot
 
     - name: Setup supersetbot from repo
