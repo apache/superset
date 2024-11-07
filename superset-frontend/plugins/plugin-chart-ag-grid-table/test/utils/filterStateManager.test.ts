@@ -89,7 +89,11 @@ describe('filterStateManager', () => {
     it('should separate dimension and metric filters', async () => {
       const filterModel = {
         state: { filterType: 'text', type: 'equals', filter: 'CA' },
-        'SUM(revenue)': { filterType: 'number', type: 'greaterThan', filter: 1000 },
+        'SUM(revenue)': {
+          filterType: 'number',
+          type: 'greaterThan',
+          filter: 1000,
+        },
       };
 
       const mockApi = {
@@ -127,7 +131,9 @@ describe('filterStateManager', () => {
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -169,7 +175,9 @@ describe('filterStateManager', () => {
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -202,7 +210,9 @@ describe('filterStateManager', () => {
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -254,7 +264,8 @@ describe('filterStateManager', () => {
         getColumnFilterInstance: jest.fn((colId: string) => {
           if (colId === 'name') return Promise.resolve(mockFilterInstanceName);
           if (colId === 'age') return Promise.resolve(mockFilterInstanceAge);
-          if (colId === 'status') return Promise.resolve(mockFilterInstanceStatus);
+          if (colId === 'status')
+            return Promise.resolve(mockFilterInstanceStatus);
           return Promise.resolve(null);
         }),
       };
@@ -288,7 +299,9 @@ describe('filterStateManager', () => {
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -327,7 +340,11 @@ describe('filterStateManager', () => {
         age: {
           filterType: 'number',
           operator: 'AND',
-          condition1: { filterType: 'number', type: 'greaterThanOrEqual', filter: 18 },
+          condition1: {
+            filterType: 'number',
+            type: 'greaterThanOrEqual',
+            filter: 18,
+          },
           condition2: { filterType: 'number', type: 'lessThan', filter: 65 },
         },
       };
@@ -348,7 +365,10 @@ describe('filterStateManager', () => {
 
     it('should handle set filters correctly', async () => {
       const filterModel = {
-        status: { filterType: 'set', values: ['active', 'pending', 'approved'] },
+        status: {
+          filterType: 'set',
+          values: ['active', 'pending', 'approved'],
+        },
       };
 
       const mockApi = {
@@ -473,13 +493,18 @@ describe('filterStateManager', () => {
 
       const mockFilterInstance = {
         eGui: document.createElement('div'),
-        eConditionBodies: [document.createElement('div'), document.createElement('div')],
+        eConditionBodies: [
+          document.createElement('div'),
+          document.createElement('div'),
+        ],
         eJoinAnds: [{ eGui: mockJoinAndGui }],
       };
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -515,13 +540,18 @@ describe('filterStateManager', () => {
 
       const mockFilterInstance = {
         eGui: document.createElement('div'),
-        eConditionBodies: [document.createElement('div'), document.createElement('div')],
+        eConditionBodies: [
+          document.createElement('div'),
+          document.createElement('div'),
+        ],
         eJoinOrs: [{ eGui: mockJoinOrGui }],
       };
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -561,7 +591,9 @@ describe('filterStateManager', () => {
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {
@@ -602,7 +634,9 @@ describe('filterStateManager', () => {
 
       const mockApi = {
         getFilterModel: jest.fn(() => filterModel),
-        getColumnFilterInstance: jest.fn(() => Promise.resolve(mockFilterInstance)),
+        getColumnFilterInstance: jest.fn(() =>
+          Promise.resolve(mockFilterInstance),
+        ),
       };
 
       const gridRef = {

@@ -367,7 +367,11 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           onFilterChanged(completeFilterState);
         }
       }
-    }, [onFilterChanged, metricColumns, serverPaginationData?.agGridFilterModel]);
+    }, [
+      onFilterChanged,
+      metricColumns,
+      serverPaginationData?.agGridFilterModel,
+    ]);
 
     useEffect(() => {
       if (

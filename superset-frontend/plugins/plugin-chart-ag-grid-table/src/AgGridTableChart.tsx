@@ -134,7 +134,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleFilterChanged = useCallback(
     (completeFilterState: FilterState) => {
       if (!serverPagination) return;
-       // Sync chartState immediately with the new filter model to prevent stale state
+      // Sync chartState immediately with the new filter model to prevent stale state
       // This ensures chartState and ownState are in sync
       if (onChartStateChange && chartState) {
         const updatedChartState = {
@@ -159,10 +159,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [setDataMask, serverPagination, serverPaginationData, onChartStateChange, chartState],
+    [
+      setDataMask,
+      serverPagination,
+      serverPaginationData,
+      onChartStateChange,
+      chartState,
+    ],
   );
-
-
 
   const filteredColumns = useMemo(() => {
     if (!isUsingTimeComparison) {

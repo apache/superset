@@ -23,14 +23,26 @@ describe('getInitialFilterModel', () => {
   describe('Priority: chartState > serverPaginationData', () => {
     it('should prioritize chartState.filterModel over serverPaginationData', () => {
       const chartState: Partial<AgGridChartState> = {
-        filterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-chart-state' } },
+        filterModel: {
+          name: {
+            filterType: 'text',
+            type: 'equals',
+            filter: 'from-chart-state',
+          },
+        },
       };
 
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-server' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'from-server' },
+        },
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(chartState.filterModel);
     });
@@ -39,20 +51,32 @@ describe('getInitialFilterModel', () => {
       const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-server' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'from-server' },
+        },
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
 
     it('should use serverPaginationData when chartState is undefined', () => {
       const serverPaginationData = {
-        agGridFilterModel: { status: { filterType: 'text', type: 'equals', filter: 'active' } },
+        agGridFilterModel: {
+          status: { filterType: 'text', type: 'equals', filter: 'active' },
+        },
       };
 
-      const result = getInitialFilterModel(undefined, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        undefined,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
@@ -65,10 +89,16 @@ describe('getInitialFilterModel', () => {
       };
 
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'test' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'test' },
+        },
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       // Empty filterModel should be ignored, fall back to server
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
@@ -81,7 +111,11 @@ describe('getInitialFilterModel', () => {
         agGridFilterModel: {},
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -95,7 +129,11 @@ describe('getInitialFilterModel', () => {
         agGridFilterModel: {},
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -118,24 +156,42 @@ describe('getInitialFilterModel', () => {
       const chartState: Partial<AgGridChartState> = {};
 
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'test' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'test' },
+        },
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, false);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        false,
+      );
 
       expect(result).toBeUndefined();
     });
 
     it('should use chartState even when serverPagination is disabled', () => {
       const chartState: Partial<AgGridChartState> = {
-        filterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-chart-state' } },
+        filterModel: {
+          name: {
+            filterType: 'text',
+            type: 'equals',
+            filter: 'from-chart-state',
+          },
+        },
       };
 
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'from-server' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'from-server' },
+        },
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, false);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        false,
+      );
 
       // chartState takes priority regardless of serverPagination flag
       expect(result).toEqual(chartState.filterModel);
@@ -150,7 +206,11 @@ describe('getInitialFilterModel', () => {
           age: {
             filterType: 'number',
             operator: 'AND',
-            condition1: { filterType: 'number', type: 'greaterThan', filter: 18 },
+            condition1: {
+              filterType: 'number',
+              type: 'greaterThan',
+              filter: 18,
+            },
             condition2: { filterType: 'number', type: 'lessThan', filter: 65 },
           },
           status: { filterType: 'set', values: ['active', 'pending'] },
@@ -170,7 +230,11 @@ describe('getInitialFilterModel', () => {
         },
       };
 
-      const result = getInitialFilterModel(undefined, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        undefined,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
@@ -198,13 +262,21 @@ describe('getInitialFilterModel', () => {
       // Fresh page load - no chartState, but has serverPaginationData from ownState
       const serverPaginationData = {
         agGridFilterModel: {
-          created_date: { filterType: 'date', type: 'greaterThan', filter: '2024-01-01' },
+          created_date: {
+            filterType: 'date',
+            type: 'greaterThan',
+            filter: '2024-01-01',
+          },
         },
         currentPage: 0,
         pageSize: 50,
       };
 
-      const result = getInitialFilterModel(undefined, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        undefined,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
@@ -220,7 +292,11 @@ describe('getInitialFilterModel', () => {
         pageSize: 20,
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -237,7 +313,11 @@ describe('getInitialFilterModel', () => {
         agGridFilterModel: undefined, // No server state yet
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(chartState.filterModel);
     });
@@ -249,7 +329,11 @@ describe('getInitialFilterModel', () => {
         agGridFilterModel: null as any,
       };
 
-      const result = getInitialFilterModel(undefined, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        undefined,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -260,7 +344,11 @@ describe('getInitialFilterModel', () => {
         pageSize: 20,
       };
 
-      const result = getInitialFilterModel(undefined, serverPaginationData as any, true);
+      const result = getInitialFilterModel(
+        undefined,
+        serverPaginationData as any,
+        true,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -271,20 +359,32 @@ describe('getInitialFilterModel', () => {
       };
 
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'test' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'test' },
+        },
       };
 
-      const result = getInitialFilterModel(chartState, serverPaginationData, true);
+      const result = getInitialFilterModel(
+        chartState,
+        serverPaginationData,
+        true,
+      );
 
       expect(result).toEqual(serverPaginationData.agGridFilterModel);
     });
 
     it('should handle serverPagination undefined (defaults to false)', () => {
       const serverPaginationData = {
-        agGridFilterModel: { name: { filterType: 'text', type: 'equals', filter: 'test' } },
+        agGridFilterModel: {
+          name: { filterType: 'text', type: 'equals', filter: 'test' },
+        },
       };
 
-      const result = getInitialFilterModel(undefined, serverPaginationData, undefined);
+      const result = getInitialFilterModel(
+        undefined,
+        serverPaginationData,
+        undefined,
+      );
 
       expect(result).toBeUndefined();
     });

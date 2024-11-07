@@ -494,7 +494,11 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         ).queries[0];
 
-        expect(query.filters).toContainEqual({ col: 'state', op: '==', val: 'CA' });
+        expect(query.filters).toContainEqual({
+          col: 'state',
+          op: '==',
+          val: 'CA',
+        });
         expect(query.filters).toContainEqual({
           col: 'city',
           op: 'ILIKE',
@@ -525,7 +529,11 @@ describe('plugin-chart-ag-grid-table', () => {
         ).queries[0];
 
         expect(query.filters?.length).toBeGreaterThan(1);
-        expect(query.filters).toContainEqual({ col: 'state', op: '==', val: 'CA' });
+        expect(query.filters).toContainEqual({
+          col: 'state',
+          op: '==',
+          val: 'CA',
+        });
       });
 
       it('should handle empty agGridSimpleFilters array', () => {
@@ -568,7 +576,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
           {
             ownState: {
-              agGridComplexWhere: "(age > 18 AND age < 65)",
+              agGridComplexWhere: '(age > 18 AND age < 65)',
             },
           },
         ).queries[0];
@@ -591,7 +599,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
           {
             ownState: {
-              agGridComplexWhere: "(age > 18 AND age < 65)",
+              agGridComplexWhere: '(age > 18 AND age < 65)',
             },
           },
         ).queries[0];
@@ -621,7 +629,7 @@ describe('plugin-chart-ag-grid-table', () => {
       it('should not apply WHERE clause when server pagination is disabled', () => {
         const query = buildQuery(basicFormData, {
           ownState: {
-            agGridComplexWhere: "(age > 18)",
+            agGridComplexWhere: '(age > 18)',
           },
         }).queries[0];
 
@@ -688,7 +696,9 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         ).queries[0];
 
-        expect(query.extras?.having).toBe('(AVG(score) >= 90 AND MAX(points) < 100)');
+        expect(query.extras?.having).toBe(
+          '(AVG(score) >= 90 AND MAX(points) < 100)',
+        );
       });
 
       it('should not apply HAVING clause when server pagination is disabled', () => {
@@ -836,13 +846,17 @@ describe('plugin-chart-ag-grid-table', () => {
           {
             ownState: {
               agGridSimpleFilters: [{ col: 'state', op: '==', val: 'CA' }],
-              agGridComplexWhere: "(age > 18 AND age < 65)",
+              agGridComplexWhere: '(age > 18 AND age < 65)',
               agGridHavingClause: 'SUM(revenue) > 1000',
             },
           },
         ).queries[0];
 
-        expect(query.filters).toContainEqual({ col: 'state', op: '==', val: 'CA' });
+        expect(query.filters).toContainEqual({
+          col: 'state',
+          op: '==',
+          val: 'CA',
+        });
         expect(query.extras?.where).toBe('(age > 18 AND age < 65)');
         expect(query.extras?.having).toBe('SUM(revenue) > 1000');
       });
@@ -869,7 +883,9 @@ describe('plugin-chart-ag-grid-table', () => {
           },
           {
             ownState: {
-              agGridSimpleFilters: [{ col: 'state', op: 'IN', val: ['CA', 'OR', 'WA'] }],
+              agGridSimpleFilters: [
+                { col: 'state', op: 'IN', val: ['CA', 'OR', 'WA'] },
+              ],
               agGridComplexWhere: "status = 'active'",
             },
           },
@@ -899,7 +915,11 @@ describe('plugin-chart-ag-grid-table', () => {
         ).queries[0];
 
         // The query itself doesn't have page info, but ownState should be updated
-        expect(query.filters).toContainEqual({ col: 'state', op: '==', val: 'CA' });
+        expect(query.filters).toContainEqual({
+          col: 'state',
+          op: '==',
+          val: 'CA',
+        });
       });
 
       it('should include filter metadata in ownState', () => {
@@ -947,8 +967,10 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridSimpleFilters: [
                 { col: 'state', op: 'IN', val: ['CA', 'NY', 'TX'] },
               ],
-              agGridComplexWhere: "(population > 100000 AND growth_rate > 0.05)",
-              agGridHavingClause: '(SUM(revenue) > 1000000 AND AVG(score) >= 4.5)',
+              agGridComplexWhere:
+                '(population > 100000 AND growth_rate > 0.05)',
+              agGridHavingClause:
+                '(SUM(revenue) > 1000000 AND AVG(score) >= 4.5)',
               currentPage: 0,
               pageSize: 50,
             },
@@ -1010,9 +1032,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
           {
             ownState: {
-              agGridSimpleFilters: [
-                { col: 'name', op: '==', val: "O'Brien" },
-              ],
+              agGridSimpleFilters: [{ col: 'name', op: '==', val: "O'Brien" }],
             },
           },
         ).queries[0];

@@ -26,10 +26,7 @@ import type {
 } from './agGridFilterConverter';
 import type { AgGridReact } from '@superset-ui/core/components/ThemedAgGridReact';
 import type { FilterInputPosition, AGGridFilterInstance } from '../types';
-import {
-  FILTER_INPUT_POSITIONS,
-  FILTER_CONDITION_BODY_INDEX,
-} from '../consts';
+import { FILTER_INPUT_POSITIONS, FILTER_CONDITION_BODY_INDEX } from '../consts';
 
 export interface FilterState {
   originalFilterModel: AgGridFilterModel;
@@ -146,7 +143,10 @@ export async function getCompleteFilterState(
   const filterModel = gridRef.current.api.getFilterModel();
 
   // Convert filters to SQL
-  const convertedFilters = convertAgGridFiltersToSQL(filterModel, metricColumns);
+  const convertedFilters = convertAgGridFiltersToSQL(
+    filterModel,
+    metricColumns,
+  );
 
   // Detect which input was last modified
   const { lastFilteredColumn, inputPosition } = await detectLastFilteredInput(

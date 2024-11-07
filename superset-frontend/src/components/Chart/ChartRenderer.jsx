@@ -366,7 +366,8 @@ class ChartRenderer extends Component {
       Object.keys(ownState.agGridFilterModel).length > 0;
 
     const bypassNoResult = !(
-      formData?.server_pagination && (hasSearchText || hasAgGridFilters)
+      formData?.server_pagination &&
+      (hasSearchText || hasAgGridFilters)
     );
 
     return (
