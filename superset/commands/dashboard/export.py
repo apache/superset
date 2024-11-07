@@ -34,6 +34,7 @@ from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
@@ -166,7 +167,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
             tags = (
                 model.tags if hasattr(model, "tags") else []
             )
-            payload["tag"] = [tag.name for tag in tags if not any(prefix in tag.name for prefix in ["type:", "owner:"])]
+            payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content

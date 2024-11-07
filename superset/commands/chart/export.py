@@ -28,6 +28,7 @@ from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.commands.export.models import ExportModelsCommand
 from superset.commands.tag.export import ExportTagsCommand
 from superset.models.slice import Slice
+from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
@@ -78,8 +79,7 @@ class ExportChartsCommand(ExportModelsCommand):
             tags = (
                 model.tags if hasattr(model, "tags") else []
             )
-            # Filter out any tags that contain "type:" in their name
-            payload["tag"] = [tag.name for tag in tags if not any(x in tag.name for x in ["type:", "owner:"])]
+            payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 

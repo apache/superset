@@ -126,8 +126,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tag" in config:
-                        new_tag_names = config["tag"]
+                    if "tags" in config:
+                        new_tag_names = config["tags"]
                         import_tag(new_tag_names, contents, chart.id, "chart", db.session)
 
         # store the existing relationship between dashboards and charts
@@ -152,8 +152,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                    if "tag" in config:
-                        new_tag_names = config["tag"]
+                    if "tags" in config:
+                        new_tag_names = config["tags"]
                         import_tag(new_tag_names, contents, dashboard.id, "dashboard", db.session)
 
         # set ref in the dashboard_slices table

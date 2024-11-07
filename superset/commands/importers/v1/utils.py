@@ -270,8 +270,6 @@ def import_tag(new_tag_names: list[str], contents: dict[str, Any], object_id: in
     for tag in existing_tags:
         if tag.tag_id not in new_tag_ids:
             session.delete(tag)
-            if tag.tag:
-                logger.info(f"Removed old tag: {tag.tag.name} from {object_type} ID {object_id}")
 
     session.commit()
 
