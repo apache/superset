@@ -27,6 +27,7 @@ from superset.commands.export.models import ExportModelsCommand
 from superset.daos.chart import ChartDAO  # Import DAO for fetching charts
 from superset.daos.dashboard import DashboardDAO  # Import DAO for fetching dashboards
 from superset.extensions import feature_flag_manager
+from superset.tags.models import TagType
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +75,7 @@ class ExportTagsCommand(ExportModelsCommand):
                 filtered_tags = [
                     {"tag_name": tag.name, "description": tag.description}
                     for tag in tags
-                    if "type:" not in tag.name and "owner:" not in tag.name
+                    if tag.type == TagType.custom
                 ]
                 dashboard_tags.extend(filtered_tags)
 
