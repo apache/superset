@@ -66,7 +66,6 @@ export {
   Modal as AntdModal,
   Select as AntdSelect,
   Slider as AntdSlider,
-  Switch as AntdSwitch,
   Tabs as AntdTabs,
   Tooltip as AntdTooltip,
 } from 'antd';

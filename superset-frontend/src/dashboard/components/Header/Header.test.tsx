@@ -315,10 +315,10 @@ test('should NOT render the fave icon on anonymous user', () => {
   setup(anonymousUserProps);
   expect(() =>
     screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toThrowError('Unable to find');
-  expect(() =>
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toThrowError('Unable to find');
+  ).toThrow('Unable to find');
+  expect(() => screen.getByRole('img', { name: 'favorite-selected' })).toThrow(
+    'Unable to find',
+  );
 });
 
 test('should fave', async () => {

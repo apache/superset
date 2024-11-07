@@ -83,6 +83,10 @@ const baseConfig: ThemeConfig = {
       handleSizeHover: 10,
       handleLineWidthHover: 2,
     },
+    Switch: {
+      colorPrimaryHover: supersetTheme.colors.primary.base,
+      colorTextTertiary: supersetTheme.colors.grayscale.light1,
+    },
   },
 };
 

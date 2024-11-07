@@ -39,7 +39,6 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
-import { findPermission } from 'src/utils/findPermission';
 import { Menu } from 'src/components/Menu';
 import { AntdDropdown as Dropdown } from 'src/components/index';
 import { updateDataMask } from 'src/dataMask/actions';
@@ -47,6 +46,7 @@ import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
+import { usePermissions } from './usePermissions';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -88,23 +88,8 @@ const ChartContextMenu = (
 ) => {
   const theme = useTheme();
   const dispatch = useDispatch();
-  const canExplore = useSelector((state: RootState) =>
-    findPermission('can_explore', 'Superset', state.user?.roles),
-  );
-  const canWriteExploreFormData = useSelector((state: RootState) =>
-    findPermission('can_write', 'ExploreFormDataRestApi', state.user?.roles),
-  );
-  const canDatasourceSamples = useSelector((state: RootState) =>
-    findPermission('can_samples', 'Datasource', state.user?.roles),
-  );
-  const canDownload = useSelector((state: RootState) =>
-    findPermission('can_csv', 'Superset', state.user?.roles),
-  );
-  const canDrill = useSelector((state: RootState) =>
-    findPermission('can_drill', 'Dashboard', state.user?.roles),
-  );
-  const canDrillBy = (canExplore || canDrill) && canWriteExploreFormData;
-  const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
+  const { canDrillToDetail, canDrillBy, canDownload } = usePermissions();
+
   const crossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );

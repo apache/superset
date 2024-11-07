@@ -96,20 +96,20 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
   );
 
   await waitFor(() => {
-    expect(spy).toBeCalledTimes(0);
-    expect(props.addSuccessToast).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(spy).toHaveBeenCalledTimes(0);
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
 
   await waitFor(async () => {
-    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
     const value = await spy.mock.calls[0][0]();
     expect(value).toBe('http://localhost/superset/dashboard/p/123/');
-    expect(props.addSuccessToast).toBeCalledTimes(1);
-    expect(props.addSuccessToast).toBeCalledWith('Copied to clipboard!');
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(1);
+    expect(props.addSuccessToast).toHaveBeenCalledWith('Copied to clipboard!');
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 });
 
@@ -124,20 +124,20 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   );
 
   await waitFor(() => {
-    expect(spy).toBeCalledTimes(0);
-    expect(props.addSuccessToast).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(spy).toHaveBeenCalledTimes(0);
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
 
   await waitFor(async () => {
-    expect(spy).toBeCalledTimes(1);
+    expect(spy).toHaveBeenCalledTimes(1);
     const value = await spy.mock.calls[0][0]();
     expect(value).toBe('http://localhost/superset/dashboard/p/123/');
-    expect(props.addSuccessToast).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledWith(
+    expect(props.addSuccessToast).toHaveBeenCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+    expect(props.addDangerToast).toHaveBeenCalledWith(
       'Sorry, something went wrong. Try again later.',
     );
   });
@@ -153,7 +153,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   );
 
   await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe('');
   });
 
@@ -162,7 +162,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
   );
 
   await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe(
       'mailto:?Subject=Superset%20dashboard%20COVID%20Vaccine%20Dashboard%20&Body=Check%20out%20this%20dashboard%3A%20http%3A%2F%2Flocalhost%2Fsuperset%2Fdashboard%2Fp%2F123%2F',
     );
@@ -184,7 +184,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
   );
 
   await waitFor(() => {
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(props.addDangerToast).toHaveBeenCalledTimes(0);
     expect(window.location.href).toBe('');
   });
 
@@ -194,8 +194,8 @@ test('Click on "Share dashboard by email" and fail', async () => {
 
   await waitFor(() => {
     expect(window.location.href).toBe('');
-    expect(props.addDangerToast).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledWith(
+    expect(props.addDangerToast).toHaveBeenCalledTimes(1);
+    expect(props.addDangerToast).toHaveBeenCalledWith(
       'Sorry, something went wrong. Try again later.',
     );
   });

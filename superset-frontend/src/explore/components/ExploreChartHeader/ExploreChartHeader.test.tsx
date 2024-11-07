@@ -294,7 +294,7 @@ describe('Additional actions tests', () => {
     render(<ExploreHeader {...props} />, {
       useRedux: true,
     });
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
     userEvent.click(
       screen.getByRole('menuitem', { name: 'Edit chart properties' }),
@@ -309,14 +309,14 @@ describe('Additional actions tests', () => {
       useRedux: true,
     });
 
-    expect(getChartDataRequest).toBeCalledTimes(0);
+    expect(getChartDataRequest).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    expect(getChartDataRequest).toBeCalledTimes(0);
+    expect(getChartDataRequest).toHaveBeenCalledTimes(0);
 
     const menuItem = screen.getByText('View query').parentElement!;
     userEvent.click(menuItem);
 
-    await waitFor(() => expect(getChartDataRequest).toBeCalledTimes(1));
+    await waitFor(() => expect(getChartDataRequest).toHaveBeenCalledTimes(1));
   });
 
   test('Should call onOpenInEditor when click on "Run in SQL Lab"', async () => {
@@ -326,12 +326,12 @@ describe('Additional actions tests', () => {
     });
     expect(await screen.findByText('Save')).toBeInTheDocument();
 
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
 
     userEvent.click(screen.getByRole('menuitem', { name: 'Run in SQL Lab' }));
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(1);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(1);
   });
 
   describe('Download', () => {
@@ -354,16 +354,16 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
 
-      expect(spy).toBeCalledTimes(0);
+      expect(spy).toHaveBeenCalledTimes(0);
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      expect(spy).toBeCalledTimes(0);
+      expect(spy).toHaveBeenCalledTimes(0);
 
       userEvent.hover(screen.getByText('Download'));
       const downloadAsImageElement =
         await screen.findByText('Download as image');
       userEvent.click(downloadAsImageElement);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     test('Should not export to CSV if canDownload=false', async () => {

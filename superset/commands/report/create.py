@@ -143,10 +143,17 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
 
         position_data = json.loads(dashboard.position_json or "{}")
         active_tabs = dashboard_state.get("activeTabs") or []
-        anchor = dashboard_state.get("anchor")
         invalid_tab_ids = set(active_tabs) - set(position_data.keys())
-        if anchor and anchor not in position_data:
-            invalid_tab_ids.add(anchor)
+
+        if anchor := dashboard_state.get("anchor"):
+            try:
+                anchor_list: list[str] = json.loads(anchor)
+                if _invalid_tab_ids := set(anchor_list) - set(position_data.keys()):
+                    invalid_tab_ids.update(_invalid_tab_ids)
+            except json.JSONDecodeError:
+                if anchor not in position_data:
+                    invalid_tab_ids.add(anchor)
+
         if invalid_tab_ids:
             exceptions.append(
                 ValidationError(

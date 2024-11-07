@@ -121,6 +121,7 @@ export default function PluginFilterTimegrain(
         {...formItemData}
       >
         <Select
+          name={formData.nativeFilterId}
           allowClear
           value={value}
           placeholder={placeholderText}
