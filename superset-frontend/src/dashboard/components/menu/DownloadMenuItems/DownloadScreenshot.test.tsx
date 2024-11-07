@@ -130,6 +130,9 @@ describe('DownloadScreenshot component', () => {
     await waitFor(() => {
       expect(mockAddInfoToast).toHaveBeenCalledWith(
         'The screenshot is being generated. Please, do not leave the page.',
+        {
+          noDuplicate: true,
+        },
       );
     });
   });
@@ -202,7 +205,7 @@ describe('DownloadScreenshot component', () => {
     // Wait for the successful image retrieval message
     await waitFor(() => {
       expect(mockAddSuccessToast).toHaveBeenCalledWith(
-        'The screenshot is now being downloaded.',
+        'The screenshot has been downloaded.',
       );
     });
   });

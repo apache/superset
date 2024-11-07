@@ -280,7 +280,6 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
-        'jest/no-alias-methods': 0,
         'react/no-void-elements': 0,
       },
     },
@@ -371,7 +370,6 @@ module.exports = {
     'react-prefer-function-component/react-prefer-function-component': 1,
     'prettier/prettier': 'error',
     // disabling some things that come with the eslint 7->8 upgrade. Will address these in a separate PR
-    'jest/no-alias-methods': 0,
     'react/no-unknown-property': 0,
     'react/no-void-elements': 0,
     'react/function-component-definition': [

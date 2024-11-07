@@ -29,7 +29,6 @@ get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 openapi_spec_methods_override = {
-    "get": {"get": {"summary": "Get a dataset detail information"}},
     "get_list": {
         "get": {
             "summary": "Get a list of datasets",

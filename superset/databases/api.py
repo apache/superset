@@ -121,6 +121,7 @@ from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base_api import (
@@ -1341,6 +1342,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @expose("/oauth2/", methods=["GET"])
+    @transaction()
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
         log_to_statsd=True,
@@ -1428,7 +1430,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "refresh_token": token_response.get("refresh_token"),
             },
         )
-
         # return blank page that closes itself
         return make_response(
             render_template("superset/oauth2.html", tab_id=state["tab_id"]),

@@ -29,6 +29,7 @@ from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
+from inspect import signature
 from typing import Any, Callable, cast, TYPE_CHECKING
 
 import numpy
@@ -510,12 +511,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         if self.impersonate_user:
-            self.db_engine_spec.update_impersonation_config(
-                connect_args,
-                str(sqlalchemy_url),
-                effective_username,
-                access_token,
+            # PR #30674 changed the signature of the method to include database.
+            # This ensures that the change is backwards compatible
+            args = [connect_args, str(sqlalchemy_url), effective_username, access_token]
+            args = self.add_database_to_signature(
+                self.db_engine_spec.update_impersonation_config,
+                args,
             )
+            self.db_engine_spec.update_impersonation_config(*args)
 
         if connect_args:
             params["connect_args"] = connect_args
@@ -542,6 +545,24 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+    def add_database_to_signature(
+        self,
+        func: Callable[..., None],
+        args: list[Any],
+    ) -> list[Any]:
+        """
+        Examines a function signature looking for a database param.
+        If the signature requires a database, the function appends self in the
+        proper position.
+        """
+
+        # PR #30674 changed the signature of the method to include database.
+        # This ensures that the change is backwards compatible
+        sig = signature(func)
+        if "database" in (params := sig.parameters.keys()):
+            args.insert(list(params).index("database"), self)
+        return args
 
     @contextmanager
     def get_raw_connection(
