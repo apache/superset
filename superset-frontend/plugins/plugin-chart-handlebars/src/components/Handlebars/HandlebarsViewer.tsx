@@ -80,9 +80,6 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
   return moment(context).format(f);
 });
 
-Handlebars.registerHelper('parseJSON', function(jsonString) {
-  return JSON.parse(jsonString.replace(/'/g, '"'));
-});
 
 // usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
