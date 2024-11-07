@@ -16,6 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import platform
 import subprocess
 import sys
 from typing import Callable, Optional, Set, Tuple
@@ -86,20 +87,36 @@ def check_memory(min_gb: int) -> str:
         return f"❌ Memory: {total_memory:.2f} GB (Minimum required: {min_gb} GB)"
 
 
+def get_cpu_info() -> str:
+    cpu_count = psutil.cpu_count(logical=True)
+    cpu_freq = psutil.cpu_freq()
+    cpu_info = (
+        f"{cpu_count} cores at {cpu_freq.current:.2f} MHz"
+        if cpu_freq
+        else f"{cpu_count} cores"
+    )
+    return f"CPU: {cpu_info}"
+
+
+def get_docker_platform() -> str:
+    try:
+        output = (
+            subprocess.check_output(
+                "docker info --format '{{.OperatingSystem}}'", shell=True
+            )
+            .decode()
+            .strip()
+        )
+        if "Docker Desktop" in output:
+            return f"Docker Platform: {output} ({platform.system()})"
+        return f"Docker Platform: {output}"
+    except subprocess.CalledProcessError:
+        return "Docker Platform: ❌ Not Detected"
+
+
 @click.command(
     help="""
-This script checks the local environment for various software versions and other requirements, providing feedback on whether they are ideal, supported, or unsupported. The checks include:
-
-- Core Python version
-- npm
-- Node.js
-- Docker
-- Docker Compose
-- Git
-- Memory requirements (12-14GB for frontend builds)
-- Whether the script is running inside Docker
-
-Each check will display a green check mark (✅) for ideal versions, a yellow warning (🟡) for supported versions, and a red cross (❌) for unsupported versions.
+This script checks the local environment for various software versions and other requirements, providing feedback on whether they are ideal, supported, or unsupported.
 """
 )
 @click.option(
@@ -158,6 +175,14 @@ def main(docker: bool, frontend: bool, backend: bool) -> None:
         ),
     ]
 
+    print("==================")
+    print("System Information")
+    print("==================")
+    print(f"OS: {platform.system()} {platform.release()}")
+    print(get_cpu_info())
+    print(get_docker_platform())
+    print("\n")
+
     check_req_types: Set[str] = set()
     if docker:
         check_req_types.add("docker")
@@ -165,18 +190,17 @@ def main(docker: bool, frontend: bool, backend: bool) -> None:
         check_req_types.add("frontend")
     if backend:
         check_req_types.add("backend")
-
     if not check_req_types:
         check_req_types.update(["docker", "frontend", "backend"])
 
     headers = ["Status", "Software", "Version Found", "Ideal Range", "Supported Range"]
     row_format = "{:<2} {:<25} {:<25} {:<25} {:<25}"
 
+    print("=" * 100)
     print(row_format.format(*headers))
-    print("=" * 110)
+    print("=" * 100)
 
     all_ok = True
-
     for requirement in requirements:
         if requirement.req_type in check_req_types:
             result = requirement.format_result()
