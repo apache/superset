@@ -202,7 +202,7 @@ function SelectPageSize({
       role="group"
       aria-label={t('Select page size')}
     >
-      {t('page_size.show')}{' '}
+      {t('Show')}{' '}
       <select
         className="form-control input-sm"
         value={current}
@@ -219,7 +219,7 @@ function SelectPageSize({
           const sizeLabel = size === 0 ? t('all') : size;
           return (
             <option
-              aria-label={t('Show %s entries', sizeLabel)}
+              aria-label={t('Show %s entries per page', sizeLabel)}
               key={size}
               value={size}
             >
@@ -228,7 +228,7 @@ function SelectPageSize({
           );
         })}
       </select>{' '}
-      {t('page_size.entries')}
+      {t('entries per page')}
     </span>
   );
 }
