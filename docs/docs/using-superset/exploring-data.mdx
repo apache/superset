@@ -41,19 +41,20 @@ Then, tick the checkbox for **Allow file uploads to database**. End by clicking 
 
 Download the CSV dataset to your computer from
 [GitHub](https://raw.githubusercontent.com/apache-superset/examples-data/master/tutorial_flights.csv).
-In the Superset menu, select **Data ‣ Upload a CSV**.
+In the top menu, select **Settings ‣ Data ‣ Databases Connections**. Then, **Upload file to database ‣ Upload CSV**.
 
 <img src={useBaseUrl("/img/tutorial/upload_a_csv.png" )} />
 
-Then, enter the **Table Name** as _tutorial_flights_ and select the CSV file from your computer.
+Then, select select the CSV file from your computer, select **Database** and **Schema**, and enter the **Table Name**
+as _tutorial_flights_.
 
 <img src={useBaseUrl("/img/tutorial/csv_to_database_configuration.png" )} />
 
-Next enter the text _Travel Date_ into the **Parse Dates** field.
+Next enter the text _Travel Date_ into the **File settings ‣ Columns to be parsed as dates** field.
 
 <img src={useBaseUrl("/img/tutorial/parse_dates_column.png" )} />
 
-Leaving all the other options in their default settings, select **Save** at the bottom of the page.
+Leaving all the other options in their default settings, select **Upload** at the bottom of the page.
 
 ### Table Visualization
 
