@@ -121,12 +121,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Setup supersetbot
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: ./.github/actions/setup-supersetbot/
+
       - name: Build ephemeral env image
         run: |
-          ./scripts/build_docker.py \
-            "ci" \
-            "pull_request" \
-            --build_context_ref ${{ github.event.issue.number }}
+          supersetbot docker \
+            --preset dev \
+            --context-ref "$RELEASE"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
