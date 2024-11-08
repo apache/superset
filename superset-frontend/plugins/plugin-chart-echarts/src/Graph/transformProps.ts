@@ -198,6 +198,7 @@ export default function transformProps(
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
+  const firstColor = colorFn.range()[0];
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();
   const echartNodes: EChartGraphNode[] = [];
@@ -256,11 +257,10 @@ export default function transformProps(
       : undefined;
     const sourceNodeColor = sourceCategoryName
       ? colorFn(sourceCategoryName)
-      : colorFn('node');
+      : firstColor;
     const targetNodeColor = targetCategoryName
       ? colorFn(targetCategoryName)
-      : colorFn('node');
-    const linkColor = colorFn('link');
+      : firstColor;
 
     const sourceNode = getOrCreateNode(
       sourceName,
@@ -283,7 +283,7 @@ export default function transformProps(
       target: targetNode.id,
       value,
       lineStyle: {
-        color: linkColor,
+        color: firstColor,
       },
       emphasis: {},
       select: {},

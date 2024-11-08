@@ -144,7 +144,7 @@ describe('EchartsGraph transformProps', () => {
               links: [
                 {
                   emphasis: { lineStyle: { width: 12 } },
-                  lineStyle: { width: 6, color: '#ff7f0e' },
+                  lineStyle: { width: 6, color: '#1f77b4' },
                   select: {
                     lineStyle: { opacity: 1, width: 9.600000000000001 },
                   },
@@ -154,7 +154,7 @@ describe('EchartsGraph transformProps', () => {
                 },
                 {
                   emphasis: { lineStyle: { width: 5 } },
-                  lineStyle: { width: 1.5, color: '#ff7f0e' },
+                  lineStyle: { width: 1.5, color: '#1f77b4' },
                   select: { lineStyle: { opacity: 1, width: 5 } },
                   source: '2',
                   target: '3',
@@ -230,7 +230,7 @@ describe('EchartsGraph transformProps', () => {
                 {
                   id: '0',
                   itemStyle: {
-                    color: '#2ca02c',
+                    color: '#1f77b4',
                   },
                   col: 'source_column',
                   name: 'source_value',
@@ -244,7 +244,7 @@ describe('EchartsGraph transformProps', () => {
                 {
                   id: '1',
                   itemStyle: {
-                    color: '#d62728',
+                    color: '#ff7f0e',
                   },
                   col: 'target_column',
                   name: 'target_value',
