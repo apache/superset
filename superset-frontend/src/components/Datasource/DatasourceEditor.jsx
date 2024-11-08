@@ -16,47 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import rison from 'rison';
-import { PureComponent, useCallback } from 'react';
-import PropTypes from 'prop-types';
-import { Radio } from 'src/components/Radio';
-import Card from 'src/components/Card';
-import Alert from 'src/components/Alert';
-import Badge from 'src/components/Badge';
-import { nanoid } from 'nanoid';
 import {
   css,
-  isFeatureEnabled,
-  getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
+  getClientErrorObject,
+  getCurrencySymbol,
+  isFeatureEnabled,
   styled,
   SupersetClient,
   t,
   withTheme,
-  getClientErrorObject,
 } from '@superset-ui/core';
-import { Select, AsyncSelect, Row, Col } from 'src/components';
-import { FormLabel } from 'src/components/Form';
+import { nanoid } from 'nanoid';
+import PropTypes from 'prop-types';
+import { PureComponent, useCallback } from 'react';
+import rison from 'rison';
+import { AsyncSelect, Col, Row, Select } from 'src/components';
+import Alert from 'src/components/Alert';
+import Badge from 'src/components/Badge';
 import Button from 'src/components/Button';
-import Tabs from 'src/components/Tabs';
+import Card from 'src/components/Card';
 import CertifiedBadge from 'src/components/CertifiedBadge';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
 import DatabaseSelector from 'src/components/DatabaseSelector';
+import EditableTitle from 'src/components/EditableTitle';
+import { FormLabel } from 'src/components/Form';
+import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
-import TableSelector from 'src/components/TableSelector';
-import EditableTitle from 'src/components/EditableTitle';
-import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import TextControl from 'src/explore/components/controls/TextControl';
-import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
-import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import Icons from 'src/components/Icons';
+import { Radio } from 'src/components/Radio';
+import TableSelector from 'src/components/TableSelector';
+import Tabs from 'src/components/Tabs';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import SpatialControl from 'src/explore/components/controls/SpatialControl';
+import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
+import TextControl from 'src/explore/components/controls/TextControl';
 import CollectionTable from './CollectionTable';
-import Fieldset from './Fieldset';
 import Field from './Field';
+import Fieldset from './Fieldset';
 
 const DatasourceContainer = styled.div`
   .change-warning {
@@ -895,8 +895,8 @@ class DatasourceEditor extends PureComponent {
           fieldKey="default_endpoint"
           label={t('Default URL')}
           description={t(
-            'Default URL to redirect to when accessing from the dataset list page. 
-            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>',
+            `Default URL to redirect to when accessing from the dataset list page.
+            Accepts relative URLs such as <span style=„white-space: nowrap;”>/superset/dashboard/{id}/</span>`,
           )}
           control={<TextControl controlId="default_endpoint" />}
         />
