@@ -121,6 +121,8 @@ jobs:
         uses: ./.github/actions/setup-supersetbot/
 
       - name: Build ephemeral env image
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           supersetbot docker \
             --preset dev \
