@@ -77,11 +77,13 @@ type PageProps = {
   idOrSlug: string;
 };
 
+// TODO: move to Dashboard.jsx when it's refactored to functional component
 const selectRelevantDatamask = createSelector(
   (state: RootState) => state.dataMask, // the first argument accesses relevant data from global state
   dataMask => getRelevantDataMask(dataMask, 'ownState'), // the second parameter conducts the transformation
 );
 
+// TODO: move to Dashboard.jsx when it's refactored to functional component
 const selectActiveFilters = createSelector(
   (state: RootState) => ({
     // eslint-disable-next-line camelcase
