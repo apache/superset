@@ -554,7 +554,7 @@ class Header extends PureComponent {
                 visible={!editMode}
               />
             ),
-            (!editMode || !isEmbedded) && (
+            !editMode && !isEmbedded && (
               <MetadataBar
                 items={this.getMetadataItems()}
                 tooltipPlacement="bottom"
