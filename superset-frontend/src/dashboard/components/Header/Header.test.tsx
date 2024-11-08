@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import getOwnerName from 'src/utils/getOwnerName';
-import { HeaderProps } from './types';
 import Header from '.';
+import { HeaderProps } from './types';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
@@ -372,4 +372,30 @@ test('should render an extension component if one is supplied', () => {
   expect(
     screen.getByText('dashboard.nav.right extension component'),
   ).toBeInTheDocument();
+});
+
+test('should render metadata when !isEmbedded is true', () => {
+  const mockedProps = {
+    ...createProps(),
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: undefined,
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.getByText(getOwnerName(mockedProps.dashboardInfo.created_by)),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).toBeInTheDocument();
+});
+
+test('should NOT render MetadataBar when embedded', () => {
+  const mockedProps = createProps();
+  setup(mockedProps);
+
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
 });

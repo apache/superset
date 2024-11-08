@@ -17,44 +17,44 @@
  * under the License.
  */
 /* eslint-env browser */
-import moment from 'moment';
-import { PureComponent } from 'react';
-import PropTypes from 'prop-types';
-import {
-  styled,
-  css,
-  isFeatureEnabled,
-  FeatureFlag,
-  t,
-  getExtensionsRegistry,
-} from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import {
-  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
-  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
-  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
-} from 'src/logger/LogUtils';
-import Icons from 'src/components/Icons';
+  css,
+  FeatureFlag,
+  getExtensionsRegistry,
+  isFeatureEnabled,
+  styled,
+  t,
+} from '@superset-ui/core';
+import moment from 'moment';
+import PropTypes from 'prop-types';
+import { PureComponent } from 'react';
 import { Button } from 'src/components/';
-import { findPermission } from 'src/utils/findPermission';
+import Icons from 'src/components/Icons';
+import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { Tooltip } from 'src/components/Tooltip';
-import { safeStringify } from 'src/utils/safeStringify';
 import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
-import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import { chartPropShape } from 'src/dashboard/util/propShapes';
-import getOwnerName from 'src/utils/getOwnerName';
 import {
-  UNDO_LIMIT,
-  SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
+  SAVE_TYPE_OVERWRITE,
+  UNDO_LIMIT,
 } from 'src/dashboard/util/constants';
+import { chartPropShape } from 'src/dashboard/util/propShapes';
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
-import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
+import {
+  LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
+  LOG_ACTIONS_PERIODIC_RENDER_DASHBOARD,
+  LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD,
+} from 'src/logger/LogUtils';
+import { findPermission } from 'src/utils/findPermission';
+import getOwnerName from 'src/utils/getOwnerName';
+import { safeStringify } from 'src/utils/safeStringify';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 
@@ -496,6 +496,7 @@ class Header extends PureComponent {
     const refreshWarning =
       dashboardInfo.common?.conf
         ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
+    const isEmbedded = !dashboardInfo?.userId;
 
     const handleOnPropertiesChange = updates => {
       const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
@@ -553,7 +554,7 @@ class Header extends PureComponent {
                 visible={!editMode}
               />
             ),
-            !editMode && (
+            (!editMode || !isEmbedded) && (
               <MetadataBar
                 items={this.getMetadataItems()}
                 tooltipPlacement="bottom"
