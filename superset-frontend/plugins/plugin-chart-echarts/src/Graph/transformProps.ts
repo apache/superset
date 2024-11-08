@@ -248,26 +248,19 @@ export default function transformProps(
     }
     const sourceName = link[source] as string;
     const targetName = link[target] as string;
-    let sourceCategoryName;
-    let targetCategoryName;
-    let sourceNodeColor = colorFn('node');
-    let targetNodeColor = colorFn('node');
+    const sourceCategoryName = sourceCategory
+      ? getCategoryName(sourceCategory, link[sourceCategory])
+      : undefined;
+    const targetCategoryName = targetCategory
+      ? getCategoryName(targetCategory, link[targetCategory])
+      : undefined;
+    const sourceNodeColor = sourceCategoryName
+      ? colorFn(sourceCategoryName)
+      : colorFn('node');
+    const targetNodeColor = targetCategoryName
+      ? colorFn(targetCategoryName)
+      : colorFn('node');
     const linkColor = colorFn('link');
-
-    if (sourceCategory) {
-      sourceCategoryName = getCategoryName(
-        sourceCategory,
-        link[sourceCategory],
-      );
-      sourceNodeColor = colorFn(sourceCategoryName);
-    }
-    if (targetCategory) {
-      targetCategoryName = getCategoryName(
-        targetCategory,
-        link[targetCategory],
-      );
-      targetNodeColor = colorFn(targetCategoryName);
-    }
 
     const sourceNode = getOrCreateNode(
       sourceName,
