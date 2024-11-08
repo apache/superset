@@ -453,7 +453,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         queryObject = {
           ...queryObject,
           extras: {
-            ...(queryObject.extras || {}),
+            ...queryObject.extras,
             where: combinedWhere,
           },
         };
@@ -469,7 +469,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         queryObject = {
           ...queryObject,
           extras: {
-            ...(queryObject.extras || {}),
+            ...queryObject.extras,
             having: combinedHaving,
           },
         };
