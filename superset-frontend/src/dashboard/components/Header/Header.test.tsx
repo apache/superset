@@ -374,9 +374,25 @@ test('should render an extension component if one is supplied', () => {
   ).toBeInTheDocument();
 });
 
-test('should render metadata when !isEmbedded is true', () => {
+test('should NOT render MetadataBar when in edit mode', () => {
   const mockedProps = {
     ...createProps(),
+    editMode: true,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should NOT render MetadataBar when embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
     dashboardInfo: {
       ...createProps().dashboardInfo,
       userId: undefined,
@@ -384,18 +400,21 @@ test('should render metadata when !isEmbedded is true', () => {
   };
   setup(mockedProps);
   expect(
-    screen.getByText(getOwnerName(mockedProps.dashboardInfo.created_by)),
-  ).toBeInTheDocument();
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should render MetadataBar when not in edit mode and not embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
   expect(
     screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
-});
-
-test('should NOT render MetadataBar when embedded', () => {
-  const mockedProps = createProps();
-  setup(mockedProps);
-
-  expect(
-    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
-  ).not.toBeInTheDocument();
 });
