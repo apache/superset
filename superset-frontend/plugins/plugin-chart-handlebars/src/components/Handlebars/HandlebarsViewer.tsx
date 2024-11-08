@@ -80,27 +80,25 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
   return moment(context).format(f);
 });
 
-Handlebars.registerHelper('parseJSON', function(jsonString:string) {
+Handlebars.registerHelper('parseJSON', function(jsonString: string): any {
   return JSON.parse(jsonString.replace(/'/g, '"'));
 });
-Handlebars.registerHelper("inc", function(value, options)
-{
-    return parseInt(value) + 1;
+
+Handlebars.registerHelper("inc", function(value: string): number {
+  return parseInt(value) + 1;
 });
 
-Handlebars.registerHelper("math", function(lvalue, operator, rvalue)
-{
-lvalue = parseFloat(lvalue);
-    rvalue = parseFloat(rvalue);
-    return {
-        "+": lvalue + rvalue,
-        "-": lvalue - rvalue,
-        "*": lvalue * rvalue,
-        "/": lvalue / rvalue,
-        "%": lvalue % rvalue
-    }[operator];
+Handlebars.registerHelper("math", function(lvalue: string | number, operator: string, rvalue: string | number): number | undefined {
+  lvalue = parseFloat(lvalue as string);
+  rvalue = parseFloat(rvalue as string);
+  return {
+      "+": lvalue + rvalue,
+      "-": lvalue - rvalue,
+      "*": lvalue * rvalue,
+      "/": lvalue / rvalue,
+      "%": lvalue % rvalue
+  }[operator];
 });
-
 
 // usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
