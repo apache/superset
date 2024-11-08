@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import { fireEvent, render, screen } from 'spec/helpers/testing-library';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import getOwnerName from 'src/utils/getOwnerName';
-import Header from '.';
 import { HeaderProps } from './types';
+import Header from '.';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
