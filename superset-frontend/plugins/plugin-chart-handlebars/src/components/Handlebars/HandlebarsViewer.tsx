@@ -80,24 +80,12 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
   return moment(context).format(f);
 });
 
-Handlebars.registerHelper('parseJSON', function(jsonString: string): any {
+Handlebars.registerHelper('parseJSON', (jsonString: string) => {
   return JSON.parse(jsonString.replace(/'/g, '"'));
 });
 
-Handlebars.registerHelper("inc", function(value: string): number {
-  return parseInt(value) + 1;
-});
-
-Handlebars.registerHelper("math", function(lvalue: string | number, operator: string, rvalue: string | number): number | undefined {
-  lvalue = parseFloat(lvalue as string);
-  rvalue = parseFloat(rvalue as string);
-  return {
-      "+": lvalue + rvalue,
-      "-": lvalue - rvalue,
-      "*": lvalue * rvalue,
-      "/": lvalue / rvalue,
-      "%": lvalue % rvalue
-  }[operator];
+Handlebars.registerHelper('inc', (value: string) => {
+  return parseInt(value, 2) + 1;
 });
 
 // usage: {{  }}
