@@ -84,66 +84,66 @@ jobs:
     name: ephemeral-docker-build
     runs-on: ubuntu-22.04
     steps:
-      - name: Get Info from comment
-        uses: actions/github-script@v7
-        id: get-pr-info
-        with:
-          script: |
-            const request = {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
-            };
-            core.info(`Getting PR #${request.pull_number} from ${request.owner}/${request.repo}`);
-            const pr = await github.rest.pulls.get(request);
-            return pr.data;
+    - name: Get Info from comment
+      uses: actions/github-script@v7
+      id: get-pr-info
+      with:
+        script: |
+          const request = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
+          };
+          core.info(`Getting PR #${request.pull_number} from ${request.owner}/${request.repo}`);
+          const pr = await github.rest.pulls.get(request);
+          return pr.data;
 
-      - name: Debug
-        id: get-sha
-        run: |
-          echo "sha=${{ fromJSON(steps.get-pr-info.outputs.result).head.sha }}" >> $GITHUB_OUTPUT
+    - name: Debug
+      id: get-sha
+      run: |
+        echo "sha=${{ fromJSON(steps.get-pr-info.outputs.result).head.sha }}" >> $GITHUB_OUTPUT
 
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} : ${{steps.get-sha.outputs.sha}} )"
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.get-sha.outputs.sha }}
-          persist-credentials: false
+    - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} : ${{steps.get-sha.outputs.sha}} )"
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ steps.get-sha.outputs.sha }}
+        persist-credentials: false
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+    - name: Setup supersetbot
+      uses: ./.github/actions/setup-supersetbot/
 
-      - name: Build ephemeral env image
-        run: |
-          supersetbot docker \
-            --preset dev \
-            --context-ref "$RELEASE"
+    - name: Build ephemeral env image
+      run: |
+        supersetbot docker \
+          --preset dev \
+          --context-ref "$RELEASE"
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Load, tag and push image to ECR
-        id: push-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: superset-ci
-          IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha }}-ci
-        run: |
-          docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-ci
-          docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
+    - name: Load, tag and push image to ECR
+      id: push-image
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        ECR_REPOSITORY: superset-ci
+        IMAGE_TAG: apache/superset:${{ steps.get-sha.outputs.sha }}-ci
+      run: |
+        docker tag $IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-ci
+        docker push -a $ECR_REGISTRY/$ECR_REPOSITORY
 
   ephemeral-env-up:
     needs: [ephemeral-env-comment, ephemeral-docker-build]
@@ -155,71 +155,71 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
+    - uses: actions/checkout@v4
+      with:
+        persist-credentials: false
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Check target image exists in ECR
-        id: check-image
-        continue-on-error: true
-        run: |
-          aws ecr describe-images \
-          --registry-id $(echo "${{ steps.login-ecr.outputs.registry }}" | grep -Eo "^[0-9]+") \
-          --repository-name superset-ci \
-          --image-ids imageTag=pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-ci
+    - name: Check target image exists in ECR
+      id: check-image
+      continue-on-error: true
+      run: |
+        aws ecr describe-images \
+        --registry-id $(echo "${{ steps.login-ecr.outputs.registry }}" | grep -Eo "^[0-9]+") \
+        --repository-name superset-ci \
+        --image-ids imageTag=pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-ci
 
-      - name: Fail on missing container image
-        if: steps.check-image.outcome == 'failure'
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ github.token }}
-        script: |
-          const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.';
-          github.rest.issues.createComment({
-            issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: errMsg
-          });
-          core.setFailed(errMsg);
+    - name: Fail on missing container image
+      if: steps.check-image.outcome == 'failure'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ github.token }}
+      script: |
+        const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.';
+        github.rest.issues.createComment({
+          issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          body: errMsg
+        });
+        core.setFailed(errMsg);
 
-      - name: Fill in the new image ID in the Amazon ECS task definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: .github/workflows/ecs-task-definition.json
-          container-name: superset-ci
-          image: ${{ steps.login-ecr.outputs.registry }}/superset-ci:pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-ci
+    - name: Fill in the new image ID in the Amazon ECS task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: .github/workflows/ecs-task-definition.json
+        container-name: superset-ci
+        image: ${{ steps.login-ecr.outputs.registry }}/superset-ci:pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-ci
 
-      - name: Update env vars in the Amazon ECS task definition
-        run: |
-          cat <<< "$(jq '.containerDefinitions[0].environment += ${{ needs.ephemeral-env-comment.outputs.feature-flags }}' < ${{ steps.task-def.outputs.task-definition }})" > ${{ steps.task-def.outputs.task-definition }}
+    - name: Update env vars in the Amazon ECS task definition
+      run: |
+        cat <<< "$(jq '.containerDefinitions[0].environment += ${{ needs.ephemeral-env-comment.outputs.feature-flags }}' < ${{ steps.task-def.outputs.task-definition }})" > ${{ steps.task-def.outputs.task-definition }}
 
-      - name: Describe ECS service
-        id: describe-services
-        run: |
-          echo "active=$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')" >> $GITHUB_OUTPUT
+    - name: Describe ECS service
+      id: describe-services
+      run: |
+        echo "active=$(aws ecs describe-services --cluster superset-ci --services pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service | jq '.services[] | select(.status == "ACTIVE") | any')" >> $GITHUB_OUTPUT
 
-      - name: Create ECS service
-        if: steps.describe-services.outputs.active != 'true'
-        id: create-service
-        env:
-          ECR_SUBNETS: subnet-0e15a5034b4121710,subnet-0e8efef4a72224974
-          ECR_SECURITY_GROUP: sg-092ff3a6ae0574d91
-        run: |
-          aws ecs create-service \
-          --cluster superset-ci \
-          --service-name pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service \
-          --task-definition superset-ci \
-          --launch-type FARGATE \
+    - name: Create ECS service
+      if: steps.describe-services.outputs.active != 'true'
+      id: create-service
+      env:
+        ECR_SUBNETS: subnet-0e15a5034b4121710,subnet-0e8efef4a72224974
+        ECR_SECURITY_GROUP: sg-092ff3a6ae0574d91
+      run: |
+        aws ecs create-service \
+        --cluster superset-ci \
+        --service-name pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service \
+        --task-definition superset-ci \
+        --launch-type FARGATE \
