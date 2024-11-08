@@ -219,7 +219,8 @@ export const getFormDataWithDashboardContext = (
     );
 
   const ownColorScheme = exploreFormData.color_scheme;
-  const appliedColorScheme = dashboardContextFormData.color_scheme;
+  const dashboardColorScheme = dashboardContextFormData.color_scheme;
+  const appliedColorScheme = dashboardColorScheme || ownColorScheme;
 
   return {
     ...exploreFormData,
@@ -229,5 +230,6 @@ export const getFormDataWithDashboardContext = (
     ...adhocFilters,
     own_color_scheme: ownColorScheme,
     color_scheme: appliedColorScheme,
+    dashboard_color_scheme: dashboardColorScheme,
   };
 };

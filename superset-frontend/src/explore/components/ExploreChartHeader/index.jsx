@@ -69,7 +69,7 @@ const additionalItemsStyles = theme => css`
 
 export const ExploreChartHeader = ({
   dashboardId,
-  colorScheme,
+  colorScheme: dashboardColorScheme,
   slice,
   actions,
   formData,
@@ -91,7 +91,7 @@ export const ExploreChartHeader = ({
     const dashboard =
       dashboardId && dashboards && dashboards.find(d => d.id === dashboardId);
 
-    if (!dashboard || !colorScheme) {
+    if (!dashboard || !dashboardColorScheme) {
       // clean up color namespace and shared color maps
       // to avoid colors spill outside of dashboard context
       resetColors(metadata?.color_namespace);
@@ -109,7 +109,7 @@ export const ExploreChartHeader = ({
         // setting the chart to use the dashboard custom label colors if any
         const dashboardMetadata = JSON.parse(result.json_metadata);
         // if the dashboard does not have a color scheme, only apply shared colors
-        applyColors(dashboardMetadata, false, false, !colorScheme);
+        applyColors(dashboardMetadata, false, false, !dashboardColorScheme);
       } catch (error) {
         logging.info(t('Unable to retrieve dashboard colors'));
       }

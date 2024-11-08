@@ -103,6 +103,7 @@ export class LabelsColorMap {
     const chartConfig = this.chartsLabelsMap.get(sliceId) || {
       labels: [],
       scheme: '',
+      ownScheme: '',
     };
 
     const { labels } = chartConfig;
