@@ -80,6 +80,27 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
   return moment(context).format(f);
 });
 
+Handlebars.registerHelper('parseJSON', function(jsonString:string) {
+  return JSON.parse(jsonString.replace(/'/g, '"'));
+});
+Handlebars.registerHelper("inc", function(value, options)
+{
+    return parseInt(value) + 1;
+});
+
+Handlebars.registerHelper("math", function(lvalue, operator, rvalue)
+{
+lvalue = parseFloat(lvalue);
+    rvalue = parseFloat(rvalue);
+    return {
+        "+": lvalue + rvalue,
+        "-": lvalue - rvalue,
+        "*": lvalue * rvalue,
+        "/": lvalue / rvalue,
+        "%": lvalue % rvalue
+    }[operator];
+});
+
 
 // usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
