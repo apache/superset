@@ -16,47 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
+import { PureComponent, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { Radio } from 'src/components/Radio';
+import Card from 'src/components/Card';
+import Alert from 'src/components/Alert';
+import Badge from 'src/components/Badge';
+import { nanoid } from 'nanoid';
 import {
   css,
+  isFeatureEnabled,
+  getCurrencySymbol,
   ensureIsArray,
   FeatureFlag,
-  getClientErrorObject,
-  getCurrencySymbol,
-  isFeatureEnabled,
   styled,
   SupersetClient,
   t,
   withTheme,
+  getClientErrorObject,
 } from '@superset-ui/core';
-import { nanoid } from 'nanoid';
-import PropTypes from 'prop-types';
-import { PureComponent, useCallback } from 'react';
-import rison from 'rison';
-import { AsyncSelect, Col, Row, Select } from 'src/components';
-import Alert from 'src/components/Alert';
-import Badge from 'src/components/Badge';
-import Button from 'src/components/Button';
-import Card from 'src/components/Card';
-import CertifiedBadge from 'src/components/CertifiedBadge';
-import DatabaseSelector from 'src/components/DatabaseSelector';
-import EditableTitle from 'src/components/EditableTitle';
+import { Select, AsyncSelect, Row, Col } from 'src/components';
 import { FormLabel } from 'src/components/Form';
-import Icons from 'src/components/Icons';
+import Button from 'src/components/Button';
+import Tabs from 'src/components/Tabs';
+import CertifiedBadge from 'src/components/CertifiedBadge';
+import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import DatabaseSelector from 'src/components/DatabaseSelector';
 import Label from 'src/components/Label';
 import Loading from 'src/components/Loading';
-import withToasts from 'src/components/MessageToasts/withToasts';
-import { Radio } from 'src/components/Radio';
 import TableSelector from 'src/components/TableSelector';
-import Tabs from 'src/components/Tabs';
-import WarningIconWithTooltip from 'src/components/WarningIconWithTooltip';
+import EditableTitle from 'src/components/EditableTitle';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
-import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
-import SpatialControl from 'src/explore/components/controls/SpatialControl';
-import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import TextControl from 'src/explore/components/controls/TextControl';
+import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
+import SpatialControl from 'src/explore/components/controls/SpatialControl';
+import withToasts from 'src/components/MessageToasts/withToasts';
+import Icons from 'src/components/Icons';
+import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import CollectionTable from './CollectionTable';
-import Field from './Field';
 import Fieldset from './Fieldset';
+import Field from './Field';
 
 const DatasourceContainer = styled.div`
   .change-warning {
