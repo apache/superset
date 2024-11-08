@@ -1,5 +1,7 @@
 name: Ephemeral env workflow
 
+# Example manual trigger:  gh workflow run ephemeral-env.yml --ref fix_ephemerals  --field comment_body="/testenv up" --field issue_number=666
+
 on:
   issue_comment:
     types: [created]
@@ -184,15 +186,15 @@ jobs:
       uses: actions/github-script@v7
       with:
         github-token: ${{ github.token }}
-      script: |
-        const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.';
-        github.rest.issues.createComment({
-          issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
-          owner: context.repo.owner,
-          repo: context.repo.repo,
-          body: errMsg
-        });
-        core.setFailed(errMsg);
+        script: |
+          const errMsg = '@${{ github.event.comment.user.login }} Container image not yet published for this PR. Please try again when build is complete.';
+          github.rest.issues.createComment({
+            issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: errMsg
+          });
+          core.setFailed(errMsg);
 
     - name: Fill in the new image ID in the Amazon ECS task definition
       id: task-def
