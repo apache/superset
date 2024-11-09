@@ -25,6 +25,7 @@ x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
+  - superset-checks
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
@@ -129,6 +130,23 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_SSL=false
+
+  superset-checks:
+    build:
+      context: .
+      target: python-base
+      cache_from:
+        - apache/superset-cache:3.10-slim-bookworm
+    container_name: superset_checks
+    command: ["/app/scripts/check-env.py"]
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    user: *superset-user
+    healthcheck:
+      disable: true
 
   superset-init:
     build:
