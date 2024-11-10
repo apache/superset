@@ -85,10 +85,11 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
 RUN rm /app/superset/translations/messages.pot
 
+FROM python:${PY_VER} AS python-base
 ######################################################################
 # Final lean image...
 ######################################################################
-FROM python:${PY_VER} AS lean
+FROM python-base AS lean
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
@@ -120,6 +121,7 @@ COPY --chown=superset:superset pyproject.toml setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
 COPY --chown=superset:superset requirements/base.txt requirements/
+COPY --chown=superset:superset scripts/check-env.py scripts/
 RUN --mount=type=cache,target=/root/.cache/pip \
     apt-get update -qq && apt-get install -yqq --no-install-recommends \
       build-essential \

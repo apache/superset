@@ -152,6 +152,7 @@ const getTooltipTitle = (
 
 export default function DateFilterLabel(props: DateFilterControlProps) {
   const {
+    name,
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
@@ -384,6 +385,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         getPopupContainer={trigger => trigger.parentElement as HTMLElement}
       >
         <DateLabel
+          name={name}
+          aria-labelledby={`filter-name-${props.name}`}
+          aria-describedby={`date-label-${props.name}`}
           label={actualTimeRange}
           isActive={show}
           isPlaceholder={actualTimeRange === NO_TIME_RANGE}
@@ -402,6 +406,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         getPopupContainer={trigger => trigger.parentElement as HTMLElement}
       >
         <DateLabel
+          name={name}
+          aria-labelledby={`filter-name-${props.name}`}
+          aria-describedby={`date-label-${props.name}`}
           onClick={toggleOverlay}
           label={actualTimeRange}
           isActive={show}

@@ -21,6 +21,7 @@ import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
 import {
@@ -31,7 +32,11 @@ import {
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-
+import {
+  getAllActiveFilters,
+  getRelevantDataMask,
+} from 'src/dashboard/util/activeAllDashboardFilters';
+import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -71,6 +76,33 @@ const originalDocumentTitle = document.title;
 type PageProps = {
   idOrSlug: string;
 };
+
+// TODO: move to Dashboard.jsx when it's refactored to functional component
+const selectRelevantDatamask = createSelector(
+  (state: RootState) => state.dataMask, // the first argument accesses relevant data from global state
+  dataMask => getRelevantDataMask(dataMask, 'ownState'), // the second parameter conducts the transformation
+);
+
+// TODO: move to Dashboard.jsx when it's refactored to functional component
+const selectActiveFilters = createSelector(
+  (state: RootState) => ({
+    // eslint-disable-next-line camelcase
+    chartConfiguration: state.dashboardInfo.metadata?.chart_configuration,
+    nativeFilters: state.nativeFilters.filters,
+    dataMask: state.dataMask,
+    allSliceIds: state.dashboardState.sliceIds,
+  }),
+  ({ chartConfiguration, nativeFilters, dataMask, allSliceIds }) => ({
+    ...getActiveFilters(),
+    ...getAllActiveFilters({
+      // eslint-disable-next-line camelcase
+      chartConfiguration,
+      nativeFilters,
+      dataMask,
+      allSliceIds,
+    }),
+  }),
+);
 
 export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const theme = useTheme();
@@ -191,6 +223,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     }
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
 
+  const relevantDataMask = useSelector(selectRelevantDatamask);
+  const activeFilters = useSelector(selectActiveFilters);
+
   if (error) throw error; // caught in error boundary
 
   return (
@@ -208,7 +243,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <DashboardContainer>
+            <DashboardContainer
+              activeFilters={activeFilters}
+              ownDataCharts={relevantDataMask}
+            >
               <DashboardBuilder />
             </DashboardContainer>
           </DashboardPageIdContext.Provider>

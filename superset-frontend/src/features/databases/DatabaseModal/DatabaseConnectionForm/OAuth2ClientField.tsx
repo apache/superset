@@ -24,6 +24,14 @@ import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import { FieldPropTypes } from '../../types';
 
+const LABELS = {
+  CLIENT_ID: 'Client ID',
+  SECRET: 'Client Secret',
+  AUTH_URI: 'Authorization Request URI',
+  TOKEN_URI: 'Token Request URI',
+  SCOPE: 'Scope',
+};
+
 interface OAuth2ClientInfo {
   id: string;
   secret: string;
@@ -43,10 +51,6 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
       encryptedExtra.oauth2_client_info?.token_request_uri || '',
     scope: encryptedExtra.oauth2_client_info?.scope || '',
   });
-
-  if (db?.engine_information?.supports_oauth2 !== true) {
-    return null;
-  }
 
   const handleChange = (key: any) => (e: any) => {
     const updatedInfo = {
@@ -68,14 +72,14 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
   return (
     <Collapse>
       <Collapse.Panel header="OAuth2 client information" key="1">
-        <FormItem label="Client ID">
+        <FormItem label={LABELS.CLIENT_ID}>
           <Input
             data-test="client-id"
             value={oauth2ClientInfo.id}
             onChange={handleChange('id')}
           />
         </FormItem>
-        <FormItem label="Client Secret">
+        <FormItem label={LABELS.SECRET}>
           <Input
             data-test="client-secret"
             type="password"
@@ -83,7 +87,7 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
             onChange={handleChange('secret')}
           />
         </FormItem>
-        <FormItem label="Authorization Request URI">
+        <FormItem label={LABELS.AUTH_URI}>
           <Input
             data-test="client-authorization-request-uri"
             placeholder="https://"
@@ -91,7 +95,7 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
             onChange={handleChange('authorization_request_uri')}
           />
         </FormItem>
-        <FormItem label="Token Request URI">
+        <FormItem label={LABELS.TOKEN_URI}>
           <Input
             data-test="client-token-request-uri"
             placeholder="https://"
@@ -99,7 +103,7 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
             onChange={handleChange('token_request_uri')}
           />
         </FormItem>
-        <FormItem label="Scope">
+        <FormItem label={LABELS.SCOPE}>
           <Input
             data-test="client-scope"
             value={oauth2ClientInfo.scope}

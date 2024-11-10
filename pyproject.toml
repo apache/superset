@@ -188,6 +188,7 @@ development = [
     "pip-compile-multi",
     "pre-commit",
     "progress>=1.5,<2",
+    "psutil",
     "pyfakefs",
     "pyinstrument>=4.0.2,<5",
     "pylint",

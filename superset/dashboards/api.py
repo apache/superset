@@ -156,9 +156,15 @@ def with_dashboard(
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
-    @before_request(only=["thumbnail"])
+    @before_request(only=["thumbnail", "cache_dashboard_screenshot", "screenshot"])
     def ensure_thumbnails_enabled(self) -> Optional[Response]:
         if not is_feature_enabled("THUMBNAILS"):
+            return self.response_404()
+        return None
+
+    @before_request(only=["cache_dashboard_screenshot", "screenshot"])
+    def ensure_screenshots_enabled(self) -> Optional[Response]:
+        if not is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"):
             return self.response_404()
         return None
 
@@ -1133,7 +1139,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
                 cache_key=cache_key,
-                force=True,
+                force=False,
                 thumb_size=thumb_size,
                 window_size=window_size,
             )
