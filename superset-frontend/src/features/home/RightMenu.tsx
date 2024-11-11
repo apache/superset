@@ -50,6 +50,7 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from 'src/components/TelemetryPixel';
 import LanguagePicker from './LanguagePicker';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import {
   ExtensionConfigs,
   GlobalMenuDataOptions,
@@ -185,7 +186,7 @@ const RightMenu = ({
         {
           label: t('Create dataset'),
           name: GlobalMenuDataOptions.DatasetCreation,
-          url: '/dataset/add/',
+          url: ensureBasePath('/dataset/add/'),
           perm: canDataset && nonExamplesDBConnected,
         },
         {
@@ -215,7 +216,7 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: '/sqllab?new=true',
+      url: ensureBasePath('/sqllab/?new=true'),
       icon: 'fa-fw fa-search',
       perm: 'can_sqllab',
       view: 'Superset',
@@ -231,7 +232,7 @@ const RightMenu = ({
     },
     {
       label: t('Dashboard'),
-      url: '/dashboard/new',
+      url: ensureBasePath('/dashboard/new'),
       icon: 'fa-fw fa-dashboard',
       perm: 'can_write',
       view: 'Dashboard',
