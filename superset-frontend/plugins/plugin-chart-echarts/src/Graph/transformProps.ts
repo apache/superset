@@ -283,7 +283,7 @@ export default function transformProps(
       target: targetNode.id,
       value,
       lineStyle: {
-        color: firstColor,
+        color: sourceNodeColor,
       },
       emphasis: {},
       select: {},
