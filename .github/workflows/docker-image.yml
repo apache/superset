@@ -1,0 +1,28 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "s3-support-for-presto" ]
+  pull_request:
+    branches: [ "s3-support-for-presto" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    env:
+      TIMESTAMP: ${{ github.run_id }} # Use GitHub's unique run ID as a timestamp or unique identifier
+
+    steps:
+    - name: Check out the repository
+      uses: actions/checkout@v4
+
+    - name: Log into Docker Hub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USER }}" --password-stdin
+
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag ${{ secrets.DOCKERHUB_USER }}/superset:${{ env.TIMESTAMP }}
+
+    - name: Push the Docker image
+      run: docker push ${{ secrets.DOCKERHUB_USER }}/superset:${{ env.TIMESTAMP }}
