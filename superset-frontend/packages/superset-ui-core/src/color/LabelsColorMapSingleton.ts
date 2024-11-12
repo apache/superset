@@ -121,6 +121,23 @@ export class LabelsColorMap {
   }
 
   /**
+   * Used to force-update a scheme when updated via Explore UI.
+   *
+   * @param sliceId - the chart id
+   * @param ownScheme - the color scheme
+   */
+  setOwnColorScheme(sliceId: number, ownScheme: string) {
+    if (this.source !== LabelsColorMapSource.Explore) return;
+    const chartConfig = this.chartsLabelsMap.get(sliceId);
+    if (chartConfig) {
+      this.chartsLabelsMap.set(sliceId, {
+        ...chartConfig,
+        ownScheme,
+      });
+    }
+  }
+
+  /**
    * Remove a slice from the color map.
    *
    * @param sliceId - the chart
@@ -144,8 +161,15 @@ export class LabelsColorMap {
    * Clear the shared labels color map.
    */
   clear() {
-    this.chartsLabelsMap.clear();
     this.colorMap.clear();
+  }
+
+  /**
+   * Clears all maps
+   */
+  reset() {
+    this.clear();
+    this.chartsLabelsMap.clear();
   }
 }
 

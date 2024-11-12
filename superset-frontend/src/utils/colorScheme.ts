@@ -197,6 +197,8 @@ export const applyColors = (
     ? currentColorMapEntries
     : merge
       ? {
+          // adds new labels to the map
+          // without overriding existing ones
           ...currentColorMapEntries,
           ...labelsColorMap,
         }

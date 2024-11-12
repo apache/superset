@@ -149,9 +149,10 @@ const ColorSchemeControl = ({
     chartLabels.some(label => sharedLabelsColors.includes(label))
   );
   const hasDashboardScheme = dashboardId && hasDashboardColorScheme;
+  const showDashboardLockedOption = hasDashboardScheme || hasSharedLabelsColor;
   const theme = useTheme();
   const currentScheme = useMemo(() => {
-    if (hasDashboardScheme || hasSharedLabelsColor) {
+    if (showDashboardLockedOption) {
       return 'dashboard';
     }
     let result = value || defaultScheme;
@@ -160,12 +161,12 @@ const ColorSchemeControl = ({
       result = schemesObject?.SUPERSET_DEFAULT?.id;
     }
     return result;
-  }, [defaultScheme, hasDashboardScheme, hasSharedLabelsColor, schemes, value]);
+  }, [defaultScheme, schemes, showDashboardLockedOption, value]);
 
   const options = useMemo(() => {
-    if (hasDashboardScheme || hasSharedLabelsColor) {
+    if (showDashboardLockedOption) {
       return [
-        <Option value="dashboard" label={t('dashboard')} key="dashboard">
+        <Option value="dashboard" label={t('Dashboard')} key="dashboard">
           <Tooltip title={DASHBOARD_CONTEXT_TOOLTIP}>
             {t('Dashboard scheme')}
           </Tooltip>
@@ -263,7 +264,12 @@ const ColorSchemeControl = ({
 
   // We can't pass on change directly because it receives a second
   // parameter and it would be interpreted as the error parameter
-  const handleOnChange = (value: string) => onChange(value);
+  const handleOnChange = (value: string) => {
+    if (chartId) {
+      colorMapInstance.setOwnColorScheme(chartId, value);
+    }
+    onChange(value);
+  };
 
   return (
     <>

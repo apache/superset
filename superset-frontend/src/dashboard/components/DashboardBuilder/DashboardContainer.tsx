@@ -18,7 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { FC, useEffect, useMemo, useRef, useState } from 'react';
+import { FC, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Filter,
@@ -92,11 +92,18 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const charts = useSelector<RootState, Chart[]>(state =>
     Object.values(state.charts),
   );
+  const isAnyChartLoading = useSelector<RootState, boolean>(state =>
+    Object.values(state.charts).some(chart => chart.chartStatus === 'loading'),
+  );
+  const renderedChartIds = useSelector<RootState, number[]>(state =>
+    Object.values(state.charts)
+      .filter(chart => chart.chartStatus === 'rendered')
+      .map(chart => chart.id),
+  );
   const chartIds: number[] = useMemo(
     () => charts.map(chart => chart.id),
     [charts],
   );
-  const [chartsRendered, setChartsRendered] = useState<number[]>([]);
 
   const prevTabIndexRef = useRef();
   const tabIndex = useMemo(() => {
@@ -152,29 +159,12 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   useEffect(() => {
     // verify freshness of color map on tab change
     // and when loading the dashboard for first time
-    if (!isEditMode && chartsRendered.length > 0) {
+    if (!isEditMode && !isAnyChartLoading && renderedChartIds.length > 0) {
       setTimeout(() => {
         dispatch(updateDashboardLabelsColor());
       }, 0);
     }
-  }, [chartsRendered, dispatch, isEditMode]);
-
-  useEffect(() => {
-    const loadingCharts = charts.some(
-      chart =>
-        chart.chartStatus === 'loading' || chart.chartStatus === 'success',
-    );
-
-    if (!loadingCharts) {
-      const rendered = charts
-        .filter(chart => chart.chartStatus === 'rendered')
-        .map(chart => chart.id);
-
-      if (rendered.length !== chartsRendered.length) {
-        setChartsRendered(rendered);
-      }
-    }
-  }, [charts, chartsRendered]);
+  }, [renderedChartIds, dispatch, isEditMode, isAnyChartLoading]);
 
   useEffect(() => {
     const labelsColorMap = getLabelsColorMap();
@@ -188,7 +178,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
     return () => {
       resetColors(getColorNamespace(colorNamespace));
-      setChartsRendered([]);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dashboardInfo.id, dispatch]);

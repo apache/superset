@@ -50,6 +50,7 @@ import {
 import {
   formatSelectOptions,
   displayTimeRelatedControls,
+  getColorControlsProps,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -142,18 +143,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
-  mapStateToProps: state => {
-    const dashboardId = state?.form_data?.dashboardId;
-    return {
-      chartId: state?.form_data?.chart_id,
-      dashboardId,
-      hasDashboardColorScheme:
-        dashboardId && !!state?.form_data?.dashboard_color_scheme,
-      hasCustomLabelsColor:
-        Object.keys(state?.form_data?.label_colors || {}).length > 0,
-      sharedLabelsColors: state?.form_data?.shared_label_colors || [],
-    };
-  },
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -342,18 +332,7 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
-  mapStateToProps: state => {
-    const dashboardId = state?.form_data?.dashboardId;
-    return {
-      chartId: state?.form_data?.chart_id,
-      dashboardId,
-      hasDashboardColorScheme:
-        dashboardId && !!state?.form_data?.dashboard_color_scheme,
-      hasCustomLabelsColor:
-        Object.keys(state?.form_data?.label_colors || {}).length > 0,
-      sharedLabelsColors: state?.form_data?.shared_label_colors || [],
-    };
-  },
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const time_shift_color: SharedControlConfig<'CheckboxControl'> = {

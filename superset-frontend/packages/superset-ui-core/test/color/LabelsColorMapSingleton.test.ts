@@ -53,7 +53,7 @@ describe('LabelsColorMap', () => {
 
   beforeEach(() => {
     getLabelsColorMap().source = LabelsColorMapSource.Dashboard;
-    getLabelsColorMap().clear();
+    getLabelsColorMap().reset();
   });
 
   it('has default value out-of-the-box', () => {
@@ -264,6 +264,48 @@ describe('LabelsColorMap', () => {
       labelsColorMap.clear();
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({});
+    });
+  });
+
+  describe('setOwnColorScheme(sliceId, ownScheme)', () => {
+    it('should update the scheme in the config', () => {
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Explore;
+      const sliceId = 1;
+      const initialConfig = { labels: ['initial config'] };
+
+      labelsColorMap.chartsLabelsMap = new Map();
+      labelsColorMap.chartsLabelsMap.set(sliceId, initialConfig);
+
+      labelsColorMap.setOwnColorScheme(sliceId, 'newScheme');
+
+      expect(labelsColorMap.chartsLabelsMap.get(sliceId)).toEqual({
+        ...initialConfig,
+        ownScheme: 'newScheme',
+      });
+    });
+    it('should do nothing when source is not Explore', () => {
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Dashboard;
+      const sliceId = 1;
+      const initialConfig = { labels: ['initial config'] };
+
+      labelsColorMap.chartsLabelsMap = new Map();
+      labelsColorMap.chartsLabelsMap.set(sliceId, initialConfig);
+
+      labelsColorMap.setOwnColorScheme(sliceId, 'newScheme');
+
+      expect(labelsColorMap.chartsLabelsMap.get(sliceId)).toEqual(
+        initialConfig,
+      );
+    });
+    it('should do nothing when chart config does not exist', () => {
+      const labelsColorMap = getLabelsColorMap();
+      labelsColorMap.source = LabelsColorMapSource.Explore;
+      const sliceId = 1;
+
+      labelsColorMap.setOwnColorScheme(sliceId, 'newScheme');
+      expect(labelsColorMap.chartsLabelsMap.get(sliceId)).toEqual(undefined);
     });
   });
 });

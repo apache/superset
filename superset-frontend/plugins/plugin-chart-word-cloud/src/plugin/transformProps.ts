@@ -49,13 +49,12 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
 
   const metricLabel = getMetricLabel(metric);
   const seriesLabel = getColumnLabel(series);
-  const actualScheme = colorScheme || ownColorScheme;
 
   const encoding: Partial<WordCloudEncoding> = {
     color: {
       field: seriesLabel,
       scale: {
-        scheme: actualScheme,
+        scheme: colorScheme,
       },
       type: 'nominal',
     },
@@ -83,5 +82,6 @@ export default function transformProps(chartProps: ChartProps): WordCloudProps {
     width,
     sliceId,
     colorScheme,
+    ownColorScheme,
   };
 }

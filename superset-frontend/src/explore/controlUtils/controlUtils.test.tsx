@@ -61,6 +61,9 @@ describe('controlUtils', () => {
     controls: {},
     form_data: { datasource: '1__table', viz_type: 'table' },
     common: {},
+    slice: {
+      slice_id: 1,
+    },
   };
 
   beforeAll(() => {

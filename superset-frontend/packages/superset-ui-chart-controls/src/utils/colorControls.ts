@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './checkColumnType';
-export * from './selectOptions';
-export * from './D3Formatting';
-export * from './expandControlConfig';
-export * from './getColorFormatters';
-export { default as mainMetric } from './mainMetric';
-export { default as columnChoices, columnsByType } from './columnChoices';
-export * from './defineSavedMetrics';
-export * from './getStandardizedControls';
-export * from './getTemporalColumns';
-export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';
-export * from './colorControls';
+export const getColorControlsProps = (state: Record<string, any>) => {
+  const dashboardId = state?.form_data?.dashboardId;
+  return {
+    chartId: state?.slice?.slice_id,
+    dashboardId,
+    hasDashboardColorScheme:
+      !!dashboardId && !!state?.form_data?.dashboard_color_scheme,
+    hasCustomLabelsColor:
+      Object.keys(state?.form_data?.label_colors || {}).length > 0,
+    sharedLabelsColors: state?.form_data?.shared_label_colors || [],
+  };
+};
