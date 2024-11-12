@@ -32,6 +32,7 @@ import ResizableContainer from 'src/dashboard/components/resizable/ResizableCont
 import getChartAndLabelComponentIdFromPath from 'src/dashboard/util/getChartAndLabelComponentIdFromPath';
 import useFilterFocusHighlightStyles from 'src/dashboard/util/useFilterFocusHighlightStyles';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
+import { useTheme } from '@superset-ui/core';
 import {
   GRID_BASE_UNIT,
   GRID_GUTTER_SIZE,
@@ -69,7 +70,7 @@ interface ChartHolderProps {
   setFullSizeChartId: (chartId: number | null) => void;
   isInView: boolean;
 }
-
+const theme=useTheme()
 const fullSizeStyle = css`
   && {
     position: fixed;
