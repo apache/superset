@@ -264,12 +264,7 @@ const ColorSchemeControl = ({
 
   // We can't pass on change directly because it receives a second
   // parameter and it would be interpreted as the error parameter
-  const handleOnChange = (value: string) => {
-    if (chartId) {
-      colorMapInstance.setOwnColorScheme(chartId, value);
-    }
-    onChange(value);
-  };
+  const handleOnChange = (value: string) => onChange(value);
 
   return (
     <>

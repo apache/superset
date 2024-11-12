@@ -682,18 +682,10 @@ export function setDatasetsStatus(status) {
   };
 }
 
-const updateDashboardMetadata = async (id, metadata, dispatch) => {
-  await SupersetClient.put({
-    endpoint: `/api/v1/dashboard/${id}`,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
-  });
-  dispatch(dashboardInfoChanged({ metadata }));
-};
-
 export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
   const {
-    dashboardInfo: { id, metadata },
+    dashboardInfo: { metadata },
+    charts,
   } = getState();
   const categoricalSchemes = getCategoricalSchemeRegistry();
   const colorScheme = metadata?.color_scheme;
@@ -705,16 +697,28 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
   const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
   const colorSchemeDomain = metadata?.color_scheme_domain || [];
   const sharedLabels = metadata?.shared_label_colors || [];
+  const labelsColorMapInstance = getLabelsColorMap();
   let requiresUpdate = false;
 
   try {
     const updatedMetadata = { ...metadata };
     let updatedScheme = metadata?.color_scheme;
 
+    // ensure charts have their original color scheme available
+    Object.values(charts).forEach(chart => {
+      const formData = chart.form_data || chart.sliceFormData;
+      if (formData) {
+        labelsColorMapInstance.setOwnColorScheme(
+          formData.slice_id,
+          formData.color_scheme,
+        );
+      }
+    });
+
     // sanitize shared labels color map for backward compatibility
     if (!Array.isArray(sharedLabels) && Object.keys(sharedLabels).length > 0) {
-      updatedMetadata.shared_label_colors = getSharedLabels();
       requiresUpdate = true;
+      updatedMetadata.shared_label_colors = getSharedLabels();
     }
 
     // Color scheme does not exist anymore, fallback to default
@@ -722,11 +726,11 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
       updatedScheme = fallbackScheme;
       updatedMetadata.color_scheme = updatedScheme;
       updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
+      requiresUpdate = true;
       // fallback to default scheme
       dispatch(setColorScheme(updatedScheme));
       // must re-apply colors from fresh labels color map
       applyColors(updatedMetadata, true);
-      requiresUpdate = true;
     }
 
     // stored labels color map and applied might differ
@@ -735,12 +739,12 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
     // requires merging the stored and applied maps
     const isMapSynced = isLabelsColorMapSynced(metadata);
     if (!isMapSynced) {
+      requiresUpdate = true;
       // re-apply the color map first
       applyColors(updatedMetadata, false, true, !colorScheme);
       // store the just applied labels color map
       updatedMetadata.shared_label_colors = getSharedLabels();
       updatedMetadata.map_label_colors = getLabelsColorMapEntries();
-      requiresUpdate = true;
     }
 
     // the stored color domain registry and fresh might differ at this point
@@ -750,12 +754,12 @@ export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
       : colorSchemeDomain.toString() === freshColorSchemeDomain.toString();
 
     if (!isRegistrySynced) {
-      updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
       requiresUpdate = true;
+      updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
     }
 
     if (requiresUpdate) {
-      await updateDashboardMetadata(id, updatedMetadata, dispatch);
+      dispatch(dashboardInfoChanged({ metadata }));
     }
   } catch (error) {
     console.error('Failed to update dashboard color settings:', error);

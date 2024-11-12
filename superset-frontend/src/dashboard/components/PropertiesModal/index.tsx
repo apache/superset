@@ -86,6 +86,7 @@ type DashboardInfo = {
   certifiedBy: string;
   certificationDetails: string;
   isManagedExternally: boolean;
+  metadata: Record<string, any>;
 };
 
 const PropertiesModal = ({
@@ -185,6 +186,7 @@ const PropertiesModal = ({
         certifiedBy: certified_by || '',
         certificationDetails: certification_details || '',
         isManagedExternally: is_managed_externally || false,
+        metadata,
       };
 
       form.setFieldsValue(dashboardInfo);
@@ -273,6 +275,17 @@ const PropertiesModal = ({
     return parsedRoles;
   };
 
+  const handleOnCancel = () => {
+    const prevColorScheme = dashboardInfo?.metadata?.color_scheme;
+    if (dashboardInfo?.metadata && prevColorScheme !== currentColorScheme) {
+      applyColors(dashboardInfo?.metadata, true);
+      // always apply first and then dispatch
+      // to leverage plugins re-rendering process
+      dispatch(setColorScheme(prevColorScheme));
+    }
+    onHide();
+  };
+
   const onColorSchemeChange = (
     colorScheme = '',
     { updateMetadata = true } = {},
@@ -302,6 +315,9 @@ const PropertiesModal = ({
     setCurrentColorScheme(colorScheme);
 
     if (colorScheme !== currentColorScheme) {
+      // always apply first and then dispatch
+      // to leverage plugins re-rendering process
+      applyColors(jsonMetadataObj, true);
       dispatch(setColorScheme(colorScheme));
     }
   };
@@ -571,14 +587,14 @@ const PropertiesModal = ({
   return (
     <Modal
       show={show}
-      onHide={onHide}
+      onHide={handleOnCancel}
       title={t('Dashboard properties')}
       footer={
         <>
           <Button
             htmlType="button"
             buttonSize="small"
-            onClick={onHide}
+            onClick={handleOnCancel}
             data-test="properties-modal-cancel-button"
             cta
           >

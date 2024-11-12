@@ -58,6 +58,7 @@ const CHARTS = {
       datasource: '2__table',
       viz_type: 'echarts_timeseries_line',
       slice_id: 1,
+      color_scheme: 'supersetColors',
     },
     chartAlert: null,
     chartStatus: 'rendered' as const,
@@ -263,6 +264,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
         '3': {
           id: 3,
           form_data: {
+            slice_id: 3,
             datasource: '3__table',
             viz_type: 'echarts_timeseries_line',
             color_scheme: 'supersetColors',

@@ -52,7 +52,8 @@ export type Chart = ChartState & {
   form_data: {
     viz_type: string;
     datasource: string;
-    color_scheme?: string;
+    color_scheme: string;
+    slice_id: number;
   };
 };
 

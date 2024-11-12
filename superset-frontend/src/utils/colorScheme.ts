@@ -107,7 +107,7 @@ export const resetColors = (color_namespace?: string) => {
     getColorNamespace(color_namespace),
   );
   categoricalNamespace.resetColors();
-  labelsColorMapInstance.clear();
+  labelsColorMapInstance.reset();
 };
 
 /**

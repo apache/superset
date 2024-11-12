@@ -121,7 +121,7 @@ export class LabelsColorMap {
   }
 
   /**
-   * Used to force-update a scheme when updated via Explore UI.
+   * Used to make sure all slices respect their original scheme.
    *
    * @param sliceId - the chart id
    * @param ownScheme - the color scheme
