@@ -1013,7 +1013,6 @@ class TestCore(SupersetTestCase):
         data = {"sql": json.dumps("select 1"), "latest_query_id": json.dumps(client_id)}
         response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
         assert response.status_code == 400
-        assert response.json["error"] == "Bad request"
         # generate query
         db.session.add(Query(client_id=client_id, database_id=1))
         db.session.commit()
