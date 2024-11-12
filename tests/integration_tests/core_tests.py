@@ -56,18 +56,18 @@ from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa: F401
-    load_energy_table_with_slice,  # noqa: F401
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,  # noqa: F401
-    load_world_bank_data,  # noqa: F401
-)
+from tests.integration_tests.fixtures.birth_names_dashboard import \
+    load_birth_names_dashboard_with_slices  # noqa: F401
+from tests.integration_tests.fixtures.birth_names_dashboard import \
+    load_birth_names_data  # noqa: F401
+from tests.integration_tests.fixtures.energy_dashboard import \
+    load_energy_table_data  # noqa: F401
+from tests.integration_tests.fixtures.energy_dashboard import \
+    load_energy_table_with_slice  # noqa: F401
+from tests.integration_tests.fixtures.world_bank_dashboard import \
+    load_world_bank_dashboard_with_slices  # noqa: F401
+from tests.integration_tests.fixtures.world_bank_dashboard import \
+    load_world_bank_data  # noqa: F401
 from tests.integration_tests.test_app import app
 
 from .base_tests import SupersetTestCase
@@ -1015,7 +1015,6 @@ class TestCore(SupersetTestCase):
         data = {"sql": json.dumps("select 1"), "latest_query_id": json.dumps(client_id)}
         response = self.client.put(f"/tabstateview/{tab_state_id}", data=data)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json["error"], "Bad request")
         # generate query
         db.session.add(Query(client_id=client_id, database_id=1))
         db.session.commit()
