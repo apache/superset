@@ -28,23 +28,16 @@ import { setDatasources } from 'src/dashboard/actions/datasources';
 
 import { triggerQuery } from 'src/components/Chart/chartAction';
 import { logEvent } from 'src/logger/actions';
-import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import {
-  getAllActiveFilters,
-  getRelevantDataMask,
-} from 'src/dashboard/util/activeAllDashboardFilters';
 import { clearDataMaskState } from '../../dataMask/actions';
 
 function mapStateToProps(state: RootState) {
   const {
     datasources,
     sliceEntities,
-    dataMask,
     dashboardInfo,
     dashboardState,
     dashboardLayout,
     impressionId,
-    nativeFilters,
   } = state;
 
   return {
@@ -53,22 +46,7 @@ function mapStateToProps(state: RootState) {
     dashboardInfo,
     dashboardState,
     datasources,
-    // filters prop: a map structure for all the active filter's values and scope in this dashboard,
-    // for each filter field. map key is [chartId_column]
-    // When dashboard is first loaded into browser,
-    // its value is from preselect_filters that dashboard owner saved in dashboard's meta data
-    activeFilters: {
-      ...getActiveFilters(),
-      ...getAllActiveFilters({
-        // eslint-disable-next-line camelcase
-        chartConfiguration: dashboardInfo.metadata?.chart_configuration,
-        nativeFilters: nativeFilters.filters,
-        dataMask,
-        allSliceIds: dashboardState.sliceIds,
-      }),
-    },
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
-    ownDataCharts: getRelevantDataMask(dataMask, 'ownState'),
     slices: sliceEntities.slices,
     layout: dashboardLayout.present,
     impressionId,
