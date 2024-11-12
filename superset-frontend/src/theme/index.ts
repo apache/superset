@@ -29,6 +29,9 @@ const themes = {
   [ThemeType.LIGHT]: lightAlgorithm,
 };
 
+// Want to figure out which tokens look like what? Try this!
+// https://ant.design/theme-editor
+
 const baseConfig: ThemeConfig = {
   token: {
     borderRadius: supersetTheme.borderRadius,
@@ -56,7 +59,6 @@ const baseConfig: ThemeConfig = {
       paddingXS: supersetTheme.gridUnit * 2,
     },
     Card: {
-      colorBgContainer: supersetTheme.colors.grayscale.light4,
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
     },
