@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { useTheme, css } from '@superset-ui/core';
 import { Tooltip as AntdTooltip } from 'antd';
 import { TooltipProps, TooltipPlacement } from 'antd/lib/tooltip';
 import { Global } from '@emotion/react';
