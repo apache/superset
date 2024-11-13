@@ -18,8 +18,9 @@
  */
 import { FC, useEffect } from 'react';
 
-import { pick } from 'lodash';
-import { shallowEqual, useSelector } from 'react-redux';
+import { pick, pickBy } from 'lodash';
+import { useSelector } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
 import { DashboardContextForExplore } from 'src/types/DashboardContextForExplore';
 import {
   getItem,
@@ -42,11 +43,7 @@ export const getDashboardContextLocalStorage = () => {
   // A new dashboard tab id is generated on each dashboard page opening.
   // We mark ids as redundant when user leaves the dashboard, because they won't be reused.
   // Then we remove redundant dashboard contexts from local storage in order not to clutter it
-  return Object.fromEntries(
-    Object.entries(dashboardsContexts).filter(
-      ([, value]) => !value.isRedundant,
-    ),
-  );
+  return pickBy(dashboardsContexts, value => !value.isRedundant);
 };
 
 const updateDashboardTabLocalStorage = (
@@ -60,34 +57,40 @@ const updateDashboardTabLocalStorage = (
   });
 };
 
+const selectDashboardContextForExplore = createSelector(
+  (state: RootState) => state.dashboardInfo.metadata,
+  (state: RootState) => state.dashboardInfo.id,
+  (state: RootState) => state.dashboardState?.colorScheme,
+  (state: RootState) => state.nativeFilters.filters,
+  (state: RootState) => state.dataMask,
+  (metadata, dashboardId, colorScheme, filters, dataMask) => {
+    // Building nativeFilters object without spreading in reduce
+    const optimizedNativeFilters = Object.keys(filters).reduce((acc, key) => {
+      acc[key] = pick(filters[key], ['chartsInScope']);
+      return acc;
+    }, {});
+
+    return {
+      labelsColor: metadata?.label_colors || EMPTY_OBJECT,
+      labelsColorMap: metadata?.map_label_colors || EMPTY_OBJECT,
+      sharedLabelsColors: enforceSharedLabelsColorsArray(
+        metadata?.shared_label_colors,
+      ),
+      colorScheme,
+      chartConfiguration: metadata.chart_configuration || EMPTY_OBJECT,
+      nativeFilters: optimizedNativeFilters,
+      dataMask,
+      dashboardId,
+      filterBoxFilters: getActiveFilters(),
+    };
+  },
+);
+
 const SyncDashboardState: FC<Props> = ({ dashboardPageId }) => {
   const dashboardContextForExplore = useSelector<
     RootState,
     DashboardContextForExplore
-  >(
-    ({ dashboardInfo, dashboardState, nativeFilters, dataMask }) => ({
-      labelsColor: dashboardInfo.metadata?.label_colors || EMPTY_OBJECT,
-      labelsColorMap: dashboardInfo.metadata?.map_label_colors || EMPTY_OBJECT,
-      sharedLabelsColors: enforceSharedLabelsColorsArray(
-        dashboardInfo.metadata?.shared_label_colors,
-      ),
-      colorScheme: dashboardState?.colorScheme,
-      chartConfiguration:
-        dashboardInfo.metadata?.chart_configuration || EMPTY_OBJECT,
-      nativeFilters: Object.entries(nativeFilters.filters).reduce(
-        (acc, [key, filterValue]) => ({
-          ...acc,
-          [key]: pick(filterValue, ['chartsInScope']),
-        }),
-        {},
-      ),
-      dataMask,
-      dashboardId: dashboardInfo.id,
-      filterBoxFilters: getActiveFilters(),
-      dashboardPageId,
-    }),
-    shallowEqual,
-  );
+  >(selectDashboardContextForExplore);
 
   useEffect(() => {
     updateDashboardTabLocalStorage(dashboardPageId, dashboardContextForExplore);
