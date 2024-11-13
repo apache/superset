@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render } from 'spec/helpers/testing-library';
+import { Avatar } from 'src/components/Avatar';
 
-import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd-v5';
+test('renders with default props', async () => {
+  const { container } = render(<Avatar />);
 
-export const Input = AntdInput;
-
-export const InputNumber = AntdInputNumber;
-
-export const { TextArea } = AntdInput;
+  expect(container).toBeInTheDocument();
+});
