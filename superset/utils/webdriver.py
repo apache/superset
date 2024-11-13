@@ -388,7 +388,7 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 except:
                     logger.exception(
-                        "Selenium timed out waiting for chart containers to draw at url %s",
+                        "Selenium timed out waiting for dashboard to draw at url %s",
                         url,
                     )
                     raise
