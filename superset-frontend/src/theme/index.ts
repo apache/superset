@@ -55,6 +55,11 @@ const baseConfig: ThemeConfig = {
     zIndexPopupBase: supersetTheme.zIndex.max,
   },
   components: {
+    Avatar: {
+      containerSize: 32,
+      fontSize: supersetTheme.typography.sizes.s,
+      lineHeight: 32,
+    },
     Badge: {
       paddingXS: supersetTheme.gridUnit * 2,
     },
@@ -70,6 +75,9 @@ const baseConfig: ThemeConfig = {
       fontSize: supersetTheme.typography.sizes.s,
       colorText: supersetTheme.colors.text.label,
       remainingColor: supersetTheme.colors.grayscale.light4,
+    },
+    Popover: {
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
     },
     Slider: {
       trackBgDisabled: supersetTheme.colors.grayscale.light1,

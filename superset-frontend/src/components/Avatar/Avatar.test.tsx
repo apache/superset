@@ -16,31 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
-import { Tooltip as AntdTooltip } from 'antd';
-import {
-  TooltipProps,
-  TooltipPlacement as AntdTooltipPlacement,
-} from 'antd/lib/tooltip';
+import { render } from 'spec/helpers/testing-library';
+import { Avatar } from 'src/components/Avatar';
 
-export type TooltipPlacement = AntdTooltipPlacement;
+test('renders with default props', async () => {
+  const { container } = render(<Avatar />);
 
-export const Tooltip = (props: TooltipProps) => {
-  const theme = useTheme();
-  return (
-    <>
-      <AntdTooltip
-        overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
-        overlayInnerStyle={{
-          display: '-webkit-box',
-          overflow: 'hidden',
-          WebkitLineClamp: 40,
-          WebkitBoxOrient: 'vertical',
-          textOverflow: 'ellipsis',
-        }}
-        color={`${theme.colors.grayscale.dark2}e6`}
-        {...props}
-      />
-    </>
-  );
-};
+  expect(container).toBeInTheDocument();
+});
