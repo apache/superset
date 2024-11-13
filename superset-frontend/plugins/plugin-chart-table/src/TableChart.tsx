@@ -202,11 +202,14 @@ function SelectPageSize({
       role="group"
       aria-label={t('Select page size')}
     >
+      <label htmlFor="pageSizeSelect" className="sr-only">
+        {t('Select page size')}
+      </label>
       {t('Show')}{' '}
       <select
+        id="pageSizeSelect"
         className="form-control input-sm"
         value={current}
-        onBlur={() => {}}
         onChange={e => {
           onChange(Number((e.target as HTMLSelectElement).value));
         }}
@@ -216,13 +219,8 @@ function SelectPageSize({
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
-          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option
-              aria-label={t('Show %s entries per page', sizeLabel)}
-              key={size}
-              value={size}
-            >
+            <option key={size} value={size}>
               {text}
             </option>
           );
