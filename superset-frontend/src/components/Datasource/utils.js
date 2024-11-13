@@ -17,6 +17,9 @@
  * under the License.
  */
 import { Children, cloneElement } from 'react';
+import { nanoid } from 'nanoid';
+import { SupersetClient, t } from '@superset-ui/core';
+import rison from 'rison';
 
 export function recurseReactClone(children, type, propExtender) {
   /**
@@ -39,4 +42,87 @@ export function recurseReactClone(children, type, propExtender) {
     }
     return newChild;
   });
+}
+
+export function updateColumns(prevCols, newCols, addSuccessToast) {
+  // cols: Array<{column_name: string; is_dttm: boolean; type: string;}>
+  const databaseColumnNames = newCols.map(col => col.column_name);
+  const currentCols = prevCols.reduce((agg, col) => {
+    // eslint-disable-next-line no-param-reassign
+    agg[col.column_name] = col;
+    return agg;
+  }, {});
+  const columnChanges = {
+    added: [],
+    modified: [],
+    removed: prevCols
+      .map(col => col.column_name)
+      .filter(col => !databaseColumnNames.includes(col)),
+    finalColumns: [],
+  };
+  newCols.forEach(col => {
+    const currentCol = currentCols[col.column_name];
+    if (!currentCol) {
+      // new column
+      columnChanges.finalColumns.push({
+        id: nanoid(),
+        column_name: col.column_name,
+        type: col.type,
+        groupby: true,
+        filterable: true,
+        is_dttm: col.is_dttm,
+      });
+      columnChanges.added.push(col.column_name);
+    } else if (
+      currentCol.type !== col.type ||
+      currentCol.is_dttm !== col.is_dttm
+    ) {
+      // modified column
+      columnChanges.finalColumns.push({
+        ...currentCol,
+        type: col.type,
+        is_dttm: currentCol.is_dttm || col.is_dttm,
+      });
+      columnChanges.modified.push(col.column_name);
+    } else {
+      // unchanged
+      columnChanges.finalColumns.push(currentCol);
+    }
+  });
+  if (columnChanges.modified.length) {
+    addSuccessToast(
+      t('Modified columns: %s', columnChanges.modified.join(', ')),
+    );
+  }
+  if (columnChanges.removed.length) {
+    addSuccessToast(t('Removed columns: %s', columnChanges.removed.join(', ')));
+  }
+  if (columnChanges.added.length) {
+    addSuccessToast(t('New columns added: %s', columnChanges.added.join(', ')));
+  }
+  return columnChanges;
+}
+
+export async function fetchSyncedColumns(datasource) {
+  const params = {
+    datasource_type: datasource.type,
+    database_name:
+      datasource.database?.database_name || datasource.database?.name,
+    catalog_name: datasource.catalog,
+    schema_name: datasource.schema,
+    table_name: datasource.table_name,
+    normalize_columns: datasource.normalize_columns,
+    always_filter_main_dttm: datasource.always_filter_main_dttm,
+  };
+  Object.entries(params).forEach(([key, value]) => {
+    // rison can't encode the undefined value
+    if (value === undefined) {
+      params[key] = null;
+    }
+  });
+  const endpoint = `/datasource/external_metadata_by_name/?q=${rison.encode_uri(
+    params,
+  )}`;
+  const { json } = await SupersetClient.get({ endpoint });
+  return json;
 }
