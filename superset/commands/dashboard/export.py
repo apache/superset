@@ -164,9 +164,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         # Check if the TAGGING_SYSTEM feature is enabled
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            tags = (
-                model.tags if hasattr(model, "tags") else []
-            )
+            tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
@@ -184,10 +182,12 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
             dashboard_ids = model.id
-            yield from ExportChartsCommand(chart_ids, should_export_tags=False).run()
+            yield from ExportChartsCommand(chart_ids).run()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-                yield from ExportTagsCommand._export(dashboard_ids=dashboard_ids, chart_ids=chart_ids)
-                
+                yield from ExportTagsCommand.export(
+                    dashboard_ids=dashboard_ids, chart_ids=chart_ids
+                )
+
         payload = model.export_to_dict(
             recursive=False,
             include_parent_ref=False,

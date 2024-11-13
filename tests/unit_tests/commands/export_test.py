@@ -16,16 +16,15 @@
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel
 
-from freezegun import freeze_time
-from pytest_mock import MockerFixture
+from unittest.mock import patch
 
 import pytest
 import yaml
-from unittest.mock import patch
-from superset.commands.export.assets import ExportTagsCommand
-from superset.daos.chart import ChartDAO
-from superset.daos.dashboard import DashboardDAO
+from freezegun import freeze_time
+from pytest_mock import MockerFixture
+
 from superset.extensions import feature_flag_manager
+
 
 def test_export_assets_command(mocker: MockerFixture) -> None:
     """
@@ -39,7 +38,14 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     ExportTagsCommand.return_value.run.return_value = [
         (
             "metadata.yaml",
-            lambda: yaml.dump({"tags": [{"tag_name": "tag_1", "description": "Description for tag_1"}]}, sort_keys=False),
+            lambda: yaml.dump(
+                {
+                    "tags": [
+                        {"tag_name": "tag_1", "description": "Description for tag_1"}
+                    ]
+                },
+                sort_keys=False,
+            ),
         ),
         ("tags.yaml", lambda: "<TAG CONTENTS>"),
     ]
@@ -113,42 +119,59 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
 
 @pytest.fixture
 def mock_export_tags_command_charts_dashboards(mocker):
-    ExportTagsCommand = mocker.patch("superset.commands.export.assets.ExportTagsCommand")
+    ExportTagsCommand = mocker.patch(
+        "superset.commands.export.assets.ExportTagsCommand"
+    )
 
     def _mock_export(dashboard_ids=None, chart_ids=None):
-        if not feature_flag_manager.is_feature_enabled('TAGGING_SYSTEM'):
+        if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             return iter([])
         return [
             (
                 "tags.yaml",
-                lambda: yaml.dump({"tags": [{"tag_name": "tag_1", "description": "Description for tag_1"}]}, sort_keys=False),
+                lambda: yaml.dump(
+                    {
+                        "tags": [
+                            {
+                                "tag_name": "tag_1",
+                                "description": "Description for tag_1",
+                            }
+                        ]
+                    },
+                    sort_keys=False,
+                ),
             ),
-            ("charts/pie.yaml", lambda: "tag:\n- tag_1"), 
+            ("charts/pie.yaml", lambda: "tag:\n- tag_1"),
         ]
 
     ExportTagsCommand.return_value._export.side_effect = _mock_export
     return ExportTagsCommand
 
 
-def test_export_tags_with_charts_dashboards(mock_export_tags_command_charts_dashboards, mocker):
-    with patch.object(feature_flag_manager, 'is_feature_enabled', return_value=True):
+def test_export_tags_with_charts_dashboards(
+    mock_export_tags_command_charts_dashboards, mocker
+):
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
         command = mock_export_tags_command_charts_dashboards()
         result = list(command._export(chart_ids=[1]))
-
 
         file_name, file_content_func = result[0]
         file_content = file_content_func()
         assert file_name == "tags.yaml"
         payload = yaml.safe_load(file_content)
-        assert payload["tags"] == [{"tag_name": "tag_1", "description": "Description for tag_1"}]
+        assert payload["tags"] == [
+            {"tag_name": "tag_1", "description": "Description for tag_1"}
+        ]
 
         file_name, file_content_func = result[1]
         file_content = file_content_func()
         assert file_name == "charts/pie.yaml"
         assert file_content == "tag:\n- tag_1"
 
-    with patch.object(feature_flag_manager, 'is_feature_enabled', return_value=False):
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=False):
         command = mock_export_tags_command_charts_dashboards()
         result = list(command._export(chart_ids=[1]))
         assert not any(file_name == "tags.yaml" for file_name, _ in result)
-        assert all(file_content_func() != "tag:\n- tag_1" for _, file_content_func in result)
+        assert all(
+            file_content_func() != "tag:\n- tag_1" for _, file_content_func in result
+        )

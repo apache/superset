@@ -21,16 +21,16 @@ from zipfile import ZipFile
 import yaml
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from superset import db
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.tags.models import Tag, TaggedObject
 from superset.utils.core import check_is_safe_zip
-from sqlalchemy.orm import Session
-
-from superset.extensions import feature_flag_manager
 
 METADATA_FILE_NAME = "metadata.yaml"
 IMPORT_VERSION = "1.0.0"
@@ -219,12 +219,20 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
         if is_valid_config(file_name)
     }
 
-def import_tag(new_tag_names: list[str], contents: dict[str, Any], object_id: int, object_type: str, session: Session) -> list[int]:
-    """ Handles the import logic for tags for charts and dashboards """
-    
-    if not feature_flag_manager.is_feature_enabled('TAGGING_SYSTEM'):
+
+# pylint: disable=consider-using-transaction
+def import_tag(
+    new_tag_names: list[str],
+    contents: dict[str, Any],
+    object_id: int,
+    object_type: str,
+    db_session: Session,
+) -> list[int]:
+    """Handles the import logic for tags for charts and dashboards"""
+
+    if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
         return []
-    
+
     tag_descriptions = {}
     new_tag_ids = []
     if "tags.yaml" in contents:
@@ -235,42 +243,54 @@ def import_tag(new_tag_names: list[str], contents: dict[str, Any], object_id: in
                 description = tag_info.get("description", None)
                 if tag_name:
                     tag_descriptions[tag_name] = description
-        except yaml.YAMLError as e:
-            logger.error(f"Error parsing tags.yaml: {e}")
+        except yaml.YAMLError as err:  # Renamed to 'err' for clarity
+            logger.error("Error parsing tags.yaml: %s", err)  # Used lazy logging
 
     existing_tags = (
-        session.query(TaggedObject)
+        db_session.query(TaggedObject)
         .filter_by(object_id=object_id, object_type=object_type)
         .all()
     )
 
     for tag_name in new_tag_names:
         try:
-            tag = session.query(Tag).filter_by(name=tag_name).first()
+            tag = db_session.query(Tag).filter_by(name=tag_name).first()
             if tag is None:
                 # If tag does not exist, create it with the provided description
                 description = tag_descriptions.get(tag_name, None)
-                tag = Tag(name=tag_name, description=description, type='custom')
-                session.add(tag)
-                session.commit()
+                tag = Tag(name=tag_name, description=description, type="custom")
+                db_session.add(tag)
+                db_session.commit()
 
             # Ensure the association with the object
-            tagged_object = session.query(TaggedObject).filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id).first()
+            tagged_object = (
+                db_session.query(TaggedObject)
+                .filter_by(object_id=object_id, object_type=object_type, tag_id=tag.id)
+                .first()
+            )
             if not tagged_object:
-                new_tagged_object = TaggedObject(tag_id=tag.id, object_id=object_id, object_type=object_type)
-                session.add(new_tagged_object)
+                new_tagged_object = TaggedObject(
+                    tag_id=tag.id, object_id=object_id, object_type=object_type
+                )
+                db_session.add(new_tagged_object)
 
             new_tag_ids.append(tag.id)
 
-        except Exception as e:
-            logger.error(f"Error processing tag '{tag_name}' for {object_type} ID {object_id}: {e}")
+        except SQLAlchemyError as err:  # Catching specific database exceptions
+            logger.error(
+                "Error processing tag '%s' for %s ID %d: %s",
+                tag_name,
+                object_type,
+                object_id,
+                err,  # Used lazy logging
+            )
             continue  # Continue to the next tag if there's an error
 
     # Remove old tags not in the new config
     for tag in existing_tags:
         if tag.tag_id not in new_tag_ids:
-            session.delete(tag)
+            db_session.delete(tag)
 
-    session.commit()
+    db_session.commit()
 
     return new_tag_ids

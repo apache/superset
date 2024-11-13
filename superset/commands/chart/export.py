@@ -16,6 +16,7 @@
 # under the License.
 # isort:skip_file
 
+import inspect
 import logging
 from collections.abc import Iterator
 from typing import Callable
@@ -76,22 +77,15 @@ class ExportChartsCommand(ExportModelsCommand):
 
         # Fetch tags from the database if TAGGING_SYSTEM is enabled
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            tags = (
-                model.tags if hasattr(model, "tags") else []
-            )
+            tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
-    # Add a parameter for should_export_tags in the constructor
-    def __init__(self, chart_ids, should_export_tags=True, export_related=True):
-        super().__init__(chart_ids)
-        self.should_export_tags = should_export_tags
-        self.export_related = export_related
-        
     # Change to an instance method
+    @staticmethod
     def _export(
-        self, model: Slice, export_related: bool = True
+        model: Slice, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         yield (
             ExportChartsCommand._file_name(model),
@@ -101,7 +95,14 @@ class ExportChartsCommand(ExportModelsCommand):
         if model.table and export_related:
             yield from ExportDatasetsCommand([model.table.id]).run()
 
-
-        if export_related and self.should_export_tags and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            chart_id = model.id
-            yield from ExportTagsCommand._export(chart_ids=[chart_id])
+        # Check if the calling class is ExportDashboardCommands
+        if export_related and feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            stack = inspect.stack()
+            for frame_info in stack:
+                environ = frame_info.frame.f_locals.get("environ")
+                if environ:
+                    path_info = environ.get("PATH_INFO")
+                    if path_info:
+                        # Check if PATH_INFO contains the substring 'dashboard/export' else export tags of Charts
+                        if "dashboard/export" not in path_info:
+                            yield from ExportTagsCommand.export(chart_ids=[model.id])

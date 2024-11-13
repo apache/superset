@@ -1552,6 +1552,7 @@ class ImportV1ChartSchema(Schema):
     external_url = fields.String(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
 
+
 class ChartCacheWarmUpRequestSchema(Schema):
     chart_id = fields.Integer(
         required=True,
