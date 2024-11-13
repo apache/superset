@@ -67,6 +67,20 @@ const baseConfig: ThemeConfig = {
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
     },
+    Input: {
+      colorBorder: supersetTheme.colors.secondary.light3,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
+        supersetTheme.colors.primary.light3
+      }`,
+    },
+    InputNumber: {
+      colorBorder: supersetTheme.colors.secondary.light3,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
+        supersetTheme.colors.primary.light3
+      }`,
+    },
     Tag: {
       borderRadiusSM: 2,
       defaultBg: supersetTheme.colors.grayscale.light4,

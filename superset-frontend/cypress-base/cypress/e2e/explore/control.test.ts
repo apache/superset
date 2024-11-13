@@ -234,7 +234,7 @@ describe('Time range filter', () => {
 
     cy.get('[data-test=time-range-trigger]').click();
     cy.get('[data-test=custom-frame]').then(() => {
-      cy.get('.ant-input-number-input-wrap > input')
+      cy.get('.antd5-input-number-input-wrap > input')
         .invoke('attr', 'value')
         .should('eq', '7');
     });
