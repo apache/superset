@@ -379,7 +379,7 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
-                # Check if the page has grid-container class (no chart dashboard)
+                # Fallback to allow a screenshot of an empty dashboard
                 try:
                     WebDriverWait(driver, 0).until(
                         EC.visibility_of_all_elements_located(
