@@ -67,8 +67,8 @@ import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-import { useIsEmbedded } from 'src/hooks/useIsEmbedded';
 
 const ACTION_KEYS = {
   enter: 'Enter',
@@ -452,7 +452,7 @@ const ViewResultsModalTrigger = ({
   const theme = useTheme();
   const openModal = useCallback(() => setShowModal(true), []);
   const closeModal = useCallback(() => setShowModal(false), []);
-  const isEmbedded = useIsEmbedded();
+  const isEmbedded = !!getBootstrapData().embedded;
 
   return (
     <>
@@ -478,21 +478,23 @@ const ViewResultsModalTrigger = ({
           title={modalTitle}
           footer={
             <>
-              {!isEmbedded && (<Button
-                buttonStyle="secondary"
-                buttonSize="small"
-                onClick={exploreChart}
-                disabled={!canExplore}
-                tooltip={
-                  !canExplore
-                    ? t(
-                        'You do not have sufficient permissions to edit the chart',
-                      )
-                    : undefined
-                }
-              >
-                {t('Edit chart')}
-              </Button>)}
+              {!isEmbedded && (
+                <Button
+                  buttonStyle="secondary"
+                  buttonSize="small"
+                  onClick={exploreChart}
+                  disabled={!canExplore}
+                  tooltip={
+                    !canExplore
+                      ? t(
+                          'You do not have sufficient permissions to edit the chart',
+                        )
+                      : undefined
+                  }
+                >
+                  {t('Edit chart')}
+                </Button>
+              )}
               <Button
                 buttonStyle="primary"
                 buttonSize="small"
@@ -573,8 +575,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
   const canViewTable = useSelector((state: RootState) =>
     findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
   );
-  const isEmbedded = useIsEmbedded();
-  
+  const isEmbedded = !!getBootstrapData().embedded;
   const refreshChart = () => {
     if (props.updatedDttm) {
       props.forceRefresh(props.slice.slice_id, props.dashboardId);

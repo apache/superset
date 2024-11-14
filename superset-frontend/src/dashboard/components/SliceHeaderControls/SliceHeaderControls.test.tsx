@@ -109,6 +109,15 @@ const renderWrapper = (
   isEmbedded = false,
 ) => {
   const props = overrideProps || createProps();
+  const dataBootstrap = isEmbedded
+    ? JSON.stringify({
+        embedded: {
+          dashboardId: 1,
+        },
+      })
+    : '';
+  document.body.innerHTML = `<div id="app" data-bootstrap=${dataBootstrap}></div>`;
+
   return render(<SliceHeaderControls {...props} />, {
     useRedux: true,
     useRouter: true,
