@@ -107,9 +107,13 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   const isFullSize = fullSizeChartId === chartId;
 
   const focusHighlightStyles = useFilterFocusHighlightStyles(chartId);
-  const dashboardState = useSelector(
-    (state: RootState) => state.dashboardState,
+  const directPathToChild = useSelector(
+    (state: RootState) => state.dashboardState.directPathToChild,
   );
+  const directPathLastUpdated = useSelector(
+    (state: RootState) => state.dashboardState.directPathLastUpdated ?? 0,
+  );
+
   const [extraControls, setExtraControls] = useState<Record<string, unknown>>(
     {},
   );
@@ -118,18 +122,8 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   const [currentDirectPathLastUpdated, setCurrentDirectPathLastUpdated] =
     useState(0);
 
-  const directPathToChild = useMemo(
-    () => dashboardState?.directPathToChild ?? [],
-    [dashboardState],
-  );
-
-  const directPathLastUpdated = useMemo(
-    () => dashboardState?.directPathLastUpdated ?? 0,
-    [dashboardState],
-  );
-
   const infoFromPath = useMemo(
-    () => getChartAndLabelComponentIdFromPath(directPathToChild) as any,
+    () => getChartAndLabelComponentIdFromPath(directPathToChild ?? []) as any,
     [directPathToChild],
   );
 
