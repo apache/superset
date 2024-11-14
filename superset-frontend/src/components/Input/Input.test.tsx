@@ -16,11 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render } from 'spec/helpers/testing-library';
+import { Input, InputNumber, TextArea } from '.';
 
-import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd-v5';
+test('should render Input', () => {
+  const { container } = render(<Input />);
+  expect(container).toBeInTheDocument();
+});
 
-export const Input = AntdInput;
+test('should render InputNumber', () => {
+  const { container } = render(<InputNumber />);
+  expect(container).toBeInTheDocument();
+});
 
-export const InputNumber = AntdInputNumber;
-
-export const { TextArea } = AntdInput;
+test('should render TextArea', () => {
+  const { container } = render(<TextArea />);
+  expect(container).toBeInTheDocument();
+});

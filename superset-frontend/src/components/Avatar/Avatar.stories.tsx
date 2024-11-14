@@ -16,11 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Avatar, AvatarProps } from '.';
 
-import { Input as AntdInput, InputNumber as AntdInputNumber } from 'antd-v5';
+export default {
+  title: 'Avatar',
+  component: Avatar,
+};
 
-export const Input = AntdInput;
+export const InteractiveAvatar = (args: AvatarProps) => <Avatar {...args} />;
 
-export const InputNumber = AntdInputNumber;
+InteractiveAvatar.args = {
+  alt: '',
+  gap: 4,
+  shape: 'circle',
+  size: 'default',
+  src: '',
+  draggable: false,
+};
 
-export const { TextArea } = AntdInput;
+InteractiveAvatar.argTypes = {
+  shape: {
+    options: ['circle', 'square'],
+    control: { type: 'select' },
+  },
+};

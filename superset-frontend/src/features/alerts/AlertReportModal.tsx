@@ -1004,8 +1004,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
+  const onCustomWidthChange = (value: number | string | null | undefined) => {
+    const numValue =
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && Number.isNaN(Number(value)))
+        ? null
+        : Number(value);
+    updateAlertState('custom_width', numValue);
   };
 
   const onTimeoutVerifyChange = (
