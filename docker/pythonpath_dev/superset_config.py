@@ -122,7 +122,7 @@ class CeleryConfig:
     beat_schedule = {
         "reports.scheduler": {
             "task": "reports.scheduler",
-            "schedule": crontab(minute="*", hour="*"),
+            "schedule": crontab(minute="0", hour="*"),
         },
         "reports.prune_log": {
             "task": "reports.prune_log",
