@@ -243,6 +243,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   if (error) throw error; // caught in error boundary
 
+  const DashboardBuilderComponent = useMemo(() => <DashboardBuilder />, []);
   return (
     <>
       <Global styles={globalStyles} />
@@ -254,7 +255,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               activeFilters={activeFilters}
               ownDataCharts={relevantDataMask}
             >
-              <DashboardBuilder />
+              {DashboardBuilderComponent}
             </DashboardContainer>
           </DashboardPageIdContext.Provider>
         </>

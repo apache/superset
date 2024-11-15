@@ -17,7 +17,7 @@
  * under the License.
  */
 import cx from 'classnames';
-import { Component } from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, logging } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
@@ -121,7 +121,9 @@ const SliceContainer = styled.div`
   max-height: 100%;
 `;
 
-class Chart extends Component {
+const initialValues = {};
+
+class Chart extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -432,7 +434,6 @@ class Chart extends Component {
     const cachedDttm =
       // eslint-disable-next-line camelcase
       queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
-    const initialValues = {};
 
     return (
       <SliceContainer

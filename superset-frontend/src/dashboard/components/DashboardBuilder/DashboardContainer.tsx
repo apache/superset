@@ -18,8 +18,17 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  FC,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { createSelector } from '@reduxjs/toolkit';
 import {
   Filter,
   Filters,
@@ -43,6 +52,7 @@ import {
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
+import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import {
   applyDashboardLabelsColorOnLoad,
   updateDashboardLabelsColor,
@@ -58,6 +68,14 @@ import { getRootLevelTabsComponent } from './utils';
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
 };
+
+export const renderedChartIdsSelector = createSelector(
+  [(state: RootState) => state.charts],
+  charts =>
+    Object.values(charts)
+      .filter(chart => chart.chartStatus === 'rendered')
+      .map(chart => chart.id),
+);
 
 const useNativeFilterScopes = () => {
   const nativeFilters = useSelector<RootState, Filters>(
@@ -87,13 +105,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const chartIds = useSelector<RootState, number[]>(state =>
-    Object.values(state.charts).map(chart => chart.id),
-  );
-  const renderedChartIds = useSelector<RootState, number[]>(state =>
-    Object.values(state.charts)
-      .filter(chart => chart.chartStatus === 'rendered')
-      .map(chart => chart.id),
+  const chartIds = useChartIds();
+
+  const renderedChartIds = useSelector<RootState, number[]>(
+    renderedChartIdsSelector,
   );
   const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
     useState(false);
@@ -152,7 +167,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [nativeFilterScopes, dashboardLayout, dispatch]);
+  }, [nativeFilterScopes, dashboardLayout, dispatch, chartIds]);
 
   const childIds: string[] = topLevelTabs
     ? topLevelTabs.children
@@ -282,4 +297,4 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   );
 };
 
-export default DashboardContainer;
+export default memo(DashboardContainer);

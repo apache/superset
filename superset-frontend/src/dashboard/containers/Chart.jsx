@@ -75,7 +75,6 @@ function mapStateToProps(
   const formData = getFormDataWithExtraFilters({
     chart,
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
-    charts: chartQueries,
     filters: getAppliedFilterValues(id),
     colorNamespace,
     colorScheme: appliedColorScheme,

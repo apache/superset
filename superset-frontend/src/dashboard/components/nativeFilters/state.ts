@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector } from 'react-redux';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Filter,
   FilterConfiguration,
@@ -79,14 +79,17 @@ function useActiveDashboardTabs() {
 
 function useSelectChartTabParents() {
   const dashboardLayout = useDashboardLayout();
-  return (chartId: number) => {
-    const chartLayoutItem = Object.values(dashboardLayout).find(
-      layoutItem => layoutItem.meta?.chartId === chartId,
-    );
-    return chartLayoutItem?.parents?.filter(
-      (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
-    );
-  };
+  return useCallback(
+    (chartId: number) => {
+      const chartLayoutItem = Object.values(dashboardLayout).find(
+        layoutItem => layoutItem.meta?.chartId === chartId,
+      );
+      return chartLayoutItem?.parents?.filter(
+        (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
+      );
+    },
+    [dashboardLayout],
+  );
 }
 
 export function useIsFilterInScope() {
@@ -97,16 +100,19 @@ export function useIsFilterInScope() {
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
   // Chart is in an active tab tree if all of it's ancestors of type TAB are active
   // Dividers are always in scope
-  return (filter: Filter | Divider) =>
-    isFilterDivider(filter) ||
-    ('chartsInScope' in filter &&
-      filter.chartsInScope?.some((chartId: number) => {
-        const tabParents = selectChartTabParents(chartId);
-        return (
-          tabParents?.length === 0 ||
-          tabParents?.every(tab => activeTabs.includes(tab))
-        );
-      }));
+  return useCallback(
+    (filter: Filter | Divider) =>
+      isFilterDivider(filter) ||
+      ('chartsInScope' in filter &&
+        filter.chartsInScope?.some((chartId: number) => {
+          const tabParents = selectChartTabParents(chartId);
+          return (
+            tabParents?.length === 0 ||
+            tabParents?.every(tab => activeTabs.includes(tab))
+          );
+        })),
+    [selectChartTabParents, activeTabs],
+  );
 }
 
 export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
