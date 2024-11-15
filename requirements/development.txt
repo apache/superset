@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-v2f31i/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -94,7 +94,7 @@ googleapis-common-protos==1.63.0
     # via
     #   google-api-core
     #   grpcio-status
-grpcio==1.62.1
+grpcio==1.67.1
     # via
     #   apache-superset
     #   google-api-core
@@ -188,7 +188,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
