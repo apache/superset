@@ -453,6 +453,13 @@ const DashboardBuilder = () => {
     window.parent.postMessage(data, '*');
   };
 
+  const fireWindowClickToParent = () => {
+    const data = {
+      event: 'supersetWindowClick',
+    };
+    window.parent.postMessage(data, '*');
+  };
+
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
 
@@ -468,8 +475,11 @@ const DashboardBuilder = () => {
       observer.observe(headerRef.current);
     }
 
+    window.addEventListener('click', fireWindowClickToParent);
+
     return () => {
       observer?.disconnect();
+      window.removeEventListener('click', fireWindowClickToParent);
     };
   }, []);
 
