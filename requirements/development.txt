@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-26dbXL/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -26,7 +26,7 @@ cached-property==1.5.2
     # via tableschema
 cfgv==3.3.1
     # via pre-commit
-chardet==5.1.0
+chardet==5.2.0
     # via
     #   dataflows-tabulator
     #   tox
