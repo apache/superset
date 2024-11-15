@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { cloneDeep } from 'lodash';
 import CategoricalColorScale from './CategoricalColorScale';
 import { ColorsLookup } from './types';
 import getCategoricalSchemeRegistry from './CategoricalSchemeRegistrySingleton';
@@ -41,10 +42,9 @@ export default class CategoricalColorNamespace {
    * A new CategoricalColorScale instance is created for each chart.
    *
    * @param colorScheme - the color scheme to use
-   * @param ownColorScheme - the default color scheme of the chart
    * @returns a new instance of a color scale
    */
-  getScale(colorScheme?: string, ownColorScheme?: string) {
+  getScale(colorScheme?: string) {
     const id =
       colorScheme ?? getCategoricalSchemeRegistry().getDefaultKey() ?? '';
     const scheme = getCategoricalSchemeRegistry().get(id);
@@ -52,7 +52,6 @@ export default class CategoricalColorNamespace {
       scheme?.colors ?? [],
       this.forcedItems,
       colorScheme,
-      ownColorScheme,
     );
   }
 
@@ -71,6 +70,18 @@ export default class CategoricalColorNamespace {
 
   resetColors() {
     this.forcedItems = {};
+  }
+
+  // TODO: @geido coverage will fail, this is missing
+  resetIndividualColors(labels: string[] = []) {
+    const updatedForcedItems = cloneDeep(this.forcedItems);
+    labels.forEach(label => {
+      if (updatedForcedItems.hasOwnProperty(label)) {
+        delete updatedForcedItems[label];
+      }
+    });
+
+    this.forcedItems = { ...updatedForcedItems };
   }
 }
 
@@ -105,12 +116,7 @@ export function getColor(
 
   @param scheme - the applied color scheme
   @param namespace - the namespace
-  @param ownColorScheme - the default color scheme of the chart
 */
-export function getScale(
-  colorScheme?: string,
-  ownColorScheme?: string,
-  namespace?: string,
-) {
-  return getNamespace(namespace).getScale(colorScheme, ownColorScheme);
+export function getScale(colorScheme?: string, namespace?: string) {
+  return getNamespace(namespace).getScale(colorScheme);
 }

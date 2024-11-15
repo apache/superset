@@ -138,7 +138,6 @@ export default function transformProps(
 
   const {
     colorScheme,
-    ownColorScheme,
     donut,
     groupby,
     innerRadius,
@@ -192,11 +191,7 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,

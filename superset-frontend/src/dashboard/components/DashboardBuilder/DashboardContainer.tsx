@@ -18,7 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
-import { FC, useEffect, useMemo, useRef } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Filter,
@@ -43,7 +43,11 @@ import {
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
-import { updateDashboardLabelsColor } from 'src/dashboard/actions/dashboardState';
+import {
+  applyDashboardLabelsColorOnLoad,
+  updateDashboardLabelsColor,
+  persistDashboardLabelsColor,
+} from 'src/dashboard/actions/dashboardState';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
@@ -81,9 +85,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
-  const isEditMode = useSelector<RootState, boolean>(
-    state => state.dashboardState.editMode,
-  );
   const chartIds = useSelector<RootState, number[]>(state =>
     Object.values(state.charts).map(chart => chart.id),
   );
@@ -92,7 +93,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       .filter(chart => chart.chartStatus === 'rendered')
       .map(chart => chart.id),
   );
-  const prevNumRenderedCharts = useRef<number>(0);
+  const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
+    useState(false);
+  const prevRenderedChartIds = useRef<number[]>([]);
 
   const prevTabIndexRef = useRef();
   const tabIndex = useMemo(() => {
@@ -145,36 +148,60 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
   const TOP_OF_PAGE_RANGE = 220;
 
+  const onBeforeUnload = useCallback(() => {
+    dispatch(persistDashboardLabelsColor());
+    resetColors(getColorNamespace(dashboardInfo?.metadata?.color_namespace));
+    prevRenderedChartIds.current = [];
+  }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
+
   useEffect(() => {
-    // verify freshness of color map on tab change
-    // and when loading the dashboard for first time
+    // verify freshness of color map
+    // when charts render to catch new labels
     const numRenderedCharts = renderedChartIds.length;
 
     if (
-      !isEditMode &&
+      dashboardLabelsColorInitiated &&
+      dashboardInfo?.id &&
       numRenderedCharts > 0 &&
-      prevNumRenderedCharts.current !== numRenderedCharts
+      prevRenderedChartIds.current.length < numRenderedCharts
     ) {
-      prevNumRenderedCharts.current = numRenderedCharts;
-      dispatch(updateDashboardLabelsColor());
+      const newRenderedChartIds = renderedChartIds.filter(
+        id => !prevRenderedChartIds.current.includes(id),
+      );
+      prevRenderedChartIds.current = renderedChartIds;
+      dispatch(updateDashboardLabelsColor(newRenderedChartIds));
     }
-  }, [renderedChartIds, dispatch, isEditMode]);
+  }, [
+    dashboardInfo?.id,
+    renderedChartIds,
+    dispatch,
+    dashboardLabelsColorInitiated,
+  ]);
 
   useEffect(() => {
     const labelsColorMap = getLabelsColorMap();
-    const colorNamespace = getColorNamespace(
-      dashboardInfo?.metadata?.color_namespace,
-    );
     labelsColorMap.source = LabelsColorMapSource.Dashboard;
-    // apply labels color as dictated by stored metadata
-    dispatch(updateDashboardLabelsColor());
+
+    if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
+      // apply labels color as dictated by stored metadata (if any)
+      setDashboardLabelsColorInitiated(true);
+      dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
+    }
 
     return () => {
-      resetColors(getColorNamespace(colorNamespace));
-      prevNumRenderedCharts.current = 0;
+      onBeforeUnload();
     };
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardInfo.id, dispatch]);
+  }, [dashboardInfo?.id, dispatch]);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', onBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [onBeforeUnload]);
 
   return (
     <div className="grid-container" data-test="grid-container">

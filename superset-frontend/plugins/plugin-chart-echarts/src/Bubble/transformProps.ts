@@ -87,7 +87,6 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     entity,
     maxBubbleSize,
     colorScheme,
-    ownColorScheme,
     series: bubbleSeries,
     xAxisLabel: bubbleXAxisTitle,
     yAxisLabel: bubbleYAxisTitle,
@@ -111,11 +110,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendType,
     sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   const legends = new Set<string>();
   const series: ScatterSeriesOption[] = [];

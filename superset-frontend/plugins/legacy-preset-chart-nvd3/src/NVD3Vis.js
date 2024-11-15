@@ -174,7 +174,6 @@ const propTypes = {
   annotationLayers: PropTypes.arrayOf(annotationLayerType),
   bottomMargin: numberOrAutoType,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
   comparisonType: PropTypes.string,
   contribution: PropTypes.bool,
   leftMargin: numberOrAutoType,
@@ -260,7 +259,6 @@ function nvd3Vis(element, props) {
     baseColor,
     bottomMargin,
     colorScheme,
-    ownColorScheme,
     comparisonType,
     contribution,
     entity,
@@ -306,7 +304,7 @@ function nvd3Vis(element, props) {
     yIsLogScale,
     sliceId,
   } = props;
-  const appliedScheme = colorScheme || ownColorScheme;
+
   const isExplore = document.querySelector('#explorer-container') !== null;
   const container = element;
   container.innerHTML = '';
@@ -658,7 +656,7 @@ function nvd3Vis(element, props) {
         generateTimePivotTooltip(d, xAxisFormatter, yAxisFormatter),
       );
     } else if (vizType !== 'bullet') {
-      const colorFn = getScale(appliedScheme, ownColorScheme);
+      const colorFn = getScale(colorScheme);
       chart.color(
         d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
       );
@@ -1033,7 +1031,7 @@ function nvd3Vis(element, props) {
                 .append('g')
                 .attr('class', `nv-event-annotation-layer-${index}`);
               const aColor =
-                e.color || getColor(cleanColorInput(e.name), appliedScheme);
+                e.color || getColor(cleanColorInput(e.name), colorScheme);
 
               const tip = tipFactory({
                 ...e,
@@ -1112,7 +1110,7 @@ function nvd3Vis(element, props) {
                 .attr('class', `nv-interval-annotation-layer-${index}`);
 
               const aColor =
-                e.color || getColor(cleanColorInput(e.name), appliedScheme);
+                e.color || getColor(cleanColorInput(e.name), colorScheme);
               const tip = tipFactory(e);
 
               const records = (annotationData[e.name].records || [])

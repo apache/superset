@@ -55,6 +55,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { safeStringify } from 'src/utils/safeStringify';
 import { logEvent } from 'src/logger/actions';
 import { LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA } from 'src/logger/LogUtils';
+import { isEqual } from 'lodash';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from './dashboardLayout';
 import {
   saveChartConfiguration,
@@ -225,6 +226,35 @@ export function saveDashboardFinished() {
   return { type: SAVE_DASHBOARD_FINISHED };
 }
 
+export const SET_DASHBOARD_LABELS_COLORS_SYNCABLE =
+  'SET_DASHBOARD_LABELS_COLORS_SYNCABLE';
+export const SET_DASHBOARD_LABELS_COLORS_SYNCED =
+  'SET_DASHBOARD_LABELS_COLORS_SYNCED';
+
+export function setDashboardLabelsColorsSync() {
+  return { type: SET_DASHBOARD_LABELS_COLORS_SYNCABLE };
+}
+
+export function setDashboardLabelsColorsSynced() {
+  return { type: SET_DASHBOARD_LABELS_COLORS_SYNCED };
+}
+
+export const setDashboardMetadata =
+  (updatedMetadata, persist = false) =>
+  async dispatch => {
+    dispatch(
+      dashboardInfoChanged({
+        metadata: {
+          ...updatedMetadata,
+        },
+      }),
+    );
+
+    if (persist) {
+      dispatch(setDashboardLabelsColorsSync());
+    }
+  };
+
 export function saveDashboardRequest(data, id, saveType) {
   return (dispatch, getState) => {
     dispatch({ type: UPDATE_COMPONENTS_PARENTS_LIST });
@@ -256,6 +286,8 @@ export function saveDashboardRequest(data, id, saveType) {
     const hasId = item => item.id !== undefined;
     const metadataCrossFiltersEnabled = data.metadata?.cross_filters_enabled;
     const colorScheme = data.metadata?.color_scheme;
+    const customLabelsColor = data.metadata?.label_colors || {};
+    const sharedLabelsColor = data.metadata?.shared_label_colors || [];
     // making sure the data is what the backend expects
     const cleanedData = {
       ...data,
@@ -277,9 +309,9 @@ export function saveDashboardRequest(data, id, saveType) {
           ? getColorSchemeDomain(colorScheme)
           : [],
         expanded_slices: data.metadata?.expanded_slices || {},
-        label_colors: data.metadata?.label_colors || {},
-        shared_label_colors: getSharedLabels(),
-        map_label_colors: getLabelsColorMapEntries(),
+        label_colors: customLabelsColor,
+        shared_label_colors: getSharedLabels(sharedLabelsColor),
+        map_label_colors: getLabelsColorMapEntries(customLabelsColor),
         refresh_frequency: data.metadata?.refresh_frequency || 0,
         timed_refresh_immune_slices:
           data.metadata?.timed_refresh_immune_slices || [],
@@ -329,11 +361,7 @@ export function saveDashboardRequest(data, id, saveType) {
       // syncing with the backend transformations of the metadata
       if (updatedDashboard.json_metadata) {
         const metadata = JSON.parse(updatedDashboard.json_metadata);
-        dispatch(
-          dashboardInfoChanged({
-            metadata,
-          }),
-        );
+        dispatch(setDashboardMetadata(metadata));
         if (metadata.chart_configuration) {
           dispatch({
             type: SAVE_CHART_CONFIG_COMPLETE,
@@ -682,86 +710,190 @@ export function setDatasetsStatus(status) {
   };
 }
 
-export const updateDashboardLabelsColor = () => async (dispatch, getState) => {
-  const {
-    dashboardInfo: { metadata },
-    charts,
-  } = getState();
-  const categoricalSchemes = getCategoricalSchemeRegistry();
-  const colorScheme = metadata?.color_scheme;
-  const colorSchemeRegistry = categoricalSchemes.get(
-    metadata?.color_scheme,
-    true,
-  );
-  const defaultScheme = categoricalSchemes.defaultKey;
-  const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
-  const colorSchemeDomain = metadata?.color_scheme_domain || [];
-  const sharedLabels = metadata?.shared_label_colors || [];
-  const labelsColorMapInstance = getLabelsColorMap();
-  let requiresUpdate = false;
+const storeDashboardMetadata = async (id, metadata) =>
+  SupersetClient.put({
+    endpoint: `/api/v1/dashboard/${id}`,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
+  });
 
+/**
+ *
+ * Persists the label colors maps in the dashboard metadata.
+ * It runs when outdated color info are detected in stored metadata.
+ *
+ * @returns void
+ */
+export const persistDashboardLabelsColor = () => async (dispatch, getState) => {
+  const {
+    dashboardInfo: { id, metadata },
+    dashboardState: { labelsColorsMustSync },
+  } = getState();
+
+  if (labelsColorsMustSync) {
+    storeDashboardMetadata(id, metadata);
+    dispatch(setDashboardLabelsColorsSynced());
+  }
+};
+
+/**
+ * Checks the stored dashboard metadata for inconsistencies.
+ * Update the current metadata with validated color information.
+ * It runs only on Dashboard page load.
+ *
+ * @param {*} metadata - the stored dashboard metadata
+ * @returns void
+ */
+export const applyDashboardLabelsColorOnLoad = metadata => async dispatch => {
   try {
     const updatedMetadata = { ...metadata };
-    let updatedScheme = metadata?.color_scheme;
+    const customLabelsColor = metadata.label_colors || {};
+    const sharedLabelsColor = metadata.shared_label_colors || [];
+    let hasChanged = false;
 
-    // ensure charts have their original color scheme available
-    Object.values(charts).forEach(chart => {
-      const formData = chart.form_data || chart.sliceFormData;
-      if (formData) {
-        labelsColorMapInstance.setOwnColorScheme(
-          formData.slice_id,
-          formData.color_scheme,
-        );
-      }
-    });
-
-    // sanitize shared labels color map for backward compatibility
+    // backward compatibility of shared_label_colors
+    const sharedLabels = metadata.shared_label_colors || [];
     if (!Array.isArray(sharedLabels) && Object.keys(sharedLabels).length > 0) {
-      requiresUpdate = true;
-      updatedMetadata.shared_label_colors = getSharedLabels();
+      hasChanged = true;
+      updatedMetadata.shared_label_colors = getSharedLabels(sharedLabelsColor);
     }
+    // backward compatibility of map_label_colors
+    const isMapLabelColorsMissing = !metadata.map_label_colors;
 
-    // Color scheme does not exist anymore, fallback to default
-    if (colorScheme && !colorSchemeRegistry) {
+    let updatedScheme = metadata.color_scheme;
+    const categoricalSchemes = getCategoricalSchemeRegistry();
+    const colorSchemeRegistry = categoricalSchemes.get(updatedScheme, true);
+    const hasInvalidColorScheme = !!updatedScheme && !colorSchemeRegistry;
+
+    // color scheme might not exist any longer
+    if (hasInvalidColorScheme) {
+      const defaultScheme = categoricalSchemes.defaultKey;
+      const fallbackScheme = defaultScheme?.toString() || 'supersetColors';
+      hasChanged = true;
+
       updatedScheme = fallbackScheme;
       updatedMetadata.color_scheme = updatedScheme;
-      updatedMetadata.color_scheme_domain = getColorSchemeDomain(colorScheme);
-      requiresUpdate = true;
-      // fallback to default scheme
-      dispatch(setColorScheme(updatedScheme));
-      // must re-apply colors from fresh labels color map
-      applyColors(updatedMetadata, true);
-    }
 
-    // stored labels color map and applied might differ
-    // new data may appear in the map (data changes)
-    // or new slices may appear while changing tabs
-    // requires merging the stored and applied maps
-    const isMapSynced = isLabelsColorMapSynced(metadata);
-    if (!isMapSynced) {
-      requiresUpdate = true;
-      // re-apply the color map first
-      applyColors(updatedMetadata, false, true, !colorScheme);
-      // store the just applied labels color map
-      updatedMetadata.shared_label_colors = getSharedLabels();
-      updatedMetadata.map_label_colors = getLabelsColorMapEntries();
+      dispatch(setColorScheme(updatedScheme));
     }
 
     // the stored color domain registry and fresh might differ at this point
-    const freshColorSchemeDomain = getColorSchemeDomain(colorScheme);
-    const isRegistrySynced = !colorScheme
-      ? true
-      : colorSchemeDomain.toString() === freshColorSchemeDomain.toString();
+    const freshColorSchemeDomain = updatedScheme
+      ? getColorSchemeDomain(updatedScheme)
+      : [];
+    const currentColorSchemeDomain = metadata.color_scheme_domain || [];
 
-    if (!isRegistrySynced) {
-      requiresUpdate = true;
+    if (!isEqual(freshColorSchemeDomain, currentColorSchemeDomain)) {
+      hasChanged = true;
       updatedMetadata.color_scheme_domain = freshColorSchemeDomain;
     }
 
-    if (requiresUpdate) {
-      dispatch(dashboardInfoChanged({ metadata }));
+    // if color scheme is invalid or map is missing, apply a fresh color map
+    // if valid, apply the stored map to keep consistency across refreshes
+    const shouldGoFresh = isMapLabelColorsMissing || hasInvalidColorScheme;
+    applyColors(updatedMetadata, shouldGoFresh);
+
+    if (shouldGoFresh) {
+      // a fresh color map has been applied
+      // needs to be stored for consistency
+      hasChanged = true;
+      updatedMetadata.map_label_colors =
+        getLabelsColorMapEntries(customLabelsColor);
     }
-  } catch (error) {
-    console.error('Failed to update dashboard color settings:', error);
+
+    if (hasChanged) {
+      dispatch(setDashboardMetadata(updatedMetadata, true));
+    }
+  } catch (e) {
+    console.error('Failed to update dashboard color on load:', e);
   }
 };
+
+/**
+ *
+ * Updates the color map with new labels and colors as they appear.
+ *
+ * @param {*} metadata - the stored dashboard metadata
+ * @returns void
+ */
+export const updateDashboardLabelsColor =
+  renderedChartIds => async (dispatch, getState) => {
+    try {
+      const {
+        dashboardInfo: { metadata },
+        charts,
+      } = getState();
+      const colorScheme = metadata.color_scheme;
+      const labelsColorMapInstance = getLabelsColorMap();
+      const fullLabelsColors = metadata.map_label_colors || {};
+      const sharedLabelsColors = metadata.shared_label_colors || [];
+      const customLabelsColor = metadata.label_colors || {};
+      const updatedMetadata = { ...metadata };
+
+      // for dashboards with no color scheme, the charts should always use their individual schemes
+      // this logic looks for unique labels (not shared across multiple charts) of each rendered chart
+      // it applies a new color to those unique labels when the applied scheme is not up to date
+      // while leaving shared label colors intact for color consistency
+      const shouldReset = [];
+      if (!colorScheme && renderedChartIds.length > 0) {
+        const sharedLabelsSet = new Set(sharedLabelsColors);
+        renderedChartIds.forEach(id => {
+          const chart = charts[id];
+          const formData = chart.form_data || chart.latestQueryFormData;
+          const chartColorScheme = formData.color_scheme;
+          const currentChartConfig = labelsColorMapInstance.chartsLabelsMap.get(
+            formData.slice_id,
+          );
+          const currentChartLabels = currentChartConfig?.labels || [];
+          const uniqueChartLabels = currentChartLabels.filter(
+            l => !sharedLabelsSet.has(l),
+          );
+
+          // ensure charts have their original color scheme available
+          labelsColorMapInstance.setOwnColorScheme(
+            formData.slice_id,
+            formData.color_scheme,
+          );
+
+          // Map unique labels to colors
+          const uniqueChartLabelsColor = new Set(
+            uniqueChartLabels.map(l => fullLabelsColors[l]).filter(Boolean),
+          );
+          const expectedColorsForChartScheme = new Set(
+            getColorSchemeDomain(chartColorScheme),
+          );
+
+          // Check if any unique label color is not in the expected colors set
+          const shouldResetColors = [...uniqueChartLabelsColor].some(
+            color => !expectedColorsForChartScheme.has(color),
+          );
+
+          // Only push uniqueChartLabels if they require resetting
+          if (shouldResetColors) shouldReset.push(...uniqueChartLabels);
+        });
+      }
+
+      // an existing map is available, use mrge option
+      // to only apply colors to newly found labels
+      const shouldGoFresh = shouldReset.length > 0 ? shouldReset : false;
+      const shouldMerge = !shouldGoFresh;
+      // re-apply the color map first to get fresh maps accordingly
+      applyColors(updatedMetadata, shouldGoFresh, shouldMerge);
+
+      // new data may appear in the map (data changes)
+      // or new slices may appear while changing tabs
+      const isMapSynced = isLabelsColorMapSynced(updatedMetadata);
+
+      if (!isMapSynced) {
+        // prepare to persist the just applied labels color map
+        updatedMetadata.shared_label_colors =
+          getSharedLabels(sharedLabelsColors);
+        updatedMetadata.map_label_colors =
+          getLabelsColorMapEntries(customLabelsColor);
+
+        dispatch(setDashboardMetadata(updatedMetadata, true));
+      }
+    } catch (e) {
+      console.error('Failed to update colors for new charts and labels:', e);
+    }
+  };

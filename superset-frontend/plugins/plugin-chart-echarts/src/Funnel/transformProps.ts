@@ -101,7 +101,6 @@ export default function transformProps(
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
-    ownColorScheme,
     groupby,
     orient,
     sort,
@@ -146,11 +145,7 @@ export default function transformProps(
   }, {});
 
   const { setDataMask = () => {}, onContextMenu } = hooks;
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,

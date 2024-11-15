@@ -39,13 +39,12 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
 };
 
 const formatNumber = getNumberFormatter(NumberFormats.FLOAT);
 
 function Sankey(element, props) {
-  const { data, width, height, colorScheme, ownColorScheme, sliceId } = props;
+  const { data, width, height, colorScheme, sliceId } = props;
   const div = d3.select(element);
   div.classed(`superset-legacy-chart-sankey`, true);
   const margin = {
@@ -68,11 +67,7 @@ function Sankey(element, props) {
     .attr('height', innerHeight + margin.top + margin.bottom)
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const sankey = d3Sankey()
     .nodeWidth(15)

@@ -32,20 +32,11 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
   numberFormat: PropTypes.string,
 };
 
 function Chord(element, props) {
-  const {
-    data,
-    width,
-    height,
-    numberFormat,
-    colorScheme,
-    ownColorScheme,
-    sliceId,
-  } = props;
+  const { data, width, height, numberFormat, colorScheme, sliceId } = props;
 
   element.innerHTML = '';
 
@@ -53,11 +44,7 @@ function Chord(element, props) {
   div.classed('superset-legacy-chart-chord', true);
   const { nodes, matrix } = data;
   const f = getNumberFormatter(numberFormat);
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   const outerRadius = Math.min(width, height) / 2 - 10;
   const innerRadius = outerRadius - 24;

@@ -20,7 +20,6 @@ export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
   const {
     colorScheme,
-    ownColorScheme,
     dateTimeFormat,
     numberFormat,
     richTooltip,
@@ -33,7 +32,6 @@ export default function transformProps(chartProps) {
     height,
     data: queriesData[0].data,
     colorScheme,
-    ownColorScheme,
     dateTimeFormat,
     numberFormat,
     useAreaProportions: roseAreaProportion,

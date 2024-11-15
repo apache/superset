@@ -46,6 +46,8 @@ import {
   SET_OVERRIDE_CONFIRM,
   SAVE_DASHBOARD_STARTED,
   SAVE_DASHBOARD_FINISHED,
+  SET_DASHBOARD_LABELS_COLORS_SYNCABLE,
+  SET_DASHBOARD_LABELS_COLORS_SYNCED,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -99,6 +101,18 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         colorScheme: action.colorScheme,
         updatedColorScheme: true,
+      };
+    },
+    [SET_DASHBOARD_LABELS_COLORS_SYNCABLE]() {
+      return {
+        ...state,
+        labelsColorsMustSync: true,
+      };
+    },
+    [SET_DASHBOARD_LABELS_COLORS_SYNCED]() {
+      return {
+        ...state,
+        labelsColorsMustSync: false,
       };
     },
     [TOGGLE_EXPAND_SLICE]() {

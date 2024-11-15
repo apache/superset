@@ -175,7 +175,6 @@ export default function transformProps(
     sourceCategory,
     targetCategory,
     colorScheme,
-    ownColorScheme,
     metric = '',
     layout,
     roam,
@@ -198,11 +197,7 @@ export default function transformProps(
 
   const refs: Refs = {};
   const metricLabel = getMetricLabel(metric);
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const firstColor = colorFn.range()[0];
   const nodes: { [name: string]: number } = {};
   const categories: Set<string> = new Set();

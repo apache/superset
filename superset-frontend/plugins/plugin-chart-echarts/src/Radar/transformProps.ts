@@ -89,7 +89,6 @@ export default function transformProps(
 
   const {
     colorScheme,
-    ownColorScheme,
     groupby,
     labelType,
     labelPosition,
@@ -110,11 +109,7 @@ export default function transformProps(
     ...formData,
   };
   const { setDataMask = () => {}, onContextMenu } = hooks;
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const formatter = (params: CallbackDataParams) =>
     formatLabel({

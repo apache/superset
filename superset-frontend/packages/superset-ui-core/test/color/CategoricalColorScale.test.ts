@@ -66,13 +66,7 @@ describe('CategoricalColorScale', () => {
     let scale: CategoricalColorScale;
     let addSliceSpy: jest.SpyInstance<
       void,
-      [
-        label: string,
-        color: string,
-        sliceId: number,
-        colorScheme?: string,
-        ownColorScheme?: string,
-      ]
+      [label: string, color: string, sliceId: number, colorScheme?: string]
     >;
     let getNextAvailableColorSpy: jest.SpyInstance<
       string,
@@ -189,7 +183,7 @@ describe('CategoricalColorScale', () => {
 
       expect(scale.chartLabelsColorMap.has(value)).toBe(false);
 
-      scale.getColor(value, sliceId, colorScheme, 'originalColorScheme');
+      scale.getColor(value, sliceId, colorScheme);
 
       expect(scale.chartLabelsColorMap.has(value)).toBe(true);
       expect(scale.chartLabelsColorMap.get(value)).toBeDefined();

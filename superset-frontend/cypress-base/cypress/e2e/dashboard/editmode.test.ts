@@ -111,6 +111,7 @@ function resetTabbedDashboard(go = false) {
       color_scheme: '',
       label_colors: {},
       shared_label_colors: [],
+      map_label_colors: {},
     });
     cy.updateDashboard(r.id, {
       certification_details: r.certification_details,

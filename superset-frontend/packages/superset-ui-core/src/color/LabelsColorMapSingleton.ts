@@ -98,7 +98,6 @@ export class LabelsColorMap {
     color: string,
     sliceId: number,
     colorScheme?: string,
-    ownColorScheme?: string,
   ) {
     const chartConfig = this.chartsLabelsMap.get(sliceId) || {
       labels: [],
@@ -112,7 +111,6 @@ export class LabelsColorMap {
       this.chartsLabelsMap.set(sliceId, {
         labels,
         scheme: colorScheme,
-        ownScheme: ownColorScheme,
       });
     }
     if (this.source === LabelsColorMapSource.Dashboard) {
@@ -126,8 +124,8 @@ export class LabelsColorMap {
    * @param sliceId - the chart id
    * @param ownScheme - the color scheme
    */
+  // TODO: @geido tests will fail, source limitation removed
   setOwnColorScheme(sliceId: number, ownScheme: string) {
-    if (this.source !== LabelsColorMapSource.Explore) return;
     const chartConfig = this.chartsLabelsMap.get(sliceId);
     if (chartConfig) {
       this.chartsLabelsMap.set(sliceId, {

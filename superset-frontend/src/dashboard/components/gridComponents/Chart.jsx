@@ -202,6 +202,10 @@ class Chart extends Component {
       !areObjectsEqual(
         nextProps.formData?.label_colors,
         this.props.formData?.label_colors,
+      ) ||
+      !areObjectsEqual(
+        nextProps.formData?.map_label_colors,
+        this.props.formData?.map_label_colors,
       )
     ) {
       return true;

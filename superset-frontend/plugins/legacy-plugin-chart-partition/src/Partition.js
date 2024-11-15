@@ -75,7 +75,6 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
   dateTimeFormat: PropTypes.string,
   equalDateSize: PropTypes.bool,
   levels: PropTypes.arrayOf(PropTypes.string),
@@ -109,7 +108,6 @@ function Icicle(element, props) {
     height,
     data,
     colorScheme,
-    ownColorScheme,
     dateTimeFormat,
     equalDateSize,
     levels,
@@ -131,11 +129,7 @@ function Icicle(element, props) {
   const hasTime = ['adv_anal', 'time_series'].includes(chartType);
   const format = getNumberFormatter(numberFormat);
   const timeFormat = getTimeFormatter(dateTimeFormat);
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   div.selectAll('*').remove();
   const tooltip = div.append('div').classed('partition-tooltip', true);

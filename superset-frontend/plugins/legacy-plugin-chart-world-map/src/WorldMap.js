@@ -44,7 +44,6 @@ const propTypes = {
   linearColorScheme: PropTypes.string,
   color: PropTypes.string,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
   setDataMask: PropTypes.func,
   onContextMenu: PropTypes.func,
   emitCrossFilters: PropTypes.bool,
@@ -64,7 +63,6 @@ function WorldMap(element, props) {
     color,
     colorBy,
     colorScheme,
-    ownColorScheme,
     sliceId,
     theme,
     onContextMenu,
@@ -89,9 +87,8 @@ function WorldMap(element, props) {
 
   let processedData;
   let colorFn;
-  const appliedScheme = colorScheme || ownColorScheme;
   if (colorBy === ColorBy.Country) {
-    colorFn = CategoricalColorNamespace.getScale(appliedScheme, ownColorScheme);
+    colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
     processedData = filteredData.map(d => ({
       ...d,

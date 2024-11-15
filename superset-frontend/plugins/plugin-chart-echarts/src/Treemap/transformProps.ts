@@ -127,7 +127,6 @@ export default function transformProps(
 
   const {
     colorScheme,
-    ownColorScheme,
     groupby = [],
     metric = '',
     labelType,
@@ -144,11 +143,7 @@ export default function transformProps(
     ...formData,
   };
   const refs: Refs = {};
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -181,18 +176,18 @@ export default function transformProps(
       let item: TreemapSeriesNodeItemOption = {
         name,
         value,
+        colorSaturation: COLOR_SATURATION,
+        itemStyle: {
+          borderColor: BORDER_COLOR,
+          color: colorFn(name, sliceId),
+          borderWidth: BORDER_WIDTH,
+          gapWidth: GAP_WIDTH,
+        },
       };
       if (treeNode.children?.length) {
         item = {
           ...item,
           children: traverse(treeNode.children, newPath),
-          colorSaturation: COLOR_SATURATION,
-          itemStyle: {
-            borderColor: BORDER_COLOR,
-            color: colorFn(name, sliceId),
-            borderWidth: BORDER_WIDTH,
-            gapWidth: GAP_WIDTH,
-          },
         };
       } else {
         const joinedName = newPath.join(',');

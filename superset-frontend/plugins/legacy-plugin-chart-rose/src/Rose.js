@@ -47,7 +47,6 @@ const propTypes = {
   useRichTooltip: PropTypes.bool,
   useAreaProportions: PropTypes.bool,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
 };
 
 function copyArc(d) {
@@ -73,7 +72,6 @@ function Rose(element, props) {
     width,
     height,
     colorScheme,
-    ownColorScheme,
     dateTimeFormat,
     numberFormat,
     useRichTooltip,
@@ -92,11 +90,7 @@ function Rose(element, props) {
   const numGroups = datum[times[0]].length;
   const format = getNumberFormatter(numberFormat);
   const timeFormat = getTimeFormatter(dateTimeFormat);
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
   d3.select('.nvtooltip').remove();
   div.selectAll('*').remove();

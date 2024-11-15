@@ -461,7 +461,6 @@ class Header extends PureComponent {
       customCss,
       colorNamespace,
       dataMask,
-      setColorScheme,
       setUnsavedChanges,
       colorScheme,
       onUndo,
@@ -500,7 +499,6 @@ class Header extends PureComponent {
     const handleOnPropertiesChange = updates => {
       const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
 
-      setColorScheme(updates.colorScheme);
       dashboardInfoChanged({
         slug: updates.slug,
         metadata: JSON.parse(updates.jsonMetadata || '{}'),

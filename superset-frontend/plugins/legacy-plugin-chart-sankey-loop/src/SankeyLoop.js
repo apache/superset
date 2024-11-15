@@ -52,7 +52,6 @@ const propTypes = {
   width: PropTypes.number,
   height: PropTypes.number,
   colorScheme: PropTypes.string,
-  ownColorScheme: PropTypes.string,
   margin: PropTypes.shape({
     top: PropTypes.number,
     right: PropTypes.number,
@@ -83,12 +82,8 @@ function computeGraph(links) {
 }
 
 function SankeyLoop(element, props) {
-  const { data, width, height, colorScheme, ownColorScheme, sliceId } = props;
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme,
-    ownColorScheme,
-  );
+  const { data, width, height, colorScheme, sliceId } = props;
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const margin = { ...defaultMargin, ...props.margin };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;

@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { omit } from 'lodash';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { isEqual, omit } from 'lodash';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
@@ -44,11 +44,18 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tags/utils';
-import { applyColors, getColorNamespace } from 'src/utils/colorScheme';
+import {
+  applyColors,
+  getColorNamespace,
+  getLabelsColorMapEntries,
+} from 'src/utils/colorScheme';
 import getOwnerName from 'src/utils/getOwnerName';
 import Owner from 'src/types/Owner';
 import { useDispatch } from 'react-redux';
-import { setColorScheme } from 'src/dashboard/actions/dashboardState';
+import {
+  setColorScheme,
+  setDashboardMetadata,
+} from 'src/dashboard/actions/dashboardState';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -113,6 +120,7 @@ const PropertiesModal = ({
   const saveLabel = onlyApply ? t('Apply') : t('Save');
   const [tags, setTags] = useState<TagType[]>([]);
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+  const originalDashboardMetadata = useRef<Record<string, any>>({});
 
   const tagsAsSelectValues = useMemo(() => {
     const selectTags = tags.map((tag: { id: number; name: string }) => ({
@@ -203,6 +211,7 @@ const PropertiesModal = ({
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
+      originalDashboardMetadata.current = metadata;
     },
     [form],
   );
@@ -275,16 +284,7 @@ const PropertiesModal = ({
     return parsedRoles;
   };
 
-  const handleOnCancel = () => {
-    const prevColorScheme = dashboardInfo?.metadata?.color_scheme;
-    if (dashboardInfo?.metadata && prevColorScheme !== currentColorScheme) {
-      applyColors(dashboardInfo?.metadata, true);
-      // always apply first and then dispatch
-      // to leverage plugins re-rendering process
-      dispatch(setColorScheme(prevColorScheme));
-    }
-    onHide();
-  };
+  const handleOnCancel = () => onHide();
 
   const onColorSchemeChange = (
     colorScheme = '',
@@ -304,21 +304,15 @@ const PropertiesModal = ({
       throw new Error('A valid color scheme is required');
     }
 
-    // update metadata to match selection
-    if (updateMetadata) {
-      jsonMetadataObj.color_scheme = colorScheme;
-      jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
-
-      setJsonMetadata(jsonStringify(jsonMetadataObj));
-    }
+    jsonMetadataObj.color_scheme = colorScheme;
+    jsonMetadataObj.label_colors = jsonMetadataObj.label_colors || {};
 
     setCurrentColorScheme(colorScheme);
+    dispatch(setColorScheme(colorScheme));
 
-    if (colorScheme !== currentColorScheme) {
-      // always apply first and then dispatch
-      // to leverage plugins re-rendering process
-      applyColors(jsonMetadataObj, true);
-      dispatch(setColorScheme(colorScheme));
+    // update metadata to match selection
+    if (updateMetadata) {
+      setJsonMetadata(jsonStringify(jsonMetadataObj));
     }
   };
 
@@ -345,24 +339,37 @@ const PropertiesModal = ({
     const colorNamespace = getColorNamespace(metadata?.color_namespace);
     // color scheme in json metadata has precedence over selection
     const updatedColorScheme = metadata?.color_scheme || colorScheme;
+    const shouldGoFresh =
+      updatedColorScheme !== originalDashboardMetadata.current.color_scheme;
+    const shouldResetCustomLabels = !isEqual(
+      originalDashboardMetadata.current.label_colors,
+      metadata?.label_colors,
+    );
+    const currentCustomLabels = Object.keys(metadata?.label_colors || {});
+    const prevCustomLabels = Object.keys(
+      originalDashboardMetadata.current.label_colors || {},
+    );
+    const resettableCustomLabels =
+      currentCustomLabels.length > 0 ? currentCustomLabels : prevCustomLabels;
+    const freshCustomLabels =
+      shouldResetCustomLabels && resettableCustomLabels.length > 0
+        ? resettableCustomLabels
+        : false;
+    const jsonMetadataObj = getJsonMetadata();
+    const customLabelColors = jsonMetadataObj.label_colors || {};
+    const updatedDashboardMetadata = {
+      ...originalDashboardMetadata.current,
+      label_colors: customLabelColors,
+      color_scheme: updatedColorScheme,
+    };
 
-    // remove information from user facing input
-    if (metadata?.shared_label_colors) {
-      delete metadata.shared_label_colors;
-    }
-    if (metadata?.map_label_colors) {
-      delete metadata.map_label_colors;
-    }
-    if (metadata?.color_scheme_domain) {
-      delete metadata.color_scheme_domain;
-    }
-
-    applyColors(
-      {
-        ...metadata,
-        color_scheme: updatedColorScheme,
-      },
-      true,
+    originalDashboardMetadata.current = updatedDashboardMetadata;
+    applyColors(updatedDashboardMetadata, shouldGoFresh || freshCustomLabels);
+    dispatch(
+      setDashboardMetadata({
+        ...updatedDashboardMetadata,
+        map_label_colors: getLabelsColorMapEntries(customLabelColors),
+      }),
     );
 
     onColorSchemeChange(updatedColorScheme, {

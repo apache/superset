@@ -178,7 +178,6 @@ export default function transformProps(
     metric = '',
     secondaryMetric = '',
     colorScheme,
-    ownColorScheme,
     linearColorScheme,
     labelType,
     numberFormat,
@@ -249,10 +248,8 @@ export default function transformProps(
     0,
   );
 
-  const appliedScheme = colorScheme || ownColorScheme;
   const categoricalColorScale = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
+    colorScheme as string,
   );
   let linearColorScale: any;
   let colorByCategory = true;

@@ -119,7 +119,6 @@ export default function transformProps(
     minVal,
     maxVal,
     colorScheme,
-    ownColorScheme,
     fontSize,
     numberFormat,
     currencyFormat,
@@ -148,11 +147,7 @@ export default function transformProps(
     numberFormat,
     currencyFormat,
   );
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const axisLineWidth = calculateAxisLineWidth(data, fontSize, overlap);
   const groupbyLabels = groupby.map(getColumnLabel);
   const formatValue = (value: number) =>

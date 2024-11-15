@@ -61,7 +61,6 @@ export default function transformProps(
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
-    ownColorScheme,
     groupby = [],
     metrics = [],
     numberFormat,
@@ -76,11 +75,7 @@ export default function transformProps(
     sliceId,
   } = formData as BoxPlotQueryFormData;
   const refs: Refs = {};
-  const appliedScheme = colorScheme || ownColorScheme;
-  const colorFn = CategoricalColorNamespace.getScale(
-    appliedScheme as string,
-    ownColorScheme,
-  );
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getNumberFormatter(numberFormat);
   const metricLabels = metrics.map(getMetricLabel);
   const groupbyLabels = groupby.map(getColumnLabel);

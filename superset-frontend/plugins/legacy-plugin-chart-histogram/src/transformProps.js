@@ -20,7 +20,6 @@ export default function transformProps(chartProps) {
   const { width, height, formData, queriesData } = chartProps;
   const {
     colorScheme,
-    ownColorScheme,
     linkLength,
     normalized,
     cumulative,
@@ -37,7 +36,6 @@ export default function transformProps(chartProps) {
     data: queriesData[0].data,
     binCount: parseInt(linkLength, 10),
     colorScheme,
-    ownColorScheme,
     normalized,
     cumulative,
     opacity: globalOpacity,
