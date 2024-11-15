@@ -33,6 +33,7 @@ export enum FeatureFlag {
   /** @deprecated */
   DashboardCrossFilters = 'DASHBOARD_CROSS_FILTERS',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
+  DashboardDisableLoading = 'DASHBOARD_DISABLE_LOADING',
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   DisableLegacyDatasourceEditor = 'DISABLE_LEGACY_DATASOURCE_EDITOR',

@@ -494,6 +494,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
+    "DASHBOARD_DISABLE_LOADING": False, # useful to avoid rerendering charts not in the current view
     # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,

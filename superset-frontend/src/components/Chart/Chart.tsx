@@ -300,7 +300,8 @@ class Chart extends PureComponent<ChartProps, {}> {
       <div className="slice_container" data-test="slice-container">
         {this.props.isInView ||
         !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
-        isCurrentUserBot() ? (
+        isCurrentUserBot() || 
+        isFeatureEnabled(FeatureFlag.DashboardDisableLoading)? (
           <ChartRenderer
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
