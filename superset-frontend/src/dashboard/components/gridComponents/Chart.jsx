@@ -204,6 +204,10 @@ export const Chart = props => {
     };
   }, []);
 
+  useEffect(() => {
+    resize();
+  }, [props.isFullSize, props.height, props.width]);
+
   const getHeaderHeight = useCallback(() => {
     if (headerRef.current) {
       const computedStyle = getComputedStyle(
