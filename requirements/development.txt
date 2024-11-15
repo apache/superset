@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-hiOoCn/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -127,7 +127,7 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mysqlclient==2.2.4
+mysqlclient==2.2.6
     # via apache-superset
 nodeenv==1.8.0
     # via pre-commit
