@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-LGxqcI/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -188,7 +188,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive_pure_sasl]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -219,7 +219,7 @@ rfc3986==2.0.0
     # via tableschema
 ruff==0.4.5
     # via apache-superset
-s3transfer==0.10.1
+s3transfer==0.10.3
     # via boto3
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
