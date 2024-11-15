@@ -58,11 +58,13 @@ const updateDashboardTabLocalStorage = (
 };
 
 const selectDashboardContextForExplore = createSelector(
-  (state: RootState) => state.dashboardInfo.metadata,
-  (state: RootState) => state.dashboardInfo.id,
-  (state: RootState) => state.dashboardState?.colorScheme,
-  (state: RootState) => state.nativeFilters.filters,
-  (state: RootState) => state.dataMask,
+  [
+    (state: RootState) => state.dashboardInfo.metadata,
+    (state: RootState) => state.dashboardInfo.id,
+    (state: RootState) => state.dashboardState?.colorScheme,
+    (state: RootState) => state.nativeFilters.filters,
+    (state: RootState) => state.dataMask,
+  ],
   (metadata, dashboardId, colorScheme, filters, dataMask) => {
     // Building nativeFilters object without spreading in reduce
     const optimizedNativeFilters = Object.keys(filters).reduce((acc, key) => {

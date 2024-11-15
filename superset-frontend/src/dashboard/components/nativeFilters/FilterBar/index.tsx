@@ -26,6 +26,7 @@ import {
   useCallback,
   createContext,
   useRef,
+  useMemo,
 } from 'react';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -144,7 +145,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   const tabId = useTabId();
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
-  const filterValues = Object.values(filters);
+  const filterValues = useMemo(() => Object.values(filters), [filters]);
   const nativeFilterValues = filterValues.filter(isNativeFilter);
   const dashboardId = useSelector<any, number>(
     ({ dashboardInfo }) => dashboardInfo?.id,
@@ -215,11 +216,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
       }
     }
-  }, [
-    JSON.stringify(filters),
-    JSON.stringify(previousFilters),
-    previousDashboardId,
-  ]);
+  }, [JSON.stringify(filters), previousDashboardId]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
 
@@ -276,16 +273,27 @@ const FilterBar: FC<FiltersBarProps> = ({
   );
   const isInitialized = useInitialization();
 
-  const actions = (
-    <ActionButtons
-      filterBarOrientation={orientation}
-      width={verticalConfig?.width}
-      onApply={handleApply}
-      onClearAll={handleClearAll}
-      dataMaskSelected={dataMaskSelected}
-      dataMaskApplied={dataMaskApplied}
-      isApplyDisabled={isApplyDisabled}
-    />
+  const actions = useMemo(
+    () => (
+      <ActionButtons
+        filterBarOrientation={orientation}
+        width={verticalConfig?.width}
+        onApply={handleApply}
+        onClearAll={handleClearAll}
+        dataMaskSelected={dataMaskSelected}
+        dataMaskApplied={dataMaskApplied}
+        isApplyDisabled={isApplyDisabled}
+      />
+    ),
+    [
+      orientation,
+      verticalConfig?.width,
+      handleApply,
+      handleClearAll,
+      dataMaskSelected,
+      dataMaskAppliedText,
+      isApplyDisabled,
+    ],
   );
 
   const filterBarComponent =

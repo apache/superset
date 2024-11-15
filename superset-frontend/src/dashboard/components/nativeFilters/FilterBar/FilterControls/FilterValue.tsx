@@ -221,7 +221,7 @@ const FilterValue: FC<FilterControlProps> = ({
     datasetId,
     groupby,
     handleFilterLoadFinish,
-    JSON.stringify(filter),
+    filter,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
