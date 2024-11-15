@@ -146,7 +146,10 @@ const FilterBar: FC<FiltersBarProps> = ({
   const filters = useFilters();
   const previousFilters = usePrevious(filters);
   const filterValues = useMemo(() => Object.values(filters), [filters]);
-  const nativeFilterValues = filterValues.filter(isNativeFilter);
+  const nativeFilterValues = useMemo(
+    () => filterValues.filter(isNativeFilter),
+    [filterValues],
+  );
   const dashboardId = useSelector<any, number>(
     ({ dashboardInfo }) => dashboardInfo?.id,
   );

@@ -29,6 +29,16 @@ const EMPTY = {};
 const useFilterFocusHighlightStyles = (chartId: number) => {
   const theme = useTheme();
 
+  const focusedChartStyles = useMemo(
+    () => ({
+      borderColor: theme.colors.primary.light2,
+      opacity: 1,
+      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
+      pointerEvents: 'auto',
+    }),
+    [theme],
+  );
+
   const nativeFilters = useSelector((state: RootState) => state.nativeFilters);
 
   const slices =
@@ -45,20 +55,6 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
     highlightedFilterId as string,
     nativeFilters.filters[highlightedFilterId as string] as Filter,
     slices,
-  );
-
-  // we use local styles here instead of a conditionally-applied class,
-  // because adding any conditional class to this container
-  // causes performance issues in Chrome.
-
-  const focusedChartStyles = useMemo(
-    () => ({
-      borderColor: theme.colors.primary.light2,
-      opacity: 1,
-      boxShadow: `0px 0px ${theme.gridUnit * 2}px ${theme.colors.primary.base}`,
-      pointerEvents: 'auto',
-    }),
-    [theme],
   );
 
   if (highlightedFilterId && relatedCharts.includes(chartId)) {
