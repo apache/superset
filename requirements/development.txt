@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-x8fXMN/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -167,7 +167,7 @@ prophet==1.1.5
     # via apache-superset
 proto-plus==1.22.2
     # via google-cloud-bigquery-storage
-protobuf==4.23.0
+protobuf==4.25.5
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
