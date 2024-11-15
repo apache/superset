@@ -182,7 +182,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
             dashboard_ids = model.id
+            ExportChartsCommand.disable_tag_export()
             yield from ExportChartsCommand(chart_ids).run()
+            ExportChartsCommand.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand.export(
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids
