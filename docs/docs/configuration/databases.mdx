@@ -394,21 +394,33 @@ couchbase://{username}:{password}@{hostname}:{port}?truststorepath={certificate 
 
 #### CrateDB
 
-The recommended connector library for CrateDB is
-[crate](https://pypi.org/project/crate/).
-You need to install the extras as well for this library.
-We recommend adding something like the following
-text to your requirements file:
-
+The connector library for CrateDB is [sqlalchemy-cratedb].
+We recommend to add the following item to your `requirements.txt` file:
 ```
-crate[sqlalchemy]==0.26.0
+sqlalchemy-cratedb>=0.40.1,<1
 ```
 
-The expected connection string is formatted as follows:
-
+An SQLAlchemy connection string for [CrateDB Self-Managed] on localhost,
+for evaluation purposes, looks like this:
 ```
 crate://crate@127.0.0.1:4200
 ```
+An SQLAlchemy connection string for connecting to [CrateDB Cloud] looks like
+this:
+```
+crate://<username>:<password>@<clustername>.cratedb.net:4200/?ssl=true
+```
+
+Follow the steps [here](/docs/configuration/databases#installing-database-drivers)
+to install the CrateDB connector package when setting up Superset locally using
+Docker Compose.
+```
+echo "sqlalchemy-cratedb" >> ./docker/requirements-local.txt
+```
+
+[CrateDB Cloud]: https://cratedb.com/product/cloud
+[CrateDB Self-Managed]: https://cratedb.com/product/self-managed
+[sqlalchemy-cratedb]: https://pypi.org/project/sqlalchemy-cratedb/
 
 
 #### Databend
