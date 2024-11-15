@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent, Fragment, useCallback, memo } from 'react';
+import { Fragment, useCallback, memo } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import { bindActionCreators } from 'redux';
-import { connect, useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -51,7 +50,6 @@ const propTypes = {
   onDragTab: PropTypes.func,
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
-  canEdit: PropTypes.bool.isRequired,
   embeddedMode: PropTypes.bool,
 
   // grid related
@@ -65,7 +63,6 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
-  setEditMode: PropTypes.func.isRequired,
 };
 
 const defaultProps = {
@@ -102,7 +99,7 @@ const TitleDropIndicator = styled.div`
 const renderDraggableContent = dropProps =>
   dropProps.dropIndicatorProps && <div {...dropProps.dropIndicatorProps} />;
 
-export const Tab = props => {
+const Tab = props => {
   const dispatch = useDispatch();
   const canEdit = useSelector(state => state.dashboardInfo.dash_edit_perm);
   const handleChangeTab = useCallback(
@@ -158,9 +155,7 @@ export const Tab = props => {
     [props.handleComponentDrop],
   );
 
-  const shouldDropToChild = useCallback(item => {
-    return item.type !== TAB_TYPE;
-  }, []);
+  const shouldDropToChild = useCallback(item => item.type !== TAB_TYPE, []);
 
   const renderTabContent = useCallback(() => {
     const {

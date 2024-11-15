@@ -19,8 +19,5 @@
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 
-export const useChartIds = () => {
-  return useSelector<RootState, number[]>(
-    state => state.dashboardState.sliceIds,
-  );
-};
+export const useChartIds = () =>
+  useSelector<RootState, number[]>(state => state.dashboardState.sliceIds);

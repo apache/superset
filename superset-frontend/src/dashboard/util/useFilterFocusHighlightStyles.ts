@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useMemo } from 'react';
 import { Filter, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 
 import { RootState } from 'src/dashboard/types';
 import { getRelatedCharts } from './getRelatedCharts';
-import { useMemo } from 'react';
 
 const unfocusedChartStyles = { opacity: 0.3, pointerEvents: 'none' };
 const EMPTY = {};

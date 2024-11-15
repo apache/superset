@@ -19,7 +19,7 @@
 import { useCallback, memo, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import { connect, useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { logEvent } from 'src/logger/actions';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { componentLookup } from 'src/dashboard/components/gridComponents';
@@ -60,12 +60,7 @@ const propTypes = {
   isComponentVisible: PropTypes.bool,
 };
 
-const DashboardComponent = ({
-  id,
-  parentId,
-  isComponentVisible = true,
-  ...rest
-}) => {
+const DashboardComponent = ({ id, parentId, ...rest }) => {
   const dispatch = useDispatch();
   const dashboardLayout = useSelector(state => state.dashboardLayout.present);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
@@ -81,7 +76,7 @@ const DashboardComponent = ({
     [dashboardLayout],
   );
   const filters = getActiveFilters();
-  const embeddedMode = !dashboardInfo.userId
+  const embeddedMode = !dashboardInfo.userId;
 
   const boundActionCreators = useMemo(
     () =>
@@ -113,8 +108,9 @@ const DashboardComponent = ({
           components: dashboardLayout,
         });
 
-        if (componentType === ROW_TYPE)
+        if (componentType === ROW_TYPE) {
           return { occupiedColumnCount: occupiedWidth };
+        }
         if (componentType === COLUMN_TYPE) {
           return { minColumnWidth: minimumWidth };
         }

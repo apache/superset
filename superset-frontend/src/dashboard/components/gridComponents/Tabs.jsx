@@ -16,16 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  PureComponent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, usePrevious } from '@superset-ui/core';
-import { connect, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
@@ -145,12 +139,12 @@ export const Tabs = props => {
       0,
       findTabIndexByComponentId({
         currentComponent: props.component,
-        directPathToChild: props.directPathToChild,
+        directPathToChild,
       }),
     );
     if (tabIndex === 0 && activeTabs?.length) {
       props.component.children.forEach((tabId, index) => {
-        if (tabIndex === 0 && props.activeTabs?.includes(tabId)) {
+        if (tabIndex === 0 && activeTabs?.includes(tabId)) {
           tabIndex = index;
         }
       });
@@ -162,7 +156,7 @@ export const Tabs = props => {
       tabIndex,
       activeKey,
     };
-  }, [activeTabs?.length, props.component, props.directPathToChild]);
+  }, [activeTabs?.length, props.component, directPathToChild]);
 
   const [activeKey, setActiveKey] = useState(initActiveKey);
   const [selectedTabIndex, setSelectedTabIndex] = useState(initTabIndex);
@@ -171,7 +165,7 @@ export const Tabs = props => {
   const [draggingTabId, setDraggingTabId] = useState(null);
   const prevActiveKey = usePrevious(activeKey);
   const prevDashboardId = usePrevious(props.dashboardId);
-  const prevDirectPathToChild = usePrevious(props.directPathToChild);
+  const prevDirectPathToChild = usePrevious(directPathToChild);
   const prevTabIds = usePrevious(props.component.children);
 
   useEffect(() => {
@@ -201,7 +195,7 @@ export const Tabs = props => {
 
     if (props.isComponentVisible) {
       const nextFocusComponent = getLeafComponentIdFromPath(
-        props.directPathToChild,
+        directPathToChild,
       );
       const currentFocusComponent = getLeafComponentIdFromPath(
         prevDirectPathToChild,
@@ -217,7 +211,7 @@ export const Tabs = props => {
       ) {
         const nextTabIndex = findTabIndexByComponentId({
           currentComponent: props.component,
-          directPathToChild: props.directPathToChild,
+          directPathToChild,
         });
 
         // make sure nextFocusComponent is under this tabs component
@@ -229,7 +223,7 @@ export const Tabs = props => {
     }
   }, [
     props.component,
-    props.directPathToChild,
+    directPathToChild,
     props.isComponentVisible,
     selectedTabIndex,
     prevDirectPathToChild,
