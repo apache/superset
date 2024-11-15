@@ -21,7 +21,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import cx from 'classnames';
 import { useSelector } from 'react-redux';
-import { css , useTheme} from '@superset-ui/core';
+import { css, useTheme } from '@superset-ui/core';
 import { LayoutItem, RootState } from 'src/dashboard/types';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
 import Chart from 'src/dashboard/containers/Chart';
@@ -93,7 +93,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   setFullSizeChartId,
   isInView,
 }) => {
-  const theme=useTheme()
+  const theme = useTheme();
   const fullSizeStyle = css`
     && {
       position: fixed;
