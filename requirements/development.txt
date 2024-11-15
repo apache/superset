@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /private/var/folders/_q/y09bp3b946s3cxkw81tbkpsh0000gn/T/update-NX2Lzm/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -73,7 +73,7 @@ google-api-core[grpc]==2.11.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth-oauthlib==1.0.0
+google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
