@@ -301,7 +301,7 @@ class Chart extends PureComponent<ChartProps, {}> {
         {this.props.isInView ||
         !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
         isCurrentUserBot() || 
-        isFeatureEnabled(FeatureFlag.DashboardDisableLoading)? (
+        isFeatureEnabled(FeatureFlag.DashboardDisableLoading) ? (
           <ChartRenderer
             {...this.props}
             source={this.props.dashboardId ? 'dashboard' : 'explore'}
