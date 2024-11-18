@@ -48,7 +48,6 @@ const propTypes = {
   renderTabContent: PropTypes.bool, // whether to render tabs + content or just tabs
   editMode: PropTypes.bool.isRequired,
   renderHoverMenu: PropTypes.bool,
-  directPathToChild: PropTypes.arrayOf(PropTypes.string),
   activeTabs: PropTypes.arrayOf(PropTypes.string),
 
   // actions (from DashboardComponent.jsx)

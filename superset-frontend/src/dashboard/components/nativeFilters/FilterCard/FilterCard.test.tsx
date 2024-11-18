@@ -86,6 +86,9 @@ const baseInitialState = {
       id: 3,
     },
   },
+  dashboardState: {
+    sliceIds: [1, 2, 3],
+  },
   dashboardLayout: {
     past: [],
     future: [],
