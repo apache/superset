@@ -129,7 +129,9 @@ const Chart = props => {
   );
 
   const chart = useSelector(state => state.charts[props.id] || EMPTY_OBJECT);
-  const slice = useSelector(state => state.sliceEntities.slices[props.id]);
+  const slice = useSelector(
+    state => state.sliceEntities.slices[props.id] || EMPTY_OBJECT,
+  );
   const editMode = useSelector(state => state.dashboardState.editMode);
   const isExpanded = useSelector(
     state => !!state.dashboardState.expandedSlices[props.id],
@@ -413,7 +415,7 @@ const Chart = props => {
     ],
   );
 
-  if (!chart || !slice) {
+  if (chart === EMPTY_OBJECT || slice === EMPTY_OBJECT) {
     return <MissingChart height={getChartHeight()} />;
   }
 

@@ -25,7 +25,6 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { componentLookup } from 'src/dashboard/components/gridComponents';
 import getDetailedComponentWidth from 'src/dashboard/util/getDetailedComponentWidth';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { componentShape } from 'src/dashboard/util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   createComponent,
@@ -47,16 +46,8 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   renderTabContent: PropTypes.bool,
   onChangeTab: PropTypes.func,
-  component: componentShape.isRequired,
-  parentComponent: componentShape.isRequired,
-  createComponent: PropTypes.func.isRequired,
-  deleteComponent: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
-  handleComponentDrop: PropTypes.func.isRequired,
-  logEvent: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
-  dashboardId: PropTypes.number.isRequired,
   isComponentVisible: PropTypes.bool,
 };
 
