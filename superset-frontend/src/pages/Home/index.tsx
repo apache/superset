@@ -101,10 +101,10 @@ const WelcomeContainer = styled.div`
       padding: 3px 21px;
     }
   }
-  .ant-card-meta-description {
+  .antd5-card-meta-description {
     margin-top: ${({ theme }) => theme.gridUnit}px;
   }
-  .ant-card.ant-card-bordered {
+  .antd5-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .ant-collapse-item .ant-collapse-content {
@@ -119,7 +119,7 @@ const WelcomeContainer = styled.div`
   }
   .loading-cards {
     margin-top: ${({ theme }) => theme.gridUnit * 8}px;
-    .ant-card-cover > div {
+    .antd5-card-cover > div {
       height: 168px;
     }
   }
