@@ -379,7 +379,11 @@ export default typedMemo(function DataTable<D extends object>({
               ) : null}
             </div>
             {searchInput ? (
-              <div className={renderTimeComparisonDropdown ? 'col-sm-10' : 'col-sm-11'}>
+              <div
+                className={
+                  renderTimeComparisonDropdown ? 'col-sm-10' : 'col-sm-11'
+                }
+              >
                 <GlobalFilter<D>
                   searchInput={
                     typeof searchInput === 'boolean' ? undefined : searchInput
