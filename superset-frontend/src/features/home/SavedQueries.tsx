@@ -74,7 +74,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover {
+  .antd5-card-cover {
     border-bottom: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
     & > div {
       height: 171px;
