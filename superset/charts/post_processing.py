@@ -89,6 +89,12 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
 
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
+        # Split the first column using ";" and expand it into multiple columns
+        # Backup the original column names to reassign them later
+        columns_backup = df.columns[0].split(";")
+        df = df.iloc[:,0].str.split(';', expand=True)
+        df.columns = columns_backup
+        
         df = df.pivot_table(
             index=rows,
             columns=columns,
