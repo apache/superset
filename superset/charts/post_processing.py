@@ -26,6 +26,7 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
+import superset_config
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -89,12 +90,6 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
 
     # pivot data; we'll compute totals and subtotals later
     if rows or columns:
-        # Split the first column using ";" and expand it into multiple columns
-        # Backup the original column names to reassign them later
-        columns_backup = df.columns[0].split(";")
-        df = df.iloc[:,0].str.split(';', expand=True)
-        df.columns = columns_backup
-        
         df = df.pivot_table(
             index=rows,
             columns=columns,
@@ -333,8 +328,11 @@ def apply_post_process(
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(data))
-
+            df = pd.read_csv(StringIO(data), 
+                             delimiter=superset_config.CSV_EXPORT.get('sep'),
+                             encoding=superset_config.CSV_EXPORT.get('encoding'),
+                             decimal=superset_config.CSV_EXPORT.get('decimal'))
+            
         # convert all columns to verbose (label) name
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
