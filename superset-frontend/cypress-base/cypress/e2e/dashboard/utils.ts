@@ -125,7 +125,7 @@ export const valueNativeFilterOptions = [
 ];
 
 export function interceptGet() {
-  cy.intercept('/api/v1/dashboard/*').as('get');
+  cy.intercept('GET', '/api/v1/dashboard/*').as('get');
 }
 
 export function interceptFiltering() {
