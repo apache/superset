@@ -60,7 +60,7 @@ const propTypes = {
   isComponentVisible: PropTypes.bool,
 };
 
-const DashboardComponent = ({ id, parentId, ...rest }) => {
+const DashboardComponent = props => {
   const dispatch = useDispatch();
   const dashboardLayout = useSelector(state => state.dashboardLayout.present);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
@@ -69,8 +69,8 @@ const DashboardComponent = ({ id, parentId, ...rest }) => {
     state => state.dashboardState.fullSizeChartId,
   );
   const dashboardId = dashboardInfo.id;
-  const component = dashboardLayout[id];
-  const parentComponent = dashboardLayout[parentId];
+  const component = dashboardLayout[props.id];
+  const parentComponent = dashboardLayout[props.parentId];
   const getComponentById = useCallback(
     id => dashboardLayout[id],
     [dashboardLayout],
@@ -104,7 +104,7 @@ const DashboardComponent = ({ id, parentId, ...rest }) => {
       const componentType = component.type;
       if (componentType === ROW_TYPE || componentType === COLUMN_TYPE) {
         const { occupiedWidth, minimumWidth } = getDetailedComponentWidth({
-          id,
+          id: props.id,
           components: dashboardLayout,
         });
 
@@ -118,7 +118,7 @@ const DashboardComponent = ({ id, parentId, ...rest }) => {
       return {};
     }
     return {};
-  }, []);
+  }, [component, dashboardLayout, props.id]);
 
   const Component = component ? componentLookup[component.type] : null;
   return Component ? (
@@ -135,7 +135,7 @@ const DashboardComponent = ({ id, parentId, ...rest }) => {
       minColumnWidth={minColumnWidth}
       embeddedMode={embeddedMode}
       {...boundActionCreators}
-      {...rest}
+      {...props}
     />
   ) : null;
 };
