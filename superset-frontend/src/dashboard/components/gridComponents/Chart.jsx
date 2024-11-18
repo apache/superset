@@ -69,6 +69,10 @@ const propTypes = {
   isComponentVisible: PropTypes.bool,
   handleToggleFullSize: PropTypes.func.isRequired,
   setControlValue: PropTypes.func,
+  sliceName: PropTypes.string.isRequired,
+  isFullSize: PropTypes.bool,
+  extraControls: PropTypes.object,
+  isInView: PropTypes.bool,
 };
 
 // we use state + shouldComponentUpdate() logic to prevent perf-wrecking
@@ -195,12 +199,12 @@ const Chart = props => {
     () => () => {
       resize.cancel();
     },
-    [],
+    [resize],
   );
 
   useEffect(() => {
     resize();
-  }, [props.isFullSize, props.height, props.width]);
+  }, [resize, props.isFullSize]);
 
   const getHeaderHeight = useCallback(() => {
     if (headerRef.current) {
@@ -211,7 +215,7 @@ const Chart = props => {
       return headerRef.current.offsetHeight + marginBottom;
     }
     return DEFAULT_HEADER_HEIGHT;
-  }, [headerRef, headerRef.current]);
+  }, [headerRef]);
 
   const getChartHeight = useCallback(() => {
     const headerHeight = getHeaderHeight();
@@ -528,5 +532,7 @@ const Chart = props => {
     </SliceContainer>
   );
 };
+
+Chart.propTypes = propTypes;
 
 export default memo(Chart);

@@ -161,7 +161,7 @@ export const Tabs = props => {
   const [activeKey, setActiveKey] = useState(initActiveKey);
   const [selectedTabIndex, setSelectedTabIndex] = useState(initTabIndex);
   const [dropPosition, setDropPosition] = useState(null);
-  const [dragOverTabIndex, setDragOverTabIndex] = useState(0);
+  const [dragOverTabIndex, setDragOverTabIndex] = useState(null);
   const [draggingTabId, setDraggingTabId] = useState(null);
   const prevActiveKey = usePrevious(activeKey);
   const prevDashboardId = usePrevious(props.dashboardId);
@@ -194,9 +194,7 @@ export const Tabs = props => {
     const currTabsIds = props.component.children;
 
     if (props.isComponentVisible) {
-      const nextFocusComponent = getLeafComponentIdFromPath(
-        directPathToChild,
-      );
+      const nextFocusComponent = getLeafComponentIdFromPath(directPathToChild);
       const currentFocusComponent = getLeafComponentIdFromPath(
         prevDirectPathToChild,
       );
