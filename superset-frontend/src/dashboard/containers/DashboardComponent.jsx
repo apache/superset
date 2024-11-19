@@ -19,7 +19,6 @@
 import { useCallback, memo, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import { isDefined } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import { logEvent } from 'src/logger/actions';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -67,6 +66,7 @@ const DashboardComponent = props => {
     id => dashboardLayout[id],
     [dashboardLayout],
   );
+  const { isComponentVisible = true } = props;
   const filters = getActiveFilters();
   const embeddedMode = !dashboardInfo.userId;
 
@@ -115,6 +115,8 @@ const DashboardComponent = props => {
   const Component = component ? componentLookup[component.type] : null;
   return Component ? (
     <Component
+      {...props}
+      {...boundActionCreators}
       component={component}
       getComponentById={getComponentById}
       parentComponent={parentComponent}
@@ -125,12 +127,8 @@ const DashboardComponent = props => {
       fullSizeChartId={fullSizeChartId}
       occupiedColumnCount={occupiedColumnCount}
       minColumnWidth={minColumnWidth}
-      isComponentVisible={
-        isDefined(props.isComponentVisible) ? props.isComponentVisible : true
-      }
+      isComponentVisible={isComponentVisible}
       embeddedMode={embeddedMode}
-      {...boundActionCreators}
-      {...props}
     />
   ) : null;
 };

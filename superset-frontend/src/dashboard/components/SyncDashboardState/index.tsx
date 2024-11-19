@@ -66,8 +66,7 @@ const selectDashboardContextForExplore = createSelector(
     (state: RootState) => state.dataMask,
   ],
   (metadata, dashboardId, colorScheme, filters, dataMask) => {
-    // Building nativeFilters object without spreading in reduce
-    const optimizedNativeFilters = Object.keys(filters).reduce((acc, key) => {
+    const nativeFilters = Object.keys(filters).reduce((acc, key) => {
       acc[key] = pick(filters[key], ['chartsInScope']);
       return acc;
     }, {});
@@ -80,7 +79,7 @@ const selectDashboardContextForExplore = createSelector(
       ),
       colorScheme,
       chartConfiguration: metadata?.chart_configuration || EMPTY_OBJECT,
-      nativeFilters: optimizedNativeFilters,
+      nativeFilters,
       dataMask,
       dashboardId,
       filterBoxFilters: getActiveFilters(),
