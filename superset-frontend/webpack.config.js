@@ -32,6 +32,7 @@ const {
   getCompilerHooks,
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const AntdMomentWebpackPlugin = require('@ant-design/moment-webpack-plugin');
 const parsedArgs = require('yargs').argv;
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
@@ -92,6 +93,8 @@ if (!isDevMode) {
 }
 
 const plugins = [
+  new AntdMomentWebpackPlugin(),
+
   new webpack.ProvidePlugin({
     process: 'process/browser.js',
     ...(isDevMode ? { Buffer: ['buffer', 'Buffer'] } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story

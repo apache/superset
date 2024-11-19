@@ -69,7 +69,7 @@ function DateRangeFilter(
         placeholder={[t('Start date'), t('End date')]}
         showTime
         value={momentValue}
-        onChange={momentRange => {
+        onChange={(momentRange: [Moment, Moment]) => {
           if (!momentRange) {
             setValue(null);
             onSubmit([]);
