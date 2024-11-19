@@ -27,7 +27,7 @@ using your app's authentication.
 
 Embedding is done by inserting an iframe, containing a Superset page, into the host application.
 
-## Prerequisites
+## Prerequisites
 
 * Activate the feature flag `EMBEDDED_SUPERSET`
 * Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
