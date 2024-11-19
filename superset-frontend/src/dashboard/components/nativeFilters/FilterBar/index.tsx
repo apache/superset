@@ -24,7 +24,6 @@ import {
   useEffect,
   useState,
   useCallback,
-  createContext,
   useRef,
   useMemo,
 } from 'react';
@@ -130,7 +129,6 @@ const publishDataMask = debounce(
   SLOW_DEBOUNCE,
 );
 
-export const FilterBarScrollContext = createContext(false);
 const FilterBar: FC<FiltersBarProps> = ({
   orientation = FilterBarOrientation.Vertical,
   verticalConfig,
@@ -216,10 +214,9 @@ const FilterBar: FC<FiltersBarProps> = ({
 
       if (!isEmpty(updates)) {
         setDataMaskSelected(draft => ({ ...draft, ...updates }));
-        Object.keys(updates).forEach(key => dispatch(clearDataMask(key)));
       }
     }
-  }, [JSON.stringify(filters), previousDashboardId]);
+  }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
 
