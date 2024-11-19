@@ -430,7 +430,8 @@ const ExtraOptions = ({
               checked={!!db?.impersonate_user}
               onChange={onInputChange}
               labelText={t(
-                'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
+                'Impersonate logged in user (Presto, Trino, Drill, GSheets, StarRocks, Hive). ' +
+                  'This is needed for databases configured with OAuth2.',
               )}
             />
             <InfoTooltip
