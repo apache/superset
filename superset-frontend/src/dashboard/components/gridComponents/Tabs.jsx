@@ -155,7 +155,7 @@ export const Tabs = props => {
       tabIndex,
       activeKey,
     };
-  }, [activeTabs?.length, props.component, directPathToChild]);
+  }, [activeTabs, props.component, directPathToChild]);
 
   const [activeKey, setActiveKey] = useState(initActiveKey);
   const [selectedTabIndex, setSelectedTabIndex] = useState(initTabIndex);
@@ -173,14 +173,14 @@ export const Tabs = props => {
     } else {
       props.setActiveTab(activeKey);
     }
-  }, [activeKey]);
+  }, [props.setActiveTab, prevActiveKey, activeKey]);
 
   useEffect(() => {
     if (prevDashboardId && props.dashboardId !== prevDashboardId) {
       setSelectedTabIndex(initTabIndex);
       setActiveKey(initActiveKey);
     }
-  }, [props.dashboardId, prevDashboardId]);
+  }, [props.dashboardId, prevDashboardId, initTabIndex, initActiveKey]);
 
   useEffect(() => {
     const maxIndex = Math.max(0, props.component.children.length - 1);
@@ -224,6 +224,7 @@ export const Tabs = props => {
     props.isComponentVisible,
     selectedTabIndex,
     prevDirectPathToChild,
+    prevTabIds,
   ]);
 
   const handleClickTab = useCallback(
@@ -390,13 +391,19 @@ export const Tabs = props => {
 
   const { children: tabIds } = tabsComponent;
 
-  const showDropIndicators = currentDropTabIndex =>
-    currentDropTabIndex === dragOverTabIndex && {
-      left: editMode && dropPosition === DROP_LEFT,
-      right: editMode && dropPosition === DROP_RIGHT,
-    };
+  const showDropIndicators = useCallback(
+    currentDropTabIndex =>
+      currentDropTabIndex === dragOverTabIndex && {
+        left: editMode && dropPosition === DROP_LEFT,
+        right: editMode && dropPosition === DROP_RIGHT,
+      },
+    [dragOverTabIndex, dropPosition, editMode],
+  );
 
-  const removeDraggedTab = tabID => draggingTabId === tabID;
+  const removeDraggedTab = useCallback(
+    tabID => draggingTabId === tabID,
+    [draggingTabId],
+  );
 
   let tabsToHighlight;
   const highlightedFilterId =
@@ -498,24 +505,29 @@ export const Tabs = props => {
       </StyledTabsContainer>
     ),
     [
-      activeKey,
       editMode,
       renderHoverMenu,
       handleDeleteComponent,
-      handleClickTab,
-      handleEdit,
-      handleDropOnTab,
-      renderTabContent,
-      tabIds,
       tabsComponent.id,
+      activeKey,
+      handleEdit,
+      tabIds,
+      handleClickTab,
+      removeDraggedTab,
+      showDropIndicators,
+      depth,
       availableColumnCount,
       columnWidth,
+      handleDropOnTab,
+      handleGetDropPosition,
+      handleDragggingTab,
+      tabsToHighlight,
+      renderTabContent,
       onResizeStart,
       onResize,
       onResizeStop,
       selectedTabIndex,
       isCurrentTabVisible,
-      tabsToHighlight,
     ],
   );
 
