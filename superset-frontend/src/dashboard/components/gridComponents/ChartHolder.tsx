@@ -70,7 +70,7 @@ interface ChartHolderProps {
   isInView: boolean;
 }
 
-const ChartHolder: React.FC<ChartHolderProps> = ({
+const ChartHolder = ({
   id,
   parentId,
   component,
@@ -92,7 +92,7 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   handleComponentDrop,
   setFullSizeChartId,
   isInView,
-}) => {
+}: ChartHolderProps) => {
   const theme = useTheme();
   const fullSizeStyle = css`
     && {
@@ -185,26 +185,26 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
   ]);
 
   const { chartWidth, chartHeight } = useMemo(() => {
-    let chartWidth = 0;
-    let chartHeight = 0;
+    let width = 0;
+    let height = 0;
 
     if (isFullSize) {
-      chartWidth = window.innerWidth - CHART_MARGIN;
-      chartHeight = window.innerHeight - CHART_MARGIN;
+      width = window.innerWidth - CHART_MARGIN;
+      height = window.innerHeight - CHART_MARGIN;
     } else {
-      chartWidth = Math.floor(
+      width = Math.floor(
         widthMultiple * columnWidth +
           (widthMultiple - 1) * GRID_GUTTER_SIZE -
           CHART_MARGIN,
       );
-      chartHeight = Math.floor(
+      height = Math.floor(
         component.meta.height * GRID_BASE_UNIT - CHART_MARGIN,
       );
     }
 
     return {
-      chartWidth,
-      chartHeight,
+      chartWidth: width,
+      chartHeight: height,
     };
   }, [columnWidth, component, isFullSize, widthMultiple]);
 
@@ -311,20 +311,35 @@ const ChartHolder: React.FC<ChartHolderProps> = ({
       </ResizableContainer>
     ),
     [
-      component,
+      component.id,
+      component.meta.height,
+      component.meta.chartId,
+      component.meta.sliceNameOverride,
+      component.meta.sliceName,
+      parentComponent.type,
       columnWidth,
+      widthMultiple,
+      availableColumnCount,
+      onResizeStart,
+      onResize,
+      onResizeStop,
       editMode,
-      extraControls,
       focusHighlightStyles,
-      handleDeleteComponent,
-      handleExtraControl,
-      handleToggleFullSize,
-      handleUpdateSliceName,
-      isComponentVisible,
-      isInView,
       isFullSize,
+      fullSizeStyle,
+      chartId,
       outlinedComponentId,
       outlinedColumnName,
+      dashboardId,
+      chartWidth,
+      chartHeight,
+      handleUpdateSliceName,
+      isComponentVisible,
+      handleToggleFullSize,
+      handleExtraControl,
+      extraControls,
+      isInView,
+      handleDeleteComponent,
     ],
   );
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
 import { styled, t, usePrevious } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
@@ -126,7 +126,7 @@ const CloseIconWithDropIndicator = props => (
   </>
 );
 
-export const Tabs = props => {
+const Tabs = props => {
   const nativeFilters = useSelector(state => state.nativeFilters);
   const activeTabs = useSelector(state => state.dashboardState.activeTabs);
   const directPathToChild = useSelector(
@@ -549,4 +549,4 @@ export const Tabs = props => {
 Tabs.propTypes = propTypes;
 Tabs.defaultProps = defaultProps;
 
-export default Tabs;
+export default memo(Tabs);

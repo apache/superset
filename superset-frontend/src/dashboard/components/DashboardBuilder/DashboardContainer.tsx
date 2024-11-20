@@ -88,9 +88,11 @@ const useNativeFilterScopes = () => {
             pick(filter, ['id', 'scope', 'type']),
           )
         : [],
-    [JSON.stringify(nativeFilters)],
+    [nativeFilters],
   );
 };
+
+const TOP_OF_PAGE_RANGE = 220;
 
 const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const nativeFilterScopes = useNativeFilterScopes();
@@ -167,14 +169,14 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       };
     });
     dispatch(setInScopeStatusOfFilters(scopes));
-  }, [nativeFilterScopes, dashboardLayout, dispatch, chartIds]);
+  }, [chartIds, JSON.stringify(nativeFilterScopes), dashboardLayout, dispatch]);
 
-  const childIds: string[] = topLevelTabs
-    ? topLevelTabs.children
-    : [DASHBOARD_GRID_ID];
+  const childIds: string[] = useMemo(
+    () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
+    [topLevelTabs],
+  );
   const min = Math.min(tabIndex, childIds.length - 1);
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
-  const TOP_OF_PAGE_RANGE = 220;
 
   useEffect(() => {
     if (shouldForceFreshSharedLabelsColors) {
@@ -244,55 +246,61 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     };
   }, [onBeforeUnload]);
 
+  const renderTabBar = useCallback(() => <></>, []);
+  const handleFocus = useCallback(e => {
+    if (
+      // prevent scrolling when tabbing to the tab pane
+      e.target.classList.contains('ant-tabs-tabpane') &&
+      window.scrollY < TOP_OF_PAGE_RANGE
+    ) {
+      // prevent window from jumping down when tabbing
+      // if already at the top of the page
+      // to help with accessibility when using keyboard navigation
+      window.scrollTo(window.scrollX, 0);
+    }
+  }, []);
+
+  const renderParentSizeChildren = useCallback(
+    ({ width }) => (
+      /*
+      We use a TabContainer irrespective of whether top-level tabs exist to maintain
+      a consistent React component tree. This avoids expensive mounts/unmounts of
+      the entire dashboard upon adding/removing top-level tabs, which would otherwise
+      happen because of React's diffing algorithm
+    */
+      <Tabs
+        id={DASHBOARD_GRID_ID}
+        activeKey={activeKey}
+        renderTabBar={renderTabBar}
+        fullWidth={false}
+        animated={false}
+        allowOverflow
+        onFocus={handleFocus}
+      >
+        {childIds.map((id, index) => (
+          // Matching the key of the first TabPane irrespective of topLevelTabs
+          // lets us keep the same React component tree when !!topLevelTabs changes.
+          // This avoids expensive mounts/unmounts of the entire dashboard.
+          <Tabs.TabPane
+            key={index === 0 ? DASHBOARD_GRID_ID : index.toString()}
+          >
+            <DashboardGrid
+              gridComponent={dashboardLayout[id]}
+              // see isValidChild for why tabs do not increment the depth of their children
+              depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
+              width={width}
+              isComponentVisible={index === tabIndex}
+            />
+          </Tabs.TabPane>
+        ))}
+      </Tabs>
+    ),
+    [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
+  );
+
   return (
     <div className="grid-container" data-test="grid-container">
-      <ParentSize>
-        {({ width }) => (
-          /*
-            We use a TabContainer irrespective of whether top-level tabs exist to maintain
-            a consistent React component tree. This avoids expensive mounts/unmounts of
-            the entire dashboard upon adding/removing top-level tabs, which would otherwise
-            happen because of React's diffing algorithm
-          */
-          <Tabs
-            id={DASHBOARD_GRID_ID}
-            activeKey={activeKey}
-            renderTabBar={() => <></>}
-            fullWidth={false}
-            animated={false}
-            allowOverflow
-            onFocus={e => {
-              if (
-                // prevent scrolling when tabbing to the tab pane
-                e.target.classList.contains('ant-tabs-tabpane') &&
-                window.scrollY < TOP_OF_PAGE_RANGE
-              ) {
-                // prevent window from jumping down when tabbing
-                // if already at the top of the page
-                // to help with accessibility when using keyboard navigation
-                window.scrollTo(window.scrollX, 0);
-              }
-            }}
-          >
-            {childIds.map((id, index) => (
-              // Matching the key of the first TabPane irrespective of topLevelTabs
-              // lets us keep the same React component tree when !!topLevelTabs changes.
-              // This avoids expensive mounts/unmounts of the entire dashboard.
-              <Tabs.TabPane
-                key={index === 0 ? DASHBOARD_GRID_ID : index.toString()}
-              >
-                <DashboardGrid
-                  gridComponent={dashboardLayout[id]}
-                  // see isValidChild for why tabs do not increment the depth of their children
-                  depth={DASHBOARD_ROOT_DEPTH + 1} // (topLevelTabs ? 0 : 1)}
-                  width={width}
-                  isComponentVisible={index === tabIndex}
-                />
-              </Tabs.TabPane>
-            ))}
-          </Tabs>
-        )}
-      </ParentSize>
+      <ParentSize>{renderParentSizeChildren}</ParentSize>
     </div>
   );
 };
