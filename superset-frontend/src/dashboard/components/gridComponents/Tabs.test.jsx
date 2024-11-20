@@ -20,7 +20,7 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import { AntdModal } from 'src/components';
 import fetchMock from 'fetch-mock';
-import { Tabs } from 'src/dashboard/components/gridComponents/Tabs';
+import Tabs from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';

@@ -23,6 +23,7 @@ import {
   useRef,
   useEffect,
   useMemo,
+  memo,
 } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
@@ -425,4 +426,4 @@ const Row = props => {
 
 Row.propTypes = propTypes;
 
-export default Row;
+export default memo(Row);
