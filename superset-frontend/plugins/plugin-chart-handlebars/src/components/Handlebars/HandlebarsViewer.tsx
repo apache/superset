@@ -80,6 +80,18 @@ Handlebars.registerHelper('dateFormat', function (context, block) {
   return moment(context).format(f);
 });
 
+Handlebars.registerHelper('parseJSON', (jsonString: string) => {
+  if (jsonString === undefined)
+    throw Error('Please call with an object. Example: `parseJSON myObj`');
+  return JSON.parse(jsonString.replace(/'/g, '"'));
+});
+
+Handlebars.registerHelper('inc', (value: string) => {
+  if (value === undefined)
+    throw Error('Please call with an object. Example: `inc @index`');
+  return parseInt(value, 2) + 1;
+});
+
 // usage: {{  }}
 Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   // calling without an argument

@@ -24,11 +24,11 @@ keywords:
   - business intelligence
   - data science
 sources:
-  - https://github.com/apache/superset
+  - https://github.com/viveksingh-numerator/bi-superset
 maintainers:
-  - name: craig-rueda
+  - name: vivek.singh
     email: craig@craigrueda.com
-    url: https://github.com/craig-rueda
+    url: https://github.com/viveksingh-numerator
 version: 0.13.2
 dependencies:
   - name: postgresql
