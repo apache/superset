@@ -29,7 +29,7 @@ maintainers:
   - name: vivek.singh
     email: craig@craigrueda.com
     url: https://github.com/viveksingh-numerator
-version: 0.13.0
+version: 0.13.2
 dependencies:
   - name: postgresql
     version: 12.1.6

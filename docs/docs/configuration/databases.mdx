@@ -55,6 +55,7 @@ are compatible with Superset.
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
 | [Couchbase](/docs/configuration/databases#couchbase)                | `pip install couchbase-sqlalchemy`                                                          | `couchbase://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
+| [CrateDB](/docs/configuration/databases#cratedb)                        | `pip install sqlalchemy-cratedb`                                                   | `crate://{username}:{password}@{hostname}:{port}`, often useful: `?ssl=true/false` or `?schema=testdrive`.                                             |
 | [Denodo](/docs/configuration/databases#denodo)                          | `pip install denodo-sqlalchemy`                                                    | `denodo://{username}:{password}@{hostname}:{port}/{database}`                                                                                          |
 | [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    |`dremio+flight://{username}:{password}@{host}:32010`, often useful: `?UseEncryption=true/false`. For Legacy ODBC: `dremio+pyodbc://{username}:{password}@{host}:31010`                                                                                                                           |
 | [Elasticsearch](/docs/configuration/databases#elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                                                                  |
@@ -394,21 +395,33 @@ couchbase://{username}:{password}@{hostname}:{port}?truststorepath={certificate 
 
 #### CrateDB
 
-The recommended connector library for CrateDB is
-[crate](https://pypi.org/project/crate/).
-You need to install the extras as well for this library.
-We recommend adding something like the following
-text to your requirements file:
-
+The connector library for CrateDB is [sqlalchemy-cratedb].
+We recommend to add the following item to your `requirements.txt` file:
 ```
-crate[sqlalchemy]==0.26.0
+sqlalchemy-cratedb>=0.40.1,<1
 ```
 
-The expected connection string is formatted as follows:
-
+An SQLAlchemy connection string for [CrateDB Self-Managed] on localhost,
+for evaluation purposes, looks like this:
 ```
 crate://crate@127.0.0.1:4200
 ```
+An SQLAlchemy connection string for connecting to [CrateDB Cloud] looks like
+this:
+```
+crate://<username>:<password>@<clustername>.cratedb.net:4200/?ssl=true
+```
+
+Follow the steps [here](/docs/configuration/databases#installing-database-drivers)
+to install the CrateDB connector package when setting up Superset locally using
+Docker Compose.
+```
+echo "sqlalchemy-cratedb" >> ./docker/requirements-local.txt
+```
+
+[CrateDB Cloud]: https://cratedb.com/product/cloud
+[CrateDB Self-Managed]: https://cratedb.com/product/self-managed
+[sqlalchemy-cratedb]: https://pypi.org/project/sqlalchemy-cratedb/
 
 
 #### Databend
