@@ -64,6 +64,7 @@ import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
 import { getRootLevelTabsComponent } from './utils';
+import { CHART_TYPE } from '../../util/componentTypes';
 
 type DashboardContainerProps = {
   topLevelTabs?: LayoutItem;
@@ -153,13 +154,19 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
           chartsInScope: [],
         };
       }
+
+      const chartLayoutItems = Object.values(dashboardLayout).filter(
+        item => item?.type === CHART_TYPE,
+      );
+
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
         chartIds,
-        dashboardLayout,
+        chartLayoutItems,
       );
+
       const tabsInScope = findTabsWithChartsInScope(
-        dashboardLayout,
+        chartLayoutItems,
         chartsInScope,
       );
       return {

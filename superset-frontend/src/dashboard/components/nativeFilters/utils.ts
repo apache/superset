@@ -30,9 +30,9 @@ import {
   QueryFormData,
   t,
 } from '@superset-ui/core';
-import { DashboardLayout } from 'src/dashboard/types';
+import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
-import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
+import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
 
 const getDefaultRowLimit = (): number => {
@@ -156,23 +156,19 @@ export function nativeFilterGate(behaviors: Behavior[]): boolean {
 }
 
 export const findTabsWithChartsInScope = (
-  dashboardLayout: DashboardLayout,
+  chartLayoutItems: LayoutItem[],
   chartsInScope: number[],
-) => {
-  const tabsAndChartsLayoutItems = Object.values(dashboardLayout).filter(
-    item => item?.type === CHART_TYPE,
-  );
-  return new Set<string>(
+) =>
+  new Set<string>(
     chartsInScope
       .map(chartId =>
-        tabsAndChartsLayoutItems
+        chartLayoutItems
           .find(item => item?.meta?.chartId === chartId)
           ?.parents?.filter(parent => parent.startsWith(`${TAB_TYPE}-`)),
       )
       .filter(id => id !== undefined)
       .flat() as string[],
   );
-};
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,
