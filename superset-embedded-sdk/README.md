@@ -114,7 +114,7 @@ Example `POST /security/guest_token` payload:
 }
 ```
 
-Alternatively, a guest token can be created directly in your app with a json like the following, and then signed 
+Alternatively, a guest token can be created directly in your app with a json like the following, and then signed
 with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py)
 ```
 {
