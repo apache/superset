@@ -880,19 +880,27 @@ export const updateDashboardLabelsColor =
       // re-apply the color map first to get fresh maps accordingly
       applyColors(updatedMetadata, shouldGoFresh, shouldMerge);
 
-      // new data may appear in the map (data changes)
-      // or new slices may appear while changing tabs
-      const isMapSynced = isLabelsColorMapSynced(updatedMetadata);
+      // using a timeout to let the rendered charts finish processing labels
+      // to work on the freshest state of the color maps
+      setTimeout(() => {
+        // new data may appear in the map (data changes)
+        // or new slices may appear while changing tabs
+        const isMapSynced = isLabelsColorMapSynced(updatedMetadata);
+        const freshLabelsColors = getSharedLabels(sharedLabelsColors);
+        const isSharedLabelsColorsSynced = isEqual(
+          metadata.shared_label_colors,
+          freshLabelsColors,
+        );
 
-      if (!isMapSynced) {
-        // prepare to persist the just applied labels color map
-        updatedMetadata.shared_label_colors =
-          getSharedLabels(sharedLabelsColors);
-        updatedMetadata.map_label_colors =
-          getLabelsColorMapEntries(customLabelsColor);
+        if (!isMapSynced || !isSharedLabelsColorsSynced) {
+          // prepare to persist the just applied labels color map
+          updatedMetadata.shared_label_colors = freshLabelsColors;
+          updatedMetadata.map_label_colors =
+            getLabelsColorMapEntries(customLabelsColor);
 
-        dispatch(setDashboardMetadata(updatedMetadata, true));
-      }
+          dispatch(setDashboardMetadata(updatedMetadata, true));
+        }
+      }, [0]);
     } catch (e) {
       console.error('Failed to update colors for new charts and labels:', e);
     }

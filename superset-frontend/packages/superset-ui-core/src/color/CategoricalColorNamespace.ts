@@ -72,7 +72,6 @@ export default class CategoricalColorNamespace {
     this.forcedItems = {};
   }
 
-  // TODO: @geido coverage will fail, this is missing
   resetIndividualColors(labels: string[] = []) {
     const updatedForcedItems = cloneDeep(this.forcedItems);
     labels.forEach(label => {

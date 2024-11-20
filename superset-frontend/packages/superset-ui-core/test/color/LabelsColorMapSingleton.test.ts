@@ -165,12 +165,6 @@ describe('LabelsColorMap', () => {
       expect(mockedNamespace.getScale).toHaveBeenCalledWith('testColors2');
     });
 
-    it('should fallback to original chart color scheme if no color scheme is provided', () => {
-      labelsColorMap.addSlice('a', 'red', 1, 'currentScheme', 'originalScheme');
-      labelsColorMap.updateColorMap(mockedNamespace);
-      expect(mockedNamespace.getScale).toHaveBeenCalledWith('originalScheme');
-    });
-
     it('should fallback to undefined if no color scheme is provided', () => {
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
@@ -284,7 +278,7 @@ describe('LabelsColorMap', () => {
         ownScheme: 'newScheme',
       });
     });
-    it('should do nothing when source is not Explore', () => {
+    it('should update ownScheme when source is not Explore', () => {
       const labelsColorMap = getLabelsColorMap();
       labelsColorMap.source = LabelsColorMapSource.Dashboard;
       const sliceId = 1;
@@ -295,9 +289,10 @@ describe('LabelsColorMap', () => {
 
       labelsColorMap.setOwnColorScheme(sliceId, 'newScheme');
 
-      expect(labelsColorMap.chartsLabelsMap.get(sliceId)).toEqual(
-        initialConfig,
-      );
+      expect(labelsColorMap.chartsLabelsMap.get(sliceId)).toEqual({
+        ...initialConfig,
+        ownScheme: 'newScheme',
+      });
     });
     it('should do nothing when chart config does not exist', () => {
       const labelsColorMap = getLabelsColorMap();

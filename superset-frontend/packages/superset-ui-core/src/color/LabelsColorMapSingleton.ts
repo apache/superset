@@ -124,7 +124,6 @@ export class LabelsColorMap {
    * @param sliceId - the chart id
    * @param ownScheme - the color scheme
    */
-  // TODO: @geido tests will fail, source limitation removed
   setOwnColorScheme(sliceId: number, ownScheme: string) {
     const chartConfig = this.chartsLabelsMap.get(sliceId);
     if (chartConfig) {

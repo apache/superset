@@ -70,7 +70,7 @@ describe('CategoricalColorScale', () => {
     >;
     let getNextAvailableColorSpy: jest.SpyInstance<
       string,
-      [currentColor: string]
+      [currentLabel: string, currentColor: string]
     >;
 
     beforeEach(() => {
@@ -193,7 +193,6 @@ describe('CategoricalColorScale', () => {
         expect.any(String),
         sliceId,
         colorScheme,
-        'originalColorScheme',
       );
 
       const expectedColor = scale.chartLabelsColorMap.get(value);
@@ -211,7 +210,10 @@ describe('CategoricalColorScale', () => {
       scale.getColor('testValue3');
       scale.getColor('testValue4');
 
-      expect(getNextAvailableColorSpy).toHaveBeenCalledWith('blue');
+      expect(getNextAvailableColorSpy).toHaveBeenCalledWith(
+        'testValue4',
+        'blue',
+      );
 
       getNextAvailableColorSpy.mockClear();
 
@@ -323,23 +325,25 @@ describe('CategoricalColorScale', () => {
     });
   });
 
-  describe('.getNextAvailableColor(currentColor)', () => {
+  describe('.getNextAvailableColor(currentLabel, currentColor)', () => {
     it('returns the current color if it is the least used or equally used among colors', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('cat');
       scale.getColor('dog');
 
       // Since 'green' hasn't been used, it's considered the least used.
-      expect(scale.getNextAvailableColor('blue')).toBe('green');
+      expect(scale.getNextAvailableColor('fish', 'blue')).toBe('green');
     });
 
-    it('handles cases where all colors are equally used and returns the current color', () => {
+    it('returns the least used color among all', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('cat'); // blue
       scale.getColor('dog'); // red
       scale.getColor('fish'); // green
-      // All colors used once, so the function should return the current color
-      expect(scale.getNextAvailableColor('red')).toBe('red');
+      scale.getColor('puppy'); // blue
+      scale.getColor('teddy'); // red
+      // All colors used, so the function should return least used
+      expect(scale.getNextAvailableColor('darling', 'red')).toBe('green');
     });
 
     it('returns the least used color accurately even when some colors are used more frequently', () => {
@@ -358,7 +362,57 @@ describe('CategoricalColorScale', () => {
       scale.getColor('pony'); // green
 
       // Yellow is the least used color, so it should be returned.
-      expect(scale.getNextAvailableColor('blue')).toBe('yellow');
+      expect(scale.getNextAvailableColor('pony', 'blue')).toBe('yellow');
+    });
+    it('does not return adjacent colors if a non-adjacent color is equally used', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.chartLabelsColorMap.set('label1', 'red'); // Adjacent
+      scale.chartLabelsColorMap.set('label2', 'blue'); // currentLabel
+      scale.chartLabelsColorMap.set('label3', 'green'); // Adjacent
+
+      // Green and blue are equally used, but green is adjacent and penalized.
+      expect(scale.getNextAvailableColor('label2', 'blue')).toBe('blue');
+    });
+    it('prioritizes a color that has never been used, even if there are adjacent colors', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.getColor('cat'); // blue
+      scale.getColor('dog'); // red
+
+      scale.chartLabelsColorMap.set('label1', 'red');
+      scale.chartLabelsColorMap.set('label2', 'blue'); // currentLabel
+
+      // Green has never been used, so it is prioritized.
+      expect(scale.getNextAvailableColor('label2', 'blue')).toBe('green');
+    });
+    it('returns the least used or unused color when there are no adjacent labels', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+      scale.getColor('cat'); // blue
+      scale.getColor('dog'); // red
+
+      // No adjacent labels are defined in chartLabelsColorMap.
+      expect(scale.getNextAvailableColor('label2', 'green')).toBe('green');
+    });
+    it('handles colors that have never been used (fallback to usage count 0)', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+
+      // Do not use "green" at all
+      scale.getColor('cat'); // blue
+      scale.getColor('dog'); // red
+
+      // "green" has never been used, so usageCount for "green" should fallback to 0
+      expect(scale.getNextAvailableColor('label2', 'red')).toBe('green');
+    });
+    it('handles a color with an explicit usage count of 0', () => {
+      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
+
+      // Mock or override getColorUsageCount to return 0 for "blue"
+      jest.spyOn(scale, 'getColorUsageCount').mockImplementation(color => {
+        if (color === 'blue') return 0; // Explicitly return 0 for "blue"
+        return 1; // Return 1 for other colors
+      });
+
+      // "blue" should still be a valid option with a usage count of 0
+      expect(scale.getNextAvailableColor('label1', 'red')).toBe('blue');
     });
   });
 

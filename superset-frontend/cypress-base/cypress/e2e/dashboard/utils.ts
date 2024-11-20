@@ -144,6 +144,10 @@ export function interceptUpdate() {
   cy.intercept('PUT', `/api/v1/dashboard/*`).as('update');
 }
 
+export function interceptExploreUpdate() {
+  cy.intercept('PUT', `/api/v1/chart/*`).as('chartUpdate');
+}
+
 export function interceptPost() {
   cy.intercept('POST', `/api/v1/dashboard/`).as('post');
 }
@@ -524,8 +528,12 @@ export function addCountryNameFilter() {
   );
 }
 
-export function openTab(tabComponentIndex: number, tabIndex: number) {
-  cy.getBySel('dashboard-component-tabs')
+export function openTab(
+  tabComponentIndex: number,
+  tabIndex: number,
+  target = 'dashboard-component-tabs',
+) {
+  cy.getBySel(target)
     .eq(tabComponentIndex)
     .find('[role="tab"]')
     .eq(tabIndex)

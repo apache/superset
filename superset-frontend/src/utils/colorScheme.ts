@@ -38,21 +38,21 @@ export const getColorNamespace = (namespace?: string) => namespace || undefined;
  * @returns Record<string, string>
  */
 export const getSharedLabels = (currentSharedLabels: string[]): string[] => {
-  const labelsColorMapInstance = getLabelsColorMap();
-  const { chartsLabelsMap } = labelsColorMapInstance;
+  const { chartsLabelsMap } = getLabelsColorMap();
+  const allLabels = Array.from(chartsLabelsMap.values()).flatMap(
+    ({ labels }) => labels,
+  );
 
-  const allLabels = new Set<string>();
-  const sharedLabels: string[] = [];
-  chartsLabelsMap.forEach(({ labels }) => {
-    labels.forEach(label => {
-      if (allLabels.has(label) && !sharedLabels.includes(label)) {
-        sharedLabels.push(label);
-      }
-      allLabels.add(label);
-    });
-  });
+  const duplicates = Array.from(
+    allLabels.reduce(
+      (counts, label) => counts.set(label, (counts.get(label) || 0) + 1),
+      new Map(),
+    ),
+  )
+    .filter(([, count]) => count > 1)
+    .map(([label]) => label);
 
-  return Array.from(new Set([...currentSharedLabels, ...sharedLabels]));
+  return Array.from(new Set([...currentSharedLabels, ...duplicates]));
 };
 
 export const getSharedLabelsColorMapEntries = (
