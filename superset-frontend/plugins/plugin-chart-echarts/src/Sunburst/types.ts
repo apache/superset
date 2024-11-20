@@ -55,7 +55,7 @@ export const DEFAULT_FORM_DATA: Partial<EchartsSunburstFormData> = {
   innerRadius: 30,
   outerRadius: 70,
   donut: true,
-  showNulls: false,
+  showNulls: true,
 };
 
 export interface EchartsSunburstChartProps

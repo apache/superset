@@ -37,7 +37,7 @@ const {
   outerRadius,
   innerRadius,
   donut,
-  ignoreNulls: showNulls,
+  showNulls,
 } = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
