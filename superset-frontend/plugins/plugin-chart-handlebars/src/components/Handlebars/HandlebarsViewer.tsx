@@ -95,7 +95,7 @@ export const HandlebarsViewer = ({
 };
 
 //  usage: {{dateFormat my_date format="MMMM YYYY"}}
-hb.registerHelper('dateFormat', function (context, block) {
+hb.registerHelper('dateFormat', function (context: any, block: any) {
   const f = block.hash.format || 'YYYY-MM-DD';
   return moment(context).format(f);
 });
@@ -139,7 +139,7 @@ async function fetchPresignedUrls0(imageLinks: string[]): Promise<string[]> {
 // Register async helper
 hb.registerHelper('getPresignedUrls', async (imageLinks: string[]) => {
   const urls = await fetchPresignedUrls0(imageLinks);
-  const urls1 = JSON.parse(urls);
+  const urls1 = JSON.parse(urls as unknown as string);
   const presignedUrls = urls1.map(
     (item: { presigned_url: string }) => item.presigned_url,
   );
@@ -157,7 +157,7 @@ hb.registerHelper('jsonToHtmlTable', (jsonData1: string, jsonData2: string) => {
   html +=
     '<tr><th>Type</th><th>Qty</th><th>Item Number</th><th>RSD</th><th>Price</th><th>Per Item</th><th>Errors</th></tr>';
 
-  items.forEach((item, index) => {
+  items.forEach((item: any, index: any) => {
     let { qty } = item;
     let isError = false;
 
