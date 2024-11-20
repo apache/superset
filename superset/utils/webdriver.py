@@ -379,11 +379,19 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
-                logger.exception(
-                    "Selenium timed out waiting for chart containers to draw at url %s",
-                    url,
-                )
-                raise
+                # Fallback to allow a screenshot of an empty dashboard
+                try:
+                    WebDriverWait(driver, 0).until(
+                        EC.visibility_of_all_elements_located(
+                            (By.CLASS_NAME, "grid-container")
+                        )
+                    )
+                except:
+                    logger.exception(
+                        "Selenium timed out waiting for dashboard to draw at url %s",
+                        url,
+                    )
+                    raise
 
             try:
                 # charts took too long to load
