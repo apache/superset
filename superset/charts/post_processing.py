@@ -26,7 +26,7 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
-import superset_config
+from superset import app
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
     from superset.models.sql_lab import Query
 
+csv_export_settings = app.config.get('CSV_EXPORT')
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -329,9 +330,9 @@ def apply_post_process(
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
             df = pd.read_csv(StringIO(data), 
-                             delimiter=superset_config.CSV_EXPORT.get('sep'),
-                             encoding=superset_config.CSV_EXPORT.get('encoding'),
-                             decimal=superset_config.CSV_EXPORT.get('decimal'))
+                             sep=csv_export_settings.get('sep', ','), 
+                             encoding=csv_export_settings.get('encoding', 'utf-8'), 
+                             decimal=csv_export_settings.get('decimal', '.'))
             
         # convert all columns to verbose (label) name
         if datasource:
@@ -364,7 +365,10 @@ def apply_post_process(
             
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf)
+            processed_df.to_csv(buf, 
+                                sep=csv_export_settings.get('sep', ','), 
+                                encoding=csv_export_settings.get('encoding', 'utf-8'), 
+                                decimal=csv_export_settings.get('decimal', '.'))
             buf.seek(0)
             query["data"] = buf.getvalue()
 
