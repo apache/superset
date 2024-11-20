@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { isEqual, omit } from 'lodash';
+import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
@@ -56,6 +56,7 @@ import {
   setColorScheme,
   setDashboardMetadata,
 } from 'src/dashboard/actions/dashboardState';
+import { areObjectsEqual } from 'src/reduxUtils';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -341,9 +342,9 @@ const PropertiesModal = ({
     const updatedColorScheme = metadata?.color_scheme || colorScheme;
     const shouldGoFresh =
       updatedColorScheme !== originalDashboardMetadata.current.color_scheme;
-    const shouldResetCustomLabels = !isEqual(
-      originalDashboardMetadata.current.label_colors,
-      metadata?.label_colors,
+    const shouldResetCustomLabels = !areObjectsEqual(
+      originalDashboardMetadata.current.label_colors || {},
+      metadata?.label_colors || {},
     );
     const currentCustomLabels = Object.keys(metadata?.label_colors || {});
     const prevCustomLabels = Object.keys(

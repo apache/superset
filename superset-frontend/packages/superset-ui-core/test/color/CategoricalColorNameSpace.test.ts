@@ -161,12 +161,12 @@ describe('CategoricalColorNamespace', () => {
       expect(color).toBe(color2);
     });
   });
-  describe('statis resetIndividualColors(labels)', () => {
+  describe('statis resetColorsForLabels(labels)', () => {
     it('removes specified labels from forcedItems', () => {
       const namespace = getNamespace('test-reset-individual');
       namespace.setColor('label1', 'red');
       namespace.setColor('label2', 'blue');
-      namespace.resetIndividualColors(['label1']);
+      namespace.resetColorsForLabels(['label1']);
 
       expect(namespace.forcedItems).toMatchObject({ label2: 'blue' });
     });
@@ -174,7 +174,7 @@ describe('CategoricalColorNamespace', () => {
       const namespace = getNamespace('test-reset-individual');
       namespace.setColor('label1', 'red');
       namespace.setColor('label2', 'blue');
-      namespace.resetIndividualColors();
+      namespace.resetColorsForLabels();
 
       expect(namespace.forcedItems).toMatchObject({
         label1: 'red',
@@ -184,7 +184,7 @@ describe('CategoricalColorNamespace', () => {
     it('does nothing if the label is not in forcedItems', () => {
       const namespace = getNamespace('test-reset-individual');
       namespace.setColor('label1', 'red');
-      namespace.resetIndividualColors(['label2']); // label2 doesn't exist
+      namespace.resetColorsForLabels(['label2']); // label2 doesn't exist
 
       expect(namespace.forcedItems).toMatchObject({ label1: 'red' });
     });
@@ -192,7 +192,7 @@ describe('CategoricalColorNamespace', () => {
       const namespace = getNamespace('test-reset-individual');
       namespace.setColor('label1', 'red');
       namespace.setColor('label2', 'blue');
-      namespace.resetIndividualColors(['label1', 'label2']);
+      namespace.resetColorsForLabels(['label1', 'label2']);
 
       expect(namespace.forcedItems).toMatchObject({});
     });
@@ -201,21 +201,21 @@ describe('CategoricalColorNamespace', () => {
       namespace.setColor('label1', 'red');
 
       const originalForcedItems = namespace.forcedItems;
-      namespace.resetIndividualColors(['label1']);
+      namespace.resetColorsForLabels(['label1']);
 
       expect(originalForcedItems).not.toBe(namespace.forcedItems);
     });
     it('removes the label if it exists in updatedForcedItems', () => {
       const namespace = getNamespace('test-reset-individual');
       namespace.setColor('label1', 'red');
-      namespace.resetIndividualColors(['label1']);
+      namespace.resetColorsForLabels(['label1']);
 
       expect(namespace.forcedItems).toEqual({});
     });
     it('does nothing for a label not in updatedForcedItems', () => {
       const namespace = getNamespace('test-reset-individual');
       namespace.setColor('label1', 'red');
-      namespace.resetIndividualColors(['label2']); // label2 doesn't exist
+      namespace.resetColorsForLabels(['label2']); // label2 doesn't exist
 
       expect(namespace.forcedItems).toEqual({ label1: 'red' });
     });

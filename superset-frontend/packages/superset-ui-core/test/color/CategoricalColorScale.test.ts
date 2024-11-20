@@ -33,7 +33,7 @@ describe('CategoricalColorScale', () => {
     expect(CategoricalColorScale !== undefined).toBe(true);
   });
 
-  describe('new CategoricalColorScale(colors, forcedColors, colorScheme, originalScheme)', () => {
+  describe('new CategoricalColorScale(colors, forcedColors)', () => {
     it('can create new scale when forcedColors is not given', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       expect(scale).toBeInstanceOf(CategoricalColorScale);

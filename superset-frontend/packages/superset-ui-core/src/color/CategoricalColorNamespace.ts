@@ -72,7 +72,7 @@ export default class CategoricalColorNamespace {
     this.forcedItems = {};
   }
 
-  resetIndividualColors(labels: string[] = []) {
+  resetColorsForLabels(labels: string[] = []) {
     const updatedForcedItems = cloneDeep(this.forcedItems);
     labels.forEach(label => {
       if (updatedForcedItems.hasOwnProperty(label)) {

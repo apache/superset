@@ -165,27 +165,23 @@ function selectColorScheme(
     .first()
     .then($input => {
       cy.wrap($input).click({ force: true });
-      cy.wrap($input).type(color.slice(0, 3), { force: true });
+      cy.wrap($input).type(color.slice(0, 5), { force: true });
     });
   cy.getBySel(color).click({ force: true });
 }
 
-function setExploreAdmin(username: string) {
+function saveAndGo(dashboard = 'Tabbed Dashboard') {
   interceptExploreUpdate();
-  cy.get(`input[aria-label="Owners"]`)
-    .first()
-    .then($input => {
-      cy.get('body').then($body => {
-        if ($body.find('.ant-tag-close-icon').length) {
-          cy.get('.ant-tag-close-icon').click({ force: true, multiple: true });
-        }
-        cy.wrap($input).click({ force: true });
-        cy.wrap($input).type(username.slice(0, 5), { force: true });
-        cy.wrap($input).type('{enter}');
-      });
-    });
-  cy.getBySel('properties-modal-save-button').click();
-  cy.wait('@chartUpdate');
+  cy.getBySel('query-save-button').click();
+  cy.getBySel('save-modal-body').then($modal => {
+    cy.wrap($modal)
+      .find("div[aria-label='Select a dashboard'] .ant-select-selection-item")
+      .should('have.text', dashboard);
+    cy.getBySel('save-overwrite-radio').should('not.be.disabled');
+    cy.getBySel('save-overwrite-radio').click();
+    cy.get('#btn_modal_save_goto_dash').click();
+    cy.wait('@chartUpdate');
+  });
 }
 
 function applyChanges() {
@@ -228,7 +224,7 @@ function writeMetadata(metadata: string) {
   });
 }
 
-function openExplore(chartName: string) {
+function openExploreWithDashboardContext(chartName: string) {
   interceptExploreJson();
   interceptGet();
 
@@ -245,11 +241,24 @@ function openExplore(chartName: string) {
   cy.get('.chart-container').should('exist');
 }
 
+function saveExploreColorScheme(
+  chart = 'Top 10 California Names Timeseries',
+  colorScheme = 'supersetColors',
+) {
+  interceptExploreUpdate();
+  openExploreWithDashboardContext(chart);
+  openTab(0, 1, 'control-tabs');
+  selectColorScheme(colorScheme, 'control-item');
+  cy.getBySel('query-save-button').click();
+  cy.getBySel('save-overwrite-radio').click();
+  cy.getBySel('btn-modal-save').click();
+  cy.wait('@chartUpdate');
+}
+
 describe('Dashboard edit', () => {
   describe('Color consistency', () => {
     beforeEach(() => {
       resetDashboardColors();
-      resetDashboardColors('supported_charts_dash');
     });
 
     it('should not allow to change color scheme of a chart when dashboard has one', () => {
@@ -266,7 +275,7 @@ describe('Dashboard edit', () => {
         viz: 'line',
       });
 
-      openExplore('Top 10 California Names Timeseries');
+      openExploreWithDashboardContext('Top 10 California Names Timeseries');
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -296,7 +305,7 @@ describe('Dashboard edit', () => {
       });
 
       openTab(0, 0);
-      openExplore('Top 10 California Names Timeseries');
+      openExploreWithDashboardContext('Top 10 California Names Timeseries');
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -331,7 +340,7 @@ describe('Dashboard edit', () => {
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
 
-      openExplore('Top 10 California Names Timeseries');
+      openExploreWithDashboardContext('Top 10 California Names Timeseries');
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -350,6 +359,16 @@ describe('Dashboard edit', () => {
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
         .eq(1)
         .should('have.css', 'fill', 'rgb(50, 0, 167)');
+
+      // label Daniel
+      cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
+        .eq(2)
+        .should('have.css', 'fill', 'rgb(0, 76, 218)');
+
+      // label David
+      cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
+        .eq(3)
+        .should('have.css', 'fill', 'rgb(0, 116, 241)');
     });
 
     it('should allow to change color scheme of a chart when dashboard has no scheme and show the change', () => {
@@ -369,7 +388,7 @@ describe('Dashboard edit', () => {
         .first()
         .should('have.css', 'fill', 'rgb(31, 168, 201)');
 
-      openExplore('Top 10 California Names Timeseries');
+      openExploreWithDashboardContext('Top 10 California Names Timeseries');
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -384,11 +403,7 @@ describe('Dashboard edit', () => {
         .first()
         .should('have.css', 'fill', 'rgb(50, 0, 167)');
 
-      openExploreProperties();
-      setExploreAdmin('admin user');
-      cy.getBySel('query-save-button').click();
-      cy.getBySel('save-overwrite-radio').click();
-      cy.get('#btn_modal_save_goto_dash').click();
+      saveAndGo();
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -396,12 +411,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(50, 0, 167)');
 
       // reset original scheme
-      openExplore('Top 10 California Names Timeseries');
-      openTab(0, 1, 'control-tabs');
-      selectColorScheme('supersetColors', 'control-item');
-      cy.getBySel('query-save-button').click();
-      cy.getBySel('save-overwrite-radio').click();
-      cy.get('#btn_modal_save_goto_dash').click();
+      saveExploreColorScheme();
     });
 
     it('should allow to change color scheme of a chart when dashboard has no scheme but custom label colors and show the change', () => {
@@ -427,7 +437,7 @@ describe('Dashboard edit', () => {
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
 
-      openExplore('Top 10 California Names Timeseries');
+      openExploreWithDashboardContext('Top 10 California Names Timeseries');
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -447,11 +457,7 @@ describe('Dashboard edit', () => {
         .eq(1)
         .should('have.css', 'fill', 'rgb(50, 0, 167)');
 
-      openExploreProperties();
-      setExploreAdmin('admin user');
-      cy.getBySel('query-save-button').click();
-      cy.getBySel('save-overwrite-radio').click();
-      cy.get('#btn_modal_save_goto_dash').click();
+      saveAndGo();
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -464,12 +470,7 @@ describe('Dashboard edit', () => {
         .should('have.css', 'fill', 'rgb(50, 0, 167)');
 
       // reset original scheme
-      openExplore('Top 10 California Names Timeseries');
-      openTab(0, 1, 'control-tabs');
-      selectColorScheme('supersetColors', 'control-item');
-      cy.getBySel('query-save-button').click();
-      cy.getBySel('save-overwrite-radio').click();
-      cy.get('#btn_modal_save_goto_dash').click();
+      saveExploreColorScheme();
     });
 
     it('should not change colors on refreshes with no color scheme set', () => {
@@ -897,7 +898,7 @@ describe('Dashboard edit', () => {
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
 
-      openExplore('Top 10 California Names Timeseries');
+      openExploreWithDashboardContext('Top 10 California Names Timeseries');
 
       // label Anthony
       cy.get('[data-test="chart-container"] .line .nv-legend-symbol')
@@ -1064,6 +1065,7 @@ describe('Dashboard edit', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0]);
       openProperties();
+      selectColorScheme('supersetColors');
     });
 
     it('should accept a valid color scheme', () => {

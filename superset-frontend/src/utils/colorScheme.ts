@@ -37,7 +37,9 @@ export const getColorNamespace = (namespace?: string) => namespace || undefined;
  *
  * @returns Record<string, string>
  */
-export const getSharedLabels = (currentSharedLabels: string[]): string[] => {
+export const getFreshSharedLabels = (
+  currentSharedLabels: string[] = [],
+): string[] => {
   const { chartsLabelsMap } = getLabelsColorMap();
   const allLabels = Array.from(chartsLabelsMap.values()).flatMap(
     ({ labels }) => labels,
@@ -166,7 +168,6 @@ export const applyColors = (
   // Catch new labels in the color map as they appear
   merge = false,
   // Apply only label colors that are shared across multiple charts.
-  // Used in Explore from a dashboard context without color scheme.
   shared = false,
 ) => {
   const colorNameSpace = getColorNamespace(metadata?.color_namespace);
@@ -192,7 +193,7 @@ export const applyColors = (
     // should only reset colors for charts that have changed scheme
     // while keeping colors of existing shared label colors intact
     // this is used also to reset custom label colors when added or removed
-    categoricalNamespace.resetIndividualColors(fresh);
+    categoricalNamespace.resetColorsForLabels(fresh);
   }
 
   if (fresh || merge) {

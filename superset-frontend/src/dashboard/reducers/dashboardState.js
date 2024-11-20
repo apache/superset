@@ -46,8 +46,10 @@ import {
   SET_OVERRIDE_CONFIRM,
   SAVE_DASHBOARD_STARTED,
   SAVE_DASHBOARD_FINISHED,
-  SET_DASHBOARD_LABELS_COLORS_SYNCABLE,
-  SET_DASHBOARD_LABELS_COLORS_SYNCED,
+  SET_DASHBOARD_LABELS_COLORMAP_SYNCABLE,
+  SET_DASHBOARD_LABELS_COLORMAP_SYNCED,
+  SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE,
+  SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -103,16 +105,28 @@ export default function dashboardStateReducer(state = {}, action) {
         updatedColorScheme: true,
       };
     },
-    [SET_DASHBOARD_LABELS_COLORS_SYNCABLE]() {
+    [SET_DASHBOARD_LABELS_COLORMAP_SYNCABLE]() {
       return {
         ...state,
-        labelsColorsMustSync: true,
+        labelsColorMapMustSync: true,
       };
     },
-    [SET_DASHBOARD_LABELS_COLORS_SYNCED]() {
+    [SET_DASHBOARD_LABELS_COLORMAP_SYNCED]() {
       return {
         ...state,
-        labelsColorsMustSync: false,
+        labelsColorMapMustSync: false,
+      };
+    },
+    [SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE]() {
+      return {
+        ...state,
+        sharedLabelsColorsMustSync: true,
+      };
+    },
+    [SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED]() {
+      return {
+        ...state,
+        sharedLabelsColorsMustSync: false,
       };
     },
     [TOGGLE_EXPAND_SLICE]() {

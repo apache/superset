@@ -27,6 +27,8 @@ describe('getColorControlsProps', () => {
       dashboardId: undefined,
       hasDashboardColorScheme: false,
       hasCustomLabelsColor: false,
+      colorNamespace: undefined,
+      mapLabelsColors: {},
       sharedLabelsColors: [],
     });
   });
@@ -46,6 +48,8 @@ describe('getColorControlsProps', () => {
       dashboardId: 123,
       hasDashboardColorScheme: true,
       hasCustomLabelsColor: false,
+      colorNamespace: undefined,
+      mapLabelsColors: {},
       sharedLabelsColors: [],
     });
   });
@@ -64,6 +68,8 @@ describe('getColorControlsProps', () => {
       dashboardId: 123,
       hasDashboardColorScheme: false,
       hasCustomLabelsColor: true,
+      colorNamespace: undefined,
+      mapLabelsColors: {},
       sharedLabelsColors: [],
     });
   });
@@ -81,6 +87,8 @@ describe('getColorControlsProps', () => {
       hasDashboardColorScheme: false,
       hasCustomLabelsColor: false,
       sharedLabelsColors: ['#FF5733', '#33FF57'],
+      colorNamespace: undefined,
+      mapLabelsColors: {},
     });
   });
 
@@ -96,6 +104,8 @@ describe('getColorControlsProps', () => {
       dashboardId: 789,
       hasDashboardColorScheme: false,
       hasCustomLabelsColor: false,
+      colorNamespace: undefined,
+      mapLabelsColors: {},
       sharedLabelsColors: [],
     });
   });

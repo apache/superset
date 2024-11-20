@@ -27,6 +27,7 @@ import {
   t,
   useTheme,
   getLabelsColorMap,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import AntdSelect from 'antd/lib/select';
 import { isFunction, sortBy } from 'lodash';
@@ -36,6 +37,7 @@ import Icons from 'src/components/Icons';
 import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
 import { handleFilterOptionHelper } from 'src/components/Select/utils';
+import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
 const { Option, OptGroup } = AntdSelect;
@@ -50,7 +52,9 @@ export interface ColorSchemeControlProps {
   hasCustomLabelsColor: boolean;
   hasDashboardColorScheme?: boolean;
   hasSharedLabelsColor?: boolean;
-  sharedLabelsColors: string[];
+  sharedLabelsColors?: string[];
+  mapLabelsColors?: Record<string, any>;
+  colorNamespace?: string;
   chartId?: number;
   dashboardId?: number;
   label: string;
@@ -125,8 +129,10 @@ const Label = ({
 const ColorSchemeControl = ({
   hasCustomLabelsColor = false,
   hasDashboardColorScheme = false,
+  mapLabelsColors = {},
   sharedLabelsColors = [],
   dashboardId,
+  colorNamespace,
   chartId,
   label = t('Color scheme'),
   onChange = () => {},
@@ -265,7 +271,22 @@ const ColorSchemeControl = ({
   // We can't pass on change directly because it receives a second
   // parameter and it would be interpreted as the error parameter
   const handleOnChange = (value: string) => {
-    if (chartId) colorMapInstance.setOwnColorScheme(chartId, value);
+    if (chartId) {
+      colorMapInstance.setOwnColorScheme(chartId, value);
+      if (dashboardId) {
+        const colorNameSpace = getColorNamespace(colorNamespace);
+        const categoricalNamespace =
+          CategoricalColorNamespace.getNamespace(colorNameSpace);
+
+        const sharedLabelsSet = new Set(sharedLabelsColors);
+        // reset colors except shared and custom labels to keep dashboard consistency
+        const resettableLabels = Object.keys(mapLabelsColors).filter(
+          l => !sharedLabelsSet.has(l),
+        );
+        categoricalNamespace.resetColorsForLabels(resettableLabels);
+      }
+    }
+
     onChange(value);
   };
 

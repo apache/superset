@@ -101,8 +101,8 @@ export class LabelsColorMap {
   ) {
     const chartConfig = this.chartsLabelsMap.get(sliceId) || {
       labels: [],
-      scheme: '',
-      ownScheme: '',
+      scheme: undefined,
+      ownScheme: undefined,
     };
 
     const { labels } = chartConfig;
@@ -111,6 +111,7 @@ export class LabelsColorMap {
       this.chartsLabelsMap.set(sliceId, {
         labels,
         scheme: colorScheme,
+        ownScheme: chartConfig.ownScheme,
       });
     }
     if (this.source === LabelsColorMapSource.Dashboard) {

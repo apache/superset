@@ -108,8 +108,8 @@ export const ExploreChartHeader = ({
 
         // setting the chart to use the dashboard custom label colors if any
         const dashboardMetadata = JSON.parse(result.json_metadata);
-        // if the dashboard does not have a color scheme, only apply shared colors
-        applyColors(dashboardMetadata, false, false, !dashboardColorScheme);
+        // ensure consistency with the dashboard
+        applyColors(dashboardMetadata);
       } catch (error) {
         logging.info(t('Unable to retrieve dashboard colors'));
       }
