@@ -303,11 +303,9 @@ export default function transformProps(
               : linearColorScale(secondaryValue / value),
           },
         };
-        if (treeNode.children?.length) {
+        if (treeNode.children?.length)
           item.children = traverse(treeNode.children, newPath, records);
-        } else {
-          name = newPath.join(',');
-        }
+        name = newPath.join(',');
         columnsLabelMap.set(name, newPath);
         if (filterState.selectedValues?.[0]?.includes(name) === false) {
           item = {
