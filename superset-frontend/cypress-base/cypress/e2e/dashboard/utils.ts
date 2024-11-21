@@ -125,7 +125,7 @@ export const valueNativeFilterOptions = [
 ];
 
 export function interceptGet() {
-  cy.intercept('/api/v1/dashboard/*').as('get');
+  cy.intercept('GET', '/api/v1/dashboard/*').as('get');
 }
 
 export function interceptFiltering() {
@@ -142,6 +142,10 @@ export function interceptDelete() {
 
 export function interceptUpdate() {
   cy.intercept('PUT', `/api/v1/dashboard/*`).as('update');
+}
+
+export function interceptExploreUpdate() {
+  cy.intercept('PUT', `/api/v1/chart/*`).as('chartUpdate');
 }
 
 export function interceptPost() {
@@ -520,13 +524,17 @@ export function addCountryNameFilter() {
   );
 }
 
-export function openTab(tabComponentIndex: number, tabIndex: number) {
-  return cy
-    .getBySel('dashboard-component-tabs')
+export function openTab(
+  tabComponentIndex: number,
+  tabIndex: number,
+  target = 'dashboard-component-tabs',
+) {
+  cy.getBySel(target)
     .eq(tabComponentIndex)
     .find('[role="tab"]')
     .eq(tabIndex)
     .click();
+  cy.wait(500);
 }
 
 export const openTopLevelTab = (tabName: string) => {

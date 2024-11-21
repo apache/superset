@@ -16,29 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DataMaskStateWithId,
-  DataRecordValue,
-  PartialFilters,
-} from '@superset-ui/core';
-import { ChartConfiguration } from 'src/dashboard/types';
-
-export interface DashboardContextForExplore {
-  labelsColor: Record<string, string>;
-  labelsColorMap: Record<string, string>;
-  sharedLabelsColors: string[];
-  colorScheme: string;
-  chartConfiguration: ChartConfiguration;
-  nativeFilters: PartialFilters;
-  dataMask: DataMaskStateWithId;
-  dashboardId: number;
-  filterBoxFilters:
-    | {
-        [key: string]: {
-          scope: number[];
-          values: DataRecordValue[];
-        };
-      }
-    | {};
-  isRedundant?: boolean;
-}
+export const getColorControlsProps = (state: Record<string, any>) => {
+  const dashboardId = state?.form_data?.dashboardId;
+  return {
+    chartId: state?.slice?.slice_id,
+    dashboardId,
+    hasDashboardColorScheme:
+      !!dashboardId && !!state?.form_data?.dashboard_color_scheme,
+    hasCustomLabelsColor:
+      Object.keys(state?.form_data?.label_colors || {}).length > 0,
+    colorNamespace: state?.form_data?.color_namespace,
+    mapLabelsColors: state?.form_data?.map_label_colors || {},
+    sharedLabelsColors: state?.form_data?.shared_label_colors || [],
+  };
+};
