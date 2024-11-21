@@ -142,12 +142,14 @@ export default function withAsyncVerification({
     } = props;
     const otherPropsRef = useRef(restProps);
     const [verifiedProps, setVerifiedProps] = useState({});
+    const verifiedPropsRef = useRef(verifiedProps);
     const [isLoading, setIsLoading] = useState<boolean>(initialIsLoading);
     const { addWarningToast } = restProps.actions;
 
     // memoize `restProps`, so that verification only triggers when material
     // props are actually updated.
     let otherProps = otherPropsRef.current;
+    verifiedPropsRef.current = verifiedProps;
     if (hasUpdates(otherProps, restProps)) {
       otherProps = otherPropsRef.current = restProps;
     }
@@ -175,7 +177,10 @@ export default function withAsyncVerification({
             if (showLoadingState) {
               setIsLoading(false);
             }
-            if (updatedProps && hasUpdates(otherProps, updatedProps)) {
+            if (
+              updatedProps &&
+              hasUpdates(otherProps, verifiedPropsRef.current)
+            ) {
               setVerifiedProps({
                 // save isLoading in combination with other props to avoid
                 // rendering twice.
