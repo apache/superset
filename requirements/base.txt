@@ -148,7 +148,9 @@ geopy==2.4.1
 google-auth==2.29.0
     # via shillelagh
 greenlet==3.0.3
-    # via shillelagh
+    # via
+    #   shillelagh
+    #   sqlalchemy
 gunicorn==22.0.0
     # via apache-superset
 hashids==1.3.1
@@ -195,7 +197,7 @@ markdown==3.6
     # via apache-superset
 markdown-it-py==3.0.0
     # via rich
-markupsafe==2.1.5
+markupsafe==3.0.2
     # via
     #   jinja2
     #   mako
@@ -385,7 +387,7 @@ vine==5.1.0
     #   kombu
 wcwidth==0.2.13
     # via prompt-toolkit
-werkzeug==3.0.6
+werkzeug==3.1.3
     # via
     #   -r requirements/base.in
     #   flask
