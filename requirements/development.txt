@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /home/runner/work/superset/superset/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -168,7 +168,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -195,10 +195,14 @@ requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
-ruff==0.4.5
+rfc3986==2.0.0
+    # via tableschema
+ruff==0.7.4
     # via apache-superset
 s3transfer==0.10.1
     # via boto3
+sasl==0.3.1
+    # via pyhive
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
 sqloxide==0.1.43
