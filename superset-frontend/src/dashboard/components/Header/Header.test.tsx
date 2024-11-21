@@ -315,10 +315,10 @@ test('should NOT render the fave icon on anonymous user', () => {
   setup(anonymousUserProps);
   expect(() =>
     screen.getByRole('img', { name: 'favorite-unselected' }),
-  ).toThrowError('Unable to find');
-  expect(() =>
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toThrowError('Unable to find');
+  ).toThrow('Unable to find');
+  expect(() => screen.getByRole('img', { name: 'favorite-selected' })).toThrow(
+    'Unable to find',
+  );
 });
 
 test('should fave', async () => {
@@ -371,5 +371,50 @@ test('should render an extension component if one is supplied', () => {
   setup(mockedProps);
   expect(
     screen.getByText('dashboard.nav.right extension component'),
+  ).toBeInTheDocument();
+});
+
+test('should NOT render MetadataBar when in edit mode', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: true,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should NOT render MetadataBar when embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: undefined,
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should render MetadataBar when not in edit mode and not embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
 });

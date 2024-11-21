@@ -135,7 +135,7 @@ class TestTagApi(SupersetTestCase):
             self.login(ADMIN_USERNAME)
             uri = f"api/v1/tag/{tag.id}"
             rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         expected_result = {
             "changed_by": None,
             "changed_on_delta_humanized": "now",
@@ -146,7 +146,7 @@ class TestTagApi(SupersetTestCase):
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in expected_result.items():
-            self.assertEqual(value, data["result"][key])
+            assert value == data["result"][key]
         # rollback changes
         db.session.delete(tag)
         db.session.commit()
@@ -160,7 +160,7 @@ class TestTagApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/tag/{max_id + 1}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
         # cleanup
         db.session.delete(tag)
         db.session.commit()
@@ -173,7 +173,7 @@ class TestTagApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/tag/"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == TAGS_FIXTURE_COUNT
         # check expected columns
@@ -211,7 +211,7 @@ class TestTagApi(SupersetTestCase):
         }
         uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 2
 
@@ -219,7 +219,7 @@ class TestTagApi(SupersetTestCase):
         query["filters"][0]["value"] = False
         uri = f"api/v1/tag/?{parse.urlencode({'q': prison.dumps(query)})}"
         rv = self.client.get(uri)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 3
 
@@ -249,10 +249,10 @@ class TestTagApi(SupersetTestCase):
         data = {"properties": {"tags": example_tag_names}}
         rv = self.client.post(uri, json=data, follow_redirects=True)
         # successful request
-        self.assertEqual(rv.status_code, 201)
+        assert rv.status_code == 201
         # check that tags were created in database
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
-        self.assertEqual(tags.count(), 2)
+        assert tags.count() == 2
         # check that tagged objects were created
         tag_ids = [tags[0].id, tags[1].id]
         tagged_objects = db.session.query(TaggedObject).filter(
@@ -308,7 +308,7 @@ class TestTagApi(SupersetTestCase):
         uri = f"api/v1/tag/{dashboard_type.value}/{dashboard_id}/{tags.first().name}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         # ensure that tagged object no longer exists
         tagged_object = (
             db.session.query(TaggedObject)
@@ -358,14 +358,14 @@ class TestTagApi(SupersetTestCase):
             TaggedObject.object_id == dashboard_id,
             TaggedObject.object_type == dashboard_type.name,
         )
-        self.assertEqual(tagged_objects.count(), 2)
+        assert tagged_objects.count() == 2
         uri = f'api/v1/tag/get_objects/?tags={",".join(tag_names)}'
         rv = self.client.get(uri)
         # successful request
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         fetched_objects = rv.json["result"]
-        self.assertEqual(len(fetched_objects), 1)
-        self.assertEqual(fetched_objects[0]["id"], dashboard_id)
+        assert len(fetched_objects) == 1
+        assert fetched_objects[0]["id"] == dashboard_id
         # clean up tagged object
         tagged_objects.delete()
 
@@ -394,12 +394,12 @@ class TestTagApi(SupersetTestCase):
             TaggedObject.object_id == dashboard_id,
             TaggedObject.object_type == dashboard_type.name,
         )
-        self.assertEqual(tagged_objects.count(), 2)
-        self.assertEqual(tagged_objects.first().object_id, dashboard_id)
+        assert tagged_objects.count() == 2
+        assert tagged_objects.first().object_id == dashboard_id
         uri = "api/v1/tag/get_objects/"
         rv = self.client.get(uri)
         # successful request
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         fetched_objects = rv.json["result"]
         # check that the dashboard object was fetched
         assert dashboard_id in [obj["id"] for obj in fetched_objects]
@@ -413,25 +413,25 @@ class TestTagApi(SupersetTestCase):
         # check that tags exist in the database
         example_tag_names = ["example_tag_1", "example_tag_2", "example_tag_3"]
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
-        self.assertEqual(tags.count(), 3)
+        assert tags.count() == 3
         # delete the first tag
         uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[:1])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         # check that tag does not exist in the database
         tag = db.session.query(Tag).filter(Tag.name == example_tag_names[0]).first()
         assert tag is None
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
-        self.assertEqual(tags.count(), 2)
+        assert tags.count() == 2
         # delete multiple tags
         uri = f"api/v1/tag/?q={prison.dumps(example_tag_names[1:])}"
         rv = self.client.delete(uri, follow_redirects=True)
         # successful request
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         # check that tags are all gone
         tags = db.session.query(Tag).filter(Tag.name.in_(example_tag_names))
-        self.assertEqual(tags.count(), 0)
+        assert tags.count() == 0
 
     @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag(self):
@@ -442,7 +442,7 @@ class TestTagApi(SupersetTestCase):
         tag = db.session.query(Tag).first()
         rv = self.client.post(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         from sqlalchemy import and_  # noqa: F811
         from superset.tags.models import user_favorite_tag_table  # noqa: F811
         from flask import g  # noqa: F401, F811
@@ -463,7 +463,7 @@ class TestTagApi(SupersetTestCase):
         uri = f"api/v1/tag/{tag.id}/favorites/"
         rv = self.client.delete(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         association_row = (
             db.session.query(user_favorite_tag_table)
             .filter(
@@ -483,7 +483,7 @@ class TestTagApi(SupersetTestCase):
         uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.post(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag_not_found(self):
@@ -491,7 +491,7 @@ class TestTagApi(SupersetTestCase):
         uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.delete(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 404)
+        assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_tags")
     @patch("superset.daos.tag.g")
@@ -501,7 +501,7 @@ class TestTagApi(SupersetTestCase):
         uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.post(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
 
     @pytest.mark.usefixtures("create_tags")
     @patch("superset.daos.tag.g")
@@ -511,7 +511,7 @@ class TestTagApi(SupersetTestCase):
         uri = "api/v1/tag/123/favorites/"  # noqa: F541
         rv = self.client.delete(uri, follow_redirects=True)
 
-        self.assertEqual(rv.status_code, 422)
+        assert rv.status_code == 422
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_tag(self):
@@ -527,7 +527,7 @@ class TestTagApi(SupersetTestCase):
             json={"name": "my_tag", "objects_to_tag": [["dashboard", dashboard.id]]},
         )
 
-        self.assertEqual(rv.status_code, 201)
+        assert rv.status_code == 201
         self.get_user(username="admin").get_id()  # noqa: F841
         tag = (
             db.session.query(Tag)
@@ -550,7 +550,7 @@ class TestTagApi(SupersetTestCase):
             json={"name": "", "objects_to_tag": [["dashboard", dashboard.id]]},
         )
 
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("create_tags")
@@ -563,7 +563,7 @@ class TestTagApi(SupersetTestCase):
             uri, json={"name": "new_name", "description": "new description"}
         )
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         tag = (
             db.session.query(Tag)
@@ -581,7 +581,7 @@ class TestTagApi(SupersetTestCase):
         uri = f"api/v1/tag/{tag_to_update.id}"
         rv = self.client.put(uri, json={"foo": "bar"})
 
-        self.assertEqual(rv.status_code, 400)
+        assert rv.status_code == 400
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_post_bulk_tag(self):
@@ -617,7 +617,7 @@ class TestTagApi(SupersetTestCase):
             },
         )
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
 
         result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
         assert len(result) == 1
@@ -686,7 +686,7 @@ class TestTagApi(SupersetTestCase):
             },
         )
 
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         result = rv.json["result"]
         assert len(result["objects_tagged"]) == 2
         assert len(result["objects_skipped"]) == 1

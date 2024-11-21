@@ -68,7 +68,7 @@ from superset.exceptions import (
 )
 from superset.extensions import feature_flag_manager
 from superset.jinja_context import BaseTemplateProcessor
-from superset.sql.parse import SQLScript, SQLStatement
+from superset.sql.parse import SQLScript
 from superset.sql_parse import (
     has_table_query,
     insert_rls_in_predicate,
@@ -113,6 +113,7 @@ ADVANCED_DATA_TYPES = config["ADVANCED_DATA_TYPES"]
 def validate_adhoc_subquery(
     sql: str,
     database_id: int,
+    engine: str,
     default_schema: str,
 ) -> str:
     """
@@ -127,7 +128,12 @@ def validate_adhoc_subquery(
     """
     statements = []
     for statement in sqlparse.parse(sql):
-        if has_table_query(statement):
+        try:
+            has_table = has_table_query(str(statement), engine)
+        except SupersetParseError:
+            has_table = True
+
+        if has_table:
             if not is_feature_enabled("ALLOW_ADHOC_SUBQUERY"):
                 raise SupersetSecurityException(
                     SupersetError(
@@ -136,7 +142,9 @@ def validate_adhoc_subquery(
                         level=ErrorLevel.ERROR,
                     )
                 )
+            # TODO (betodealmeida): reimplement with sqlglot
             statement = insert_rls_in_predicate(statement, database_id, default_schema)
+
         statements.append(statement)
 
     return ";\n".join(str(statement) for statement in statements)
@@ -811,10 +819,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
-    def _process_sql_expression(
+    def _process_sql_expression(  # pylint: disable=too-many-arguments
         self,
         expression: Optional[str],
         database_id: int,
+        engine: str,
         schema: str,
         template_processor: Optional[BaseTemplateProcessor],
     ) -> Optional[str]:
@@ -824,6 +833,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = validate_adhoc_subquery(
                 expression,
                 database_id,
+                engine,
                 schema,
             )
             try:
@@ -870,10 +880,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(sqlaq.sqla_query)
         sql = self._apply_cte(sql, sqlaq.cte)
-        try:
-            sql = SQLStatement(sql, engine=self.db_engine_spec.engine).format()
-        except SupersetParseError:
-            logger.warning("Unable to parse SQL to format it, passing it as-is")
 
         if mutate:
             sql = self.database.mutate_sql_based_on_config(sql)
@@ -1113,6 +1119,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             expression = self._process_sql_expression(
                 expression=metric["sqlExpression"],
                 database_id=self.database_id,
+                engine=self.database.backend,
                 schema=self.schema,
                 template_processor=template_processor,
             )
@@ -1314,7 +1321,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
         return and_(*l)
 
-    def values_for_column(
+    def values_for_column(  # pylint: disable=too-many-locals
         self,
         column_name: str,
         limit: int = 10000,
@@ -1349,6 +1356,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
+
+        rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
+        qry = qry.where(and_(*rls_filters))
 
         with self.database.get_sqla_engine() as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -1553,6 +1563,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     col["sqlExpression"] = self._process_sql_expression(
                         expression=col["sqlExpression"],
                         database_id=self.database_id,
+                        engine=self.database.backend,
                         schema=self.schema,
                         template_processor=template_processor,
                     )
@@ -1615,6 +1626,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         selected = validate_adhoc_subquery(
                             selected,
                             self.database_id,
+                            self.database.backend,
                             self.schema,
                         )
                         outer = literal_column(f"({selected})")
@@ -1641,6 +1653,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 selected = validate_adhoc_subquery(
                     _sql,
                     self.database_id,
+                    self.database.backend,
                     self.schema,
                 )
 
@@ -1917,6 +1930,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 where = self._process_sql_expression(
                     expression=where,
                     database_id=self.database_id,
+                    engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
                 )
@@ -1935,6 +1949,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 having = self._process_sql_expression(
                     expression=having,
                     database_id=self.database_id,
+                    engine=self.database.backend,
                     schema=self.schema,
                     template_processor=template_processor,
                 )

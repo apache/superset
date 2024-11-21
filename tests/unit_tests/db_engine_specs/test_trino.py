@@ -28,7 +28,7 @@ import pytest
 from flask import g, has_app_context
 from pytest_mock import MockerFixture
 from requests.exceptions import ConnectionError as RequestsConnectionError
-from sqlalchemy import sql, text, types
+from sqlalchemy import column, sql, text, types
 from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import NoSuchTableError
@@ -45,7 +45,12 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIProgrammingError,
 )
 from superset.sql_parse import Table
-from superset.superset_typing import ResultSetColumnType, SQLAColumnType, SQLType
+from superset.superset_typing import (
+    OAuth2ClientConfig,
+    ResultSetColumnType,
+    SQLAColumnType,
+    SQLType,
+)
 from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -421,38 +426,9 @@ def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
     def _mock_execute(*args, **kwargs):
         mock_cursor.query_id = query_id
 
-    mock_cursor.execute.side_effect = _mock_execute
-    with patch.dict(
-        "superset.config.DISALLOWED_SQL_FUNCTIONS",
-        {},
-        clear=True,
-    ):
-        TrinoEngineSpec.execute_with_cursor(
-            cursor=mock_cursor,
-            sql="SELECT 1 FROM foo",
-            query=mock_query,
-        )
+    with app.test_request_context("/some/place/"):
+        mock_cursor.execute.side_effect = _mock_execute
 
-        mock_query.set_extra_json_key.assert_called_once_with(
-            key=QUERY_CANCEL_KEY, value=query_id
-        )
-
-
-def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
-    """Test that `execute_with_cursor` still contains the current app context"""
-    from superset.db_engine_specs.trino import TrinoEngineSpec
-
-    mock_cursor = mocker.MagicMock()
-    mock_cursor.query_id = None
-
-    mock_query = mocker.MagicMock()
-    g.some_value = "some_value"
-
-    def _mock_execute(*args, **kwargs):
-        assert has_app_context()
-        assert g.some_value == "some_value"
-
-    with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
         with patch.dict(
             "superset.config.DISALLOWED_SQL_FUNCTIONS",
             {},
@@ -463,6 +439,39 @@ def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
                 sql="SELECT 1 FROM foo",
                 query=mock_query,
             )
+
+            mock_query.set_extra_json_key.assert_called_once_with(
+                key=QUERY_CANCEL_KEY, value=query_id
+            )
+
+
+def test_execute_with_cursor_app_context(app, mocker: MockerFixture):
+    """Test that `execute_with_cursor` still contains the current app context"""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.query_id = None
+
+    mock_query = mocker.MagicMock()
+
+    def _mock_execute(*args, **kwargs):
+        assert has_app_context()
+        assert g.some_value == "some_value"
+
+    with app.test_request_context("/some/place/"):
+        g.some_value = "some_value"
+
+        with patch.object(TrinoEngineSpec, "execute", side_effect=_mock_execute):
+            with patch.dict(
+                "superset.config.DISALLOWED_SQL_FUNCTIONS",
+                {},
+                clear=True,
+            ):
+                TrinoEngineSpec.execute_with_cursor(
+                    cursor=mock_cursor,
+                    sql="SELECT 1 FROM foo",
+                    query=mock_query,
+                )
 
 
 def test_get_columns(mocker: MockerFixture):
@@ -784,3 +793,120 @@ def test_where_latest_partition(
         )
         == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""
     )
+
+
+@pytest.fixture
+def oauth2_config() -> OAuth2ClientConfig:
+    """
+    Config for Trino OAuth2.
+    """
+    return {
+        "id": "trino",
+        "secret": "very-secret",
+        "scope": "",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://trino.auth.server.example/realms/master/protocol/openid-connect/auth",
+        "token_request_uri": "https://trino.auth.server.example/master/protocol/openid-connect/token",
+        "request_content_type": "data",
+    }
+
+
+def test_get_oauth2_token(
+    mocker: MockerFixture,
+    oauth2_config: OAuth2ClientConfig,
+) -> None:
+    """
+    Test `get_oauth2_token`.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    requests.post().json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+
+    assert TrinoEngineSpec.get_oauth2_token(oauth2_config, "code") == {
+        "access_token": "access-token",
+        "expires_in": 3600,
+        "scope": "scope",
+        "token_type": "Bearer",
+        "refresh_token": "refresh-token",
+    }
+    requests.post.assert_called_with(
+        "https://trino.auth.server.example/master/protocol/openid-connect/token",
+        data={
+            "code": "code",
+            "client_id": "trino",
+            "client_secret": "very-secret",
+            "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+            "grant_type": "authorization_code",
+        },
+        timeout=30.0,
+    )
+
+
+@pytest.mark.parametrize(
+    "time_grain,expected_result",
+    [
+        ("PT1S", "date_trunc('second', CAST(col AS TIMESTAMP))"),
+        (
+            "PT5S",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 5)",
+        ),
+        (
+            "PT30S",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 30)",
+        ),
+        ("PT1M", "date_trunc('minute', CAST(col AS TIMESTAMP))"),
+        (
+            "PT5M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 5)",
+        ),
+        (
+            "PT10M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 10)",
+        ),
+        (
+            "PT15M",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 15)",
+        ),
+        (
+            "PT0.5H",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 30)",
+        ),
+        ("PT1H", "date_trunc('hour', CAST(col AS TIMESTAMP))"),
+        (
+            "PT6H",
+            "date_trunc('hour', CAST(col AS TIMESTAMP)) - interval '1' hour * (hour(CAST(col AS TIMESTAMP)) % 6)",
+        ),
+        ("P1D", "date_trunc('day', CAST(col AS TIMESTAMP))"),
+        ("P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
+        ("P1M", "date_trunc('month', CAST(col AS TIMESTAMP))"),
+        ("P3M", "date_trunc('quarter', CAST(col AS TIMESTAMP))"),
+        ("P1Y", "date_trunc('year', CAST(col AS TIMESTAMP))"),
+        (
+            "1969-12-28T00:00:00Z/P1W",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) - interval '1' day",
+        ),
+        ("1969-12-29T00:00:00Z/P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
+        (
+            "P1W/1970-01-03T00:00:00Z",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) + interval '5' day",
+        ),
+        (
+            "P1W/1970-01-04T00:00:00Z",
+            "date_trunc('week', CAST(col AS TIMESTAMP)) + interval '6' day",
+        ),
+    ],
+)
+def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+
+    actual = str(
+        spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
+    )
+    assert actual == expected_result

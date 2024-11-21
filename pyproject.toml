@@ -112,13 +112,14 @@ bigquery = [
 clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 cors = ["flask-cors>=2.0.0"]
-crate = ["crate[sqlalchemy]>=0.26.0, <0.27"]
+crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
     "databricks-sql-connector>=2.0.2, <3",
     "sqlalchemy-databricks>=0.2.0",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.0"]
+denodo = ["denodo-sqlalchemy~=1.0.6"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.4, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
@@ -187,6 +188,7 @@ development = [
     "pip-compile-multi",
     "pre-commit",
     "progress>=1.5,<2",
+    "psutil",
     "pyfakefs",
     "pyinstrument>=4.0.2,<5",
     "pylint",
@@ -446,6 +448,7 @@ select = [
     "E7",
     "E9",
     "F",
+    "PT009",
     "TRY201",
 ]
 ignore = []

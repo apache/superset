@@ -29,6 +29,9 @@ const themes = {
   [ThemeType.LIGHT]: lightAlgorithm,
 };
 
+// Want to figure out which tokens look like what? Try this!
+// https://ant.design/theme-editor
+
 const baseConfig: ThemeConfig = {
   token: {
     borderRadius: supersetTheme.borderRadius,
@@ -52,13 +55,31 @@ const baseConfig: ThemeConfig = {
     zIndexPopupBase: supersetTheme.zIndex.max,
   },
   components: {
+    Avatar: {
+      containerSize: 32,
+      fontSize: supersetTheme.typography.sizes.s,
+      lineHeight: 32,
+    },
     Badge: {
       paddingXS: supersetTheme.gridUnit * 2,
     },
     Card: {
-      colorBgContainer: supersetTheme.colors.grayscale.light4,
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
+    },
+    Input: {
+      colorBorder: supersetTheme.colors.secondary.light3,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
+        supersetTheme.colors.primary.light3
+      }`,
+    },
+    InputNumber: {
+      colorBorder: supersetTheme.colors.secondary.light3,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
+        supersetTheme.colors.primary.light3
+      }`,
     },
     Tag: {
       borderRadiusSM: 2,
@@ -69,11 +90,18 @@ const baseConfig: ThemeConfig = {
       colorText: supersetTheme.colors.text.label,
       remainingColor: supersetTheme.colors.grayscale.light4,
     },
+    Popover: {
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+    },
     Slider: {
       trackBgDisabled: supersetTheme.colors.grayscale.light1,
       colorBgElevated: supersetTheme.colors.grayscale.light5,
       handleSizeHover: 10,
       handleLineWidthHover: 2,
+    },
+    Switch: {
+      colorPrimaryHover: supersetTheme.colors.primary.base,
+      colorTextTertiary: supersetTheme.colors.grayscale.light1,
     },
   },
 };

@@ -117,7 +117,7 @@ class TestDashboard(SupersetTestCase):
         url = "/dashboard/new/"
         response = self.client.get(url, follow_redirects=False)
         dash_count_after = db.session.query(func.count(Dashboard.id)).first()[0]
-        self.assertEqual(dash_count_before + 1, dash_count_after)
+        assert dash_count_before + 1 == dash_count_after
         group = re.match(
             r"\/superset\/dashboard\/([0-9]*)\/\?edit=true",
             response.headers["Location"],
@@ -145,25 +145,25 @@ class TestDashboard(SupersetTestCase):
         self.logout()
 
         resp = self.get_resp("/api/v1/chart/")
-        self.assertNotIn("birth_names", resp)
+        assert "birth_names" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn("/superset/dashboard/births/", resp)
+        assert "/superset/dashboard/births/" not in resp
 
         self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        self.assertIn("birth_names", self.get_resp("/api/v1/chart/"))
+        assert "birth_names" in self.get_resp("/api/v1/chart/")
 
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertIn("/superset/dashboard/births/", resp)
+        assert "/superset/dashboard/births/" in resp
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp("/api/v1/chart/")
-        self.assertNotIn("wb_health_population", resp)
+        assert "wb_health_population" not in resp
 
         resp = self.get_resp("/api/v1/dashboard/")
-        self.assertNotIn("/superset/dashboard/world_health/", resp)
+        assert "/superset/dashboard/world_health/" not in resp
 
         # Cleanup
         self.revoke_public_access_to_table(table)
@@ -224,8 +224,8 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(hidden_dash)
         db.session.commit()
 
-        self.assertIn(f"/superset/dashboard/{my_dash_slug}/", resp)
-        self.assertNotIn(f"/superset/dashboard/{not_my_dash_slug}/", resp)
+        assert f"/superset/dashboard/{my_dash_slug}/" in resp
+        assert f"/superset/dashboard/{not_my_dash_slug}/" not in resp
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
@@ -247,7 +247,7 @@ class TestDashboard(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-        self.assertNotIn(f"/superset/dashboard/{slug}/", resp)
+        assert f"/superset/dashboard/{slug}/" not in resp
 
 
 if __name__ == "__main__":

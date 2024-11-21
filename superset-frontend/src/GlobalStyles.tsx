@@ -70,7 +70,7 @@ export const GlobalStyles = () => (
         }
       }
       .column-config-popover {
-        & .ant-input-number {
+        & .antd5-input-number {
           width: 100%;
         }
         && .btn-group svg {

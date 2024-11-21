@@ -17,17 +17,17 @@
  * under the License.
  */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Label from 'src/components/Label';
+import { HeaderProps, HeaderDropdownProps } from '../Header/types';
 
-const propTypes = {
-  dashboardId: PropTypes.number,
-  isPublished: PropTypes.bool.isRequired,
-  savePublished: PropTypes.func.isRequired,
-  canEdit: PropTypes.bool,
-  canSave: PropTypes.bool,
+export type DashboardPublishedStatusType = {
+  dashboardId: HeaderDropdownProps['dashboardId'];
+  userCanEdit: HeaderDropdownProps['userCanEdit'];
+  userCanSave: HeaderDropdownProps['userCanSave'];
+  isPublished: HeaderProps['isPublished'];
+  savePublished: HeaderProps['savePublished'];
 };
 
 const draftButtonTooltip = t(
@@ -44,8 +44,9 @@ const publishedTooltip = t(
   'This dashboard is published. Click to make it a draft.',
 );
 
-export default class PublishedStatus extends Component {
-  componentDidMount() {
+export default class PublishedStatus extends Component<DashboardPublishedStatusType> {
+  constructor(props: DashboardPublishedStatusType) {
+    super(props);
     this.togglePublished = this.togglePublished.bind(this);
   }
 
@@ -54,10 +55,12 @@ export default class PublishedStatus extends Component {
   }
 
   render() {
+    const { isPublished, userCanEdit, userCanSave } = this.props;
+
     // Show everybody the draft badge
-    if (!this.props.isPublished) {
+    if (!isPublished) {
       // if they can edit the dash, make the badge a button
-      if (this.props.canEdit && this.props.canSave) {
+      if (userCanEdit && userCanSave) {
         return (
           <Tooltip
             id="unpublished-dashboard-tooltip"
@@ -86,7 +89,7 @@ export default class PublishedStatus extends Component {
     }
 
     // Show the published badge for the owner of the dashboard to toggle
-    if (this.props.canEdit && this.props.canSave) {
+    if (userCanEdit && userCanSave) {
       return (
         <Tooltip
           id="published-dashboard-tooltip"
@@ -108,5 +111,3 @@ export default class PublishedStatus extends Component {
     return null;
   }
 }
-
-PublishedStatus.propTypes = propTypes;

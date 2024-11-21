@@ -22,7 +22,11 @@ set -e
 #
 /app/docker/docker-bootstrap.sh
 
-STEP_CNT=4
+if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
+    STEP_CNT=4
+else
+    STEP_CNT=3
+fi
 
 echo_step() {
 cat <<EOF

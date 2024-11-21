@@ -21,8 +21,9 @@ import logging
 import re
 import time
 from datetime import datetime
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
+import requests
 from flask import current_app
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
@@ -56,6 +57,8 @@ class ImpalaEngineSpec(BaseEngineSpec):
         TimeGrain.QUARTER: "TRUNC({col}, 'Q')",
         TimeGrain.YEAR: "TRUNC({col}, 'YYYY')",
     }
+
+    has_query_id_before_execute = False
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -91,7 +94,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
         :see: handle_cursor
         """
 
-        return True
+        return False
 
     @classmethod
     def execute(
@@ -160,3 +163,38 @@ class ImpalaEngineSpec(BaseEngineSpec):
         except Exception:  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
             return
+
+    @classmethod
+    def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:
+        """
+        Get Impala Query ID that will be used to cancel the running
+        queries to release impala resources.
+
+        :param cursor: Cursor instance in which the query will be executed
+        :param query: Query instance
+        :return: Impala Query ID
+        """
+        last_operation = getattr(cursor, "_last_operation", None)
+        if not last_operation:
+            return None
+        guid = last_operation.handle.operationId.guid[::-1].hex()
+        return f"{guid[-16:]}:{guid[:16]}"
+
+    @classmethod
+    def cancel_query(cls, cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """
+        Cancel query in the underlying database.
+
+        :param cursor: New cursor instance to the db of the query
+        :param query: Query instance
+        :param cancel_query_id: impala db not need
+        :return: True if query cancelled successfully, False otherwise
+        """
+        try:
+            impala_host = query.database.url_object.host
+            url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
+            response = requests.post(url, timeout=3)
+        except Exception:  # pylint: disable=broad-except
+            return False
+
+        return bool(response and response.status_code == 200)

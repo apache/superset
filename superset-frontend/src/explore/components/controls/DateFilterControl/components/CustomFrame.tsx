@@ -166,6 +166,11 @@ export function CustomFrame(props: FrameComponentProps) {
                 }
                 allowClear={false}
                 locale={datePickerLocale}
+                getPopupContainer={triggerNode =>
+                  props.isOverflowingFilterBar
+                    ? (triggerNode.parentNode as HTMLElement)
+                    : document.body
+                }
               />
             </Row>
           )}
@@ -219,6 +224,11 @@ export function CustomFrame(props: FrameComponentProps) {
                 }
                 allowClear={false}
                 locale={datePickerLocale}
+                getPopupContainer={triggerNode =>
+                  props.isOverflowingFilterBar
+                    ? (triggerNode.parentNode as HTMLElement)
+                    : document.body
+                }
               />
             </Row>
           )}
@@ -277,6 +287,11 @@ export function CustomFrame(props: FrameComponentProps) {
                   allowClear={false}
                   className="control-anchor-to-datetime"
                   locale={datePickerLocale}
+                  getPopupContainer={triggerNode =>
+                    props.isOverflowingFilterBar
+                      ? (triggerNode.parentNode as HTMLElement)
+                      : document.body
+                  }
                 />
               </Col>
             )}

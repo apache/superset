@@ -105,7 +105,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               requiredFirst: true,
               description: t(
-                'When using this option, default value can’t be set',
+                'When using this option, default value can’t be set. Using this option may impact the load times for your dashboard.',
               ),
             },
           },

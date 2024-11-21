@@ -61,9 +61,9 @@ import {
   dashboardInfoChanged,
   SAVE_CHART_CONFIG_COMPLETE,
 } from './dashboardInfo';
-import { fetchDatasourceMetadata } from './datasources';
+import { fetchDatasourceMetadata, setDatasources } from './datasources';
 import { updateDirectPathToFilter } from './dashboardFilters';
-import { SET_FILTER_CONFIG_COMPLETE } from './nativeFilters';
+import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
 import {
   applyColors,
@@ -337,10 +337,21 @@ export function saveDashboardRequest(data, id, saveType) {
         }
         if (metadata.native_filter_configuration) {
           dispatch({
-            type: SET_FILTER_CONFIG_COMPLETE,
+            type: SET_IN_SCOPE_STATUS_OF_FILTERS,
             filterConfig: metadata.native_filter_configuration,
           });
         }
+
+        // fetch datasets to make sure they are up to date
+        SupersetClient.get({
+          endpoint: `/api/v1/dashboard/${id}/datasets`,
+          headers: { 'Content-Type': 'application/json' },
+        }).then(({ json }) => {
+          const datasources = json?.result ?? [];
+          if (datasources.length) {
+            dispatch(setDatasources(datasources));
+          }
+        });
       }
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));

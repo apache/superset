@@ -65,6 +65,7 @@ import {
   extractDataTotalValues,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
@@ -251,7 +252,7 @@ export default function transformProps(
     legendState,
   });
   const seriesContexts = extractForecastSeriesContexts(
-    Object.values(rawSeries).map(series => series.name as string),
+    rawSeries.map(series => series.name as string),
   );
   const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
@@ -543,11 +544,12 @@ export default function transformProps(
           ? params[0].value[xIndex]
           : params.value[xIndex];
         const forecastValue: any[] = richTooltip ? params : [params];
-
-        if (richTooltip && tooltipSortByMetric) {
-          forecastValue.sort((a, b) => b.data[yIndex] - a.data[yIndex]);
-        }
-
+        const sortedKeys = extractTooltipKeys(
+          forecastValue,
+          yIndex,
+          richTooltip,
+          tooltipSortByMetric,
+        );
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
@@ -570,27 +572,31 @@ export default function transformProps(
         const showPercentage = showTotal && !forcePercentFormatter;
         const keys = Object.keys(forecastValues);
         let focusedRow;
-        keys.forEach(key => {
-          const value = forecastValues[key];
-          if (value.observation === 0 && stack) {
-            return;
-          }
-          const row = formatForecastTooltipSeries({
-            ...value,
-            seriesName: key,
-            formatter,
+        sortedKeys
+          .filter(key => keys.includes(key))
+          .forEach(key => {
+            const value = forecastValues[key];
+            if (value.observation === 0 && stack) {
+              return;
+            }
+            const row = formatForecastTooltipSeries({
+              ...value,
+              seriesName: key,
+              formatter,
+            });
+            if (showPercentage && value.observation !== undefined) {
+              row.push(
+                percentFormatter.format(value.observation / (total || 1)),
+              );
+            }
+            rows.push(row);
+            if (key === focusedSeries) {
+              focusedRow = rows.length - 1;
+            }
           });
-          if (showPercentage && value.observation !== undefined) {
-            row.push(percentFormatter.format(value.observation / (total || 1)));
-          }
-          rows.push(row);
-          if (key === focusedSeries) {
-            focusedRow = rows.length - 1;
-          }
-        });
         if (stack) {
           rows.reverse();
-          if (focusedRow) {
+          if (focusedRow !== undefined) {
             focusedRow = rows.length - focusedRow - 1;
           }
         }

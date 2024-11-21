@@ -616,7 +616,7 @@ test('CSV, form post', async () => {
   const inputElement = document.querySelector('input[type="file"]');
 
   if (inputElement) {
-    userEvent.upload(inputElement, file);
+    userEvent.upload(inputElement as HTMLElement, file);
   }
 
   const selectDatabase = screen.getByRole('combobox', {
@@ -673,7 +673,7 @@ test('Excel, form post', async () => {
   const inputElement = document.querySelector('input[type="file"]');
 
   if (inputElement) {
-    userEvent.upload(inputElement, file);
+    userEvent.upload(inputElement as HTMLElement, file);
   }
 
   const selectDatabase = screen.getByRole('combobox', {
@@ -734,7 +734,7 @@ test('Columnar, form post', async () => {
   const inputElement = document.querySelector('input[type="file"]');
 
   if (inputElement) {
-    userEvent.upload(inputElement, file);
+    userEvent.upload(inputElement as HTMLElement, file);
   }
 
   const selectDatabase = screen.getByRole('combobox', {

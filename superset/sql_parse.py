@@ -28,7 +28,6 @@ import sqlparse
 from flask_babel import gettext as __
 from jinja2 import nodes
 from sqlalchemy import and_
-from sqlglot.dialects.dialect import Dialects
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
 from sqlparse.sql import (
@@ -61,7 +60,13 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
 )
-from superset.sql.parse import extract_tables_from_statement, SQLScript, Table
+from superset.sql.parse import (
+    extract_tables_from_statement,
+    SQLGLOT_DIALECTS,
+    SQLScript,
+    SQLStatement,
+    Table,
+)
 from superset.utils.backports import StrEnum
 
 try:
@@ -86,61 +91,6 @@ lex = Lexer.get_default_instance()
 sqlparser_sql_regex = keywords.SQL_REGEX
 sqlparser_sql_regex.insert(25, (r"'(''|\\\\|\\|[^'])*'", sqlparse.tokens.String.Single))
 lex.set_SQL_REGEX(sqlparser_sql_regex)
-
-
-# mapping between DB engine specs and sqlglot dialects
-SQLGLOT_DIALECTS = {
-    "ascend": Dialects.HIVE,
-    "awsathena": Dialects.PRESTO,
-    "bigquery": Dialects.BIGQUERY,
-    "clickhouse": Dialects.CLICKHOUSE,
-    "clickhousedb": Dialects.CLICKHOUSE,
-    "cockroachdb": Dialects.POSTGRES,
-    "couchbase": Dialects.MYSQL,
-    # "crate": ???
-    # "databend": ???
-    "databricks": Dialects.DATABRICKS,
-    # "db2": ???
-    # "dremio": ???
-    "drill": Dialects.DRILL,
-    # "druid": ???
-    "duckdb": Dialects.DUCKDB,
-    # "dynamodb": ???
-    # "elasticsearch": ???
-    # "exa": ???
-    # "firebird": ???
-    # "firebolt": ???
-    "gsheets": Dialects.SQLITE,
-    "hana": Dialects.POSTGRES,
-    "hive": Dialects.HIVE,
-    # "ibmi": ???
-    # "impala": ???
-    # "kustokql": ???
-    # "kylin": ???
-    "mssql": Dialects.TSQL,
-    "mysql": Dialects.MYSQL,
-    "netezza": Dialects.POSTGRES,
-    # "ocient": ???
-    # "odelasticsearch": ???
-    "oracle": Dialects.ORACLE,
-    # "pinot": ???
-    "postgresql": Dialects.POSTGRES,
-    "presto": Dialects.PRESTO,
-    "pydoris": Dialects.DORIS,
-    "redshift": Dialects.REDSHIFT,
-    # "risingwave": ???
-    # "rockset": ???
-    "shillelagh": Dialects.SQLITE,
-    "snowflake": Dialects.SNOWFLAKE,
-    # "solr": ???
-    "spark": Dialects.SPARK,
-    "sqlite": Dialects.SQLITE,
-    "starrocks": Dialects.STARROCKS,
-    "superset": Dialects.SQLITE,
-    "teradatasql": Dialects.TERADATA,
-    "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
-}
 
 
 class CtasMethod(StrEnum):
@@ -621,46 +571,31 @@ class InsertRLSState(StrEnum):
     FOUND_TABLE = "FOUND_TABLE"
 
 
-def has_table_query(token_list: TokenList) -> bool:
+def has_table_query(expression: str, engine: str) -> bool:
     """
     Return if a statement has a query reading from a table.
 
-        >>> has_table_query(sqlparse.parse("COUNT(*)")[0])
+        >>> has_table_query("COUNT(*)", "postgresql")
         False
-        >>> has_table_query(sqlparse.parse("SELECT * FROM table")[0])
+        >>> has_table_query("SELECT * FROM table", "postgresql")
         True
 
     Note that queries reading from constant values return false:
 
-        >>> has_table_query(sqlparse.parse("SELECT * FROM (SELECT 1)")[0])
+        >>> has_table_query("SELECT * FROM (SELECT 1)", "postgresql")
         False
 
     """
-    state = InsertRLSState.SCANNING
-    for token in token_list.tokens:
-        # Ignore comments
-        if isinstance(token, sqlparse.sql.Comment):
-            continue
+    # Remove trailing semicolon.
+    expression = expression.strip().rstrip(";")
 
-        # Recurse into child token list
-        if isinstance(token, TokenList) and has_table_query(token):
-            return True
+    # Wrap the expression in parentheses if it's not already.
+    if not expression.startswith("("):
+        expression = f"({expression})"
 
-        # Found a source keyword (FROM/JOIN)
-        if imt(token, m=[(Keyword, "FROM"), (Keyword, "JOIN")]):
-            state = InsertRLSState.SEEN_SOURCE
-
-        # Found identifier/keyword after FROM/JOIN
-        elif state == InsertRLSState.SEEN_SOURCE and (
-            isinstance(token, sqlparse.sql.Identifier) or token.ttype == Keyword
-        ):
-            return True
-
-        # Found nothing, leaving source
-        elif state == InsertRLSState.SEEN_SOURCE and token.ttype != Whitespace:
-            state = InsertRLSState.SCANNING
-
-    return False
+    sql = f"SELECT {expression}"
+    statement = SQLStatement(sql, engine)
+    return any(statement.tables)
 
 
 def add_table_name(rls: TokenList, table: str) -> None:

@@ -24,6 +24,7 @@ from flask import current_app
 
 from superset import feature_flag_manager
 from superset.dashboards.permalink.types import DashboardPermalinkState
+from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
@@ -91,7 +92,8 @@ class BaseScreenshot:
         self, user: User, window_size: WindowSize | None = None
     ) -> bytes | None:
         driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(self.url, self.element, user)
+        with event_logger.log_context("screenshot", screenshot_url=self.url):
+            self.screenshot = driver.get_screenshot(self.url, self.element, user)
         return self.screenshot
 
     def get(
@@ -169,7 +171,10 @@ class BaseScreenshot:
 
         # Assuming all sorts of things can go wrong with Selenium
         try:
-            payload = self.get_screenshot(user=user, window_size=window_size)
+            with event_logger.log_context(
+                f"screenshot.compute.{self.thumbnail_type}", force=force
+            ):
+                payload = self.get_screenshot(user=user, window_size=window_size)
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning("Failed at generating thumbnail %s", ex, exc_info=True)
 
@@ -182,7 +187,10 @@ class BaseScreenshot:
 
         if payload:
             logger.info("Caching thumbnail: %s", cache_key)
-            cache.set(cache_key, payload)
+            with event_logger.log_context(
+                f"screenshot.cache.{self.thumbnail_type}", force=force
+            ):
+                cache.set(cache_key, payload)
             logger.info("Done caching thumbnail")
         return payload
 

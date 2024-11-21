@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+    from sqlglot import Dialect, Dialects
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -249,6 +250,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Extends the default SQLGlot dialects with additional dialects
+SQLGLOT_DIALECTS_EXTENSIONS: dict[str, Dialects | type[Dialect]] = {}
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
@@ -352,7 +357,7 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
+# ]
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
@@ -473,6 +478,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
+    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
+    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
+    # Generate screenshots (PDF or JPG) of dashboards using the web driver.
+    # When disabled, screenshots are generated on the fly by the browser.
+    # This feature flag is used by the download feature in the dashboard view.
+    # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
+    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
@@ -481,6 +494,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
+    # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
@@ -954,6 +968,9 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 # Adds a warning message on sqllab save query and schedule query modals.
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
+
+# Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
+SQLLAB_PAYLOAD_MAX_MB = None
 
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"

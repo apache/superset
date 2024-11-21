@@ -496,6 +496,7 @@ class Header extends PureComponent {
     const refreshWarning =
       dashboardInfo.common?.conf
         ?.SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE;
+    const isEmbedded = !dashboardInfo?.userId;
 
     const handleOnPropertiesChange = updates => {
       const { dashboardInfoChanged, dashboardTitleChanged } = this.props;
@@ -548,12 +549,12 @@ class Header extends PureComponent {
                 dashboardId={dashboardInfo.id}
                 isPublished={isPublished}
                 savePublished={this.props.savePublished}
-                canEdit={userCanEdit}
-                canSave={userCanSaveAs}
+                userCanEdit={userCanEdit}
+                userCanSave={userCanSaveAs}
                 visible={!editMode}
               />
             ),
-            !editMode && (
+            !editMode && !isEmbedded && (
               <MetadataBar
                 items={this.getMetadataItems()}
                 tooltipPlacement="bottom"
