@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /Users/max/code/superset/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -190,7 +190,7 @@ pyfakefs==5.3.5
     # via apache-superset
 pyhive[presto]==0.7.0
     # via apache-superset
-pyinstrument==4.4.0
+pyinstrument==4.7.3
     # via apache-superset
 pylint==3.1.0
     # via apache-superset
