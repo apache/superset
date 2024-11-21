@@ -901,7 +901,6 @@ on $left.Day1 == $right.Day
 @pytest.mark.parametrize(
     ("engine", "sql", "expected"),
     [
-        # SQLite tests
         ("sqlite", "SELECT 1", False),
         ("sqlite", "INSERT INTO foo VALUES (1)", True),
         ("sqlite", "UPDATE foo SET bar = 2 WHERE id = 1", True),
@@ -979,3 +978,73 @@ def test_custom_dialect(app: None) -> None:
     Test that custom dialects are loaded correctly.
     """
     assert SQLGLOT_DIALECTS.get("custom") == Dialects.MYSQL
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "ascend",
+        "awsathena",
+        "base",
+        "bigquery",
+        "clickhouse",
+        "clickhousedb",
+        "cockroachdb",
+        "couchbase",
+        "crate",
+        "databend",
+        "databricks",
+        "db2",
+        "denodo",
+        "dremio",
+        "drill",
+        "druid",
+        "duckdb",
+        "dynamodb",
+        "elasticsearch",
+        "exa",
+        "firebird",
+        "firebolt",
+        "gsheets",
+        "hana",
+        "hive",
+        "ibmi",
+        "impala",
+        "kustokql",
+        "kustosql",
+        "kylin",
+        "mariadb",
+        "motherduck",
+        "mssql",
+        "mysql",
+        "netezza",
+        "oceanbase",
+        "ocient",
+        "odelasticsearch",
+        "oracle",
+        "pinot",
+        "postgresql",
+        "presto",
+        "pydoris",
+        "redshift",
+        "risingwave",
+        "rockset",
+        "shillelagh",
+        "snowflake",
+        "solr",
+        "sqlite",
+        "starrocks",
+        "superset",
+        "teradatasql",
+        "trino",
+        "vertica",
+    ],
+)
+def test_is_mutating(engine: str) -> None:
+    """
+    Tests for `is_mutating`.
+    """
+    assert not SQLStatement(
+        "with source as ( select 1 as one ) select * from source",
+        engine=engine,
+    ).is_mutating()
