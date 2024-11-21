@@ -24,6 +24,7 @@ import {
 import { JsonArray, JsonValue, t } from '@superset-ui/core';
 import { ControlProps } from 'src/explore/components/Control';
 import builtInControlComponents from 'src/explore/components/controls';
+import useEffectEvent from 'src/hooks/useEffectEvent';
 
 /**
  * Full control component map.
@@ -72,7 +73,7 @@ export type AsyncVerify = (
  * Whether the extra props will update the original props.
  */
 function hasUpdates(
-  props: ControlPropsWithExtras,
+  props: Partial<ControlPropsWithExtras>,
   newProps: ExtraControlProps,
 ) {
   return (
@@ -142,14 +143,12 @@ export default function withAsyncVerification({
     } = props;
     const otherPropsRef = useRef(restProps);
     const [verifiedProps, setVerifiedProps] = useState({});
-    const verifiedPropsRef = useRef(verifiedProps);
     const [isLoading, setIsLoading] = useState<boolean>(initialIsLoading);
     const { addWarningToast } = restProps.actions;
 
     // memoize `restProps`, so that verification only triggers when material
     // props are actually updated.
     let otherProps = otherPropsRef.current;
-    verifiedPropsRef.current = verifiedProps;
     if (hasUpdates(otherProps, restProps)) {
       otherProps = otherPropsRef.current = restProps;
     }
@@ -167,20 +166,17 @@ export default function withAsyncVerification({
       [basicOnChange, otherProps, verifiedProps],
     );
 
-    useEffect(() => {
-      if (needAsyncVerification && verify) {
+    const verifyProps = useEffectEvent(
+      (verifyFunc: AsyncVerify, props: typeof otherProps) => {
         if (showLoadingState) {
           setIsLoading(true);
         }
-        verify(otherProps)
+        verifyFunc(props)
           .then(updatedProps => {
             if (showLoadingState) {
               setIsLoading(false);
             }
-            if (
-              updatedProps &&
-              hasUpdates(otherProps, verifiedPropsRef.current)
-            ) {
+            if (updatedProps && hasUpdates(verifiedProps, updatedProps)) {
               setVerifiedProps({
                 // save isLoading in combination with other props to avoid
                 // rendering twice.
@@ -203,14 +199,14 @@ export default function withAsyncVerification({
               );
             }
           });
+      },
+    );
+
+    useEffect(() => {
+      if (needAsyncVerification && verify) {
+        verifyProps(verify, otherProps);
       }
-    }, [
-      needAsyncVerification,
-      showLoadingState,
-      verify,
-      otherProps,
-      addWarningToast,
-    ]);
+    }, [needAsyncVerification, verify, otherProps, verifyProps]);
 
     return (
       <ControlComponent
