@@ -32,23 +32,6 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
     """
     from superset.commands.export.assets import ExportAssetsCommand
 
-    ExportTagsCommand = mocker.patch(
-        "superset.commands.export.assets.ExportTagsCommand"
-    )
-    ExportTagsCommand.return_value.run.return_value = [
-        (
-            "metadata.yaml",
-            lambda: yaml.dump(
-                {
-                    "tags": [
-                        {"tag_name": "tag_1", "description": "Description for tag_1"}
-                    ]
-                },
-                sort_keys=False,
-            ),
-        ),
-        ("tags.yaml", lambda: "<TAG CONTENTS>"),
-    ]
     ExportDatabasesCommand = mocker.patch(
         "superset.commands.export.assets.ExportDatabasesCommand"
     )
@@ -111,7 +94,6 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
         ("databases/example.yaml", "<DATABASE CONTENTS>"),
         ("datasets/example/dataset.yaml", "<DATASET CONTENTS>"),
         ("charts/pie.yaml", "<CHART CONTENTS>"),
-        ("tags.yaml", "<TAG CONTENTS>"),
         ("dashboards/sales.yaml", "<DASHBOARD CONTENTS>"),
         ("queries/example/metric.yaml", "<SAVED QUERY CONTENTS>"),
     ]
@@ -119,9 +101,7 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
 
 @pytest.fixture
 def mock_export_tags_command_charts_dashboards(mocker):
-    ExportTagsCommand = mocker.patch(
-        "superset.commands.export.assets.ExportTagsCommand"
-    )
+    ExportTagsCommand = mocker.patch("superset.commands.tag.export.ExportTagsCommand")
 
     def _mock_export(dashboard_ids=None, chart_ids=None):
         if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):

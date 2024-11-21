@@ -14,7 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
@@ -64,9 +66,7 @@ class ImportModelsCommand(BaseCommand):
     def _import(
         configs: dict[str, Any],
         overwrite: bool = False,
-        contents: Optional[
-            dict[str, Any]
-        ] = None,  # Use dict[str, str] to match the parent class signature
+        contents: dict[str, Any] | None = None,
     ) -> None:
         raise NotImplementedError("Subclasses MUST implement _import")
 
@@ -90,7 +90,7 @@ class ImportModelsCommand(BaseCommand):
 
         # verify that the metadata file is present and valid
         try:
-            metadata: Optional[dict[str, str]] = load_metadata(self.contents)
+            metadata: dict[str, str] | None = load_metadata(self.contents)
         except ValidationError as exc:
             exceptions.append(exc)
             metadata = None

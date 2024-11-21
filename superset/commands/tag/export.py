@@ -21,7 +21,6 @@ from typing import Any, Callable, List, Optional, Union
 from collections.abc import Iterator
 
 import yaml
-from superset.daos.tag import TagDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.extensions import feature_flag_manager
@@ -31,7 +30,6 @@ from superset.commands.tag.exceptions import TagNotFoundError
 
 # pylint: disable=too-few-public-methods
 class ExportTagsCommand:
-    dao = TagDAO
     not_found = TagNotFoundError
 
     @staticmethod

@@ -76,7 +76,7 @@ class ExportChartsCommand(ExportModelsCommand):
 
         # Fetch tags from the database if TAGGING_SYSTEM is enabled
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            tags = model.tags if hasattr(model, "tags") else []
+            tags = getattr(model, "tags", [])
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
