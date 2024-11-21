@@ -99,9 +99,10 @@ const getDashboardContextFormData = () => {
   if (dashboardContext) {
     const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
     const {
+      colorScheme,
       labelsColor,
       labelsColorMap,
-      colorScheme,
+      sharedLabelsColors,
       chartConfiguration,
       nativeFilters,
       filterBoxFilters,
@@ -113,15 +114,18 @@ const getDashboardContextFormData = () => {
       filters: getAppliedFilterValues(sliceId, filterBoxFilters),
       nativeFilters,
       chartConfiguration,
-      colorScheme,
       dataMask,
+      colorScheme,
       labelsColor,
       labelsColorMap,
+      sharedLabelsColors,
       sliceId,
       allSliceIds: [sliceId],
       extraControls: {},
     });
-    Object.assign(dashboardContextWithFilters, { dashboardId });
+    Object.assign(dashboardContextWithFilters, {
+      dashboardId,
+    });
     return dashboardContextWithFilters;
   }
   return null;
