@@ -1091,7 +1091,7 @@ def test__normalize_prequery_result_type(
         columns_by_name,
     )
 
-    assert type(normalized) == type(result)
+    assert isinstance(normalized, type(result))
 
     if isinstance(normalized, TextClause):
         assert str(normalized) == str(result)
