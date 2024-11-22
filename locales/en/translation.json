@@ -45,7 +45,6 @@
     "Total Sales & Traffic": "Total Sales & Traffic",
     "Commission & Traffic": "Commission & Traffic",
     "Top Publishers by Sales": "Top Publishers by Sales",
-    "Main": "Current",
     "# Previous value": "Previous",
     "Difference": "Difference",
     "% Difference": "% Difference",
@@ -129,5 +128,10 @@
     "Commission Scheme": "Commission Scheme",
     "Commission applied": "Commission applied",
     "Previous value": "Previous value",
-    "Current value": "Current value"
+    "Current value": "Current value",
+    "Quantity": "Quantity",
+    "Confirmed": "Confirmed",
+    "Delayed": "Delayed",
+    "Cancelled": "Cancelled",
+    "Program ID": "Program ID"
 }

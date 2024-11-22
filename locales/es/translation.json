@@ -45,7 +45,6 @@
     "Total Sales & Traffic": "Ventas y tráfico totales",
     "Commission & Traffic": "Comisión y tráfico",
     "Top Publishers by Sales": "Principales afiliados por ventas",
-    "Main": "Principal",
     "# Previous value": "Anterior",
     "Difference": "Diferencia",
     "% Difference": "Diferencia (%)",
@@ -129,5 +128,10 @@
     "Commission Scheme": "Plan de comisión",
     "Commission applied": "Comisión aplicada",
     "Previous value": "Valor anterior",
-    "Current value": "Valor actual"
+    "Current value": "Valor actual",
+    "Quantity": "",
+    "Confirmed": "",
+    "Delayed": "",
+    "Cancelled": "",
+    "Program ID": ""
 }
