@@ -44,7 +44,6 @@ import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/Head
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import getOwnerName from 'src/utils/getOwnerName';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -55,7 +54,6 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
