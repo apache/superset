@@ -25,7 +25,6 @@ x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
-  - superset-checks
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
@@ -131,23 +130,6 @@ services:
       - REDIS_PORT=6379
       - REDIS_SSL=false
 
-  superset-checks:
-    build:
-      context: .
-      target: python-base
-      cache_from:
-        - apache/superset-cache:3.10-slim-bookworm
-    container_name: superset_checks
-    command: ["/app/scripts/check-env.py"]
-    env_file:
-      - path: docker/.env # default
-        required: true
-      - path: docker/.env-local # optional override
-        required: false
-    user: *superset-user
-    healthcheck:
-      disable: true
-
   superset-init:
     build:
       <<: *common-build
@@ -179,6 +161,7 @@ services:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
+      NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]

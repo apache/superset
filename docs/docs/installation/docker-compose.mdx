@@ -95,6 +95,14 @@ perform those operations. In this case, we recommend you set the env var
 Simply trigger `npm i && npm run dev`, this should be MUCH faster.
 :::
 
+:::tip
+Sometimes, your npm-related state can get out-of-wack, running `npm run prune` from
+the `superset-frontend/` folder will nuke the various' packages `node_module/` folders
+and help you start fresh. In the context of `docker compose` setting
+`export NPM_RUN_PRUNE=true` prior to running `docker compose up` will trigger that
+from within docker. This will slow down the startup, but will fix various npm-related issues.
+:::
+
 ### Option #2 - build a set of immutable images from the local branch
 
 ```bash

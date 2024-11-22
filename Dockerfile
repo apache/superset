@@ -115,7 +115,7 @@ RUN mkdir -p ${PYTHONPATH} superset/static requirements superset-frontend apache
         libldap2-dev \
     && touch superset/static/version_info.json \
     && chown -R superset:superset ./* \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 COPY --chown=superset:superset pyproject.toml setup.py MANIFEST.in README.md ./
 # setup.py uses the version information in package.json
@@ -128,7 +128,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     && pip install --no-cache-dir --upgrade setuptools pip \
     && pip install --no-cache-dir -r requirements/base.txt \
     && apt-get autoremove -yqq --purge build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
@@ -177,7 +177,7 @@ RUN apt-get update -qq \
         libxtst6 \
         git \
         pkg-config \
-        && rm -rf /var/lib/apt/lists/*
+        && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --no-cache-dir playwright
@@ -199,13 +199,13 @@ RUN if [ "$INCLUDE_FIREFOX" = "true" ]; then \
         && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
         && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
         && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
-        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*; \
+        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/* /var/cache/apt/archives/*; \
     fi
 
 # Installing mysql client os-level dependencies in dev image only because GPL
 RUN apt-get install -yqq --no-install-recommends \
         default-libmysqlclient-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 COPY --chown=superset:superset requirements/development.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
@@ -213,7 +213,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
       build-essential \
     && pip install --no-cache-dir -r requirements/development.txt \
     && apt-get autoremove -yqq --purge build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 USER superset
 ######################################################################

@@ -33,7 +33,6 @@ from sqlalchemy import text
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
-from trino.exceptions import HttpError
 
 from superset import db
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
@@ -60,6 +59,12 @@ if TYPE_CHECKING:
         from trino.dbapi import Cursor
 
 logger = logging.getLogger(__name__)
+
+try:
+    # since trino is an optional dependency, we need to handle the ImportError
+    from trino.exceptions import HttpError
+except ImportError:
+    HttpError = Exception
 
 
 class CustomTrinoAuthErrorMeta(type):
