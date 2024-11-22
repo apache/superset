@@ -25,7 +25,8 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql.parse import SQLScript
+from superset.sql_parse import Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -1174,7 +1175,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
 
 def test_is_readonly():
     def is_readonly(sql: str) -> bool:
-        return PrestoEngineSpec.is_readonly_query(ParsedQuery(sql))
+        return not SQLScript(sql, engine=PrestoEngineSpec.engine).has_mutation()
 
     assert not is_readonly("SET hivevar:desc='Legislators'")
     assert not is_readonly("UPDATE t1 SET col1 = NULL")

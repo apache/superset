@@ -20,6 +20,8 @@ from typing import Optional
 
 import pytest
 
+from superset.sql.parse import SQLScript
+from superset.sql_parse import ParsedQuery
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -39,10 +41,11 @@ def test_sql_is_readonly_query(sql: str, expected: bool) -> None:
     """
 
     from superset.db_engine_specs.kusto import KustoSqlEngineSpec
-    from superset.sql_parse import ParsedQuery
 
-    parsed_query = ParsedQuery(sql)
-    is_readonly = KustoSqlEngineSpec.is_readonly_query(parsed_query)
+    is_readonly = SQLScript(
+        sql,
+        engine=KustoSqlEngineSpec.engine,
+    ).has_mutation()
 
     assert expected == is_readonly
 
@@ -62,7 +65,6 @@ def test_kql_is_select_query(kql: str, expected: bool) -> None:
     """
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
-    from superset.sql_parse import ParsedQuery
 
     parsed_query = ParsedQuery(kql)
     is_select = KustoKqlEngineSpec.is_select_query(parsed_query)
@@ -88,10 +90,11 @@ def test_kql_is_readonly_query(kql: str, expected: bool) -> None:
     """
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
-    from superset.sql_parse import ParsedQuery
 
-    parsed_query = ParsedQuery(kql)
-    is_readonly = KustoKqlEngineSpec.is_readonly_query(parsed_query)
+    is_readonly = SQLScript(
+        kql,
+        engine=KustoKqlEngineSpec.engine,
+    ).has_mutation()
 
     assert expected == is_readonly
 
