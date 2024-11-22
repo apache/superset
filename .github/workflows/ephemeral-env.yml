@@ -126,6 +126,7 @@ jobs:
         run: |
           supersetbot docker \
             --preset ci \
+            --platform  linux/amd64
             --context-ref "$RELEASE"
 
       - name: Configure AWS credentials
