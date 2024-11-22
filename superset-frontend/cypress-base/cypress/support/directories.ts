@@ -53,7 +53,7 @@ export const securityAccess = {
 export const homePage = {
   homeSection: {
     sectionArea: '.ant-collapse-content-box',
-    sectionElement: '.ant-card-meta-title',
+    sectionElement: '.antd5-card-meta-title',
   },
   sections: {
     expandedSection: '.ant-collapse-item-active',
@@ -284,7 +284,7 @@ export const chartListView = {
   },
   card: {
     card: dataTestLocator('styled-card'),
-    cardCover: '[class="ant-card-cover"]',
+    cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
     selectedStarIcon: "[aria-label='favorite-selected']",
     unselectedStarIcon: "[aria-label='favorite-unselected']",
@@ -401,7 +401,7 @@ export const dashboardListView = {
   },
   card: {
     card: dataTestLocator('styled-card'),
-    cardCover: '[class="ant-card-cover"]',
+    cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
     selectedStarIcon: "[aria-label='favorite-selected']",
     unselectedStarIcon: "[aria-label='favorite-unselected']",

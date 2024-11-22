@@ -41,7 +41,8 @@ const initialState: { dashboardInfo: DashboardInfo } = {
       color_namespace: '',
       color_scheme_domain: [],
       label_colors: {},
-      shared_label_colors: {},
+      shared_label_colors: [],
+      map_label_colors: {},
       cross_filters_enabled: false,
     },
     json_metadata: '',
@@ -51,6 +52,9 @@ const initialState: { dashboardInfo: DashboardInfo } = {
       conf: {},
     },
     crossFiltersEnabled: true,
+    created_on_delta_humanized: '',
+    changed_on_delta_humanized: '',
+    owners: [],
   },
 };
 

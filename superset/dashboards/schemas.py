@@ -137,7 +137,8 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
-    shared_label_colors = fields.Dict()
+    shared_label_colors = fields.List(fields.Str())
+    map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
     # used for v0 import/export

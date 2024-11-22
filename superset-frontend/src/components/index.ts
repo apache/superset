@@ -33,7 +33,6 @@ export { default as Card } from './Card';
  */
 export {
   AutoComplete,
-  Avatar,
   Col,
   Divider,
   Empty,

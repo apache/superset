@@ -29,7 +29,7 @@ import {
   SupersetThemeProps,
   withTheme,
   seed,
-  CategoricalColorScale,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import { isEqual } from 'lodash';
 
@@ -230,7 +230,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     encoder.channels.color.setDomainFromDataset(words);
 
     const { getValueFromDatum } = encoder.channels.color;
-    const colorFn = encoder.channels.color.scale as CategoricalColorScale;
+    const colorFn = CategoricalColorNamespace.getScale(colorScheme);
 
     const viewBoxWidth = width * scaleFactor;
     const viewBoxHeight = height * scaleFactor;
@@ -250,11 +250,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
               fontSize={`${w.size}px`}
               fontWeight={w.weight}
               fontFamily={w.font}
-              fill={colorFn(
-                getValueFromDatum(w) as string,
-                sliceId,
-                colorScheme,
-              )}
+              fill={colorFn(getValueFromDatum(w) as string, sliceId)}
               textAnchor="middle"
               transform={`translate(${w.x}, ${w.y}) rotate(${w.rotate})`}
             >

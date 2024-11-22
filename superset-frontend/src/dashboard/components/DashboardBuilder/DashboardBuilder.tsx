@@ -34,7 +34,7 @@ import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
-import DashboardHeader from 'src/dashboard/containers/DashboardHeader';
+import DashboardHeader from 'src/dashboard/components/Header';
 import Icons from 'src/components/Icons';
 import IconButton from 'src/dashboard/components/IconButton';
 import { Droppable } from 'src/dashboard/components/dnd/DragDroppable';

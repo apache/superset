@@ -79,11 +79,11 @@ export default function BoundsControl({
     setMinMax([parseNumber(min), parseNumber(max)]);
   }, [min, max]);
 
-  const onMinChange = (value: number | string | undefined) => {
+  const onMinChange = (value: number | string | undefined | null) => {
     update([parseNumber(value), minMax[1]]);
   };
 
-  const onMaxChange = (value: number | string | undefined) => {
+  const onMaxChange = (value: number | string | undefined | null) => {
     update([minMax[0], parseNumber(value)]);
   };
 
@@ -94,7 +94,7 @@ export default function BoundsControl({
         <MinInput
           data-test="min-bound"
           placeholder={t('Min')}
-          // emit (string | number | undefined)
+          // emit (string | number | undefined | null)
           onChange={onMinChange}
           // accept (number | undefined)
           value={minMax[0] === null ? undefined : minMax[0]}
@@ -102,7 +102,7 @@ export default function BoundsControl({
         <MaxInput
           data-test="max-bound"
           placeholder={t('Max')}
-          // emit (number | string | undefined)
+          // emit (number | string | undefined | null)
           onChange={onMaxChange}
           // accept (number | undefined)
           value={minMax[1] === null ? undefined : minMax[1]}
