@@ -45,7 +45,6 @@
     "Total Sales & Traffic": "Gesamtumsatz und Traffic",
     "Commission & Traffic": "Provision und Traffic",
     "Top Publishers by Sales": "Top-Publisher nach Umsatz",
-    "Main": "Aktuell",
     "# Previous value": "Vorheriger Wert",
     "Difference": "Differenz",
     "% Difference": "Differenz (%)",
@@ -129,5 +128,10 @@
     "Commission Scheme": "Provisionsmodell",
     "Commission applied": "Angewendete Provision",
     "Previous value": "Vorheriger Wert",
-    "Current value": "Aktueller Wert"
+    "Current value": "Aktueller Wert",
+    "Quantity": "",
+    "Confirmed": "",
+    "Delayed": "",
+    "Cancelled": "",
+    "Program ID": ""
 }

@@ -45,7 +45,6 @@
     "Total Sales & Traffic": "Montant total des ventes et trafic",
     "Commission & Traffic": "Commission et trafic",
     "Top Publishers by Sales": "Meilleures ventes, par éditeur",
-    "Main": "Période en cours",
     "# Previous value": "Valeur antérieure",
     "Difference": "Différence",
     "% Difference": "Différence (%)",
@@ -129,5 +128,10 @@
     "Commission Scheme": "Plan de commission",
     "Commission applied": "Commission appliquée",
     "Previous value": "Valeur antérieure",
-    "Current value": "Valeur actuelle"
+    "Current value": "Valeur actuelle",
+    "Quantity": "",
+    "Confirmed": "",
+    "Delayed": "",
+    "Cancelled": "",
+    "Program ID": ""
 }

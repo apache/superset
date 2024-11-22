@@ -45,7 +45,6 @@
     "Total Sales & Traffic": "Totale verkoop & verkeer",
     "Commission & Traffic": "Commissie & verkeer",
     "Top Publishers by Sales": "Beste publishers op verkoop",
-    "Main": "Hoofd",
     "# Previous value": "# vorige waarde",
     "Difference": "Verschil",
     "% Difference": "% verschil",
@@ -129,5 +128,10 @@
     "Commission Scheme": "Commissie schema",
     "Commission applied": "Commissie toegepast",
     "Previous value": "Vorige waarde",
-    "Current value": "Huidige waarde"
+    "Current value": "Huidige waarde",
+    "Quantity": "",
+    "Confirmed": "",
+    "Delayed": "",
+    "Cancelled": "",
+    "Program ID": ""
 }
