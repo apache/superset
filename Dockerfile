@@ -219,7 +219,7 @@ USER superset
 ######################################################################
 # CI image...
 ######################################################################
-FROM dev AS ci
+FROM lean AS ci
 
 COPY --chown=superset:superset --chmod=755 ./docker/*.sh /app/docker/
 
