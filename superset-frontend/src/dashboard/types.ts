@@ -33,6 +33,7 @@ import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
@@ -139,6 +140,11 @@ export type DashboardInfo = {
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
+  created_on_delta_humanized: string;
+  changed_on_delta_humanized: string;
+  changed_by?: Owner;
+  created_by?: Owner;
+  owners: Owner[];
 };
 
 export type ChartsState = { [key: string]: Chart };

@@ -44,7 +44,6 @@ import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/Head
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
-import getOwnerName from 'src/utils/getOwnerName';
 import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
@@ -55,7 +54,6 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -88,6 +86,7 @@ import { logEvent } from '../../../logger/actions';
 import { dashboardInfoChanged } from '../../actions/dashboardInfo';
 import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
+import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -472,32 +471,7 @@ const Header = () => {
     setShowingEmbedModal(false);
   }, []);
 
-  const getMetadataItems = useCallback(
-    () => [
-      {
-        type: MetadataType.LastModified,
-        value: dashboardInfo.changed_on_delta_humanized,
-        modifiedBy:
-          getOwnerName(dashboardInfo.changed_by) || t('Not available'),
-      },
-      {
-        type: MetadataType.Owner,
-        createdBy: getOwnerName(dashboardInfo.created_by) || t('Not available'),
-        owners:
-          dashboardInfo.owners.length > 0
-            ? dashboardInfo.owners.map(getOwnerName)
-            : t('None'),
-        createdOn: dashboardInfo.created_on_delta_humanized,
-      },
-    ],
-    [
-      dashboardInfo.changed_by,
-      dashboardInfo.changed_on_delta_humanized,
-      dashboardInfo.created_by,
-      dashboardInfo.created_on_delta_humanized,
-      dashboardInfo.owners,
-    ],
-  );
+  const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
   const userCanEdit =
     dashboardInfo.dash_edit_perm && !dashboardInfo.is_managed_externally;
@@ -579,15 +553,13 @@ const Header = () => {
           visible={!editMode}
         />
       ),
-      !editMode && !isEmbedded && (
-        <MetadataBar items={getMetadataItems()} tooltipPlacement="bottom" />
-      ),
+      !editMode && !isEmbedded && metadataBar,
     ],
     [
       boundActionCreators.savePublished,
       dashboardInfo.id,
       editMode,
-      getMetadataItems,
+      metadataBar,
       isEmbedded,
       isPublished,
       userCanEdit,
