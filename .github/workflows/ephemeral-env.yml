@@ -125,7 +125,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           supersetbot docker \
-            --preset dev \
+            --preset ci \
             --context-ref "$RELEASE"
 
       - name: Configure AWS credentials
