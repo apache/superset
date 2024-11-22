@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import { css, logging, SupersetClient, t, tn } from '@superset-ui/core';
+import { css, logging, SupersetClient, t } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -29,10 +29,10 @@ import Icons from 'src/components/Icons';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
-import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
+import { useExploreMetadataBar } from './useExploreMetadataBar';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -160,48 +160,7 @@ export const ExploreChartHeader = ({
       metadata?.dashboards,
     );
 
-  const metadataBar = useMemo(() => {
-    if (!metadata) {
-      return null;
-    }
-    const items = [];
-    items.push({
-      type: MetadataType.Dashboards,
-      title:
-        metadata.dashboards.length > 0
-          ? tn(
-              'Added to 1 dashboard',
-              'Added to %s dashboards',
-              metadata.dashboards.length,
-              metadata.dashboards.length,
-            )
-          : t('Not added to any dashboard'),
-      description:
-        metadata.dashboards.length > 0
-          ? t(
-              'You can preview the list of dashboards in the chart settings dropdown.',
-            )
-          : undefined,
-    });
-    items.push({
-      type: MetadataType.LastModified,
-      value: metadata.changed_on_humanized,
-      modifiedBy: metadata.changed_by || t('Not available'),
-    });
-    items.push({
-      type: MetadataType.Owner,
-      createdBy: metadata.created_by || t('Not available'),
-      owners: metadata.owners.length > 0 ? metadata.owners : t('None'),
-      createdOn: metadata.created_on_humanized,
-    });
-    if (slice?.description) {
-      items.push({
-        type: MetadataType.Description,
-        value: slice?.description,
-      });
-    }
-    return <MetadataBar items={items} tooltipPlacement="bottom" />;
-  }, [metadata, slice?.description]);
+  const metadataBar = useExploreMetadataBar(metadata, slice);
 
   const oldSliceName = slice?.slice_name;
   return (
