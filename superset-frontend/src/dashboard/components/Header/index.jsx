@@ -263,6 +263,14 @@ const Header = () => {
         }
       }
 
+      const fetchCharts = (charts, force = false) =>
+        boundActionCreators.fetchCharts(
+          charts,
+          force,
+          interval * 0.2,
+          dashboardInfo.id,
+        );
+
       const periodicRender = () => {
         const { metadata } = dashboardInfo;
         const immune = metadata.timed_refresh_immune_slices || [];
@@ -284,19 +292,9 @@ const Header = () => {
           dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE === 'fetch'
         ) {
           // force-refresh while auto-refresh in dashboard
-          return boundActionCreators.fetchCharts(
-            affectedCharts,
-            false,
-            interval * 0.2,
-            dashboardInfo.id,
-          );
+          return fetchCharts(affectedCharts);
         }
-        return boundActionCreators.fetchCharts(
-          affectedCharts,
-          true,
-          interval * 0.2,
-          dashboardInfo.id,
-        );
+        return fetchCharts(affectedCharts, true);
       };
 
       refreshTimer.current = setPeriodicRunner({
@@ -432,7 +430,7 @@ const Header = () => {
     } else {
       if (positionJSONLength >= limit * 0.9) {
         boundActionCreators.addWarningToast(
-          'Your dashboard is near the size limit.',
+          t('Your dashboard is near the size limit.'),
         );
       }
 
