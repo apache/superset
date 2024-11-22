@@ -28,7 +28,9 @@ import {
 } from 'react';
 
 import { styled } from '@superset-ui/core';
-import { use, init, EChartsType } from 'echarts/core';
+import { use, init, EChartsType, registerLocale } from 'echarts/core';
+// @ts-ignore
+import localeCfg from 'echarts/lib/i18n/langRU';
 import {
   SankeyChart,
   PieChart,
@@ -126,7 +128,11 @@ function Echart(
   useEffect(() => {
     if (!divRef.current) return;
     if (!chartRef.current) {
-      chartRef.current = init(divRef.current);
+      registerLocale('RU', localeCfg);
+      chartRef.current = init(divRef.current, 'light', {
+        renderer: 'svg',
+        locale: 'RU',
+      });
     }
 
     Object.entries(eventHandlers || {}).forEach(([name, handler]) => {

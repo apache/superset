@@ -28,7 +28,7 @@ ARG NPM_BUILD_CMD="build"
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
-ARG BUILD_TRANSLATIONS="false"
+ARG BUILD_TRANSLATIONS="true"
 
 # Used by docker-compose to skip the frontend build,
 # in dev we mount the repo and build the frontend inside docker
@@ -96,13 +96,37 @@ FROM python-base AS lean
 ARG BUILD_TRANSLATIONS="false"
 
 WORKDIR /app
-ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
+############################################################################################################################################
+#ENV LANG=C.UTF-8 \
+#    LC_ALL=C.UTF-8 \
+#    SUPERSET_ENV=production \
+#    FLASK_APP="superset.app:create_app()" \
+#    PYTHONPATH="/app/pythonpath" \
+#    SUPERSET_HOME="/app/superset_home" \
+#    SUPERSET_PORT=8088
+############################################################################################################################################
+ENV DEBIAN_FRONTEND noninteractive.
+RUN apt-get update
+RUN apt-get upgrade -y
+RUN apt-get install -y locales locales-all
+RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
+
+ENV LANG=ru_RU.UTF-8 \
+    LC_ALL=ru_RU.UTF-8 \
+    LANGUAGE=ru_RU.UTF-8 \
     SUPERSET_ENV=production \
     FLASK_APP="superset.app:create_app()" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
+
+#ENV LANGUAGE ru_RU.UTF-8
+#ENV LANG ru_RU.UTF-8
+#ENV LC_ALL ru_RU.UTF-8
+RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
+#ENTRYPOINT /bin/bash
+############################################################################################################################################
+############################################################################################################################################
 
 RUN mkdir -p ${PYTHONPATH} superset/static requirements superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \

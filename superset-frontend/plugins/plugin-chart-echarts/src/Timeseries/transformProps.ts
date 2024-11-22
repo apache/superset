@@ -202,6 +202,22 @@ export default function transformProps(
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
+  
+  const stackSet: any[] = [
+    ...new Set(
+      Object.entries(labelMap).map((x: [string, string[]]) =>
+        x[1].slice(-groupBy.length).join(),
+      ),
+    ),
+  ];
+  const stackMap: any = Object.entries(labelMap).reduce(
+    (acc, entry: [string, string[]]) => ({
+      ...acc,
+      [entry[0]]: stackSet.indexOf(entry[1].slice(-groupBy.length).join()),
+    }),
+    {},
+  );
+
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
@@ -279,6 +295,14 @@ export default function transformProps(
 
   const offsetLineWidths: { [key: string]: number } = {};
 
+  /* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["series"] }] */
+  const updateStackIndex = (series: any) => {
+    if (series.stack) {
+      series.stack = `${series.stack}.${stackMap[series.id]}`;
+    }
+    return series;
+  };
+
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
     const lineStyle: LineStyleOption = {};
@@ -343,6 +367,8 @@ export default function transformProps(
             (row: [string | number, number]) => [row[0], row[1] ?? 0],
           ),
         });
+      } else if (stack === StackControlsValue.StackNone) {
+        series.push(updateStackIndex(transformedSeries));
       } else {
         series.push(transformedSeries);
       }

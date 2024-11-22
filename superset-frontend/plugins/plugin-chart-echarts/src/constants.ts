@@ -74,6 +74,7 @@ export enum StackControlsValue {
   Stack = 'Stack',
   Stream = 'Stream',
   Expand = 'Expand',
+  StackNone = 'StackNone',
 }
 
 export const StackControlOptions: [
@@ -83,6 +84,7 @@ export const StackControlOptions: [
   [null, t('None')],
   [StackControlsValue.Stack, t('Stack')],
   [StackControlsValue.Stream, t('Stream')],
+  [StackControlsValue.StackNone, t('StackNone')],
 ];
 
 export const AreaChartStackControlOptions: [
