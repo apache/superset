@@ -37,6 +37,7 @@ from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.importers.v1 import ImportModelsCommand
 from superset.commands.importers.v1.utils import import_tag
+from superset.commands.utils import update_chart_config_dataset
 from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
@@ -123,11 +124,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
             ):
                 # update datasource id, type, and name
                 dataset_dict = dataset_info[config["dataset_uuid"]]
-                config.update(dataset_dict)
-                dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
-                config["params"].update({"datasource": dataset_uid})
-                if "query_context" in config:
-                    config["query_context"] = None
+                config = update_chart_config_dataset(config, dataset_dict)
 
                 chart = import_chart(config, overwrite=False)
                 charts.append(chart)
