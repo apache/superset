@@ -118,7 +118,11 @@ class CollectionControl extends Component {
           return (
             <SortableListItem
               className="clearfix"
-              css={{ justifyContent: 'flex-start' }}
+              css={theme => ({
+                justifyContent: 'flex-start',
+                display: '-webkit-flex',
+                paddingInline: theme.gridUnit * 3,
+              })}
               key={this.props.keyAccessor(o)}
               index={i}
             >
