@@ -35,6 +35,7 @@ export const getColorNamespace = (namespace?: string) => namespace || undefined;
  * Get labels shared across all charts in a dashboard.
  * Merges a fresh instance of shared label colors with a stored one.
  *
+ * @param currentSharedLabels - existing shared labels to merge with fresh
  * @returns Record<string, string>
  */
 export const getFreshSharedLabels = (
@@ -74,7 +75,7 @@ export const getSharedLabelsColorMapEntries = (
  * @returns all color entries except custom label colors
  */
 export const getLabelsColorMapEntries = (
-  customLabelsColor: Record<string, string>,
+  customLabelsColor: Record<string, string> = {},
 ): Record<string, string> => {
   const labelsColorMapInstance = getLabelsColorMap();
   const allEntries = Object.fromEntries(labelsColorMapInstance.getColorMap());

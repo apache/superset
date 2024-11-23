@@ -47,6 +47,8 @@ import {
   applyDashboardLabelsColorOnLoad,
   updateDashboardLabelsColor,
   persistDashboardLabelsColor,
+  ensureSyncedSharedLabelsColors,
+  ensureSyncedLabelsColorMap,
 } from 'src/dashboard/actions/dashboardState';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
@@ -96,7 +98,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
     useState(false);
   const prevRenderedChartIds = useRef<number[]>([]);
-
   const prevTabIndexRef = useRef();
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
@@ -110,6 +111,18 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     prevTabIndexRef.current = nextTabIndex;
     return nextTabIndex;
   }, [dashboardLayout, directPathToChild]);
+  // when all charts have rendered, enforce fresh shared labels
+  const shouldForceFreshSharedLabelsColors =
+    dashboardLabelsColorInitiated &&
+    renderedChartIds.length > 0 &&
+    chartIds.length === renderedChartIds.length &&
+    prevRenderedChartIds.current.length < renderedChartIds.length;
+
+  const onBeforeUnload = useCallback(() => {
+    dispatch(persistDashboardLabelsColor());
+    resetColors(getColorNamespace(dashboardInfo?.metadata?.color_namespace));
+    prevRenderedChartIds.current = [];
+  }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
 
   useEffect(() => {
     if (nativeFilterScopes.length === 0) {
@@ -148,11 +161,12 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const activeKey = min === 0 ? DASHBOARD_GRID_ID : min.toString();
   const TOP_OF_PAGE_RANGE = 220;
 
-  const onBeforeUnload = useCallback(() => {
-    dispatch(persistDashboardLabelsColor());
-    resetColors(getColorNamespace(dashboardInfo?.metadata?.color_namespace));
-    prevRenderedChartIds.current = [];
-  }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
+  useEffect(() => {
+    if (shouldForceFreshSharedLabelsColors) {
+      // all available charts have rendered, enforce freshest shared label colors
+      dispatch(ensureSyncedSharedLabelsColors(dashboardInfo.metadata, true));
+    }
+  }, [dashboardInfo.metadata, dispatch, shouldForceFreshSharedLabelsColors]);
 
   useEffect(() => {
     // verify freshness of color map
@@ -161,7 +175,6 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
     if (
       dashboardLabelsColorInitiated &&
-      dashboardInfo?.id &&
       numRenderedCharts > 0 &&
       prevRenderedChartIds.current.length < numRenderedCharts
     ) {
@@ -170,12 +183,20 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       );
       prevRenderedChartIds.current = renderedChartIds;
       dispatch(updateDashboardLabelsColor(newRenderedChartIds));
+      // new data may have appeared in the map (data changes)
+      // or new slices may have appeared while changing tabs
+      dispatch(ensureSyncedLabelsColorMap(dashboardInfo.metadata));
+
+      if (!shouldForceFreshSharedLabelsColors) {
+        dispatch(ensureSyncedSharedLabelsColors(dashboardInfo.metadata));
+      }
     }
   }, [
-    dashboardInfo?.id,
     renderedChartIds,
     dispatch,
     dashboardLabelsColorInitiated,
+    dashboardInfo.metadata,
+    shouldForceFreshSharedLabelsColors,
   ]);
 
   useEffect(() => {
@@ -183,9 +204,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     labelsColorMap.source = LabelsColorMapSource.Dashboard;
 
     if (dashboardInfo?.id && !dashboardLabelsColorInitiated) {
+      dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
       // apply labels color as dictated by stored metadata (if any)
       setDashboardLabelsColorInitiated(true);
-      dispatch(applyDashboardLabelsColorOnLoad(dashboardInfo.metadata));
     }
 
     return () => {
