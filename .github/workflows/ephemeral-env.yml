@@ -84,11 +84,13 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const issueNumber = ${{ github.event.inputs.issue_number || github.event.issue.number }};
-          const user = '${{ github.event.comment.user.login || github.actor }}';
+          const user = '${{ github.event.comment?.user.login || github.actor }}';
           const action = '${{ steps.eval-body.outputs.result }}';
+          const runId = context.runId;
+          const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
           const body = action === 'noop'
-            ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'.`
-            : `@${user} Processing your ephemeral environment request: '/testenv ${action}'`;
+            ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'. [View workflow run](${workflowUrl}).`
+            : `@${user} Processing your ephemeral environment request: '/testenv ${action}'. [View workflow run](${workflowUrl}).`;
 
           await github.rest.issues.createComment({
             owner: context.repo.owner,
@@ -96,6 +98,7 @@ jobs:
             issue_number: issueNumber,
             body,
           });
+
 
   ephemeral-docker-build:
     concurrency:
