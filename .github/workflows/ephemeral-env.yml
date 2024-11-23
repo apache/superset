@@ -78,6 +78,25 @@ jobs:
           });
           core.setFailed(errMsg);
 
+    - name: Reply with confirmation comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const issueNumber = ${{ github.event.inputs.issue_number || github.event.issue.number }};
+          const user = '${{ github.event.comment?.user.login || github.actor }}';
+          const action = '${{ steps.eval-body.outputs.result }}';
+          const body = action === 'noop'
+            ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'.`
+            : `@${user} Processing your ephemeral environment request: '/testenv ${action}'`;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issueNumber,
+            body,
+          });
+
   ephemeral-docker-build:
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.inputs.issue_number || github.event.issue.number || github.run_id }}-build
@@ -218,6 +237,9 @@ jobs:
     - name: Create ECS service
       id: create-service
       if: steps.describe-services.outputs.active != 'true'
+      env:
+        ECR_SUBNETS: subnet-0e15a5034b4121710,subnet-0e8efef4a72224974
+        ECR_SECURITY_GROUP: sg-092ff3a6ae0574d91
       run: |
         aws ecs create-service \
         --cluster superset-ci \
