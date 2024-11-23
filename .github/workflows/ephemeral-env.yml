@@ -78,6 +78,28 @@ jobs:
           });
           core.setFailed(errMsg);
 
+    - name: Reply with confirmation comment
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const issueNumber = ${{ github.event.inputs.issue_number || github.event.issue.number }};
+          const user = '${{ github.event.comment.user.login || github.actor }}';
+          const action = '${{ steps.eval-body.outputs.result }}';
+          const runId = context.runId;
+          const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
+          const body = action === 'noop'
+            ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'. [View workflow run](${workflowUrl}).`
+            : `@${user} Processing your ephemeral environment request [here](${workflowUrl}).`;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issueNumber,
+            body,
+          });
+
+
   ephemeral-docker-build:
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.inputs.issue_number || github.event.issue.number || github.run_id }}-build
@@ -218,22 +240,25 @@ jobs:
     - name: Create ECS service
       id: create-service
       if: steps.describe-services.outputs.active != 'true'
+      env:
+        ECR_SUBNETS: subnet-0e15a5034b4121710,subnet-0e8efef4a72224974
+        ECR_SECURITY_GROUP: sg-092ff3a6ae0574d91
       run: |
         aws ecs create-service \
         --cluster superset-ci \
-        --service-name pr-${{ github.event.issue.number }}-service \
+        --service-name pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service \
         --task-definition superset-ci \
         --launch-type FARGATE \
         --desired-count 1 \
         --platform-version LATEST \
         --network-configuration "awsvpcConfiguration={subnets=[$ECR_SUBNETS],securityGroups=[$ECR_SECURITY_GROUP],assignPublicIp=ENABLED}" \
-        --tags key=pr,value=${{ github.event.issue.number }} key=github_user,value=${{ github.actor }}
+        --tags key=pr,value=${{ github.event.inputs.issue_number || github.event.issue.number }} key=github_user,value=${{ github.actor }}
     - name: Deploy Amazon ECS task definition
       id: deploy-task
       uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: pr-${{ github.event.issue.number }}-service
+        service: pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service
         cluster: superset-ci
         wait-for-service-stability: true
         wait-for-minutes: 10
@@ -241,7 +266,7 @@ jobs:
     - name: List tasks
       id: list-tasks
       run: |
-        echo "task=$(aws ecs list-tasks --cluster superset-ci --service-name pr-${{ github.event.issue.number }}-service | jq '.taskArns | first')" >> $GITHUB_OUTPUT
+        echo "task=$(aws ecs list-tasks --cluster superset-ci --service-name pr-${{ github.event.inputs.issue_number || github.event.issue.number }}-service | jq '.taskArns | first')" >> $GITHUB_OUTPUT
     - name: Get network interface
       id: get-eni
       run: |
