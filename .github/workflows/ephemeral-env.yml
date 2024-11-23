@@ -84,7 +84,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
           const issueNumber = ${{ github.event.inputs.issue_number || github.event.issue.number }};
-          const user = '${{ github.event.comment?.user.login || github.actor }}';
+          const user = '${{ github.event.comment.user.login || github.actor }}';
           const action = '${{ steps.eval-body.outputs.result }}';
           const body = action === 'noop'
             ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'.`
