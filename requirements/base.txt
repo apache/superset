@@ -207,7 +207,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.21.2
+marshmallow==3.23.1
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
@@ -241,7 +241,7 @@ openpyxl==3.1.5
     # via pandas
 ordered-set==4.1.0
     # via flask-limiter
-packaging==23.2
+packaging==24.2
     # via
     #   apache-superset
     #   apispec
