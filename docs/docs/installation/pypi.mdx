@@ -130,21 +130,22 @@ First, start by installing `apache-superset`:
 pip install apache-superset
 ```
 
+Then, define mandatory configurations, SECRET_KEY and FLASK_APP:
+```bash
+export SUPERSET_SECRET_KEY=YOUR-SECRET-KEY
+export FLASK_APP=superset
+```
+
 Then, you need to initialize the database:
 
 ```bash
 superset db upgrade
 ```
 
-:::tip
-Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of SECRET_KEY. Please see [Configuring Superset](/docs/configuration/configuring-superset).
-:::
-
 Finish installing by running through the following commands:
 
 ```bash
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-export FLASK_APP=superset
 superset fab create-admin
 
 # Load some data to play with
