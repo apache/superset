@@ -505,6 +505,11 @@ If using the eslint extension with vscode, put the following in your workspace `
 
 ## GitHub Actions and `act`
 
+:::tip
+`act` compatibility of Superset's GHAs is not fully tested. Running `act` locally may or may not
+work for different actions, and may require fine tunning and local secret-handling.
+:::
+
 For automation and CI/CD, Superset makes extensive use of GitHub Actions (GHA). You
 can find all of the workflows and other assets under the `.github/` folder. This includes:
 - running the backend unit test suites (`tests/`)
