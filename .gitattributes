@@ -1,4 +1,3 @@
 docker/**/*.sh text eol=lf
-<<<<<<< HEAD
 *.svg binary
 *.ipynb binary
