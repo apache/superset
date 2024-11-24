@@ -76,7 +76,7 @@ colorama==0.4.6
     # via
     #   apache-superset
     #   flask-appbuilder
-cron-descriptor==1.4.3
+cron-descriptor==1.4.5
     # via apache-superset
 croniter==2.0.5
     # via apache-superset
