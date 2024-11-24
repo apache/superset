@@ -1038,6 +1038,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Render sql with template engine (Jinja).
         """
+        if not self.sql:
+            return ""
+
         sql = self.sql.strip("\t\r\n; ")
         if template_processor:
             try:
@@ -1071,9 +1074,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         or a virtual table with it's own subquery. If the FROM is referencing a
         CTE, the CTE is returned as the second value in the return tuple.
         """
-
         from_sql = self.get_rendered_sql(template_processor) + "\n"
-
         parsed_script = SQLScript(from_sql, engine=self.db_engine_spec.engine)
         if parsed_script.has_mutation():
             raise QueryObjectValidationError(

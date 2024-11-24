@@ -68,7 +68,7 @@ from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
-from sqlalchemy.sql.selectable import TableClause
+from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -1467,6 +1467,15 @@ class SqlaTable(
         if self.schema:
             tbl.schema = self.schema
         return tbl
+
+    def get_from_clause(
+        self,
+        template_processor: BaseTemplateProcessor | None = None,
+    ) -> tuple[TableClause | Alias, str | None]:
+        if not self.is_virtual:
+            return self.get_sqla_table(), None
+
+        return super().get_from_clause(template_processor)
 
     def adhoc_metric_to_sqla(
         self,
