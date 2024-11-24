@@ -85,6 +85,8 @@ cryptography==42.0.8
     #   apache-superset
     #   paramiko
     #   pyopenssl
+defusedxml==0.7.1
+    # via odfpy
 deprecated==1.2.14
     # via limits
 deprecation==2.1.0
@@ -93,6 +95,8 @@ dnspython==2.6.1
     # via email-validator
 email-validator==2.1.1
     # via flask-appbuilder
+et-xmlfile==2.0.0
+    # via openpyxl
 exceptiongroup==1.2.2
     # via cattrs
 flask==2.3.3
@@ -231,6 +235,10 @@ numpy==1.23.5
     #   numexpr
     #   pandas
     #   pyarrow
+odfpy==1.4.1
+    # via pandas
+openpyxl==3.1.5
+    # via pandas
 ordered-set==4.1.0
     # via flask-limiter
 packaging==23.2
@@ -243,7 +251,7 @@ packaging==23.2
     #   marshmallow
     #   marshmallow-sqlalchemy
     #   shillelagh
-pandas[performance]==2.0.3
+pandas[excel,performance]==2.0.3
     # via apache-superset
 paramiko==3.4.0
     # via
@@ -306,6 +314,8 @@ pytz==2024.2
     #   croniter
     #   flask-babel
     #   pandas
+pyxlsb==1.0.10
+    # via pandas
 pyyaml==6.0.1
     # via
     #   apache-superset
@@ -404,8 +414,12 @@ wtforms==3.2.1
     #   wtforms-json
 wtforms-json==0.3.5
     # via apache-superset
+xlrd==2.0.1
+    # via pandas
 xlsxwriter==3.0.9
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   pandas
 zipp==3.19.0
     # via importlib-metadata
 zstandard==0.22.0
