@@ -29,25 +29,26 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "sql,expected",
     [
-        ("SELECT foo FROM tbl", True),
+        ("SELECT foo FROM tbl", False),
         ("SHOW TABLES", False),
         ("EXPLAIN SELECT foo FROM tbl", False),
-        ("INSERT INTO tbl (foo) VALUES (1)", False),
+        ("INSERT INTO tbl (foo) VALUES (1)", True),
     ],
 )
-def test_sql_is_readonly_query(sql: str, expected: bool) -> None:
+def test_sql_has_mutation(sql: str, expected: bool) -> None:
     """
     Make sure that SQL dialect consider only SELECT statements as read-only
     """
 
     from superset.db_engine_specs.kusto import KustoSqlEngineSpec
 
-    is_readonly = SQLScript(
-        sql,
-        engine=KustoSqlEngineSpec.engine,
-    ).has_mutation()
-
-    assert expected == is_readonly
+    assert (
+        SQLScript(
+            sql,
+            engine=KustoSqlEngineSpec.engine,
+        ).has_mutation()
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -67,36 +68,35 @@ def test_kql_is_select_query(kql: str, expected: bool) -> None:
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
 
     parsed_query = ParsedQuery(kql)
-    is_select = KustoKqlEngineSpec.is_select_query(parsed_query)
-
-    assert expected == is_select
+    assert KustoKqlEngineSpec.is_select_query(parsed_query) == expected
 
 
 @pytest.mark.parametrize(
     "kql,expected",
     [
-        ("tbl | limit 100", True),
-        ("let foo = 1; tbl | where bar == foo", True),
-        (".show tables", True),
-        ("print 1", True),
-        ("set querytrace; Events | take 100", True),
-        (".drop table foo", False),
-        (".set-or-append table foo <| bar", False),
+        ("tbl | limit 100", False),
+        ("let foo = 1; tbl | where bar == foo", False),
+        (".show tables", False),
+        ("print 1", False),
+        ("set querytrace; Events | take 100", False),
+        (".drop table foo", True),
+        (".set-or-append table foo <| bar", True),
     ],
 )
-def test_kql_is_readonly_query(kql: str, expected: bool) -> None:
+def test_kql_has_mutation(kql: str, expected: bool) -> None:
     """
     Make sure that KQL dialect consider only SELECT statements as read-only
     """
 
     from superset.db_engine_specs.kusto import KustoKqlEngineSpec
 
-    is_readonly = SQLScript(
-        kql,
-        engine=KustoKqlEngineSpec.engine,
-    ).has_mutation()
-
-    assert expected == is_readonly
+    assert (
+        SQLScript(
+            kql,
+            engine=KustoKqlEngineSpec.engine,
+        ).has_mutation()
+        == expected
+    )
 
 
 def test_kql_parse_sql() -> None:
