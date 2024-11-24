@@ -16,6 +16,8 @@
 # under the License.
 # isort:skip_file
 from unittest import mock
+import unittest
+from .base_tests import SupersetTestCase
 
 import pytest
 import pandas as pd
@@ -154,6 +156,9 @@ def test_df_to_sql_if_exists_fail(mock_g):
 
 
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+)
 def test_df_to_sql_if_exists_fail_with_schema(mock_g):
     mock_g.user = True
     mock_database = mock.MagicMock()
@@ -290,6 +295,9 @@ def test_upload_to_s3_success(client):
     app.config = config
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+)
 def test_fetch_data_query_error():
     from TCLIService import ttypes
 
@@ -301,6 +309,9 @@ def test_fetch_data_query_error():
         HiveEngineSpec.fetch_data(cursor)
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+)
 @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.fetch_data")
 def test_fetch_data_programming_error(fetch_data_mock):
     from pyhive.exc import ProgrammingError
@@ -310,6 +321,9 @@ def test_fetch_data_programming_error(fetch_data_mock):
     assert HiveEngineSpec.fetch_data(cursor) == []
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+)
 @mock.patch("superset.db_engine_specs.base.BaseEngineSpec.fetch_data")
 def test_fetch_data_success(fetch_data_mock):
     return_value = ["a", "b"]
