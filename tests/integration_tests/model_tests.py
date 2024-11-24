@@ -254,6 +254,9 @@ class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+    )
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
