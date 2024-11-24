@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /home/runner/work/superset/superset/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -20,7 +20,7 @@ botocore==1.34.112
     # via
     #   boto3
     #   s3transfer
-build==1.2.1
+build==1.2.2.post1
     # via pip-tools
 cached-property==1.5.2
     # via tableschema
@@ -149,7 +149,7 @@ pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
-pip-compile-multi==2.6.3
+pip-compile-multi==2.6.4
     # via apache-superset
 pip-tools==7.4.1
     # via pip-compile-multi
@@ -188,7 +188,7 @@ pyee==11.0.1
     # via playwright
 pyfakefs==5.3.5
     # via apache-superset
-pyhive[presto]==0.7.0
+pyhive[hive]==0.7.0
     # via apache-superset
 pyinstrument==4.4.0
     # via apache-superset
@@ -196,7 +196,7 @@ pylint==3.1.0
     # via apache-superset
 pyproject-api==1.6.1
     # via tox
-pyproject-hooks==1.0.0
+pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
@@ -221,6 +221,8 @@ ruff==0.4.5
     # via apache-superset
 s3transfer==0.10.1
     # via boto3
+sasl==0.3.1
+    # via pyhive
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
 sqloxide==0.1.43
@@ -232,17 +234,19 @@ tableschema==1.20.10
 thrift==0.16.0
     # via
     #   apache-superset
+    #   pyhive
     #   thrift-sasl
 thrift-sasl==0.4.3
-    # via apache-superset
-tomli==2.0.1
+    # via
+    #   apache-superset
+    #   pyhive
+tomli==2.1.0
     # via
     #   build
     #   coverage
     #   pip-tools
     #   pylint
     #   pyproject-api
-    #   pyproject-hooks
     #   pytest
     #   tox
 tomlkit==0.12.5
@@ -267,7 +271,7 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-wheel==0.43.0
+wheel==0.45.1
     # via pip-tools
 xlrd==2.0.1
     # via dataflows-tabulator
