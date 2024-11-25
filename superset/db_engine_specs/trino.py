@@ -544,7 +544,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise SupersetException("Append operation not currently supported")
 
         if to_sql_kwargs["if_exists"] == "fail":
-            if database.has_table_by_name(table.table, table.schema):
+            if database.has_table(table):
                 raise SupersetException("Table already exists")
         elif to_sql_kwargs["if_exists"] == "replace":
             with cls.get_engine(database) as engine:
