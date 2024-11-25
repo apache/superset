@@ -69,7 +69,7 @@ def login_as(test_client: FlaskClient[Any]):
 
 @pytest.fixture
 def login_as_admin(login_as: Callable[..., None]):
-    yield login_as("admin")
+    yield login_as("admin")  # type: ignore
 
 
 @pytest.fixture

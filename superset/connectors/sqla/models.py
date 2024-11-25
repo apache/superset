@@ -921,7 +921,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
 
     @property
     def database(self) -> Database:
-        return self.table.database if self.table else self._database
+        return self.table.database if self.table else self._database  # type: ignore
 
     @property
     def db_engine_spec(self) -> builtins.type[BaseEngineSpec]:
