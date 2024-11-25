@@ -90,6 +90,8 @@ const controlPanel: ControlPanelConfig = {
             name: 'metric',
             config: {
               ...sharedControls.metric,
+              clearable: true,
+              validators: [],
               description: t('Metric for node values'),
             },
           },
