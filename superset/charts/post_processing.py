@@ -329,9 +329,9 @@ def apply_post_process(
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(data), 
-                             sep=csv_export_settings.get('sep', ','), 
-                             encoding=csv_export_settings.get('encoding', 'utf-8'), 
+            df = pd.read_csv(StringIO(data),
+                             sep=csv_export_settings.get('sep', ','),
+                             encoding=csv_export_settings.get('encoding', 'utf-8'),
                              decimal=csv_export_settings.get('decimal', '.'))
             
         # convert all columns to verbose (label) name
@@ -365,9 +365,9 @@ def apply_post_process(
             
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf, 
-                                sep=csv_export_settings.get('sep', ','), 
-                                encoding=csv_export_settings.get('encoding', 'utf-8'), 
+            processed_df.to_csv(buf,
+                                sep=csv_export_settings.get('sep', ','),
+                                encoding=csv_export_settings.get('encoding', 'utf-8'),
                                 decimal=csv_export_settings.get('decimal', '.'))
             buf.seek(0)
             query["data"] = buf.getvalue()
