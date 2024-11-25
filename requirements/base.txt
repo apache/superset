@@ -181,7 +181,7 @@ jinja2==3.1.4
     # via
     #   flask
     #   flask-babel
-jsonpath-ng==1.6.1
+jsonpath-ng==1.7.0
     # via apache-superset
 jsonschema==4.17.3
     # via flask-appbuilder
