@@ -51,15 +51,28 @@ jobs:
         id: vars
         run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
-      - name: Push changes to new branch
+      - name: Force recreate branch from gh-pages
         run: |
-          # Cloning gh-pages into working branch
-          git checkout gh-pages
-          git checkout -B ${{ env.branch_name }}
-          git push origin ${{ env.branch_name }} -f
+          # Ensure a clean working directory
+          git reset --hard
+          git clean -fdx
 
-          # Back to where we started
-          git checkout ${{ inputs.ref || github.ref_name }}
+          # Fetch the latest gh-pages branch
+          git fetch origin gh-pages
+
+          # Check out and reset the target branch based on gh-pages
+          git checkout -B ${{ env.branch_name }} origin/gh-pages
+
+          # Apply changes
+          git add .
+          git commit -m "Release Helm charts" || echo "No changes to commit"
+
+          # Force push to the remote branch
+          git push origin ${{ env.branch_name }} --force
+
+          # Return to the original branch
+          git checkout ${{ github.ref_name }}
+
 
       - name: Run chart-releaser
         uses: ./.github/actions/chart-releaser-action
