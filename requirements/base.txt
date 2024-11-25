@@ -28,7 +28,7 @@ backoff==2.2.1
     # via apache-superset
 bcrypt==4.2.1
     # via paramiko
-billiard==4.2.0
+billiard==4.2.1
     # via celery
 blinker==1.9.0
     # via flask
@@ -269,7 +269,7 @@ polyline==2.0.2
     # via apache-superset
 prison==0.2.1
     # via flask-appbuilder
-prompt-toolkit==3.0.44
+prompt-toolkit==3.0.48
     # via click-repl
 pyarrow==14.0.2
     # via apache-superset
