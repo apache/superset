@@ -225,7 +225,7 @@ numba==0.60.0
     # via pandas
 numexpr==2.10.1
     # via
-    #   -r requirements/base.in
+    # -r requirements/base.in
     #   pandas
 numpy==1.23.5
     # via
@@ -316,7 +316,7 @@ pytz==2024.2
     #   pandas
 pyxlsb==1.0.10
     # via pandas
-pyyaml==6.0.1
+pyyaml==6.0.2
     # via
     #   apache-superset
     #   apispec
@@ -386,7 +386,7 @@ url-normalize==1.4.3
     # via requests-cache
 urllib3==1.26.18
     # via
-    #   -r requirements/base.in
+    # -r requirements/base.in
     #   requests
     #   requests-cache
     #   selenium
@@ -399,7 +399,7 @@ wcwidth==0.2.13
     # via prompt-toolkit
 werkzeug==3.1.3
     # via
-    #   -r requirements/base.in
+    # -r requirements/base.in
     #   flask
     #   flask-appbuilder
     #   flask-jwt-extended
