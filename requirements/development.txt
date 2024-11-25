@@ -195,7 +195,7 @@ requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
     # via openapi-schema-validator
-ruff==0.4.5
+ruff==0.8.0
     # via apache-superset
 s3transfer==0.10.1
     # via boto3

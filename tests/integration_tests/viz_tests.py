@@ -91,7 +91,7 @@ class TestBaseViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz = viz.BaseViz(datasource, form_data)
         result = test_viz.get_df(query_obj)
-        assert type(result) == pd.DataFrame
+        assert isinstance(result, pd.DataFrame)
         assert result.empty
 
     def test_get_df_handles_dttm_col(self):
