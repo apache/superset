@@ -25,7 +25,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.ref_name }}
           persist-credentials: false
           submodules: recursive
           fetch-depth: 0
@@ -46,6 +46,15 @@ jobs:
       - name: Create unique pages branch name
         id: vars
         run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+
+      - name: Push changes to new branch
+        run: |
+          # Cloning gh-pages into working branch
+          git checkout gh-pages
+          git checkout -b ${{ env.branch_name }}
+
+          # Back to where we started
+          git checkout ${{ inputs.ref || github.ref_name }}
 
       - name: Run chart-releaser
         uses: ./.github/actions/chart-releaser-action
