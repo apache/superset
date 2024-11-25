@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /home/runner/work/superset/superset/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -36,7 +36,7 @@ db-dtypes==1.2.0
     # via pandas-gbq
 dill==0.3.8
     # via pylint
-distlib==0.3.8
+distlib==0.3.9
     # via virtualenv
 docker==7.0.0
     # via apache-superset
