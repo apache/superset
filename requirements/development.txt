@@ -205,7 +205,7 @@ sqloxide==0.1.43
     # via apache-superset
 statsd==4.0.1
     # via apache-superset
-tomli==2.0.1
+tomli==2.1.0
     # via
     #   build
     #   coverage
