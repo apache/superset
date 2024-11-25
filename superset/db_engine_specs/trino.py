@@ -22,6 +22,7 @@ import logging
 import threading
 import time
 from typing import Any, TYPE_CHECKING
+
 import requests
 from flask import copy_current_request_context, ctx, current_app, Flask, g
 from sqlalchemy.engine.reflection import Inspector
