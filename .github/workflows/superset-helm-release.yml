@@ -63,9 +63,8 @@ jobs:
           # Check out and reset the target branch based on gh-pages
           git checkout -B ${{ env.branch_name }} origin/gh-pages
 
-          # Apply changes
-          git add .
-          git commit -m "Release Helm charts" || echo "No changes to commit"
+          # Remove submodules from the branch
+          git submodule deinit -f --all
 
           # Force push to the remote branch
           git push origin ${{ env.branch_name }} --force
