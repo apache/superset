@@ -53,6 +53,9 @@ github:
     merge: false
     rebase: false
 
+  ghp_branch:  gh-pages
+  ghp_path: /
+
   protected_branches:
     master:
       required_status_checks:
