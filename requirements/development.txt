@@ -20,7 +20,7 @@ botocore==1.34.112
     #   s3transfer
 build==1.2.1
     # via pip-tools
-cfgv==3.3.1
+cfgv==3.4.0
     # via pre-commit
 chardet==5.1.0
     # via tox
