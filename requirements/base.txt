@@ -9,7 +9,7 @@
     # via -r requirements/base.in
 alembic==1.13.1
     # via flask-migrate
-amqp==5.2.0
+amqp==5.3.1
     # via kombu
 apispec[yaml]==6.3.0
     # via flask-appbuilder
@@ -185,7 +185,7 @@ jsonpath-ng==1.6.1
     # via apache-superset
 jsonschema==4.17.3
     # via flask-appbuilder
-kombu==5.3.7
+kombu==5.4.2
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
@@ -381,6 +381,7 @@ typing-extensions==4.12.2
 tzdata==2024.2
     # via
     #   celery
+    #   kombu
     #   pandas
 url-normalize==1.4.3
     # via requests-cache
