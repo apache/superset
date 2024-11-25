@@ -151,7 +151,7 @@ geopy==2.4.1
     # via apache-superset
 google-auth==2.29.0
     # via shillelagh
-greenlet==3.1.1
+greenlet==3.0.3
     # via
     #   shillelagh
     #   sqlalchemy
