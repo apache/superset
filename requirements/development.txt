@@ -234,7 +234,7 @@ virtualenv==20.23.1
     # via
     #   pre-commit
     #   tox
-wheel==0.43.0
+wheel==0.45.1
     # via pip-tools
 zope-event==5.0
     # via gevent
