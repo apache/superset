@@ -28,7 +28,7 @@ cmdstanpy==1.1.0
     # via prophet
 contourpy==1.0.7
     # via matplotlib
-coverage[toml]==7.2.5
+coverage[toml]==7.6.8
     # via pytest-cov
 cycler==0.11.0
     # via matplotlib
@@ -137,7 +137,7 @@ pip-tools==7.4.1
     # via pip-compile-multi
 playwright==1.42.0
     # via apache-superset
-pluggy==1.4.0
+pluggy==1.5.0
     # via
     #   pytest
     #   tox
@@ -187,7 +187,7 @@ pytest==7.4.4
     #   apache-superset
     #   pytest-cov
     #   pytest-mock
-pytest-cov==5.0.0
+pytest-cov==6.0.0
     # via apache-superset
 pytest-mock==3.10.0
     # via apache-superset
