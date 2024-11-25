@@ -8,8 +8,8 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
-    #   -r requirements/development.in
+    # -r requirements/base.in
+    # -r requirements/development.in
 astroid==3.1.0
     # via pylint
 boto3==1.34.112
@@ -147,7 +147,7 @@ progress==1.6
     # via apache-superset
 prophet==1.1.5
     # via apache-superset
-proto-plus==1.22.2
+proto-plus==1.25.0
     # via google-cloud-bigquery-storage
 protobuf==4.25.5
     # via
