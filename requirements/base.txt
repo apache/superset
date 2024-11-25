@@ -223,7 +223,7 @@ nh3==0.2.18
     # via apache-superset
 numba==0.60.0
     # via pandas
-numexpr==2.10.1
+numexpr==2.10.2
     # via
     #   -r requirements/base.in
     #   pandas
