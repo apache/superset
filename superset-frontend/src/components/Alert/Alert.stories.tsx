@@ -44,6 +44,7 @@ export const AlertGallery = () => (
           type={type}
           showIcon
           closable
+          closeIcon={<span aria-label="close icon">x</span>} // Custom close icon
           message={bigText}
           style={{ marginBottom: 20 }}
         />
@@ -53,6 +54,7 @@ export const AlertGallery = () => (
           message={smallText}
           description={bigText}
           closable
+          closeIcon={<span aria-label="close icon">x</span>} // Custom close icon
         />
       </div>
     ))}
@@ -82,6 +84,7 @@ InteractiveAlert.args = {
   message: smallText,
   description: bigText,
   showIcon: true,
+  closeIcon: <span aria-label="close icon">x</span>,
 };
 
 InteractiveAlert.argTypes = {
@@ -89,5 +92,17 @@ InteractiveAlert.argTypes = {
   type: {
     control: { type: 'select' },
     options: types,
+  },
+  closable: {
+    control: { type: 'boolean' },
+    description: 'Whether the Alert can be closed.',
+  },
+  showIcon: {
+    control: { type: 'boolean' },
+    description: 'Whether to display an icon in the Alert.',
+  },
+  roomBelow: {
+    control: { type: 'boolean' },
+    description: 'Adds margin below the Alert for layout adjustments.',
   },
 };

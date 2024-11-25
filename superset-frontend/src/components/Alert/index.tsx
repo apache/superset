@@ -17,7 +17,7 @@
  * under the License.
  */
 import { PropsWithChildren } from 'react';
-import AntdAlert, { AlertProps as AntdAlertProps } from 'antd/lib/alert';
+import AntdAlert, { AlertProps as AntdAlertProps } from 'antd-v5/es/alert';
 import { useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -56,8 +56,8 @@ export default function Alert(props: AlertProps) {
     <AntdAlert
       role="alert"
       showIcon={showIcon}
-      icon={<AlertIcon aria-label={`${type} icon`} />}
-      closeText={closable && <Icons.XSmall aria-label="close icon" />}
+      icon={showIcon && <AlertIcon aria-label={`${type} icon`} />}
+      closeIcon={closable && <Icons.XSmall aria-label="close icon" />}
       css={{
         marginBottom: roomBelow ? gridUnit * 4 : 0,
         padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
