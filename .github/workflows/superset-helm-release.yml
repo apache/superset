@@ -58,6 +58,7 @@ jobs:
           # Ensure a clean working directory
           git reset --hard
           git clean -fdx
+          git checkout -b local_gha_temp
 
           # Fetch the latest gh-pages branch
           git fetch origin gh-pages
@@ -72,9 +73,7 @@ jobs:
           git push origin ${{ env.branch_name }} --force
 
           # Return to the original branch
-          git fetch origin ${{ inputs.ref || github.ref_name }} --depth=1
-          git checkout ${{ inputs.ref || github.ref_name }}
-
+          git checkout local_gha_temp
 
       - name: Run chart-releaser
         uses: ./.github/actions/chart-releaser-action
@@ -90,10 +89,14 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const branchName = process.env.BRANCH_NAME;
+            const branchName = '${{ env.branch_name }}';
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
 
-            const pr = await github.pulls.create({
+            if (!branchName) {
+              throw new Error("Branch name is not defined.");
+            }
+
+            const pr = await github.rest.pulls.create({
               owner,
               repo,
               title: `Helm chart release for ${branchName}`,
