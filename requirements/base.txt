@@ -78,7 +78,7 @@ colorama==0.4.6
     #   flask-appbuilder
 cron-descriptor==1.4.5
     # via apache-superset
-croniter==2.0.5
+croniter==5.0.1
     # via apache-superset
 cryptography==42.0.8
     # via
