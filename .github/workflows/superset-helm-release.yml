@@ -55,7 +55,8 @@ jobs:
         run: |
           # Cloning gh-pages into working branch
           git checkout gh-pages
-          git checkout -b ${{ env.branch_name }}
+          git checkout -B ${{ env.branch_name }}
+          git push origin ${{ env.branch_name }} -f
 
           # Back to where we started
           git checkout ${{ inputs.ref || github.ref_name }}
