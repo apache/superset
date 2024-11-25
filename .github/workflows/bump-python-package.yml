@@ -16,7 +16,10 @@ on:
         default: 5
       extra-flags:
         required: false
+        default: --only-base
         description: Additional flags to pass to the bump-python command
+  #schedule:
+  #  - cron: '0 0 * * *'  # Runs daily at midnight UTC
 
 jobs:
   bump-python-package:
