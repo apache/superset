@@ -176,7 +176,7 @@ pyinstrument==4.4.0
     # via apache-superset
 pylint==3.1.0
     # via apache-superset
-pyproject-api==1.6.1
+pyproject-api==1.8.0
     # via tox
 pyproject-hooks==1.2.0
     # via
