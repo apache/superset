@@ -22,8 +22,8 @@ import logging
 import threading
 import time
 from typing import Any, TYPE_CHECKING
-
-from flask import current_app, Flask
+import requests
+from flask import copy_current_request_context, ctx, current_app, Flask, g
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
