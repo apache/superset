@@ -216,7 +216,7 @@ tomli==2.1.0
     #   pyproject-api
     #   pytest
     #   tox
-tomlkit==0.12.5
+tomlkit==0.13.2
     # via pylint
 toposort==1.10
     # via pip-compile-multi
