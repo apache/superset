@@ -167,7 +167,7 @@ idna==3.10
     # via
     #   email-validator
     #   requests
-importlib-metadata==7.1.0
+importlib-metadata==8.5.0
     # via apache-superset
 importlib-resources==6.4.5
     # via limits
@@ -420,7 +420,7 @@ xlsxwriter==3.0.9
     # via
     #   apache-superset
     #   pandas
-zipp==3.19.0
+zipp==3.21.0
     # via importlib-metadata
 zstandard==0.22.0
     # via flask-compress
