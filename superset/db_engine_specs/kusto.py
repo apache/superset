@@ -156,11 +156,3 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:
         return not parsed_query.sql.startswith(".")
-
-    @classmethod
-    def parse_sql(cls, sql: str) -> list[str]:
-        """
-        Kusto supports a single query statement, but it could include sub queries
-        and variables declared via let keyword.
-        """
-        return [sql]

@@ -20,10 +20,11 @@ from __future__ import annotations
 import enum
 import logging
 import re
+import string
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Iterator, TypeVar
 
 import sqlglot
 import sqlparse
@@ -226,6 +227,12 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a `SELECT` statement.
+        """
+        raise NotImplementedError()
+
     def __str__(self) -> str:
         return self.format()
 
@@ -382,6 +389,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return False
 
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a `SELECT` statement.
+        """
+        return isinstance(self._parsed, exp.Select)
+
     def format(self, comments: bool = True) -> str:
         """
         Pretty-format the SQL statement.
@@ -431,60 +444,115 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
 
 
-class KQLSplitState(enum.Enum):
+class KQLTokenizeState(enum.Enum):
     """
-    State machine for splitting a KQL script.
+    State machine for tokenizing a KQL script.
 
     The state machine keeps track of whether we're inside a string or not, so we
     don't split the script in a semi-colon that's part of a string.
     """
 
-    OUTSIDE_STRING = enum.auto()
+    OUTSIDE = enum.auto()
     INSIDE_SINGLE_QUOTED_STRING = enum.auto()
     INSIDE_DOUBLE_QUOTED_STRING = enum.auto()
     INSIDE_MULTILINE_STRING = enum.auto()
+    INSIDE_SINGLE_QUOTED_IDENTIFIER = enum.auto()
+    INSIDE_DOUBLE_QUOTED_IDENTIFIER = enum.auto()
+
+
+def tokenize_kql(kql: str) -> Iterator[str]:
+    """
+    Tokenize a KQL script.
+    """
+    valid_identifier_chars = set(string.ascii_letters + string.digits + "_")
+    valid_quoted_identifier_chars = valid_identifier_chars | set(" .-")
+
+    script = kql if kql.endswith(";") else kql + ";"
+
+    cursor = 0
+    while cursor < len(script):
+        rest = script[cursor:]
+
+        # quoted identifiers
+        if rest[:2] in {"['", '["'}:
+            match = "']" if rest[:2] == "['" else '"]'
+            if match not in rest[2:]:
+                raise SupersetParseError(
+                    script,
+                    "kustokql",
+                    message="Unclosed quoted identifier",
+                )
+
+            token = rest[: rest.index(match, 2) + 2]
+
+            if any(char not in valid_quoted_identifier_chars for char in token[2:-2]):
+                raise SupersetParseError(
+                    script,
+                    "kustokql",
+                    message="Invalid quoted identifier",
+                )
+
+            yield token
+            cursor += len(token)
+
+        # multi-line strings
+        elif rest[:3] == "```":
+            if "```" not in rest[3:]:
+                raise SupersetParseError(
+                    script,
+                    "kustokql",
+                    message="Unclosed multi-line string",
+                )
+
+            token = rest[: rest.index("```", 3) + 3]
+            yield token
+            cursor += len(token)
+
+        # single-quoted strings
+        elif rest[0] in {'"', "'"}:
+            match = rest[0]
+            # find first unescaped quote
+            start = 1
+            while True:
+                if match not in rest[start:]:
+                    raise SupersetParseError(
+                        script,
+                        "kustokql",
+                        message="Unclosed string",
+                    )
+                index = rest.index(match, start)
+                if rest[index - 1] != "\\":
+                    break
+
+                start = index + 1
+
+            token = rest[: index + 1]
+            yield token
+            cursor += len(token)
+
+        # identifiers and keywords
+        else:
+            for i, char in enumerate(rest):
+                if char not in valid_identifier_chars:
+                    if i > 0:
+                        yield rest[:i]
+                    yield char
+                    cursor += i + 1
+                    break
 
 
 def split_kql(kql: str) -> list[str]:
     """
     Custom function for splitting KQL statements.
     """
-    statements = []
-    state = KQLSplitState.OUTSIDE_STRING
-    statement_start = 0
-    script = kql if kql.endswith(";") else kql + ";"
-    for i, character in enumerate(script):
-        if state == KQLSplitState.OUTSIDE_STRING:
-            if character == ";":
-                statements.append(script[statement_start:i])
-                statement_start = i + 1
-            elif character == "'":
-                state = KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
-            elif character == '"':
-                state = KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
-            elif character == "`" and script[i - 2 : i] == "``":
-                state = KQLSplitState.INSIDE_MULTILINE_STRING
-
-        elif (
-            state == KQLSplitState.INSIDE_SINGLE_QUOTED_STRING
-            and character == "'"
-            and script[i - 1] != "\\"
-        ):
-            state = KQLSplitState.OUTSIDE_STRING
-
-        elif (
-            state == KQLSplitState.INSIDE_DOUBLE_QUOTED_STRING
-            and character == '"'
-            and script[i - 1] != "\\"
-        ):
-            state = KQLSplitState.OUTSIDE_STRING
-
-        elif (
-            state == KQLSplitState.INSIDE_MULTILINE_STRING
-            and character == "`"
-            and script[i - 2 : i] == "``"
-        ):
-            state = KQLSplitState.OUTSIDE_STRING
+    statements: list[str] = []
+    statement: list[str] = []
+    for token in tokenize_kql(kql):
+        if token == ";":
+            statements.append("".join(statement))
+            statement = []
+        else:
+            statement.append(token)
 
     return statements
 
@@ -505,6 +573,14 @@ class KustoKQLStatement(BaseSQLStatement[str]):
     See https://learn.microsoft.com/en-us/azure/data-explorer/kusto/query/ for more
     details about it.
     """
+
+    def __init__(
+        self,
+        statement: str,
+        engine: str = "kustokql",
+        ast: str | None = None,
+    ):
+        super().__init__(statement, engine, ast)
 
     @classmethod
     def split_script(
@@ -588,6 +664,56 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
+    def is_select(self) -> bool:
+        """
+        Check if the statement is a `SELECT` statement.
+        """
+        if not self._parsed or self.is_mutating():
+            return False
+
+        # strip comments
+        kql = "\n".join(
+            line
+            for line in self._parsed.split("\n")
+            if not line.strip().startswith("//")
+        ).strip()
+
+        first_token = next(tokenize_kql(kql), None)
+        if not first_token:
+            return False
+
+        return first_token == "|" or self._is_identifier(first_token)
+
+    @staticmethod
+    def _is_identifier(identifier: str) -> bool:
+        """
+        Validates if a given string is a valid KQL identifier.
+
+        From the documentation:
+
+            Identifiers are case-sensitive. Database names are case-insensitive, and
+                therefore an exception to this rule.
+            Identifiers must be between 1 and 1024 characters long.
+            Identifiers may contain letters, digits, and underscores (_).
+            Identifiers may contain certain special characters: spaces, dots (.), and
+                dashes (-). For information on how to reference identifiers with special
+                characters, see Reference identifiers in queries.
+
+        """
+        valid_chars = set(string.ascii_letters + string.digits + "_")
+
+        # Identifiers names that (1) include special character, (2) are language
+        # keywords, or (3) are literals must be enclosed using [' and '] or [" and "].
+        if (identifier.startswith("['") and identifier.endswith("']")) or (
+            identifier.startswith('["') and identifier.endswith('"]')
+        ):
+            identifier = identifier[2:-2]
+            valid_chars.update(" .-")
+
+        return 1 <= len(identifier) <= 1024 and all(
+            char in valid_chars for char in identifier
+        )
+
 
 class SQLScript:
     """
@@ -642,6 +768,24 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
+    def is_valid_ctas(self) -> bool:
+        """
+        Check if the script contains a valid CTAS statement.
+
+        CTAS (`CREATE TABLE AS SELECT`) can only be run with scripts where the last
+        statement is a `SELECT`.
+        """
+        return self.statements[-1].is_select()
+
+    def is_valid_cvas(self) -> bool:
+        """
+        Check if the script contains a valid CVAS statement.
+
+        CVAS (`CREATE VIEW AS SELECT`) can only be run with scripts with a single
+        `SELECT` statement.
+        """
+        return len(self.statements) == 1 and self.statements[0].is_select()
+
 
 def extract_tables_from_statement(
     statement: exp.Expression,
@@ -650,7 +794,7 @@ def extract_tables_from_statement(
     """
     Extract all table references in a single statement.
 
-    Please not that this is not trivial; consider the following queries:
+    Please note that this is not trivial; consider the following queries:
 
         DESCRIBE some_table;
         SHOW PARTITIONS FROM some_table;

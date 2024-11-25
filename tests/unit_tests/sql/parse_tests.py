@@ -945,6 +945,10 @@ on $left.Day1 == $right.Day
         ("kustokql", "set querytrace; Events | take 100", False),
         ("kustokql", ".drop table foo", True),
         ("kustokql", ".set-or-append table foo <| bar", True),
+        ("kustosql", "SELECT foo FROM tbl", False),
+        ("kustosql", "SHOW TABLES", False),
+        ("kustosql", "EXPLAIN SELECT foo FROM tbl", False),
+        ("kustosql", "INSERT INTO tbl (foo) VALUES (1)", True),
         ("base", "SHOW LOCKS test EXTENDED", False),
         ("base", "SET hivevar:desc='Legislators'", False),
         ("base", "UPDATE t1 SET col1 = NULL", True),
@@ -1070,3 +1074,100 @@ def test_is_mutating(engine: str) -> None:
         "with source as ( select 1 as one ) select * from source",
         engine=engine,
     ).is_mutating()
+
+
+@pytest.mark.parametrize(
+    "identifier,expected",
+    [
+        # Rule: Identifiers are case-sensitive
+        ("myTable", True),
+        ("MYTABLE", True),
+        ("MyTable", True),
+        # Rule: Identifiers must be between 1 and 1024 characters long
+        ("a", True),
+        ("a" * 1024, True),
+        ("a" * 1025, False),
+        ("", False),
+        # Rule: Identifiers may contain letters, digits, and underscores
+        ("My_Table_123", True),
+        ("123Table", True),
+        # Rule: Identifiers may contain special characters: spaces, dots, dashes (when quoted)
+        ("['My Table']", True),
+        ("['My-Table']", True),
+        ("['My.Table']", True),
+        ("['Table-']", True),
+        ("['My Table Name']", True),
+        ("['My!Table']", False),
+        ("['MyTable  ']", True),
+        ("  MyTable", False),
+        ("MyTable  ", False),
+        # Rule: Non-special identifiers don't require quoting
+        ("MyTable", True),
+        ("My-Table", False),
+        # Invalid quoting
+        ("['Invalid]", False),
+        ("['Invalid'Name']", False),
+        ("['']", False),
+        # Rule: Literal identifiers or language keywords
+        ("['select']", True),
+        ("select", True),
+    ],
+)
+def test_is_kql_identifier(identifier: str, expected: bool):
+    """
+    Tests the _is_identifier method for various valid and invalid cases.
+    """
+    assert KustoKQLStatement._is_identifier(identifier) == expected
+
+
+@pytest.mark.parametrize(
+    "kql,expected",
+    [
+        # Simple SELECT-like statements (non-mutating queries)
+        ("MyTable | count", True),
+        ("MyTable", True),
+        ("| count", True),
+        ("tbl | limit 100", True),
+        (".show tables", False),
+        # With comments (ensure comments are stripped out)
+        ("// Comment only", False),
+        ("MyTable // trailing comment", True),
+        ("// leading comment\nMyTable", True),
+        ("MyTable\n// intermediate comment\n| count", True),
+        # Mutating query (should return False)
+        (".drop MyTable", False),
+        (
+            ".update MyTable set Column1 = 100",
+            False,
+        ),
+        (".alter MyTable", False),
+        # Edge cases for first token
+        ("", False),
+        ("  ", False),
+        (".command", False),
+        ("['My Table']", True),
+        # Complex multi-line queries
+        (
+            """
+    // Initial comment
+    MyTable
+    | where Column1 > 100
+    """,
+            True,
+        ),
+        (
+            """
+    MyTable
+    | where Column1 > 100
+    | summarize by Column2
+    // Final comment
+    """,
+            True,
+        ),
+    ],
+)
+def test_kql_is_select(kql: str, expected: bool):
+    """
+    Tests the is_select method for various valid and invalid cases.
+    """
+    assert KustoKQLStatement(kql).is_select() == expected

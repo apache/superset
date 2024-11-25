@@ -74,6 +74,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
+from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils, json
@@ -674,7 +675,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
     ) -> pd.DataFrame:
-        sqls = self.db_engine_spec.parse_sql(sql)
+        parsed_script = SQLScript(sql, engine=self.db_engine_spec.engine)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
 
@@ -691,8 +692,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
             df = None
-            for i, sql_ in enumerate(sqls):
-                sql_ = self.mutate_sql_based_on_config(sql_, is_split=True)
+            for i, statement in enumerate(parsed_script.statements):
+                # pylint: disable=protected-access
+                sql_ = self.mutate_sql_based_on_config(statement._sql, is_split=True)
                 _log_query(sql_)
                 with event_logger.log_context(
                     action="execute_sql",
@@ -700,7 +702,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     object_ref=__name__,
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
-                    if i < len(sqls) - 1:
+                    if i < len(parsed_script.statements) - 1:
                         # If it's not the last, we don't keep the results
                         cursor.fetchall()
                     else:

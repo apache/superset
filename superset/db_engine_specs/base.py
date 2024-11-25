@@ -2170,10 +2170,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return False
 
     @classmethod
-    def parse_sql(cls, sql: str) -> list[str]:
-        return [str(s).strip(" ;") for s in sqlparse.parse(sql)]
-
-    @classmethod
     def get_impersonation_key(cls, user: User | None) -> Any:
         """
         Construct an impersonation key, by default it's the given username.

@@ -49,32 +49,6 @@ def test_get_text_clause_with_colon() -> None:
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
 
 
-def test_parse_sql_single_statement() -> None:
-    """
-    `parse_sql` should properly strip leading and trailing spaces and semicolons
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql(" SELECT foo FROM tbl ; ")
-    assert queries == ["SELECT foo FROM tbl"]
-
-
-def test_parse_sql_multi_statement() -> None:
-    """
-    For string with multiple SQL-statements `parse_sql` method should return list
-    where each element represents the single SQL-statement
-    """
-
-    from superset.db_engine_specs.base import BaseEngineSpec
-
-    queries = BaseEngineSpec.parse_sql("SELECT foo FROM tbl1; SELECT bar FROM tbl2;")
-    assert queries == [
-        "SELECT foo FROM tbl1",
-        "SELECT bar FROM tbl2",
-    ]
-
-
 def test_validate_db_uri(mocker: MockerFixture) -> None:
     """
     Ensures that the `validate_database_uri` method invokes the validator correctly
