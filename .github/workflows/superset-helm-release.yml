@@ -59,6 +59,7 @@ jobs:
           git reset --hard
           git clean -fdx
           git checkout -b local_gha_temp
+          git submodule update
 
           # Fetch the latest gh-pages branch
           git fetch origin gh-pages
