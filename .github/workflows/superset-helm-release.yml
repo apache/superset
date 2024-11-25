@@ -1,4 +1,4 @@
-name: Release Charts
+name: "Helm: release charts"
 
 on:
   push:
@@ -7,17 +7,25 @@ on:
       - "[0-9].[0-9]*"
     paths:
       - "helm/**"
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "The branch, tag, or commit SHA to check out"
+        required: false
+        default: "master"
 
 jobs:
   release:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.ref }}
           persist-credentials: false
           submodules: recursive
           fetch-depth: 0
@@ -35,11 +43,43 @@ jobs:
       - name: Add bitnami repo dependency
         run: helm repo add bitnami https://charts.bitnami.com/bitnami
 
+      - name: Create unique pages branch name
+        id: vars
+        run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+
       - name: Run chart-releaser
         uses: ./.github/actions/chart-releaser-action
         with:
           charts_dir: helm
           mark_as_latest: false
+          pages_branch: ${{ env.branch_name }}
         env:
           CR_TOKEN: "${{ github.token }}"
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
+
+      - name: Push changes to new branch
+        run: |
+          git checkout -b ${{ env.branch_name }}
+          git add .
+          git commit -m "Release Helm charts"
+          git push origin ${{ env.branch_name }}
+
+      - name: Open Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branchName = process.env.BRANCH_NAME;
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/');
+
+            const pr = await github.pulls.create({
+              owner,
+              repo,
+              title: `Helm chart release for ${branchName}`,
+              head: branchName,
+              base: "gh-pages", // Adjust if the target branch is different
+              body: `This PR releases Helm charts to the gh-pages branch.`,
+            });
+
+            core.info(`Pull request created: ${pr.data.html_url}`);
+        env:
+          BRANCH_NAME: ${{ env.branch_name }}
