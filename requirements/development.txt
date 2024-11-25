@@ -8,7 +8,7 @@
 -r base.txt
 -e file:.
     # via
-    #   -r requirements/base.in
+    #   -r /home/runner/work/superset/superset/requirements/base.in
     #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
@@ -176,7 +176,7 @@ pylint==3.1.0
     # via apache-superset
 pyproject-api==1.6.1
     # via tox
-pyproject-hooks==1.0.0
+pyproject-hooks==1.2.0
     # via
     #   build
     #   pip-tools
@@ -205,14 +205,13 @@ sqloxide==0.1.43
     # via apache-superset
 statsd==4.0.1
     # via apache-superset
-tomli==2.0.1
+tomli==2.1.0
     # via
     #   build
     #   coverage
     #   pip-tools
     #   pylint
     #   pyproject-api
-    #   pyproject-hooks
     #   pytest
     #   tox
 tomlkit==0.12.5
