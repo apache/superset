@@ -71,13 +71,6 @@ jobs:
           CR_TOKEN: "${{ github.token }}"
           CR_RELEASE_NAME_TEMPLATE: "superset-helm-chart-{{ .Version }}"
 
-      - name: Push changes to new branch
-        run: |
-          git checkout -b ${{ env.branch_name }}
-          git add .
-          git commit -m "Release Helm charts"
-          git push origin ${{ env.branch_name }}
-
       - name: Open Pull Request
         uses: actions/github-script@v7
         with:
