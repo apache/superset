@@ -226,7 +226,7 @@ tqdm==4.67.1
     # via
     #   cmdstanpy
     #   prophet
-trino==0.328.0
+trino==0.330.0
     # via apache-superset
 tzlocal==5.2
     # via trino
