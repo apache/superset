@@ -56,6 +56,20 @@ jobs:
           git tag --list
           git show-ref --tags
           git tag -d superset-helm-chart-0.13.4 || true
+          lookup_latest_tag() {
+            git fetch --tags >/dev/null 2>&1
+            echo "Fetched all tags."
+
+            if git describe --tags --abbrev=0 HEAD~ 2>/dev/null; then
+              echo "Latest tag found by git describe:"
+              git describe --tags --abbrev=0 HEAD~
+            else
+              echo "git describe failed. Falling back to root commit."
+              git rev-list --max-parents=0 --first-parent HEAD
+            fi
+          }
+          lookup_latest_tag()
+
 
 
       - name: Create unique pages branch name
