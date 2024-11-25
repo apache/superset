@@ -72,7 +72,8 @@ jobs:
           git push origin ${{ env.branch_name }} --force
 
           # Return to the original branch
-          git checkout ${{ github.sha }}
+          git fetch origin ${{ inputs.ref || github.ref_name }} --depth=1
+          git checkout ${{ inputs.ref || github.ref_name }}
 
 
       - name: Run chart-releaser
