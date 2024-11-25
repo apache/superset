@@ -1,3 +1,7 @@
+# This workflow automates the release process for Helm charts.
+# The workflow creates a new branch for the release and opens a pull request against the 'gh-pages' branch,
+# allowing the changes to be reviewed and merged manually.
+
 name: "Helm: release charts"
 
 on:
