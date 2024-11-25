@@ -158,7 +158,7 @@ protobuf==4.25.5
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
-psutil==6.0.0
+psutil==6.1.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
