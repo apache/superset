@@ -103,7 +103,7 @@ jmespath==1.0.1
     #   botocore
 jsonschema-spec==0.1.6
     # via openapi-spec-validator
-kiwisolver==1.4.5
+kiwisolver==1.4.7
     # via matplotlib
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
