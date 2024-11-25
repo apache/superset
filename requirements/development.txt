@@ -63,7 +63,7 @@ google-api-core[grpc]==2.23.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth-oauthlib==1.0.0
+google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
@@ -162,7 +162,7 @@ psutil==6.0.0
     # via apache-superset
 psycopg2-binary==2.9.6
     # via apache-superset
-pydata-google-auth==1.7.0
+pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
     # via apache-superset
