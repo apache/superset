@@ -189,7 +189,7 @@ kombu==5.4.2
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
-limits==3.12.0
+limits==3.13.0
     # via flask-limiter
 llvmlite==0.43.0
     # via numba
