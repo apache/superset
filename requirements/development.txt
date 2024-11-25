@@ -22,7 +22,7 @@ build==1.2.1
     # via pip-tools
 cfgv==3.4.0
     # via pre-commit
-chardet==5.1.0
+chardet==5.2.0
     # via tox
 cmdstanpy==1.1.0
     # via prophet
