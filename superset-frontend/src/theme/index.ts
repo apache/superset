@@ -81,6 +81,12 @@ const baseConfig: ThemeConfig = {
         supersetTheme.colors.primary.light3
       }`,
     },
+    List: {
+      itemPadding: `${supersetTheme.gridUnit + 2}px ${supersetTheme.gridUnit * 3}px`,
+      paddingLG: supersetTheme.gridUnit * 3,
+      colorSplit: supersetTheme.colors.grayscale.light3,
+      colorText: supersetTheme.colors.grayscale.dark1,
+    },
     Tag: {
       borderRadiusSM: 2,
       defaultBg: supersetTheme.colors.grayscale.light4,
