@@ -32,7 +32,7 @@ jobs:
           ref: ${{ inputs.ref || github.ref_name }}
           persist-credentials: false
           submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
 
       - name: Configure Git
         run: |
