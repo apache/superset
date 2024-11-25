@@ -1055,7 +1055,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
     def get_perm(self) -> str:
-        return self.perm  # type: ignore
+        return self.perm
 
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
