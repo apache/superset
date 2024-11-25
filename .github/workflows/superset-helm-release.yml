@@ -53,7 +53,10 @@ jobs:
         run: |
           # Debugging tags
           git fetch --tags --force
-          git tag --list | grep helm
+          git tag --list
+          git show-ref --tags
+          git tag -d superset-helm-chart-0.13.4 || true
+
 
       - name: Create unique pages branch name
         id: vars
