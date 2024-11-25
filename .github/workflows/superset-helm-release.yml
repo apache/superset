@@ -49,6 +49,12 @@ jobs:
       - name: Add bitnami repo dependency
         run: helm repo add bitnami https://charts.bitnami.com/bitnami
 
+      - name: Fetch/list all tags
+        run: |
+          # Debugging tags
+          git fetch --tags --force
+          git tag --list | grep helm
+
       - name: Create unique pages branch name
         id: vars
         run: echo "branch_name=helm-publish-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
