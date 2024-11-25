@@ -123,7 +123,7 @@ flask-compress==1.15
     # via apache-superset
 flask-jwt-extended==4.6.0
     # via flask-appbuilder
-flask-limiter==3.7.0
+flask-limiter==3.8.0
     # via flask-appbuilder
 flask-login==0.6.3
     # via
@@ -189,7 +189,7 @@ kombu==5.4.2
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
-limits==3.12.0
+limits==3.13.0
     # via flask-limiter
 llvmlite==0.43.0
     # via numba
@@ -328,7 +328,7 @@ requests==2.32.2
     #   shillelagh
 requests-cache==1.2.0
     # via shillelagh
-rich==13.7.1
+rich==13.9.4
     # via flask-limiter
 rsa==4.9
     # via google-auth
@@ -376,6 +376,7 @@ typing-extensions==4.12.2
     #   cattrs
     #   flask-limiter
     #   limits
+    #   rich
     #   shillelagh
 tzdata==2024.2
     # via
