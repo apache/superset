@@ -8,8 +8,8 @@
 -r base.txt
 -e file:.
     # via
-    # -r requirements/base.in
-    # -r requirements/development.in
+    #   -r requirements/base.in
+    #   -r requirements/development.in
 astroid==3.1.0
     # via pylint
 boto3==1.34.112
@@ -74,7 +74,7 @@ google-cloud-bigquery==3.20.1
     #   sqlalchemy-bigquery
 google-cloud-bigquery-storage==2.19.1
     # via pandas-gbq
-google-cloud-core==2.3.2
+google-cloud-core==2.4.1
     # via google-cloud-bigquery
 google-crc32c==1.5.0
     # via google-resumable-media
