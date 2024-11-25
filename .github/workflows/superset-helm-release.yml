@@ -72,7 +72,7 @@ jobs:
           git push origin ${{ env.branch_name }} --force
 
           # Return to the original branch
-          git checkout ${{ github.ref_name }}
+          git checkout ${{ github.sha }}
 
 
       - name: Run chart-releaser
