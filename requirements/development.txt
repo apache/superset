@@ -111,7 +111,7 @@ matplotlib==3.9.0
     # via prophet
 mccabe==0.7.0
     # via pylint
-mysqlclient==2.2.4
+mysqlclient==2.2.6
     # via apache-superset
 nodeenv==1.8.0
     # via pre-commit
