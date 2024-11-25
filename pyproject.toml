@@ -402,6 +402,7 @@ skipsdist = true
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
+    "**/*.ipynb",
     ".bzr",
     ".direnv",
     ".eggs",
