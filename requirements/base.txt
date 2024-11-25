@@ -171,7 +171,7 @@ importlib-metadata==7.1.0
     # via apache-superset
 importlib-resources==6.4.5
     # via limits
-isodate==0.6.1
+isodate==0.7.2
     # via apache-superset
 itsdangerous==2.2.0
     # via
@@ -342,7 +342,6 @@ simplejson==3.19.2
     # via apache-superset
 six==1.16.0
     # via
-    #   isodate
     #   prison
     #   python-dateutil
     #   url-normalize
