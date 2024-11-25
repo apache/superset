@@ -52,7 +52,7 @@ fonttools==4.51.0
     # via matplotlib
 freezegun==1.5.1
     # via apache-superset
-future==0.18.3
+future==1.0.0
     # via pyhive
 gevent==24.2.1
     # via apache-superset
