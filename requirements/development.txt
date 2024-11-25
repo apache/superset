@@ -80,7 +80,7 @@ google-crc32c==1.5.0
     # via google-resumable-media
 google-resumable-media==2.7.0
     # via google-cloud-bigquery
-googleapis-common-protos==1.63.0
+googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
@@ -149,7 +149,7 @@ prophet==1.1.5
     # via apache-superset
 proto-plus==1.22.2
     # via google-cloud-bigquery-storage
-protobuf==4.23.0
+protobuf==4.25.5
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
