@@ -28,7 +28,7 @@ backoff==2.2.1
     # via apache-superset
 bcrypt==4.2.1
     # via paramiko
-billiard==4.2.0
+billiard==4.2.1
     # via celery
 blinker==1.9.0
     # via flask
