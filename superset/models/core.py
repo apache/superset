@@ -60,7 +60,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs, is_feature_enabled
+from superset import app, db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -1135,6 +1135,18 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         trigger the OAuth2 dance in the frontend.
         """
         return self.db_engine_spec.start_oauth2_dance(self)
+
+    def purge_oauth2_tokens(self) -> None:
+        """
+        Delete all OAuth2 tokens associated with this database.
+
+        This is needed when the configuration changes. For example, a new client ID and
+        secret probably will require new tokens. The same is valid for changes in the
+        scope or in the endpoints.
+        """
+        db.session.query(DatabaseUserOAuth2Tokens).filter(
+            DatabaseUserOAuth2Tokens.id == self.id
+        ).delete()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

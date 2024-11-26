@@ -24,6 +24,16 @@ from superset.commands.database.update import UpdateDatabaseCommand
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 
+oauth2_client_info = {
+    "id": "client_id",
+    "secret": "client_secret",
+    "scope": "scope-a",
+    "redirect_uri": "redirect_uri",
+    "authorization_request_uri": "auth_uri",
+    "token_request_uri": "token_uri",
+    "request_content_type": "json",
+}
+
 
 @pytest.fixture()
 def database_with_catalog(mocker: MockerFixture) -> MagicMock:
@@ -72,6 +82,7 @@ def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
         "tab_id",
         "redirect_uri",
     )
+    database.get_oauth2_config.return_value = oauth2_client_info
 
     return database
 
@@ -321,6 +332,47 @@ def test_update_with_oauth2(
         "add_permission_view_menu",
     )
 
+    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = {
+        "oauth2_client_info": oauth2_client_info,
+    }
+
     UpdateDatabaseCommand(1, {}).run()
 
     add_permission_view_menu.assert_not_called()
+    database_needs_oauth2.purge_oauth2_tokens.assert_not_called()
+
+
+def test_update_with_oauth2_changed(
+    mocker: MockerFixture,
+    database_needs_oauth2: MockerFixture,
+) -> None:
+    """
+    Test that the database can be updated even if OAuth2 is needed to connect.
+    """
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    DatabaseDAO.find_by_id.return_value = database_needs_oauth2
+    DatabaseDAO.update.return_value = database_needs_oauth2
+
+    find_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "find_permission_view_menu",
+    )
+    find_permission_view_menu.side_effect = [
+        None,  # schema1 has no permissions
+        "[my_db].[schema2]",  # second schema already exists
+    ]
+    add_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "add_permission_view_menu",
+    )
+
+    modified_oauth2_client_info = oauth2_client_info.copy()
+    modified_oauth2_client_info["scope"] = "scope-b"
+    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = {
+        "oauth2_client_info": modified_oauth2_client_info,
+    }
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    add_permission_view_menu.assert_not_called()
+    database_needs_oauth2.purge_oauth2_tokens.assert_called()
