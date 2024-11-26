@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PropsWithChildren } from 'react';
-import { Alert as AntdAlert } from 'antd-v5';
-import { AlertProps as AntdAlertProps } from 'antd-v5/lib/alert';
+import { Alert as AntdAlert, AlertProps as AntdAlertProps } from 'antd-v5';
 import { useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
-export type AlertProps = PropsWithChildren<
-  AntdAlertProps & { roomBelow?: boolean }
->;
+export type AlertProps = Omit<AntdAlertProps, 'children'> & {
+  roomBelow?: boolean;
+} & {
+  children?: React.ReactNode;
+};
 
 export default function Alert(props: AlertProps) {
   const {
@@ -34,15 +34,16 @@ export default function Alert(props: AlertProps) {
     closable = true,
     roomBelow = false,
     children,
-    ...rest
+    ...restProps
   } = props;
 
   const theme = useTheme();
-  const { colors, gridUnit } = theme;
+  const { colors, typography, gridUnit } = theme;
   const { alert, error, info, success } = colors;
 
   let baseColor = info;
   let AlertIcon = Icons.InfoSolid;
+
   if (type === 'error') {
     baseColor = error;
     AlertIcon = Icons.ErrorSolid;
@@ -54,22 +55,36 @@ export default function Alert(props: AlertProps) {
     AlertIcon = Icons.CircleCheckSolid;
   }
 
-  return (
-    <AntdAlert
-      role="alert"
-      showIcon={showIcon}
-      icon={showIcon && <AlertIcon aria-label={`${type} icon`} />}
-      closeIcon={closable && <Icons.XSmall aria-label="close icon" />}
-      message={children || 'Default message'}
-      description={description}
-      style={{
-        marginBottom: roomBelow ? gridUnit * 4 : 0,
-        padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
-        alignItems: 'flex-start',
-        border: 0,
-        backgroundColor: baseColor.light2,
-      }}
-      {...rest}
-    />
-  );
+  const alertProps = {
+    ...restProps,
+    type,
+    description,
+    showIcon,
+    closable,
+    icon: showIcon && <AlertIcon aria-label={`${type} icon`} />,
+    closeIcon: closable && <Icons.XSmall aria-label="close icon" />,
+    css: {
+      marginBottom: roomBelow ? gridUnit * 4 : 0,
+      padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
+      alignItems: 'flex-start',
+      border: 0,
+      backgroundColor: baseColor.light2,
+      '& .antd-v5-alert-icon': {
+        marginRight: gridUnit * 2,
+      },
+      '& .antd-v5-alert-message': {
+        color: baseColor.dark2,
+        fontSize: typography.sizes.m,
+        fontWeight: description
+          ? typography.weights.bold
+          : typography.weights.normal,
+      },
+      '& .antd-v5-alert-description': {
+        color: baseColor.dark2,
+        fontSize: typography.sizes.m,
+      },
+    },
+  } as AntdAlertProps;
+
+  return <AntdAlert {...alertProps}>{children}</AntdAlert>;
 }
