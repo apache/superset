@@ -455,17 +455,6 @@ pre-commit install
 
 A series of checks will now run when you make a git commit.
 
-Alternatively, it is possible to run pre-commit via tox:
-
-```bash
-tox -e pre-commit
-```
-
-Or by running pre-commit manually:
-
-```bash
-pre-commit run --all-files
-```
 
 ## Linting
 
@@ -474,8 +463,7 @@ pre-commit run --all-files
 We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
-# for python
-tox -e pylint
+pylint
 ```
 
 In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
@@ -637,7 +625,7 @@ npm run test -- path/to/file.js
 
 ### Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+We use [Cypress](https://www.cypress.io/) for integration tests. To open Cypress and explore tests first setup and run test server:
 
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
