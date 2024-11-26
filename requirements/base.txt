@@ -123,7 +123,7 @@ flask-compress==1.17
     # via apache-superset
 flask-jwt-extended==4.7.1
     # via flask-appbuilder
-flask-limiter==3.7.0
+flask-limiter==3.8.0
     # via flask-appbuilder
 flask-login==0.6.3
     # via
@@ -328,7 +328,7 @@ requests==2.32.2
     #   shillelagh
 requests-cache==1.2.0
     # via shillelagh
-rich==13.7.1
+rich==13.9.4
     # via flask-limiter
 rsa==4.9
     # via google-auth
@@ -376,6 +376,7 @@ typing-extensions==4.12.2
     #   cattrs
     #   flask-limiter
     #   limits
+    #   rich
     #   shillelagh
 tzdata==2024.2
     # via
