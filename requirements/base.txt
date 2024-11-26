@@ -165,7 +165,7 @@ idna==3.10
     # via
     #   email-validator
     #   requests
-importlib-metadata==7.1.0
+importlib-metadata==8.5.0
     # via apache-superset
 importlib-resources==6.4.5
     # via limits
