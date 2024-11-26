@@ -68,7 +68,7 @@ jobs:
               git rev-list --max-parents=0 --first-parent HEAD
             fi
           }
-          lookup_latest_tag()
+          lookup_latest_tag
 
 
 
