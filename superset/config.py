@@ -1784,7 +1784,7 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 #    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
 #        if (
 #            datasource.sql and
-#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#            len(SQLScript(datasource.sql).tables) == 1
 #        ):
 #            return (
 #                "This virtual dataset queries only one table and therefore could be "

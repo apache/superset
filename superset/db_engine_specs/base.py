@@ -63,7 +63,7 @@ from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql.parse import SQLScript, Table
+from superset.sql.parse import BaseSQLStatement, SQLScript, Table
 from superset.sql_parse import ParsedQuery
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -1737,18 +1737,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
     @classmethod
-    def process_statement(cls, statement: str, database: Database) -> str:
+    def process_statement(
+        cls,
+        statement: BaseSQLStatement[Any],
+        database: Database,
+    ) -> str:
         """
-        Process a SQL statement by stripping and mutating it.
+        Process a SQL statement by mutating it.
 
         :param statement: A single SQL statement
         :param database: Database instance
         :return: Dictionary with different costs
         """
-        parsed_query = ParsedQuery(statement, engine=cls.engine)
-        sql = parsed_query.stripped()
-
-        return database.mutate_sql_based_on_config(sql, is_split=True)
+        return database.mutate_sql_based_on_config(str(statement), is_split=True)
 
     @classmethod
     def estimate_query_cost(  # pylint: disable=too-many-arguments
@@ -1773,8 +1774,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 "Database does not support cost estimation"
             )
 
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        statements = parsed_query.get_statements()
+        parsed_script = SQLScript(sql, engine=cls.engine)
 
         with database.get_raw_connection(
             catalog=catalog,
@@ -1788,7 +1788,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                     cls.process_statement(statement, database),
                     cursor,
                 )
-                for statement in statements
+                for statement in parsed_script.statements
             ]
 
     @classmethod
@@ -2055,15 +2055,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         except json.JSONDecodeError as ex:
             logger.error(ex, exc_info=True)
             raise
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return (
-            parsed_query.is_select()
-            or parsed_query.is_explain()
-            or parsed_query.is_show()
-        )
 
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:

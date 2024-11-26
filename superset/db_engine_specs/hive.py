@@ -45,7 +45,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -597,15 +597,6 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         # otherwise, return no function names to prevent errors
         return []
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return (
-            super().is_readonly_query(parsed_query)
-            or parsed_query.is_set()
-            or parsed_query.is_show()
-        )
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:

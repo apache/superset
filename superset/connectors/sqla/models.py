@@ -67,7 +67,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
-from sqlalchemy.sql.expression import Label, TextAsFrom
+from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
@@ -104,7 +104,7 @@ from superset.models.helpers import (
     QueryResult,
 )
 from superset.models.slice import Slice
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -1469,34 +1469,13 @@ class SqlaTable(
         return tbl
 
     def get_from_clause(
-        self, template_processor: BaseTemplateProcessor | None = None
+        self,
+        template_processor: BaseTemplateProcessor | None = None,
     ) -> tuple[TableClause | Alias, str | None]:
-        """
-        Return where to select the columns and metrics from. Either a physical table
-        or a virtual table with it's own subquery. If the FROM is referencing a
-        CTE, the CTE is returned as the second value in the return tuple.
-        """
         if not self.is_virtual:
             return self.get_sqla_table(), None
 
-        from_sql = self.get_rendered_sql(template_processor) + "\n"
-        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
-        if not (
-            parsed_query.is_unknown()
-            or self.db_engine_spec.is_readonly_query(parsed_query)
-        ):
-            raise QueryObjectValidationError(
-                _("Virtual dataset query must be read-only")
-            )
-
-        cte = self.db_engine_spec.get_cte_query(from_sql)
-        from_clause = (
-            table(self.db_engine_spec.cte_alias)
-            if cte
-            else TextAsFrom(self.text(from_sql), []).alias(VIRTUAL_TABLE_ALIAS)
-        )
-
-        return from_clause, cte
+        return super().get_from_clause(template_processor)
 
     def adhoc_metric_to_sqla(
         self,

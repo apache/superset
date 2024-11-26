@@ -72,7 +72,6 @@ from superset.sql.parse import SQLScript
 from superset.sql_parse import (
     has_table_query,
     insert_rls_in_predicate,
-    ParsedQuery,
     sanitize_clause,
 )
 from superset.superset_typing import (
@@ -1039,6 +1038,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         Render sql with template engine (Jinja).
         """
+        if not self.sql:
+            return ""
+
         sql = self.sql.strip("\t\r\n; ")
         if template_processor:
             try:
@@ -1072,13 +1074,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         or a virtual table with it's own subquery. If the FROM is referencing a
         CTE, the CTE is returned as the second value in the return tuple.
         """
-
         from_sql = self.get_rendered_sql(template_processor) + "\n"
-        parsed_query = ParsedQuery(from_sql, engine=self.db_engine_spec.engine)
-        if not (
-            parsed_query.is_unknown()
-            or self.db_engine_spec.is_readonly_query(parsed_query)
-        ):
+        parsed_script = SQLScript(from_sql, engine=self.db_engine_spec.engine)
+        if parsed_script.has_mutation():
             raise QueryObjectValidationError(
                 _("Virtual dataset query must be read-only")
             )

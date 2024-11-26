@@ -25,7 +25,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from tests.integration_tests.test_app import app
 
 
@@ -225,19 +225,6 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
 
     mock_execute.assert_any_call(f"DROP TABLE IF EXISTS {schema}.{table_name}")
     app.config = config
-
-
-def test_is_readonly():
-    def is_readonly(sql: str) -> bool:
-        return HiveEngineSpec.is_readonly_query(ParsedQuery(sql))
-
-    assert not is_readonly("UPDATE t1 SET col1 = NULL")
-    assert not is_readonly("INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA")
-    assert is_readonly("SHOW LOCKS test EXTENDED")
-    assert is_readonly("SET hivevar:desc='Legislators'")
-    assert is_readonly("EXPLAIN SELECT 1")
-    assert is_readonly("SELECT 1")
-    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
 
 
 @pytest.mark.parametrize(
