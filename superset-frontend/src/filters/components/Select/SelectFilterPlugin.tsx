@@ -46,7 +46,7 @@ type DataMaskAction =
   | {
       type: 'filterState';
       extraFormData: ExtraFormData;
-      filterState: { value: SelectValue; label?: string };
+      filterState: { value: SelectValue; label?: string; selected?: boolean };
     };
 
 function reducer(draft: DataMask, action: DataMaskAction) {
@@ -126,10 +126,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
 
   const updateDataMask = useCallback(
-    (values: SelectValue) => {
+    (values: SelectValue, type: boolean | undefined = false) => {
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
-
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
       dispatchDataMask({
         type: 'filterState',
@@ -139,6 +138,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           emptyFilter,
           inverseSelection,
         ),
+
         filterState: {
           ...filterState,
           label: values?.length
@@ -150,6 +150,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             appSection === AppSection.FilterConfigModal && defaultToFirstItem
               ? undefined
               : values,
+          selected: type,
         },
       });
     },
@@ -197,9 +198,9 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const values = value === null ? [null] : ensureIsArray(value);
 
       if (values.length === 0) {
-        updateDataMask(null);
+        updateDataMask(values, true);
       } else {
-        updateDataMask(values);
+        updateDataMask(values, true);
       }
     },
     [updateDataMask],
@@ -258,6 +259,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       const firstItem: SelectValue = data[0]
         ? (groupby.map(col => data[0][col]) as string[])
         : null;
+
       // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
       // TODO: still need repopulate default value in config modal when column changed
       if (firstItem?.[0] !== undefined) {
@@ -266,8 +268,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     } else if (isDisabled) {
       // empty selection if filter is disabled
       updateDataMask(null);
-    } else {
-      // reset data mask based on filter state
+    } else if (!filterState.selected) {
       updateDataMask(filterState.value);
     }
   }, [

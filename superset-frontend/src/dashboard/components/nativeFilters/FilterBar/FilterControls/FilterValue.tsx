@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import {
   FC,
   memo,
@@ -284,14 +285,85 @@ const FilterValue: FC<FilterControlProps> = ({
       unsetFocusedFilter,
     ],
   );
+  /* eslint-disable */
+  const { cascadeParentIds } = filter;
+  const { defaultToFirstItem, multiSelect } = formData;
 
-  const filterState = useMemo(
-    () => ({
+ 
+  const filterState = useMemo(() => {
+    if (formData?.defaultValue?.length > 0) {
+      return {
+        ...filter.dataMask?.filterState,
+        validateStatus,
+        validateMessage: '',
+        selected: false,
+      };
+    }
+    
+    if (state?.length <= 0) {
+      return {
+        label: undefined,
+        value: undefined,
+        validateStatus,
+        validateMessage: '',
+      };
+    }
+
+    if (filter?.dataMask?.filterState?.selected) {
+      return {
+        ...filter.dataMask?.filterState,
+        validateStatus,
+        validateMessage: '',
+      };
+    }
+
+    if (cascadeParentIds.length <= 0 || !defaultToFirstItem) {
+      return {
+        ...filter.dataMask?.filterState,
+        validateStatus,
+        validateMessage: '',
+        selected: false,
+      };
+    }
+
+    if (state?.length > 0 && defaultToFirstItem) {
+      if (multiSelect) {
+        const labels = state[0]?.data.map(item => Object.values(item)[0]);
+        return {
+          label: labels[0],
+          value: [labels[0]],
+          validateStatus,
+          selected: false,
+          validateMessage: '',
+        };
+      }
+
+      const [firstStateData] = state[0]?.data || [{}];
+      const [label] = Object.values(firstStateData);
+      const value = Object.values(firstStateData);
+
+      return {
+        label,
+        value,
+        validateStatus,
+        validateMessage: '',
+        selected: false,
+      };
+    }
+
+    return {
       ...filter.dataMask?.filterState,
       validateStatus,
-    }),
-    [filter.dataMask?.filterState, validateStatus],
-  );
+      selected: false,
+      validateMessage: '',
+    };
+  }, [
+    dependencies,
+    formData,
+    state,
+    validateStatus,
+    filter.dataMask?.filterState,
+  ]);
 
   const displaySettings = useMemo(
     () => ({
