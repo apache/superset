@@ -256,6 +256,9 @@ def test_s3_upload_prefix(schema: str, upload_prefix: str) -> None:
     )
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 def test_upload_to_s3_no_bucket_path():
     with app.app_context():
         with pytest.raises(
@@ -265,6 +268,9 @@ def test_upload_to_s3_no_bucket_path():
             upload_to_s3("filename", "prefix", Table("table"))
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 @mock.patch("boto3.client")
 def test_upload_to_s3_client_error(client):
     config = app.config.copy()
@@ -282,6 +288,9 @@ def test_upload_to_s3_client_error(client):
     app.config = config
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 @mock.patch("boto3.client")
 def test_upload_to_s3_success(client):
     config = app.config.copy()

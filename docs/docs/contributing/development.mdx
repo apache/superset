@@ -455,17 +455,6 @@ pre-commit install
 
 A series of checks will now run when you make a git commit.
 
-Alternatively, it is possible to run pre-commit via tox:
-
-```bash
-tox -e pre-commit
-```
-
-Or by running pre-commit manually:
-
-```bash
-pre-commit run --all-files
-```
 
 ## Linting
 
@@ -474,8 +463,7 @@ pre-commit run --all-files
 We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
-# for python
-tox -e pylint
+pylint
 ```
 
 In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
@@ -502,39 +490,108 @@ If using the eslint extension with vscode, put the following in your workspace `
 ]
 ```
 
+
+## GitHub Actions and `act`
+
+:::tip
+`act` compatibility of Superset's GHAs is not fully tested. Running `act` locally may or may not
+work for different actions, and may require fine tunning and local secret-handling.
+For those more intricate GHAs that are tricky to run locally, we recommend iterating
+directly on GHA's infrastructure, by pushing directly on a branch and monitoring GHA logs.
+For more targetted iteration, see the `gh workflow run --ref {BRANCH}` subcommand of the GitHub CLI.
+:::
+
+For automation and CI/CD, Superset makes extensive use of GitHub Actions (GHA). You
+can find all of the workflows and other assets under the `.github/` folder. This includes:
+- running the backend unit test suites (`tests/`)
+- running the frontend test suites (`superset-frontend/src/**.*.test.*`)
+- running our Cypress end-to-end tests (`superset-frontend/cypress-base/`)
+- linting the codebase, including all Python, Typescript and Javascript, yaml and beyond
+- checking for all sorts of other rules conventions
+
+When you open a pull request (PR), the appropriate GitHub Actions (GHA) workflows will
+automatically run depending on the changes in your branch. It's perfectly reasonable
+(and required!) to rely on this automation. However, the downside is that it's mostly an
+all-or-nothing approach and doesn't provide much control to target specific tests or
+iterate quickly.
+
+At times, it may be more convenient to run GHA workflows locally. For that purpose
+we use [act](https://github.com/nektos/act), a tool that allows you to run GitHub Actions (GHA)
+workflows locally. It simulates the GitHub Actions environment, enabling developers to
+test and debug workflows on their local machines before pushing changes to the repository. More
+on how to use it in the next section.
+
+:::note
+In both GHA and `act`, we can run a more complex matrix for our tests, executing against different
+database engines (PostgreSQL, MySQL, SQLite) and different versions of Python.
+This enables us to ensure compatibility and stability across various environments.
+:::
+
+### Using `act`
+
+First, install `act` -> https://nektosact.com/
+
+To list the workflows, simply:
+
+```bash
+act --list
+```
+
+To run a specific workflow:
+
+```bash
+act pull_request --job {workflow_name} --secret GITHUB_TOKEN=$GITHUB_TOKEN --container-architecture linux/amd64
+```
+
+In the example above, notice that:
+- we target a specific workflow, using `--job`
+- we pass a secret using `--secret`, as many jobs require read access (public) to the repo
+- we simulate a `pull_request` event by specifying it as the first arg,
+  similarly, we could simulate a `push` event or something else
+- we specify `--container-architecture`, which tends to emulate GHA more reliably
+
+:::note
+`act` is a rich tool that offers all sorts of features, allowing you to simulate different
+events (pull_request, push, ...), semantics around passing secrets where required and much
+more. For more information, refer to [act's documentation](https://nektosact.com/)
+:::
+
+:::note
+Some jobs require secrets to interact with external systems and accounts that you may
+not have in your possession. In those cases you may have to rely on remote CI or parameterize the
+job further to target a different environment/sandbox or your own alongside the related
+secrets.
+:::
+
+---
+
 ## Testing
 
 ### Python Testing
 
-All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
-a standardized testing framework.
-All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+#### Unit Tests
+
+For unit tests located in `tests/unit_tests/`, it's usually easy to simply run the script locally using:
 
 ```bash
-tox -e <environment>
+pytest tests/unit_tests/*
 ```
 
-For example,
+#### Integration Tests
+
+For more complex pytest-defined integration tests (not to be confused with our end-to-end Cypress tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
+
+### Running Tests with `act`
+
+To run integration tests locally using `act`, ensure you have followed the setup instructions from the [GitHub Actions and `act`](#github-actions-and-act) section. You can run specific workflows or jobs that include integration tests. For example:
 
 ```bash
-tox -e py38
+act --job test-python-38 --secret GITHUB_TOKEN=$GITHUB_TOKEN --event pull_request --container-architecture linux/amd64
 ```
 
-Alternatively, you can run all tests in a single file via,
+#### Running locally using a test script
 
-```bash
-tox -e <environment> -- tests/test_file.py
-```
-
-or for a specific test via,
-
-```bash
-tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
-```
-
-Note that the test environment uses a temporary directory for defining the
-SQLite databases which will be cleared each time before the group of test
-commands are invoked.
+There is also a utility script included in the Superset codebase to run Python integration tests. The [readme can be found here](https://github.com/apache/superset/tree/master/scripts/tests).
 
 There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
@@ -545,7 +602,7 @@ To run all integration tests, for example, run this script from the root directo
 scripts/tests/run.sh
 ```
 
-You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+You can run unit tests found in `./tests/unit_tests` with pytest. It is a simple way to run an isolated test that doesn't need any database setup:
 
 ```bash
 pytest ./link_to_test.py
@@ -568,7 +625,7 @@ npm run test -- path/to/file.js
 
 ### Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+We use [Cypress](https://www.cypress.io/) for integration tests. To open Cypress and explore tests first setup and run test server:
 
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
