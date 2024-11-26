@@ -107,6 +107,7 @@ jobs:
       - name: Run chart-releaser
         uses: ./.github/actions/chart-releaser-action
         with:
+          version: v1.6.0
           charts_dir: helm
           mark_as_latest: false
           pages_branch: ${{ env.branch_name }}
