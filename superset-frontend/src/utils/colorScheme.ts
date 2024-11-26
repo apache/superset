@@ -24,12 +24,24 @@ import {
 } from '@superset-ui/core';
 
 /**
- * Forces falsy namespace values to undefined to default to GLOBAL
+ * Force falsy namespace values to undefined to default to GLOBAL
  *
  * @param namespace
  * @returns - namespace or default undefined
  */
 export const getColorNamespace = (namespace?: string) => namespace || undefined;
+
+/**
+ *
+ * Field shared_label_colors used to be a dict of all colors for all labels.
+ * Force shared_label_colors field to be a list of actual shared labels.
+ *
+ * @param sharedLabelsColors - the shared label colors list
+ * @returns string[]
+ */
+export const enforceSharedLabelsColorsArray = (
+  sharedLabelsColors: string[] | Record<string, string> | undefined,
+) => (Array.isArray(sharedLabelsColors) ? sharedLabelsColors : []);
 
 /**
  * Get labels shared across all charts in a dashboard.
@@ -176,7 +188,9 @@ export const applyColors = (
     CategoricalColorNamespace.getNamespace(colorNameSpace);
   const colorScheme = metadata?.color_scheme;
   const fullLabelsColor = metadata?.map_label_colors || {};
-  const sharedLabels = metadata?.shared_label_colors || [];
+  const sharedLabels = enforceSharedLabelsColorsArray(
+    metadata?.shared_label_colors,
+  );
   const customLabelsColor = metadata?.label_colors || {};
   const sharedLabelsColor = getSharedLabelsColorMapEntries(
     fullLabelsColor,
