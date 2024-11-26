@@ -91,13 +91,14 @@ jobs:
           const body = action === 'noop'
             ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'. [View workflow run](${workflowUrl}).`
             : `@${user} Processing your ephemeral environment request [here](${workflowUrl}).`;
-
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: issueNumber,
-            body,
-          });
+          if (action !== 'noop') {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body,
+            });
+          }
 
 
   ephemeral-docker-build:
