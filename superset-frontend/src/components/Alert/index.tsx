@@ -34,10 +34,11 @@ export default function Alert(props: AlertProps) {
     closable = true,
     roomBelow = false,
     children,
+    ...rest
   } = props;
 
   const theme = useTheme();
-  const { colors, typography, gridUnit } = theme;
+  const { colors, gridUnit } = theme;
   const { alert, error, info, success } = colors;
 
   let baseColor = info;
@@ -59,30 +60,16 @@ export default function Alert(props: AlertProps) {
       showIcon={showIcon}
       icon={showIcon && <AlertIcon aria-label={`${type} icon`} />}
       closeIcon={closable && <Icons.XSmall aria-label="close icon" />}
-      css={{
+      message={children || 'Default message'}
+      description={description}
+      style={{
         marginBottom: roomBelow ? gridUnit * 4 : 0,
         padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
         alignItems: 'flex-start',
         border: 0,
         backgroundColor: baseColor.light2,
-        '& .antd-v5-alert-icon': {
-          marginRight: gridUnit * 2,
-        },
-        '& .antd-v5-alert-message': {
-          color: baseColor.dark2,
-          fontSize: typography.sizes.m,
-          fontWeight: description
-            ? typography.weights.bold
-            : typography.weights.normal,
-        },
-        '& .antd-v5-alert-description': {
-          color: baseColor.dark2,
-          fontSize: typography.sizes.m,
-        },
       }}
-      {...props}
-    >
-      {children}
-    </AntdAlert>
+      {...rest}
+    />
   );
 }
