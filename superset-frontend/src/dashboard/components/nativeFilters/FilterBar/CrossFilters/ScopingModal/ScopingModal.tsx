@@ -18,7 +18,6 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from '@reduxjs/toolkit';
 import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import {
@@ -30,9 +29,9 @@ import {
 } from 'src/dashboard/types';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { saveChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
 import { DEFAULT_CROSS_FILTER_SCOPING } from 'src/dashboard/constants';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { ScopingModalContent } from './ScopingModalContent';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
@@ -71,18 +70,13 @@ export interface ScopingModalProps {
   closeModal: () => void;
 }
 
-const chartLayoutItemsSelector = createSelector(
-  (state: RootState) => state.dashboardLayout.present,
-  layout => Object.values(layout).filter(item => item?.type === CHART_TYPE),
-);
-
 export const ScopingModal = ({
   initialChartId,
   isVisible,
   closeModal,
 }: ScopingModalProps) => {
   const dispatch = useDispatch();
-  const chartLayoutItems = useSelector(chartLayoutItemsSelector);
+  const chartLayoutItems = useChartLayoutItems();
   const chartIds = useChartIds();
   const [currentChartId, setCurrentChartId] = useState(initialChartId);
   const initialChartConfig = useSelector<RootState, ChartConfiguration>(

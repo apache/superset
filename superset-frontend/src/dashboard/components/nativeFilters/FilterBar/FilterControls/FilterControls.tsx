@@ -37,7 +37,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   isNativeFilterWithDataMask,
-  JsonObject,
 } from '@superset-ui/core';
 import {
   createHtmlPortalNode,
@@ -49,15 +48,13 @@ import {
   useDashboardHasTabs,
   useSelectFiltersInScope,
 } from 'src/dashboard/components/nativeFilters/state';
-import {
-  DashboardLayout,
-  FilterBarOrientation,
-  RootState,
-} from 'src/dashboard/types';
+import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import DropdownContainer, {
   Ref as DropdownContainerRef,
 } from 'src/components/DropdownContainer';
 import Icons from 'src/components/Icons';
+import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { FiltersOutOfScopeCollapsible } from '../FiltersOutOfScopeCollapsible';
 import { useFilterControlFactory } from '../useFilterControlFactory';
 import { FiltersDropdownContent } from '../FiltersDropdownContent';
@@ -65,11 +62,14 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
+import { CrossFilterIndicator } from '../../selectors';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
+
+const EMPTY_ARRAY: CrossFilterIndicator[] = [];
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
@@ -90,12 +90,8 @@ const FilterControls: FC<FilterControlsProps> = ({
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
-  const chartConfiguration = useSelector<RootState, JsonObject>(
-    state => state.dashboardInfo.metadata?.chart_configuration,
-  );
-  const dashboardLayout = useSelector<RootState, DashboardLayout>(
-    state => state.dashboardLayout.present,
-  );
+  const chartIds = useChartIds();
+  const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
 
   const isCrossFiltersEnabled = isFeatureEnabled(
@@ -106,12 +102,12 @@ const FilterControls: FC<FilterControlsProps> = ({
       isCrossFiltersEnabled
         ? crossFiltersSelector({
             dataMask,
-            chartConfiguration,
-            dashboardLayout,
+            chartIds,
+            chartLayoutItems,
             verboseMaps,
           })
-        : [],
-    [chartConfiguration, dashboardLayout, dataMask, isCrossFiltersEnabled],
+        : EMPTY_ARRAY,
+    [chartIds, chartLayoutItems, dataMask, isCrossFiltersEnabled, verboseMaps],
   );
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,
