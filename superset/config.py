@@ -1543,9 +1543,12 @@ PREFERRED_DATABASES: list[str] = [
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
-# Details needed for databases that allows user to authenticate using personal
-# OAuth2 tokens. See https://github.com/apache/superset/issues/20300 for more
-# information. The scope and URIs are optional.
+# Details needed for databases that allows user to authenticate using personal OAuth2
+# tokens. See https://github.com/apache/superset/issues/20300 for more information. The
+# scope and URIs are usually optional.
+# NOTE that if you change the id, scope, or URIs in this file, you probably need to purge
+# the existing tokens from the database. This needs to be done by running a query to
+# delete the existing tokens.
 DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # "Google Sheets": {
     #     "id": "XXX.apps.googleusercontent.com",
@@ -1561,14 +1564,17 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     #     "token_request_uri": "https://oauth2.googleapis.com/token",
     # },
 }
+
 # OAuth2 state is encoded in a JWT using the alogorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
+
 # By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
 # specified. If you're running multiple Superset instances you might want to have a
 # proxy handling the redirects, since redirect URIs need to be registered in the OAuth2
 # applications. In that case, the proxy can forward the request to the correct instance
 # by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
 # DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
