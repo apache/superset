@@ -65,17 +65,17 @@ export default function Alert(props: AlertProps) {
         alignItems: 'flex-start',
         border: 0,
         backgroundColor: baseColor.light2,
-        '& .ant-alert-icon': {
+        '& .antd-v5-alert-icon': {
           marginRight: gridUnit * 2,
         },
-        '& .ant-alert-message': {
+        '& .antd-v5-alert-message': {
           color: baseColor.dark2,
           fontSize: typography.sizes.m,
           fontWeight: description
             ? typography.weights.bold
             : typography.weights.normal,
         },
-        '& .ant-alert-description': {
+        '& .antd-v5-alert-description': {
           color: baseColor.dark2,
           fontSize: typography.sizes.m,
         },
