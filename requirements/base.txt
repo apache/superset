@@ -93,7 +93,7 @@ deprecation==2.1.0
     # via apache-superset
 dnspython==2.7.0
     # via email-validator
-email-validator==2.1.1
+email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
