@@ -90,7 +90,7 @@ dependencies = [
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-utils>=0.38.3, <0.39",
-    # known breaking changes in sqlglot 25.25
+    # known breaking changes in sqlglot 25.25.0
     #https://github.com/tobymao/sqlglot/blob/main/CHANGELOG.md#v25250---2024-10-14
     "sqlglot>=25.24.0,<25.25.0",
     "sqlparse>=0.5.0",
