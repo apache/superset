@@ -541,6 +541,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
         return True
 
+    def oauth_user_info(self, provider, response=None):
+        logging.debug("Oauth2 provider: {0}.".format(provider))
+        if provider == 'keycloak':
+            me = self.appbuilder.sm.oauth_remotes[provider].get('openid-connect/userinfo')
+            me.raise_for_status()
+            data = me.json()
+            logging.debug(f"user_data: {data}")
+            return {
+                "name" : data.get("name", ""),
+                "email" : data.get("email", ""),
+                "id": data.get("sub", ""),
+                "username": data.get("preferred_username", ""),
+                "first_name": data.get("given_name", ""),
+                "last_name": data.get("family_name", ""),
+                "email": data.get("email", ""),
+                "role_keys": data.get("role_keys", []),
+            }
+
     def get_schema_perm(
         self, database: Union["Database", str], schema: Optional[str] = None
     ) -> Optional[str]:
