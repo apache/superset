@@ -180,7 +180,10 @@ development = [
     "docker",
     "flask-testing",
     "freezegun",
-    "greenlet>=2.0.2",
+    # playwright requires greenlet==3.0.3
+    # submitted a PR to relax deps in 11/2024
+    # https://github.com/microsoft/playwright-python/pull/2669
+    "greenlet==3.0.3",
     "grpcio>=1.55.3",
     "openapi-spec-validator",
     "parameterized",
