@@ -68,6 +68,10 @@ else:
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
+
+DOMAIN_WHITELIST = json.loads(os.getenv("AUTH_USER_DOMAIN_WHITELIST"))
+
+
 # Azure credentials
 AZURE_ENTRA_CLIENT_ID = os.getenv("AZURE_ENTRA_CLIENT_ID")
 AZURE_ENTRA_CLIENT_SECRET = os.getenv("AZURE_ENTRA_CLIENT_SECRET")
@@ -189,7 +193,6 @@ AUTH_USER_REGISTRATION_ROLE_JMESPATH = "contains(['lautaro@datakimia.com', 'toma
 
 GOOGLE_PROVIDER = {
     'name': 'google',
-    #'whitelist': ['@company.com'],
     'icon': 'fa-google',
     'token_key': 'access_token',
     'remote_app': {
@@ -205,8 +208,12 @@ GOOGLE_PROVIDER = {
     }
 }
 
+if DOMAIN_WHITELIST:
+    GOOGLE_PROVIDER['whitelist'] = DOMAIN_WHITELIST
+
 AZURE_PROVIDER =     {
         'name': 'azure',
+        'whitelist': DOMAIN_WHITELIST,
         'icon': 'fa-windows',
         'token_key': 'access_token',
         'remote_app': {
@@ -223,6 +230,9 @@ AZURE_PROVIDER =     {
             'jwks_uri': f'https://login.microsoftonline.com/{AZURE_ENTRA_TENANT_ID}/discovery/v2.0/keys',
         }
     }
+
+if DOMAIN_WHITELIST:
+    AZURE_PROVIDER['whitelist'] = DOMAIN_WHITELIST
 
 PROVIDERS = {
     'google': GOOGLE_PROVIDER,
