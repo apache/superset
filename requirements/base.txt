@@ -119,7 +119,7 @@ flask-babel==2.0.0
     # via flask-appbuilder
 flask-caching==2.3.0
     # via apache-superset
-flask-compress==1.15
+flask-compress==1.17
     # via apache-superset
 flask-jwt-extended==4.6.0
     # via flask-appbuilder
@@ -422,5 +422,5 @@ xlsxwriter==3.0.9
     #   pandas
 zipp==3.19.0
     # via importlib-metadata
-zstandard==0.22.0
+zstandard==0.23.0
     # via flask-compress
