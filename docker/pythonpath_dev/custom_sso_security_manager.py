@@ -28,8 +28,7 @@ class CustomOAuthView(AuthOAuthView):
         else :
             return super(CustomOAuthView,self).login(provider)
 
-my_role_pvms = [
-
+guest_role_pvms = [
     ("can_read", "SavedQuery"),
     ("can_read", "CSSTemplate"),
     ("can_read", "ReportSchedule"),
@@ -49,12 +48,43 @@ my_role_pvms = [
     ("can_recent_activity", "Log"),        
 ]
 
+client_admin_pvms = [
+    ("can_this_form_get", "UserInfoEditView"),
+    ("can_this_form_post", "UserInfoEditView"),
+    ("can_show", "RoleModelView"),
+    ("can_add", "RoleModelView"),
+    ("can_edit", "RoleModelView"),
+    ("can_list", "RoleModelView"),
+    ("can_delete", "User"),
+    ("can_delete", "Role"),
+    ("can_delete", "RoleModelView"),
+    ("copyrole", "RoleModelView"),
+    ("can_get", "User"),
+    ("can_get", "Role"),
+    ("can_info", "User"),
+    ("can_info", "Role"),
+    ("can_add_role_permissions", "Role"),
+    ("can_post", "User"),
+    ("can_post", "Role"),
+    ("can_put", "User"),
+    ("can_put", "Role"),
+    ("can_list_role_permissions", "Role"),
+    ("menu_access", "List Roles"),
+    ("menu_access", "List Users"),
+]
+
+
 class CustomSsoSecurityManager(SupersetSecurityManager):
     authoauthview = CustomOAuthView
     def __init__(self, appbuilder):
         super(CustomSsoSecurityManager, self).__init__(appbuilder)
 
-        my_role = self.add_role("Guest")
-        for (action, model) in my_role_pvms:
+        guest_role = self.add_role("Guest")
+        for (action, model) in guest_role_pvms:
             pvm = self.find_permission_view_menu(action, model)
-            self.add_permission_role(my_role, pvm)
+            self.add_permission_role(guest_role, pvm)
+
+        client_admin_role = self.add_role("Client_Admin")
+        for (action, model) in client_admin_pvms:
+            pvm = self.find_permission_view_menu(action, model)
+            self.add_permission_role(client_admin_role, pvm)
