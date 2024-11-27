@@ -29,7 +29,7 @@ from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotati
 
 
 class BigQueryValidator(BaseSQLValidator):  # pylint: disable=too-few-public-methods
-    """Validate SQL queries using the pgsanity module"""
+    """Validate SQL queries using the BigQuery dryrun"""
 
     name = "BigQueryValidator"
 
