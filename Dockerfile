@@ -183,14 +183,15 @@ RUN apt-get update -qq \
 ARG INCLUDE_CHROMIUM="true"
 ARG INCLUDE_FIREFOX="false"
 
-RUN if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
-      --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
       uv pip install --system --no-cache-dir playwright; \
     else \
       echo "Skipping Playwright installation"; \
     fi
 
-RUN if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
         playwright install chromium --with-deps; \
     else \
         echo "Skipping Chromium installation"; \
