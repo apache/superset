@@ -61,6 +61,12 @@ def test_fetch_url(
 
     initial_headers = {"Cookie": "cookie", "key": "value"}
     csrf_headers = initial_headers | {"X-CSRF-Token": "csrf_token"}
+    
+    # Conditionally add the Referer header and assert its presence
+    if expected_referer:
+        csrf_headers = csrf_headers | {"Referer": expected_referer}
+        assert csrf_headers["Referer"] == expected_referer
+        
     mock_fetch_csrf_token.return_value = csrf_headers
 
     app.config["WEBDRIVER_BASEURL"] = base_url
@@ -68,10 +74,6 @@ def test_fetch_url(
     data_encoded = b"data"
 
     result = fetch_url(data, initial_headers)
-
-    # Verify that the Referer header is added correctly for HTTPS URLs
-    if expected_referer:
-        assert csrf_headers["Referer"] == expected_referer
 
     expected_url = (
         f"{base_url}/api/v1/chart/warm_up_cache"
