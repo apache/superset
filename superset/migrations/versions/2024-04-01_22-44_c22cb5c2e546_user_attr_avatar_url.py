@@ -24,7 +24,7 @@ Create Date: 2024-04-01 22:44:40.386543
 import sqlalchemy as sa
 from alembic import op
 
-from superset.migrations.shared.utils import table_has_column
+from superset.migrations.shared.utils import add_column_if_not_exists
 
 # revision identifiers, used by Alembic.
 revision = "c22cb5c2e546"
@@ -32,11 +32,10 @@ down_revision = "678eefb4ab44"
 
 
 def upgrade():
-    if not table_has_column("user_attribute", "avatar_url"):
-        op.add_column(
-            "user_attribute",
-            sa.Column("avatar_url", sa.String(length=100), nullable=True),
-        )
+    add_column_if_not_exists(
+        "user_attribute",
+        sa.Column("avatar_url", sa.String(length=100), nullable=True),
+    )
 
 
 def downgrade():

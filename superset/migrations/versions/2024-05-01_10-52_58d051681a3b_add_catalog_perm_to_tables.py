@@ -29,7 +29,7 @@ from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
 )
-from superset.migrations.shared.utils import table_has_column
+from superset.migrations.shared.utils import add_column_if_not_exists
 
 # revision identifiers, used by Alembic.
 revision = "58d051681a3b"
@@ -37,16 +37,14 @@ down_revision = "4a33124c18ad"
 
 
 def upgrade():
-    if not table_has_column("tables", "catalog_perm"):
-        op.add_column(
-            "tables",
-            sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
-        )
-    if not table_has_column("slices", "catalog_perm"):
-        op.add_column(
-            "slices",
-            sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
-        )
+    add_column_if_not_exists(
+        "tables",
+        sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
+    )
+    add_column_if_not_exists(
+        "slices",
+        sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
+    )
     upgrade_catalog_perms(engines={"postgresql"})
 
 
