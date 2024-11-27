@@ -34,10 +34,6 @@ ARG BUILD_TRANSLATIONS="false"
 # in dev we mount the repo and build the frontend inside docker
 ARG DEV_MODE="false"
 
-# Include headless browsers? Allows for alerts, reports & thumbnails, but bloats the images
-ARG INCLUDE_CHROMIUM="true"
-ARG INCLUDE_FIREFOX="false"
-
 # Somehow we need python3 + build-essential on this side of the house to install node-gyp
 RUN apt-get update -qq \
     && apt-get install \
@@ -179,28 +175,31 @@ RUN apt-get update -qq \
         pkg-config \
         && rm -rf /var/cache/apt/archives/* /var/lib/apt/lists/*
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir playwright
-RUN playwright install-deps
+########################################################
+# Installing headless browsers if needed
+########################################################
+
+# Include headless browsers? Allows for alerts, reports & thumbnails, but bloats the images
+ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_FIREFOX="false"
+
+RUN if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
+      --mount=type=cache,target=/root/.cache/pip \
+      uv pip install --system --no-cache-dir playwright; \
+    else \
+      echo "Skipping Playwright installation"; \
+    fi
 
 RUN if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
-        playwright install chromium; \
+        playwright install chromium --with-deps; \
     else \
-        echo "Skipping translations in dev mode"; \
+        echo "Skipping Chromium installation"; \
     fi
-
-# Install GeckoDriver WebDriver
-ARG GECKODRIVER_VERSION=v0.34.0 \
-    FIREFOX_VERSION=125.0.3
 
 RUN if [ "$INCLUDE_FIREFOX" = "true" ]; then \
-        apt-get update -qq \
-        && apt-get install -yqq --no-install-recommends wget bzip2 \
-        && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
-        && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
-        && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
-        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/* /var/cache/apt/archives/*; \
-    fi
+      playwright install firefox --with-deps; \
+    else \
+      echo "Skipping Firefox installation"; \
 
 # Installing mysql client os-level dependencies in dev image only because GPL
 RUN apt-get install -yqq --no-install-recommends \
