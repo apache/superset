@@ -315,10 +315,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         database: Database,
         table: Table,
     ) -> Select | None:
+        full_table_name = f"`{table.schema}`.INFORMATION_SCHEMA.PARTITIONS"
+        if table.catalog:
+            full_table_name = f"`{table.catalog}`.{full_table_name}"
         sql = dedent(f"""\
             SELECT
                 MAX(partition_id) AS max_partition_id
-            FROM `{table.schema}.INFORMATION_SCHEMA.PARTITIONS`
+            FROM {full_table_name}
             WHERE table_name = '{table.table}'
         """)
         df = database.get_df(sql)
