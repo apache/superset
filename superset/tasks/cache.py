@@ -18,6 +18,7 @@ import logging
 from typing import Any, Optional, Union
 from urllib import request
 from urllib.error import URLError
+from urllib.parse import urlparse
 
 from celery.beat import SchedulingError
 from celery.utils.log import get_task_logger
@@ -45,6 +46,23 @@ def get_payload(chart: Slice, dashboard: Optional[Dashboard] = None) -> dict[str
     if dashboard:
         payload["dashboard_id"] = dashboard.id
     return payload
+
+
+def is_secure_url(url: str) -> bool:
+    """
+    Validates if a URL is secure (uses HTTPS).
+
+    :param url: The URL to validate.
+    :return: True if the URL uses HTTPS (secure), False if it uses HTTP (non-secure).
+    """
+    try:
+        parsed_url = urlparse(url)
+        # Return True for HTTPS, False for HTTP
+        return parsed_url.scheme == "https"
+    except ValueError as exception:
+        # Log a warning with detailed context
+        logger.warning("Failed to parse URL '%s': %s", url, str(exception))
+        return False
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
@@ -220,10 +238,15 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
     result = {}
     try:
+        url = get_url_path("ChartRestApi.warm_up_cache")
+
+        if is_secure_url(url):
+            logger.info("URL '%s' is secure. Adding Referer header.", url)
+            headers.update({"Referer": url})
+
         # Fetch CSRF token for API request
         headers.update(fetch_csrf_token(headers))
 
-        url = get_url_path("ChartRestApi.warm_up_cache")
         logger.info("Fetching %s with payload %s", url, data)
         req = request.Request(
             url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
