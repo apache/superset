@@ -70,6 +70,24 @@ documentation.
 configured to be secure.
 :::
 
+### Nuking the postgres database
+
+At times, it's possible to end up with your development database in a bad state, it's
+common while switching branches that contain migrations for instance, where the database
+version stamp that `alembic` manages is no longer available after switching branch.
+
+In that case, the easy solution is to nuke the postgres db and start fresh. Note that the full
+state of the database will be gone after doing this, so be cautious.
+
+```bash
+# first stop docker-compose if it's running
+docker-compose down
+# delete the volume containing the database
+docker volume rm superset_db_home
+# restart docker-compose, which will init a fresh database and load examples
+docker-compose up
+```
+
 ## Installing Development Tools
 
 :::note
