@@ -3,11 +3,11 @@ name: Build & publish docker images
 on:
   push:
     branches:
-      - "master"
+      - "Testing"
       - "[0-9].[0-9]*"
   pull_request:
     branches:
-      - "master"
+      - "Testing"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
