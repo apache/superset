@@ -45,6 +45,7 @@ from deprecation import deprecated
 from flask import current_app, g, url_for
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
+from google.cloud.bigquery.dbapi.cursor import Cursor as BigQueryCursor
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
 from sqlalchemy import column, select, types
@@ -1838,7 +1839,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if cls.arraysize:
             cursor.arraysize = cls.arraysize
         try:
-            cursor.execute(query)
+            # CG hack
+            if isinstance(cursor, BigQueryCursor):
+                cursor.execute(query, job_config=kwargs.get("job_config"))
+            else:
+                # END CG hack
+                cursor.execute(query)
         except Exception as ex:
             if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
                 cls.start_oauth2_dance(database)

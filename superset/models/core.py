@@ -24,6 +24,7 @@ from __future__ import annotations
 import builtins
 import logging
 import textwrap
+import urllib.parse
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
@@ -37,6 +38,7 @@ import sqlalchemy as sqla
 import sshtunnel
 from flask import g, request
 from flask_appbuilder import Model
+from google.cloud.bigquery.job import QueryJobConfig
 from sqlalchemy import (
     Boolean,
     Column,
@@ -646,16 +648,33 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
         return sql_
 
+    # CG hack
+    def _get_labels_from_uri(self, uri: URL) -> dict[str, str]:
+        """Converts the labels encoded in the URI to a dictionary."""
+        labels_encoded = uri.query.get("labels")
+        if not labels_encoded:
+            return {}
+        decoded_labels = urllib.parse.unquote(labels_encoded)
+        return dict(pair.split(":") for pair in decoded_labels.split(","))
+
+    # END CG hack
+
     def get_df(  # pylint: disable=too-many-locals
         self,
         sql: str,
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        query_labels: dict[str, str] | None = None,
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             engine_url = engine.url
+
+        # CG hack
+        job_labels = self._get_labels_from_uri(engine_url)
+        job_config = QueryJobConfig(labels={**(query_labels or {}), **job_labels})
+        # END CG hack
 
         def _log_query(sql: str) -> None:
             if log_query:
@@ -678,7 +697,11 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     database=self,
                     object_ref=__name__,
                 ):
-                    self.db_engine_spec.execute(cursor, sql_, self)
+                    # CG hack
+                    self.db_engine_spec.execute(
+                        cursor, sql_, self, job_config=job_config
+                    )
+                    # End CG hack
                     if i < len(sqls) - 1:
                         # If it's not the last, we don't keep the results
                         cursor.fetchall()

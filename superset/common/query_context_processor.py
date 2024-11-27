@@ -31,6 +31,7 @@ from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_actions import get_query_results
 from superset.common.utils import dataframe_utils
+from superset.common.utils.formatting_utils import remove_special_characters
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
@@ -234,7 +235,21 @@ class QueryContextProcessor:
             # todo(hugh): add logic to manage all sip68 models here
             result = query_context.datasource.exc_query(query_object.to_dict())
         else:
-            result = query_context.datasource.query(query_object.to_dict())
+            # CG hack
+            query_object_dict = query_object.to_dict()
+            # Add labels to the job metadata, this will show in job explorer
+            labels = dict(
+                dashboard_id=getattr(query_context, "form_data", {}).get("dashboardId"),
+                chart_id=getattr(query_context, "form_data", {}).get("slice_id"),
+                chart_name=remove_special_characters(
+                    getattr(getattr(query_context, "slice_", None), "slice_name", None)
+                ),
+            )
+            query_object_dict["job_labels"] = {
+                k: v for k, v in labels.items() if v is not None
+            }
+            result = query_context.datasource.query(query_object_dict)
+            # END CG hack
             query = result.query + ";\n\n"
 
         df = result.df

@@ -1725,6 +1725,9 @@ class SqlaTable(
         return or_(*groups)
 
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
+        # CG hack
+        job_labels = query_obj.pop("job_labels", None)  # labels for query jobs
+        # END CG hack
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
@@ -1763,6 +1766,9 @@ class SqlaTable(
                 self.catalog,
                 self.schema or None,
                 mutator=assign_column_label,
+                # CG hack
+                query_labels=job_labels,
+                # END CG hack
             )
         except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should
