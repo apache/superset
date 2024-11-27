@@ -103,7 +103,6 @@ const SliceContainer = styled.div`
 `;
 
 const EMPTY_OBJECT = {};
-const EMPTY_ARRAY = [];
 
 const Chart = props => {
   const dispatch = useDispatch();
