@@ -16,20 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Tooltip, TooltipProps } from 'src/components/Tooltip';
-import { TooltipTrigger } from './Styles';
 
-export const TooltipWithTruncation = ({
-  title,
-  children,
-  ...props
-}: TooltipProps) => (
-  <Tooltip
-    title={title}
-    placement="bottom"
-    overlayClassName="filter-card-tooltip"
-    {...props}
-  >
-    <TooltipTrigger>{children}</TooltipTrigger>
-  </Tooltip>
-);
+export type ActionType = 'hover' | 'focus' | 'click' | 'contextMenu';

@@ -18,13 +18,21 @@
  */
 
 import { useTheme, css } from '@superset-ui/core';
-import { Tooltip as BaseTooltip } from 'antd';
-import type { TooltipProps } from 'antd/lib/tooltip';
+import { Tooltip as BaseTooltip } from 'antd-v5';
+import {
+  TooltipProps as BaseTooltipProps,
+  TooltipPlacement as BaseTooltipPlacement,
+} from 'antd-v5/lib/tooltip';
 import { Global } from '@emotion/react';
 
-export type { TooltipProps } from 'antd/lib/tooltip';
+export type TooltipProps = BaseTooltipProps;
+export type TooltipPlacement = BaseTooltipPlacement;
 
-export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
+export const Tooltip = ({
+  overlayStyle,
+  color,
+  ...props
+}: BaseTooltipProps) => {
   const theme = useTheme();
   const defaultColor = `${theme.colors.grayscale.dark2}e6`;
   return (
@@ -32,7 +40,7 @@ export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
       {/* Safari hack to hide browser default tooltips */}
       <Global
         styles={css`
-          .ant-tooltip-open {
+          .antd5-tooltip-open {
             display: inline-block;
             &::after {
               content: '';

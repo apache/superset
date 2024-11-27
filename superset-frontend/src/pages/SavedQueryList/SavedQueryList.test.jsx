@@ -341,7 +341,7 @@ describe('RTL', () => {
     const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
     waitFor(() => {
-      expect(importButton).toHaveClass('ant-tooltip-open');
+      expect(importButton).toHaveClass('antd5-tooltip-open');
       screen.findByTestId('import-tooltip-test');
       const importTooltip = screen.getByRole('tooltip', {
         name: 'Import queries',
