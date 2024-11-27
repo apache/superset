@@ -160,6 +160,11 @@ const Row = props => {
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState(null);
   const containerRef = useRef();
+  const isComponentVisibleRef = useRef(isComponentVisible);
+
+  useEffect(() => {
+    isComponentVisibleRef.current = isComponentVisible;
+  }, [isComponentVisible]);
 
   // if chart not rendered - render it if it's less than 1 view height away from current viewport
   // if chart rendered - remove it if it's more than 4 view heights away from current viewport
@@ -172,7 +177,7 @@ const Row = props => {
     ) {
       observerEnabler = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) {
+          if (entry.isIntersecting && isComponentVisibleRef.current) {
             setIsInView(true);
           }
         },
@@ -182,7 +187,7 @@ const Row = props => {
       );
       observerDisabler = new IntersectionObserver(
         ([entry]) => {
-          if (!entry.isIntersecting) {
+          if (!entry.isIntersecting && isComponentVisibleRef.current) {
             setIsInView(false);
           }
         },

@@ -19,6 +19,7 @@
 
 import {
   CategoricalColorNamespace,
+  ensureIsArray,
   getCategoricalSchemeRegistry,
   getLabelsColorMap,
 } from '@superset-ui/core';
@@ -69,7 +70,9 @@ export const getFreshSharedLabels = (
     .filter(([, count]) => count > 1)
     .map(([label]) => label);
 
-  return Array.from(new Set([...currentSharedLabels, ...duplicates]));
+  return Array.from(
+    new Set([...ensureIsArray(currentSharedLabels), ...duplicates]),
+  );
 };
 
 export const getSharedLabelsColorMapEntries = (
