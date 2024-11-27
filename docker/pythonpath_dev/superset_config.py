@@ -213,7 +213,6 @@ if DOMAIN_WHITELIST:
 
 AZURE_PROVIDER =     {
         'name': 'azure',
-        'whitelist': DOMAIN_WHITELIST,
         'icon': 'fa-windows',
         'token_key': 'access_token',
         'remote_app': {
