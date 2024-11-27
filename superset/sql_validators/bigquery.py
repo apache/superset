@@ -41,7 +41,6 @@ class BigQueryValidator(BaseSQLValidator):  # pylint: disable=too-few-public-met
         schema: str | None,
         database: Database,
     ) -> list[SQLValidationAnnotation]:
-        # _database = db.session.query(Database).get(19)
         engine: Engine
         with database.get_sqla_engine() as engine:
             client = BigQueryEngineSpec._get_client(engine)
