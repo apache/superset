@@ -21,15 +21,10 @@ import contextlib
 import logging
 import threading
 import time
-from tempfile import NamedTemporaryFile
 from typing import Any, TYPE_CHECKING
 
-import numpy as np
-import pandas as pd
-import pyarrow as pa
 import requests
 from flask import copy_current_request_context, ctx, current_app, Flask, g
-from sqlalchemy import text
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -44,9 +39,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.db_engine_specs.hive import upload_to_s3
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
-from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
@@ -222,8 +215,6 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
-
-        db.session.commit()
 
         # if query cancelation was requested prior to the handle_cursor call, but
         # the query was still executed, trigger the actual query cancelation now
@@ -517,80 +508,3 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []
-
-    @classmethod
-    def df_to_sql(
-        cls,
-        database: Database,
-        table: Table,
-        df: pd.DataFrame,
-        to_sql_kwargs: dict[str, Any],
-    ) -> None:
-        """
-        Upload data from a Pandas DataFrame to a database.
-
-        The data is stored via the binary Parquet format which is both less problematic
-        and more performant than a text file.
-
-        Note this method does not create metadata for the table.
-
-        :param database: The database to upload the data to
-        :param table: The table to upload the data to
-        :param df: The Pandas Dataframe with data to be uploaded
-        :param to_sql_kwargs: The `pandas.DataFrame.to_sql` keyword arguments
-        :see: superset.db_engine_specs.HiveEngineSpec.df_to_sql
-        """
-        if to_sql_kwargs["if_exists"] == "append":
-            raise SupersetException("Append operation not currently supported")
-
-        if to_sql_kwargs["if_exists"] == "fail":
-            if database.has_table_by_name(table.table, table.schema):
-                raise SupersetException("Table already exists")
-        elif to_sql_kwargs["if_exists"] == "replace":
-            with cls.get_engine(database) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
-
-        def _get_trino_type(dtype: np.dtype[Any]) -> str:
-            return {
-                np.dtype("bool"): "BOOLEAN",
-                np.dtype("float64"): "DOUBLE",
-                np.dtype("int64"): "BIGINT",
-                np.dtype("object"): "VARCHAR",
-            }.get(dtype, "VARCHAR")
-
-        with NamedTemporaryFile(
-            dir=current_app.config["UPLOAD_FOLDER"],
-            suffix=".parquet",
-        ) as file:
-            pa.parquet.write_table(pa.Table.from_pandas(df), where=file.name)
-
-            with cls.get_engine(database) as engine:
-                engine.execute(
-                    # pylint: disable=consider-using-f-string
-                    text(
-                        """
-                        CREATE TABLE {table} ({schema})
-                        WITH (
-                            format = 'PARQUET',
-                            external_location = '{location}'
-                        )
-                        """.format(
-                            location=upload_to_s3(
-                                filename=file.name,
-                                upload_prefix=current_app.config[
-                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                                ](
-                                    database,
-                                    g.user,
-                                    table.schema,
-                                ),
-                                table=table,
-                            ),
-                            schema=", ".join(
-                                f'"{name}" {_get_trino_type(dtype)}'
-                                for name, dtype in df.dtypes.items()
-                            ),
-                            table=str(table),
-                        ),
-                    ),
-                )

@@ -38,6 +38,7 @@ import {
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
+import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 
 const EMPTY_OBJECT = {};
 
@@ -66,7 +67,9 @@ function mapStateToProps(
   } = dashboardState;
   const labelsColor = dashboardInfo?.metadata?.label_colors || {};
   const labelsColorMap = dashboardInfo?.metadata?.map_label_colors || {};
-  const sharedLabelsColors = dashboardInfo?.metadata?.shared_label_colors || [];
+  const sharedLabelsColors = enforceSharedLabelsColorsArray(
+    dashboardInfo?.metadata?.shared_label_colors,
+  );
   const ownColorScheme = chart.form_data?.color_scheme;
   // note: this method caches filters if possible to prevent render cascades
   const formData = getFormDataWithExtraFilters({
