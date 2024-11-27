@@ -10,8 +10,14 @@
     # via
     #   -r requirements/base.in
     #   -r requirements/development.in
+appnope==0.1.3
+    # via ipython
 astroid==3.1.0
     # via pylint
+
+asttokens==2.2.1
+    # via stack-data
+    
 boto3==1.34.112
     # via
     #   apache-superset
