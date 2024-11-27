@@ -245,116 +245,6 @@ const Chart = props => {
     });
   }, [boundActionCreators.logEvent, slice.slice_id, props.isCached]);
 
-  const onExploreChart = useCallback(
-    async clickEvent => {
-      const isOpenInNewTab =
-        clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
-      try {
-        const lastTabId = window.localStorage.getItem('last_tab_id');
-        const nextTabId = lastTabId
-          ? String(Number.parseInt(lastTabId, 10) + 1)
-          : undefined;
-        const key = await postFormData(
-          datasource.id,
-          datasource.type,
-          props.formData,
-          slice.slice_id,
-          nextTabId,
-        );
-        const url = mountExploreUrl(null, {
-          [URL_PARAMS.formDataKey.name]: key,
-          [URL_PARAMS.sliceId.name]: slice.slice_id,
-        });
-        if (isOpenInNewTab) {
-          window.open(url, '_blank', 'noreferrer');
-        } else {
-          history.push(url);
-        }
-      } catch (error) {
-        logging.error(error);
-        boundActionCreators.addDangerToast(
-          t('An error occurred while opening Explore'),
-        );
-      }
-    },
-    [
-      datasource.id,
-      datasource.type,
-      props.formData,
-      slice.slice_id,
-      boundActionCreators.addDangerToast,
-      history,
-    ],
-  );
-
-  const exportTable = useCallback(
-    (format, isFullCSV, isPivot = false) => {
-      const logAction =
-        format === 'csv'
-          ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
-          : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
-      boundActionCreators.logEvent(logAction, {
-        slice_id: slice.slice_id,
-        is_cached: props.isCached,
-      });
-      exportChart({
-        formData: isFullCSV
-          ? { ...props.formData, row_limit: props.maxRows }
-          : props.formData,
-        resultType: isPivot ? 'post_processed' : 'full',
-        resultFormat: format,
-        force: true,
-        ownState: props.ownState,
-      });
-    },
-    [
-      slice.slice_id,
-      props.isCached,
-      props.formData,
-      props.maxRows,
-      props.ownState,
-      boundActionCreators.logEvent,
-    ],
-  );
-
-  const exportCSV = useCallback(
-    (isFullCSV = false) => {
-      exportTable('csv', isFullCSV);
-    },
-    [exportTable],
-  );
-
-  const exportFullCSV = useCallback(() => {
-    exportCSV(true);
-  }, [exportCSV]);
-
-  const exportPivotCSV = useCallback(() => {
-    exportTable('csv', false, true);
-  }, [exportTable]);
-
-  const exportXLSX = useCallback(() => {
-    exportTable('xlsx', false);
-  }, [exportTable]);
-
-  const exportFullXLSX = useCallback(() => {
-    exportTable('xlsx', true);
-  }, [exportTable]);
-
-  const forceRefresh = useCallback(() => {
-    boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
-      slice_id: slice.slice_id,
-      is_cached: props.isCached,
-    });
-    return boundActionCreators.refreshChart(chart.id, true, props.dashboardId);
-  }, [
-    boundActionCreators.refreshChart,
-    chart.id,
-    props.dashboardId,
-    slice.slice_id,
-    props.isCached,
-    boundActionCreators.logEvent,
-  ]);
-
   const chartConfiguration = useSelector(
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
@@ -414,6 +304,116 @@ const Chart = props => {
       ownColorScheme,
     ],
   );
+
+  const onExploreChart = useCallback(
+    async clickEvent => {
+      const isOpenInNewTab =
+        clickEvent.shiftKey || clickEvent.ctrlKey || clickEvent.metaKey;
+      try {
+        const lastTabId = window.localStorage.getItem('last_tab_id');
+        const nextTabId = lastTabId
+          ? String(Number.parseInt(lastTabId, 10) + 1)
+          : undefined;
+        const key = await postFormData(
+          datasource.id,
+          datasource.type,
+          formData,
+          slice.slice_id,
+          nextTabId,
+        );
+        const url = mountExploreUrl(null, {
+          [URL_PARAMS.formDataKey.name]: key,
+          [URL_PARAMS.sliceId.name]: slice.slice_id,
+        });
+        if (isOpenInNewTab) {
+          window.open(url, '_blank', 'noreferrer');
+        } else {
+          history.push(url);
+        }
+      } catch (error) {
+        logging.error(error);
+        boundActionCreators.addDangerToast(
+          t('An error occurred while opening Explore'),
+        );
+      }
+    },
+    [
+      datasource.id,
+      datasource.type,
+      formData,
+      slice.slice_id,
+      boundActionCreators.addDangerToast,
+      history,
+    ],
+  );
+
+  const exportTable = useCallback(
+    (format, isFullCSV, isPivot = false) => {
+      const logAction =
+        format === 'csv'
+          ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
+          : LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART;
+      boundActionCreators.logEvent(logAction, {
+        slice_id: slice.slice_id,
+        is_cached: props.isCached,
+      });
+      exportChart({
+        formData: isFullCSV
+          ? { ...formData, row_limit: props.maxRows }
+          : formData,
+        resultType: isPivot ? 'post_processed' : 'full',
+        resultFormat: format,
+        force: true,
+        ownState: props.ownState,
+      });
+    },
+    [
+      slice.slice_id,
+      props.isCached,
+      formData,
+      props.maxRows,
+      props.ownState,
+      boundActionCreators.logEvent,
+    ],
+  );
+
+  const exportCSV = useCallback(
+    (isFullCSV = false) => {
+      exportTable('csv', isFullCSV);
+    },
+    [exportTable],
+  );
+
+  const exportFullCSV = useCallback(() => {
+    exportCSV(true);
+  }, [exportCSV]);
+
+  const exportPivotCSV = useCallback(() => {
+    exportTable('csv', false, true);
+  }, [exportTable]);
+
+  const exportXLSX = useCallback(() => {
+    exportTable('xlsx', false);
+  }, [exportTable]);
+
+  const exportFullXLSX = useCallback(() => {
+    exportTable('xlsx', true);
+  }, [exportTable]);
+
+  const forceRefresh = useCallback(() => {
+    boundActionCreators.logEvent(LOG_ACTIONS_FORCE_REFRESH_CHART, {
+      slice_id: slice.slice_id,
+      is_cached: props.isCached,
+    });
+    return boundActionCreators.refreshChart(chart.id, true, props.dashboardId);
+  }, [
+    boundActionCreators.refreshChart,
+    chart.id,
+    props.dashboardId,
+    slice.slice_id,
+    props.isCached,
+    boundActionCreators.logEvent,
+  ]);
 
   if (chart === EMPTY_OBJECT || slice === EMPTY_OBJECT) {
     return <MissingChart height={getChartHeight()} />;
@@ -537,4 +537,19 @@ const Chart = props => {
 
 Chart.propTypes = propTypes;
 
-export default memo(Chart);
+export default memo(
+  Chart,
+  (prevProps, nextProps) =>
+    !nextProps.isComponentVisible &&
+    prevProps.componentId === nextProps.componentId &&
+    prevProps.id === nextProps.id &&
+    prevProps.dashboardId === nextProps.dashboardId &&
+    prevProps.extraControls === nextProps.extraControls &&
+    prevProps.handleToggleFullSize === nextProps.handleToggleFullSize &&
+    prevProps.isFullSize === nextProps.isFullSize &&
+    prevProps.setControlValue === nextProps.setControlValue &&
+    prevProps.sliceName === nextProps.sliceName &&
+    prevProps.updateSliceName === nextProps.updateSliceName &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height,
+);
