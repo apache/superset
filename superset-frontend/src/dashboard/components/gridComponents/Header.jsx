@@ -236,7 +236,7 @@ class Header extends PureComponent {
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
-                {!editMode && !embeddedMode &&(
+                {!editMode && !embeddedMode && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
               </HeaderStyles>

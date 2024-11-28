@@ -409,12 +409,12 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
 test('AnchorLink renders in view mode', () => {
   const props = createProps();
   props.renderType = 'RENDER_TAB';
-  
+
   render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
   });
-  
+
   expect(screen.queryByTestId('anchor-link')).toBeInTheDocument();
 });
 
@@ -422,12 +422,12 @@ test('AnchorLink does not render in edit mode', () => {
   const props = createProps();
   props.editMode = true;
   props.renderType = 'RENDER_TAB';
-  
+
   render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
   });
-  
+
   expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
 });
 
@@ -435,11 +435,11 @@ test('AnchorLink does not render in embedded mode', () => {
   const props = createProps();
   props.embeddedMode = true;
   props.renderType = 'RENDER_TAB';
-  
+
   render(<Tab {...props} />, {
     useRedux: true,
     useDnd: true,
   });
-  
+
   expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
 });

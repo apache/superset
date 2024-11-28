@@ -133,5 +133,5 @@ describe('Header', () => {
   it('should not render the AnchorLink in embedded mode', () => {
     const wrapper = setup({ embeddedMode: true });
     expect(wrapper.find('AnchorLink')).not.toExist();
-  })
+  });
 });
