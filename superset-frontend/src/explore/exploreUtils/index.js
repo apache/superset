@@ -267,7 +267,18 @@ export const exportChart = ({
     });
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  if (window.self !== window.top) {
+    // eslint-disable-next-line no-restricted-globals
+    parent.postMessage(
+      {
+        url,
+        payload: { form_data: safeStringify(payload) },
+      },
+      '*',
+    );
+  } else {
+    SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  }
 };
 
 export const exploreChart = (formData, requestParams) => {
