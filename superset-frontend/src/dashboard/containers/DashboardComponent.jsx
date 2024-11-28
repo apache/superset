@@ -80,6 +80,7 @@ function mapStateToProps(
     dashboardId: dashboardInfo.id,
     dashboardInfo,
     fullSizeChartId: dashboardState.fullSizeChartId,
+    embeddedMode: !dashboardInfo?.userId,
   };
 
   // rows and columns need more data about their child dimensions

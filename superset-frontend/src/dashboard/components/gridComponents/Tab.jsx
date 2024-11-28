@@ -52,6 +52,7 @@ const propTypes = {
   onHoverTab: PropTypes.func,
   editMode: PropTypes.bool.isRequired,
   canEdit: PropTypes.bool.isRequired,
+  embeddedMode: PropTypes.bool,
 
   // grid related
   availableColumnCount: PropTypes.number,
@@ -282,6 +283,7 @@ class Tab extends PureComponent {
       isHighlighted,
       onDropPositionChange,
       onDragTab,
+      embeddedMode,
     } = this.props;
 
     return (
@@ -313,7 +315,7 @@ class Tab extends PureComponent {
               showTooltip={false}
               editing={editMode && isFocused}
             />
-            {!editMode && (
+            {!editMode && !embeddedMode && (
               <AnchorLink
                 id={component.id}
                 dashboardId={this.props.dashboardId}
