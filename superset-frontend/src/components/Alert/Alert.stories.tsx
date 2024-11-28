@@ -18,8 +18,8 @@
  */
 import Alert, { AlertProps } from './index';
 
-type AlertType = Pick<AlertProps, 'type'>;
-type AlertTypeValue = AlertType[keyof AlertType];
+type AlertType = Required<Pick<AlertProps, 'type'>>;
+type AlertTypeValue = AlertType['type'];
 
 const types: AlertTypeValue[] = ['info', 'error', 'warning', 'success'];
 
@@ -35,53 +35,67 @@ export default {
   component: Alert,
 };
 
-const AlertWithCustomCloseIcon = ({ type }: { type: AlertTypeValue }) => (
-  <Alert
-    type={type}
-    showIcon
-    closable
-    closeIcon={<span aria-label="close icon">x</span>}
-    message={bigText}
-    style={{ marginBottom: 20 }}
-  />
-);
-
 export const AlertGallery = () => (
   <>
     {types.map(type => (
       <div key={type} style={{ marginBottom: 40, width: 600 }}>
         <h4>{type}</h4>
-        <Alert
-          type={type}
-          showIcon
-          message={smallText}
-          description={bigText}
-          closable
-        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <Alert
+            type={type}
+            showIcon
+            message={smallText}
+            description={bigText}
+            closable
+            closeIcon={
+              <span
+                aria-label="close icon"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+              >
+                x
+              </span>
+            }
+          />
+          <Alert
+            type={type}
+            showIcon
+            message={smallText}
+            description={bigText}
+            closable
+            closeIcon={
+              <span
+                aria-label="close icon"
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                }}
+              >
+                x
+              </span>
+            }
+          />
+        </div>
       </div>
     ))}
-    <div style={{ marginTop: 40 }}>
-      <h4>Custom Close Icon</h4>
-      {types.map(type => (
-        <AlertWithCustomCloseIcon key={type} type={type} />
-      ))}
-    </div>
   </>
 );
-
-AlertGallery.parameters = {
-  actions: {
-    disable: true,
-  },
-  controls: {
-    disable: true,
-  },
-};
 
 export const InteractiveAlert = (args: AlertProps) => (
   <>
     <Alert {...args} />
-    Some content to test the `roomBelow` prop
+    <div
+      style={{
+        marginTop: args.roomBelow ? '40px' : '0px',
+        border: '1px dashed gray',
+        padding: '10px',
+        textAlign: 'center',
+      }}
+    >
+      Content below the Alert to test `roomBelow`
+    </div>
   </>
 );
 
@@ -89,8 +103,8 @@ InteractiveAlert.args = {
   closable: true,
   roomBelow: false,
   type: 'info',
-  message: smallText,
-  description: bigText,
+  message: 'This is a sample alert message.',
+  description: 'Sample description for additional context.',
   showIcon: true,
 };
 
@@ -99,10 +113,11 @@ InteractiveAlert.argTypes = {
   type: {
     control: { type: 'select' },
     options: types,
+    description: 'Type of the alert (e.g., info, error, warning, success).',
   },
   closable: {
     control: { type: 'boolean' },
-    description: 'Whether the Alert can be closed.',
+    description: 'Whether the Alert can be closed with a close button.',
   },
   showIcon: {
     control: { type: 'boolean' },
@@ -110,6 +125,6 @@ InteractiveAlert.argTypes = {
   },
   roomBelow: {
     control: { type: 'boolean' },
-    description: 'Adds margin below the Alert for layout adjustments.',
+    description: 'Adds margin below the Alert for layout spacing.',
   },
 };

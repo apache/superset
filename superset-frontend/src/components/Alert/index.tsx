@@ -39,7 +39,7 @@ export default function Alert(props: AlertProps) {
 
   const theme = useTheme();
   const { colors, gridUnit } = theme;
-  const { alert, error, info, success } = colors;
+  const { alert: alertColor, error, info, success } = colors;
 
   let baseColor = info;
   let AlertIcon = Icons.InfoSolid;
@@ -47,7 +47,7 @@ export default function Alert(props: AlertProps) {
     baseColor = error;
     AlertIcon = Icons.ErrorSolid;
   } else if (type === 'warning') {
-    baseColor = alert;
+    baseColor = alertColor;
     AlertIcon = Icons.AlertSolid;
   } else if (type === 'success') {
     baseColor = success;
@@ -57,16 +57,32 @@ export default function Alert(props: AlertProps) {
   return (
     <AntdAlert
       role="alert"
+      aria-live={type === 'error' ? 'assertive' : 'polite'}
       showIcon={showIcon}
-      icon={showIcon && <AlertIcon aria-label={`${type} icon`} />}
-      closeIcon={closable && <Icons.XSmall aria-label="close icon" />}
+      icon={
+        showIcon && (
+          <span
+            role="img"
+            aria-label={`${type} icon`}
+            style={{
+              color: baseColor.base,
+              backgroundColor: baseColor.light2,
+              padding: '5px',
+              borderRadius: '4px',
+            }}
+          >
+            <AlertIcon />
+          </span>
+        )
+      }
+      closable={closable}
       message={children || 'Default message'}
       description={description}
       style={{
         marginBottom: roomBelow ? gridUnit * 4 : 0,
         padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
         alignItems: 'flex-start',
-        border: 0,
+        border: `1px solid ${baseColor.base}`,
         backgroundColor: baseColor.light2,
       }}
       {...rest}
