@@ -66,16 +66,13 @@ export default function Alert(props: AlertProps) {
             aria-label={`${type} icon`}
             style={{
               color: baseColor.base,
-              backgroundColor: baseColor.light2,
-              padding: '5px',
-              borderRadius: '4px',
             }}
           >
             <AlertIcon />
           </span>
         )
       }
-      closable={closable}
+      closeIcon={closable && <Icons.XSmall aria-label="close icon" />}
       message={children || 'Default message'}
       description={description}
       style={{

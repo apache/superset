@@ -24,7 +24,6 @@ type AlertTypeValue = AlertType['type'];
 const types: AlertTypeValue[] = ['info', 'error', 'warning', 'success'];
 
 const smallText = 'Lorem ipsum dolor sit amet';
-
 const bigText =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. ' +
   'Nam id porta neque, a vehicula orci. Maecenas rhoncus elit sit amet ' +
@@ -38,8 +37,8 @@ export default {
 export const AlertGallery = () => (
   <>
     {types.map(type => (
-      <div key={type} style={{ marginBottom: 40, width: 600 }}>
-        <h4>{type}</h4>
+      <div key={type} style={{ marginBottom: '40px', width: '600px' }}>
+        <h4 style={{ textTransform: 'capitalize' }}>{type} Alerts</h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <Alert
             type={type}
@@ -94,7 +93,7 @@ export const InteractiveAlert = (args: AlertProps) => (
         textAlign: 'center',
       }}
     >
-      Content below the Alert to test `roomBelow`
+      Content below the Alert to test the `roomBelow` property
     </div>
   </>
 );
