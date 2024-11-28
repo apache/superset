@@ -250,9 +250,16 @@ class ChartRenderer extends Component {
 
   timerEnd() {
     if (!this.timers.start) return [];
-    const time = Date.now() - this.timers.start?.start;
-    const details = this.timers.start?.details;
 
+    const { start, details } = this.timers.start;
+
+    if (start == null) {
+      // Handle missing start time
+      delete this.timers.start;
+      return [];
+    }
+
+    const time = Date.now() - start;
     delete this.timers.start;
     return [Math.floor(time), details];
   }

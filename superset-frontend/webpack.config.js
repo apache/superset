@@ -52,14 +52,21 @@ const {
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
-const commitHashPath = process.env.CI_COMMIT_SHORT_SHA
-  ? `${process.env.CI_COMMIT_SHORT_SHA}/`
-  : '';
+// CG hack
+// Use with CDN
+// const commitHashPath = process.env.CI_COMMIT_SHORT_SHA
+//   ? `${process.env.CI_COMMIT_SHORT_SHA}/`
+//   : '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/superset/${commitHashPath}static/assets/`,
+  // Use without CDN
+  publicPath: `${ASSET_BASE_URL}/static/assets/`,
+  // Use with CDN
+  // publicPath: `${ASSET_BASE_URL}/superset/${commitHashPath}static/assets/`,
 };
+// End CG hack
+
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
   output.chunkFilename = '[name].[contenthash:8].chunk.js';

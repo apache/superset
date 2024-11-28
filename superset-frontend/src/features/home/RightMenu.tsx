@@ -17,7 +17,7 @@
  * under the License.
  */
 // @ts-nocheck
-import React, { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
