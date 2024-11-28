@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import * as exploreUtils from 'src/explore/exploreUtils';
@@ -42,7 +42,7 @@ const props = {
     ...sliceEntities.slices[queryId],
     description_markeddown: 'markdown',
     owners: [],
-    viz_type: 'table',
+    viz_type: VizType.Table,
   },
   sliceName: sliceEntities.slices[queryId].slice_name,
   timeout: 60,

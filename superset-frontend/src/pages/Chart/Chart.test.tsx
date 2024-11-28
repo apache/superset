@@ -55,7 +55,7 @@ describe('ChartPage', () => {
   test('fetches metadata on mount', async () => {
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
     const exploreFormData = getExploreFormData({
-      viz_type: 'table',
+      viz_type: VizType.Table,
       show_cell_bars: true,
     });
     fetchMock.get(exploreApiRoute, {
@@ -126,7 +126,7 @@ describe('ChartPage', () => {
     test('overrides the form_data with exploreFormData when location is updated', async () => {
       const dashboardFormData = {
         ...getDashboardFormData(),
-        viz_type: 'table',
+        viz_type: VizType.Table,
         show_cell_bars: true,
       };
       (getFormDataWithExtraFilters as jest.Mock).mockReturnValue(
@@ -134,7 +134,7 @@ describe('ChartPage', () => {
       );
       const exploreApiRoute = 'glob:*/api/v1/explore/*';
       const exploreFormData = getExploreFormData({
-        viz_type: 'table',
+        viz_type: VizType.Table,
         show_cell_bars: true,
       });
       fetchMock.get(exploreApiRoute, {

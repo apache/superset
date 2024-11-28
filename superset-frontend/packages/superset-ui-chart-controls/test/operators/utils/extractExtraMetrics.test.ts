@@ -21,7 +21,7 @@ import { extractExtraMetrics } from '@superset-ui/chart-controls';
 
 const baseFormData: QueryFormData = {
   datasource: 'dummy',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   metrics: ['a', 'b'],
   columns: ['foo', 'bar'],
   limit: 100,

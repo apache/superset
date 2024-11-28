@@ -21,7 +21,7 @@ import { getStandardizedControls } from '../../src';
 
 const formData: QueryFormData = {
   datasource: '30__table',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   standardizedFormData: {
     controls: {
       metrics: ['count(*)', 'sum(sales)'],
@@ -34,7 +34,7 @@ const formData: QueryFormData = {
 test('without standardizedFormData', () => {
   getStandardizedControls().setStandardizedControls({
     datasource: '30__table',
-    viz_type: 'table',
+    viz_type: VizType.Table,
   });
   expect(getStandardizedControls().controls).toEqual({
     metrics: [],

@@ -26,7 +26,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   granularity: 'month',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   truncate_metric: true,
 };
 const queryObject: QueryObject = {

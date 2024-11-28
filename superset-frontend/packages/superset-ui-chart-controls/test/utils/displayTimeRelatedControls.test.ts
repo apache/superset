@@ -35,7 +35,7 @@ const mockData = {
   exportState: {},
   form_data: {
     datasource: '22__table',
-    viz_type: 'table',
+    viz_type: VizType.Table,
   },
 };
 

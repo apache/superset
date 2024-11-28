@@ -95,7 +95,7 @@ const generateMockPayload = (dashboard = true) => {
     chart: {
       id: 1,
       slice_name: 'Test Chart',
-      viz_type: 'table',
+      viz_type: VizType.Table,
     },
   };
 };

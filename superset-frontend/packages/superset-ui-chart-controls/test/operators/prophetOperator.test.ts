@@ -27,7 +27,7 @@ const formData: SqlaFormData = {
   time_range: '2015 : 2016',
   time_grain_sqla: 'P1Y',
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const queryObject: QueryObject = {
   metrics: [

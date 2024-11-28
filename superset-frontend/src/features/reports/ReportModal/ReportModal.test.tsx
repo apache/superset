@@ -45,7 +45,7 @@ const defaultProps = {
   creationMethod: 'dashboards',
   chart: {
     sliceFormData: {
-      viz_type: 'table',
+      viz_type: VizType.Table,
     },
   },
 };

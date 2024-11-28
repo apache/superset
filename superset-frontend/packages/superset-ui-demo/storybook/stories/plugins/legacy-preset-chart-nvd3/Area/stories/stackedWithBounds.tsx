@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const stackedWithYAxisBounds = () => (
   <SuperChart
-    chartType="area"
+    chartType={VizType.LegacyArea}
     datasource={dummyDatasource}
     width={400}
     height={400}
@@ -40,7 +40,7 @@ export const stackedWithYAxisBounds = () => (
       showControls: false,
       showLegend: true,
       stackedStyle: 'stack',
-      vizType: 'area',
+      vizType: VizType.LegacyArea,
       xAxisFormat: '%Y',
       xAxisLabel: '',
       xAxisShowminmax: false,
@@ -56,7 +56,7 @@ stackedWithYAxisBounds.storyName = 'Stacked with yAxisBounds';
 
 export const stackedWithYAxisBoundsMinOnly = () => (
   <SuperChart
-    chartType="area"
+    chartType={VizType.LegacyArea}
     datasource={dummyDatasource}
     width={400}
     height={400}
@@ -73,7 +73,7 @@ export const stackedWithYAxisBoundsMinOnly = () => (
       showControls: true,
       showLegend: true,
       stackedStyle: 'stack',
-      vizType: 'area',
+      vizType: VizType.LegacyArea,
       xAxisFormat: '%Y',
       xAxisLabel: '',
       xAxisShowminmax: false,

@@ -21,7 +21,7 @@ import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
-  viz_type: 'table',
+  viz_type: VizType.Table,
   datasource: '11__table',
 };
 

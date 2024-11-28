@@ -21,7 +21,7 @@ import { SqlaFormData, ComparisonType } from '@superset-ui/core';
 
 const formData: SqlaFormData = {
   datasource: 'foo',
-  viz_type: 'table',
+  viz_type: VizType.Table,
 };
 const series = {
   id: 'metric__1 month ago',

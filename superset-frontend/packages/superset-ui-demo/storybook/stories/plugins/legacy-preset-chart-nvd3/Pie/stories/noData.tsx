@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 
 export const noData = () => (
   <SuperChart
-    chartType="pie"
+    chartType={VizType.Pie}
     width={400}
     height={400}
     datasource={dummyDatasource}
@@ -35,7 +35,7 @@ export const noData = () => (
       pieLabelType: 'key',
       showLabels: true,
       showLegend: true,
-      vizType: 'pie',
+      vizType: VizType.Pie,
     }}
   />
 );

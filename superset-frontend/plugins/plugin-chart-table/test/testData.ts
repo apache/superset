@@ -29,7 +29,7 @@ import { TableChartProps, TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
   datasource: '1__abc',
-  viz_type: 'table',
+  viz_type: VizType.Table,
   align_pn: false,
   color_pn: false,
   show_cell_bars: true,

@@ -59,7 +59,7 @@ describe('controlUtils', () => {
       description: null,
     },
     controls: {},
-    form_data: { datasource: '1__table', viz_type: 'table' },
+    form_data: { datasource: '1__table', viz_type: VizType.Table },
     common: {},
     slice: {
       slice_id: 1,
