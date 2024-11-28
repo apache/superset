@@ -35,6 +35,17 @@ export default {
   component: Alert,
 };
 
+const AlertWithCustomCloseIcon = ({ type }: { type: AlertTypeValue }) => (
+  <Alert
+    type={type}
+    showIcon
+    closable
+    closeIcon={<span aria-label="close icon">x</span>}
+    message={bigText}
+    style={{ marginBottom: 20 }}
+  />
+);
+
 export const AlertGallery = () => (
   <>
     {types.map(type => (
@@ -43,21 +54,18 @@ export const AlertGallery = () => (
         <Alert
           type={type}
           showIcon
-          closable
-          closeIcon={<span aria-label="close icon">x</span>} // Custom close icon
-          message={bigText}
-          style={{ marginBottom: 20 }}
-        />
-        <Alert
-          type={type}
-          showIcon
           message={smallText}
           description={bigText}
           closable
-          closeIcon={<span aria-label="close icon">x</span>} // Custom close icon
         />
       </div>
     ))}
+    <div style={{ marginTop: 40 }}>
+      <h4>Custom Close Icon</h4>
+      {types.map(type => (
+        <AlertWithCustomCloseIcon key={type} type={type} />
+      ))}
+    </div>
   </>
 );
 
@@ -84,7 +92,6 @@ InteractiveAlert.args = {
   message: smallText,
   description: bigText,
   showIcon: true,
-  closeIcon: <span aria-label="close icon">x</span>,
 };
 
 InteractiveAlert.argTypes = {
