@@ -118,14 +118,14 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 4}px;
   margin-top: 0;
   color: ${theme.colors.error.dark2};
-  .ant-alert-message {
+  .antd5-alert-message {
     font-size: ${theme.typography.sizes.m}px;
     font-weight: bold;
   }
-  .ant-alert-description {
+  .antd5-alert-description {
     font-size: ${theme.typography.sizes.m}px;
     line-height: ${theme.gridUnit * 4}px;
-    .ant-alert-icon {
+    .antd5-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l}px;
       position: relative;

@@ -25,15 +25,15 @@ export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 4}px 0;
   color: ${theme.colors.warning.dark2};
 
-  .ant-alert-message {
+  .antd5-alert-message {
     margin: 0;
   }
 
-  .ant-alert-description {
+  .antd5-alert-description {
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
 
-    .ant-alert-icon {
+    .antd5-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l + 1}px;
       position: relative;

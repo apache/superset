@@ -170,13 +170,13 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px 0;
 
-  .ant-alert-message {
+  .antd5-alert-message {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.m}px;
     font-weight: ${theme.typography.weights.bold};
   }
 
-  .ant-alert-description {
+  .antd5-alert-description {
     color: ${theme.colors.info.dark2};
     font-size: ${theme.typography.sizes.m}px;
     line-height: ${theme.gridUnit * 5}px;
@@ -185,7 +185,7 @@ export const antDAlertStyles = (theme: SupersetTheme) => css`
       text-decoration: underline;
     }
 
-    .ant-alert-icon {
+    .antd5-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l}px;
       position: relative;
@@ -205,14 +205,14 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
   color: ${theme.colors.error.dark2};
-  .ant-alert-message {
+  .antd5-alert-message {
     font-size: ${theme.typography.sizes.m}px;
     font-weight: ${theme.typography.weights.bold};
   }
-  .ant-alert-description {
+  .antd5-alert-description {
     font-size: ${theme.typography.sizes.m}px;
     line-height: ${theme.gridUnit * 5}px;
-    .ant-alert-icon {
+    .antd5-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l}px;
       position: relative;
@@ -227,15 +227,15 @@ export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 4}px 0;
   color: ${theme.colors.warning.dark2};
 
-  .ant-alert-message {
+  .antd5-alert-message {
     margin: 0;
   }
 
-  .ant-alert-description {
+  .antd5-alert-description {
     font-size: ${theme.typography.sizes.s + 1}px;
     line-height: ${theme.gridUnit * 4}px;
 
-    .ant-alert-icon {
+    .antd5-alert-icon {
       margin-right: ${theme.gridUnit * 2.5}px;
       font-size: ${theme.typography.sizes.l + 1}px;
       position: relative;
