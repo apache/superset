@@ -30,10 +30,7 @@ export const Tooltip = (props: TooltipProps) => (
   <>
     <AntdTooltip
       overlayInnerStyle={{
-        // display: '-webkit-box',
         overflow: 'hidden',
-        // WebkitLineClamp: 40,
-        // WebkitBoxOrient: 'vertical',
         textOverflow: 'ellipsis',
       }}
       color={`${supersetTheme.colors.grayscale.dark2}e6`}

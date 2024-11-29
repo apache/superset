@@ -80,8 +80,8 @@ export const VizTile = ({
   return (
     <Tooltip
       title={tooltipTitle}
-      onVisibleChange={visible => setTooltipVisible(visible)}
-      visible={tooltipVisible && !isTransitioning}
+      onOpenChange={visible => setTooltipVisible(visible)}
+      open={tooltipVisible && !isTransitioning}
       placement="top"
       mouseEnterDelay={0.4}
     >
