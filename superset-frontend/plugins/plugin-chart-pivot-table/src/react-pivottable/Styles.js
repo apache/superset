@@ -44,8 +44,8 @@ export const Styles = styled.div`
     table.pvtTable thead tr th,
     table.pvtTable tbody tr th {
       background-color: ${theme.colors.grayscale.light5};
-      border-top: 1px solid ${theme.colors.grayscale.light2};
-      border-left: 1px solid ${theme.colors.grayscale.light2};
+      border-top: 1px solid ${theme.colors.grayscale.light4};
+      border-left: 1px solid ${theme.colors.grayscale.light4};
       font-size: ${theme.typography.sizes.s}px;
       padding: ${theme.gridUnit}px;
       font-weight: ${theme.typography.weights.normal};
@@ -62,7 +62,7 @@ export const Styles = styled.div`
     table.pvtTable thead th.pvtSubtotalLabel,
     table.pvtTable tbody tr:last-of-type th,
     table.pvtTable tbody tr:last-of-type td {
-      border-bottom: 1px solid ${theme.colors.grayscale.light2};
+      border-bottom: 1px solid ${theme.colors.grayscale.light4};
     }
 
     table.pvtTable
@@ -77,7 +77,7 @@ export const Styles = styled.div`
 
     table.pvtTable tbody tr td:last-of-type,
     table.pvtTable thead tr th:last-of-type:not(.pvtSubtotalLabel) {
-      border-right: 1px solid ${theme.colors.grayscale.light2};
+      border-right: 1px solid ${theme.colors.grayscale.light4};
     }
 
     table.pvtTable
@@ -102,11 +102,11 @@ export const Styles = styled.div`
     }
 
     table.pvtTable tbody tr td {
-      color: ${theme.colors.primary.dark2};
+      color: ${theme.colors.grayscale.dark2};
       padding: ${theme.gridUnit}px;
       background-color: ${theme.colors.grayscale.light5};
-      border-top: 1px solid ${theme.colors.grayscale.light2};
-      border-left: 1px solid ${theme.colors.grayscale.light2};
+      border-top: 1px solid ${theme.colors.grayscale.light4};
+      border-left: 1px solid ${theme.colors.grayscale.light4};
       vertical-align: top;
       text-align: right;
     }

@@ -45,6 +45,21 @@ const colorSchemeOptions = (theme: SupersetTheme) => [
   { value: theme.colors.success.dark1, label: t('success dark') },
   { value: theme.colors.alert.dark1, label: t('alert dark') },
   { value: theme.colors.error.dark1, label: t('error dark') },
+  { value: '#F0F0F0', label: t('bg-secondary') },
+  { value: '#E0E0E0', label: t('border-secondary') },
+  { value: '#E8EBFE', label: t('bg-mychat') },
+  { value: '#F6F7FA', label: t('surface') },
+  { value: '#FCFFE6', label: t('bg-lime-primary') },
+  { value: '#EAFF8F', label: t('bg-lime-secondary') },
+  { value: '#3F6600', label: t('text-lime') },
+  { value: '#E6FFFB', label: t('bg-cyan-primary') },
+  { value: '#87E8DE', label: t('bg-cyan-secondary') },
+  { value: '#F0F5FF', label: t('bg-geekblue-primary') },
+  { value: '#D6E4FF', label: t('bg-geekblue-secondary') },
+  { value: '#FFEF9D', label: t('bg-caution') },
+  { value: '#CDFEE1', label: t('bg-success') },
+  { value: '#FEDAD9', label: t('bg-critical') },
+  { value: '#E0F0FF', label: t('bg-info') },
 ];
 
 const operatorOptions = [

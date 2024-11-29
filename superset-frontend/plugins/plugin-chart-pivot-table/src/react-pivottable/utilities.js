@@ -730,7 +730,7 @@ class PivotData {
 
   getRowKeys() {
     this.sortKeys();
-    return this.rowKeys;
+    return this.rowKeys
   }
 
   processRecord(record) {
@@ -745,8 +745,7 @@ class PivotData {
     });
 
     this.allTotal.push(record);
-
-    const rowStart = this.subtotals.rowEnabled ? 1 : Math.max(1, rowKey.length);
+    const rowStart = this.subtotals.expandCollapse || this.subtotals.rowEnabled ? 1 : Math.max(1, rowKey.length);
     const colStart = this.subtotals.colEnabled ? 1 : Math.max(1, colKey.length);
 
     let isRowSubtotal;
