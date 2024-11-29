@@ -448,7 +448,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
-    const { visibility, hidden, ...restConfig } = config;
+    const { visibility, hidden, disableStash, ...restConfig } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
@@ -529,7 +529,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     return (
       <StashFormDataContainer
-        shouldStash={isVisible === false}
+        shouldStash={isVisible === false && disableStash !== true}
         fieldNames={[name]}
         key={`control-container-${name}`}
       >
