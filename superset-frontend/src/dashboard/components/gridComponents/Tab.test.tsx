@@ -90,6 +90,7 @@ const createProps = () => ({
     type: 'TABS',
   },
   editMode: false,
+  embeddedMode: false,
   undoLength: 0,
   redoLength: 0,
   filters: {},
@@ -399,4 +400,42 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   expect(
     screen.getByRole('link', { name: 'create a new chart' }),
   ).toHaveAttribute('href', '/chart/add?dashboard_id=23');
+});
+
+test('AnchorLink renders in view mode', () => {
+  const props = createProps();
+  props.renderType = 'RENDER_TAB';
+
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(screen.queryByTestId('anchor-link')).toBeInTheDocument();
+});
+
+test('AnchorLink does not render in edit mode', () => {
+  const props = createProps();
+  props.editMode = true;
+  props.renderType = 'RENDER_TAB';
+
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
+});
+
+test('AnchorLink does not render in embedded mode', () => {
+  const props = createProps();
+  props.embeddedMode = true;
+  props.renderType = 'RENDER_TAB';
+
+  render(<Tab {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+
+  expect(screen.queryByTestId('anchor-link')).not.toBeInTheDocument();
 });
