@@ -28,6 +28,7 @@ import {
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
+import { VizType } from '@superset-ui/core';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),

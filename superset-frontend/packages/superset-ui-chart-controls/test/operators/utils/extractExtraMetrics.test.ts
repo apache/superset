@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData, QueryFormMetric } from '@superset-ui/core';
+import { QueryFormData, QueryFormMetric, VizType } from '@superset-ui/core';
 import { extractExtraMetrics } from '@superset-ui/chart-controls';
 
 const baseFormData: QueryFormData = {

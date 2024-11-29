@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComparisonType, QueryObject, SqlaFormData } from '@superset-ui/core';
+import {
+  ComparisonType,
+  QueryObject,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { renameOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {

@@ -24,6 +24,7 @@ import {
   QueryMode,
   supersetTheme,
   ComparisonType,
+  VizType,
 } from '@superset-ui/core';
 import { TableChartProps, TableChartFormData } from '../src/types';
 

@@ -29,7 +29,7 @@ import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { URL_PARAMS } from 'src/constants';
-import { JsonObject } from '@superset-ui/core';
+import { JsonObject, VizType } from '@superset-ui/core';
 
 import ChartPage from '.';
 

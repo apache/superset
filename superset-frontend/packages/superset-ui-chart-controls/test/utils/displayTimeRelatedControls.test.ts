@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { VizType } from '@superset-ui/core';
 import { displayTimeRelatedControls } from '../../src';
 
 const mockData = {

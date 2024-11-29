@@ -31,6 +31,7 @@ import {
   QueryFormData,
   DatasourceType,
   supersetTheme,
+  VizType,
 } from '@superset-ui/core';
 
 describe('ChartPlugin', () => {

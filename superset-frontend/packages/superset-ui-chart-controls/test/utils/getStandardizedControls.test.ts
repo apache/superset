@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormData } from '@superset-ui/core';
+import { QueryFormData, VizType } from '@superset-ui/core';
 import { getStandardizedControls } from '../../src';
 
 const formData: QueryFormData = {

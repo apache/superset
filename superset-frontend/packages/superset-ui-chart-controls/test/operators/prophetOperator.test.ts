@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DTTM_ALIAS, QueryObject, SqlaFormData } from '@superset-ui/core';
+import {
+  DTTM_ALIAS,
+  QueryObject,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { prophetOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {

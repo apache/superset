@@ -17,7 +17,7 @@
  * under the License.
  */
 import { isDerivedSeries } from '@superset-ui/chart-controls';
-import { SqlaFormData, ComparisonType } from '@superset-ui/core';
+import { SqlaFormData, ComparisonType, VizType } from '@superset-ui/core';
 
 const formData: SqlaFormData = {
   datasource: 'foo',

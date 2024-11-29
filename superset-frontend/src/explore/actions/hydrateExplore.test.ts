@@ -19,6 +19,7 @@
 
 import { hydrateExplore, HYDRATE_EXPLORE } from './hydrateExplore';
 import { exploreInitialData } from '../fixtures';
+import { VizType } from '@superset-ui/core';
 
 test('creates hydrate action from initial data', () => {
   const dispatch = jest.fn();

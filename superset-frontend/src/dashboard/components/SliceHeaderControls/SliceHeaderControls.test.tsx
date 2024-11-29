@@ -205,7 +205,7 @@ test('Export full CSV is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
@@ -216,7 +216,7 @@ test('Should "export full CSV"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
@@ -239,7 +239,7 @@ test('Export full Excel is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
@@ -250,7 +250,7 @@ test('Should "export full Excel"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));

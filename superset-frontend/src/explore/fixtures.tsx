@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { DatasourceType, t } from '@superset-ui/core';
+import { DatasourceType, t, VizType } from '@superset-ui/core';
 import {
   ColumnMeta,
   ColumnOption,

@@ -20,6 +20,7 @@ import {
   DatasourceType,
   getChartControlPanelRegistry,
   t,
+  VizType,
 } from '@superset-ui/core';
 import {
   ControlConfig,
