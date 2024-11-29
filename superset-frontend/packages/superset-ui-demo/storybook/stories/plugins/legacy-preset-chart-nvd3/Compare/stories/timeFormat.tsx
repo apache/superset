@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 
 export const timeFormat = () => (
@@ -208,7 +208,7 @@ export const timeFormat = () => (
     ]}
     formData={{
       datasource: '24771__table',
-      vizType: 'compare',
+      vizType: VizType.Compare,
       urlParams: {},
       timeRangeEndpoints: ['inclusive', 'exclusive'],
       granularitySqla: '__time',

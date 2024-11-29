@@ -26,6 +26,7 @@ import {
   NumberFormats,
   tooltipHtml,
   ValueFormatter,
+  VizType,
 } from '@superset-ui/core';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -231,7 +232,7 @@ export default function transformProps(
 
   const series: FunnelSeriesOption[] = [
     {
-      type: 'funnel',
+      type: VizType.Funnel,
       ...getChartPadding(showLegend, legendOrientation, legendMargin),
       animation: true,
       minSize: '0%',

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, VizType } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
@@ -220,7 +220,7 @@ const tooltipTotalControl: ControlSetItem = {
     description: t('Whether to display the total value in the tooltip'),
     visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value) &&
-      form_data.viz_type !== 'mixed_timeseries',
+      form_data.viz_type !== VizType.MixedTimeseries,
   },
 };
 
@@ -235,7 +235,7 @@ const tooltipPercentageControl: ControlSetItem = {
     visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value) &&
       !controls?.contributionMode?.value &&
-      form_data.viz_type !== 'mixed_timeseries',
+      form_data.viz_type !== VizType.MixedTimeseries,
   },
 };
 

@@ -18,7 +18,11 @@
  */
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
+import {
+  getChartMetadataRegistry,
+  ChartMetadata,
+  VizType,
+} from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import setupColors from 'src/setup/setupColors';
 import { ANNOTATION_TYPES_METADATA } from './AnnotationTypes';
@@ -26,7 +30,7 @@ import AnnotationLayer from './AnnotationLayer';
 
 const defaultProps = {
   value: '',
-  vizType: 'table',
+  vizType: VizType.Table,
   annotationType: ANNOTATION_TYPES_METADATA.FORMULA.value,
 };
 
@@ -42,7 +46,7 @@ const withIdResult = {
         groupby: ['country'],
       },
     }),
-    viz_type: 'line',
+    viz_type: VizType.LegacyLine,
   },
 };
 
@@ -56,7 +60,7 @@ beforeAll(() => {
   });
 
   fetchMock.get(chartApiRoute, {
-    result: [{ id: 'a', slice_name: 'Chart A', viz_type: 'table' }],
+    result: [{ id: 'a', slice_name: 'Chart A', viz_type: VizType.Table }],
   });
 
   fetchMock.get(chartApiWithIdRoute, withIdResult);

@@ -56,7 +56,7 @@ const CHARTS = {
     id: 1,
     form_data: {
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: core.VizType.Line,
       slice_id: 1,
       color_scheme: 'supersetColors',
     },
@@ -68,7 +68,7 @@ const CHARTS = {
     latestQueryFormData: {},
     sliceFormData: {
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: core.VizType.Line,
     },
     queryController: null,
     queriesResponse: [{}],
@@ -79,7 +79,7 @@ const CHARTS = {
     form_data: {
       color_scheme: 'supersetColors',
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: core.VizType.Line,
       slice_id: 2,
     },
     chartAlert: null,
@@ -90,7 +90,7 @@ const CHARTS = {
     latestQueryFormData: {},
     sliceFormData: {
       datasource: '2__table',
-      viz_type: 'echarts_timeseries_line',
+      viz_type: core.VizType.Line,
     },
     queryController: null,
     queriesResponse: [{}],
@@ -266,7 +266,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
           form_data: {
             slice_id: 3,
             datasource: '3__table',
-            viz_type: 'echarts_timeseries_line',
+            viz_type: core.VizType.Line,
             color_scheme: 'supersetColors',
           },
           chartAlert: null,
@@ -277,7 +277,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
           latestQueryFormData: {},
           sliceFormData: {
             datasource: '3__table',
-            viz_type: 'echarts_timeseries_line',
+            viz_type: core.VizType.Line,
           },
           queryController: null,
           queriesResponse: [{}],

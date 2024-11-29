@@ -20,7 +20,7 @@
 import { KeyboardEvent, ReactElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { Menu } from 'src/components/Menu';
 import SliceHeaderControls, {
@@ -41,7 +41,7 @@ jest.mock('src/components/Dropdown', () => {
   };
 });
 
-const createProps = (viz_type = 'sunburst_v2') =>
+const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
@@ -63,7 +63,7 @@ const createProps = (viz_type = 'sunburst_v2') =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        ...(viz_type === 'sunburst_v2'
+        ...(viz_type === VizType.Sunburst
           ? { columns: ['product_category', 'clinical_stage'] }
           : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
@@ -99,7 +99,11 @@ const createProps = (viz_type = 'sunburst_v2') =>
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst_v2' },
+    formData: {
+      slice_id: 1,
+      datasource: '58__table',
+      viz_type: VizType.Sunburst,
+    },
     exploreUrl: '/explore',
   }) as SliceHeaderControlsProps;
 
@@ -201,7 +205,7 @@ test('Export full CSV is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
@@ -212,7 +216,7 @@ test('Should "export full CSV"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
@@ -235,7 +239,7 @@ test('Export full Excel is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
@@ -246,7 +250,7 @@ test('Should "export full Excel"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps('table');
+  const props = createProps(VizType.Table);
   renderWrapper(props);
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
