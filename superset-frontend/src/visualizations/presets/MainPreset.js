@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, Preset } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  Preset,
+  VizType,
+} from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
@@ -81,7 +86,6 @@ import {
 import { PivotTableChartPlugin as PivotTableChartPluginV2 } from '@superset-ui/plugin-chart-pivot-table';
 import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { FilterPlugins } from 'src/constants';
-import { VizType } from 'packages/superset-ui-core/src/chart/types/VizType';
 import TimeTableChartPlugin from '../TimeTable';
 
 export default class MainPreset extends Preset {
