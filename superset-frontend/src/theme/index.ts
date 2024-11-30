@@ -109,6 +109,10 @@ const baseConfig: ThemeConfig = {
       colorPrimaryHover: supersetTheme.colors.primary.base,
       colorTextTertiary: supersetTheme.colors.grayscale.light1,
     },
+    Tooltip: {
+      fontSize: supersetTheme.typography.sizes.s,
+      lineHeight: 1.6,
+    },
   },
 };
 

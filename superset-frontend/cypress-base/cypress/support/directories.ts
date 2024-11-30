@@ -140,7 +140,7 @@ export const sqlLabView = {
   tabsNavList: "[class='ant-tabs-nav-list']",
   tab: "[class='ant-tabs-tab-btn']",
   addTabButton: dataTestLocator('add-tab-icon'),
-  tooltip: '.ant-tooltip-content',
+  tooltip: '.antd5-tooltip-content',
   tabName: '.css-1suejie',
   schemaInput: '[data-test=DatabaseSelector] > :nth-child(2)',
   loadingIndicator: '.Select__loading-indicator',

@@ -76,7 +76,7 @@ const ChartHeaderStyles = styled.div`
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
 
-      & > span.ant-tooltip-open {
+      & > span.antd5-tooltip-open {
         display: inline;
       }
     }
