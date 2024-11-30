@@ -55,6 +55,13 @@ const baseConfig: ThemeConfig = {
     zIndexPopupBase: supersetTheme.zIndex.max,
   },
   components: {
+    Alert: {
+      borderRadius: supersetTheme.borderRadius,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      colorBorder: supersetTheme.colors.grayscale.light3,
+      fontSize: supersetTheme.typography.sizes.m,
+      colorText: supersetTheme.colors.grayscale.dark1,
+    },
     Avatar: {
       containerSize: 32,
       fontSize: supersetTheme.typography.sizes.s,
