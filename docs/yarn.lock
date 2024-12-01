@@ -1552,12 +1552,25 @@
     vfile "^6.0.1"
     webpack "^5.88.1"
 
-"@docusaurus/module-type-aliases@3.5.2", "@docusaurus/module-type-aliases@^3.5.2":
+"@docusaurus/module-type-aliases@3.5.2":
   version "3.5.2"
   resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-3.5.2.tgz#4e8f9c0703e23b2e07ebfce96598ec83e4dd2a9e"
   integrity sha512-Z+Xu3+2rvKef/YKTMxZHsEXp1y92ac0ngjDiExRdqGTmEKtCUpkbNYH8v5eXo5Ls+dnW88n6WTa+Q54kLOkwPg==
   dependencies:
     "@docusaurus/types" "3.5.2"
+    "@types/history" "^4.7.11"
+    "@types/react" "*"
+    "@types/react-router-config" "*"
+    "@types/react-router-dom" "*"
+    react-helmet-async "*"
+    react-loadable "npm:@docusaurus/react-loadable@6.0.0"
+
+"@docusaurus/module-type-aliases@^3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@docusaurus/module-type-aliases/-/module-type-aliases-3.6.3.tgz#1f7030b1cf1f658cf664d41b6eadba93bbe51d87"
+  integrity sha512-MjaXX9PN/k5ugNvfRZdWyKWq4FsrhN4LEXaj0pEmMebJuBNlFeGyKQUa9DRhJHpadNaiMLrbo9m3U7Ig5YlsZg==
+  dependencies:
+    "@docusaurus/types" "3.6.3"
     "@types/history" "^4.7.11"
     "@types/react" "*"
     "@types/react-router-config" "*"
@@ -1815,6 +1828,21 @@
     react-helmet-async "^1.3.0"
     utility-types "^3.10.0"
     webpack "^5.88.1"
+    webpack-merge "^5.9.0"
+
+"@docusaurus/types@3.6.3":
+  version "3.6.3"
+  resolved "https://registry.yarnpkg.com/@docusaurus/types/-/types-3.6.3.tgz#e87592e31616da1b8dc473e4c8205c61885a1518"
+  integrity sha512-xD9oTGDrouWzefkhe9ogB2fDV96/82cRpNGx2HIvI5L87JHNhQVIWimQ/3JIiiX/TEd5S9s+VO6FFguwKNRVow==
+  dependencies:
+    "@mdx-js/mdx" "^3.0.0"
+    "@types/history" "^4.7.11"
+    "@types/react" "*"
+    commander "^5.1.0"
+    joi "^17.9.2"
+    react-helmet-async "^1.3.0"
+    utility-types "^3.10.0"
+    webpack "^5.95.0"
     webpack-merge "^5.9.0"
 
 "@docusaurus/utils-common@3.5.2":
@@ -10461,7 +10489,7 @@ webpack-sources@^3.2.3:
   resolved "https://registry.yarnpkg.com/webpack-sources/-/webpack-sources-3.2.3.tgz#2d4daab8451fd4b240cc27055ff6a0c2ccea0cde"
   integrity sha512-/DyMEOrDgLKKIG0fmvtz+4dUX/3Ghozwgm6iPp8KRhvn+eQf9+Q7GWxVNMk3+uCPWfdXYC4ExGBckIXdFEfH1w==
 
-webpack@^5.88.1, webpack@^5.96.1:
+webpack@^5.88.1, webpack@^5.95.0, webpack@^5.96.1:
   version "5.96.1"
   resolved "https://registry.yarnpkg.com/webpack/-/webpack-5.96.1.tgz#3676d1626d8312b6b10d0c18cc049fba7ac01f0c"
   integrity sha512-l2LlBSvVZGhL4ZrPwyr8+37AunkcYj5qh8o6u2/2rzoPc8gxFJkLj1WxNgooi9pnoc06jh0BjuXnamM4qlujZA==
