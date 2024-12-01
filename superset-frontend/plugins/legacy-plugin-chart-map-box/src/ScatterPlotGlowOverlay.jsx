@@ -18,8 +18,8 @@
  */
 /* eslint-disable react/require-default-props */
 import PropTypes from 'prop-types';
-import { PureComponent } from 'react';
-import { CanvasOverlay } from 'react-map-gl';
+import { useEffect, useRef } from 'react';
+import { useMap } from 'react-map-gl';
 import { kmToPixels, MILES_PER_KM } from './utils/geo';
 import roundDecimal from './utils/roundDecimal';
 import luminanceFromRGB from './utils/luminanceFromRGB';
@@ -73,13 +73,11 @@ const computeClusterLabel = (properties, aggregation) => {
   return count;
 };
 
-class ScatterPlotGlowOverlay extends PureComponent {
-  constructor(props) {
-    super(props);
-    this.redraw = this.redraw.bind(this);
-  }
+const ScatterPlotGlowOverlay = props => {
+  const canvasRef = useRef(null);
+  const { current: map } = useMap();
 
-  drawText(ctx, pixel, options = {}) {
+  const drawText = (ctx, pixel, options = {}) => {
     const IS_DARK_THRESHOLD = 110;
     const {
       fontHeight = 0,
@@ -107,16 +105,23 @@ class ScatterPlotGlowOverlay extends PureComponent {
       ctx.font = `${scale * maxWidth}px sans-serif`;
     }
 
-    const { compositeOperation } = this.props;
+    const { compositeOperation } = props;
 
     ctx.fillText(label, pixel[0], pixel[1]);
     ctx.globalCompositeOperation = compositeOperation;
     ctx.shadowBlur = 0;
     ctx.shadowColor = '';
-  }
+  };
 
-  // Modified: https://github.com/uber/react-map-gl/blob/master/overlays/scatterplot.react.js
-  redraw({ width, height, ctx, isDragging, project }) {
+  const redraw = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !map) return;
+
+    const ctx = canvas.getContext('2d');
+    const { width, height } = map.getCanvas();
+    canvas.width = width;
+    canvas.height = height;
+
     const {
       aggregation,
       compositeOperation,
@@ -127,7 +132,13 @@ class ScatterPlotGlowOverlay extends PureComponent {
       renderWhileDragging,
       rgb,
       zoom,
-    } = this.props;
+    } = props;
+
+    const isDragging = map.isMoving();
+    const project = lngLat => {
+      const point = map.project([lngLat[0], lngLat[1]]);
+      return [point.x, point.y];
+    };
 
     const radius = dotRadius;
     const clusterLabelMap = [];
@@ -202,7 +213,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
               } else if (clusterLabel >= 1000) {
                 clusterLabel = `${Math.round(clusterLabel / 100) / 10}k`;
               }
-              this.drawText(ctx, pixelRounded, {
+              drawText(ctx, pixelRounded, {
                 fontHeight,
                 label: clusterLabel,
                 radius: scaledRadius,
@@ -255,7 +266,7 @@ class ScatterPlotGlowOverlay extends PureComponent {
             ctx.fill();
 
             if (pointLabel !== undefined) {
-              this.drawText(ctx, pixelRounded, {
+              drawText(ctx, pixelRounded, {
                 fontHeight: roundDecimal(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
@@ -267,12 +278,43 @@ class ScatterPlotGlowOverlay extends PureComponent {
         }
       }, this);
     }
-  }
+  };
 
-  render() {
-    return <CanvasOverlay redraw={this.redraw} />;
-  }
-}
+  useEffect(() => {
+    if (!map) return;
+    
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // Set initial size
+    canvas.style.position = 'absolute';
+    canvas.style.left = 0;
+    canvas.style.top = 0;
+    
+    redraw();
+
+    // Add map event listeners
+    map.on('move', redraw);
+    map.on('resize', redraw);
+
+    return () => {
+      map.off('move', redraw);
+      map.off('resize', redraw);
+    };
+  }, [map, props]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        pointerEvents: 'none',
+      }}
+    />
+  );
+};
 
 ScatterPlotGlowOverlay.propTypes = propTypes;
 ScatterPlotGlowOverlay.defaultProps = defaultProps;

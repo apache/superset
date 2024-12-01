@@ -134,7 +134,7 @@ const DeckMulti = (props: DeckMultiProps) => {
   return (
     <DeckGLContainerStyledWrapper
       ref={containerRef}
-      mapboxApiAccessToken={payload.data.mapboxApiKey}
+      mapboxAccessToken={payload.data.mapboxApiKey}
       viewport={viewport || props.viewport}
       layers={layers}
       mapStyle={formData.mapbox_style}

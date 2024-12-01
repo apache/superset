@@ -114,7 +114,7 @@ export function createDeckGLComponent(
     return (
       <DeckGLContainerStyledWrapper
         ref={containerRef}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        mapboxAccessToken={payload.data.mapboxApiKey}
         viewport={viewport}
         layers={[layer]}
         mapStyle={formData.mapbox_style}

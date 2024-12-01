@@ -222,7 +222,7 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
         layers={getLayers()}
         setControlValue={props.setControlValue}
         mapStyle={props.formData.mapbox_style}
-        mapboxApiAccessToken={props.mapboxApiKey}
+        mapboxAccessToken={props.mapboxApiKey}
         width={props.width}
         height={props.height}
       />

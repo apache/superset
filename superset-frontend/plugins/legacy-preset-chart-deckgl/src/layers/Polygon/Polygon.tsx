@@ -287,7 +287,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
         layers={getLayers()}
         setControlValue={setControlValue}
         mapStyle={formData.mapbox_style}
-        mapboxApiAccessToken={payload.data.mapboxApiKey}
+        mapboxAccessToken={payload.data.mapboxApiKey}
         width={props.width}
         height={props.height}
       />

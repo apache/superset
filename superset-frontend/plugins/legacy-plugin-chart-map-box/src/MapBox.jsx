@@ -125,7 +125,7 @@ class MapBox extends Component {
         mapStyle={mapStyle}
         width={width}
         height={height}
-        mapboxApiAccessToken={mapboxApiKey}
+        mapboxAccessToken={mapboxApiKey}
         onViewportChange={this.handleViewportChange}
         preserveDrawingBuffer
       >

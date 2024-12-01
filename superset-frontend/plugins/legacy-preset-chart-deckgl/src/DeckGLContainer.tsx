@@ -43,7 +43,7 @@ export type DeckGLContainerProps = {
   viewport: Viewport;
   setControlValue?: (control: string, value: JsonValue) => void;
   mapStyle?: string;
-  mapboxApiAccessToken: string;
+  mapboxAccessToken: string;
   children?: ReactNode;
   width: number;
   height: number;
@@ -118,7 +118,7 @@ export const DeckGLContainer = memo(
             <StaticMap
               preserveDrawingBuffer
               mapStyle={props.mapStyle || 'light'}
-              mapboxApiAccessToken={props.mapboxApiAccessToken}
+              mapboxAccessToken={props.mapboxAccessToken}
             />
           </DeckGL>
           {children}
