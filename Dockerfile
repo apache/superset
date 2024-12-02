@@ -57,10 +57,11 @@ RUN npm run build-translation
 RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
 RUN rm /app/superset/translations/messages.pot
 
+FROM python:${PY_VER} AS python-base
 ######################################################################
 # Final lean image...
 ######################################################################
-FROM python:${PY_VER} AS lean
+FROM python-base AS lean
 
 WORKDIR /app
 ENV LANG=C.UTF-8 \
