@@ -91,7 +91,7 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
 
 Handlebars.registerHelper(
   'formatNumber',
-  function (number: any, locale: string = 'en-US') {
+  function (number: any, locale = 'en-US') {
     if (typeof number !== 'number') {
       return number;
     }
