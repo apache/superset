@@ -38,7 +38,7 @@ export default function Alert(props: AlertProps) {
   } = props;
 
   const theme = useTheme();
-  const { colors, gridUnit } = theme;
+  const { colors } = theme;
   const { alert: alertColor, error, info, success } = colors;
 
   let baseColor = info;
@@ -76,11 +76,7 @@ export default function Alert(props: AlertProps) {
       message={children || 'Default message'}
       description={description}
       style={{
-        marginBottom: roomBelow ? gridUnit * 4 : 0,
-        padding: `${gridUnit * 2}px ${gridUnit * 3}px`,
-        alignItems: 'flex-start',
-        border: `1px solid ${baseColor.base}`,
-        backgroundColor: baseColor.light2,
+        marginBottom: roomBelow ? theme.gridUnit * 4 : 0,
       }}
       {...rest}
     />
