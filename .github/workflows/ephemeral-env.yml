@@ -88,9 +88,7 @@ jobs:
           const action = '${{ steps.eval-body.outputs.result }}';
           const runId = context.runId;
           const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${runId}`;
-          const body = action === 'noop'
-            ? `@${user} No ephemeral environment action detected. Please use '/testenv up' or '/testenv down'. [View workflow run](${workflowUrl}).`
-            : `@${user} Processing your ephemeral environment request [here](${workflowUrl}).`;
+          const body = `@${user} Processing your ephemeral environment request [here](${workflowUrl}).`;
           if (action !== 'noop') {
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -99,7 +97,9 @@ jobs:
               body,
             });
           }
-
+          else {
+            core.setFailed('No ephemeral environment action detected.');
+          }
 
   ephemeral-docker-build:
     concurrency:
