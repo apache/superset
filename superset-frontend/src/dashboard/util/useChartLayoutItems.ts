@@ -16,24 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NativeFilterScope } from '@superset-ui/core';
+import { createSelector } from '@reduxjs/toolkit';
+import { useSelector } from 'react-redux';
+import { RootState } from '../types';
 import { CHART_TYPE } from './componentTypes';
-import { LayoutItem } from '../types';
 
-export function getChartIdsInFilterScope(
-  filterScope: NativeFilterScope,
-  chartIds: number[],
-  layoutItems: LayoutItem[],
-) {
-  return chartIds.filter(
-    chartId =>
-      !filterScope.excluded.includes(chartId) &&
-      layoutItems
-        .find(
-          layoutItem =>
-            layoutItem?.type === CHART_TYPE &&
-            layoutItem.meta?.chartId === chartId,
-        )
-        ?.parents?.some(elementId => filterScope.rootPath.includes(elementId)),
-  );
-}
+const chartLayoutItemsSelector = createSelector(
+  (state: RootState) => state.dashboardLayout.present,
+  layout => Object.values(layout).filter(item => item?.type === CHART_TYPE),
+);
+
+export const useChartLayoutItems = () => useSelector(chartLayoutItemsSelector);

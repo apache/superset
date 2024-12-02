@@ -60,6 +60,7 @@ import {
   ensureSyncedSharedLabelsColors,
   ensureSyncedLabelsColorMap,
 } from 'src/dashboard/actions/dashboardState';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { findTabsWithChartsInScope } from '../nativeFilters/utils';
@@ -160,14 +161,18 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
         };
       }
 
+      const chartLayoutItems = Object.values(dashboardLayout).filter(
+        item => item?.type === CHART_TYPE,
+      );
+
       const chartsInScope: number[] = getChartIdsInFilterScope(
         filterScope.scope,
         chartIds,
-        dashboardLayout,
+        chartLayoutItems,
       );
 
       const tabsInScope = findTabsWithChartsInScope(
-        dashboardLayout,
+        chartLayoutItems,
         chartsInScope,
       );
       return {
