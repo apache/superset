@@ -355,7 +355,7 @@ const ResultSet = ({
                     Modal.warning({
                       title: t('Download is on the way'),
                       content: t(
-                        'Downloading %(rows)s rows based on LIMIT setting! If you want the entire result set, change the LIMIT settings.',
+                        'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
                         { rows: rowsCount.toLocaleString() },
                       ),
                     });
