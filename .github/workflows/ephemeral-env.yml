@@ -35,22 +35,26 @@ jobs:
 
     - name: Eval comment body for /testenv slash command
       uses: actions/github-script@v7
+      env:
+        COMMENT_BODY: ${{ github.event.inputs.comment_body || github.event.comment.body }}
       id: eval-body
       with:
         result-encoding: string
         script: |
           const pattern = /^\/testenv (up|down)/;
-          const result = pattern.exec('${{ github.event.inputs.comment_body || github.event.comment.body }}');
+          const result = pattern.exec(process.env.COMMENT_BODY || '');
           return result === null ? 'noop' : result[1];
 
     - name: Looking for feature flags
       uses: actions/github-script@v7
+      env:
+        COMMENT_BODY: ${{ github.event.inputs.comment_body || github.event.comment.body }}
       id: eval-feature-flags
       with:
         script: |
           const pattern = /FEATURE_(\w+)=(\w+)/g;
           let results = [];
-          [...'${{ github.event.inputs.comment_body || github.event.comment.body }}'.matchAll(pattern)].forEach(match => {
+          [...process.env.COMMENT_BODY.matchAll(pattern)].forEach(match => {
             const config = {
               name: `SUPERSET_FEATURE_${match[1]}`,
               value: match[2],
