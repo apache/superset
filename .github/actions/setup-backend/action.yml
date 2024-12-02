@@ -45,9 +45,9 @@ runs:
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
           pip install --upgrade pip setuptools wheel uv
           if [ "${{ inputs.requirements-type }}" = "dev" ]; then
-            uv --system pip install -r requirements/development.txt
+            uv pip install --system -r requirements/development.txt
           elif [ "${{ inputs.requirements-type }}" = "base" ]; then
-            uv --system pip install -r requirements/base.txt
+            uv pip install --system -r requirements/base.txt
           fi
         fi
       shell: bash
