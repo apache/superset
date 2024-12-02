@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addAlpha,
   css,
@@ -81,8 +81,6 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
-
-type DashboardBuilderProps = {};
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
@@ -374,7 +372,7 @@ const ELEMENT_ON_SCREEN_OPTIONS = {
   threshold: [1],
 };
 
-const DashboardBuilder: FC<DashboardBuilderProps> = () => {
+const DashboardBuilder = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
@@ -737,4 +735,4 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
 };
 
-export default DashboardBuilder;
+export default memo(DashboardBuilder);
