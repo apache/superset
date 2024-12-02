@@ -24,7 +24,7 @@ name = "apache-superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
-requires-python = "~=3.9"
+requires-python = ">=3.9"
 license = { file="LICENSE.txt" }
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
@@ -276,8 +276,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.8
-target-version = "py310"
+
+target-version = "py39"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
