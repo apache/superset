@@ -77,7 +77,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: python,presto
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -145,7 +145,7 @@ jobs:
           pip install -e .[hive]
           ./scripts/python_tests.sh -m 'chart_data_flow or sql_json_flow'
       - name: Upload code coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: python,hive
           token: ${{ secrets.CODECOV_TOKEN }}
