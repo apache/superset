@@ -18,7 +18,7 @@
  */
 /* eslint-disable no-param-reassign */
 import { css, styled, t, useTheme } from '@superset-ui/core';
-import { memo, FC} from 'react';
+import { memo, FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
 import { getFilterBarTestId } from '../utils';
@@ -71,7 +71,7 @@ type HeaderProps = {
 
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
   const theme = useTheme();
-  
+
   return (
     <Wrapper>
       <TitleArea>

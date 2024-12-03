@@ -71,31 +71,6 @@ const FilterBarEmptyStateContainer = styled.div`
   `}
 `;
 
-const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
-  ${({ theme, hasFilters }) => `
-    height: 24px;
-    display: flex;
-    align-items: center;
-    padding: 0 ${theme.gridUnit * 4}px 0 ${theme.gridUnit * 4}px;
-    border-right: ${
-      hasFilters ? `1px solid ${theme.colors.grayscale.light2}` : 0
-    };
-
-    button {
-      display: flex;
-      align-items: center;
-      > .anticon {
-        height: 24px;
-        padding-right: ${theme.gridUnit}px;
-      }
-      > .anticon + span, > .anticon {
-          margin-right: 0;
-          margin-left: 0;
-        }
-    }
-  `}
-`;
-
 const EMPTY_ARRAY: CrossFilterIndicator[] = [];
 const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,

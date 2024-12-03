@@ -82,14 +82,3 @@ test('should render the loading icon', async () => {
   expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
 });
 
-test('should render Add/Edit Filters', async () => {
-  await renderWrapper();
-  expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
-});
-
-test('should not render Add/Edit Filters', async () => {
-  await renderWrapper({
-    canEdit: false,
-  });
-  expect(screen.queryByText('Add/Edit Filters')).not.toBeInTheDocument();
-});

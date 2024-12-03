@@ -38,9 +38,9 @@ import DropdownSelectableIcon, {
 } from 'src/components/DropdownSelectableIcon';
 import Checkbox from 'src/components/Checkbox';
 import { clearDataMaskState } from 'src/dataMask/actions';
+import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
-import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -72,8 +72,7 @@ const ADD_EDIT_FILTERS_MENU_KEY = 'add-edit-filters-menu-key';
 const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
 
-const FilterBarSettings = (
-) => {
+const FilterBarSettings = () => {
   const dispatch = useDispatch();
   const theme = useTheme();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
@@ -175,16 +174,20 @@ const FilterBarSettings = (
   const menuItems = useMemo(() => {
     const items: DropDownSelectableProps['menuItems'] = [];
 
-    if (canEdit){
-    items.push({
-      key: ADD_EDIT_FILTERS_MENU_KEY,
-      label: <FilterConfigurationLink
-      dashboardId= {dashboardId}
-      createNewOnOpen={filterValues.length === 0}
-    >{t('Add or edit filters')}
-    </FilterConfigurationLink>,
-      divider: canSetHorizontalFilterBar,
-    })}
+    if (canEdit) {
+      items.push({
+        key: ADD_EDIT_FILTERS_MENU_KEY,
+        label: (
+          <FilterConfigurationLink
+            dashboardId={dashboardId}
+            createNewOnOpen={filterValues.length === 0}
+          >
+            {t('Add or edit filters')}
+          </FilterConfigurationLink>
+        ),
+        divider: canSetHorizontalFilterBar,
+      });
+    }
     if (isCrossFiltersFeatureEnabled && canEdit) {
       items.push({
         key: CROSS_FILTERS_MENU_KEY,
