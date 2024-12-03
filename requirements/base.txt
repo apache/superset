@@ -7,7 +7,7 @@
 #
 -e file:.
     # via -r requirements/base.in
-alembic==1.13.1
+alembic==1.14.0
     # via flask-migrate
 amqp==5.3.1
     # via kombu
