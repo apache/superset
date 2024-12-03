@@ -88,10 +88,10 @@ export default function AdhocFilterEditPopoverSqlTabContent({
     ),
   ), [sqlKeywords]);
 
-  const selectOptions = Object.values(Clauses).map(clause => ({
+  const selectOptions = useMemo(() => Object.values(Clauses).map(clause => ({
     label: clause,
     value: clause,
-  }));
+  })), [Clauses]);
 
   return (
     <span>
