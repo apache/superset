@@ -42,12 +42,12 @@ runs:
     - name: Install dependencies
       run: |
         if [ "${{ inputs.install-superset }}" = "true" ]; then
-          sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev build-essential
-          pip install --upgrade pip setuptools wheel
+          sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
+          pip install --upgrade pip setuptools wheel uv
           if [ "${{ inputs.requirements-type }}" = "dev" ]; then
-            pip install -r requirements/development.txt
+            uv pip install --system -r requirements/development.txt
           elif [ "${{ inputs.requirements-type }}" = "base" ]; then
-            pip install -r requirements/base.txt
+            uv pip install --system -r requirements/base.txt
           fi
         fi
       shell: bash
