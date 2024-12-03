@@ -30,7 +30,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import app, is_feature_enabled, thumbnail_cache
+from superset import app, is_feature_enabled
 from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
@@ -84,7 +84,12 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.screenshots import ChartScreenshot, DEFAULT_CHART_WINDOW_SIZE
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DEFAULT_CHART_WINDOW_SIZE,
+    ScreenshotCachePayload,
+    StatusValues,
+)
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -564,8 +569,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 schema:
                   $ref: '#/components/schemas/screenshot_query_schema'
           responses:
+            200:
+                description: Chart async result
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/ChartCacheScreenshotResponseSchema"
             202:
-              description: Chart async result
+              description: Chart async created
               content:
                 application/json:
                   schema:
@@ -580,6 +591,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         rison_dict = kwargs["rison"]
+        force = rison_dict.get("force")
         window_size = rison_dict.get("window_size") or DEFAULT_CHART_WINDOW_SIZE
 
         # Don't shrink the image if thumb_size is not specified
@@ -591,25 +603,38 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
-        cache_key = screenshot_obj.cache_key(window_size, thumb_size)
+        cache_key = screenshot_obj.get_cache_key(window_size, thumb_size)
         image_url = get_url_path(
             "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
         )
 
-        def trigger_celery() -> WerkzeugResponse:
-            logger.info("Triggering screenshot ASYNC")
-            cache_chart_thumbnail.delay(
-                current_user=get_current_user(),
-                chart_id=chart.id,
-                force=True,
-                window_size=window_size,
-                thumb_size=thumb_size,
-            )
-            return self.response(
-                202, cache_key=cache_key, chart_url=chart_url, image_url=image_url
-            )
+        if force or not screenshot_obj.get_from_cache_key(cache_key):
+            payload = ScreenshotCachePayload()
+            screenshot_obj.cache.set(cache_key, payload)
 
-        return trigger_celery()
+        if (cache_payload := screenshot_obj.get_from_cache_key(cache_key)) is not None:
+
+            def build_response(status_code: int) -> WerkzeugResponse:
+                return self.response(
+                    status_code,
+                    cache_key=cache_key,
+                    chart_url=chart_url,
+                    image_url=image_url,
+                    updated_at=cache_payload.get_timestamp(),
+                    update_status=cache_payload.get_status(),
+                )
+
+            if cache_payload.status != StatusValues.UPDATED:
+                logger.info("Triggering screenshot ASYNC")
+                cache_chart_thumbnail.delay(
+                    current_user=get_current_user(),
+                    chart_id=chart.id,
+                    window_size=window_size,
+                    thumb_size=thumb_size,
+                )
+                return build_response(202)
+            return build_response(200)
+        return self.response_500()
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @protect()
@@ -635,7 +660,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             name: digest
           responses:
             200:
-              description: Chart thumbnail image
+              description: Chart screenshot image
               content:
                image/*:
                  schema:
@@ -652,16 +677,16 @@ class ChartRestApi(BaseSupersetModelRestApi):
         """
         chart = self.datamodel.get(pk, self._base_filters)
 
-        # Making sure the chart still exists
         if not chart:
             return self.response_404()
 
-        # fetch the chart screenshot using the current user and cache if set
-        if img := ChartScreenshot.get_from_cache_key(thumbnail_cache, digest):
-            return Response(
-                FileWrapper(img), mimetype="image/png", direct_passthrough=True
-            )
-        # TODO: return an empty image
+        if cache_payload := ChartScreenshot.get_from_cache_key(digest):
+            if cache_payload.status == StatusValues.UPDATED:
+                return Response(
+                    FileWrapper(cache_payload.get_image()),
+                    mimetype="image/png",
+                    direct_passthrough=True,
+                )
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
@@ -713,22 +738,18 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         current_user = get_current_user()
         url = get_url_path("Superset.slice", slice_id=chart.id)
-        if kwargs["rison"].get("force", False):
-            logger.info(
-                "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
-            )
-            cache_chart_thumbnail.delay(
-                current_user=current_user,
-                chart_id=chart.id,
-                force=True,
-            )
-            return self.response(202, message="OK Async")
-        # fetch the chart screenshot using the current user and cache if set
-        screenshot = ChartScreenshot(url, chart.digest).get_from_cache(
-            cache=thumbnail_cache
-        )
-        # If not screenshot then send request to compute thumb to celery
-        if not screenshot:
+        screenshot_obj = ChartScreenshot(url, chart.digest)
+        cache_key = screenshot_obj.get_cache_key()
+        cache_payload = screenshot_obj.get_from_cache_key(cache_key)
+
+        if not cache_payload:
+            cache_payload = ScreenshotCachePayload()
+            screenshot_obj.cache.set(cache_key, cache_payload)
+
+        if (
+            kwargs["rison"].get("force", False)
+            or cache_payload.status != StatusValues.UPDATED
+        ):
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
@@ -736,10 +757,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,
-                force=True,
             )
-            return self.response(202, message="OK Async")
-        # If digests
+            return self.response(
+                202,
+                updated_at=cache_payload.get_timestamp(),
+                update_status=cache_payload.get_status(),
+            )
+        # TODO remove digest from params... currently does nothing
         if chart.digest != digest:
             self.incr_stats("redirect", self.thumbnail.__name__)
             return redirect(
@@ -749,7 +773,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(
-            FileWrapper(screenshot), mimetype="image/png", direct_passthrough=True
+            FileWrapper(cache_payload.get_image()),
+            mimetype="image/png",
+            direct_passthrough=True,
         )
 
     @expose("/export/", methods=("GET",))
