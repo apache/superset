@@ -25,6 +25,7 @@ import { FilterCardRowProps } from './types';
 import { FilterConfigurationLink } from '../FilterBar/FilterConfigurationLink';
 import { TooltipWithTruncation } from './TooltipWithTruncation';
 
+
 export const NameRow = ({
   filter,
   hidePopover,
@@ -62,7 +63,7 @@ export const NameRow = ({
           onClick={hidePopover}
           initialFilterId={filter.id}
         >
-          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} />
+          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} css={() => css`cursor: pointer`}/>
         </FilterConfigurationLink>
       )}
     </Row>
