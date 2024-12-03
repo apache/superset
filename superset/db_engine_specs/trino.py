@@ -216,6 +216,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
+        db.session.commit()
+
         # if query cancelation was requested prior to the handle_cursor call, but
         # the query was still executed, trigger the actual query cancelation now
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):
@@ -244,6 +246,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         # Fetch the query ID beforehand, since it might fail inside the thread due to
         # how the SQLAlchemy session is handled.
         query_id = query.id
+        query_database = query.database
 
         execute_result: dict[str, Any] = {}
         execute_event = threading.Event()
@@ -266,7 +269,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 with app.app_context():
                     for key, value in g_copy.__dict__.items():
                         setattr(g, key, value)
-                    cls.execute(cursor, sql, query.database)
+                    cls.execute(cursor, sql, query_database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
             finally:
@@ -283,6 +286,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         )
         execute_thread.start()
 
+        # Wait for the thread to start before continuing
+        time.sleep(0.1)
         # Wait for a query ID to be available before handling the cursor, as
         # it's required by that method; it may never become available on error.
         while not cursor.query_id and not execute_event.is_set():
