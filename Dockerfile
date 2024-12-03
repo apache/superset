@@ -185,7 +185,7 @@ ARG INCLUDE_FIREFOX="false"
 
 RUN --mount=type=cache,target=/root/.cache/pip \
     if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
-      uv pip install --system --no-cache-dir playwright; \
+      pip install --system --no-cache-dir playwright; \
     else \
       echo "Skipping Playwright installation"; \
     fi
