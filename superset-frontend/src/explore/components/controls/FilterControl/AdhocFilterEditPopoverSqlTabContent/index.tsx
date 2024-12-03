@@ -75,7 +75,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
     );
   };
 
-  const keywords = sqlKeywords.concat(
+  const keywords = useMemo(() => sqlKeywords.concat(
     getColumnKeywords(
       options.filter(
         (option): option is ColumnMeta =>
@@ -86,7 +86,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           'type' in option,
       ),
     ),
-  );
+  ), [sqlKeywords]);
 
   const selectOptions = Object.values(Clauses).map(clause => ({
     label: clause,
