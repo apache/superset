@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## 4.1.2
 
+- [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
 - [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
 
 ### Potential Downtime
