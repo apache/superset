@@ -157,6 +157,7 @@ greenlet==3.0.3
     # via
     #   apache-superset
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset
 hashids==1.3.1
@@ -285,7 +286,7 @@ pycparser==2.22
     # via cffi
 pygments==2.18.0
     # via rich
-pyjwt==2.10.0
+pyjwt==2.10.1
     # via
     #   apache-superset
     #   flask-appbuilder
