@@ -729,6 +729,7 @@ THUMBNAIL_CHART_DIGEST_FUNC: Callable[[Slice, ExecutorType, str], str | None] | 
 
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
+    "CACHE_DEFAULT_TIMEOUT": 3600,
     "CACHE_NO_NULL_WARNING": True,
 }
 
