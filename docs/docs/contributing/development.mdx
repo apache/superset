@@ -32,7 +32,9 @@ cd superset
 Setting things up to squeeze a "hello world" into any part of Superset should be as simple as
 
 ```bash
-docker compose up
+# getting docker compose to fire up services, and rebuilding if some docker layers have changed
+# using the `--build` suffix may be slower and optional if layers like py dependencies haven't changed
+docker compose up --build
 ```
 
 Note that:
@@ -694,7 +696,7 @@ If you already have launched Docker environment please use the following command
 
 Launch environment:
 
-`CYPRESS_CONFIG=true docker compose up`
+`CYPRESS_CONFIG=true docker compose up --build`
 
 It will serve the backend and frontend on port 8088.
 
@@ -762,7 +764,7 @@ superset:
 Start Superset as usual
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 Install the required libraries and packages to the docker container
