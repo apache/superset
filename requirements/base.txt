@@ -222,7 +222,7 @@ msgpack==1.0.8
     # via apache-superset
 msgspec==0.18.6
     # via flask-session
-nh3==0.2.18
+nh3==0.2.19
     # via apache-superset
 numba==0.60.0
     # via pandas
