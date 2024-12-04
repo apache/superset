@@ -945,6 +945,28 @@ on $left.Day1 == $right.Day
         ("kustokql", "set querytrace; Events | take 100", False),
         ("kustokql", ".drop table foo", True),
         ("kustokql", ".set-or-append table foo <| bar", True),
+        ("base", "SHOW LOCKS test EXTENDED", False),
+        ("base", "SET hivevar:desc='Legislators'", False),
+        ("base", "UPDATE t1 SET col1 = NULL", True),
+        ("base", "EXPLAIN SELECT 1", False),
+        ("base", "SELECT 1", False),
+        ("base", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("base", "SHOW CATALOGS", False),
+        ("base", "SHOW TABLES", False),
+        ("hive", "UPDATE t1 SET col1 = NULL", True),
+        ("hive", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("hive", "SHOW LOCKS test EXTENDED", False),
+        ("hive", "SET hivevar:desc='Legislators'", False),
+        ("hive", "EXPLAIN SELECT 1", False),
+        ("hive", "SELECT 1", False),
+        ("hive", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("presto", "SET hivevar:desc='Legislators'", False),
+        ("presto", "UPDATE t1 SET col1 = NULL", True),
+        ("presto", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("presto", "SHOW LOCKS test EXTENDED", False),
+        ("presto", "EXPLAIN SELECT 1", False),
+        ("presto", "SELECT 1", False),
+        ("presto", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
     ],
 )
 def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
@@ -1042,7 +1064,7 @@ def test_custom_dialect(app: None) -> None:
 )
 def test_is_mutating(engine: str) -> None:
     """
-    Tests for `is_mutating`.
+    Global tests for `is_mutating`, covering all supported engines.
     """
     assert not SQLStatement(
         "with source as ( select 1 as one ) select * from source",

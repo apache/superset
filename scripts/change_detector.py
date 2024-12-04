@@ -95,15 +95,21 @@ def print_files(files: List[str]) -> None:
     print("\n".join([f"- {s}" for s in files]))
 
 
+def is_int(s: str) -> bool:
+    return bool(re.match(r"^-?\d+$", s))
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     print("EVENT_TYPE", event_type)
+    files = None
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
-        files = fetch_changed_files_pr(repo, pr_number)
-        print("PR files:")
-        print_files(files)
+        if is_int(pr_number):
+            files = fetch_changed_files_pr(repo, pr_number)
+            print("PR files:")
+            print_files(files)
 
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
@@ -119,7 +125,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
         patterns_compiled = [re.compile(p) for p in regex_patterns]
-        changes_detected[group] = event_type == "workflow_dispatch" or detect_changes(
+        changes_detected[group] = files is None or detect_changes(
             files, patterns_compiled
         )
 

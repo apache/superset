@@ -208,7 +208,9 @@ describe('DashboardBuilder', () => {
   });
 
   it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
-    const { queryAllByTestId } = setup({ dashboardState: { editMode: true } });
+    const { queryAllByTestId } = setup({
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    });
     const builderComponents = queryAllByTestId('mock-builder-component-pane');
     expect(builderComponents.length).toBeGreaterThanOrEqual(1);
   });
@@ -241,7 +243,7 @@ describe('DashboardBuilder', () => {
 
   it('should display a loading spinner when saving is in progress', async () => {
     const { findByAltText } = setup({
-      dashboardState: { dashboardIsSaving: true },
+      dashboardState: { ...mockState.dashboardState, dashboardIsSaving: true },
     });
 
     expect(await findByAltText('Loading...')).toBeVisible();

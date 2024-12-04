@@ -19,12 +19,15 @@
 
 import {
   CategoricalColorNamespace,
+  ensureIsArray,
   getCategoricalSchemeRegistry,
   getLabelsColorMap,
 } from '@superset-ui/core';
 
+const EMPTY_ARRAY: string[] = [];
+
 /**
- * Forces falsy namespace values to undefined to default to GLOBAL
+ * Force falsy namespace values to undefined to default to GLOBAL
  *
  * @param namespace
  * @returns - namespace or default undefined
@@ -32,9 +35,22 @@ import {
 export const getColorNamespace = (namespace?: string) => namespace || undefined;
 
 /**
+ *
+ * Field shared_label_colors used to be a dict of all colors for all labels.
+ * Force shared_label_colors field to be a list of actual shared labels.
+ *
+ * @param sharedLabelsColors - the shared label colors list
+ * @returns string[]
+ */
+export const enforceSharedLabelsColorsArray = (
+  sharedLabelsColors: string[] | Record<string, string> | undefined,
+) => (Array.isArray(sharedLabelsColors) ? sharedLabelsColors : EMPTY_ARRAY);
+
+/**
  * Get labels shared across all charts in a dashboard.
  * Merges a fresh instance of shared label colors with a stored one.
  *
+ * @param currentSharedLabels - existing shared labels to merge with fresh
  * @returns Record<string, string>
  */
 export const getFreshSharedLabels = (
@@ -54,7 +70,9 @@ export const getFreshSharedLabels = (
     .filter(([, count]) => count > 1)
     .map(([label]) => label);
 
-  return Array.from(new Set([...currentSharedLabels, ...duplicates]));
+  return Array.from(
+    new Set([...ensureIsArray(currentSharedLabels), ...duplicates]),
+  );
 };
 
 export const getSharedLabelsColorMapEntries = (
@@ -74,7 +92,7 @@ export const getSharedLabelsColorMapEntries = (
  * @returns all color entries except custom label colors
  */
 export const getLabelsColorMapEntries = (
-  customLabelsColor: Record<string, string>,
+  customLabelsColor: Record<string, string> = {},
 ): Record<string, string> => {
   const labelsColorMapInstance = getLabelsColorMap();
   const allEntries = Object.fromEntries(labelsColorMapInstance.getColorMap());
@@ -175,7 +193,9 @@ export const applyColors = (
     CategoricalColorNamespace.getNamespace(colorNameSpace);
   const colorScheme = metadata?.color_scheme;
   const fullLabelsColor = metadata?.map_label_colors || {};
-  const sharedLabels = metadata?.shared_label_colors || [];
+  const sharedLabels = enforceSharedLabelsColorsArray(
+    metadata?.shared_label_colors,
+  );
   const customLabelsColor = metadata?.label_colors || {};
   const sharedLabelsColor = getSharedLabelsColorMapEntries(
     fullLabelsColor,

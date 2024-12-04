@@ -22,8 +22,29 @@ import pandas as pd
 from superset.utils.core import GenericDataType
 
 
+def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Make sure to quote any formulas for security reasons.
+    """
+    formula_prefixes = {"=", "+", "-", "@"}
+
+    for col in df.select_dtypes(include="object").columns:
+        df[col] = df[col].apply(
+            lambda x: (
+                f"'{x}"
+                if isinstance(x, str) and len(x) and x[0] in formula_prefixes
+                else x
+            )
+        )
+
+    return df
+
+
 def df_to_excel(df: pd.DataFrame, **kwargs: Any) -> Any:
     output = io.BytesIO()
+
+    # make sure formulas are quoted, to prevent malicious injections
+    df = quote_formulas(df)
 
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:

@@ -143,7 +143,7 @@ def test_create_pickle_entry(
         found_entry = (
             db.session.query(KeyValueEntry).filter_by(id=created_entry.id).one()
         )
-        assert type(pickle.loads(found_entry.value)) == type(PICKLE_VALUE)
+        assert isinstance(pickle.loads(found_entry.value), type(PICKLE_VALUE))
         assert found_entry.created_by_fk == admin_user.id
 
 

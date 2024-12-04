@@ -53,7 +53,6 @@ describe('OptionDescription', () => {
     // Perform delayed mouse hovering so tooltip could pop out
     fireEvent.mouseOver(tooltipTrigger);
     act(() => jest.runAllTimers());
-    fireEvent.mouseOut(tooltipTrigger);
 
     const tooltip = screen.getByRole('tooltip');
     expect(tooltip).toBeInTheDocument();
