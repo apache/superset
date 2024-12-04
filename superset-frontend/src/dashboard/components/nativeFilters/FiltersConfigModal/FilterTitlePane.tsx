@@ -19,8 +19,10 @@
 import { useRef, FC } from 'react';
 
 import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
-import { AntdDropdown } from 'src/components';
-import { MainNav as Menu } from 'src/components/Menu';
+import { Button } from 'src/components';
+import Icons from 'src/components/Icons';
+import ButtonGroup from 'src/components/ButtonGroup';
+
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
 
@@ -37,26 +39,14 @@ interface Props {
   erroredFilters: string[];
 }
 
-const StyledAddBox = styled.div`
-  ${({ theme }) => `
-  cursor: pointer;
-  margin: ${theme.gridUnit * 4}px;
-  color: ${theme.colors.primary.base};
-  &:hover {
-    color: ${theme.colors.primary.dark1};
-  }
-`}
-`;
 const TabsContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  padding: ${({ theme }) => theme.gridUnit * 3}px;
+  padding-bottom: 2px;
+  /* align-items: stretch; */
 `;
-
-const options = [
-  { label: t('Filter'), type: NativeFilterType.NativeFilter },
-  { label: t('Divider'), type: NativeFilterType.Divider },
-];
 
 const FilterTitlePane: FC<Props> = ({
   getFilterTitle,
@@ -71,7 +61,6 @@ const FilterTitlePane: FC<Props> = ({
   erroredFilters,
 }) => {
   const filtersContainerRef = useRef<HTMLDivElement>(null);
-  const theme = useTheme();
 
   const handleOnAdd = (type: NativeFilterType) => {
     onAdd(type);
@@ -88,33 +77,30 @@ const FilterTitlePane: FC<Props> = ({
       });
     }, 0);
   };
-  const menu = (
-    <Menu mode="horizontal">
-      {options.map(item => (
-        <Menu.Item onClick={() => handleOnAdd(item.type)}>
-          {item.label}
-        </Menu.Item>
-      ))}
-    </Menu>
-  );
   return (
     <TabsContainer>
-      <AntdDropdown
-        overlay={menu}
-        arrow
-        placement="topLeft"
-        trigger={['hover']}
-      >
-        <StyledAddBox>
-          <div data-test="new-dropdown-icon" className="fa fa-plus" />{' '}
-          <span>{t('Add filters and dividers')}</span>
-        </StyledAddBox>
-      </AntdDropdown>
+      <ButtonGroup expand>
+        <Button
+          buttonSize="default"
+          buttonStyle="tertiary"
+          icon={<Icons.Filter iconSize="m" />}
+          onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
+        >
+          {t('Add Filter')}
+        </Button>
+        <Button
+          buttonSize="default"
+          buttonStyle="tertiary"
+          icon={<Icons.PicCenterOutlined iconSize="m" />}
+          onClick={() => handleOnAdd(NativeFilterType.Divider)}
+        >
+          {t('Add Divider')}
+        </Button>
+      </ButtonGroup>
       <div
         css={{
           height: '100%',
           overflowY: 'auto',
-          marginLeft: theme.gridUnit * 3,
         }}
       >
         <FilterTitleContainer
