@@ -88,7 +88,7 @@ describe('createNewOnOpen', () => {
 
   test('shows correct alert message for unsaved filters', async () => {
     const onCancel = jest.fn();
-    const { getByRole, getByTestId, findByRole } = setup({
+    const { getByRole, getByTestId } = setup({
       onCancel,
       createNewOnOpen: false,
     });
