@@ -18,7 +18,7 @@
  */
 import { useRef, FC } from 'react';
 
-import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
+import { NativeFilterType, styled, t } from '@superset-ui/core';
 import { Button } from 'src/components';
 import Icons from 'src/components/Icons';
 import ButtonGroup from 'src/components/ButtonGroup';
