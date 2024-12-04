@@ -2662,7 +2662,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         dashboards = [
-            r for r in user.resources if r["type"] == GuestTokenResourceType.DASHBOARD
+            r for r in user.resources if r["type"] == GuestTokenResourceType.DASHBOARD.value
         ]
 
         # TODO (embedded): remove this check once uuids are rolled out
