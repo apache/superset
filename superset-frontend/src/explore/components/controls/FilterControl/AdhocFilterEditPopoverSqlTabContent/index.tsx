@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useMemo } from 'react';
 import { Select } from 'src/components';
 import { styled, t, useTheme } from '@superset-ui/core';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
@@ -48,10 +48,6 @@ export default function AdhocFilterEditPopoverSqlTabContent({
   const aceEditorRef = useRef(null);
   const theme = useTheme();
 
-  const handleAceEditorRef = useCallback(ref => {
-    if (ref) aceEditorRef.current = ref;
-  }, []);
-
   useEffect(() => {
     // @ts-ignore
     aceEditorRef?.current?.editor.resize();
@@ -75,23 +71,31 @@ export default function AdhocFilterEditPopoverSqlTabContent({
     );
   };
 
-  const keywords = useMemo(() => sqlKeywords.concat(
-    getColumnKeywords(
-      options.filter(
-        (option): option is ColumnMeta =>
-          typeof option === 'object' &&
-          option !== null &&
-          'column_name' in option &&
-          typeof option.column_name === 'string' &&
-          'type' in option,
+  const keywords = useMemo(
+    () =>
+      sqlKeywords.concat(
+        getColumnKeywords(
+          options.filter(
+            (option): option is ColumnMeta =>
+              typeof option === 'object' &&
+              option !== null &&
+              'column_name' in option &&
+              typeof option.column_name === 'string' &&
+              'type' in option,
+          ),
+        ),
       ),
-    ),
-  ), [sqlKeywords]);
+    [sqlKeywords],
+  );
 
-  const selectOptions = useMemo(() => Object.values(Clauses).map(clause => ({
-    label: clause,
-    value: clause,
-  })), [Clauses]);
+  const selectOptions = useMemo(
+    () =>
+      Object.values(Clauses).map(clause => ({
+        label: clause,
+        value: clause,
+      })),
+    [Clauses],
+  );
 
   return (
     <span>
@@ -113,7 +117,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
       </div>
       <div css={{ marginTop: theme.gridUnit * 4 }}>
         <SQLEditor
-          ref={handleAceEditorRef}
+          ref={aceEditorRef}
           keywords={keywords}
           height={`${height - 130}px`}
           onChange={onSqlExpressionChange}
