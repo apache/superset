@@ -60,7 +60,7 @@ fi
 
 # Start the application using Docker Compose
 echo "Starting the application with Docker Compose..."
-docker compose up -d --force-recreate --pull always || { echo "Error: Docker compose up failed" >&2; exit 1; }
+docker compose up -f docker-compose-image-tag.yml -d --force-recreate --pull always || { echo "Error: Docker compose up failed" >&2; exit 1; }
 
 # Disable debug mode
 set +x

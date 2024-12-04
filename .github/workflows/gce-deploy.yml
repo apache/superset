@@ -103,12 +103,7 @@ jobs:
           echo "$SSH_KEY" > id_rsa
           echo "$PUBLIC_KEY" > id_rsa.pub
           chmod 600 id_rsa
-          chmod 644 id_rsa.pub
-        
-          echo "#######################################33"
-          echo "$SSH_KEY" 
-          echo "$PUBLIC_KEY"
-          echo "#######################################33"          
+          chmod 644 id_rsa.pub       
 
           # Add the VM's public IP to known hosts to ensure SSH connects seamlessly
           GCE_IP=$(gcloud compute instances describe ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
