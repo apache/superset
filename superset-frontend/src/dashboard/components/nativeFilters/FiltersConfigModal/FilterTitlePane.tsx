@@ -45,7 +45,6 @@ const TabsContainer = styled.div`
   flex-direction: column;
   padding: ${({ theme }) => theme.gridUnit * 3}px;
   padding-bottom: 2px;
-  /* align-items: stretch; */
 `;
 
 const FilterTitlePane: FC<Props> = ({
