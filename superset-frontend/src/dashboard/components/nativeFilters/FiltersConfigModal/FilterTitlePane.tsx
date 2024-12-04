@@ -110,6 +110,7 @@ const FilterTitlePane: FC<Props> = ({
           buttonSize="default"
           buttonStyle="secondary"
           icon={<Icons.Filter iconSize="m" />}
+          data-test="add-new-filter-button"
           onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
         >
           {t('Add Filter')}
@@ -118,6 +119,7 @@ const FilterTitlePane: FC<Props> = ({
           buttonSize="default"
           buttonStyle="secondary"
           icon={<Icons.PicCenterOutlined iconSize="m" />}
+          data-test="add-new-divider-button"
           onClick={() => handleOnAdd(NativeFilterType.Divider)}
         >
           {t('Add Divider')}
