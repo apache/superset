@@ -6,7 +6,7 @@ on:
         types:
           - completed    
         branches:
-          - development
+          - dev
     workflow_dispatch:
       inputs:
         environment:
@@ -37,7 +37,7 @@ jobs:
         DIRECTORY_PATH: '/home/clientx/superset'
         INFISICAL_PATH: '/Client-X/Bi-Tool' 
         TAG: 'dev'  
-        GIT_BRANCH: development    
+        GIT_BRANCH: dev  
 
     steps:
       - name: Checkout code
