@@ -148,15 +148,18 @@ test('filter container should scroll to bottom when adding items', async () => {
   defaultRender(state, props);
 
   const addFilterButton = await screen.findByText('Add Filter');
-  await act(async () => {
-    fireEvent(
-      addFilterButton,
-      new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
-  });
+  //add enough filters to make it scroll in the next expectation.
+  for (let i = 0; i < 3; i++) {
+    await act(async () => {
+      fireEvent(
+        addFilterButton,
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    });
+  }
 
   const containerElement = screen.getByTestId('filter-title-container');
   expect(containerElement.scroll).toHaveBeenCalled();
