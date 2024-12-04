@@ -6369,10 +6369,10 @@ less-loader@^11.0.0:
   resolved "https://registry.yarnpkg.com/less-loader/-/less-loader-11.1.4.tgz#e8a070844efaefbe59b978acaf57b9d3e868cf08"
   integrity sha512-6/GrYaB6QcW6Vj+/9ZPgKKs6G10YZai/l/eJ4SLwbzqNTBsAqt5hSLVF47TgsiBxV1P6eAU0GYRH3YRuQU9V3A==
 
-less@^4.2.0:
-  version "4.2.0"
-  resolved "https://registry.yarnpkg.com/less/-/less-4.2.0.tgz#cbefbfaa14a4cd388e2099b2b51f956e1465c450"
-  integrity sha512-P3b3HJDBtSzsXUl0im2L7gTO5Ubg8mEN6G8qoTS77iXxXX4Hvu4Qj540PZDvQ8V6DmX6iXo98k7Md0Cm1PrLaA==
+less@^4.2.1:
+  version "4.2.1"
+  resolved "https://registry.yarnpkg.com/less/-/less-4.2.1.tgz#fe4c9848525ab44614c0cf2c00abd8d031bb619a"
+  integrity sha512-CasaJidTIhWmjcqv0Uj5vccMI7pJgfD9lMkKtlnTHAdJdYK/7l8pM9tumLyJ0zhbD4KJLo/YvTj+xznQd5NBhg==
   dependencies:
     copy-anything "^2.0.1"
     parse-node-version "^1.0.1"
