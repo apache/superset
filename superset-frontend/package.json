@@ -213,6 +213,7 @@
     "yargs": "^17.7.2"
   },
   "devDependencies": {
+    "@ant-design/moment-webpack-plugin": "^1.0.0",
     "@applitools/eyes-storybook": "^3.50.9",
     "@babel/cli": "^7.22.6",
     "@babel/compat-data": "^7.22.6",
@@ -382,5 +383,6 @@
   "scarfSettings": {
     "allowTopLevel": true
   },
-  "_id": "superset@0.0.0-dev"
+  "_id": "superset@0.0.0-dev",
+  "packageManager": "pnpm@9.11.0+sha512.0a203ffaed5a3f63242cd064c8fb5892366c103e328079318f78062f24ea8c9d50bc6a47aa3567cabefd824d170e78fa2745ed1f16b132e16436146b7688f19b"
 }
