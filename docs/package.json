@@ -42,7 +42,7 @@
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
     "stream": "^0.0.3",
-    "swagger-ui-react": "^5.17.14",
+    "swagger-ui-react": "^5.18.2",
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
