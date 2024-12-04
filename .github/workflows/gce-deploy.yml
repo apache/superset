@@ -35,7 +35,7 @@ jobs:
         GCE_VM_NAME: "cliente-x"          # your VM name
         GCE_PROJECT: "client-x-429512"    # your GCP project ID        
         DIRECTORY_PATH: '/home/clientx/superset'
-        INFISICAL_PATH: '/Client-X/Bi-Tool' 
+        INFISICAL_PATH: '/Client-X/BI-Tool' 
         TAG: 'dev'  
         GIT_BRANCH: dev  
 
@@ -53,7 +53,7 @@ jobs:
               echo "GCE_VM_NAME=january"  >> $GITHUB_ENV 
               echo "GCE_PROJECT=january-spring-433119"  >> $GITHUB_ENV              
               echo "DIRECTORY_PATH=/home/january/superset" >> $GITHUB_ENV
-              echo "INFISICAL_PATH=/January-Spring/Bi-Tool" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/January-Spring/BI-Tool" >> $GITHUB_ENV
               echo "TAG=latest" >> $GITHUB_ENV    
               echo "GIT_BRANCH=main" >> $GITHUB_ENV    
               echo "GCE_ZONE=us-central1-a" >> $GITHUB_ENV                    
@@ -63,7 +63,7 @@ jobs:
               echo "GCE_VM_NAME=travcoding"  >> $GITHUB_ENV 
               echo "GCE_PROJECT=travcoding-430213"  >> $GITHUB_ENV
               echo "DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
-              echo "INFISICAL_PATH=/Travcoding/Bi-Tool" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
               echo "TAG=latest" >> $GITHUB_ENV     
               echo "GIT_BRANCH=main" >> $GITHUB_ENV                               
               ;;
@@ -72,7 +72,7 @@ jobs:
               echo "GCE_VM_NAME=caliza"  >> $GITHUB_ENV 
               echo "GCE_PROJECT=caliza-435211"  >> $GITHUB_ENV              
               echo "DIRECTORY_PATH=/home/caliza/superset" >> $GITHUB_ENV
-              echo "INFISICAL_PATH=/Caliza/Bi-Tool" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
               echo "TAG=latest" >> $GITHUB_ENV     
               echo "GIT_BRANCH=main" >> $GITHUB_ENV                               
               ;;
