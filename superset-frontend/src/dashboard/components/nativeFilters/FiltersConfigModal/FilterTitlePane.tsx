@@ -18,10 +18,9 @@
  */
 import { useRef, FC } from 'react';
 
-import { NativeFilterType, styled, t } from '@superset-ui/core';
+import { NativeFilterType, styled, t, useTheme } from '@superset-ui/core';
 import { Button } from 'src/components';
 import Icons from 'src/components/Icons';
-import ButtonGroup from 'src/components/ButtonGroup';
 
 import FilterTitleContainer from './FilterTitleContainer';
 import { FilterRemoval } from './types';
@@ -44,7 +43,7 @@ const TabsContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: ${({ theme }) => theme.gridUnit * 3}px;
-  padding-bottom: 2px;
+  padding-top: 2px;
 `;
 
 const FilterTitlePane: FC<Props> = ({
@@ -59,6 +58,8 @@ const FilterTitlePane: FC<Props> = ({
   removedFilters,
   erroredFilters,
 }) => {
+  const theme = useTheme();
+
   const filtersContainerRef = useRef<HTMLDivElement>(null);
 
   const handleOnAdd = (type: NativeFilterType) => {
@@ -78,24 +79,6 @@ const FilterTitlePane: FC<Props> = ({
   };
   return (
     <TabsContainer>
-      <ButtonGroup expand>
-        <Button
-          buttonSize="default"
-          buttonStyle="tertiary"
-          icon={<Icons.Filter iconSize="m" />}
-          onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
-        >
-          {t('Add Filter')}
-        </Button>
-        <Button
-          buttonSize="default"
-          buttonStyle="tertiary"
-          icon={<Icons.PicCenterOutlined iconSize="m" />}
-          onClick={() => handleOnAdd(NativeFilterType.Divider)}
-        >
-          {t('Add Divider')}
-        </Button>
-      </ButtonGroup>
       <div
         css={{
           height: '100%',
@@ -114,6 +97,31 @@ const FilterTitlePane: FC<Props> = ({
           onRearrange={onRearrange}
           restoreFilter={restoreFilter}
         />
+      </div>
+      <div
+        css={{
+          display: 'flex',
+          justifyContent: 'space-around',
+          alignItems: 'flex-start',
+          paddingTop: theme.gridUnit * 3,
+        }}
+      >
+        <Button
+          buttonSize="default"
+          buttonStyle="secondary"
+          icon={<Icons.Filter iconSize="m" />}
+          onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
+        >
+          {t('Add Filter')}
+        </Button>
+        <Button
+          buttonSize="default"
+          buttonStyle="secondary"
+          icon={<Icons.PicCenterOutlined iconSize="m" />}
+          onClick={() => handleOnAdd(NativeFilterType.Divider)}
+        >
+          {t('Add Divider')}
+        </Button>
       </div>
     </TabsContainer>
   );
