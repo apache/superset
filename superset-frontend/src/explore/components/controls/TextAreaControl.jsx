@@ -97,6 +97,7 @@ class TextAreaControl extends Component {
 
       return (
         <TextAreaEditor
+          {...this.props}
           mode={this.props.language}
           style={style}
           minLines={minLines}
@@ -105,7 +106,6 @@ class TextAreaControl extends Component {
           defaultValue={this.props.initialValue}
           readOnly={this.props.readOnly}
           key={this.props.name}
-          {...this.props}
           onChange={this.onAreaEditorChange.bind(this)}
         />
       );
