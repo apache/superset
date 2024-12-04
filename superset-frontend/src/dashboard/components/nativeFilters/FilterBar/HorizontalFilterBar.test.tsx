@@ -81,4 +81,3 @@ test('should render the loading icon', async () => {
   });
   expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
 });
-
