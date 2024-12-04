@@ -23,6 +23,7 @@ import {
   memo,
   ChangeEvent,
   MouseEvent,
+  useMemo,
 } from 'react';
 
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -155,6 +156,7 @@ const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
 const extensionsRegistry = getExtensionsRegistry();
+const EMPTY: string[] = [];
 
 const ResultSet = ({
   cache = false,
@@ -209,6 +211,14 @@ const ResultSet = ({
   const [cachedData, setCachedData] = useState<Record<string, unknown>[]>([]);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   const [alertIsOpen, setAlertIsOpen] = useState(false);
+  const orderedColumnKeys = useMemo(
+    () => query.results?.columns.map(col => col.column_name),
+    [query.results?.columns],
+  );
+  const expandedColumns = useMemo(
+    () => query.results?.expanded_columns.map(col => col.column_name) ?? EMPTY,
+    [query.results?.expanded_columns],
+  );
 
   const history = useHistory();
   const dispatch = useDispatch();
@@ -659,9 +669,6 @@ const ResultSet = ({
       ({ data } = results);
     }
     if (data && data.length > 0) {
-      const expandedColumns = results.expanded_columns
-        ? results.expanded_columns.map(col => col.column_name)
-        : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
         true,
@@ -709,7 +716,7 @@ const ResultSet = ({
           <ResultTable
             data={data}
             queryId={query.id}
-            orderedColumnKeys={results.columns.map(col => col.column_name)}
+            orderedColumnKeys={orderedColumnKeys}
             height={rowsHeight}
             filterText={searchText}
             expandedColumns={expandedColumns}
