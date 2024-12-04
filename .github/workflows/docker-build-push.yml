@@ -54,34 +54,34 @@ jobs:
             echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
           fi
 
-      - name: Build Superset images
-        run: |
-          # Set registry prefix and tag
-          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
+# TODO reactivate      - name: Build Superset images
+#        run: |
+#          # Set registry prefix and tag
+#          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
 
-          # Build the main Superset image
-          docker build \
-            --target dev \
-            --cache-from apache/superset-cache:3.10-slim-bookworm \
-            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} \
-            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }} \
-            .
+#          # Build the main Superset image
+#          docker build \
+#            --target dev \
+#            --cache-from apache/superset-cache:3.10-slim-bookworm \
+#            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} \
+#            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }} \
+#            .
 
           # Tag worker and beat images from the main build
-          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
-          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
-          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
-          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}
+#          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
+#          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
+#          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
+#          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}
 
-      - name: Push Superset images  
-        run: |
-          # Set registry prefix and tag
-          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
+#      - name: Push Superset images  
+#        run: |
+#          # Set registry prefix and tag
+#          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
 
-          # Push all Superset images
-          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }}
-          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }}
-          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
-          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
-          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
-          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}          
+#          # Push all Superset images
+#          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }}
+#          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }}
+#          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
+#          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
+#          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
+#          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}          
