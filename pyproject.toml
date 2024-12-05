@@ -203,6 +203,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
+    "uv",
 ]
 
 [project.urls]

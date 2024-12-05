@@ -926,6 +926,8 @@ urllib3==1.26.18
     #   requests
     #   requests-cache
     #   selenium
+uv==0.5.6
+    # via apache-superset
 vine==5.1.0
     # via
     #   -c requirements/base.txt
