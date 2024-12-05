@@ -267,7 +267,6 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     return (
       <ButtonGroup
         css={css`
-          display: flex;
           column-gap: ${theme.gridUnit * 1.5}px;
           margin-right: ${theme.gridUnit}px;
           & span {

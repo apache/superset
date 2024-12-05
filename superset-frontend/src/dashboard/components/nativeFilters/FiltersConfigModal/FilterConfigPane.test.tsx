@@ -98,9 +98,7 @@ test('remove filter', async () => {
 test('add filter', async () => {
   defaultRender();
   // First trash icon
-  const addButton = screen.getByText('Add filters and dividers')!;
-  fireEvent.mouseOver(addButton);
-  const addFilterButton = await screen.findByText('Filter');
+  const addFilterButton = await screen.findByText('Add Filter');
 
   await act(async () => {
     fireEvent(
@@ -116,9 +114,7 @@ test('add filter', async () => {
 
 test('add divider', async () => {
   defaultRender();
-  const addButton = screen.getByText('Add filters and dividers')!;
-  fireEvent.mouseOver(addButton);
-  const addFilterButton = await screen.findByText('Divider');
+  const addFilterButton = await screen.findByText('Add Divider');
   await act(async () => {
     fireEvent(
       addFilterButton,
@@ -151,18 +147,18 @@ test('filter container should scroll to bottom when adding items', async () => {
 
   defaultRender(state, props);
 
-  const addButton = screen.getByText('Add filters and dividers')!;
-  fireEvent.mouseOver(addButton);
-
-  const addFilterButton = await screen.findByText('Filter');
+  const addFilterButton = await screen.findByText('Add Filter');
+  // add enough filters to make it scroll in the next expectation.
   await act(async () => {
-    fireEvent(
-      addFilterButton,
-      new MouseEvent('click', {
-        bubbles: true,
-        cancelable: true,
-      }),
-    );
+    for (let i = 0; i < 3; i += 1) {
+      fireEvent(
+        addFilterButton,
+        new MouseEvent('click', {
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    }
   });
 
   const containerElement = screen.getByTestId('filter-title-container');

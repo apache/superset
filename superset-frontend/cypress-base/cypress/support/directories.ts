@@ -334,10 +334,8 @@ export const nativeFilters = {
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
-  },
-  addFilterButton: {
-    button: `.ant-modal-content [data-test="new-dropdown-icon"]`,
-    dropdownItem: '.ant-dropdown-menu-item',
+    addNewFilterButton: dataTestLocator('add-new-filter-button'),
+    addNewDividerButton: dataTestLocator('add-new-divider-button'),
   },
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),

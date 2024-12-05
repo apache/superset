@@ -243,11 +243,7 @@ export function enterNativeFilterEditModal(waitForDataset = true) {
  * @summary helper for adding new filter
  ************************************************************************* */
 export function clickOnAddFilterInModal() {
-  cy.get(nativeFilters.addFilterButton.button).first().click();
-  return cy
-    .get(nativeFilters.addFilterButton.dropdownItem)
-    .contains('Filter')
-    .click({ force: true });
+  return cy.get(nativeFilters.modal.addNewFilterButton).click({ force: true });
 }
 
 /** ************************************************************************
