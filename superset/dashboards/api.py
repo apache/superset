@@ -18,6 +18,7 @@
 import functools
 import logging
 from datetime import datetime
+from http import HTTPStatus
 from io import BytesIO
 from typing import Any, Callable, cast, Optional
 from zipfile import is_zipfile, ZipFile
@@ -479,7 +480,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
             result = self.tab_schema.dump(tabs)
-            return self.response(200, result=result)
+            response_data = json.dumps({"result": result})
+            return Response(
+                response_data, status=HTTPStatus.OK, mimetype="application/json"
+            )
 
         except (TypeError, ValueError) as err:
             return self.response_400(
