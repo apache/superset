@@ -560,10 +560,10 @@ export function transformTimeseriesAnnotation(
         type: 'line',
         id: key,
         name: key,
-        data: values.map(row =>
+        data: values.map(({ x, y }) =>
           isHorizontal
-            ? ([row.y, row.x] as [number, OptionName])
-            : ([row.x, row.y] as [OptionName, number]),
+            ? ([y, x] as [number, OptionName])
+            : ([x, y] as [OptionName, number]),
         ),
         symbolSize: showMarkers ? markerSize : 0,
         lineStyle: {
