@@ -209,7 +209,7 @@
     "urijs": "^1.19.8",
     "use-event-callback": "^0.1.0",
     "use-immer": "^0.9.0",
-    "use-query-params": "^1.1.9",
+    "use-query-params": "^2.2.1",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
