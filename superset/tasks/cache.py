@@ -18,7 +18,6 @@ import logging
 from typing import Any, Optional, Union
 from urllib import request
 from urllib.error import URLError
-from urllib.parse import urlparse
 
 from celery.beat import SchedulingError
 from celery.utils.log import get_task_logger
@@ -34,7 +33,7 @@ from superset.tasks.utils import fetch_csrf_token
 from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
-from superset.utils.urls import get_url_path
+from superset.utils.urls import get_url_path, is_secure_url
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -46,23 +45,6 @@ def get_payload(chart: Slice, dashboard: Optional[Dashboard] = None) -> dict[str
     if dashboard:
         payload["dashboard_id"] = dashboard.id
     return payload
-
-
-def is_secure_url(url: str) -> bool:
-    """
-    Validates if a URL is secure (uses HTTPS).
-
-    :param url: The URL to validate.
-    :return: True if the URL uses HTTPS (secure), False if it uses HTTP (non-secure).
-    """
-    try:
-        parsed_url = urlparse(url)
-        # Return True for HTTPS, False for HTTP
-        return parsed_url.scheme == "https"
-    except ValueError as exception:
-        # Log a warning with detailed context
-        logger.warning("Failed to parse URL '%s': %s", url, str(exception))
-        return False
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
