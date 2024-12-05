@@ -70,6 +70,7 @@ google-sheets.svg
 ibm-db2.svg
 postgresql.svg
 snowflake.svg
+ydb.svg
 
 # docs-related
 erd.puml
