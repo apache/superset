@@ -296,6 +296,11 @@ function SavedQueryList({
       {
         accessor: 'label',
         Header: t('Name'),
+        Cell: ({
+          row: {
+            original: { id, label },
+          },
+        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
       },
       {
         accessor: 'description',
