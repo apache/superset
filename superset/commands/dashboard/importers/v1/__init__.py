@@ -19,7 +19,7 @@ from typing import Any
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
-from sqlalchemy.sql import select
+from sqlalchemy.sql import delete, insert
 
 from superset import db
 from superset.charts.schemas import ImportV1ChartSchema
@@ -120,32 +120,32 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
-        # store the existing relationship between dashboards and charts
-        existing_relationships = db.session.execute(
-            select([dashboard_slices.c.dashboard_id, dashboard_slices.c.slice_id])
-        ).fetchall()
-
         # import dashboards
         dashboards: list[Dashboard] = []
-        dashboard_chart_ids: list[tuple[int, int]] = []
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
                 dashboard = import_dashboard(config, overwrite=overwrite)
                 dashboards.append(dashboard)
+
+                # set ref in the dashboard_slices table
+                dashboard_chart_ids: list[dict[str, int]] = []
                 for uuid in find_chart_uuids(config["position"]):
                     if uuid not in chart_ids:
                         break
                     chart_id = chart_ids[uuid]
-                    if (dashboard.id, chart_id) not in existing_relationships:
-                        dashboard_chart_ids.append((dashboard.id, chart_id))
+                    dashboard_chart_id = {
+                        "dashboard_id": dashboard.id,
+                        "slice_id": chart_id,
+                    }
+                    dashboard_chart_ids.append(dashboard_chart_id)
 
-        # set ref in the dashboard_slices table
-        values = [
-            {"dashboard_id": dashboard_id, "slice_id": chart_id}
-            for (dashboard_id, chart_id) in dashboard_chart_ids
-        ]
-        db.session.execute(dashboard_slices.insert(), values)
+                db.execute(
+                    delete(dashboard_slices).where(
+                        dashboard_slices.c.dashboard_id == dashboard.id
+                    )
+                )
+                db.session.execute(insert(dashboard_slices).values(dashboard_chart_ids))
 
         # Migrate any filter-box charts to native dashboard filters.
         for dashboard in dashboards:
