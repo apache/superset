@@ -82,6 +82,10 @@ export interface ExplorePageInitialData {
     owners: string[];
     created_by?: string;
     changed_by?: string;
+    dashboards?: {
+      id: number;
+      dashboard_title: string;
+    }[];
   };
   saveAction?: SaveActionType | null;
 }

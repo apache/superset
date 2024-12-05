@@ -15,9 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pytest
 from pytest_mock import MockerFixture
 
-from superset.connectors.sqla.utils import get_columns_description
+from superset.connectors.sqla.utils import (
+    get_columns_description,
+    get_virtual_table_metadata,
+)
+from superset.exceptions import SupersetSecurityException
 
 
 # Returns column descriptions when given valid database, catalog, schema, and query
@@ -89,3 +94,46 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
             "is_dttm": False,
         },
     ]
+
+
+def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
+    """
+    Test the `get_virtual_table_metadata` function.
+    """
+    mocker.patch(
+        "superset.connectors.sqla.utils.get_columns_description",
+        return_value=[{"name": "one", "type": "INTEGER"}],
+    )
+    dataset = mocker.MagicMock(
+        sql="with source as ( select 1 as one ) select * from source",
+    )
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.return_value = dataset.sql
+
+    assert get_virtual_table_metadata(dataset) == [{"name": "one", "type": "INTEGER"}]
+
+
+def test_get_virtual_table_metadata_mutating(mocker: MockerFixture) -> None:
+    """
+    Test the `get_virtual_table_metadata` function with mutating SQL.
+    """
+    dataset = mocker.MagicMock(sql="DROP TABLE sample_data")
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.return_value = dataset.sql
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        get_virtual_table_metadata(dataset)
+    assert str(excinfo.value) == "Only `SELECT` statements are allowed"
+
+
+def test_get_virtual_table_metadata_multiple(mocker: MockerFixture) -> None:
+    """
+    Test the `get_virtual_table_metadata` function with multiple statements.
+    """
+    dataset = mocker.MagicMock(sql="SELECT 1; SELECT 2")
+    dataset.database.db_engine_spec.engine = "postgresql"
+    dataset.get_template_processor().process_template.return_value = dataset.sql
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        get_virtual_table_metadata(dataset)
+    assert str(excinfo.value) == "Only single queries supported"

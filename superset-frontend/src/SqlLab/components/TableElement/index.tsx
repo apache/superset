@@ -42,6 +42,7 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import { ActionType } from 'src/types/Action';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 
@@ -326,7 +327,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const renderHeader = () => {
     const element: HTMLInputElement | null = tableNameRef.current;
-    let trigger: string[] = [];
+    let trigger = [] as ActionType[];
     if (element && element.offsetWidth < element.scrollWidth) {
       trigger = ['hover'];
     }

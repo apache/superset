@@ -104,11 +104,6 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
         return None
 
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return parsed_query.sql.lower().startswith("select")
-
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     limit_method = LimitMethod.WRAP_SQL
@@ -157,15 +152,6 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """
-        Pessimistic readonly, 100% sure statement won't mutate anything.
-        """
-        return KustoKqlEngineSpec.is_select_query(
-            parsed_query
-        ) or parsed_query.sql.startswith(".show")
 
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:

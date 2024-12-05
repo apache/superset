@@ -87,6 +87,9 @@ export interface Dataset {
 }
 
 export interface ControlPanelState {
+  slice: {
+    slice_id: number;
+  };
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
@@ -259,6 +262,7 @@ export interface BaseControlConfig<
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  disableStash?: boolean;
   hidden?:
     | boolean
     | ((props: ControlPanelsContainerProps, controlData: AnyDict) => boolean);

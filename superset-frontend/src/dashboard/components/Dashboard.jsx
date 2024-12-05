@@ -26,11 +26,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import getChartIdsFromLayout from '../util/getChartIdsFromLayout';
 import getLayoutComponentFromChartId from '../util/getLayoutComponentFromChartId';
 
-import {
-  slicePropShape,
-  dashboardInfoPropShape,
-  dashboardStatePropShape,
-} from '../util/propShapes';
+import { slicePropShape } from '../util/propShapes';
 import {
   LOG_ACTIONS_HIDE_BROWSER_TAB,
   LOG_ACTIONS_MOUNT_DASHBOARD,
@@ -51,8 +47,10 @@ const propTypes = {
     logEvent: PropTypes.func.isRequired,
     clearDataMaskState: PropTypes.func.isRequired,
   }).isRequired,
-  dashboardInfo: dashboardInfoPropShape.isRequired,
-  dashboardState: dashboardStatePropShape.isRequired,
+  dashboardId: PropTypes.number.isRequired,
+  editMode: PropTypes.bool,
+  isPublished: PropTypes.bool,
+  hasUnsavedChanges: PropTypes.bool,
   slices: PropTypes.objectOf(slicePropShape).isRequired,
   activeFilters: PropTypes.object.isRequired,
   chartConfiguration: PropTypes.object,
@@ -96,13 +94,13 @@ class Dashboard extends PureComponent {
 
   componentDidMount() {
     const bootstrapData = getBootstrapData();
-    const { dashboardState, layout } = this.props;
+    const { editMode, isPublished, layout } = this.props;
     const eventData = {
       is_soft_navigation: Logger.timeOriginOffset > 0,
-      is_edit_mode: dashboardState.editMode,
+      is_edit_mode: editMode,
       mount_duration: Logger.getTimestamp(),
       is_empty: isDashboardEmpty(layout),
-      is_published: dashboardState.isPublished,
+      is_published: isPublished,
       bootstrap_data_length: bootstrapData.length,
     };
     const directLinkComponentId = getLocationHash();
@@ -130,7 +128,7 @@ class Dashboard extends PureComponent {
     const currentChartIds = getChartIdsFromLayout(this.props.layout);
     const nextChartIds = getChartIdsFromLayout(nextProps.layout);
 
-    if (this.props.dashboardInfo.id !== nextProps.dashboardInfo.id) {
+    if (this.props.dashboardId !== nextProps.dashboardId) {
       // single-page-app navigation check
       return;
     }
@@ -157,10 +155,14 @@ class Dashboard extends PureComponent {
   }
 
   applyCharts() {
-    const { hasUnsavedChanges, editMode } = this.props.dashboardState;
-
+    const {
+      activeFilters,
+      ownDataCharts,
+      chartConfiguration,
+      hasUnsavedChanges,
+      editMode,
+    } = this.props;
     const { appliedFilters, appliedOwnDataCharts } = this;
-    const { activeFilters, ownDataCharts, chartConfiguration } = this.props;
     if (
       isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
       !chartConfiguration

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
@@ -490,6 +496,38 @@ describe('ResultSet', () => {
       }),
     );
     expect(queryByTestId('export-csv-button')).toBeInTheDocument();
+  });
+
+  test('should display a popup message when the CSV content is limited to the dropdown limit', async () => {
+    const queryLimit = 2;
+    const { getByTestId, findByRole } = setup(
+      mockedProps,
+      mockStore({
+        ...initialState,
+        user: {
+          ...user,
+          roles: {
+            sql_lab: [['can_export_csv', 'SQLLab']],
+          },
+        },
+        sqlLab: {
+          ...initialState.sqlLab,
+          queries: {
+            [queries[0].id]: {
+              ...queries[0],
+              limitingFactor: 'DROPDOWN',
+              queryLimit,
+            },
+          },
+        },
+      }),
+    );
+    const downloadButton = getByTestId('export-csv-button');
+    fireEvent.click(downloadButton);
+    const warningModal = await findByRole('dialog');
+    expect(
+      within(warningModal).getByText(`Download is on the way`),
+    ).toBeInTheDocument();
   });
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {

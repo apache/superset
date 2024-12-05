@@ -83,7 +83,7 @@ function computeGraph(links) {
 
 function SankeyLoop(element, props) {
   const { data, width, height, colorScheme, sliceId } = props;
-  const color = CategoricalColorNamespace.getScale(colorScheme);
+  const colorFn = CategoricalColorNamespace.getScale(colorScheme);
   const margin = { ...defaultMargin, ...props.margin };
   const innerWidth = width - margin.left - margin.right;
   const innerHeight = height - margin.top - margin.bottom;
@@ -107,7 +107,7 @@ function SankeyLoop(element, props) {
           value / sValue,
         )})`,
     )
-    .linkColor(d => color(d.source.name, sliceId));
+    .linkColor(d => colorFn(d.source.name, sliceId));
 
   const div = select(element);
   div.selectAll('*').remove();
