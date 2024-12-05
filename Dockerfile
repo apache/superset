@@ -93,7 +93,8 @@ FROM python-base AS lean
 
 # Include translations in the final build. The default supports en only to
 # reduce complexity and weight for those only using en
-ARG BUILD_TRANSLATIONS="false"
+# Build argument for including translations
+ARG BUILD_TRANSLATIONS="true"
 
 WORKDIR /app
 ############################################################################################################################################
