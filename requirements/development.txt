@@ -59,8 +59,6 @@ brotli==1.1.0
     # via
     #   -c requirements/base.txt
     #   flask-compress
-build==1.2.1
-    # via pip-tools
 cachelib==0.9.0
     # via
     #   -c requirements/base.txt
@@ -106,8 +104,6 @@ click==8.1.7
     #   click-repl
     #   flask
     #   flask-appbuilder
-    #   pip-compile-multi
-    #   pip-tools
 click-didyoumean==0.3.1
     # via
     #   -c requirements/base.txt
@@ -549,7 +545,6 @@ packaging==24.2
     #   apache-superset (pyproject.toml)
     #   apache-superset
     #   apispec
-    #   build
     #   db-dtypes
     #   deprecation
     #   docker
@@ -597,12 +592,6 @@ pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
-pip==24.3.1
-    # via pip-tools
-pip-compile-multi==2.6.3
-    # via apache-superset
-pip-tools==7.4.1
-    # via pip-compile-multi
 platformdirs==3.8.1
     # via
     #   -c requirements/base.txt
@@ -712,10 +701,6 @@ pyparsing==3.2.0
     #   apache-superset (pyproject.toml)
     #   apache-superset
     #   matplotlib
-pyproject-hooks==1.2.0
-    # via
-    #   build
-    #   pip-tools
 pyrsistent==0.20.0
     # via
     #   -c requirements/base.txt
@@ -821,7 +806,6 @@ setuptools==75.6.0
     # via
     #   nodeenv
     #   pandas-gbq
-    #   pip-tools
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
@@ -899,15 +883,11 @@ tabulate==0.8.10
     #   apache-superset
 tomli==2.1.0
     # via
-    #   build
     #   coverage
-    #   pip-tools
     #   pylint
     #   pytest
 tomlkit==0.13.2
     # via pylint
-toposort==1.10
-    # via pip-compile-multi
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -965,8 +945,6 @@ werkzeug==3.1.3
     #   flask-appbuilder
     #   flask-jwt-extended
     #   flask-login
-wheel==0.45.1
-    # via pip-tools
 wrapt==1.17.0
     # via
     #   -c requirements/base.txt
