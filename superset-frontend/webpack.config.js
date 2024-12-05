@@ -348,6 +348,7 @@ const config = {
     fallback: {
       fs: false,
       vm: require.resolve('vm-browserify'),
+      stream: require.resolve('stream-browserify'),
       path: false,
       ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
     },

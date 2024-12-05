@@ -33,6 +33,7 @@ from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.presigned_url_util import get_image_func 
 from superset.utils.date_parser import get_since_until
 from superset.views.base import api, BaseSupersetView
 from superset.views.error_handling import handle_api_exception
@@ -125,6 +126,20 @@ class Api(BaseSupersetView):
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)
+
+    @event_logger.log_this
+    @api
+    @handle_api_exception
+    @has_access_api
+    @expose("/v1/presigned_urls/", methods=("POST",))
+    def get_presigned_urls(self) -> FlaskResponse:
+        image_links = request.json.get("image_links")
+        if not image_links:
+            return self.json_response({"error": "Image links required"}), 400
+        print('*#*#*** in get_presigned_urls')
+        presigned_urls = get_image_func(image_links)
+        return self.json_response({"presigned_urls": presigned_urls}), 200
+
 
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
