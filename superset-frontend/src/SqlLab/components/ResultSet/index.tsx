@@ -64,6 +64,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import Modal from 'src/components/Modal';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -296,6 +297,9 @@ const ResultSet = ({
 
   const renderControls = () => {
     if (search || visualize || csv) {
+      const { results, queryLimit, limitingFactor, rows } = query;
+      const limit = queryLimit || results.query.limit;
+      const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
       let { data } = query.results;
       if (cache && query.cached) {
         data = cachedData;
@@ -342,7 +346,21 @@ const ResultSet = ({
                 buttonSize="small"
                 href={getExportCsvUrl(query.id)}
                 data-test="export-csv-button"
-                onClick={() => logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {})}
+                onClick={() => {
+                  logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+                  if (
+                    limitingFactor === LimitingFactor.Dropdown &&
+                    limit === rowsCount
+                  ) {
+                    Modal.warning({
+                      title: t('Download is on the way'),
+                      content: t(
+                        'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
+                        { rows: rowsCount.toLocaleString() },
+                      ),
+                    });
+                  }
+                }}
               >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>

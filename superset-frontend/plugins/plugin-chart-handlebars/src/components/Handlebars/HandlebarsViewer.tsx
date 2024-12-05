@@ -22,6 +22,7 @@ import moment from 'moment';
 import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';
+import HandlebarsGroupBy from 'handlebars-group-by';
 import asyncHelpers from 'handlebars-async-helpers-ts';
 
 export interface HandlebarsViewerProps {
@@ -119,6 +120,15 @@ hb.registerHelper('stringify', (obj: any, obj2: any) => {
     throw Error('Please call with an object. Example: `stringify myObj`');
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
+
+hb.registerHelper('formatNumber', function (number: any, locale = 'en-US') {
+  if (typeof number !== 'number') {
+    return number;
+  }
+  return number.toLocaleString(locale);
+});
+
+HandlebarsGroupBy.register(hb);
 
 // Example async function to fetch presigned URLs
 async function fetchPresignedUrls0(imageLinks: string[]): Promise<string[]> {

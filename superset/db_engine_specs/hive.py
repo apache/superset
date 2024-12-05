@@ -45,7 +45,7 @@ from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.exceptions import SupersetException
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 
 if TYPE_CHECKING:
@@ -66,9 +66,8 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     :returns: The S3 location of the table
     """
 
-    # pylint: disable=import-outside-toplevel
-    import boto3
-    from boto3.s3.transfer import TransferConfig
+    import boto3  # pylint: disable=all
+    from boto3.s3.transfer import TransferConfig  # pylint: disable=all
 
     bucket_path = current_app.config["CSV_TO_HIVE_UPLOAD_S3_BUCKET"]
 
@@ -79,12 +78,6 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         )
 
     s3 = boto3.client("s3")
-
-    # The location is merely an S3 prefix and thus we first need to ensure that there is
-    # one and only one key associated with the table.
-    bucket = s3.Bucket(bucket_path)
-    bucket.objects.filter(Prefix=os.path.join(upload_prefix, table.table)).delete()
-
     location = os.path.join("s3a://", bucket_path, upload_prefix, table.table)
     s3.upload_file(
         filename,
@@ -480,7 +473,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return None
 
     @classmethod
-    def _partition_query(  # pylint: disable=too-many-arguments
+    def _partition_query(  # pylint: disable=all
         cls,
         table: Table,
         indexes: list[dict[str, Any]],
@@ -495,7 +488,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         return f"SHOW PARTITIONS {full_table_name}"
 
     @classmethod
-    def select_star(  # pylint: disable=too-many-arguments
+    def select_star(  # pylint: disable=all
         cls,
         database: Database,
         table: Table,
@@ -604,15 +597,6 @@ class HiveEngineSpec(PrestoEngineSpec):
 
         # otherwise, return no function names to prevent errors
         return []
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return (
-            super().is_readonly_query(parsed_query)
-            or parsed_query.is_set()
-            or parsed_query.is_show()
-        )
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:

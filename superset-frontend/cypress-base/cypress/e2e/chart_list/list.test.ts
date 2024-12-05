@@ -87,7 +87,7 @@ describe('Charts list', () => {
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
       cy.getBySel('crosslinks').first().trigger('mouseover');
-      cy.get('.ant-tooltip')
+      cy.get('.antd5-tooltip')
         .contains('3 - Sample dashboard')
         .invoke('removeAttr', 'target')
         .click();

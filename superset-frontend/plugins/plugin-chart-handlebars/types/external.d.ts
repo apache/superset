@@ -22,4 +22,5 @@ declare module '*.png' {
 }
 declare module '*.jpg';
 declare module 'just-handlebars-helpers';
+declare module 'handlebars-group-by';
 declare module 'handlebars-async-helpers-ts';

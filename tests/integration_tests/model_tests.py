@@ -54,6 +54,9 @@ class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("requests"), "requests not installed"
     )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
@@ -108,7 +111,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert "core_db" == db
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     def test_database_schema_mysql(self):
         sqlalchemy_uri = "mysql://root@localhost/superset"
@@ -123,7 +126,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert "staging" == db
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     def test_database_impersonate_user(self):
         uri = "mysql://root@localhost"
@@ -142,6 +145,9 @@ class TestDatabaseModel(SupersetTestCase):
                 assert example_user.username != username
 
     @mock.patch("superset.models.core.create_engine")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_impersonate_user_presto(self, mocked_create_engine):
         uri = "presto://localhost"
         principal_user = security_manager.find_user(username="gamma")
@@ -190,7 +196,7 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     @mock.patch("superset.models.core.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
@@ -245,6 +251,12 @@ class TestDatabaseModel(SupersetTestCase):
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+    )
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
@@ -293,6 +305,9 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"

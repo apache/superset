@@ -33,6 +33,7 @@ import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
 
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import Owner from 'src/types/Owner';
 import { ChartState } from '../explore/types';
 
 export type { Dashboard } from 'src/types/Dashboard';
@@ -52,6 +53,8 @@ export type Chart = ChartState & {
   form_data: {
     viz_type: string;
     datasource: string;
+    color_scheme: string;
+    slice_id: number;
   };
 };
 
@@ -131,11 +134,17 @@ export type DashboardInfo = {
     color_namespace: string;
     color_scheme_domain: string[];
     label_colors: JsonObject;
-    shared_label_colors: JsonObject;
+    shared_label_colors: string[];
+    map_label_colors: JsonObject;
     cross_filters_enabled: boolean;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
+  created_on_delta_humanized: string;
+  changed_on_delta_humanized: string;
+  changed_by?: Owner;
+  created_by?: Owner;
+  owners: Owner[];
 };
 
 export type ChartsState = { [key: string]: Chart };

@@ -170,31 +170,10 @@ npm run dev-server
 
 ### Python Testing
 
-All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
-a standardized testing framework.
-All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+`pytest`, backend by docker-compose is how we recommend running tests locally.
 
-```bash
-tox -e <environment>
-```
-
-For example,
-
-```bash
-tox -e py38
-```
-
-Alternatively, you can run all tests in a single file via,
-
-```bash
-tox -e <environment> -- tests/test_file.py
-```
-
-or for a specific test via,
-
-```bash
-tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
-```
+For a more complex test matrix (against different database backends, python versions, ...) you
+can rely on our GitHub Actions by simply opening a draft pull request.
 
 Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
@@ -246,13 +225,7 @@ npm run test -- path/to/file.js
 
 ### e2e Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for end-to-end integration
-tests. One easy option to get started quickly is to leverage `tox` to
-run the whole suite in an isolated environment.
-
-```bash
-tox -e cypress
-```
+For e2e testing, we recommend that you use a `docker-compose` backed-setup
 
 Alternatively, you can go lower level and set things up in your
 development environment by following these steps:
@@ -598,17 +571,31 @@ pybabel compile -d superset/translations
 
 ### Python
 
-We use [Pylint](https://pylint.org/) for linting which can be invoked via:
+We use [Pylint](https://pylint.org/) and [ruff](https://github.com/astral-sh/ruff)
+for linting which can be invoked via:
 
-```bash
-# for python
-tox -e pylint
+```
+# Run pylint
+pylint superset/
+
+# auto-reformat using ruff
+ruff format
+
+# lint check with ruff
+ruff check
+
+# lint fix with ruff
+ruff check --fix
 ```
 
-In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
 
-Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
+In terms of best practices please avoid blanket disabling of Pylint messages globally
+(via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions.
+Disabling should occur inline as it prevents masking issues and provides context as to why
+said message is disabled.
+
+All this is configured to run in pre-commit hooks, which we encourage you to setup
+with `pre-commit install`
 
 ### TypeScript
 
