@@ -28,7 +28,6 @@ import {
   getChartBuildQueryRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
-  VizType,
 } from '@superset-ui/core';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
@@ -87,13 +86,13 @@ describe('ChartClient', () => {
           sliceId,
           formData: {
             granularity: 'second',
-            viz_type: VizType.LegacyBar,
+            viz_type: 'bar',
           },
         }),
       ).resolves.toEqual({
         ...sankeyFormData,
         granularity: 'second',
-        viz_type: VizType.LegacyBar,
+        viz_type: 'bar',
       });
     });
     it('returns promise of formData if only formData was given', () =>
@@ -102,13 +101,13 @@ describe('ChartClient', () => {
           formData: {
             datasource: '1__table',
             granularity: 'minute',
-            viz_type: VizType.LegacyLine,
+            viz_type: 'line',
           },
         }),
       ).resolves.toEqual({
         datasource: '1__table',
         granularity: 'minute',
-        viz_type: VizType.LegacyLine,
+        viz_type: 'line',
       }));
     it('rejects if none of sliceId or formData is specified', () =>
       expect(
@@ -121,12 +120,12 @@ describe('ChartClient', () => {
   describe('.loadQueryData(formData, options)', () => {
     it('returns a promise of query data for known chart type', () => {
       getChartMetadataRegistry().registerValue(
-        VizType.WordCloud,
+        'word_cloud',
         new ChartMetadata({ name: 'Word Cloud', thumbnail: '' }),
       );
 
       getChartBuildQueryRegistry().registerValue(
-        VizType.WordCloud,
+        'word_cloud',
         (formData: QueryFormData) => buildQueryContext(formData),
       );
       fetchMock.post('glob:*/api/v1/chart/data', [
@@ -139,7 +138,7 @@ describe('ChartClient', () => {
       return expect(
         chartClient.loadQueryData({
           granularity: 'minute',
-          viz_type: VizType.WordCloud,
+          viz_type: 'word_cloud',
           datasource: '1__table',
         }),
       ).resolves.toEqual([
@@ -256,7 +255,7 @@ describe('ChartClient', () => {
     it('loadAllDataNecessaryForAChart', () => {
       fetchMock.get(`glob:*/api/v1/form_data/?slice_id=${sliceId}`, {
         granularity: 'minute',
-        viz_type: VizType.LegacyLine,
+        viz_type: 'line',
         datasource: '1__table',
         color: 'living-coral',
       });
@@ -276,12 +275,12 @@ describe('ChartClient', () => {
       });
 
       getChartMetadataRegistry().registerValue(
-        VizType.LegacyLine,
+        'line',
         new ChartMetadata({ name: 'Line', thumbnail: '.gif' }),
       );
 
       getChartBuildQueryRegistry().registerValue(
-        VizType.LegacyLine,
+        'line',
         (formData: QueryFormData) => buildQueryContext(formData),
       );
 
@@ -297,7 +296,7 @@ describe('ChartClient', () => {
         },
         formData: {
           granularity: 'minute',
-          viz_type: VizType.LegacyLine,
+          viz_type: 'line',
           datasource: '1__table',
           color: 'living-coral',
         },

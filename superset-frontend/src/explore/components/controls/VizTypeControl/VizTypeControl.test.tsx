@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset, VizType } from '@superset-ui/core';
+import { Preset } from '@superset-ui/core';
 import {
   render,
   cleanup,
@@ -48,26 +48,24 @@ class MainPreset extends Preset {
     super({
       name: 'Legacy charts',
       plugins: [
-        new TableChartPlugin().configure({ key: VizType.Table }),
-        new BigNumberTotalChartPlugin().configure({
-          key: VizType.BigNumberTotal,
-        }),
+        new TableChartPlugin().configure({ key: 'table' }),
+        new BigNumberTotalChartPlugin().configure({ key: 'big_number_total' }),
         new EchartsTimeseriesLineChartPlugin().configure({
-          key: VizType.Line,
+          key: 'echarts_timeseries_line',
         }),
         new EchartsAreaChartPlugin().configure({
-          key: VizType.Area,
+          key: 'echarts_area',
         }),
         new EchartsTimeseriesBarChartPlugin().configure({
-          key: VizType.Bar,
+          key: 'echarts_timeseries_bar',
         }),
-        new EchartsPieChartPlugin().configure({ key: VizType.Pie }),
+        new EchartsPieChartPlugin().configure({ key: 'pie' }),
         new EchartsTimeseriesChartPlugin().configure({
-          key: VizType.Timeseries,
+          key: 'echarts_timeseries',
         }),
-        new TimeTableChartPlugin().configure({ key: VizType.TimeTable }),
+        new TimeTableChartPlugin().configure({ key: 'time_table' }),
         new EchartsMixedTimeseriesChartPlugin().configure({
-          key: VizType.MixedTimeseries,
+          key: 'mixed_timeseries',
         }),
       ],
     });
@@ -116,7 +114,7 @@ describe('VizTypeControl', () => {
   it('Fast viz switcher tiles render', async () => {
     const props = {
       ...defaultProps,
-      value: VizType.Line,
+      value: 'echarts_timeseries_line',
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
@@ -172,7 +170,7 @@ describe('VizTypeControl', () => {
       charts: {
         1: {
           latestQueryFormData: {
-            viz_type: VizType.LegacyLine,
+            viz_type: 'line',
           },
         },
       },
@@ -192,7 +190,7 @@ describe('VizTypeControl', () => {
   it('Change viz type on click', async () => {
     const props = {
       ...defaultProps,
-      value: VizType.Line,
+      value: 'echarts_timeseries_line',
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
@@ -252,6 +250,8 @@ describe('VizTypeControl', () => {
     expect(defaultProps.onChange).not.toHaveBeenCalled();
     userEvent.dblClick(within(visualizations).getByText('Line Chart'));
 
-    expect(defaultProps.onChange).toHaveBeenCalledWith(VizType.Line);
+    expect(defaultProps.onChange).toHaveBeenCalledWith(
+      'echarts_timeseries_line',
+    );
   });
 });

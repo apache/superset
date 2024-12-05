@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
 import { WordCloudFormData } from '../src';
 import buildQuery from '../src/plugin/buildQuery';
 
@@ -26,7 +25,7 @@ describe('WordCloud buildQuery', () => {
     datasource: '5__table',
     granularity_sqla: 'ds',
     series: 'foo',
-    viz_type: VizType.WordCloud,
+    viz_type: 'word_cloud',
   };
 
   it('should build columns from series in form data', () => {

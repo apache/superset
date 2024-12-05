@@ -17,11 +17,7 @@
  * under the License.
  */
 
-import {
-  SuperChart,
-  VizType,
-  getChartTransformPropsRegistry,
-} from '@superset-ui/core';
+import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
 import {
   EchartsFunnelChartPlugin,
   FunnelTransformProps,
@@ -29,10 +25,10 @@ import {
 import { dataSource } from './constants';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsFunnelChartPlugin().configure({ key: VizType.Funnel }).register();
+new EchartsFunnelChartPlugin().configure({ key: 'echarts-funnel' }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  VizType.Funnel,
+  'echarts-funnel',
   FunnelTransformProps,
 );
 
@@ -92,7 +88,7 @@ export const Funnel = (
   { width, height }: { width: number; height: number },
 ) => (
   <SuperChart
-    chartType={VizType.Funnel}
+    chartType="echarts-funnel"
     width={width}
     height={height}
     queriesData={[{ data: dataSource }]}

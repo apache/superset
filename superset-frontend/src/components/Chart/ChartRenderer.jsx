@@ -27,7 +27,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
-  VizType,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
@@ -281,7 +280,7 @@ class ChartRenderer extends Component {
     // to each one of them.
     const snakeCaseVizType = snakeCase(vizType);
     const chartClassName =
-      vizType === VizType.Table
+      vizType === 'table'
         ? `superset-chart-${snakeCaseVizType}`
         : snakeCaseVizType;
 

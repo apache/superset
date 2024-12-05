@@ -17,10 +17,9 @@
  * under the License.
  */
 
-import { VizType } from '@superset-ui/core';
 import { AreaChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
-new AreaChartPlugin().configure({ key: VizType.LegacyArea }).register();
+new AreaChartPlugin().configure({ key: 'area' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Area',

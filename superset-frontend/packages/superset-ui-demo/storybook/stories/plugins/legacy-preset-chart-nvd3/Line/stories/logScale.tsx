@@ -17,20 +17,20 @@
  * under the License.
  */
 
-import { SuperChart, VizType } from '@superset-ui/core';
+import { SuperChart } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const logScale = () => (
   <SuperChart
-    chartType={VizType.LegacyLine}
+    chartType="line"
     width={400}
     height={400}
     datasource={dummyDatasource}
     queriesData={[{ data }]}
     formData={{
       richTooltip: true,
-      vizType: VizType.LegacyLine,
+      vizType: 'line',
       yAxisBounds: [1, 60000],
       yAxisFormat: ',d',
       yLogScale: true,

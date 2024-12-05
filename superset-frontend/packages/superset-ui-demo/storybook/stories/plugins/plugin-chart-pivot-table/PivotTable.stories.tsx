@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart, VizType } from '@superset-ui/core';
+import { SuperChart } from '@superset-ui/core';
 import { PivotTableChartPlugin } from '@superset-ui/plugin-chart-pivot-table';
 import { basicFormData, basicData } from './testData';
 import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
@@ -27,11 +27,11 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-new PivotTableChartPlugin().configure({ key: VizType.PivotTable }).register();
+new PivotTableChartPlugin().configure({ key: 'pivot_table_v2' }).register();
 
 export const Basic = ({ width, height }) => (
   <SuperChart
-    chartType={VizType.PivotTable}
+    chartType="pivot_table_v2"
     datasource={{
       columnFormats: {},
     }}
@@ -50,7 +50,7 @@ Basic.parameters = {
 
 export const MaximumAggregation = ({ width, height }) => (
   <SuperChart
-    chartType={VizType.PivotTable}
+    chartType="pivot_table_v2"
     datasource={{
       columnFormats: {},
     }}

@@ -17,15 +17,11 @@
  * under the License.
  */
 
-import {
-  getComparisonInfo,
-  ComparisonTimeRangeType,
-  VizType,
-} from '@superset-ui/core';
+import { getComparisonInfo, ComparisonTimeRangeType } from '@superset-ui/core';
 
 const form_data = {
   datasource: '22__table',
-  viz_type: VizType.BigNumberPeriodOverPeriod,
+  viz_type: 'pop_kpi',
   slice_id: 97,
   url_params: {
     form_data_key:

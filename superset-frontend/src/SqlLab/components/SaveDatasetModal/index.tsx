@@ -32,7 +32,6 @@ import {
   JsonObject,
   QueryResponse,
   QueryFormData,
-  VizType,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -160,7 +159,7 @@ export const SaveDatasetModal = ({
   formData = {},
 }: SaveDatasetModalProps) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
-    state => state.common?.conf?.DEFAULT_VIZ_TYPE || VizType.Table,
+    state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
   );
 
   const getDefaultDatasetName = () =>
@@ -218,7 +217,7 @@ export const SaveDatasetModal = ({
       postFormData(datasetToOverwrite.datasetid, 'table', {
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === VizType.Table && {
+        ...(defaultVizType === 'table' && {
           all_columns: datasource?.columns?.map(column => column.column_name),
         }),
       }),
@@ -305,7 +304,7 @@ export const SaveDatasetModal = ({
         postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
-          ...(defaultVizType === VizType.Table && {
+          ...(defaultVizType === 'table' && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
         }),

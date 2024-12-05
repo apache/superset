@@ -24,13 +24,12 @@ import {
   QueryMode,
   supersetTheme,
   ComparisonType,
-  VizType,
 } from '@superset-ui/core';
 import { TableChartProps, TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
   datasource: '1__abc',
-  viz_type: VizType.Table,
+  viz_type: 'table',
   align_pn: false,
   color_pn: false,
   show_cell_bars: true,

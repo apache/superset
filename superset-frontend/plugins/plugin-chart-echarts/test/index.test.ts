@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { VizType } from '@superset-ui/core';
 import {
   EchartsBoxPlotChartPlugin,
   EchartsPieChartPlugin,
@@ -66,58 +65,58 @@ test('@superset-ui/plugin-chart-echarts exists', () => {
 test('@superset-ui/plugin-chart-echarts-parsemethod-validation', () => {
   const plugins: EchartsChartPlugin[] = [
     new EchartsBoxPlotChartPlugin().configure({
-      key: VizType.BoxPlot,
+      key: 'box_plot',
     }),
     new EchartsPieChartPlugin().configure({
-      key: VizType.Pie,
+      key: 'pie',
     }),
     new EchartsTimeseriesChartPlugin().configure({
-      key: VizType.Timeseries,
+      key: 'echarts_timeseries',
     }),
     new EchartsGraphChartPlugin().configure({
-      key: VizType.Graph,
+      key: 'graph_chart',
     }),
     new EchartsFunnelChartPlugin().configure({
-      key: VizType.Funnel,
+      key: 'funnel',
     }),
     new EchartsTreemapChartPlugin().configure({
-      key: VizType.Treemap,
+      key: 'treemap_v2',
     }),
     new EchartsAreaChartPlugin().configure({
-      key: VizType.Area,
+      key: 'echarts_area',
     }),
     new EchartsTimeseriesBarChartPlugin().configure({
-      key: VizType.Bar,
+      key: 'echarts_timeseries_bar',
     }),
     new EchartsTimeseriesLineChartPlugin().configure({
-      key: VizType.Line,
+      key: 'echarts_timeseries_line',
     }),
     new EchartsTimeseriesScatterChartPlugin().configure({
-      key: VizType.Scatter,
+      key: 'echarts_timeseries_scatter',
     }),
     new EchartsTimeseriesSmoothLineChartPlugin().configure({
-      key: VizType.SmoothLine,
+      key: 'echarts_timeseries_smooth',
     }),
     new EchartsTimeseriesStepChartPlugin().configure({
-      key: VizType.Step,
+      key: 'echarts_timeseries_step',
     }),
     new EchartsMixedTimeseriesChartPlugin().configure({
-      key: VizType.MixedTimeseries,
+      key: 'mixed_timeseries',
     }),
     new EchartsGaugeChartPlugin().configure({
-      key: VizType.Gauge,
+      key: 'gauge_chart',
     }),
     new EchartsRadarChartPlugin().configure({
-      key: VizType.Radar,
+      key: 'radar',
     }),
     new EchartsTreeChartPlugin().configure({
       key: 'tree',
     }),
     new BigNumberChartPlugin().configure({
-      key: VizType.BigNumber,
+      key: 'big_number',
     }),
     new BigNumberTotalChartPlugin().configure({
-      key: VizType.BigNumberTotal,
+      key: 'big_number_total',
     }),
     new EchartsSunburstChartPlugin().configure({
       key: 'sunburst',

@@ -149,7 +149,7 @@ const StyledContainer = styled.div`
       }
     }
 
-    &&&& .antd5-tooltip-open {
+    &&&& .ant-tooltip-open {
       display: inline;
     }
 

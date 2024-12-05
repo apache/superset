@@ -18,11 +18,11 @@
  */
 
 /* eslint-disable no-magic-numbers, sort-keys */
-import { SuperChart, VizType } from '@superset-ui/core';
+import { SuperChart } from '@superset-ui/core';
 import RoseChartPlugin from '@superset-ui/legacy-plugin-chart-rose';
 import data from './data';
 
-new RoseChartPlugin().configure({ key: VizType.Rose }).register();
+new RoseChartPlugin().configure({ key: 'rose' }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-rose',
@@ -30,7 +30,7 @@ export default {
 
 export const basic = () => (
   <SuperChart
-    chartType={VizType.Rose}
+    chartType="rose"
     width={400}
     height={400}
     queriesData={[{ data }]}

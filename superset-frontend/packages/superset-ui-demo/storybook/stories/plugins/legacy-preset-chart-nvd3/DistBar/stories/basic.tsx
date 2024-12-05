@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart, VizType } from '@superset-ui/core';
+import { SuperChart } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
@@ -38,7 +38,7 @@ export const basic = () => (
       showBarValue: false,
       showControls: false,
       showLegend: true,
-      vizType: VizType.DistBar,
+      vizType: 'dist_bar',
       xAxisLabel: 'ddd',
       xTicksLayout: 'auto',
       yAxisFormat: '.3s',

@@ -21,7 +21,6 @@ import {
   ChartProps,
   SqlaFormData,
   supersetTheme,
-  VizType,
 } from '@superset-ui/core';
 import transformProps, {
   getIntervalBoundsAndColors,
@@ -31,7 +30,7 @@ import { EchartsGaugeChartProps } from '../../src/Gauge/types';
 describe('Echarts Gauge transformProps', () => {
   const baseFormData: SqlaFormData = {
     datasource: '26__table',
-    viz_type: VizType.Gauge,
+    viz_type: 'gauge_chart',
     metric: 'count',
     adhocFilters: [],
     rowLimit: 10,

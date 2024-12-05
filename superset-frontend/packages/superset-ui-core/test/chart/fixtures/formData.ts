@@ -19,11 +19,11 @@
 
 /* eslint sort-keys: 'off' */
 /** The form data defined here is based on default visualizations packaged with Apache Superset */
-import { TimeGranularity, VizType } from '@superset-ui/core';
+import { TimeGranularity } from '@superset-ui/core';
 
 export const bigNumberFormData = {
   datasource: '3__table',
-  viz_type: VizType.BigNumber,
+  viz_type: 'big_number',
   slice_id: 54,
   granularity_sqla: 'ds',
   time_grain_sqla: TimeGranularity.DAY,
@@ -39,7 +39,7 @@ export const bigNumberFormData = {
 
 export const wordCloudFormData = {
   datasource: '3__table',
-  viz_type: VizType.WordCloud,
+  viz_type: 'word_cloud',
   slice_id: 60,
   url_params: {},
   granularity_sqla: 'ds',
@@ -56,7 +56,7 @@ export const wordCloudFormData = {
 
 export const sunburstFormData = {
   datasource: '2__table',
-  viz_type: VizType.Sunburst,
+  viz_type: 'sunburst_v2',
   slice_id: 47,
   url_params: {},
   granularity_sqla: 'year',
@@ -71,7 +71,7 @@ export const sunburstFormData = {
 
 export const sankeyFormData = {
   datasource: '1__table',
-  viz_type: VizType.LegacySankey,
+  viz_type: 'sankey',
   slice_id: 1,
   url_params: {},
   granularity_sqla: null,

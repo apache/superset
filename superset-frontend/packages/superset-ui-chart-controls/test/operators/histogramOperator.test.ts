@@ -17,7 +17,7 @@
  * under the License.
  */
 import { histogramOperator } from '@superset-ui/chart-controls';
-import { SqlaFormData, VizType } from '@superset-ui/core';
+import { SqlaFormData } from '@superset-ui/core';
 import { omit } from 'lodash';
 
 const formData: SqlaFormData = {
@@ -26,7 +26,7 @@ const formData: SqlaFormData = {
   cumulative: true,
   normalize: true,
   groupby: ['country', 'region'],
-  viz_type: VizType.LegacyHistogram,
+  viz_type: 'histogram',
   datasource: 'foo',
 };
 

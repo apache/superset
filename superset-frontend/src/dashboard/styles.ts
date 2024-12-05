@@ -93,9 +93,9 @@ export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
   }
 
   .filter-card-tooltip {
-    &.antd5-tooltip-placement-bottom {
+    &.ant-tooltip-placement-bottom {
       padding-top: 0;
-      & .antd5-tooltip-arrow {
+      & .ant-tooltip-arrow {
         top: -13px;
       }
     }

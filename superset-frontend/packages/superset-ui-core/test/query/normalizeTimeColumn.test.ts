@@ -20,13 +20,12 @@ import {
   normalizeTimeColumn,
   QueryObject,
   SqlaFormData,
-  VizType,
 } from '@superset-ui/core';
 
 test('should return original QueryObject if x_axis is empty', () => {
   const formData: SqlaFormData = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     time_grain_sqla: 'P1Y',
     time_range: '1 year ago : 2013',
@@ -35,7 +34,7 @@ test('should return original QueryObject if x_axis is empty', () => {
   };
   const query: QueryObject = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     extras: {
       time_grain_sqla: 'P1Y',
@@ -52,7 +51,7 @@ test('should return original QueryObject if x_axis is empty', () => {
 test('should support different columns for x-axis and granularity', () => {
   const formData: SqlaFormData = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     time_grain_sqla: 'P1Y',
     time_range: '1 year ago : 2013',
@@ -62,7 +61,7 @@ test('should support different columns for x-axis and granularity', () => {
   };
   const query: QueryObject = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     extras: {
       time_grain_sqla: 'P1Y',
@@ -77,7 +76,7 @@ test('should support different columns for x-axis and granularity', () => {
   };
   expect(normalizeTimeColumn(formData, query)).toEqual({
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     extras: { where: '', having: '', time_grain_sqla: 'P1Y' },
     time_range: '1 year ago : 2013',
@@ -99,7 +98,7 @@ test('should support different columns for x-axis and granularity', () => {
 test('should support custom SQL in x-axis', () => {
   const formData: SqlaFormData = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     time_grain_sqla: 'P1Y',
     time_range: '1 year ago : 2013',
@@ -113,7 +112,7 @@ test('should support custom SQL in x-axis', () => {
   };
   const query: QueryObject = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     extras: {
       time_grain_sqla: 'P1Y',
@@ -135,7 +134,7 @@ test('should support custom SQL in x-axis', () => {
   };
   expect(normalizeTimeColumn(formData, query)).toEqual({
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     extras: { where: '', having: '', time_grain_sqla: 'P1Y' },
     time_range: '1 year ago : 2013',
@@ -157,7 +156,7 @@ test('should support custom SQL in x-axis', () => {
 test('fallback and invalid columns value', () => {
   const formData: SqlaFormData = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     time_grain_sqla: 'P1Y',
     time_range: '1 year ago : 2013',
@@ -171,7 +170,7 @@ test('fallback and invalid columns value', () => {
   };
   const query: QueryObject = {
     datasource: '5__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
     granularity: 'time_column',
     extras: {
       time_grain_sqla: 'P1Y',

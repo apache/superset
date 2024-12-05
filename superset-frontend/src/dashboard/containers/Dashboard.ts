@@ -43,10 +43,8 @@ function mapStateToProps(state: RootState) {
   return {
     timeout: dashboardInfo.common?.conf?.SUPERSET_WEBSERVER_TIMEOUT,
     userId: dashboardInfo.userId,
-    dashboardId: dashboardInfo.id,
-    editMode: dashboardState.editMode,
-    isPublished: dashboardState.isPublished,
-    hasUnsavedChanges: dashboardState.hasUnsavedChanges,
+    dashboardInfo,
+    dashboardState,
     datasources,
     chartConfiguration: dashboardInfo.metadata?.chart_configuration,
     slices: sliceEntities.slices,

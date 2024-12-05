@@ -33,7 +33,7 @@ export const Row = styled.div`
       margin-bottom: 0;
     }
 
-    & .antd5-tooltip-open {
+    & .ant-tooltip-open {
       display: inline-flex;
     }
   `};

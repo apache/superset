@@ -22,7 +22,7 @@ import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
-import { shallowEqual, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 
 interface ShareMenuItemProps {
   url?: string;
@@ -54,13 +54,10 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     selectedKeys,
     ...rest
   } = props;
-  const { dataMask, activeTabs } = useSelector(
-    (state: RootState) => ({
-      dataMask: state.dataMask,
-      activeTabs: state.dashboardState.activeTabs,
-    }),
-    shallowEqual,
-  );
+  const { dataMask, activeTabs } = useSelector((state: RootState) => ({
+    dataMask: state.dataMask,
+    activeTabs: state.dashboardState.activeTabs,
+  }));
 
   async function generateUrl() {
     return getDashboardPermalink({

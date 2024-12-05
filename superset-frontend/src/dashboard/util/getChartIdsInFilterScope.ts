@@ -18,13 +18,14 @@
  */
 import { NativeFilterScope } from '@superset-ui/core';
 import { CHART_TYPE } from './componentTypes';
-import { LayoutItem } from '../types';
+import { Layout } from '../types';
 
 export function getChartIdsInFilterScope(
   filterScope: NativeFilterScope,
   chartIds: number[],
-  layoutItems: LayoutItem[],
+  layout: Layout,
 ) {
+  const layoutItems = Object.values(layout);
   return chartIds.filter(
     chartId =>
       !filterScope.excluded.includes(chartId) &&

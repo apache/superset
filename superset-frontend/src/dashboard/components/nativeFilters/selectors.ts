@@ -32,7 +32,11 @@ import {
 } from '@superset-ui/core';
 import { TIME_FILTER_MAP } from 'src/explore/constants';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
-import { ChartConfiguration, LayoutItem } from 'src/dashboard/types';
+import {
+  ChartConfiguration,
+  DashboardLayout,
+  Layout,
+} from 'src/dashboard/types';
 import { areObjectsEqual } from 'src/reduxUtils';
 
 export enum IndicatorStatus {
@@ -166,7 +170,7 @@ export type CrossFilterIndicator = Indicator & { emitterId: number };
 export const getCrossFilterIndicator = (
   chartId: number,
   dataMask: DataMask,
-  chartLayoutItems: LayoutItem[],
+  dashboardLayout: DashboardLayout,
 ) => {
   const filterState = dataMask?.filterState;
   const filters = dataMask?.extraFormData?.filters;
@@ -175,17 +179,19 @@ export const getCrossFilterIndicator = (
   const column =
     filters?.[0]?.col || (filtersState && Object.keys(filtersState)[0]);
 
-  const chartLayoutItem = chartLayoutItems.find(
+  const dashboardLayoutItem = Object.values(dashboardLayout).find(
     layoutItem => layoutItem?.meta?.chartId === chartId,
   );
-
   const filterObject: Indicator = {
     column,
     name:
-      chartLayoutItem?.meta?.sliceNameOverride ||
-      chartLayoutItem?.meta?.sliceName ||
+      dashboardLayoutItem?.meta?.sliceNameOverride ||
+      dashboardLayoutItem?.meta?.sliceName ||
       '',
-    path: [...(chartLayoutItem?.parents ?? []), chartLayoutItem?.id || ''],
+    path: [
+      ...(dashboardLayoutItem?.parents ?? []),
+      dashboardLayoutItem?.id || '',
+    ],
     value: label,
   };
   return filterObject;
@@ -282,7 +288,7 @@ const defaultChartConfig = {};
 export const selectChartCrossFilters = (
   dataMask: DataMaskStateWithId,
   chartId: number,
-  chartLayoutItems: LayoutItem[],
+  dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = defaultChartConfig,
   appliedColumns: Set<string>,
   rejectedColumns: Set<string>,
@@ -306,7 +312,7 @@ export const selectChartCrossFilters = (
         const filterIndicator = getCrossFilterIndicator(
           Number(chartConfig.id),
           dataMask[chartConfig.id],
-          chartLayoutItems,
+          dashboardLayout,
         );
         const filterStatus = getStatus({
           label: filterIndicator.value,
@@ -333,7 +339,7 @@ export const selectNativeIndicatorsForChart = (
   dataMask: DataMaskStateWithId,
   chartId: number,
   chart: any,
-  chartLayoutItems: LayoutItem[],
+  dashboardLayout: Layout,
   chartConfiguration: ChartConfiguration = defaultChartConfig,
 ): Indicator[] => {
   const appliedColumns = getAppliedColumns(chart);
@@ -345,7 +351,7 @@ export const selectNativeIndicatorsForChart = (
     areObjectsEqual(cachedFilterData?.appliedColumns, appliedColumns) &&
     areObjectsEqual(cachedFilterData?.rejectedColumns, rejectedColumns) &&
     cachedFilterData?.nativeFilters === nativeFilters &&
-    cachedFilterData?.chartLayoutItems === chartLayoutItems &&
+    cachedFilterData?.dashboardLayout === dashboardLayout &&
     cachedFilterData?.chartConfiguration === chartConfiguration &&
     cachedFilterData?.dataMask === dataMask
   ) {
@@ -383,7 +389,7 @@ export const selectNativeIndicatorsForChart = (
     crossFilterIndicators = selectChartCrossFilters(
       dataMask,
       chartId,
-      chartLayoutItems,
+      dashboardLayout,
       chartConfiguration,
       appliedColumns,
       rejectedColumns,
@@ -393,7 +399,7 @@ export const selectNativeIndicatorsForChart = (
   cachedNativeIndicatorsForChart[chartId] = indicators;
   cachedNativeFilterDataForChart[chartId] = {
     nativeFilters,
-    chartLayoutItems,
+    dashboardLayout,
     chartConfiguration,
     dataMask,
     appliedColumns,

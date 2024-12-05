@@ -39,7 +39,6 @@ import {
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
-import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import Badge from 'src/components/Badge';
 import DetailsPanelPopover from './DetailsPanel';
 import {
@@ -48,7 +47,7 @@ import {
   selectIndicatorsForChart,
   selectNativeIndicatorsForChart,
 } from '../nativeFilters/selectors';
-import { Chart, RootState } from '../../types';
+import { Chart, DashboardLayout, RootState } from '../../types';
 
 export interface FiltersBadgeProps {
   chartId: number;
@@ -127,7 +126,9 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     state => state.dashboardInfo.metadata?.chart_configuration,
   );
   const chart = useSelector<RootState, Chart>(state => state.charts[chartId]);
-  const chartLayoutItems = useChartLayoutItems();
+  const present = useSelector<RootState, DashboardLayout>(
+    state => state.dashboardLayout.present,
+  );
   const dataMask = useSelector<RootState, DataMaskStateWithId>(
     state => state.dataMask,
   );
@@ -206,7 +207,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
   ]);
 
   const prevNativeFilters = usePrevious(nativeFilters);
-  const prevChartLayoutItems = usePrevious(chartLayoutItems);
+  const prevDashboardLayout = usePrevious(present);
   const prevDataMask = usePrevious(dataMask);
   const prevChartConfig = usePrevious(chartConfiguration);
 
@@ -220,7 +221,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
         chart?.queriesResponse?.[0]?.applied_filters !==
           prevChart?.queriesResponse?.[0]?.applied_filters ||
         nativeFilters !== prevNativeFilters ||
-        chartLayoutItems !== prevChartLayoutItems ||
+        present !== prevDashboardLayout ||
         dataMask !== prevDataMask ||
         prevChartConfig !== chartConfiguration
       ) {
@@ -230,7 +231,7 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
             dataMask,
             chartId,
             chart,
-            chartLayoutItems,
+            present,
             chartConfiguration,
           ),
         );
@@ -243,14 +244,14 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
     dataMask,
     nativeFilters,
     nativeIndicators.length,
+    present,
     prevChart?.queriesResponse,
     prevChartConfig,
     prevChartStatus,
+    prevDashboardLayout,
     prevDataMask,
     prevNativeFilters,
     showIndicators,
-    chartLayoutItems,
-    prevChartLayoutItems,
   ]);
 
   const indicators = useMemo(

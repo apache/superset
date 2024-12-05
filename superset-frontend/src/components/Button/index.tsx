@@ -28,8 +28,9 @@ import { mix } from 'polished';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd';
 import { useTheme } from '@superset-ui/core';
-import { Tooltip, TooltipProps } from 'src/components/Tooltip';
+import { Tooltip } from 'src/components/Tooltip';
 import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
+import { TooltipProps } from 'antd/lib/tooltip';
 
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 

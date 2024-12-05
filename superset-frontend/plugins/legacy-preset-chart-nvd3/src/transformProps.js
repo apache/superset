@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { VizType } from '@superset-ui/core';
 import isTruthy from './utils/isTruthy';
 import {
   tokenizeToNumericArray,
@@ -119,20 +118,15 @@ export default function transformProps(chartProps) {
       }))
     : rawData;
 
-  if (vizType === VizType.Pie) {
+  if (vizType === 'pie') {
     numberFormat = numberFormat || grabD3Format(datasource, metric);
   } else if (
-    [
-      VizType.LegacyLine,
-      VizType.DistBar,
-      VizType.LegacyBar,
-      VizType.LegacyArea,
-    ].includes(chartProps.formData.vizType)
+    ['line', 'dist_bar', 'bar', 'area'].includes(chartProps.formData.vizType)
   ) {
     yAxisFormat =
       yAxisFormat ||
       grabD3Format(datasource, metrics.length > 0 ? metrics[0] : undefined);
-  } else if (vizType === VizType.Bullet) {
+  } else if (vizType === 'bullet') {
     ranges = tokenizeToNumericArray(ranges) || [0, data.measures * 1.1];
     rangeLabels = tokenizeToStringArray(rangeLabels);
     markerLabels = tokenizeToStringArray(markerLabels);

@@ -352,7 +352,8 @@ class ExtraCache:
 
         for flt in form_data.get("adhoc_filters", []):
             val: Union[Any, list[Any]] = flt.get("comparator")
-            op: str = flt["operator"].upper() if flt.get("operator") else None  # type: ignore
+            op: str = flt["operator"].upper() if flt.get("operator") else None
+            # fltOpName: str = flt.get("filterOptionName")
             if (
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"

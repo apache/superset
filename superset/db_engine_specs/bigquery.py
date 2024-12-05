@@ -36,6 +36,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
+from superset import sql_parse
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
@@ -43,7 +44,6 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
-from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
@@ -449,7 +449,8 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_script = SQLScript(sql, engine=cls.engine)
+        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
+        statements = parsed_query.get_statements()
 
         with cls.get_engine(
             database,
@@ -462,7 +463,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                     cls.process_statement(statement, database),
                     client,
                 )
-                for statement in parsed_script.statements
+                for statement in statements
             ]
 
     @classmethod

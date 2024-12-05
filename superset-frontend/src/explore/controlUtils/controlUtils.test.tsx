@@ -20,7 +20,6 @@ import {
   DatasourceType,
   getChartControlPanelRegistry,
   t,
-  VizType,
 } from '@superset-ui/core';
 import {
   ControlConfig,
@@ -60,7 +59,7 @@ describe('controlUtils', () => {
       description: null,
     },
     controls: {},
-    form_data: { datasource: '1__table', viz_type: VizType.Table },
+    form_data: { datasource: '1__table', viz_type: 'table' },
     common: {},
     slice: {
       slice_id: 1,

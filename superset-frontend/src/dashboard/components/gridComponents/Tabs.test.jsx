@@ -20,10 +20,11 @@ import { fireEvent, render } from 'spec/helpers/testing-library';
 
 import { AntdModal } from 'src/components';
 import fetchMock from 'fetch-mock';
-import Tabs from 'src/dashboard/components/gridComponents/Tabs';
+import { Tabs } from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
 import { dashboardLayoutWithTabs } from 'spec/fixtures/mockDashboardLayout';
+import { getMockStore } from 'spec/fixtures/mockStore';
 import { nativeFilters } from 'spec/fixtures/mockNativeFilters';
 import { initialState } from 'src/SqlLab/fixtures';
 
@@ -80,17 +81,17 @@ const props = {
   nativeFilters: nativeFilters.filters,
 };
 
-function setup(overrideProps, overrideState = {}) {
+const mockStore = getMockStore({
+  ...initialState,
+  dashboardLayout: dashboardLayoutWithTabs,
+  dashboardFilters: {},
+});
+
+function setup(overrideProps) {
   return render(<Tabs {...props} {...overrideProps} />, {
     useDnd: true,
     useRouter: true,
-    useRedux: true,
-    initialState: {
-      ...initialState,
-      dashboardLayout: dashboardLayoutWithTabs,
-      dashboardFilters: {},
-      ...overrideState,
-    },
+    store: mockStore,
   });
 }
 
@@ -173,7 +174,11 @@ test('should direct display direct-link tab', () => {
   // display child in directPathToChild list
   const directPathToChild =
     dashboardLayoutWithTabs.present.ROW_ID2.parents.slice();
-  const { getByRole } = setup({}, { dashboardState: { directPathToChild } });
+  const directLinkProps = {
+    ...props,
+    directPathToChild,
+  };
+  const { getByRole } = setup(directLinkProps);
   expect(getByRole('tab', { selected: true })).toHaveTextContent('TAB_ID2');
 });
 

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import { FeatureFlag } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import { renderHook } from '@testing-library/react-hooks';
 import mockState from 'spec/fixtures/mockState';
@@ -48,7 +48,7 @@ const setup = ({
   const { result } = renderHook(() =>
     useContextMenu(
       sliceId,
-      { datasource: '1__table', viz_type: VizType.Pie },
+      { datasource: '1__table', viz_type: 'pie' },
       onSelection,
       displayedItems,
       additionalConfig,

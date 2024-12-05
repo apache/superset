@@ -34,7 +34,6 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
-  VizType,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -80,9 +79,9 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  VizType.PivotTable,
+  'pivot_table_v2',
   'table',
-  VizType.PairedTTest,
+  'paired_ttest',
 ];
 
 export interface AlertReportModalProps {

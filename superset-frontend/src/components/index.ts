@@ -37,6 +37,7 @@ export {
   Divider,
   Empty,
   Grid,
+  List,
   Row,
   Skeleton,
   Space,
@@ -71,6 +72,7 @@ export {
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
+export type { ListItemProps } from 'antd/lib/list';
 export type { ModalProps as AntdModalProps } from 'antd/lib/modal';
 export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';

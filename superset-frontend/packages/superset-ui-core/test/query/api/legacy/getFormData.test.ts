@@ -17,7 +17,6 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { VizType } from '@superset-ui/core';
 import { getFormData } from '../../../../src/query/api/legacy';
 
 import setupClientForTest from '../setupClientForTest';
@@ -29,7 +28,7 @@ describe('getFormData()', () => {
 
   const mockData = {
     datasource: '1__table',
-    viz_type: VizType.LegacySankey,
+    viz_type: 'sankey',
     slice_id: 1,
     url_params: {},
     granularity_sqla: null,

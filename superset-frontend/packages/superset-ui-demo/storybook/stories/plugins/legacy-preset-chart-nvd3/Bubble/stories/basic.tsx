@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { SuperChart, VizType } from '@superset-ui/core';
+import { SuperChart } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const basic = () => (
   <SuperChart
-    chartType={VizType.LegacyBubble}
+    chartType="bubble"
     width={400}
     height={400}
     datasource={dummyDatasource}
@@ -38,7 +38,7 @@ export const basic = () => (
       series: 'region',
       showLegend: true,
       size: 'sum__SP_POP_TOTL',
-      vizType: VizType.LegacyBubble,
+      vizType: 'bubble',
       x: 'sum__SP_RUR_TOTL_ZS',
       xAxisFormat: '.3s',
       xAxisLabel: 'x-axis label',

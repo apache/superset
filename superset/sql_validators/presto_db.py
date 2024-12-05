@@ -20,11 +20,11 @@ from __future__ import annotations
 import logging
 import time
 from contextlib import closing
-from typing import Any, cast
+from typing import Any
 
 from superset import app
 from superset.models.core import Database
-from superset.sql.parse import SQLScript, SQLStatement
+from superset.sql_parse import ParsedQuery
 from superset.sql_validators.base import BaseSQLValidator, SQLValidationAnnotation
 from superset.utils.core import QuerySource
 
@@ -46,15 +46,17 @@ class PrestoDBSQLValidator(BaseSQLValidator):
     @classmethod
     def validate_statement(
         cls,
-        statement: SQLStatement,
+        statement: str,
         database: Database,
         cursor: Any,
     ) -> SQLValidationAnnotation | None:
         # pylint: disable=too-many-locals
         db_engine_spec = database.db_engine_spec
+        parsed_query = ParsedQuery(statement, engine=db_engine_spec.engine)
+        sql = parsed_query.stripped()
 
         # Hook to allow environment-specific mutation (usually comments) to the SQL
-        sql = database.mutate_sql_based_on_config(str(statement))
+        sql = database.mutate_sql_based_on_config(sql)
 
         # Transform the final statement to an explain call before sending it on
         # to presto to validate
@@ -153,9 +155,10 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         For example, "SELECT 1 FROM default.mytable" becomes "EXPLAIN (TYPE
         VALIDATE) SELECT 1 FROM default.mytable.
         """
-        parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)
+        parsed_query = ParsedQuery(sql, engine=database.db_engine_spec.engine)
+        statements = parsed_query.get_statements()
 
-        logger.info("Validating %i statement(s)", len(parsed_script.statements))
+        logger.info("Validating %i statement(s)", len(statements))
         # todo(hughhh): update this to use new database.get_raw_connection()
         # this function keeps stalling CI
         with database.get_sqla_engine(
@@ -168,12 +171,8 @@ class PrestoDBSQLValidator(BaseSQLValidator):
             annotations: list[SQLValidationAnnotation] = []
             with closing(engine.raw_connection()) as conn:
                 cursor = conn.cursor()
-                for statement in parsed_script.statements:
-                    annotation = cls.validate_statement(
-                        cast(SQLStatement, statement),
-                        database,
-                        cursor,
-                    )
+                for statement in parsed_query.get_statements():
+                    annotation = cls.validate_statement(statement, database, cursor)
                     if annotation:
                         annotations.append(annotation)
             logger.debug("Validation found %i error(s)", len(annotations))

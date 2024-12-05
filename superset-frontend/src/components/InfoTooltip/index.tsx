@@ -20,7 +20,6 @@
 import { styled, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { ActionType } from 'src/types/Action';
 
 export interface InfoTooltipProps {
   iconStyle?: React.CSSProperties;
@@ -39,7 +38,7 @@ export interface InfoTooltipProps {
     | 'rightTop'
     | 'rightBottom'
     | undefined;
-  trigger?: ActionType | ActionType[];
+  trigger?: string | Array<string>;
   overlayStyle?: any;
   bgColor?: string;
   viewBox?: string;

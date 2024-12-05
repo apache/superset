@@ -20,12 +20,13 @@
 import { KeyboardEvent, ReactElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import { FeatureFlag } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { Menu } from 'src/components/Menu';
-import SliceHeaderControls from '.';
-import { SliceHeaderControlsProps } from './types';
-import { handleDropdownNavigation } from './utils';
+import SliceHeaderControls, {
+  SliceHeaderControlsProps,
+  handleDropdownNavigation,
+} from '.';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
@@ -40,7 +41,7 @@ jest.mock('src/components/Dropdown', () => {
   };
 });
 
-const createProps = (viz_type = VizType.Sunburst) =>
+const createProps = (viz_type = 'sunburst_v2') =>
   ({
     addDangerToast: jest.fn(),
     addSuccessToast: jest.fn(),
@@ -62,7 +63,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
         adhoc_filters: [],
         color_scheme: 'supersetColors',
         datasource: '58__table',
-        ...(viz_type === VizType.Sunburst
+        ...(viz_type === 'sunburst_v2'
           ? { columns: ['product_category', 'clinical_stage'] }
           : { groupby: ['product_category', 'clinical_stage'] }),
         linear_color_scheme: 'schemeYlOrBr',
@@ -98,11 +99,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     chartStatus: 'rendered',
     showControls: true,
     supersetCanShare: true,
-    formData: {
-      slice_id: 1,
-      datasource: '58__table',
-      viz_type: VizType.Sunburst,
-    },
+    formData: { slice_id: 1, datasource: '58__table', viz_type: 'sunburst_v2' },
     exploreUrl: '/explore',
   }) as SliceHeaderControlsProps;
 
@@ -204,7 +201,7 @@ test('Export full CSV is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps(VizType.Table);
+  const props = createProps('table');
   renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
@@ -215,7 +212,7 @@ test('Should "export full CSV"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps(VizType.Table);
+  const props = createProps('table');
   renderWrapper(props);
   expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
@@ -238,7 +235,7 @@ test('Export full Excel is under featureflag', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: false,
   };
-  const props = createProps(VizType.Table);
+  const props = createProps('table');
   renderWrapper(props);
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
@@ -249,7 +246,7 @@ test('Should "export full Excel"', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
-  const props = createProps(VizType.Table);
+  const props = createProps('table');
   renderWrapper(props);
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
@@ -309,13 +306,13 @@ test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', (
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
-  const props = createProps();
+  const props = {
+    ...createProps(),
+    supersetCanExplore: true,
+  };
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [
-      ['can_samples', 'Datasource'],
-      ['can_explore', 'Superset'],
-    ],
+    Admin: [['can_samples', 'Datasource']],
   });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });

@@ -20,38 +20,44 @@
 ######################################################################
 ARG PY_VER=3.10-slim-bookworm
 
-# If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
+# if BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
-# Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
-ARG BUILD_TRANSLATIONS="true"  # Include translations in the final build
-ARG DEV_MODE="false"           # Skip frontend build in dev mode
-ARG INCLUDE_CHROMIUM="true"    # Include headless Chromium for alerts & reports
-ARG INCLUDE_FIREFOX="false"    # Include headless Firefox if enabled
 
-# Install system dependencies required for node-gyp
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/apt-install.sh build-essential python3 zstd
+# Include translations in the final build. The default supports en only to
+# reduce complexity and weight for those only using en
+ARG BUILD_TRANSLATIONS="true"
 
-# Define environment variables for frontend build
+# Used by docker-compose to skip the frontend build,
+# in dev we mount the repo and build the frontend inside docker
+ARG DEV_MODE="false"
+
+# Include headless browsers? Allows for alerts, reports & thumbnails, but bloats the images
+ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_FIREFOX="false"
+
+# Somehow we need python3 + build-essential on this side of the house to install node-gyp
+RUN apt-get update -qq \
+    && apt-get install \
+        -yqq --no-install-recommends \
+        build-essential \
+        python3 \
+        zstd
+
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+# NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 
-# Run the frontend memory monitoring script
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/frontend-mem-nag.sh
+RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
+    /frontend-mem-nag.sh
 
 WORKDIR /app/superset-frontend
-
-# Create necessary folders to avoid errors in subsequent steps
-RUN mkdir -p /app/superset/static/assets \
-             /app/superset/translations
-
-# Mount package files and install dependencies if not in dev mode
-RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
-    --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
+# Creating empty folders to avoid errors when running COPY later on
+RUN mkdir -p /app/superset/static/assets
+RUN --mount=type=bind,target=./package.json,src=./superset-frontend/package.json \
+    --mount=type=bind,target=./package-lock.json,src=./superset-frontend/package-lock.json \
     if [ "$DEV_MODE" = "false" ]; then \
         npm ci; \
     else \
@@ -60,42 +66,45 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
-
-
-# Copy translation files
+# This copies the .po files needed for translation
+RUN mkdir -p /app/superset/translations
 COPY superset/translations /app/superset/translations
-
-# Build the frontend if not in dev mode
 RUN if [ "$DEV_MODE" = "false" ]; then \
         BUILD_TRANSLATIONS=$BUILD_TRANSLATIONS npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
     fi
 
-# Compile .json files from .po translations (if required) and clean up .po files
+
+# Compiles .json files from the .po files, then deletes the .po files
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
     else \
         echo "Skipping translations as requested by build flag"; \
-    fi \
-	# removing translations files regardless
-    && rm -rf /app/superset/translations/*/LC_MESSAGES/*.po \
-              /app/superset/translations/messages.pot
+    fi
+RUN rm /app/superset/translations/*/LC_MESSAGES/*.po
+RUN rm /app/superset/translations/messages.pot
 
-
-# Transition to Python base image
 FROM python:${PY_VER} AS python-base
-RUN pip install --no-cache-dir --upgrade setuptools pip uv
-
 ######################################################################
 # Final lean image...
 ######################################################################
 FROM python-base AS lean
 
-# Build argument for including translations
+# Include translations in the final build. The default supports en only to
+# reduce complexity and weight for those only using en
 ARG BUILD_TRANSLATIONS="false"
 
 WORKDIR /app
+############################################################################################################################################
+#ENV LANG=C.UTF-8 \
+#    LC_ALL=C.UTF-8 \
+#    SUPERSET_ENV=production \
+#    FLASK_APP="superset.app:create_app()" \
+#    PYTHONPATH="/app/pythonpath" \
+#    SUPERSET_HOME="/app/superset_home" \
+#    SUPERSET_PORT=8088
+############################################################################################################################################
 ENV DEBIAN_FRONTEND noninteractive.
 RUN apt-get update
 RUN apt-get upgrade -y
@@ -110,19 +119,18 @@ ENV LANG=ru_RU.UTF-8 \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_HOME="/app/superset_home" \
     SUPERSET_PORT=8088
-    
-RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
 
-# Set up necessary directories and user
-RUN --mount=type=bind,source=./docker,target=/docker \
-    mkdir -p ${PYTHONPATH} \
-      superset/static \
-      requirements \
-      superset-frontend \
-      apache_superset.egg-info \
-      requirements \
+#ENV LANGUAGE ru_RU.UTF-8
+#ENV LANG ru_RU.UTF-8
+#ENV LC_ALL ru_RU.UTF-8
+RUN locale-gen ru_RU.UTF-8 && dpkg-reconfigure locales
+#ENTRYPOINT /bin/bash
+############################################################################################################################################
+############################################################################################################################################
+
+RUN mkdir -p ${PYTHONPATH} superset/static requirements superset-frontend apache_superset.egg-info requirements \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && /docker/apt-install.sh \
+    && apt-get update -qq && apt-get install -yqq --no-install-recommends \
         curl \
         libsasl2-dev \
         libsasl2-modules-gssapi-mit \
@@ -131,53 +139,51 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         libldap2-dev \
     && touch superset/static/version_info.json \
     && chown -R superset:superset ./* \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy required files for Python build
 COPY --chown=superset:superset pyproject.toml setup.py MANIFEST.in README.md ./
+# setup.py uses the version information in package.json
 COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
 COPY --chown=superset:superset requirements/base.txt requirements/
 COPY --chown=superset:superset scripts/check-env.py scripts/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    apt-get update -qq && apt-get install -yqq --no-install-recommends \
+      build-essential \
+    && pip install --no-cache-dir --upgrade setuptools pip \
+    && pip install --no-cache-dir -r requirements/base.txt \
+    && apt-get autoremove -yqq --purge build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies using docker/pip-install.sh
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh --requires-build-essential -r requirements/base.txt
-
-# Copy the compiled frontend assets from the node image
+# Copy the compiled frontend assets
 COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
 
-# Copy the main Superset source code
+## Lastly, let's install superset itself
 COPY --chown=superset:superset superset superset
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --no-cache-dir -e .
 
-# Install Superset itself using docker/pip-install.sh
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh -e .
-
-# Copy .json translations from the node image
+# Copy the .json translations from the frontend layer
 COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
 
-# Compile backend translations and clean up
+# Compile translations for the backend - this generates .mo files, then deletes the .po files
 COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         ./scripts/translations/generate_mo_files.sh \
-        && chown -R superset:superset superset/translations; \
-    fi \
-    && rm -rf superset/translations/messages.pot \
-              superset/translations/*/LC_MESSAGES/*.po
+        && chown -R superset:superset superset/translations \
+        && rm superset/translations/messages.pot \
+        && rm superset/translations/*/LC_MESSAGES/*.po; \
+    else \
+        echo "Skipping translations as requested by build flag"; \
+    fi
 
-# Add server run script
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
-
-# Set user and healthcheck
 USER superset
+
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 
-# Expose port and set CMD
 EXPOSE ${SUPERSET_PORT}
-CMD ["/usr/bin/run-server.sh"]
 
+CMD ["/usr/bin/run-server.sh"]
 
 ######################################################################
 # Dev image...
@@ -185,10 +191,8 @@ CMD ["/usr/bin/run-server.sh"]
 FROM lean AS dev
 
 USER root
-
-# Install dev dependencies
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/apt-install.sh \
+RUN apt-get update -qq \
+    && apt-get install -yqq --no-install-recommends \
         libnss3 \
         libdbus-glib-1-2 \
         libgtk-3-0 \
@@ -196,46 +200,46 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         libasound2 \
         libxtst6 \
         git \
-        pkg-config
+        pkg-config \
+        && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright and its dependencies
 RUN --mount=type=cache,target=/root/.cache/pip \
-    uv pip install --system playwright \
-    && playwright install-deps
+    pip install --no-cache-dir playwright
+RUN playwright install-deps
 
-# Optionally install Chromium
 RUN if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
         playwright install chromium; \
     else \
-        echo "Skipping Chromium installation in dev mode"; \
+        echo "Skipping translations in dev mode"; \
     fi
 
-# Install GeckoDriver WebDriver and Firefox (if required)
-ARG GECKODRIVER_VERSION=v0.34.0
-ARG FIREFOX_VERSION=125.0.3
-RUN --mount=type=bind,source=./docker,target=/docker \
-    if [ "$INCLUDE_FIREFOX" = "true" ]; then \
-        /docker/apt-install.sh wget bzip2 \
+# Install GeckoDriver WebDriver
+ARG GECKODRIVER_VERSION=v0.34.0 \
+    FIREFOX_VERSION=125.0.3
+
+RUN if [ "$INCLUDE_FIREFOX" = "true" ]; then \
+        apt-get update -qq \
+        && apt-get install -yqq --no-install-recommends wget bzip2 \
         && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
         && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
         && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
-        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/* /var/cache/apt/archives/*; \
-    else \
-        echo "Skipping Firefox installation in dev mode"; \
+        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*; \
     fi
 
-# Install MySQL client dependencies
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/apt-install.sh default-libmysqlclient-dev
+# Installing mysql client os-level dependencies in dev image only because GPL
+RUN apt-get install -yqq --no-install-recommends \
+        default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy development requirements and install them
 COPY --chown=superset:superset requirements/development.txt requirements/
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh --requires-build-essential -r requirements/development.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    apt-get update -qq && apt-get install -yqq --no-install-recommends \
+      build-essential \
+    && pip install --no-cache-dir -r requirements/development.txt \
+    && apt-get autoremove -yqq --purge build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 USER superset
-
 ######################################################################
 # CI image...
 ######################################################################

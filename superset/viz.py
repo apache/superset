@@ -2458,7 +2458,7 @@ class RoseViz(NVD3TimeSeriesViz):
                 result[timestamp].append(
                     {
                         "key": key,
-                        "value": value,  # type: ignore
+                        "value": value,
                         "name": ", ".join(key) if isinstance(key, list) else key,
                         "time": val["x"],
                     }

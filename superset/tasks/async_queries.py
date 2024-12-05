@@ -174,7 +174,7 @@ def load_explore_json_into_cache(  # pylint: disable=too-many-locals
                 errors = ex.errors
             else:
                 error = ex.message if hasattr(ex, "message") else str(ex)
-                errors = [error]  # type: ignore
+                errors = [error]
 
             async_query_manager.update_job(
                 job_metadata, async_query_manager.STATUS_ERROR, errors=errors

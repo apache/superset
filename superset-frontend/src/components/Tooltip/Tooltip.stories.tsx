@@ -17,7 +17,8 @@
  * under the License.
  */
 import Button from 'src/components/Button';
-import { Tooltip, TooltipPlacement, TooltipProps } from './index';
+import { TooltipProps, TooltipPlacement } from 'antd/lib/tooltip';
+import { Tooltip } from './index';
 
 export default {
   title: 'Tooltip',

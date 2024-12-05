@@ -21,7 +21,6 @@ import {
   getChartControlPanelRegistry,
   getChartMetadataRegistry,
   ChartMetadata,
-  VizType,
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { MemoryRouter, Route } from 'react-router-dom';
@@ -33,7 +32,7 @@ const reduxState = {
   explore: {
     controls: {
       datasource: { value: '1__table' },
-      viz_type: { value: VizType.Table },
+      viz_type: { value: 'table' },
     },
     datasource: {
       id: 1,

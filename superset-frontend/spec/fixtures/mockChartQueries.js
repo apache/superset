@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { VizType } from '@superset-ui/core';
 import { datasourceId } from './mockDatasource';
 
 export const sliceId = 18;
@@ -36,7 +35,7 @@ export default {
     form_data: {
       adhoc_filters: [],
       datasource: datasourceId,
-      viz_type: VizType.Pie,
+      viz_type: 'pie',
       slice_id: sliceId,
       slice_name: 'Genders',
       granularity_sqla: undefined,

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { JsonObject, VizType } from '@superset-ui/core';
+import { JsonObject } from '@superset-ui/core';
 import { getExploreFormData } from 'spec/fixtures/mockExploreFormData';
 import { getDashboardFormData } from 'spec/fixtures/mockDashboardFormData';
 import { getFormDataWithDashboardContext } from './getFormDataWithDashboardContext';
@@ -144,7 +144,7 @@ const getExpectedResultFormData = (overrides: JsonObject = {}) => ({
   },
   slice_id: 46,
   time_range: 'Last month',
-  viz_type: VizType.Pie,
+  viz_type: 'pie',
   label_colors: {
     Girls: '#FF69B4',
     Boys: '#ADD8E6',

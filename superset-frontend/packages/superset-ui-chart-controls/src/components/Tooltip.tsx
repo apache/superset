@@ -17,41 +17,48 @@
  * under the License.
  */
 
-import { useTheme } from '@superset-ui/core';
-import { Tooltip as BaseTooltip } from 'antd-v5';
-import {
-  TooltipProps as BaseTooltipProps,
-  TooltipPlacement as BaseTooltipPlacement,
-} from 'antd-v5/lib/tooltip';
+import { useTheme, css } from '@superset-ui/core';
+import { Tooltip as BaseTooltip } from 'antd';
+import type { TooltipProps } from 'antd/lib/tooltip';
+import { Global } from '@emotion/react';
 
-export type TooltipProps = BaseTooltipProps;
-export type TooltipPlacement = BaseTooltipPlacement;
+export type { TooltipProps } from 'antd/lib/tooltip';
 
-export const Tooltip = ({
-  overlayStyle,
-  color,
-  ...props
-}: BaseTooltipProps) => {
+export const Tooltip = ({ overlayStyle, color, ...props }: TooltipProps) => {
   const theme = useTheme();
   const defaultColor = `${theme.colors.grayscale.dark2}e6`;
   return (
-    <BaseTooltip
-      overlayStyle={{
-        fontSize: theme.typography.sizes.s,
-        lineHeight: '1.6',
-        maxWidth: theme.gridUnit * 62,
-        minWidth: theme.gridUnit * 30,
-        ...overlayStyle,
-      }}
-      // make the tooltip display closer to the label
-      align={{ offset: [0, 1] }}
-      color={defaultColor || color}
-      trigger="hover"
-      placement="bottom"
-      // don't allow hovering over the tooltip
-      mouseLeaveDelay={0}
-      {...props}
-    />
+    <>
+      {/* Safari hack to hide browser default tooltips */}
+      <Global
+        styles={css`
+          .ant-tooltip-open {
+            display: inline-block;
+            &::after {
+              content: '';
+              display: block;
+            }
+          }
+        `}
+      />
+      <BaseTooltip
+        overlayStyle={{
+          fontSize: theme.typography.sizes.s,
+          lineHeight: '1.6',
+          maxWidth: theme.gridUnit * 62,
+          minWidth: theme.gridUnit * 30,
+          ...overlayStyle,
+        }}
+        // make the tooltip display closer to the label
+        align={{ offset: [0, 1] }}
+        color={defaultColor || color}
+        trigger="hover"
+        placement="bottom"
+        // don't allow hovering over the tooltip
+        mouseLeaveDelay={0}
+        {...props}
+      />
+    </>
   );
 };
 

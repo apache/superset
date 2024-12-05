@@ -919,13 +919,14 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
         "adhoc_filters", []
     )
     adhoc_filters.extend(
-        {"isExtra": True, **adhoc_filter} for adhoc_filter in append_adhoc_filters
+        {"isExtra": True, **adhoc_filter}  # type: ignore
+        for adhoc_filter in append_adhoc_filters
     )
     if append_filters:
         for key, value in form_data.items():
             if re.match("adhoc_filter.*", key):
                 value.extend(
-                    simple_filter_to_adhoc({"isExtra": True, **fltr})
+                    simple_filter_to_adhoc({"isExtra": True, **fltr})  # type: ignore
                     for fltr in append_filters
                     if fltr
                 )

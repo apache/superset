@@ -33,7 +33,6 @@ import {
   isCrossFilterScopeGlobal,
 } from '../types';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
-import { CHART_TYPE } from './componentTypes';
 
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
@@ -53,17 +52,13 @@ export const getCrossFiltersConfiguration = (
     return undefined;
   }
 
-  const chartLayoutItems = Object.values(dashboardLayout).filter(
-    item => item?.type === CHART_TYPE,
-  );
-
   const globalChartConfiguration = metadata.global_chart_configuration?.scope
     ? {
         scope: metadata.global_chart_configuration.scope,
         chartsInScope: getChartIdsInFilterScope(
           metadata.global_chart_configuration.scope,
           Object.values(charts).map(chart => chart.id),
-          chartLayoutItems,
+          dashboardLayout,
         ),
       }
     : {
@@ -74,7 +69,7 @@ export const getCrossFiltersConfiguration = (
   // If user just added cross filter to dashboard it's not saving its scope on server,
   // so we tweak it until user will update scope and will save it in server
   const chartConfiguration = {};
-  chartLayoutItems.forEach(layoutItem => {
+  Object.values(dashboardLayout).forEach(layoutItem => {
     const chartId = layoutItem.meta?.chartId;
 
     if (!isDefined(chartId)) {
@@ -110,7 +105,7 @@ export const getCrossFiltersConfiguration = (
           : getChartIdsInFilterScope(
               chartConfiguration[chartId].crossFilters.scope,
               Object.values(charts).map(chart => chart.id),
-              chartLayoutItems,
+              dashboardLayout,
             );
     }
   });

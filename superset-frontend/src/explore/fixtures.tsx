@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { DatasourceType, t, VizType } from '@superset-ui/core';
+import { DatasourceType, t } from '@superset-ui/core';
 import {
   ColumnMeta,
   ColumnOption,
@@ -114,7 +114,7 @@ export const exploreInitialData: ExplorePageInitialData = {
     datasource: '8__table',
     metric: 'count',
     slice_id: 371,
-    viz_type: VizType.Table,
+    viz_type: 'table',
   },
   slice: {
     cache_timeout: null,
@@ -126,7 +126,7 @@ export const exploreInitialData: ExplorePageInitialData = {
       datasource: '8__table',
       metric: 'count',
       slice_id: 371,
-      viz_type: VizType.Table,
+      viz_type: 'table',
     },
   },
   dataset: {
@@ -146,7 +146,7 @@ export const exploreInitialData: ExplorePageInitialData = {
 export const fallbackExploreInitialData: ExplorePageInitialData = {
   form_data: {
     datasource: '0__table',
-    viz_type: VizType.Table,
+    viz_type: 'table',
   },
   dataset: {
     id: 0,
