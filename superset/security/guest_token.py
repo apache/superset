@@ -18,8 +18,7 @@ from typing import Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Role
 from flask_login import AnonymousUserMixin
-
-from superset.utils.backports import StrEnum
+from superset_core.utils.backports import StrEnum
 
 
 class GuestTokenUser(TypedDict, total=False):

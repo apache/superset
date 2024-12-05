@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "superset-core"
+version = "0.1.0"
+description = "Core stuff for Superset backend"
+authors = [
+    { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
+]
+dependencies = []

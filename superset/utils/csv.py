@@ -22,9 +22,9 @@ from urllib.error import URLError
 
 import numpy as np
 import pandas as pd
+from superset_core.charts.types import GenericDataType
 
 from superset.utils import json
-from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 

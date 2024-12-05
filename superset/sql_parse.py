@@ -53,6 +53,7 @@ from sqlparse.tokens import (
     Wildcard,
 )
 from sqlparse.utils import imt
+from superset_core.utils.backports import StrEnum
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -67,7 +68,6 @@ from superset.sql.parse import (
     SQLStatement,
     Table,
 )
-from superset.utils.backports import StrEnum
 
 try:
     from sqloxide import parse_sql as sqloxide_parse

@@ -44,7 +44,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formatdate
-from enum import Enum, IntEnum
+from enum import Enum
 from io import BytesIO
 from timeit import default_timer
 from types import TracebackType
@@ -71,6 +71,8 @@ from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.sql.type_api import Variant
 from sqlalchemy.types import TypeEngine
+from superset_core.charts.types import GenericDataType
+from superset_core.utils.backports import StrEnum
 from typing_extensions import TypeGuard
 
 from superset.constants import (
@@ -96,7 +98,6 @@ from superset.superset_typing import (
     FormData,
     Metric,
 )
-from superset.utils.backports import StrEnum
 from superset.utils.database import get_example_database
 from superset.utils.date_parser import parse_human_timedelta
 from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
@@ -129,21 +130,6 @@ class AnnotationType(StrEnum):
     INTERVAL = "INTERVAL"
     EVENT = "EVENT"
     TIME_SERIES = "TIME_SERIES"
-
-
-class GenericDataType(IntEnum):
-    """
-    Generic database column type that fits both frontend and backend.
-    """
-
-    NUMERIC = 0
-    STRING = 1
-    TEMPORAL = 2
-    BOOLEAN = 3
-    # ARRAY = 4     # Mapping all the complex data types to STRING for now
-    # JSON = 5      # and leaving these as a reminder.
-    # MAP = 6
-    # ROW = 7
 
 
 class DatasourceType(StrEnum):

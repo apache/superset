@@ -16,14 +16,12 @@
 # under the License.
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, Literal, Optional, TYPE_CHECKING, TypedDict, Union
+from typing import Any, Literal, Optional, TypedDict, Union
 
 from sqlalchemy.sql.type_api import TypeEngine
+from superset_core.charts.types import GenericDataType
 from typing_extensions import NotRequired
 from werkzeug.wrappers import Response
-
-if TYPE_CHECKING:
-    from superset.utils.core import GenericDataType
 
 SQLType = Union[TypeEngine, type[TypeEngine]]
 
@@ -42,7 +40,7 @@ class AdhocMetricColumn(TypedDict, total=False):
     is_dttm: bool
     python_date_format: Optional[str]
     type: str
-    type_generic: "GenericDataType"
+    type_generic: GenericDataType
     verbose_name: Optional[str]
 
 
@@ -78,7 +76,7 @@ class ResultSetColumnType(TypedDict):
     column_name: str
     type: Optional[Union[SQLType, str]]
     is_dttm: Optional[bool]
-    type_generic: NotRequired[Optional["GenericDataType"]]
+    type_generic: NotRequired[Optional[GenericDataType]]
 
     nullable: NotRequired[Any]
     default: NotRequired[Any]

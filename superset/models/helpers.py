@@ -50,6 +50,7 @@ from sqlalchemy.sql.elements import ColumnElement, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
+from superset_core.charts.types import GenericDataType
 
 from superset import app, db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
@@ -85,7 +86,6 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.core import (
-    GenericDataType,
     get_column_name,
     get_non_base_axis_columns,
     get_user_id,
@@ -1135,7 +1135,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: Optional[FilterValues],
         operator: str,
-        target_generic_type: utils.GenericDataType,
+        target_generic_type: GenericDataType,
         target_native_type: Optional[str] = None,
         is_list_target: bool = False,
         db_engine_spec: Optional[
@@ -1151,7 +1151,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return value
             if (
                 isinstance(value, (float, int))
-                and target_generic_type == utils.GenericDataType.TEMPORAL
+                and target_generic_type == GenericDataType.TEMPORAL
                 and target_native_type is not None
                 and db_engine_spec is not None
             ):
@@ -1164,14 +1164,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                if (
-                    target_generic_type == utils.GenericDataType.NUMERIC
-                    and operator
-                    not in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
-                    }
-                ):
+                if target_generic_type == GenericDataType.NUMERIC and operator not in {
+                    utils.FilterOperator.ILIKE,
+                    utils.FilterOperator.LIKE,
+                }:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
@@ -1179,7 +1175,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     return None
                 if value == EMPTY_STRING:
                     return ""
-            if target_generic_type == utils.GenericDataType.BOOLEAN:
+            if target_generic_type == GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
             return value
 

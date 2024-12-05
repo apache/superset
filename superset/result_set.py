@@ -24,11 +24,11 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 from numpy.typing import NDArray
+from superset_core.charts.types import GenericDataType
 
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
-from superset.utils import core as utils, json
-from superset.utils.core import GenericDataType
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -154,7 +154,7 @@ class SupersetResultSet:
                 if pa.types.is_nested(pa_data[i].type):
                     # TODO: revisit nested column serialization once nested types
                     #  are added as a natively supported column type in Superset
-                    #  (superset.utils.core.GenericDataType).
+                    #  (superset_core.charts.types.GenericDataType).
                     stringified_arr = stringify_values(array[column])
                     pa_data[i] = pa.array(stringified_arr.tolist())
 
@@ -222,9 +222,7 @@ class SupersetResultSet:
             return False
         return column_spec.is_dttm
 
-    def type_generic(
-        self, db_type_str: Optional[str]
-    ) -> Optional[utils.GenericDataType]:
+    def type_generic(self, db_type_str: Optional[str]) -> Optional[GenericDataType]:
         column_spec = self.db_engine_spec.get_column_spec(db_type_str)
         if column_spec is None:
             return None

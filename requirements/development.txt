@@ -6,10 +6,12 @@
 #    pip-compile-multi
 #
 -r base.txt
--e file:.
+-e file:///Users/ville/apple/apache-superset
     # via
-    #   -r requirements/base.in
+    #   -r /Users/ville/apple/apache-superset/requirements/base.in
     #   -r requirements/development.in
+-e file:superset-core/.
+    # via -r /Users/ville/apple/apache-superset/requirements/base.in
 astroid==3.1.0
     # via pylint
 build==1.2.1

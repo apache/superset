@@ -14,33 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset_core.utils.backports import StrEnum
+
+from enum import IntEnum
 
 
-class ChartDataResultFormat(StrEnum):
+class GenericDataType(IntEnum):
     """
-    Chart data response format
-    """
-
-    CSV = "csv"
-    JSON = "json"
-    XLSX = "xlsx"
-
-    @classmethod
-    def table_like(cls) -> set["ChartDataResultFormat"]:
-        return {cls.CSV} | {cls.XLSX}
-
-
-class ChartDataResultType(StrEnum):
-    """
-    Chart data response type
+    Generic database column type that fits both frontend and backend.
     """
 
-    COLUMNS = "columns"
-    FULL = "full"
-    QUERY = "query"
-    RESULTS = "results"
-    SAMPLES = "samples"
-    TIMEGRAINS = "timegrains"
-    POST_PROCESSED = "post_processed"
-    DRILL_DETAIL = "drill_detail"
+    NUMERIC = 0
+    STRING = 1
+    TEMPORAL = 2
+    BOOLEAN = 3
+    # Mapping all the complex data types to STRING for now and leaving these as a
+    # reminder.
+    # ARRAY = 4
+    # JSON = 5
+    # MAP = 6
+    # ROW = 7

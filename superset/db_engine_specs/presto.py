@@ -39,6 +39,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.result import Row as ResultRow
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.expression import ColumnClause, Select
+from superset_core.charts.types import GenericDataType
 
 from superset import cache_manager, db, is_feature_enabled
 from superset.common.db_query_status import QueryStatus
@@ -60,7 +61,6 @@ from superset.models.sql_types.presto_sql_types import (
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
-from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     # prevent circular imports

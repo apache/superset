@@ -18,8 +18,7 @@ import io
 from typing import Any
 
 import pandas as pd
-
-from superset.utils.core import GenericDataType
+from superset_core.charts.types import GenericDataType
 
 
 def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:

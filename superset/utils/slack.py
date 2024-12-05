@@ -22,10 +22,10 @@ from typing import Optional
 from flask import current_app
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from superset_core.utils.backports import StrEnum
 
 from superset import feature_flag_manager
 from superset.exceptions import SupersetException
-from superset.utils.backports import StrEnum
 
 logger = logging.getLogger(__name__)
 

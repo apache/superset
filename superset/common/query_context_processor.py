@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 from flask_babel import gettext as _
 from pandas import DateOffset
+from superset_core.charts.types import GenericDataType
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat
@@ -57,7 +58,6 @@ from superset.utils.core import (
     DTTM_ALIAS,
     error_msg_from_exception,
     FilterOperator,
-    GenericDataType,
     get_base_axis_labels,
     get_column_names_from_columns,
     get_column_names_from_metrics,

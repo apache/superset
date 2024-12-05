@@ -69,6 +69,8 @@ from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
+from superset_core.charts.types import GenericDataType
+from superset_core.utils.backports import StrEnum
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -115,7 +117,6 @@ from superset.superset_typing import (
     ResultSetColumnType,
 )
 from superset.utils import core as utils, json
-from superset.utils.backports import StrEnum
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -476,7 +477,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         ]
 
         filtered_columns: list[Column] = []
-        column_types: set[utils.GenericDataType] = set()
+        column_types: set[GenericDataType] = set()
         for column_ in data["columns"]:
             generic_type = column_.get("type_generic")
             if generic_type is not None:
@@ -510,7 +511,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     def filter_values_handler(  # pylint: disable=too-many-arguments
         values: FilterValues | None,
         operator: str,
-        target_generic_type: utils.GenericDataType,
+        target_generic_type: GenericDataType,
         target_native_type: str | None = None,
         is_list_target: bool = False,
         db_engine_spec: builtins.type[BaseEngineSpec] | None = None,
@@ -524,7 +525,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                 return value
             if (
                 isinstance(value, (float, int))
-                and target_generic_type == utils.GenericDataType.TEMPORAL
+                and target_generic_type == GenericDataType.TEMPORAL
                 and target_native_type is not None
                 and db_engine_spec is not None
             ):
@@ -537,14 +538,10 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             if isinstance(value, str):
                 value = value.strip("\t\n")
 
-                if (
-                    target_generic_type == utils.GenericDataType.NUMERIC
-                    and operator
-                    not in {
-                        utils.FilterOperator.ILIKE,
-                        utils.FilterOperator.LIKE,
-                    }
-                ):
+                if target_generic_type == GenericDataType.NUMERIC and operator not in {
+                    utils.FilterOperator.ILIKE,
+                    utils.FilterOperator.LIKE,
+                }:
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
                     return utils.cast_to_num(value)
@@ -552,7 +549,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
                     return None
                 if value == EMPTY_STRING:
                     return ""
-            if target_generic_type == utils.GenericDataType.BOOLEAN:
+            if target_generic_type == GenericDataType.BOOLEAN:
                 return utils.cast_to_boolean(value)
             return value
 
@@ -891,21 +888,21 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         """
         Check if the column has a boolean datatype.
         """
-        return self.type_generic == utils.GenericDataType.BOOLEAN
+        return self.type_generic == GenericDataType.BOOLEAN
 
     @property
     def is_numeric(self) -> bool:
         """
         Check if the column has a numeric datatype.
         """
-        return self.type_generic == utils.GenericDataType.NUMERIC
+        return self.type_generic == GenericDataType.NUMERIC
 
     @property
     def is_string(self) -> bool:
         """
         Check if the column has a string datatype.
         """
-        return self.type_generic == utils.GenericDataType.STRING
+        return self.type_generic == GenericDataType.STRING
 
     @property
     def is_temporal(self) -> bool:
@@ -917,7 +914,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         """
         if self.is_dttm is not None:
             return self.is_dttm
-        return self.type_generic == utils.GenericDataType.TEMPORAL
+        return self.type_generic == GenericDataType.TEMPORAL
 
     @property
     def database(self) -> Database:
@@ -932,9 +929,9 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         return self.database.get_extra()
 
     @property
-    def type_generic(self) -> utils.GenericDataType | None:
+    def type_generic(self) -> GenericDataType | None:
         if self.is_dttm:
-            return utils.GenericDataType.TEMPORAL
+            return GenericDataType.TEMPORAL
 
         return (
             column_spec.generic_type

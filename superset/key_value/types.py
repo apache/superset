@@ -23,12 +23,12 @@ from typing import Any, TypedDict, Union
 from uuid import UUID
 
 from marshmallow import Schema, ValidationError
+from superset_core.utils.backports import StrEnum
 
 from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
     KeyValueCodecEncodeException,
 )
-from superset.utils.backports import StrEnum
 
 Key = Union[int, UUID]
 

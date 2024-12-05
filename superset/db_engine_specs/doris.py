@@ -24,10 +24,10 @@ from flask_babel import gettext as __
 from sqlalchemy import Float, Integer, Numeric, String, TEXT, types
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.type_api import TypeEngine
+from superset_core.charts.types import GenericDataType
 
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.errors import SupersetErrorType
-from superset.utils.core import GenericDataType
 
 # Regular expressions to catch custom errors
 CONNECTION_ACCESS_DENIED_REGEX = re.compile(
