@@ -110,6 +110,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.event.inputs.issue_number || github.event.issue.number || github.run_id }}-build
       cancel-in-progress: true
     needs: ephemeral-env-comment
+    if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: ephemeral-docker-build
     runs-on: ubuntu-22.04
     steps:
