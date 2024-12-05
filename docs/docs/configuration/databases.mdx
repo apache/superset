@@ -81,6 +81,7 @@ are compatible with Superset.
 | [TimescaleDB](/docs/configuration/databases#timescaledb)                | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>:<Port>/<Database Name>`                                                                          |
 | [Trino](/docs/configuration/databases#trino)                            | `pip install trino`                                                                | `trino://{username}:{password}@{hostname}:{port}/{catalog}`                                                                                            |
 | [Vertica](/docs/configuration/databases#vertica)                        | `pip install sqlalchemy-vertica-python`                                            | `vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                     |
+| [YDB](/docs/configuration/databases#ydb)                                | `pip install ydb-sqlalchemy`                                                       | `ydb://{host}:{port}/{database_name}`                                                                                                                  |
 | [YugabyteDB](/docs/configuration/databases#yugabytedb)                  | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 ---
 
@@ -1535,6 +1536,78 @@ vertica+vertica_python://{username}:{password}@{host}/{database}
 Other parameters:
 
 - Load Balancer - Backup Host
+
+
+
+#### YDB
+
+The recommended connector library for [YDB](https://ydb.tech/) is
+[ydb-sqlalchemy](https://pypi.org/project/ydb-sqlalchemy/).
+
+##### Connection String
+
+The connection string for YDB looks like this:
+
+```
+ydb://{host}:{port}/{database_name}
+```
+
+##### Protocol
+You can specify `protocol` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "protocol": "grpcs"
+}
+```
+
+Default is `grpc`.
+
+
+##### Authentication Methods
+###### Static Credentials
+To use `Static Credentials` you should provide `username`/`password` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "username": "...",
+        "password": "..."
+    }
+}
+```
+
+
+###### Access Token Credentials
+To use `Access Token Credentials` you should provide `token` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "token": "...",
+    }
+}
+```
+
+
+##### Service Account Credentials
+To use Service Account Credentials, you should provide `service_account_json` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "service_account_json": {
+            "id": "...",
+            "service_account_id": "...",
+            "created_at": "...",
+            "key_algorithm": "...",
+            "public_key": "...",
+            "private_key": "..."
+        }
+    }
+}
+```
+
 
 
 #### YugabyteDB
