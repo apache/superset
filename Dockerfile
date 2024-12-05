@@ -26,7 +26,7 @@ FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
 # Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
-ARG BUILD_TRANSLATIONS="true" # Include translations in the final build
+ARG BUILD_TRANSLATIONS="true"  # Include translations in the final build
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ARG INCLUDE_CHROMIUM="true"    # Include headless Chromium for alerts & reports
 ARG INCLUDE_FIREFOX="false"    # Include headless Firefox if enabled
@@ -93,7 +93,7 @@ RUN pip install --no-cache-dir --upgrade setuptools pip uv
 FROM python-base AS lean
 
 # Build argument for including translations
-ARG BUILD_TRANSLATIONS="true"
+ARG BUILD_TRANSLATIONS="false"
 
 WORKDIR /app
 ENV DEBIAN_FRONTEND noninteractive.
