@@ -26,7 +26,7 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
-from superset import app
+from flask import current_app
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
     from superset.models.sql_lab import Query
 
-csv_export_settings = app.config.get('CSV_EXPORT')
+csv_export_settings = current_app.config.get('CSV_EXPORT')
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
