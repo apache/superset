@@ -28,8 +28,17 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
+import { NULL_STRING } from '../constants';
 
-const { labelType, numberFormat, showLabels } = DEFAULT_FORM_DATA;
+const {
+  labelType,
+  numberFormat,
+  showLabels,
+  outerRadius,
+  innerRadius,
+  donut,
+  showNulls,
+} = DEFAULT_FORM_DATA;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -108,6 +117,8 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<ControlSubSectionHeader>{t('Shape')}</ControlSubSectionHeader>],
+
         [
           {
             name: 'number_format',
@@ -119,6 +130,62 @@ const config: ControlPanelConfig = {
               default: numberFormat,
               choices: D3_FORMAT_OPTIONS,
               description: `${D3_FORMAT_DOCS} ${D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT}`,
+            },
+          },
+        ],
+        [
+          {
+            name: 'outerRadius',
+            config: {
+              type: 'SliderControl',
+              label: t('Outer Radius'),
+              renderTrigger: true,
+              min: 10,
+              max: 100,
+              step: 1,
+              default: outerRadius,
+              description: t('Outer edge of Pie chart'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'donut',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Donut'),
+              default: donut,
+              renderTrigger: true,
+              description: t('Do you want a donut or a pie?'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'innerRadius',
+            config: {
+              type: 'SliderControl',
+              label: t('Inner Radius'),
+              renderTrigger: true,
+              min: 0,
+              max: 100,
+              step: 1,
+              default: innerRadius,
+              description: t('Inner radius of donut hole'),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                Boolean(controls?.donut?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'showNulls',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show %s values', NULL_STRING),
+              default: showNulls,
+              renderTrigger: true,
+              description: t('Do you want %s slices visible?', NULL_STRING),
             },
           },
         ],
