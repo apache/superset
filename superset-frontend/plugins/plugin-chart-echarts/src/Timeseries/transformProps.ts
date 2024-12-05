@@ -53,6 +53,7 @@ import type { SeriesOption } from 'echarts';
 import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
+  EchartsTimeseriesSeriesType,
   OrientationType,
   TimeseriesChartTransformedProps,
 } from './types';
@@ -160,6 +161,7 @@ export default function transformProps(
     percentageThreshold,
     richTooltip,
     seriesType,
+    connectPoints,
     showLegend,
     showValue,
     sliceId,
@@ -206,7 +208,7 @@ export default function transformProps(
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
-  
+
   const stackSet: any[] = [
     ...new Set(
       Object.entries(labelMap).map((x: [string, string[]]) =>
@@ -327,6 +329,10 @@ export default function transformProps(
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
+    if (connectPoints && seriesType === EchartsTimeseriesSeriesType.Line) {
+      // eslint-disable-next-line no-param-reassign
+      entry.data = (entry.data as any).filter((en: any[]) => en[1]);
+    }
     const transformedSeries = transformSeries(
       entry,
       colorScale,

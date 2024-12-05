@@ -47,6 +47,7 @@ import {
   validateMaxValue,
 } from '@superset-ui/core';
 
+import { EchartsTimeseriesSeriesType } from '@superset-ui/plugin-chart-echarts';
 import {
   formatSelectOptions,
   displayTimeRelatedControls,
@@ -363,6 +364,15 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
+const connect_points: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Connect points'),
+  default: false,
+  description: t('Connect chart points'),
+  visibility: ({ controls }) =>
+    Boolean(controls?.seriesType?.value === EchartsTimeseriesSeriesType.Line),
+};
+
 const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
   type: 'HiddenControl',
   initialValue: (control: ControlState, state: ControlPanelState | null) =>
@@ -418,6 +428,7 @@ export default {
   truncate_metric,
   x_axis: dndXAxisControl,
   show_empty_columns,
+  connect_points,
   temporal_columns_lookup,
   currency_format,
   sort_by_metric,
