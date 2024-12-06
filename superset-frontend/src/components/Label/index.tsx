@@ -122,7 +122,7 @@ export default function Label(props: LabelProps) {
     },
   };
   if (monospace) {
-    css.fontFamily = theme.typography.families.monospace;
+    css['font-family'] = theme.typography.families.monospace;
   }
 
   return (

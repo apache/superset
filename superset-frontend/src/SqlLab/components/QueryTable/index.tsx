@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useMemo, ReactNode } from 'react';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
-import Label from 'src/components/Label';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -45,11 +44,16 @@ import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
 interface QueryTableQuery
-  extends Omit<QueryResponse, 'state' | 'sql' | 'progress' | 'results'> {
+  extends Omit<
+    QueryResponse,
+    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+  > {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
   results?: Record<string, any>;
+  duration?: ReactNode;
+  started?: ReactNode;
 }
 
 interface QueryTableProps {
