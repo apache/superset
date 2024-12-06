@@ -58,24 +58,6 @@ export const AlertGallery = () => (
               </span>
             }
           />
-          <Alert
-            type={type}
-            showIcon
-            message={smallText}
-            description={bigText}
-            closable
-            closeIcon={
-              <span
-                aria-label="close icon"
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                }}
-              >
-                x
-              </span>
-            }
-          />
         </div>
       </div>
     ))}

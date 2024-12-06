@@ -19,7 +19,7 @@
 import { PropsWithChildren } from 'react';
 import { Alert as AntdAlert } from 'antd-v5';
 import { AlertProps as AntdAlertProps } from 'antd-v5/lib/alert';
-import { useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 export type AlertProps = PropsWithChildren<
@@ -34,7 +34,6 @@ export default function Alert(props: AlertProps) {
     closable = true,
     roomBelow = false,
     children,
-    ...rest
   } = props;
 
   const theme = useTheme();
@@ -75,10 +74,18 @@ export default function Alert(props: AlertProps) {
       closeIcon={closable && <Icons.XSmall aria-label="close icon" />}
       message={children || 'Default message'}
       description={description}
-      style={{
-        marginBottom: roomBelow ? theme.gridUnit * 4 : 0,
-      }}
-      {...rest}
+      css={css`
+        margin-bottom: ${roomBelow ? theme.gridUnit * 4 : 0}px;
+        a {
+          text-decoration: underline;
+        }
+        .antd5-alert-message {
+          font-weight: ${description
+            ? theme.typography.weights.bold
+            : 'inherit'};
+        }
+      `}
+      {...props}
     />
   );
 }
