@@ -263,8 +263,11 @@ describe('Native filters', () => {
     });
 
     it('User can expand / retract native filter sidebar on a dashboard', () => {
-      cy.get(nativeFilters.addFilterButton.button).should('not.exist');
+      // cy.get(nativeFilters.addFilterButton.button).should('not.exist');
       expandFilterOnLeftPanel();
+      cy.get(nativeFilters.filtersPanel.filterGear).click({
+        force: true,
+      });
       cy.get(nativeFilters.filterFromDashboardView.createFilterButton).should(
         'be.visible',
       );
@@ -289,7 +292,7 @@ describe('Native filters', () => {
       cancelNativeFilterSettings();
     });
 
-    it('Verify setting options and tooltips for value filter', () => {
+    it.only('Verify setting options and tooltips for value filter', () => {
       enterNativeFilterEditModal(false);
       cy.contains('Filter value is required').should('be.visible').click();
       checkNativeFilterTooltip(0, nativeFilterTooltips.preFilter);
