@@ -28,7 +28,9 @@ import {
 import userEvent from '@testing-library/user-event';
 import { CustomFrame } from '../components';
 
+const TODAY = '2024-06-03';
 jest.useFakeTimers();
+jest.setSystemTime(new Date(TODAY).getTime());
 
 const emptyValue = '';
 const nowValue = 'now : now';
@@ -279,4 +281,99 @@ test('should translate Date Picker', async () => {
   expect(screen.getByText('ve')).toBeInTheDocument();
   expect(screen.getByText('sa')).toBeInTheDocument();
   expect(screen.getByText('di')).toBeInTheDocument();
+});
+
+test('calls onChange when START Specific Date/Time is selected', async () => {
+  const onChange = jest.fn();
+  render(
+    <Provider store={store}>
+      <CustomFrame
+        onChange={onChange}
+        value={specificValue}
+        isOverflowingFilterBar
+      />
+    </Provider>,
+  );
+
+  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
+
+  const specificDateTimeOptions = screen.getAllByText('Specific Date/Time');
+  expect(specificDateTimeOptions.length).toBe(2);
+
+  const calendarIcons = screen.getAllByRole('img', { name: 'calendar' });
+  userEvent.click(calendarIcons[0]);
+
+  const randomDate = screen.getByTitle('2021-03-11');
+  userEvent.click(randomDate);
+
+  const okButton = screen.getByText('Ok');
+  userEvent.click(okButton);
+
+  expect(onChange).toHaveBeenCalled();
+});
+
+test('calls onChange when END Specific Date/Time is selected', async () => {
+  const onChange = jest.fn();
+  render(
+    <Provider store={store}>
+      <CustomFrame
+        onChange={onChange}
+        value={specificValue}
+        isOverflowingFilterBar
+      />
+    </Provider>,
+  );
+
+  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
+
+  const specificDateTimeOptions = screen.getAllByText('Specific Date/Time');
+  expect(specificDateTimeOptions.length).toBe(2);
+
+  const calendarIcons = screen.getAllByRole('img', { name: 'calendar' });
+  userEvent.click(calendarIcons[1]);
+
+  const randomDate = screen.getByTitle('2021-03-28');
+  userEvent.click(randomDate);
+
+  const okButton = screen.getByText('Ok');
+  userEvent.click(okButton);
+
+  expect(onChange).toHaveBeenCalled();
+});
+
+test('calls onChange when a date is picked from anchor mode date picker', async () => {
+  const onChange = jest.fn();
+  render(
+    <Provider store={store}>
+      <CustomFrame
+        onChange={onChange}
+        value={relativeTodayValue}
+        isOverflowingFilterBar
+      />
+    </Provider>,
+  );
+
+  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
+
+  const relativeDateTimeOptions = screen.getAllByText('Relative Date/Time');
+  expect(relativeDateTimeOptions.length).toBe(2);
+
+  await waitFor(() =>
+    expect(screen.getByText('Anchor to')).toBeInTheDocument(),
+  );
+
+  const dateTimeRadio = screen.getByRole('radio', { name: 'Date/Time' });
+
+  expect(dateTimeRadio).toBeChecked();
+
+  const calendarIcon = screen.getByRole('img', { name: 'calendar' });
+  userEvent.click(calendarIcon);
+
+  const randomDate = screen.getByTitle('2024-06-05');
+  userEvent.click(randomDate);
+
+  const okButton = screen.getByText('Ok');
+  userEvent.click(okButton);
+
+  expect(onChange).toHaveBeenCalled();
 });

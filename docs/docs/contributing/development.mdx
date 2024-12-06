@@ -29,10 +29,12 @@ cd superset
 
 ## docker compose (recommended!)
 
-Setting things up to squeeze an "hello world" into any part of Superset should be as simple as
+Setting things up to squeeze a "hello world" into any part of Superset should be as simple as
 
 ```bash
-docker compose up
+# getting docker compose to fire up services, and rebuilding if some docker layers have changed
+# using the `--build` suffix may be slower and optional if layers like py dependencies haven't changed
+docker compose up --build
 ```
 
 Note that:
@@ -45,13 +47,20 @@ Note that:
   - **Postgres** as the metadata database and to store example datasets, charts and dashboards which
     should be populated upon startup
   - **Redis** as the message queue for our async backend and caching backend
-- It'll load up examples into the database upon first startup
+- It'll load up examples into the database upon the first startup
 - all other details and pointers available in
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
 - The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
 - Superset is served at localhost:8088/
 - You can login with admin/admin
+
+:::note
+Installing and building Node modules for Apache Superset inside `superset-node` can take a
+significant amount of time. This is normal due to the size of the dependencies. Please be
+patient while the process completes, as long wait times do not indicate an issue with your setup.
+If delays seem excessive, check your internet connection or system resources.
+:::
 
 :::caution
 Since `docker compose` is primarily designed to run a set of containers on **a single host**
@@ -62,6 +71,24 @@ our [installing on k8s](https://superset.apache.org/docs/installation/running-on
 documentation.
 configured to be secure.
 :::
+
+### Nuking the postgres database
+
+At times, it's possible to end up with your development database in a bad state, it's
+common while switching branches that contain migrations for instance, where the database
+version stamp that `alembic` manages is no longer available after switching branch.
+
+In that case, the easy solution is to nuke the postgres db and start fresh. Note that the full
+state of the database will be gone after doing this, so be cautious.
+
+```bash
+# first stop docker-compose if it's running
+docker-compose down
+# delete the volume containing the database
+docker volume rm superset_db_home
+# restart docker-compose, which will init a fresh database and load examples
+docker-compose up
+```
 
 ## Installing Development Tools
 
@@ -136,12 +163,11 @@ You can also run the pre-commit checks manually in various ways:
   Replace `<hook_id>` with the ID of the specific hook you want to run. You can find the list
   of available hooks in the `.pre-commit-config.yaml` file.
 
-
 ## Alternatives to `docker compose`
 
 :::caution
 This part of the documentation is a patchwork of information related to setting up
-development environments without `docker compose` and are documented/supported to varying
+development environments without `docker compose` and is documented/supported to varying
 degrees. It's been difficult to maintain this wide array of methods and insure they're
 functioning across environments.
 :::
@@ -181,11 +207,11 @@ superset load-examples
 
 # Start the Flask dev web server from inside your virtualenv.
 # Note that your page may not have CSS at this point.
-# See instructions below how to build the front-end assets.
+# See instructions below on how to build the front-end assets.
 superset run -p 8088 --with-threads --reload --debugger --debug
 ```
 
-Or you can install via our Makefile
+Or you can install it via our Makefile
 
 ```bash
 # Create a virtual environment and activate it (recommended)
@@ -203,7 +229,7 @@ $ make pre-commit
 ```
 
 **Note: the FLASK_APP env var should not need to be set, as it's currently controlled
-via `.flaskenv`, however if needed, it should be set to `superset.app:create_app()`**
+via `.flaskenv`, however, if needed, it should be set to `superset.app:create_app()`**
 
 If you have made changes to the FAB-managed templates, which are not built the same way as the newer, React-powered front-end assets, you need to start the app without the `--with-threads` argument like so:
 `superset run -p 8088 --reload --debugger --debug`
@@ -306,7 +332,7 @@ cd superset-frontend
 npm ci
 ```
 
-Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy, and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
+Note that Superset uses [Scarf](https://docs.scarf.sh) to capture telemetry/analytics about versions being installed, including the `scarf-js` npm package and an analytics pixel. As noted elsewhere in this documentation, Scarf gathers aggregated stats for the sake of security/release strategy and does not capture/retain PII. [You can read here](https://docs.scarf.sh/package-analytics/) about the `scarf-js` package, and various means to opt out of it, but you can opt out of the npm package _and_ the pixel by setting the `SCARF_ANALYTICS` environment variable to `false` or opt out of the pixel by adding this setting in `superset-frontent/package.json`:
 
 ```json
 // your-package/package.json
@@ -334,7 +360,7 @@ Error: ENOSPC: System limit for number of file watchers reached
 ```
 
 The error is thrown because the number of files monitored by the system has reached the limit.
-You can address this this error by increasing the number of inotify watchers.
+You can address this error by increasing the number of inotify watchers.
 
 The current value of max watches can be checked with:
 
@@ -345,13 +371,13 @@ cat /proc/sys/fs/inotify/max_user_watches
 Edit the file `/etc/sysctl.conf` to increase this value.
 The value needs to be decided based on the system memory [(see this StackOverflow answer for more context)](https://stackoverflow.com/questions/535768/what-is-a-reasonable-amount-of-inotify-watches-with-linux).
 
-Open the file in editor and add a line at the bottom specifying the max watches values.
+Open the file in an editor and add a line at the bottom specifying the max watches values.
 
 ```bash
 fs.inotify.max_user_watches=524288
 ```
 
-Save the file and exit editor.
+Save the file and exit the editor.
 To confirm that the change succeeded, run the following command to load the updated value of max_user_watches from `sysctl.conf`:
 
 ```bash
@@ -449,17 +475,6 @@ pre-commit install
 
 A series of checks will now run when you make a git commit.
 
-Alternatively it is possible to run pre-commit via tox:
-
-```bash
-tox -e pre-commit
-```
-
-Or by running pre-commit manually:
-
-```bash
-pre-commit run --all-files
-```
 
 ## Linting
 
@@ -468,8 +483,7 @@ pre-commit run --all-files
 We use [Pylint](https://pylint.org/) for linting which can be invoked via:
 
 ```bash
-# for python
-tox -e pylint
+pylint
 ```
 
 In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
@@ -496,50 +510,119 @@ If using the eslint extension with vscode, put the following in your workspace `
 ]
 ```
 
+
+## GitHub Actions and `act`
+
+:::tip
+`act` compatibility of Superset's GHAs is not fully tested. Running `act` locally may or may not
+work for different actions, and may require fine tunning and local secret-handling.
+For those more intricate GHAs that are tricky to run locally, we recommend iterating
+directly on GHA's infrastructure, by pushing directly on a branch and monitoring GHA logs.
+For more targetted iteration, see the `gh workflow run --ref {BRANCH}` subcommand of the GitHub CLI.
+:::
+
+For automation and CI/CD, Superset makes extensive use of GitHub Actions (GHA). You
+can find all of the workflows and other assets under the `.github/` folder. This includes:
+- running the backend unit test suites (`tests/`)
+- running the frontend test suites (`superset-frontend/src/**.*.test.*`)
+- running our Cypress end-to-end tests (`superset-frontend/cypress-base/`)
+- linting the codebase, including all Python, Typescript and Javascript, yaml and beyond
+- checking for all sorts of other rules conventions
+
+When you open a pull request (PR), the appropriate GitHub Actions (GHA) workflows will
+automatically run depending on the changes in your branch. It's perfectly reasonable
+(and required!) to rely on this automation. However, the downside is that it's mostly an
+all-or-nothing approach and doesn't provide much control to target specific tests or
+iterate quickly.
+
+At times, it may be more convenient to run GHA workflows locally. For that purpose
+we use [act](https://github.com/nektos/act), a tool that allows you to run GitHub Actions (GHA)
+workflows locally. It simulates the GitHub Actions environment, enabling developers to
+test and debug workflows on their local machines before pushing changes to the repository. More
+on how to use it in the next section.
+
+:::note
+In both GHA and `act`, we can run a more complex matrix for our tests, executing against different
+database engines (PostgreSQL, MySQL, SQLite) and different versions of Python.
+This enables us to ensure compatibility and stability across various environments.
+:::
+
+### Using `act`
+
+First, install `act` -> https://nektosact.com/
+
+To list the workflows, simply:
+
+```bash
+act --list
+```
+
+To run a specific workflow:
+
+```bash
+act pull_request --job {workflow_name} --secret GITHUB_TOKEN=$GITHUB_TOKEN --container-architecture linux/amd64
+```
+
+In the example above, notice that:
+- we target a specific workflow, using `--job`
+- we pass a secret using `--secret`, as many jobs require read access (public) to the repo
+- we simulate a `pull_request` event by specifying it as the first arg,
+  similarly, we could simulate a `push` event or something else
+- we specify `--container-architecture`, which tends to emulate GHA more reliably
+
+:::note
+`act` is a rich tool that offers all sorts of features, allowing you to simulate different
+events (pull_request, push, ...), semantics around passing secrets where required and much
+more. For more information, refer to [act's documentation](https://nektosact.com/)
+:::
+
+:::note
+Some jobs require secrets to interact with external systems and accounts that you may
+not have in your possession. In those cases you may have to rely on remote CI or parameterize the
+job further to target a different environment/sandbox or your own alongside the related
+secrets.
+:::
+
+---
+
 ## Testing
 
 ### Python Testing
 
-All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
-a standardized testing framework.
-All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+#### Unit Tests
+
+For unit tests located in `tests/unit_tests/`, it's usually easy to simply run the script locally using:
 
 ```bash
-tox -e <environment>
+pytest tests/unit_tests/*
 ```
 
-For example,
+#### Integration Tests
+
+For more complex pytest-defined integration tests (not to be confused with our end-to-end Cypress tests), many tests will require having a working test environment. Some tests require a database, Celery, and potentially other services or libraries installed.
+
+### Running Tests with `act`
+
+To run integration tests locally using `act`, ensure you have followed the setup instructions from the [GitHub Actions and `act`](#github-actions-and-act) section. You can run specific workflows or jobs that include integration tests. For example:
 
 ```bash
-tox -e py38
+act --job test-python-38 --secret GITHUB_TOKEN=$GITHUB_TOKEN --event pull_request --container-architecture linux/amd64
 ```
 
-Alternatively, you can run all tests in a single file via,
+#### Running locally using a test script
 
-```bash
-tox -e <environment> -- tests/test_file.py
-```
-
-or for a specific test via,
-
-```bash
-tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
-```
-
-Note that the test environment uses a temporary directory for defining the
-SQLite databases which will be cleared each time before the group of test
-commands are invoked.
+There is also a utility script included in the Superset codebase to run Python integration tests. The [readme can be found here](https://github.com/apache/superset/tree/master/scripts/tests).
 
 There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
 found here](https://github.com/apache/superset/tree/master/scripts/tests)
 
-To run all integration tests for example, run this script from the root directory:
+To run all integration tests, for example, run this script from the root directory:
 
 ```bash
 scripts/tests/run.sh
 ```
 
-You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+You can run unit tests found in `./tests/unit_tests` with pytest. It is a simple way to run an isolated test that doesn't need any database setup:
 
 ```bash
 pytest ./link_to_test.py
@@ -562,7 +645,7 @@ npm run test -- path/to/file.js
 
 ### Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for integration tests. Tests can be run by `tox -e cypress`. To open Cypress and explore tests first setup and run test server:
+We use [Cypress](https://www.cypress.io/) for integration tests. To open Cypress and explore tests first setup and run test server:
 
 ```bash
 export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
@@ -608,14 +691,14 @@ As an alternative you can use docker compose environment for testing:
 Make sure you have added below line to your /etc/hosts file:
 `127.0.0.1 db`
 
-If you already have launched Docker environment please use the following command to assure a fresh database instance:
+If you already have launched Docker environment please use the following command to ensure a fresh database instance:
 `docker compose down -v`
 
 Launch environment:
 
-`CYPRESS_CONFIG=true docker compose up`
+`CYPRESS_CONFIG=true docker compose up --build`
 
-It will serve backend and frontend on port 8088.
+It will serve the backend and frontend on port 8088.
 
 Run Cypress tests:
 
@@ -657,7 +740,7 @@ For debugging locally using VSCode, you can configure a launch configuration fil
 Follow these instructions to debug the Flask app running inside a docker container. Note that
 this will run a barebones Superset web server,
 
-First add the following to the ./docker-compose.yaml file
+First, add the following to the ./docker-compose.yaml file
 
 ```diff
 superset:
@@ -681,7 +764,7 @@ superset:
 Start Superset as usual
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 Install the required libraries and packages to the docker container
@@ -779,11 +862,11 @@ Often in a Kubernetes environment nodes are not addressable from outside the clu
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
-You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
 
 ### Storybook
 
-Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components and variations thereof. To open and view the Storybook:
 
 ```bash
 cd superset-frontend
@@ -933,7 +1016,7 @@ To fix it:
    from alembic import op
    ```
 
-   Alternatively you may also run `superset db merge` to create a migration script
+   Alternatively, you may also run `superset db merge` to create a migration script
    just for merging the heads.
 
    ```bash

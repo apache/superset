@@ -792,9 +792,16 @@ class Superset(BaseSupersetView):
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException as ex:
+            # anonymous users should get the login screen, others should go to dashboard list
+            if g.user is None or g.user.is_anonymous:
+                redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
+                warn_msg = "Users must be logged in to view this dashboard."
+            else:
+                redirect_url = "/dashboard/list/"
+                warn_msg = utils.error_msg_from_exception(ex)
             return redirect_with_flash(
-                url="/dashboard/list/",
-                message=utils.error_msg_from_exception(ex),
+                url=redirect_url,
+                message=warn_msg,
                 category="danger",
             )
         add_extra_log_payload(
@@ -856,10 +863,6 @@ class Superset(BaseSupersetView):
     @expose("/log/", methods=("POST",))
     def log(self) -> FlaskResponse:
         return Response(status=200)
-
-    @expose("/theme/")
-    def theme(self) -> FlaskResponse:
-        return self.render_template("superset/theme.html")
 
     @api
     @handle_api_exception

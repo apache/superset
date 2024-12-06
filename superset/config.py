@@ -25,7 +25,6 @@ at the end of this file.
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import imp  # pylint: disable=deprecated-module
 import importlib.util
 import json
 import logging
@@ -33,10 +32,11 @@ import os
 import re
 import sys
 from collections import OrderedDict
+from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Literal, TYPE_CHECKING, TypedDict
+from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 
 import click
 import pkg_resources
@@ -68,6 +68,7 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla import models
+    from sqlglot import Dialect, Dialects
 
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -249,6 +250,10 @@ SQLALCHEMY_CUSTOM_PASSWORD_STORE = None
 SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
+
+# Extends the default SQLGlot dialects with additional dialects
+SQLGLOT_DIALECTS_EXTENSIONS: dict[str, Dialects | type[Dialect]] = {}
+
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
 
@@ -352,7 +357,7 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
+# ]
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
@@ -473,6 +478,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
+    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
+    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
+    # Generate screenshots (PDF or JPG) of dashboards using the web driver.
+    # When disabled, screenshots are generated on the fly by the browser.
+    # This feature flag is used by the download feature in the dashboard view.
+    # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
+    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
@@ -481,6 +494,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
+    # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
@@ -545,6 +559,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
+    # Whether Superset should use Slack avatars for users.
+    # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
+    # domains in your TALISMAN_CONFIG
+    "SLACK_ENABLE_AVATARS": False,
 }
 
 # ------------------------------
@@ -951,6 +969,9 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 SQLLAB_SAVE_WARNING_MESSAGE = None
 SQLLAB_SCHEDULE_WARNING_MESSAGE = None
 
+# Max payload size (MB) for SQL Lab to prevent browser hangs with large results.
+SQLLAB_PAYLOAD_MAX_MB = None
+
 # Force refresh while auto-refresh in dashboard
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 # Dashboard auto refresh intervals
@@ -1142,16 +1163,18 @@ def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
 # uploading CSVs will be stored.
 UPLOADED_CSV_HIVE_NAMESPACE: str | None = None
 
+
 # Function that computes the allowed schemas for the CSV uploads.
 # Allowed schemas will be a union of schemas_allowed_for_file_upload
 # db configuration and a result of this function.
+def allowed_schemas_for_csv_upload(  # pylint: disable=unused-argument
+    database: Database,
+    user: models.User,
+) -> list[str]:
+    return [UPLOADED_CSV_HIVE_NAMESPACE] if UPLOADED_CSV_HIVE_NAMESPACE else []
 
-# mypy doesn't catch that if case ensures list content being always str
-ALLOWED_USER_CSV_SCHEMA_FUNC: Callable[[Database, models.User], list[str]] = (  # noqa: E731
-    lambda database, user: [UPLOADED_CSV_HIVE_NAMESPACE]
-    if UPLOADED_CSV_HIVE_NAMESPACE
-    else []
-)
+
+ALLOWED_USER_CSV_SCHEMA_FUNC = allowed_schemas_for_csv_upload
 
 # Values that should be treated as nulls for the csv uploads.
 CSV_DEFAULT_NA_NAMES = list(STR_NA_VALUES)
@@ -1262,6 +1285,21 @@ ALLOWED_EXTRA_AUTHENTICATIONS: dict[str, dict[str, Callable[..., Any]]] = {}
 # The id of a template dashboard that should be copied to every new user
 DASHBOARD_TEMPLATE_ID = None
 
+
+# A context manager that wraps the call to `create_engine`. This can be used for many
+# things, such as chrooting to prevent 3rd party drivers to access the filesystem, or
+# setting up custom configuration for database drivers.
+@contextmanager
+def engine_context_manager(  # pylint: disable=unused-argument
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+) -> Iterator[None]:
+    yield None
+
+
+ENGINE_CONTEXT_MANAGER = engine_context_manager
+
 # A callable that allows altering the database connection URL and params
 # on the fly, at runtime. This allows for things like impersonation or
 # arbitrary logic. For instance you can wire different users to
@@ -1304,7 +1342,7 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "table_to_xml_and_xmlschema",
         "version",
     },
-    "clickhouse": {"url"},
+    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
     "mysql": {"version"},
 }
 
@@ -1427,11 +1465,6 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
 
-# Whether Superset should use Slack avatars for users.
-# If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
-# domains in your TALISMAN_CONFIG
-SLACK_ENABLE_AVATARS = False
-
 # The webdriver to use for generating reports. Use one of the following
 # firefox
 #   Requires: geckodriver and firefox installations
@@ -1510,9 +1543,12 @@ PREFERRED_DATABASES: list[str] = [
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
-# Details needed for databases that allows user to authenticate using personal
-# OAuth2 tokens. See https://github.com/apache/superset/issues/20300 for more
-# information. The scope and URIs are optional.
+# Details needed for databases that allows user to authenticate using personal OAuth2
+# tokens. See https://github.com/apache/superset/issues/20300 for more information. The
+# scope and URIs are usually optional.
+# NOTE that if you change the id, scope, or URIs in this file, you probably need to purge
+# the existing tokens from the database. This needs to be done by running a query to
+# delete the existing tokens.
 DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # "Google Sheets": {
     #     "id": "XXX.apps.googleusercontent.com",
@@ -1528,14 +1564,17 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     #     "token_request_uri": "https://oauth2.googleapis.com/token",
     # },
 }
+
 # OAuth2 state is encoded in a JWT using the alogorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
+
 # By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
 # specified. If you're running multiple Superset instances you might want to have a
 # proxy handling the redirects, since redirect URIs need to be registered in the OAuth2
 # applications. In that case, the proxy can forward the request to the correct instance
 # by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
 # DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
@@ -1632,7 +1671,9 @@ SEND_FILE_MAX_AGE_DEFAULT = int(timedelta(days=365).total_seconds())
 
 # URI to database storing the example data, points to
 # SQLALCHEMY_DATABASE_URI by default if set to `None`
-SQLALCHEMY_EXAMPLES_URI = "sqlite:///" + os.path.join(DATA_DIR, "examples.db")
+SQLALCHEMY_EXAMPLES_URI = (
+    "sqlite:///" + os.path.join(DATA_DIR, "examples.db") + "?check_same_thread=false"
+)
 
 # Optional prefix to be added to all static asset paths when rendering the UI.
 # This is useful for hosting assets in an external CDN, for example
@@ -1743,7 +1784,7 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 #    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
 #        if (
 #            datasource.sql and
-#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#            len(SQLScript(datasource.sql).tables) == 1
 #        ):
 #            return (
 #                "This virtual dataset queries only one table and therefore could be "
@@ -1866,7 +1907,9 @@ if CONFIG_PATH_ENV_VAR in os.environ:
     cfg_path = os.environ[CONFIG_PATH_ENV_VAR]
     try:
         module = sys.modules[__name__]
-        override_conf = imp.load_source("superset_config", cfg_path)
+        spec = importlib.util.spec_from_file_location("superset_config", cfg_path)
+        override_conf = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(override_conf)
         for key in dir(override_conf):
             if key.isupper():
                 setattr(module, key, getattr(override_conf, key))

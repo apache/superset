@@ -83,9 +83,13 @@ export interface Dataset {
   owners?: Owner[];
   filter_select?: boolean;
   filter_select_enabled?: boolean;
+  column_names?: string[];
 }
 
 export interface ControlPanelState {
+  slice: {
+    slice_id: number;
+  };
   form_data: QueryFormData;
   datasource: Dataset | QueryResponse | null;
   controls: ControlStateMapping;
@@ -258,6 +262,7 @@ export interface BaseControlConfig<
     props: ControlPanelsContainerProps,
     controlData: AnyDict,
   ) => boolean;
+  disableStash?: boolean;
   hidden?:
     | boolean
     | ((props: ControlPanelsContainerProps, controlData: AnyDict) => boolean);

@@ -27,7 +27,8 @@
     "access": "public"
   },
   "dependencies": {
-    "handlebars": "^4.7.7",
+    "handlebars": "^4.7.8",
+    "handlebars-group-by": "^1.0.1",
     "just-handlebars-helpers": "^1.0.19"
   },
   "peerDependencies": {

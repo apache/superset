@@ -27,6 +27,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
+  VizType,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
@@ -84,9 +85,13 @@ const defaultProps = {
 class ChartRenderer extends Component {
   constructor(props) {
     super(props);
+    const suppressContextMenu = getChartMetadataRegistry().get(
+      props.formData.viz_type ?? props.vizType,
+    )?.suppressContextMenu;
     this.state = {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
+        !suppressContextMenu &&
         (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
           isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
       inContextMenu: false,
@@ -276,7 +281,7 @@ class ChartRenderer extends Component {
     // to each one of them.
     const snakeCaseVizType = snakeCase(vizType);
     const chartClassName =
-      vizType === 'table'
+      vizType === VizType.Table
         ? `superset-chart-${snakeCaseVizType}`
         : snakeCaseVizType;
 

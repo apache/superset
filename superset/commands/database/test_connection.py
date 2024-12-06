@@ -93,7 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements
+    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -225,6 +225,10 @@ class TestConnectionDatabaseCommand(BaseCommand):
             # bubble up the exception to return proper status code
             raise
         except Exception as ex:
+            if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(
+                ex
+            ):
+                database.start_oauth2_dance()
             event_logger.log_with_context(
                 action=get_log_connection_action(
                     "test_connection_error", ssh_tunnel, ex

@@ -78,6 +78,7 @@ export type DatabaseObject = {
     role?: string;
     account?: string;
     ssh?: boolean;
+    project_id?: string;
   };
 
   // Performance
@@ -232,6 +233,7 @@ export enum ConfigurationMethod {
 
 export enum Engines {
   GSheet = 'gsheets',
+  BigQuery = 'bigquery',
   Snowflake = 'snowflake',
 }
 

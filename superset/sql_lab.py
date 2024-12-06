@@ -17,6 +17,7 @@
 # pylint: disable=consider-using-transaction
 import dataclasses
 import logging
+import sys
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -46,6 +47,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetParseError,
 )
 from superset.extensions import celery_app, event_logger
 from superset.models.core import Database
@@ -77,6 +79,7 @@ SQL_MAX_ROW = config["SQL_MAX_ROW"]
 SQLLAB_CTAS_NO_LIMIT = config["SQLLAB_CTAS_NO_LIMIT"]
 log_query = config["QUERY_LOGGER"]
 logger = logging.getLogger(__name__)
+BYTES_IN_MB = 1024 * 1024
 
 
 class SqlLabException(Exception):
@@ -236,15 +239,30 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
     # We are testing to see if more rows exist than the limit.
     increased_limit = None if query.limit is None else query.limit + 1
 
-    parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
-    if parsed_statement.is_mutating() and not database.allow_dml:
-        raise SupersetErrorException(
-            SupersetError(
-                message=__("Only SELECT statements are allowed against this database."),
-                error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                level=ErrorLevel.ERROR,
+    if not database.allow_dml:
+        errors = []
+        try:
+            parsed_statement = SQLStatement(sql_statement, engine=db_engine_spec.engine)
+            disallowed = parsed_statement.is_mutating()
+        except SupersetParseError as ex:
+            # if we fail to parse the query, disallow by default
+            disallowed = True
+            errors.append(ex.error)
+
+        if disallowed:
+            errors.append(
+                SupersetError(
+                    message=__(
+                        "This database does not allow for DDL/DML, and the query "
+                        "could not be parsed to confirm it is a read-only query. Please "
+                        "contact your administrator for more assistance."
+                    ),
+                    error_type=SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
             )
-        )
+            raise SupersetErrorsException(errors)
+
     if apply_ctas:
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
@@ -515,6 +533,7 @@ def execute_sql_statements(
                     log_params,
                     apply_ctas,
                 )
+
             except SqlLabQueryStoppedException:
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
@@ -585,6 +604,22 @@ def execute_sql_statements(
                 serialized_payload = _serialize_payload(
                     payload, cast(bool, results_backend_use_msgpack)
                 )
+
+                # Check the size of the serialized payload
+                if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+                    serialized_payload_size = sys.getsizeof(serialized_payload)
+                    max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+
+                    if serialized_payload_size > max_bytes:
+                        logger.info("Result size exceeds the allowed limit.")
+                        raise SupersetErrorException(
+                            SupersetError(
+                                message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                                error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                                level=ErrorLevel.ERROR,
+                            )
+                        )
+
             cache_timeout = database.cache_timeout
             if cache_timeout is None:
                 cache_timeout = config["CACHE_DEFAULT_TIMEOUT"]
@@ -619,6 +654,23 @@ def execute_sql_statements(
                     "expanded_columns": expanded_columns,
                 }
             )
+        # Check the size of the serialized payload (opt-in logic for return_results)
+        if sql_lab_payload_max_mb := config.get("SQLLAB_PAYLOAD_MAX_MB"):
+            serialized_payload = _serialize_payload(
+                payload, cast(bool, results_backend_use_msgpack)
+            )
+            serialized_payload_size = sys.getsizeof(serialized_payload)
+            max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
+
+            if serialized_payload_size > max_bytes:
+                logger.info("Result size exceeds the allowed limit.")
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=f"Result size ({serialized_payload_size / BYTES_IN_MB:.2f} MB) exceeds the allowed limit of {sql_lab_payload_max_mb} MB.",
+                        error_type=SupersetErrorType.RESULT_TOO_LARGE_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
         return payload
 
     return None

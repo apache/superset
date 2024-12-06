@@ -57,7 +57,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         col = literal_column("COALESCE(a, b)")
         expr = PostgresEngineSpec.get_timestamp_expr(col, None, None)
         result = str(expr.compile(None, dialect=postgresql.dialect()))
-        self.assertEqual(result, "COALESCE(a, b)")
+        assert result == "COALESCE(a, b)"
 
     def test_time_exp_literal_1y_grain(self):
         """
@@ -66,7 +66,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         col = literal_column("COALESCE(a, b)")
         expr = PostgresEngineSpec.get_timestamp_expr(col, None, "P1Y")
         result = str(expr.compile(None, dialect=postgresql.dialect()))
-        self.assertEqual(result, "DATE_TRUNC('year', COALESCE(a, b))")
+        assert result == "DATE_TRUNC('year', COALESCE(a, b))"
 
     def test_time_ex_lowr_col_no_grain(self):
         """
@@ -75,7 +75,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         col = column("lower_case")
         expr = PostgresEngineSpec.get_timestamp_expr(col, None, None)
         result = str(expr.compile(None, dialect=postgresql.dialect()))
-        self.assertEqual(result, "lower_case")
+        assert result == "lower_case"
 
     def test_time_exp_lowr_col_sec_1y(self):
         """
@@ -84,10 +84,9 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         col = column("lower_case")
         expr = PostgresEngineSpec.get_timestamp_expr(col, "epoch_s", "P1Y")
         result = str(expr.compile(None, dialect=postgresql.dialect()))
-        self.assertEqual(
-            result,
-            "DATE_TRUNC('year', "
-            "(timestamp 'epoch' + lower_case * interval '1 second'))",
+        assert (
+            result == "DATE_TRUNC('year', "
+            "(timestamp 'epoch' + lower_case * interval '1 second'))"
         )
 
     def test_time_exp_mixed_case_col_1y(self):
@@ -97,7 +96,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         col = column("MixedCase")
         expr = PostgresEngineSpec.get_timestamp_expr(col, None, "P1Y")
         result = str(expr.compile(None, dialect=postgresql.dialect()))
-        self.assertEqual(result, "DATE_TRUNC('year', \"MixedCase\")")
+        assert result == "DATE_TRUNC('year', \"MixedCase\")"
 
     def test_empty_dbapi_cursor_description(self):
         """
@@ -107,7 +106,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         # empty description mean no columns, this mocks the following SQL: "SELECT"
         cursor.description = []
         results = PostgresEngineSpec.fetch_data(cursor, 1000)
-        self.assertEqual(results, [])
+        assert results == []
 
     def test_engine_alias_name(self):
         """
@@ -152,19 +151,14 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         DB Eng Specs (postgres): Test estimate_statement_cost select star
         """
 
+        database = mock.Mock()
         cursor = mock.Mock()
         cursor.fetchone.return_value = (
             "Seq Scan on birth_names (cost=0.00..1537.91 rows=75691 width=46)",
         )
         sql = "SELECT * FROM birth_names"
-        results = PostgresEngineSpec.estimate_statement_cost(sql, cursor)
-        self.assertEqual(
-            results,
-            {
-                "Start-up cost": 0.00,
-                "Total cost": 1537.91,
-            },
-        )
+        results = PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
+        assert results == {"Start-up cost": 0.0, "Total cost": 1537.91}
 
     def test_estimate_statement_invalid_syntax(self):
         """
@@ -172,6 +166,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         """
         from psycopg2 import errors
 
+        database = mock.Mock()
         cursor = mock.Mock()
         cursor.execute.side_effect = errors.SyntaxError(
             """
@@ -182,7 +177,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
         )
         sql = "DROP TABLE birth_names"
         with self.assertRaises(errors.SyntaxError):
-            PostgresEngineSpec.estimate_statement_cost(sql, cursor)
+            PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
 
     def test_query_cost_formatter_example_costs(self):
         """
@@ -199,19 +194,10 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             },
         ]
         result = PostgresEngineSpec.query_cost_formatter(raw_cost)
-        self.assertEqual(
-            result,
-            [
-                {
-                    "Start-up cost": "0.0",
-                    "Total cost": "1537.91",
-                },
-                {
-                    "Start-up cost": "10.0",
-                    "Total cost": "1537.0",
-                },
-            ],
-        )
+        assert result == [
+            {"Start-up cost": "0.0", "Total cost": "1537.91"},
+            {"Start-up cost": "10.0", "Total cost": "1537.0"},
+        ]
 
     def test_extract_errors(self):
         """

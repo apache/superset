@@ -81,5 +81,10 @@ def compare(  # pylint: disable=too-many-arguments
         df = pd.concat([df, diff_df], axis=1)
 
     if drop_original_columns:
-        df = df.drop(source_columns + compare_columns, axis=1)
+        level = (
+            0
+            if isinstance(df.columns, pd.MultiIndex) and df.columns.nlevels > 1
+            else None
+        )
+        df = df.drop(source_columns + compare_columns, axis=1, level=level)
     return df

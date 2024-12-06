@@ -28,9 +28,9 @@ test('Item - click when the item is not active', () => {
       <div data-test="test" />
     </Item>,
   );
-  expect(click).toBeCalledTimes(0);
+  expect(click).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
-  expect(click).toBeCalledTimes(1);
+  expect(click).toHaveBeenCalledTimes(1);
   expect(screen.getByTestId('test')).toBeInTheDocument();
 });
 
@@ -41,8 +41,8 @@ test('Item - click when the item is active', () => {
       <div data-test="test" />
     </Item>,
   );
-  expect(click).toBeCalledTimes(0);
+  expect(click).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
-  expect(click).toBeCalledTimes(0);
+  expect(click).toHaveBeenCalledTimes(0);
   expect(screen.getByTestId('test')).toBeInTheDocument();
 });

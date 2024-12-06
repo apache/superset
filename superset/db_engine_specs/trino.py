@@ -14,21 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=consider-using-transaction
 from __future__ import annotations
 
 import contextlib
 import logging
 import threading
 import time
-from tempfile import NamedTemporaryFile
 from typing import Any, TYPE_CHECKING
 
-import numpy as np
-import pandas as pd
-import pyarrow as pa
-from flask import ctx, current_app, Flask, g
-from sqlalchemy import text
+import requests
+from flask import copy_current_request_context, ctx, current_app, Flask, g
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchTableError
@@ -43,9 +38,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
-from superset.db_engine_specs.hive import upload_to_s3
 from superset.db_engine_specs.presto import PrestoBaseEngineSpec
-from superset.exceptions import SupersetException
 from superset.models.sql_lab import Query
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
@@ -59,11 +52,34 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+try:
+    # since trino is an optional dependency, we need to handle the ImportError
+    from trino.exceptions import HttpError
+except ImportError:
+    HttpError = Exception
+
+
+class CustomTrinoAuthErrorMeta(type):
+    def __instancecheck__(cls, instance: object) -> bool:
+        logger.info("is this being called?")
+        return isinstance(
+            instance, HttpError
+        ) and "error 401: b'Invalid credentials'" in str(instance)
+
+
+class TrinoAuthError(HttpError, metaclass=CustomTrinoAuthErrorMeta):
+    pass
+
 
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
     allows_alias_to_source_column = False
+
+    # OAuth 2.0
+    supports_oauth2 = True
+    oauth2_exception = TrinoAuthError
+    oauth2_token_request_type = "data"
 
     @classmethod
     def get_extra_table_metadata(
@@ -116,8 +132,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         return metadata
 
     @classmethod
-    def update_impersonation_config(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
+        database: Database,
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
@@ -126,6 +143,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         """
         Update a configuration dictionary
         that can set the correct properties for impersonating users
+        :param database: the Database object
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
@@ -140,6 +158,10 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         # Set principal_username=$effective_username
         if backend_name == "trino" and username is not None:
             connect_args["user"] = username
+            if access_token is not None:
+                http_session = requests.Session()
+                http_session.headers.update({"Authorization": f"Bearer {access_token}"})
+                connect_args["http_session"] = http_session
 
     @classmethod
     def get_url_for_impersonation(
@@ -152,6 +174,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         """
         Return a modified URL with the username set.
 
+        :param access_token: Personal access token for OAuth2
         :param url: SQLAlchemy URL object
         :param impersonate_user: Flag indicating if impersonation is enabled
         :param username: Effective username
@@ -192,7 +215,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         if tracking_url := cls.get_tracking_url(cursor):
             query.tracking_url = tracking_url
 
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # if query cancelation was requested prior to the handle_cursor call, but
         # the query was still executed, trigger the actual query cancelation now
@@ -222,10 +245,12 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         # Fetch the query ID beforehand, since it might fail inside the thread due to
         # how the SQLAlchemy session is handled.
         query_id = query.id
+        query_database = query.database
 
         execute_result: dict[str, Any] = {}
         execute_event = threading.Event()
 
+        @copy_current_request_context
         def _execute(
             results: dict[str, Any],
             event: threading.Event,
@@ -243,7 +268,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 with app.app_context():
                     for key, value in g_copy.__dict__.items():
                         setattr(g, key, value)
-                    cls.execute(cursor, sql, query.database)
+                    cls.execute(cursor, sql, query_database)
             except Exception as ex:  # pylint: disable=broad-except
                 results["error"] = ex
             finally:
@@ -260,6 +285,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
         )
         execute_thread.start()
 
+        # Wait for the thread to start before continuing
+        time.sleep(0.1)
         # Wait for a query ID to be available before handling the cursor, as
         # it's required by that method; it may never become available on error.
         while not cursor.query_id and not execute_event.is_set():
@@ -281,7 +308,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     def prepare_cancel_query(cls, query: Query) -> None:
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
@@ -485,80 +512,3 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             return super().get_indexes(database, inspector, table)
         except NoSuchTableError:
             return []
-
-    @classmethod
-    def df_to_sql(
-        cls,
-        database: Database,
-        table: Table,
-        df: pd.DataFrame,
-        to_sql_kwargs: dict[str, Any],
-    ) -> None:
-        """
-        Upload data from a Pandas DataFrame to a database.
-
-        The data is stored via the binary Parquet format which is both less problematic
-        and more performant than a text file.
-
-        Note this method does not create metadata for the table.
-
-        :param database: The database to upload the data to
-        :param table: The table to upload the data to
-        :param df: The Pandas Dataframe with data to be uploaded
-        :param to_sql_kwargs: The `pandas.DataFrame.to_sql` keyword arguments
-        :see: superset.db_engine_specs.HiveEngineSpec.df_to_sql
-        """
-        if to_sql_kwargs["if_exists"] == "append":
-            raise SupersetException("Append operation not currently supported")
-
-        if to_sql_kwargs["if_exists"] == "fail":
-            if database.has_table_by_name(table.table, table.schema):
-                raise SupersetException("Table already exists")
-        elif to_sql_kwargs["if_exists"] == "replace":
-            with cls.get_engine(database) as engine:
-                engine.execute(f"DROP TABLE IF EXISTS {str(table)}")
-
-        def _get_trino_type(dtype: np.dtype[Any]) -> str:
-            return {
-                np.dtype("bool"): "BOOLEAN",
-                np.dtype("float64"): "DOUBLE",
-                np.dtype("int64"): "BIGINT",
-                np.dtype("object"): "VARCHAR",
-            }.get(dtype, "VARCHAR")
-
-        with NamedTemporaryFile(
-            dir=current_app.config["UPLOAD_FOLDER"],
-            suffix=".parquet",
-        ) as file:
-            pa.parquet.write_table(pa.Table.from_pandas(df), where=file.name)
-
-            with cls.get_engine(database) as engine:
-                engine.execute(
-                    # pylint: disable=consider-using-f-string
-                    text(
-                        """
-                        CREATE TABLE {table} ({schema})
-                        WITH (
-                            format = 'PARQUET',
-                            external_location = '{location}'
-                        )
-                        """.format(
-                            location=upload_to_s3(
-                                filename=file.name,
-                                upload_prefix=current_app.config[
-                                    "CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"
-                                ](
-                                    database,
-                                    g.user,
-                                    table.schema,
-                                ),
-                                table=table,
-                            ),
-                            schema=", ".join(
-                                f'"{name}" {_get_trino_type(dtype)}'
-                                for name, dtype in df.dtypes.items()
-                            ),
-                            table=str(table),
-                        ),
-                    ),
-                )

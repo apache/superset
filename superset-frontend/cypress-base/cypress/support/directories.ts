@@ -53,7 +53,7 @@ export const securityAccess = {
 export const homePage = {
   homeSection: {
     sectionArea: '.ant-collapse-content-box',
-    sectionElement: '.ant-card-meta-title',
+    sectionElement: '.antd5-card-meta-title',
   },
   sections: {
     expandedSection: '.ant-collapse-item-active',
@@ -140,7 +140,7 @@ export const sqlLabView = {
   tabsNavList: "[class='ant-tabs-nav-list']",
   tab: "[class='ant-tabs-tab-btn']",
   addTabButton: dataTestLocator('add-tab-icon'),
-  tooltip: '.ant-tooltip-content',
+  tooltip: '.antd5-tooltip-content',
   tabName: '.css-1suejie',
   schemaInput: '[data-test=DatabaseSelector] > :nth-child(2)',
   loadingIndicator: '.Select__loading-indicator',
@@ -284,7 +284,7 @@ export const chartListView = {
   },
   card: {
     card: dataTestLocator('styled-card'),
-    cardCover: '[class="ant-card-cover"]',
+    cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
     selectedStarIcon: "[aria-label='favorite-selected']",
     unselectedStarIcon: "[aria-label='favorite-unselected']",
@@ -322,7 +322,9 @@ export const nativeFilters = {
     footer: '.ant-modal-footer',
     saveButton: dataTestLocator('native-filter-modal-save-button'),
     cancelButton: dataTestLocator('native-filter-modal-cancel-button'),
-    yesCancelButton: '[type="button"]',
+    confirmCancelButton: dataTestLocator(
+      'native-filter-modal-confirm-cancel-button',
+    ),
     alertXUnsavedFilters: '.ant-alert-message',
     tabsList: {
       filterItemsContainer: dataTestLocator('filter-title-container'),
@@ -332,10 +334,8 @@ export const nativeFilters = {
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
-  },
-  addFilterButton: {
-    button: `.ant-modal-content [data-test="new-dropdown-icon"]`,
-    dropdownItem: '.ant-dropdown-menu-item',
+    addNewFilterButton: dataTestLocator('add-new-filter-button'),
+    addNewDividerButton: dataTestLocator('add-new-divider-button'),
   },
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),
@@ -399,7 +399,7 @@ export const dashboardListView = {
   },
   card: {
     card: dataTestLocator('styled-card'),
-    cardCover: '[class="ant-card-cover"]',
+    cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
     selectedStarIcon: "[aria-label='favorite-selected']",
     unselectedStarIcon: "[aria-label='favorite-unselected']",

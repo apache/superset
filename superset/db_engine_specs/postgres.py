@@ -103,7 +103,13 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
+        TimeGrain.FIVE_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 5)",
+        TimeGrain.THIRTY_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 30)",
         TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
+        TimeGrain.FIVE_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 5)",
+        TimeGrain.TEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 10)",
+        TimeGrain.FIFTEEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 15)",
+        TimeGrain.THIRTY_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 30)",
         TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
         TimeGrain.DAY: "DATE_TRUNC('day', {col})",
         TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
@@ -345,7 +351,16 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         return True
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
+        """
+        Run a SQL query that estimates the cost of a given statement.
+        :param database: A Database object
+        :param statement: A single SQL statement
+        :param cursor: Cursor instance
+        :return: JSON response from Trino
+        """
         sql = f"EXPLAIN {statement}"
         cursor.execute(sql)
 

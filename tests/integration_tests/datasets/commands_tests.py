@@ -587,8 +587,8 @@ class TestCreateDatasetCommand(SupersetTestCase):
                 .filter_by(table_name="test_create_dataset_command")
                 .one()
             )
-            self.assertEqual(table, fetched_table)
-            self.assertEqual([owner.username for owner in table.owners], ["admin"])
+            assert table == fetched_table
+            assert [owner.username for owner in table.owners] == ["admin"]
 
         db.session.delete(table)
         with examples_db.get_sqla_engine() as engine:
@@ -626,7 +626,7 @@ class TestDatasetWarmUpCacheCommand(SupersetTestCase):
         results = DatasetWarmUpCacheCommand(
             get_example_database().database_name, "birth_names", None, None
         ).run()
-        self.assertEqual(len(results), len(birth_charts))
+        assert len(results) == len(birth_charts)
         for chart_result in results:
             assert "chart_id" in chart_result
             assert "viz_error" in chart_result

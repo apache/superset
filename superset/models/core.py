@@ -29,6 +29,7 @@ from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
+from inspect import signature
 from typing import Any, Callable, cast, TYPE_CHECKING
 
 import numpy
@@ -59,7 +60,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 
-from superset import app, db_engine_specs, is_feature_enabled
+from superset import app, db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
@@ -418,38 +419,40 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
         sqlalchemy_uri = self.sqlalchemy_uri_decrypted
-        engine_context = nullcontext()
-        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(
-            database_id=self.id
-        )
 
-        if ssh_tunnel:
-            # if ssh_tunnel is available build engine with information
-            engine_context = ssh_manager_factory.instance.create_tunnel(
+        ssh_tunnel = override_ssh_tunnel or DatabaseDAO.get_ssh_tunnel(self.id)
+        ssh_context_manager = (
+            ssh_manager_factory.instance.create_tunnel(
                 ssh_tunnel=ssh_tunnel,
                 sqlalchemy_database_uri=sqlalchemy_uri,
             )
+            if ssh_tunnel
+            else nullcontext()
+        )
 
-        with engine_context as server_context:
-            if ssh_tunnel and server_context:
+        with ssh_context_manager as ssh_context:
+            if ssh_context:
                 logger.info(
-                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s ssh_timeout at %s",
+                    "[SSH] Successfully created tunnel w/ %s tunnel_timeout + %s "
+                    "ssh_timeout at %s",
                     sshtunnel.TUNNEL_TIMEOUT,
                     sshtunnel.SSH_TIMEOUT,
-                    server_context.local_bind_address,
+                    ssh_context.local_bind_address,
                 )
                 sqlalchemy_uri = ssh_manager_factory.instance.build_sqla_url(
                     sqlalchemy_uri,
-                    server_context,
+                    ssh_context,
                 )
 
-            yield self._get_sqla_engine(
-                catalog=catalog,
-                schema=schema,
-                nullpool=nullpool,
-                source=source,
-                sqlalchemy_uri=sqlalchemy_uri,
-            )
+            engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
+            with engine_context_manager(self, catalog, schema):
+                yield self._get_sqla_engine(
+                    catalog=catalog,
+                    schema=schema,
+                    nullpool=nullpool,
+                    source=source,
+                    sqlalchemy_uri=sqlalchemy_uri,
+                )
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals
         self,
@@ -508,12 +511,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         if self.impersonate_user:
-            self.db_engine_spec.update_impersonation_config(
-                connect_args,
-                str(sqlalchemy_url),
-                effective_username,
-                access_token,
+            # PR #30674 changed the signature of the method to include database.
+            # This ensures that the change is backwards compatible
+            args = [connect_args, str(sqlalchemy_url), effective_username, access_token]
+            args = self.add_database_to_signature(
+                self.db_engine_spec.update_impersonation_config,
+                args,
             )
+            self.db_engine_spec.update_impersonation_config(*args)
 
         if connect_args:
             params["connect_args"] = connect_args
@@ -540,6 +545,24 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             return create_engine(sqlalchemy_url, **params)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+
+    def add_database_to_signature(
+        self,
+        func: Callable[..., None],
+        args: list[Any],
+    ) -> list[Any]:
+        """
+        Examines a function signature looking for a database param.
+        If the signature requires a database, the function appends self in the
+        proper position.
+        """
+
+        # PR #30674 changed the signature of the method to include database.
+        # This ensures that the change is backwards compatible
+        sig = signature(func)
+        if "database" in (params := sig.parameters.keys()):
+            args.insert(list(params).index("database"), self)
+        return args
 
     @contextmanager
     def get_raw_connection(
@@ -1032,7 +1055,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
 
     def get_perm(self) -> str:
-        return self.perm  # type: ignore
+        return self.perm
 
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
@@ -1112,6 +1135,18 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         trigger the OAuth2 dance in the frontend.
         """
         return self.db_engine_spec.start_oauth2_dance(self)
+
+    def purge_oauth2_tokens(self) -> None:
+        """
+        Delete all OAuth2 tokens associated with this database.
+
+        This is needed when the configuration changes. For example, a new client ID and
+        secret probably will require new tokens. The same is valid for changes in the
+        scope or in the endpoints.
+        """
+        db.session.query(DatabaseUserOAuth2Tokens).filter(
+            DatabaseUserOAuth2Tokens.id == self.id
+        ).delete()
 
 
 sqla.event.listen(Database, "after_insert", security_manager.database_after_insert)

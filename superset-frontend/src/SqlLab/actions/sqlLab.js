@@ -631,6 +631,21 @@ export function setActiveQueryEditor(queryEditor) {
   };
 }
 
+export function switchQueryEditor(goBackward = false) {
+  return function (dispatch, getState) {
+    const { sqlLab } = getState();
+    const { queryEditors, tabHistory } = sqlLab;
+    const qeid = tabHistory[tabHistory.length - 1];
+    const currentIndex = queryEditors.findIndex(qe => qe.id === qeid);
+    const nextIndex = goBackward
+      ? currentIndex - 1 + queryEditors.length
+      : currentIndex + 1;
+    const newQueryEditor = queryEditors[nextIndex % queryEditors.length];
+
+    dispatch(setActiveQueryEditor(newQueryEditor));
+  };
+}
+
 export function loadQueryEditor(queryEditor) {
   return { type: LOAD_QUERY_EDITOR, queryEditor };
 }

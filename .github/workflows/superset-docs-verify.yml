@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docs/**"
+      - ".github/workflows/superset-docs-verify.yml"
     types: [synchronize, opened, reopened, ready_for_review]
 
 # cancel previous workflow jobs for PRs
@@ -16,10 +17,12 @@ jobs:
     # See docs here: https://github.com/marketplace/actions/linkinator
     name: Link Checking
     runs-on: ubuntu-latest
-    continue-on-error: true # This will make the job advisory (non-blocking, no red X)
     steps:
       - uses: actions/checkout@v4
-      - uses: JustinBeckwith/linkinator-action@v1.10.4
+      # Do not bump this linkinator-action version without opening
+      # an ASF Infra ticket to allow the new verison first!
+      - uses: JustinBeckwith/linkinator-action@v1.11.0
+        continue-on-error: true # This will make the job advisory (non-blocking, no red X)
         with:
           paths: "**/*.md, **/*.mdx"
           linksToSkip: >-
@@ -40,6 +43,12 @@ jobs:
             https://dev.mysql.com/doc/refman/5.7/en/innodb-limits.html,
             ^https://img\.shields\.io/.*,
             https://vkusvill.ru/
+            https://www.linkedin.com/in/mark-thomas-b16751158/
+            https://theiconic.com.au/
+            https://wattbewerb.de/
+            https://timbr.ai/
+            https://opensource.org/license/apache-2-0
+            https://www.plaidcloud.com/
   build-deploy:
     name: Build & Deploy
     runs-on: ubuntu-22.04

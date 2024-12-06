@@ -20,14 +20,18 @@ import {
   EchartsBubbleChartPlugin,
   BubbleTransformProps,
 } from '@superset-ui/plugin-chart-echarts';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import {
+  SuperChart,
+  VizType,
+  getChartTransformPropsRegistry,
+} from '@superset-ui/core';
 import { simpleBubbleData } from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
-new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }).register();
+new EchartsBubbleChartPlugin().configure({ key: VizType.Bubble }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  'bubble_v2',
+  VizType.Bubble,
   BubbleTransformProps,
 );
 
@@ -104,7 +108,7 @@ export const BubbleChart = (
   { width, height }: { width: number; height: number },
 ) => (
   <SuperChart
-    chartType="bubble_v2"
+    chartType={VizType.Bubble}
     width={width}
     height={height}
     queriesData={[{ data: simpleBubbleData }]}

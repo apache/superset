@@ -17,15 +17,21 @@
  * under the License.
  */
 
+import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 import { FC } from 'react';
-import { SupersetError } from '@superset-ui/core';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import { ChartSource } from 'src/types/ChartSource';
 
-interface Props {
+export type Props = {
   chartId: string;
   error?: SupersetError;
-}
+  subtitle: JSX.Element;
+  copyText: string | undefined;
+  link?: string;
+  source: ChartSource;
+  stackTrace?: string;
+} & Omit<ClientErrorObject, 'error'>;
 
 /**
  * fetches the chart owners and adds them to the extra data of the error message

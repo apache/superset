@@ -20,15 +20,17 @@
 import { defineConfig } from 'cypress';
 import eyesPlugin from '@applitools/eyes-cypress';
 
+const { verifyDownloadTasks } = require('cy-verify-downloads');
+
 export default eyesPlugin(
   defineConfig({
     chromeWebSecurity: false,
     defaultCommandTimeout: 8000,
     numTestsKeptInMemory: 0,
     experimentalFetchPolyfill: true,
+    experimentalMemoryManagement: true,
     requestTimeout: 10000,
     video: false,
-    videoUploadOnPasses: false,
     viewportWidth: 1280,
     viewportHeight: 1024,
     projectId: 'ud5x2f',
@@ -60,9 +62,11 @@ export default eyesPlugin(
           }
           return launchOptions;
         });
-
+        // eslint-disable-next-line global-require
+        require('@cypress/code-coverage/task')(on, config);
+        on('task', verifyDownloadTasks);
         // eslint-disable-next-line global-require,import/extensions
-        return require('./cypress/plugins/index.js')(on, config);
+        return config;
       },
       baseUrl: 'http://localhost:8088',
       excludeSpecPattern: [],

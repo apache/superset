@@ -114,6 +114,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
     dashboard_id: int,
     dashboard_url: str,
     force: bool = True,
+    cache_key: Optional[str] = None,
     guest_token: Optional[GuestToken] = None,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
@@ -148,4 +149,5 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
             force=force,
             window_size=window_size,
             thumb_size=thumb_size,
+            cache_key=cache_key,
         )

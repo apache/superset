@@ -29,7 +29,7 @@ We have a set of build "presets" that each represent a combination of
 parameters for the build, mostly pointing to either different target layer
 for the build, and/or base image.
 
-Here are the build presets that are exposed through the `build_docker.py` script:
+Here are the build presets that are exposed through the `supersetbot docker` utility:
 
 - `lean`: The default Docker image, including both frontend and backend. Tags
   without a build_preset are lean builds (ie: `latest`, `4.0.0`, `3.0.0`, ...). `lean`
@@ -62,11 +62,15 @@ Here are the build presets that are exposed through the `build_docker.py` script
 
 
 For insights or modifications to the build matrix and tagging conventions,
-check the [build_docker.py](https://github.com/apache/superset/blob/master/scripts/build_docker.py)
-script and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
+check the [supersetbot docker](https://github.com/apache-superset/supersetbot)
+subcommand and the [docker.yml](https://github.com/apache/superset/blob/master/.github/workflows/docker.yml)
 GitHub action.
 
 ## Key ARGs in Dockerfile
+- `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
+  frontend build this tells webpack to strip out all locales other than `en` from
+  the `moment-timezone` library. For the backendthis skips compiling the
+  `*.po` translation files
 - `DEV_MODE`: whether to skip the frontend build, this is used by our `docker-compose` dev setup
   where we mount the local volume and build using `webpack` in `--watch` mode, meaning as you
   alter the code in the local file system, webpack, from within a docker image used for this

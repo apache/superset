@@ -67,6 +67,7 @@ from superset.security.guest_token import (
     GuestUser,
 )
 from superset.sql_parse import extract_tables_from_jinja_sql, Table
+from superset.tasks.utils import get_current_user
 from superset.utils import json
 from superset.utils.core import (
     DatasourceName,
@@ -176,7 +177,12 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     )
 
     # compare columns and metrics in form_data with stored values
-    for key in ["metrics", "columns", "groupby"]:
+    for key, equivalent in [
+        ("metrics", ["metrics"]),
+        ("columns", ["columns", "groupby"]),
+        ("groupby", ["columns", "groupby"]),
+        ("orderby", ["orderby"]),
+    ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
             freeze_value(value) for value in stored_chart.params_dict.get(key) or []
@@ -192,9 +198,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:
-                stored_values.update(
-                    {freeze_value(value) for value in query.get(key) or []}
-                )
+                for key in equivalent:
+                    stored_values.update(
+                        {freeze_value(value) for value in query.get(key) or []}
+                    )
 
         if not queries_values.issubset(stored_values):
             return True
@@ -471,7 +478,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
-            or self.can_access("database_access", database.perm)  # type: ignore
+            or self.can_access("database_access", database.perm)
         )
 
     def can_access_catalog(self, database: "Database", catalog: str) -> bool:
@@ -2166,7 +2173,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
@@ -2639,8 +2645,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             return False
+
         if not user:
+            if not get_current_user():
+                return False
             user = g.user
+
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:

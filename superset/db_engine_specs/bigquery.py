@@ -36,7 +36,6 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
-from superset import sql_parse
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
@@ -44,6 +43,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
@@ -409,7 +409,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
 
     @classmethod
-    def _get_client(cls, engine: Engine) -> bigquery.Client:
+    def _get_client(
+        cls,
+        engine: Engine,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> bigquery.Client:
         """
         Return the BigQuery client associated with an engine.
         """
@@ -445,21 +449,20 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        statements = parsed_query.get_statements()
+        parsed_script = SQLScript(sql, engine=cls.engine)
 
         with cls.get_engine(
             database,
             catalog=catalog,
             schema=schema,
         ) as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return [
                 cls.custom_estimate_statement_cost(
                     cls.process_statement(statement, database),
                     client,
                 )
-                for statement in statements
+                for statement in parsed_script.statements
             ]
 
     @classmethod
@@ -477,7 +480,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return project
 
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return client.project
 
     @classmethod
@@ -493,7 +496,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         engine: Engine
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             projects = client.list_projects()
 
         return {project.project_id for project in projects}
@@ -738,7 +741,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:
         try:
-            return Exception(str(exception).splitlines()[0].strip())
+            return type(exception)(str(exception).splitlines()[0].strip())
         except Exception:  # pylint: disable=broad-except
             # If for some reason we get an exception, for example, no new line
             # We will return the original exception

@@ -65,35 +65,43 @@ def get_gpg_info(filename: str) -> tuple[Optional[str], Optional[str]]:
     output = result.stderr.decode()
 
     rsa_key = re.search(r"RSA key ([0-9A-F]+)", output)
+    eddsa_key = re.search(r"EDDSA key ([0-9A-F]+)", output)
     email = re.search(r'issuer "([^"]+)"', output)
 
     rsa_key_result = rsa_key.group(1) if rsa_key else None
+    eddsa_key_result = eddsa_key.group(1) if eddsa_key else None
     email_result = email.group(1) if email else None
 
-    # Debugging: print warnings if rsa_key or email is not found
-    if rsa_key_result is None:
-        print("Warning: No RSA key found in GPG verification output.")
-    if email_result is None:
+    key_result = rsa_key_result or eddsa_key_result
+
+    # Debugging:
+    if key_result:
+        print("RSA or EDDSA Key found")
+    else:
+        print("Warning: No RSA or EDDSA key found in GPG verification output.")
+    if email_result:
+        print("email found")
+    else:
         print("Warning: No email address found in GPG verification output.")
 
-    return rsa_key_result, email_result
+    return key_result, email_result
 
 
-def verify_rsa_key(rsa_key: str, email: Optional[str]) -> str:
-    """Fetch the KEYS file and verify if the RSA key and email match."""
+def verify_key(key: str, email: Optional[str]) -> str:
+    """Fetch the KEYS file and verify if the RSA/EDDSA key and email match."""
     url = "https://downloads.apache.org/superset/KEYS"
     response = requests.get(url)
     if response.status_code == 200:
-        if rsa_key not in response.text:
-            return "RSA key not found on KEYS page"
+        if key not in response.text:
+            return "RSA/EDDSA key not found on KEYS page"
 
         # Check if email is None or not in response.text
         if email and email in response.text:
-            return "RSA key and email verified against Apache KEYS file"
+            return "RSA/EDDSA key and email verified against Apache KEYS file"
         elif email:
-            return "RSA key verified, but Email not found on KEYS page"
+            return "RSA/EDDSA key verified, but Email not found on KEYS page"
         else:
-            return "RSA key verified, but Email not available for verification"
+            return "RSA/EDDSA key verified, but Email not available for verification"
     else:
         return "Failed to fetch KEYS file"
 
@@ -103,9 +111,9 @@ def verify_sha512_and_rsa(filename: str) -> None:
     sha_result = verify_sha512(filename)
     print(sha_result)
 
-    rsa_key, email = get_gpg_info(filename)
-    if rsa_key:
-        rsa_result = verify_rsa_key(rsa_key, email)
+    key, email = get_gpg_info(filename)
+    if key:
+        rsa_result = verify_key(key, email)
         print(rsa_result)
     else:
         print("GPG verification failed: RSA key or email not found")

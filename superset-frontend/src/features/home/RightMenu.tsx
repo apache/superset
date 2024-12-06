@@ -313,7 +313,7 @@ const RightMenu = ({
 
   const buildMenuItem = (item: MenuObjectChildProps) =>
     item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled}>
+      <Menu.Item key={item.name} css={styledDisabled} disabled>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>

@@ -31,6 +31,9 @@ metadata:
     chart: {{ template "superset.chart" $ }}
     release: {{ $.Release.Name }}
     heritage: {{ $.Release.Service }}
+    {{- if $.Values.extraLabels }}
+      {{- toYaml $.Values.extraLabels | nindent 4 }}
+    {{- end }}
 spec:
 {{- if .minAvailable }}
   minAvailable: {{ .minAvailable }}

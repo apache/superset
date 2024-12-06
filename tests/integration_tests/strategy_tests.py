@@ -86,7 +86,7 @@ class TestCacheWarmUp(SupersetTestCase):
         expected = [
             {"chart_id": chart.id, "dashboard_id": dash.id} for chart in dash.slices
         ]
-        self.assertCountEqual(result, expected)
+        self.assertCountEqual(result, expected)  # noqa: PT009
 
     def reset_tag(self, tag):
         """Remove associated object from tag, used to reset tests"""
@@ -106,7 +106,7 @@ class TestCacheWarmUp(SupersetTestCase):
         strategy = DashboardTagsStrategy(["tag1"])
         result = strategy.get_payloads()
         expected = []
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagType.custom)
@@ -118,7 +118,7 @@ class TestCacheWarmUp(SupersetTestCase):
         db.session.add(tagged_object)
         db.session.commit()
 
-        self.assertCountEqual(strategy.get_payloads(), tag1_urls)
+        self.assertCountEqual(strategy.get_payloads(), tag1_urls)  # noqa: PT009
 
         strategy = DashboardTagsStrategy(["tag2"])
         tag2 = get_tag("tag2", db.session, TagType.custom)
@@ -126,7 +126,7 @@ class TestCacheWarmUp(SupersetTestCase):
 
         result = strategy.get_payloads()
         expected = []
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # tag first slice
         dash = self.get_dash_by_slug("unicode-test")
@@ -140,10 +140,10 @@ class TestCacheWarmUp(SupersetTestCase):
         db.session.commit()
 
         result = strategy.get_payloads()
-        self.assertCountEqual(result, tag2_urls)
+        self.assertCountEqual(result, tag2_urls)  # noqa: PT009
 
         strategy = DashboardTagsStrategy(["tag1", "tag2"])
 
         result = strategy.get_payloads()
         expected = tag1_urls + tag2_urls
-        self.assertCountEqual(result, expected)
+        self.assertCountEqual(result, expected)  # noqa: PT009

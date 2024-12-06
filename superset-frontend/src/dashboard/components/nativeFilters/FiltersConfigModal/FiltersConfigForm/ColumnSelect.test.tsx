@@ -84,12 +84,12 @@ test('Should call "setFields" when "datasetId" changes', () => {
   const { rerender } = render(<ColumnSelect {...(props as any)} />, {
     useRedux: true,
   });
-  expect(props.form.setFields).not.toBeCalled();
+  expect(props.form.setFields).not.toHaveBeenCalled();
 
   props.datasetId = 456;
   rerender(<ColumnSelect {...(props as any)} />);
 
-  expect(props.form.setFields).toBeCalled();
+  expect(props.form.setFields).toHaveBeenCalled();
 });
 
 test('Should call "getClientErrorObject" when api returns an error', async () => {
@@ -98,12 +98,12 @@ test('Should call "getClientErrorObject" when api returns an error', async () =>
   props.datasetId = 789;
   const spy = jest.spyOn(uiCore, 'getClientErrorObject');
 
-  expect(spy).not.toBeCalled();
+  expect(spy).not.toHaveBeenCalled();
   render(<ColumnSelect {...(props as any)} />, {
     useRedux: true,
   });
   await waitFor(() => {
-    expect(spy).toBeCalled();
+    expect(spy).toHaveBeenCalled();
   });
 });
 
