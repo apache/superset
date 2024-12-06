@@ -19,7 +19,11 @@
 import { isValidElement } from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
-import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
+import {
+  getChartMetadataRegistry,
+  ChartMetadata,
+  VizType,
+} from '@superset-ui/core';
 import ChartContainer from 'src/explore/components/ExploreChartPanel';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 
@@ -32,11 +36,11 @@ const createProps = (overrides = {}) => ({
   containerId: 'foo',
   width: '500px',
   isStarred: false,
-  vizType: 'histogram',
+  vizType: VizType.LegacyHistogram,
   chart: {
     id: 1,
     latestQueryFormData: {
-      viz_type: 'histogram',
+      viz_type: VizType.LegacyHistogram,
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
@@ -70,7 +74,7 @@ describe('ChartContainer', () => {
       chart: { chartStatus: 'rendered', queriesResponse: [{}] },
     });
     getChartMetadataRegistry().registerValue(
-      'histogram',
+      VizType.LegacyHistogram,
       new ChartMetadata({
         name: 'fake table',
         thumbnail: '.png',

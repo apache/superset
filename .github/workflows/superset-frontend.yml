@@ -73,7 +73,7 @@ jobs:
         working-directory: ./superset-frontend/packages/generator-superset
         run: npm run test
       - name: Upload code coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: javascript
           token: ${{ secrets.CODECOV_TOKEN }}

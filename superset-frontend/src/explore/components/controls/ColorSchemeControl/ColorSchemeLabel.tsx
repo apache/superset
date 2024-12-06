@@ -82,7 +82,7 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
       overlayClassName="color-scheme-tooltip"
       title={tooltipContent}
       key={id}
-      visible={showTooltip}
+      open={showTooltip}
     >
       <span
         className="color-scheme-option"

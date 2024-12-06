@@ -29,6 +29,7 @@ Join our growing community!
 ### Sharing Economy
 - [Airbnb](https://github.com/airbnb)
 - [Faasos](https://faasos.com/) [@shashanksingh]
+- [Free2Move](https://www.free2move.com/) [@PaoloTerzi]
 - [Hostnfly](https://www.hostnfly.com/) [@alexisrosuel]
 - [Lime](https://www.li.me/) [@cxmcc]
 - [Lyft](https://www.lyft.com/)

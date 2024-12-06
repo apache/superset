@@ -19,7 +19,8 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# A README is automatically generated from this file to document it, using helm-docs (see https://github.com/norwoodj/helm-docs)
+# A README is automatically generated from this file to document it,
+# using helm-docs (see https://github.com/norwoodj/helm-docs)
 # To update it, install helm-docs and run helm-docs from the root of this chart
 
 # -- Provide a name to override the name of the chart

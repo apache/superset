@@ -22,7 +22,7 @@ import { render, screen, within } from 'spec/helpers/testing-library';
 import setupPlugins from 'src/setup/setupPlugins';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
-import { BinaryQueryObjectFilterClause } from '@superset-ui/core';
+import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import DrillDetailMenuItems, {
   DrillDetailMenuItemsProps,
@@ -46,12 +46,12 @@ const { id: defaultChartId, form_data: defaultFormData } =
 const { slice_name: chartName } = defaultFormData;
 const unsupportedChartFormData = {
   ...defaultFormData,
-  viz_type: 'dist_bar',
+  viz_type: VizType.DistBar,
 };
 
 const noDimensionsFormData = {
   ...defaultFormData,
-  viz_type: 'table',
+  viz_type: VizType.Table,
   query_mode: 'raw',
 };
 

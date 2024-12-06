@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import {
+  SuperChart,
+  VizType,
+  getChartTransformPropsRegistry,
+} from '@superset-ui/core';
 import {
   EchartsWaterfallChartPlugin,
   WaterfallTransformProps,
@@ -25,11 +29,11 @@ import data from './data';
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 
 new EchartsWaterfallChartPlugin()
-  .configure({ key: 'echarts-waterfall' })
+  .configure({ key: VizType.Waterfall })
   .register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-waterfall',
+  VizType.Waterfall,
   WaterfallTransformProps,
 );
 
@@ -40,7 +44,7 @@ export default {
 
 export const Waterfall = ({ width, height }) => (
   <SuperChart
-    chartType="echarts-waterfall"
+    chartType={VizType.Waterfall}
     width={width}
     height={height}
     queriesData={[{ data }]}

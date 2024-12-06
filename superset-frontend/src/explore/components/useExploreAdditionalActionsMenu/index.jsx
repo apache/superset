@@ -25,6 +25,7 @@ import {
   styled,
   t,
   useTheme,
+  VizType,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
@@ -70,7 +71,7 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
 };
 
-const VIZ_TYPES_PIVOTABLE = ['pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`

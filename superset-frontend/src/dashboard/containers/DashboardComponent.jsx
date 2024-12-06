@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { useCallback, memo, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { logEvent } from 'src/logger/actions';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { componentLookup } from 'src/dashboard/components/gridComponents';
 import getDetailedComponentWidth from 'src/dashboard/util/getDetailedComponentWidth';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
-import { componentShape } from 'src/dashboard/util/propShapes';
 import { COLUMN_TYPE, ROW_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   createComponent,
@@ -47,85 +46,93 @@ const propTypes = {
   renderHoverMenu: PropTypes.bool,
   renderTabContent: PropTypes.bool,
   onChangeTab: PropTypes.func,
-  component: componentShape.isRequired,
-  parentComponent: componentShape.isRequired,
-  createComponent: PropTypes.func.isRequired,
-  deleteComponent: PropTypes.func.isRequired,
-  updateComponents: PropTypes.func.isRequired,
-  handleComponentDrop: PropTypes.func.isRequired,
-  logEvent: PropTypes.func.isRequired,
   directPathToChild: PropTypes.arrayOf(PropTypes.string),
   directPathLastUpdated: PropTypes.number,
-  dashboardId: PropTypes.number.isRequired,
   isComponentVisible: PropTypes.bool,
 };
 
-const defaultProps = {
-  isComponentVisible: true,
-};
+const DashboardComponent = props => {
+  const dispatch = useDispatch();
+  const dashboardLayout = useSelector(state => state.dashboardLayout.present);
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
+  const editMode = useSelector(state => state.dashboardState.editMode);
+  const fullSizeChartId = useSelector(
+    state => state.dashboardState.fullSizeChartId,
+  );
+  const dashboardId = dashboardInfo.id;
+  const component = dashboardLayout[props.id];
+  const parentComponent = dashboardLayout[props.parentId];
+  const getComponentById = useCallback(
+    id => dashboardLayout[id],
+    [dashboardLayout],
+  );
+  const { isComponentVisible = true } = props;
+  const filters = getActiveFilters();
+  const embeddedMode = !dashboardInfo.userId;
 
-function mapStateToProps(
-  { dashboardLayout: undoableLayout, dashboardState, dashboardInfo },
-  ownProps,
-) {
-  const dashboardLayout = undoableLayout.present;
-  const { id, parentId } = ownProps;
-  const component = dashboardLayout[id];
-  const props = {
-    component,
-    getComponentById: id => dashboardLayout[id],
-    parentComponent: dashboardLayout[parentId],
-    editMode: dashboardState.editMode,
-    filters: getActiveFilters(),
-    dashboardId: dashboardInfo.id,
-    dashboardInfo,
-    fullSizeChartId: dashboardState.fullSizeChartId,
-  };
+  const boundActionCreators = useMemo(
+    () =>
+      bindActionCreators(
+        {
+          addDangerToast,
+          createComponent,
+          deleteComponent,
+          updateComponents,
+          handleComponentDrop,
+          setDirectPathToChild,
+          setFullSizeChartId,
+          setActiveTab,
+          logEvent,
+        },
+        dispatch,
+      ),
+    [dispatch],
+  );
 
   // rows and columns need more data about their child dimensions
   // doing this allows us to not pass the entire component lookup to all Components
-  if (component) {
-    const componentType = component.type;
-    if (componentType === ROW_TYPE || componentType === COLUMN_TYPE) {
-      const { occupiedWidth, minimumWidth } = getDetailedComponentWidth({
-        id,
-        components: dashboardLayout,
-      });
+  const { occupiedColumnCount, minColumnWidth } = useMemo(() => {
+    if (component) {
+      const componentType = component.type;
+      if (componentType === ROW_TYPE || componentType === COLUMN_TYPE) {
+        const { occupiedWidth, minimumWidth } = getDetailedComponentWidth({
+          id: props.id,
+          components: dashboardLayout,
+        });
 
-      if (componentType === ROW_TYPE) props.occupiedColumnCount = occupiedWidth;
-      if (componentType === COLUMN_TYPE) props.minColumnWidth = minimumWidth;
+        if (componentType === ROW_TYPE) {
+          return { occupiedColumnCount: occupiedWidth };
+        }
+        if (componentType === COLUMN_TYPE) {
+          return { minColumnWidth: minimumWidth };
+        }
+      }
+      return {};
     }
-  }
+    return {};
+  }, [component, dashboardLayout, props.id]);
 
-  return props;
-}
-
-function mapDispatchToProps(dispatch) {
-  return bindActionCreators(
-    {
-      addDangerToast,
-      createComponent,
-      deleteComponent,
-      updateComponents,
-      handleComponentDrop,
-      setDirectPathToChild,
-      setFullSizeChartId,
-      setActiveTab,
-      logEvent,
-    },
-    dispatch,
-  );
-}
-
-class DashboardComponent extends PureComponent {
-  render() {
-    const { component } = this.props;
-    const Component = component ? componentLookup[component.type] : null;
-    return Component ? <Component {...this.props} /> : null;
-  }
-}
+  const Component = component ? componentLookup[component.type] : null;
+  return Component ? (
+    <Component
+      {...props}
+      {...boundActionCreators}
+      component={component}
+      getComponentById={getComponentById}
+      parentComponent={parentComponent}
+      editMode={editMode}
+      filters={filters}
+      dashboardId={dashboardId}
+      dashboardInfo={dashboardInfo}
+      fullSizeChartId={fullSizeChartId}
+      occupiedColumnCount={occupiedColumnCount}
+      minColumnWidth={minColumnWidth}
+      isComponentVisible={isComponentVisible}
+      embeddedMode={embeddedMode}
+    />
+  ) : null;
+};
 
 DashboardComponent.propTypes = propTypes;
-DashboardComponent.defaultProps = defaultProps;
 
-export default connect(mapStateToProps, mapDispatchToProps)(DashboardComponent);
+export default memo(DashboardComponent);

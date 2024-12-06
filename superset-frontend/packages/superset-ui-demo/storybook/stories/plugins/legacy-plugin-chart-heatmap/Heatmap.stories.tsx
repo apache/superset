@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 import ResizableChartDemo from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
-new HeatmapChartPlugin().configure({ key: 'heatmap' }).register();
+new HeatmapChartPlugin().configure({ key: VizType.LegacyHeatmap }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-heatmap',
@@ -30,7 +30,7 @@ export default {
 
 export const basic = () => (
   <SuperChart
-    chartType="heatmap"
+    chartType={VizType.LegacyHeatmap}
     width={500}
     height={500}
     formData={{
@@ -67,7 +67,7 @@ export const resizable = () => (
   <ResizableChartDemo>
     {({ width, height }) => (
       <SuperChart
-        chartType="heatmap"
+        chartType={VizType.LegacyHeatmap}
         width={width}
         height={height}
         formData={{
@@ -104,7 +104,7 @@ export const resizable = () => (
 
 export const withNullData = () => (
   <SuperChart
-    chartType="heatmap"
+    chartType={VizType.LegacyHeatmap}
     width={500}
     height={500}
     formData={{

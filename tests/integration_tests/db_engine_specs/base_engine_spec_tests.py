@@ -30,7 +30,7 @@ from superset.db_engine_specs.base import (
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
@@ -308,20 +308,6 @@ class TestDbEngineSpecs(TestDbEngineSpec):
             "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"
             in sql
         )
-
-
-def test_is_readonly():
-    def is_readonly(sql: str) -> bool:
-        return BaseEngineSpec.is_readonly_query(ParsedQuery(sql))
-
-    assert is_readonly("SHOW LOCKS test EXTENDED")
-    assert not is_readonly("SET hivevar:desc='Legislators'")
-    assert not is_readonly("UPDATE t1 SET col1 = NULL")
-    assert is_readonly("EXPLAIN SELECT 1")
-    assert is_readonly("SELECT 1")
-    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
-    assert is_readonly("SHOW CATALOGS")
-    assert is_readonly("SHOW TABLES")
 
 
 def test_time_grain_denylist():

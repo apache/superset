@@ -77,10 +77,6 @@ versions officially supported by Superset. We'd recommend using a Python version
 like [pyenv](https://github.com/pyenv/pyenv)
 (and also [pyenv-virtualenv](https://github.com/pyenv/pyenv-virtualenv)).
 
-:::tip
-To identify the Python version used by the official docker image, see the [Dockerfile](https://github.com/apache/superset/blob/master/Dockerfile). Additional docker images published for newer versions of Python can be found in [this file](https://github.com/apache/superset/blob/master/scripts/build_docker.py).
-:::
-
 Let's also make sure we have the latest version of `pip` and `setuptools`:
 
 ```bash
@@ -134,21 +130,22 @@ First, start by installing `apache-superset`:
 pip install apache-superset
 ```
 
+Then, define mandatory configurations, SECRET_KEY and FLASK_APP:
+```bash
+export SUPERSET_SECRET_KEY=YOUR-SECRET-KEY
+export FLASK_APP=superset
+```
+
 Then, you need to initialize the database:
 
 ```bash
 superset db upgrade
 ```
 
-:::tip
-Note that some configuration is mandatory for production instances of Superset. In particular, Superset will not start without a user-specified value of SECRET_KEY. Please see [Configuring Superset](/docs/configuration/configuring-superset).
-:::
-
 Finish installing by running through the following commands:
 
 ```bash
 # Create an admin user in your metadata database (use `admin` as username to be able to load the examples)
-export FLASK_APP=superset
 superset fab create-admin
 
 # Load some data to play with

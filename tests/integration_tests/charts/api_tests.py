@@ -1964,6 +1964,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
 
+        data["result"].sort(key=lambda x: x["datasource_id"])
         assert data["result"][0]["slice_name"] == "name0"
         assert data["result"][0]["datasource_id"] == 1
 

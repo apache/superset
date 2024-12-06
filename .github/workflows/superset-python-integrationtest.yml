@@ -68,7 +68,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: python,mysql
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -129,7 +129,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: python,postgres
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -181,7 +181,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           flags: python,sqlite
           token: ${{ secrets.CODECOV_TOKEN }}

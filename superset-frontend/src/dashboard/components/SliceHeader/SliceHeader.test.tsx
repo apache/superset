@@ -18,7 +18,7 @@
  */
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import { getExtensionsRegistry } from '@superset-ui/core';
+import { getExtensionsRegistry, VizType } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import SliceHeader from '.';
@@ -129,12 +129,12 @@ const createProps = (overrides: any = {}) => ({
       row_limit: 10000,
       show_legend: false,
       time_range: 'No filter',
-      viz_type: 'dist_bar',
+      viz_type: VizType.DistBar,
       x_ticks_layout: 'auto',
       y_axis_format: 'SMART_NUMBER',
       slice_id: 312,
     },
-    viz_type: 'dist_bar',
+    viz_type: VizType.DistBar,
     datasource: '58__table',
     description: '',
     description_markeddown: '',

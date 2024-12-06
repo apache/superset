@@ -25,6 +25,7 @@ import {
   within,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
+import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
 import { AlertObject, NotificationMethodOption } from './types';
@@ -95,7 +96,7 @@ const generateMockPayload = (dashboard = true) => {
     chart: {
       id: 1,
       slice_name: 'Test Chart',
-      viz_type: 'table',
+      viz_type: VizType.Table,
     },
   };
 };

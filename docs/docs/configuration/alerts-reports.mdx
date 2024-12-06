@@ -53,11 +53,14 @@ To send alerts and reports to Slack channels, you need to create a new Slack App
    - `incoming-webhook`
    - `files:write`
    - `chat:write`
+   - `channels:read`
+   - `groups:read`
 4. At the top of the "OAuth and Permissions" section, click "install to workspace".
 5. Select a default channel for your app and continue.
    (You can post to any channel by inviting your Superset app into that channel).
 6. The app should now be installed in your workspace, and a "Bot User OAuth Access Token" should have been created. Copy that token in the `SLACK_API_TOKEN` variable of your `superset_config.py`.
-7. Restart the service (or run `superset init`) to pull in the new configuration.
+7. Ensure the feature flag `ALERT_REPORT_SLACK_V2` is set to True in `superset_config.py`
+8. Restart the service (or run `superset init`) to pull in the new configuration.
 
 Note: when you configure an alert or a report, the Slack channel list takes channel names without the leading '#' e.g. use `alerts` instead of `#alerts`.
 

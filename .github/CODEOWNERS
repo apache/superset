@@ -12,7 +12,7 @@
 
 # Notify Helm Chart maintainers about changes in it
 
-/helm/superset/ @craig-rueda @dpgaspar @villebro
+/helm/superset/ @craig-rueda @dpgaspar @villebro @nytai @michael-s-molina
 
 # Notify E2E test maintainers of changes
 

@@ -17,8 +17,8 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@algolia/client-search": "^5.12.0",
-    "@ant-design/icons": "^5.4.0",
+    "@algolia/client-search": "^5.15.0",
+    "@ant-design/icons": "^5.5.2",
     "@docsearch/react": "^3.6.3",
     "@docusaurus/core": "^3.5.2",
     "@docusaurus/plugin-client-redirects": "^3.5.2",
@@ -34,7 +34,7 @@
     "clsx": "^2.1.1",
     "docusaurus-plugin-less": "^2.0.2",
     "file-loader": "^6.2.0",
-    "less": "^4.2.0",
+    "less": "^4.2.1",
     "less-loader": "^11.0.0",
     "prism-react-renderer": "^2.4.0",
     "react": "^18.3.1",
@@ -42,14 +42,14 @@
     "react-github-btn": "^1.4.0",
     "react-svg-pan-zoom": "^3.13.1",
     "stream": "^0.0.3",
-    "swagger-ui-react": "^5.17.14",
+    "swagger-ui-react": "^5.18.2",
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.5.2",
-    "@docusaurus/tsconfig": "^3.5.2",
+    "@docusaurus/module-type-aliases": "^3.6.3",
+    "@docusaurus/tsconfig": "^3.6.3",
     "@types/react": "^18.3.12",
-    "typescript": "^5.6.3",
+    "typescript": "^5.7.2",
     "webpack": "^5.96.1"
   },
   "browserslist": {

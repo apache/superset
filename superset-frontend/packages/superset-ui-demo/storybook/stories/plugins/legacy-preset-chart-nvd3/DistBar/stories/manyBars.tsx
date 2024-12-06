@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart, seedRandom } from '@superset-ui/core';
+import { SuperChart, VizType, seedRandom } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 
 const data: {
@@ -51,7 +51,7 @@ export const manyBars = () => (
       colorScheme: 'd3Category10',
       showBarValue: false,
       showLegend: true,
-      vizType: 'dist_bar',
+      vizType: VizType.DistBar,
       xTicksLayout: 'auto',
     }}
   />

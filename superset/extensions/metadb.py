@@ -334,7 +334,9 @@ class SupersetShillelaghAdapter(Adapter):
         primary_keys = [
             column for column in list(self._table.primary_key) if column.primary_key
         ]
-        if len(primary_keys) == 1 and primary_keys[0].type.python_type == int:
+        if len(primary_keys) == 1 and isinstance(
+            primary_keys[0].type.python_type, type(int)
+        ):
             self._rowid = primary_keys[0].name
 
         self.columns = {

@@ -376,7 +376,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover > div {
+  .antd5-card-cover > div {
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }

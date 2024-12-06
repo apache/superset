@@ -25,7 +25,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.presto import PrestoEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 
@@ -1170,19 +1170,6 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 },
             )
         ]
-
-
-def test_is_readonly():
-    def is_readonly(sql: str) -> bool:
-        return PrestoEngineSpec.is_readonly_query(ParsedQuery(sql))
-
-    assert not is_readonly("SET hivevar:desc='Legislators'")
-    assert not is_readonly("UPDATE t1 SET col1 = NULL")
-    assert not is_readonly("INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA")
-    assert is_readonly("SHOW LOCKS test EXTENDED")
-    assert is_readonly("EXPLAIN SELECT 1")
-    assert is_readonly("SELECT 1")
-    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
 
 
 def test_get_catalog_names(app_context: AppContext) -> None:

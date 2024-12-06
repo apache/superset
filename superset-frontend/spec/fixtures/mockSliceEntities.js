@@ -17,7 +17,7 @@
  * under the License.
  */
 import { datasourceId } from 'spec/fixtures/mockDatasource';
-import { DatasourceType } from '@superset-ui/core';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import { sliceId } from './mockChartQueries';
 
 export const filterId = 127;
@@ -31,7 +31,7 @@ export const sliceEntitiesForChart = {
       slice_name: 'Genders',
       form_data: {
         slice_id: sliceId,
-        viz_type: 'pie',
+        viz_type: VizType.Pie,
         row_limit: 50000,
         metric: 'sum__num',
         since: '100 years ago',
@@ -46,7 +46,7 @@ export const sliceEntitiesForChart = {
         compare_suffix: 'o10Y',
         datasource: datasourceId,
       },
-      viz_type: 'pie',
+      viz_type: VizType.Pie,
       datasource: datasourceId,
       description: '',
       description_markdown: '',
@@ -98,7 +98,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20128%7D',
       slice_name: "World's Population",
       form_data: {},
-      viz_type: 'big_number',
+      viz_type: VizType.BigNumber,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -118,7 +118,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20129%7D',
       slice_name: 'Most Populated Countries',
       form_data: {},
-      viz_type: 'table',
+      viz_type: VizType.Table,
       datasource: '2__table',
       description: '',
       description_markdown: 'dd',
@@ -139,7 +139,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20130%7D',
       slice_name: 'Growth Rate',
       form_data: {},
-      viz_type: 'line',
+      viz_type: VizType.LegacyLine,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -160,7 +160,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20131%7D',
       slice_name: '% Rural',
       form_data: {},
-      viz_type: 'world_map',
+      viz_type: VizType.WorldMap,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -181,7 +181,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20132%7D',
       slice_name: 'Life Expectancy VS Rural %',
       form_data: {},
-      viz_type: 'bubble',
+      viz_type: VizType.LegacyBubble,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -202,7 +202,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20133%7D',
       slice_name: 'Rural Breakdown',
       form_data: {},
-      viz_type: 'sunburst_v2',
+      viz_type: VizType.Sunburst,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -223,7 +223,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20134%7D',
       slice_name: "World's Pop Growth",
       form_data: {},
-      viz_type: 'area',
+      viz_type: VizType.LegacyArea,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -244,7 +244,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20135%7D',
       slice_name: 'Box plot',
       form_data: {},
-      viz_type: 'box_plot',
+      viz_type: VizType.BoxPlot,
       datasource: '2__table',
       description: '',
       description_markdown: '',
@@ -265,7 +265,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20136%7D',
       slice_name: 'Treemap',
       form_data: {},
-      viz_type: 'treemap_v2',
+      viz_type: VizType.Treemap,
       datasource: '2__table',
       description: '',
       description_markdown: '',

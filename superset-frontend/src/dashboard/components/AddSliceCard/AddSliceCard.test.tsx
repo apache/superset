@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { act, render, screen, within } from 'spec/helpers/testing-library';
 import AddSliceCard from './AddSliceCard';
@@ -29,7 +29,7 @@ jest.mock('src/components/DynamicPlugins', () => ({
 }));
 
 const mockedProps = {
-  visType: 'table',
+  visType: VizType.Table,
   sliceName: '-',
 };
 

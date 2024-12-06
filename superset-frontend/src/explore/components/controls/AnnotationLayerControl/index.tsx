@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { List } from 'src/components';
+import { List } from 'src/components/List';
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
 import {

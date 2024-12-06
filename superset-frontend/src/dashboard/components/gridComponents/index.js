@@ -35,7 +35,7 @@ import Divider from './Divider';
 import Header from './Header';
 import Row from './Row';
 import Tab from './Tab';
-import TabsConnected from './Tabs';
+import Tabs from './Tabs';
 import DynamicComponent from './DynamicComponent';
 
 export { default as ChartHolder } from './ChartHolder';
@@ -56,6 +56,6 @@ export const componentLookup = {
   [HEADER_TYPE]: Header,
   [ROW_TYPE]: Row,
   [TAB_TYPE]: Tab,
-  [TABS_TYPE]: TabsConnected,
+  [TABS_TYPE]: Tabs,
   [DYNAMIC_TYPE]: DynamicComponent,
 };

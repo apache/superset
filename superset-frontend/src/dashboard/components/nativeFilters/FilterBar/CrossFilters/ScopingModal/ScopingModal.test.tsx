@@ -39,6 +39,9 @@ const INITIAL_STATE = {
     3: { id: 3 },
     4: { id: 4 },
   },
+  dashboardState: {
+    sliceIds: [1, 2, 3, 4],
+  },
   dashboardInfo: {
     id: 1,
     metadata: {

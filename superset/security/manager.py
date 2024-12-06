@@ -181,6 +181,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ("metrics", ["metrics"]),
         ("columns", ["columns", "groupby"]),
         ("groupby", ["columns", "groupby"]),
+        ("orderby", ["orderby"]),
     ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
@@ -477,7 +478,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
-            or self.can_access("database_access", database.perm)  # type: ignore
+            or self.can_access("database_access", database.perm)
         )
 
     def can_access_catalog(self, database: "Database", catalog: str) -> bool:
@@ -2172,7 +2173,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable

@@ -17,9 +17,10 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { LineChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
-new LineChartPlugin().configure({ key: 'line' }).register();
+new LineChartPlugin().configure({ key: VizType.LegacyLine }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Line',

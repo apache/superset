@@ -18,7 +18,7 @@
  */
 import { Component } from 'react';
 import PropTypes from 'prop-types';
-import { List } from 'src/components';
+import { List } from 'src/components/List';
 import { nanoid } from 'nanoid';
 import { t, withTheme } from '@superset-ui/core';
 import {
@@ -118,7 +118,11 @@ class CollectionControl extends Component {
           return (
             <SortableListItem
               className="clearfix"
-              css={{ justifyContent: 'flex-start' }}
+              css={theme => ({
+                justifyContent: 'flex-start',
+                display: '-webkit-flex',
+                paddingInline: theme.gridUnit * 3,
+              })}
               key={this.props.keyAccessor(o)}
               index={i}
             >

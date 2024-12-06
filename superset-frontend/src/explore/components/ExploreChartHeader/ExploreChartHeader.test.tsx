@@ -25,7 +25,7 @@ import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 import ExploreHeader from '.';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
@@ -40,7 +40,7 @@ const createProps = (additionalProps = {}) => ({
   chart: {
     id: 1,
     latestQueryFormData: {
-      viz_type: 'histogram',
+      viz_type: VizType.LegacyHistogram,
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
@@ -80,7 +80,7 @@ const createProps = (additionalProps = {}) => ({
       slice_id: 318,
       time_range: 'No filter',
       url_params: {},
-      viz_type: 'histogram',
+      viz_type: VizType.LegacyHistogram,
       x_axis_label: 'age',
       y_axis_label: 'count',
     },
@@ -423,7 +423,7 @@ describe('Additional actions tests', () => {
 
     test('Should not export to pivoted CSV if canDownloadCSV=false and viz_type=pivot_table_v2', async () => {
       const props = createProps();
-      props.chart.latestQueryFormData.viz_type = 'pivot_table_v2';
+      props.chart.latestQueryFormData.viz_type = VizType.PivotTable;
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
@@ -440,7 +440,7 @@ describe('Additional actions tests', () => {
     test('Should export to pivoted CSV if canDownloadCSV=true and viz_type=pivot_table_v2', async () => {
       const props = createProps();
       props.canDownload = true;
-      props.chart.latestQueryFormData.viz_type = 'pivot_table_v2';
+      props.chart.latestQueryFormData.viz_type = VizType.PivotTable;
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
