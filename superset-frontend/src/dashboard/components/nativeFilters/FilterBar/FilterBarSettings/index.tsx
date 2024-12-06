@@ -20,6 +20,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
+  css,
   FeatureFlag,
   isFeatureEnabled,
   styled,
@@ -236,6 +237,9 @@ const FilterBarSettings = () => {
             name="gear"
             iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"
+            css={css`
+              padding-right: ${theme.gridUnit * 2}px;
+            `}
           />
         }
         menuItems={menuItems}
