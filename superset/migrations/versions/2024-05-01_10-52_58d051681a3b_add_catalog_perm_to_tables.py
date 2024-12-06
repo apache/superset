@@ -23,7 +23,6 @@ Create Date: 2024-05-01 10:52:31.458433
 """
 
 import sqlalchemy as sa
-from alembic import op
 
 from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
@@ -38,15 +37,15 @@ down_revision = "4a33124c18ad"
 
 def upgrade():
     add_columns(
-        "tables", [sa.Column("catalog_perm", sa.String(length=1000), nullable=True)]
+        "tables", sa.Column("catalog_perm", sa.String(length=1000), nullable=True)
     )
     add_columns(
-        "slices", [sa.Column("catalog_perm", sa.String(length=1000), nullable=True)]
+        "slices", sa.Column("catalog_perm", sa.String(length=1000), nullable=True)
     )
     upgrade_catalog_perms(engines={"postgresql"})
 
 
 def downgrade():
     downgrade_catalog_perms(engines={"postgresql"})
-    drop_columns("slices", ["catalog_perm"])
-    drop_columns("tables", ["catalog_perm"])
+    drop_columns("slices", "catalog_perm")
+    drop_columns("tables", "catalog_perm")

@@ -22,7 +22,6 @@ Create Date: 2024-04-01 22:44:40.386543
 """
 
 import sqlalchemy as sa
-from alembic import op
 
 from superset.migrations.shared.utils import add_columns, drop_columns
 
@@ -34,9 +33,9 @@ down_revision = "678eefb4ab44"
 def upgrade():
     add_columns(
         "user_attribute",
-        [sa.Column("avatar_url", sa.String(length=100), nullable=True)],
+        sa.Column("avatar_url", sa.String(length=100), nullable=True),
     )
 
 
 def downgrade():
-    drop_columns("user_attribute", ["avatar_url"])
+    drop_columns("user_attribute", "avatar_url")
