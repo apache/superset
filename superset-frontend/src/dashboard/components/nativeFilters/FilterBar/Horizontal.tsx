@@ -68,14 +68,13 @@ const FilterBarEmptyStateContainer = styled.div`
     font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.base};
     font-size: ${theme.typography.sizes.s}px;
+    padding-left: ${theme.gridUnit * 2}px;
   `}
 `;
 
 const EMPTY_ARRAY: CrossFilterIndicator[] = [];
 const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
-  canEdit,
-  dashboardId,
   dataMaskSelected,
   filterValues,
   isInitialized,

@@ -38,6 +38,12 @@ export const usePermissions = () => {
   );
   const canDrillBy = (canExplore || canDrill) && canWriteExploreFormData;
   const canDrillToDetail = (canExplore || canDrill) && canDatasourceSamples;
+  const canViewQuery = useSelector((state: RootState) =>
+    findPermission('can_view_query', 'Dashboard', state.user?.roles),
+  );
+  const canViewTable = useSelector((state: RootState) =>
+    findPermission('can_view_chart_as_table', 'Dashboard', state.user?.roles),
+  );
 
   return {
     canExplore,
@@ -47,5 +53,7 @@ export const usePermissions = () => {
     canDrill,
     canDrillBy,
     canDrillToDetail,
+    canViewQuery,
+    canViewTable,
   };
 };

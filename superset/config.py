@@ -1342,7 +1342,7 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "table_to_xml_and_xmlschema",
         "version",
     },
-    "clickhouse": {"url"},
+    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
     "mysql": {"version"},
 }
 
