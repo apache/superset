@@ -36,25 +36,6 @@ class QueryDAO(BaseDAO[Query]):
     base_filter = QueryFilter
 
     @staticmethod
-    def update_saved_query_exec_info(query_id: int) -> None:
-        """
-        Propagates query execution info back to saved query if applicable
-
-        :param query_id: The query id
-        :return:
-        """
-        query = db.session.query(Query).get(query_id)
-        related_saved_queries = (
-            db.session.query(SavedQuery)
-            .filter(SavedQuery.database == query.database)
-            .filter(SavedQuery.sql == query.sql)
-        ).all()
-        if related_saved_queries:
-            for saved_query in related_saved_queries:
-                saved_query.rows = query.rows
-                saved_query.last_run = datetime.now()
-
-    @staticmethod
     def save_metadata(query: Query, payload: dict[str, Any]) -> None:
         # pull relevant data from payload and store in extra_json
         columns = payload.get("columns", {})
