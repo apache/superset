@@ -19,7 +19,13 @@
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t, logging } from '@superset-ui/core';
+import {
+  makeApi,
+  t,
+  logging,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -212,5 +218,17 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.start();
   }
 });
+
+if (isFeatureEnabled(FeatureFlag.EmbeddedSupersetEmitEvents)) {
+  log('setting up Switchboard event emitter');
+
+  // TODO: should this be a redux middleware?
+  // Should there be a list of events that are allowed to be emitted?
+
+  store.subscribe(() => {
+    const state = store.getState();
+    Switchboard.emit('getDataMask', state.dataMask);
+  });
+}
 
 log('embed page is ready to receive messages');
