@@ -384,6 +384,7 @@ export function runQueryFromSqlEditor(
   ctas,
   ctasMethod,
 ) {
+  console.log('YOYO', queryEditor);
   return function (dispatch, getState) {
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const query = {
@@ -421,9 +422,7 @@ export function postStopQuery(query) {
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
-      .catch(() =>
-        dispatch(addDangerToast(t('Failed at stopping query. %s', query.id))),
-      );
+      .catch(() => dispatch(addDangerToast(t('Failed at stopping query.'))));
   };
 }
 
