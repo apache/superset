@@ -51,6 +51,18 @@ export const FilterTitle = styled.div`
   `}
 `;
 
+const StyledFilterIcon = styled(Icons.Filter)`
+  color: ${({ theme }) => theme.colorIcon};
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+  line-height: normal;
+`;
+
+const StyledDividerIcon = styled(Icons.PicCenterOutlined)`
+  color: ${({ theme }) => theme.colorIcon};
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+  line-height: normal;
+`;
+
 const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
   color: ${({ theme }) => theme.colorErrorText};
   &.anticon {
@@ -74,6 +86,8 @@ interface Props {
   filters: string[];
   erroredFilters: string[];
 }
+
+const isFilterDivider = (id: string) => id.startsWith('NATIVE_FILTER_DIVIDER');
 
 const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
   (
@@ -116,6 +130,11 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                 wordBreak: 'break-all',
               }}
             >
+              {isFilterDivider(id) ? (
+                <StyledDividerIcon iconSize="m" />
+              ) : (
+                <StyledFilterIcon iconSize="m" />
+              )}{' '}
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (
