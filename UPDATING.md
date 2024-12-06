@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [31198](https://github.com/apache/superset/pull/31198) Disallows by default the use of the following ClickHouse functions: "version", "currentDatabase", "hostName".
 - [29798](https://github.com/apache/superset/pull/29798) Since 3.1.0, the intial schedule for an alert or report was mistakenly offset by the specified timezone's relation to UTC. The initial schedule should now begin at the correct time.
 - [30021](https://github.com/apache/superset/pull/30021) The `dev` layer in our Dockerfile no long includes firefox binaries, only Chromium to reduce bloat/docker-build-time.
 - [30099](https://github.com/apache/superset/pull/30099) Translations are no longer included in the default docker image builds. If your environment requires translations, you'll want to set the docker build arg `BUILD_TRANSACTION=true`.

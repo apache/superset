@@ -29,9 +29,8 @@ import { useUiConfig } from 'src/components/UiConfigContext';
 import { Tooltip } from 'src/components/Tooltip';
 import { useSelector } from 'react-redux';
 import EditableTitle from 'src/components/EditableTitle';
-import SliceHeaderControls, {
-  SliceHeaderControlsProps,
-} from 'src/dashboard/components/SliceHeaderControls';
+import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import FiltersBadge from 'src/dashboard/components/FiltersBadge';
 import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
