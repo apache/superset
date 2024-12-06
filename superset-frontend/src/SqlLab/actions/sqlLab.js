@@ -384,7 +384,6 @@ export function runQueryFromSqlEditor(
   ctas,
   ctasMethod,
 ) {
-  console.log('YOYO', queryEditor);
   return function (dispatch, getState) {
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
     const query = {
