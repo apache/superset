@@ -26,7 +26,7 @@ from typing import Any, cast, TYPE_CHECKING
 
 import sqlparse
 from flask_babel import gettext as __
-from jinja2 import nodes
+from jinja2 import nodes, Template
 from sqlalchemy import and_
 from sqlparse import keywords
 from sqlparse.lexer import Lexer
@@ -999,10 +999,13 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
             node.fields = nodes.TemplateData.fields
             node.data = "NULL"
 
+    # re-render template back into a string
+    rendered_template = Template(template).render()
+
     return (
         tables
         | ParsedQuery(
-            sql_statement=processor.process_template(template),
+            sql_statement=processor.process_template(rendered_template),
             engine=database.db_engine_spec.engine,
         ).tables
     )
