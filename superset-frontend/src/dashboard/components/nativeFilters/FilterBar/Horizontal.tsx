@@ -25,7 +25,6 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
@@ -35,7 +34,6 @@ import FilterControls from './FilterControls/FilterControls';
 import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
-import FilterConfigurationLink from './FilterConfigurationLink';
 import crossFiltersSelector from './CrossFilters/selectors';
 import { CrossFilterIndicator } from '../selectors';
 
@@ -70,39 +68,13 @@ const FilterBarEmptyStateContainer = styled.div`
     font-weight: ${theme.typography.weights.bold};
     color: ${theme.colors.grayscale.base};
     font-size: ${theme.typography.sizes.s}px;
-  `}
-`;
-
-const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
-  ${({ theme, hasFilters }) => `
-    height: 24px;
-    display: flex;
-    align-items: center;
-    padding: 0 ${theme.gridUnit * 4}px 0 ${theme.gridUnit * 4}px;
-    border-right: ${
-      hasFilters ? `1px solid ${theme.colors.grayscale.light2}` : 0
-    };
-
-    button {
-      display: flex;
-      align-items: center;
-      > .anticon {
-        height: 24px;
-        padding-right: ${theme.gridUnit}px;
-      }
-      > .anticon + span, > .anticon {
-          margin-right: 0;
-          margin-left: 0;
-        }
-    }
+    padding-left: ${theme.gridUnit * 2}px;
   `}
 `;
 
 const EMPTY_ARRAY: CrossFilterIndicator[] = [];
 const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
-  canEdit,
-  dashboardId,
   dataMaskSelected,
   filterValues,
   isInitialized,
@@ -141,16 +113,6 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
         ) : (
           <>
             <FilterBarSettings />
-            {canEdit && (
-              <FiltersLinkContainer hasFilters={hasFilters}>
-                <FilterConfigurationLink
-                  dashboardId={dashboardId}
-                  createNewOnOpen={filterValues.length === 0}
-                >
-                  <Icons.PlusSmall /> {t('Add/Edit Filters')}
-                </FilterConfigurationLink>
-              </FiltersLinkContainer>
-            )}
             {!hasFilters && (
               <FilterBarEmptyStateContainer data-test="horizontal-filterbar-empty">
                 {t('No filters are currently added to this dashboard.')}

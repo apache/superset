@@ -228,6 +228,9 @@ export function collapseFilterOnLeftPanel() {
  ************************************************************************* */
 export function enterNativeFilterEditModal(waitForDataset = true) {
   interceptDataset();
+  cy.get(nativeFilters.filtersPanel.filterGear).click({
+    force: true,
+  });
   cy.get(nativeFilters.filterFromDashboardView.createFilterButton).click({
     force: true,
   });
