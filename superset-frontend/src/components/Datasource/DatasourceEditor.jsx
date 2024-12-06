@@ -143,7 +143,7 @@ const StyledButtonWrapper = styled.span`
 const sqlTooltipOptions = {
   placement: 'topRight',
   title: t(
-    'If changes are made to your SQL query,' +
+    'If changes are made to your SQL query, ' +
       'columns in your dataset will be synced when saving the dataset.',
   ),
 };
