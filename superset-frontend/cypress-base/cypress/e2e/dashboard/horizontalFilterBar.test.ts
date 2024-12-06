@@ -113,7 +113,7 @@ describe('Horizontal FilterBar', () => {
     cy.get('.filter-item-wrapper').should('have.length', 3);
   });
 
-  it.only('should show "more filters" on window resizing up and down', () => {
+  it('should show "more filters" on window resizing up and down', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
