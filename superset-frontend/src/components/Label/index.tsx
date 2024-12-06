@@ -46,12 +46,20 @@ export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
   style?: CSSProperties;
   children?: ReactNode;
   role?: string;
+  monospace?: boolean;
 }
 
 export default function Label(props: LabelProps) {
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
-  const { type = 'default', onClick, children, ...rest } = props;
+  const {
+    type = 'default',
+    monospace = false,
+    style,
+    onClick,
+    children,
+    ...rest
+  } = props;
   const {
     alert,
     primary,
@@ -88,6 +96,9 @@ export default function Label(props: LabelProps) {
       baseColor = secondary;
     } else {
       baseColor = primary;
+    }
+    if (monospace) {
+      style.fontFamily = theme.typography.families.monospace;
     }
 
     backgroundColor = baseColor.base;
