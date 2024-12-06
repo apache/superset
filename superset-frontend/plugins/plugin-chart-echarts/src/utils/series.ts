@@ -60,8 +60,8 @@ export function extractDataTotalValues(
   opts: {
     stack: StackType;
     percentageThreshold: number;
-    xAxisCol: string;
     legendState?: LegendState;
+    metricsLabels: string[];
   },
 ): {
   totalStackedValues: number[];
@@ -69,23 +69,38 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
+  const { stack, percentageThreshold, legendState, metricsLabels } = opts;
+  console.error('extractDataTotalValues -> data', data);
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
-        if (curr === xAxisCol) {
+        console.error(
+          'metricsLabels.includes(curr)',
+          metricsLabels,
+          curr,
+          prev,
+        );
+        if (!metricsLabels.includes(curr)) {
           return prev;
         }
+        console.error('legendState', legendState);
         if (legendState && !legendState[curr]) {
           return prev;
         }
         const value = datum[curr] || 0;
+        console.error('prev -> value', prev + (value as number));
         return prev + (value as number);
       }, 0);
+      console.error('extractDataTotalValues -> values', values);
       totalStackedValues.push(values);
       thresholdValues.push(((percentageThreshold || 0) / 100) * values);
     });
   }
+  console.error(
+    'extractDataTotalValues -> totalStackedValues',
+    totalStackedValues,
+  );
+  console.error('extractDataTotalValues -> thresholdValues', thresholdValues);
   return {
     totalStackedValues,
     thresholdValues,

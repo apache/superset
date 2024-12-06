@@ -19,6 +19,7 @@
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
+  AdhocMetric,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
@@ -291,12 +292,24 @@ export default function transformProps(
   const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
     stack,
   });
+
+  const metricMapFunc = (metric: string | AdhocMetric) => {
+    if (metric.hasOwnProperty('label')) {
+      return (metric as AdhocMetric).label;
+    }
+    return verboseMap[metric as string] || metric;
+  };
+  const metricsLabels = metrics
+    .map(metricMapFunc)
+    .filter((label): label is string => label !== undefined);
+  const metricsLabelsB = metricsB.map(metricMapFunc);
+
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedDataA,
     {
       stack,
       percentageThreshold,
-      xAxisCol: xAxisLabel,
+      metricsLabels,
     },
   );
   const {
@@ -305,7 +318,7 @@ export default function transformProps(
   } = extractDataTotalValues(rebasedDataB, {
     stack: Boolean(stackB),
     percentageThreshold,
-    xAxisCol: xAxisLabel,
+    metricsLabels: metricsLabelsB,
   });
 
   annotationLayers
