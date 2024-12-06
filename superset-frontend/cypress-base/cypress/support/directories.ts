@@ -346,6 +346,7 @@ export const nativeFilters = {
     filterTypeInput: dataTestLocator('filters-config-modal__filter-type'),
     fieldInput: dataTestLocator('field-input'),
     filterTypeItem: '.ant-select-selection-item',
+    filterGear: dataTestLocator('filterbar-orientation-icon'),
   },
   filterFromDashboardView: {
     filterValueInput: '[class="ant-select-selection-search-input"]',
