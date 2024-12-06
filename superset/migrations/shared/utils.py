@@ -21,7 +21,6 @@ from collections.abc import Iterator
 from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
-import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import Column, inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
@@ -263,6 +262,18 @@ def drop_table(table_name: str) -> None:
 def batch_operation(
     callable: Callable[[int, int], None], count: int, batch_size: int
 ) -> None:
+    """
+    Executes an operation by dividing a task into smaller batches and tracking progress.
+
+    This function is designed to process a large number of items in smaller batches. It takes a callable
+    that performs the operation on each batch. The function logs the progress of the operation as it processes
+    through the batches.
+
+    :param callable: A callable function that takes two integer arguments:
+    the start index and the end index of the current batch.
+    :param count: The total number of items to process.
+    :param batch_size: The number of items to process in each batch.
+    """
     for offset in range(0, count, batch_size):
         percentage = (offset / count) * 100 if count else 0
         logger.info(f"Progress: {offset:,}/{count:,} ({percentage:.2f}%)")
@@ -270,11 +281,11 @@ def batch_operation(
 
     logger.info(f"Progress: {count:,}/{count:,} (100%)")
     logger.info(
-        f"End: {callable.__name__} batch operation {GREEN}succesfully{RESET} executed"
+        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed"
     )
 
 
-def add_columns(table_name: str, columns: list[Column]) -> None:
+def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
@@ -304,7 +315,7 @@ def add_columns(table_name: str, columns: list[Column]) -> None:
             batch_op.add_column(col)
 
 
-def drop_columns(table_name: str, columns: list[str]) -> None:
+def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
@@ -334,7 +345,7 @@ def drop_columns(table_name: str, columns: list[str]) -> None:
             batch_op.drop_column(col)
 
 
-def create_index(table_name: str, index_name: str, columns: list[Column]) -> None:
+def create_index(table_name: str, index_name: str, *columns: str) -> None:
     """
     Creates an index on specified columns of an existing database table.
 
@@ -346,8 +357,7 @@ def create_index(table_name: str, index_name: str, columns: list[Column]) -> Non
 
     :param table_name: The name of the table on which the index will be created.
     :param index_name: The name of the index to be created.
-    :param columns: A list of column names (as strings) that the index will cover. This list should contain
-                    the names of existing columns in the table.
+    :param columns: A list column names where the index will be created
     """
 
     if table_has_index(table=table_name, index=index_name):
