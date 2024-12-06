@@ -20,7 +20,6 @@
     "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^2.1.0",
     "brace": "^0.11.1",
-    "ci": "^2.3.0",
     "cy-verify-downloads": "^0.2.5",
     "cypress-fail-on-console-error": "^4.0.3",
     "nanoid": "^5.0.7",
