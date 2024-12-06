@@ -17,7 +17,7 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 from typing import Optional
-from unittest.mock import Mock
+from unittest import mock
 
 import pytest
 import sqlparse
@@ -1893,7 +1893,22 @@ def test_extract_tables_from_jinja_sql(
     assert (
         extract_tables_from_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
-            database=Mock(),
+            database=mock.Mock(),
         )
         == expected
     )
+
+
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"ENABLE_TEMPLATE_PROCESSING": False},
+    clear=True,
+)
+def test_extract_tables_from_jinja_sql_disabled() -> None:
+    """
+    Test the function when the feature flag is disabled.
+    """
+    assert extract_tables_from_jinja_sql(
+        sql="SELECT 1 FROM t",
+        database=mock.Mock(),
+    ) == {Table("t")}
