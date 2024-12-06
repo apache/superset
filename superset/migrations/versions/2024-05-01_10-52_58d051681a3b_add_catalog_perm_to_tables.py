@@ -61,7 +61,9 @@ def upgrade():
 
 def downgrade():
     downgrade_catalog_perms(engines={"postgresql"})
-    op.drop_index(op.f(perm_index_permission_id), table_name=perm_table)
-    op.drop_index(op.f(perm_index_view_menu), table_name=perm_table)
+    if table_has_index(perm_table, perm_index_permission_id):
+        op.drop_index(op.f(perm_index_permission_id), table_name=perm_table)
+    if table_has_index(perm_table, perm_index_view_menu):
+        op.drop_index(op.f(perm_index_view_menu), table_name=perm_table)
     op.drop_column("slices", "catalog_perm")
     op.drop_column("tables", "catalog_perm")
