@@ -60,7 +60,30 @@ REDIS_CELERY_DB = os.getenv("REDIS_CELERY_DB", "0")
 REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
-
+FRONTEND_BASEURL = "http://localhost:9000"
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "resources": [r"/*"],
+    "origins": [FRONTEND_BASEURL],
+}
+TALISMAN_ENABLED = False
+# TALISMAN_CONFIG = {
+#     "content_security_policy": {
+#         "connect-src": 
+#             "'self'",
+#             "http://127.0.0.1:5000",
+#             "https://api.mapbox.com",
+#             "https://events.mapbox.com",
+#         "object-src": "'none'",
+#         "style-src": "'self'", "'unsafe-inline'",
+#         "script-src": "'self'", "'strict-dynamic'",
+#         "frame-ancestors": "'self'",
+#     },
+#     "content_security_policy_nonce_in": "script-src",
+#     "force_https": False,
+# }
 CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": 300,
@@ -103,7 +126,7 @@ WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 SQLLAB_CTAS_NO_LIMIT = True
-
+SECRET_KEY = "HOrfcYmVX4S1fWjK06roD7jhofDKRAhZRSGzk7qhz3muxSd5vG356wqf"
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden

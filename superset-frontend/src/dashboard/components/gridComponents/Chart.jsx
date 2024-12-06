@@ -469,6 +469,7 @@ class Chart extends Component {
           formData={formData}
           width={width}
           height={this.getHeaderHeight()}
+          queriesResponse={chart.queriesResponse}
         />
 
         {/*

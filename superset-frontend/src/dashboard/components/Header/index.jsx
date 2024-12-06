@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import moment from 'moment';
-import { PureComponent } from 'react';
+import { PureComponent, useState } from 'react';
 import PropTypes from 'prop-types';
 import {
   styled,
@@ -57,6 +57,8 @@ import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import MetadataBar, { MetadataType } from 'src/components/MetadataBar';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
+import wandIcon from './../../../assets/images/wand.png';
+import ChartSummaryDrawer from 'src/components/AiChartSummary/ChartSummaryDrawer';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -186,6 +188,7 @@ class Header extends PureComponent {
       emphasizeRedo: false,
       showingPropertiesModal: false,
       isDropdownVisible: false,
+      isDrawerVisible: false,
     };
 
     this.handleChangeText = this.handleChangeText.bind(this);
@@ -512,9 +515,11 @@ class Header extends PureComponent {
       setUnsavedChanges(true);
       dashboardTitleChanged(updates.title);
     };
+    const onClose = () => {
+      this.setState({ isDrawerVisible: false });
+    };
 
     const NavExtension = extensionsRegistry.get('dashboard.nav.right');
-
     return (
       <div
         css={headerContainerStyle}
@@ -561,104 +566,136 @@ class Header extends PureComponent {
             ),
           ]}
           rightPanelAdditionalItems={
-            <div className="button-container">
-              {userCanSaveAs && (
-                <div
-                  className="button-container"
-                  data-test="dashboard-edit-actions"
-                >
-                  {editMode && (
-                    <div css={actionButtonsStyle}>
-                      <div className="undoRedo">
-                        <Tooltip
-                          id="dashboard-undo-tooltip"
-                          title={t('Undo the action')}
-                        >
-                          <StyledUndoRedoButton
-                            buttonStyle="link"
-                            disabled={undoLength < 1}
-                            onClick={undoLength && onUndo}
-                          >
-                            <Icons.Undo
-                              css={[
-                                undoRedoStyle,
-                                this.state.emphasizeUndo && undoRedoEmphasized,
-                                undoLength < 1 && undoRedoDisabled,
-                              ]}
-                              data-test="undo-action"
-                              iconSize="xl"
-                            />
-                          </StyledUndoRedoButton>
-                        </Tooltip>
-                        <Tooltip
-                          id="dashboard-redo-tooltip"
-                          title={t('Redo the action')}
-                        >
-                          <StyledUndoRedoButton
-                            buttonStyle="link"
-                            disabled={redoLength < 1}
-                            onClick={redoLength && onRedo}
-                          >
-                            <Icons.Redo
-                              css={[
-                                undoRedoStyle,
-                                this.state.emphasizeRedo && undoRedoEmphasized,
-                                redoLength < 1 && undoRedoDisabled,
-                              ]}
-                              data-test="redo-action"
-                              iconSize="xl"
-                            />
-                          </StyledUndoRedoButton>
-                        </Tooltip>
-                      </div>
-                      <Button
-                        css={discardBtnStyle}
-                        buttonSize="small"
-                        onClick={this.constructor.discardChanges}
-                        buttonStyle="default"
-                        data-test="discard-changes-button"
-                        aria-label={t('Discard')}
-                      >
-                        {t('Discard')}
-                      </Button>
-                      <Button
-                        css={saveBtnStyle}
-                        buttonSize="small"
-                        disabled={!hasUnsavedChanges}
-                        buttonStyle="primary"
-                        onClick={this.overwriteDashboard}
-                        data-test="header-save-button"
-                        aria-label={t('Save')}
-                      >
-                        {t('Save')}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-              {editMode ? (
-                <UndoRedoKeyListeners
-                  onUndo={this.handleCtrlZ}
-                  onRedo={this.handleCtrlY}
+            <>
+              <div
+                style={{ cursor: 'pointer' }}
+                onClick={() => {
+                  this.setState({
+                    isDrawerVisible: true,
+                    chartSummaryLoader: true,
+                  });
+                }}
+              >
+                <img
+                  src={wandIcon}
+                  alt="Wand Icon"
+                  style={{ width: '20px', height: '20px' }} // Adjust size as needed
                 />
-              ) : (
-                <div css={actionButtonsStyle}>
-                  {NavExtension && <NavExtension />}
-                  {userCanEdit && (
-                    <Button
-                      buttonStyle="secondary"
-                      onClick={this.toggleEditMode}
-                      data-test="edit-dashboard-button"
-                      className="action-button"
-                      css={editButtonStyle}
-                      aria-label={t('Edit dashboard')}
-                    >
-                      {t('Edit dashboard')}
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
+                &nbsp; Summarize All Charts Using Alex &nbsp;
+                <ChartSummaryDrawer
+                  visible={this.state.isDrawerVisible}
+                  onClose={() => {
+                    this.setState({
+                      isDrawerVisible: false,
+                      chartSummaryLoader: false,
+                    });
+                  }}
+                  charts={this.props.charts}
+                  dashboardInfo={this.props.dashboardInfo?.charts}
+                  extraProps={this.props}
+                />
+              </div>
+              <div className="button-container">
+                {userCanSaveAs && (
+                  <div
+                    className="button-container"
+                    data-test="dashboard-edit-actions"
+                  >
+                    {editMode && (
+                      <div css={actionButtonsStyle}>
+                        <div className="undoRedo">
+                          <Tooltip
+                            id="dashboard-undo-tooltip"
+                            title={t('Undo the action')}
+                          >
+                            <StyledUndoRedoButton
+                              buttonStyle="link"
+                              disabled={undoLength < 1}
+                              onClick={undoLength && onUndo}
+                            >
+                              <Icons.Undo
+                                css={[
+                                  undoRedoStyle,
+                                  this.state.emphasizeUndo &&
+                                    undoRedoEmphasized,
+                                  undoLength < 1 && undoRedoDisabled,
+                                ]}
+                                data-test="undo-action"
+                                iconSize="xl"
+                              />
+                            </StyledUndoRedoButton>
+                          </Tooltip>
+                          <Tooltip
+                            id="dashboard-redo-tooltip"
+                            title={t('Redo the action')}
+                          >
+                            <StyledUndoRedoButton
+                              buttonStyle="link"
+                              disabled={redoLength < 1}
+                              onClick={redoLength && onRedo}
+                            >
+                              <Icons.Redo
+                                css={[
+                                  undoRedoStyle,
+                                  this.state.emphasizeRedo &&
+                                    undoRedoEmphasized,
+                                  redoLength < 1 && undoRedoDisabled,
+                                ]}
+                                data-test="redo-action"
+                                iconSize="xl"
+                              />
+                            </StyledUndoRedoButton>
+                          </Tooltip>
+                        </div>
+                        <Button
+                          css={discardBtnStyle}
+                          buttonSize="small"
+                          onClick={this.constructor.discardChanges}
+                          buttonStyle="default"
+                          data-test="discard-changes-button"
+                          aria-label={t('Discard')}
+                        >
+                          {t('Discard')}
+                        </Button>
+                        <Button
+                          css={saveBtnStyle}
+                          buttonSize="small"
+                          disabled={!hasUnsavedChanges}
+                          buttonStyle="primary"
+                          onClick={this.overwriteDashboard}
+                          data-test="header-save-button"
+                          aria-label={t('Save')}
+                        >
+                          {t('Save')}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {editMode ? (
+                  <UndoRedoKeyListeners
+                    onUndo={this.handleCtrlZ}
+                    onRedo={this.handleCtrlY}
+                  />
+                ) : (
+                  <div css={actionButtonsStyle}>
+                    {NavExtension && <NavExtension />}
+                    {userCanEdit && (
+                      <Button
+                        buttonStyle="secondary"
+                        onClick={this.toggleEditMode}
+                        data-test="edit-dashboard-button"
+                        className="action-button"
+                        css={editButtonStyle}
+                        aria-label={t('Edit dashboard')}
+                      >
+                        {t('Edit dashboard')}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
           }
           menuDropdownProps={{
             getPopupContainer: triggerNode =>
