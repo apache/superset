@@ -24,7 +24,7 @@ import logging
 import os
 
 import json
-
+from datetime import timedelta
 from celery.schedules import crontab
 from flask_caching.backends.filesystemcache import FileSystemCache
 from superset.tasks.types import ExecutorType
@@ -152,7 +152,7 @@ FEATURE_FLAGS = {
 
 
 THUMBNAIL_SELENIUM_USER = "admin"
-THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     'CACHE_TYPE': 'redis',
@@ -160,7 +160,7 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     'CACHE_KEY_PREFIX': 'thumbnail_',
     'CACHE_REDIS_URL': 'redis://superset_cache:6379/1'
 }
-
+SCREENSHOT_LOCATE_WAIT=int(timedelta(seconds=120).total_seconds())
 
 FAB_API_MAX_PAGE_SIZE = 500
 
