@@ -29,11 +29,15 @@ from superset.migrations.shared.catalogs import (
     downgrade_catalog_perms,
     upgrade_catalog_perms,
 )
-from superset.migrations.shared.utils import add_column_if_not_exists
+from superset.migrations.shared.utils import add_column_if_not_exists, table_has_index
 
 # revision identifiers, used by Alembic.
 revision = "58d051681a3b"
 down_revision = "4a33124c18ad"
+
+perm_table = "ab_permission_view"
+perm_index_view_menu = "idx_permission_view_menu_id"
+perm_index_permission_id = "idx_permission_permission_id"
 
 
 def upgrade():
@@ -45,10 +49,19 @@ def upgrade():
         "slices",
         sa.Column("catalog_perm", sa.String(length=1000), nullable=True),
     )
+
+    if not table_has_index(perm_table, perm_index_view_menu):
+        op.create_index(op.f(perm_index_view_menu), perm_table, ["view_menu_id"])
+
+    if not table_has_index(perm_table, perm_index_permission_id):
+        op.create_index(op.f(perm_index_permission_id), perm_table, ["permission_id"])
+
     upgrade_catalog_perms(engines={"postgresql"})
 
 
 def downgrade():
     downgrade_catalog_perms(engines={"postgresql"})
+    op.drop_index(op.f(perm_index_permission_id), table_name=perm_table)
+    op.drop_index(op.f(perm_index_view_menu), table_name=perm_table)
     op.drop_column("slices", "catalog_perm")
     op.drop_column("tables", "catalog_perm")

@@ -17,6 +17,7 @@
 import logging
 from dataclasses import dataclass
 
+import sqlalchemy as sqla
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -94,7 +95,10 @@ class Role(Base):  # type: ignore
 
 class PermissionView(Base):  # type: ignore
     __tablename__ = "ab_permission_view"
-    __table_args__ = (UniqueConstraint("permission_id", "view_menu_id"),)
+    __table_args__ = (
+        sqla.Index("idx_permission_view_menu_id", "view_menu_id"),
+        sqla.Index("idx_permission_permission_id", "permission_id"),
+    )
     id = Column(Integer, Sequence("ab_permission_view_id_seq"), primary_key=True)
     permission_id = Column(Integer, ForeignKey("ab_permission.id"))
     permission = relationship("Permission")
