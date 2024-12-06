@@ -126,58 +126,95 @@ const QueryTable = ({
     const statusAttributes = {
       success: {
         config: {
-          icon: <Icons.CheckOutlined iconColor={theme.colors.success.base} />,
+          icon: (
+            <Icons.CheckOutlined
+              iconColor={theme.colors.success.base}
+              iconSize="m"
+            />
+          ),
           //icon: <Icons.Edit iconSize="xl" />,
           label: t('Success'),
         },
       },
       failed: {
         config: {
-          icon: <Icons.CloseOutlined iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.CloseOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
+          ),
           label: t('Failed'),
         },
       },
       stopped: {
         config: {
-          icon: <Icons.CloseOutlined iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.CloseOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
+          ),
           label: t('Failed'),
         },
       },
       running: {
         config: {
-          icon: <Icons.LoadingOutlined iconColor={theme.colors.primary.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
+          ),
           label: t('Running'),
         },
       },
       fetching: {
         config: {
           icon: (
-            <Icons.HourglassOutlined iconColor={theme.colors.primary.base} />
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
           ),
           label: t('Fetching'),
         },
       },
       timed_out: {
         config: {
-          icon: <Icons.Clock iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.Clock iconColor={theme.colors.error.base} iconSize="m" />
+          ),
           label: t('Offline'),
         },
       },
       scheduled: {
         config: {
-          icon: <Icons.Clock iconColor={theme.colors.warning.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.warning.base}
+              iconSize="m"
+            />
+          ),
           label: t('Scheduled'),
         },
       },
       pending: {
         config: {
-          icon: <Icons.Clock iconColor={theme.colors.warning.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.warning.base}
+              iconSize="m"
+            />
+          ),
           label: t('Scheduled'),
         },
       },
       error: {
         config: {
-          icon: <Icons.Error iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.Error iconColor={theme.colors.error.base} iconSize="m" />
+          ),
           label: t('Unknown Status'),
         },
       },
@@ -192,11 +229,7 @@ const QueryTable = ({
 
         if (q.endDttm) {
           q.duration = (
-            <Label
-              style={{ 'font-family': theme.typography.families.monospace }}
-            >
-              {fDuration(q.startDttm, q.endDttm)}
-            </Label>
+            <Label monospace={true}>{fDuration(q.startDttm, q.endDttm)}</Label>
           );
         }
         q.user = (
@@ -218,7 +251,7 @@ const QueryTable = ({
           </Button>
         );
         q.started = (
-          <Label style={{ 'font-family': theme.typography.families.monospace }}>
+          <Label monospace={true}>
             {moment(q.startDttm).format('L HH:mm:ss')}
           </Label>
         );

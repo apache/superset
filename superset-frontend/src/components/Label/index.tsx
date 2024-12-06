@@ -97,40 +97,41 @@ export default function Label(props: LabelProps) {
     } else {
       baseColor = primary;
     }
-    if (monospace) {
-      style.fontFamily = theme.typography.families.monospace;
-    }
-
     backgroundColor = baseColor.base;
     backgroundColorHover = onClick ? baseColor.dark1 : baseColor.base;
     borderColor = onClick ? baseColor.dark1 : 'transparent';
     borderColorHover = onClick ? baseColor.dark2 : 'transparent';
+  }
+  const css = {
+    transition: `background-color ${transitionTiming}s`,
+    whiteSpace: 'nowrap',
+    cursor: onClick ? 'pointer' : 'default',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    backgroundColor,
+    borderColor,
+    borderRadius: 21,
+    padding: '0.35em 0.8em',
+    lineHeight: 1,
+    color,
+    maxWidth: '100%',
+    '&:hover': {
+      backgroundColor: backgroundColorHover,
+      borderColor: borderColorHover,
+      opacity: 1,
+    },
+  };
+  if (monospace) {
+    css.fontFamily = theme.typography.families.monospace;
   }
 
   return (
     <Tag
       onClick={onClick}
       role={onClick ? 'button' : undefined}
+      style={style}
       {...rest}
-      css={{
-        transition: `background-color ${transitionTiming}s`,
-        whiteSpace: 'nowrap',
-        cursor: onClick ? 'pointer' : 'default',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        backgroundColor,
-        borderColor,
-        borderRadius: 21,
-        padding: '0.35em 0.8em',
-        lineHeight: 1,
-        color,
-        maxWidth: '100%',
-        '&:hover': {
-          backgroundColor: backgroundColorHover,
-          borderColor: borderColorHover,
-          opacity: 1,
-        },
-      }}
+      css={css}
     >
       {children}
     </Tag>
