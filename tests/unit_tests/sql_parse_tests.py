@@ -1888,12 +1888,15 @@ SELECT * FROM t"""
     ],
 )
 def test_extract_tables_from_jinja_sql(
-    engine: str, macro: str, expected: set[Table]
+    mocker: MockerFixture,
+    engine: str,
+    macro: str,
+    expected: set[Table],
 ) -> None:
     assert (
         extract_tables_from_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
-            database=mock.Mock(),
+            database=mocker.Mock(),
         )
         == expected
     )
@@ -1904,11 +1907,14 @@ def test_extract_tables_from_jinja_sql(
     {"ENABLE_TEMPLATE_PROCESSING": False},
     clear=True,
 )
-def test_extract_tables_from_jinja_sql_disabled() -> None:
+def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     """
     Test the function when the feature flag is disabled.
     """
+    database = mocker.Mock()
+    database.db_engine_spec.engine = "mssql"
+
     assert extract_tables_from_jinja_sql(
         sql="SELECT 1 FROM t",
-        database=mock.Mock(),
+        database=database,
     ) == {Table("t")}
