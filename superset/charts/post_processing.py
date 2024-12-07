@@ -26,6 +26,7 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
+from flask import current_app
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -44,6 +45,7 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
     from superset.models.sql_lab import Query
 
+csv_export_settings = current_app.config.get('CSV_EXPORT')
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -327,8 +329,11 @@ def apply_post_process(
         if query["result_format"] == ChartDataResultFormat.JSON:
             df = pd.DataFrame.from_dict(data)
         elif query["result_format"] == ChartDataResultFormat.CSV:
-            df = pd.read_csv(StringIO(data))
-
+            df = pd.read_csv(StringIO(data),
+                             sep=csv_export_settings.get('sep', ','),
+                             encoding=csv_export_settings.get('encoding', 'utf-8'),
+                             decimal=csv_export_settings.get('decimal', '.'))
+            
         # convert all columns to verbose (label) name
         if datasource:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
@@ -339,28 +344,31 @@ def apply_post_process(
         query["indexnames"] = list(processed_df.index)
         query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
-
-        # Flatten hierarchical columns/index since they are represented as
-        # `Tuple[str]`. Otherwise encoding to JSON later will fail because
-        # maps cannot have tuples as their keys in JSON.
-        processed_df.columns = [
-            " ".join(str(name) for name in column).strip()
-            if isinstance(column, tuple)
-            else column
-            for column in processed_df.columns
-        ]
-        processed_df.index = [
-            " ".join(str(name) for name in index).strip()
-            if isinstance(index, tuple)
-            else index
-            for index in processed_df.index
-        ]
-
+                
         if query["result_format"] == ChartDataResultFormat.JSON:
+            # Flatten hierarchical columns/index since they are represented as
+            # `Tuple[str]`. Otherwise encoding to JSON later will fail because
+            # maps cannot have tuples as their keys in JSON.
+            processed_df.columns = [
+                " ".join(str(name) for name in column).strip()
+                if isinstance(column, tuple)
+                else column
+                for column in processed_df.columns
+            ]
+            processed_df.index = [
+                " ".join(str(name) for name in index).strip()
+                if isinstance(index, tuple)
+                else index
+                for index in processed_df.index
+            ]
             query["data"] = processed_df.to_dict()
+            
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf)
+            processed_df.to_csv(buf,
+                                sep=csv_export_settings.get('sep', ','),
+                                encoding=csv_export_settings.get('encoding', 'utf-8'),
+                                decimal=csv_export_settings.get('decimal', '.'))
             buf.seek(0)
             query["data"] = buf.getvalue()
 
