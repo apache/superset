@@ -95,17 +95,19 @@ export const useFilterScope = (filter: Filter) => {
     if (topLevelTabs) {
       // We start assuming that all charts are in scope for all tabs in the root path
       const topLevelTabsInFullScope = [...filter.scope.rootPath];
-      const layoutChartElementsInTabsInScope = layoutCharts.filter(element =>
-        element.parents?.some(parent =>
-          topLevelTabsInFullScope.includes(parent),
-        ),
+      const layoutChartElementsInTabsInScope = layoutCharts.filter(
+        element =>
+          element.parents?.some(parent =>
+            topLevelTabsInFullScope.includes(parent),
+          ),
       );
       // Exclude the tabs that contain excluded charts
       filter.scope.excluded.forEach(chartId => {
-        const excludedIndex = topLevelTabsInFullScope.findIndex(tabId =>
-          layoutChartElementsInTabsInScope
-            .find(chart => chart.meta.chartId === chartId)
-            ?.parents?.includes(tabId),
+        const excludedIndex = topLevelTabsInFullScope.findIndex(
+          tabId =>
+            layoutChartElementsInTabsInScope
+              .find(chart => chart.meta.chartId === chartId)
+              ?.parents?.includes(tabId),
         );
         if (excludedIndex > -1) {
           topLevelTabsInFullScope.splice(excludedIndex, 1);
