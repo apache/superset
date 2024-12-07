@@ -114,28 +114,6 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showValueControl],
         [showLegendControl],
-        // [
-        //   {
-        //     name: 'x_axis_title',
-        //     config: {
-        //       type: 'TextControl',
-        //       label: t('X Axis Title'),
-        //       renderTrigger: true,
-        //       default: '',
-        //     },
-        //   },
-        // ],
-        // [
-        //   {
-        //     name: 'y_axis_title',
-        //     config: {
-        //       type: 'TextControl',
-        //       label: t('Y Axis Title'),
-        //       renderTrigger: true,
-        //       default: '',
-        //     },
-        //   },
-        // ],
       ],
     },
   ],
