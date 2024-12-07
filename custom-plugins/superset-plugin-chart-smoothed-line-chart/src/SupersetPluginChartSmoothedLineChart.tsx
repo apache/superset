@@ -16,74 +16,55 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, createRef } from 'react';
+import React, { createRef, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
-import { SupersetPluginChartSmoothedLineChartProps, SupersetPluginChartSmoothedLineChartStylesProps } from './types';
+import { SupersetPluginChartSmoothedLineChartStylesProps } from './types';
+import * as echarts from 'echarts';
 
-// The following Styles component is a <div> element, which has been styled using Emotion
-// For docs, visit https://emotion.sh/docs/styled
-
-// Theming variables are provided for your use via a ThemeProvider
-// imported from @superset-ui/core. For variables available, please visit
-// https://github.com/apache-superset/superset-ui/blob/master/packages/superset-ui-core/src/style/index.ts
-
+/*const Styles = styled.div`
+  height: ${({ height }: { height: number }) => height}px;
+  width: ${({ width }: { width: number }) => width}px;
+`;*/
 const Styles = styled.div<SupersetPluginChartSmoothedLineChartStylesProps>`
   background-color: ${({ theme }) => theme.colors.secondary.light2};
   padding: ${({ theme }) => theme.gridUnit * 4}px;
   border-radius: ${({ theme }) => theme.gridUnit * 2}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
-
-  h3 {
-    /* You can use your props to control CSS! */
-    margin-top: 0;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-    font-size: ${({ theme, headerFontSize }) =>
-      theme.typography.sizes[headerFontSize]}px;
-    font-weight: ${({ theme, boldText }) =>
-      theme.typography.weights[boldText ? 'bold' : 'normal']};
-  }
-
-  pre {
-    height: ${({ theme, headerFontSize, height }) =>
-      height - theme.gridUnit * 12 - theme.typography.sizes[headerFontSize]}px;
-  }
 `;
 
-/**
- * ******************* WHAT YOU CAN BUILD HERE *******************
- *  In essence, a chart is given a few key ingredients to work with:
- *  * Data: provided via `props.data`
- *  * A DOM element
- *  * FormData (your controls!) provided as props by transformProps.ts
- */
 
-export default function SupersetPluginChartSmoothedLineChart(props: SupersetPluginChartSmoothedLineChartProps) {
-  // height and width are the height and width of the DOM element as it exists in the dashboard.
-  // There is also a `data` prop, which is, of course, your DATA 🎉
-  const { data, height, width } = props;
 
+export default function SupersetPluginChartMyHelloWorld(props: SupersetPluginChartSmoothedLineChartStylesProps) {
+  const { height, width } = props;
   const rootElem = createRef<HTMLDivElement>();
 
-  // Often, you just want to access the DOM and do whatever you want.
-  // Here, you can do that with createRef, and the useEffect hook.
   useEffect(() => {
-    const root = rootElem.current as HTMLElement;
-    console.log('Plugin element', root);
+    const root = rootElem.current;
+    const chart = echarts.init(root as HTMLDivElement);
+    const option = {
+      xAxis: {
+        type: 'category',
+        data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        //data: data.map(row => row.__timestamp),
+      },
+      yAxis: {
+        type: 'value',
+      },
+      series: [
+        {
+          //data: data.map(row => row.metric),
+          data: [820, 932, 901, 934, 1290, 1330, 1320],
+          type: 'line',
+          smooth: true,
+        },
+      ],
+    };
+
+    chart.setOption(option);
+
+    return () => chart.dispose();
   });
 
-  console.log('Plugin props', props);
-
-  return (
-    <Styles
-      ref={rootElem}
-      boldText={props.boldText}
-      headerFontSize={props.headerFontSize}
-      height={height}
-      width={width}
-    >
-      <h3>{props.headerText}</h3>
-      <pre>${JSON.stringify(data, null, 2)}</pre>
-    </Styles>
-  );
+  return <Styles ref={rootElem} height={height} width={width} />;
 }

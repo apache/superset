@@ -18,27 +18,28 @@
  */
 import {
   QueryFormData,
-  supersetTheme,
   TimeseriesDataRecord,
 } from '@superset-ui/core';
 
+export interface SupersetPluginChartMyHelloWorldStylesProps {
+  height: number;
+  width: number;
+}
 export interface SupersetPluginChartSmoothedLineChartStylesProps {
   height: number;
   width: number;
-  headerFontSize: keyof typeof supersetTheme.typography.sizes;
-  boldText: boolean;
+  //headerFontSize: keyof typeof supersetTheme.typography.sizes;
+  //boldText: boolean;
+}
+interface SupersetPluginChartMyHelloWorldCustomizeProps {
+  smooth: boolean;
 }
 
-interface SupersetPluginChartSmoothedLineChartCustomizeProps {
-  headerText: string;
-}
+export type SupersetPluginChartMyHelloWorldQueryFormData = QueryFormData &
+  SupersetPluginChartMyHelloWorldStylesProps &
+  SupersetPluginChartMyHelloWorldCustomizeProps;
 
-export type SupersetPluginChartSmoothedLineChartQueryFormData = QueryFormData &
-  SupersetPluginChartSmoothedLineChartStylesProps &
-  SupersetPluginChartSmoothedLineChartCustomizeProps;
-
-export type SupersetPluginChartSmoothedLineChartProps = SupersetPluginChartSmoothedLineChartStylesProps &
-  SupersetPluginChartSmoothedLineChartCustomizeProps & {
+export type SupersetPluginChartMyHelloWorldProps = SupersetPluginChartMyHelloWorldStylesProps &
+  SupersetPluginChartMyHelloWorldCustomizeProps & {
     data: TimeseriesDataRecord[];
-    // add typing here for the props you pass in from transformProps.ts!
   };
