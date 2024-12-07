@@ -136,7 +136,7 @@ const QueryTable = ({
               iconSize="m"
             />
           ),
-          //icon: <Icons.Edit iconSize="xl" />,
+          // icon: <Icons.Edit iconSize="xl" />,
           label: t('Success'),
         },
       },
@@ -233,7 +233,7 @@ const QueryTable = ({
 
         if (q.endDttm) {
           q.duration = (
-            <Label monospace={true}>{fDuration(q.startDttm, q.endDttm)}</Label>
+            <Label monospace>{fDuration(q.startDttm, q.endDttm)}</Label>
           );
         }
         q.user = (
@@ -255,9 +255,7 @@ const QueryTable = ({
           </Button>
         );
         q.started = (
-          <Label monospace={true}>
-            {moment(q.startDttm).format('L HH:mm:ss')}
-          </Label>
+          <Label monospace>{moment(q.startDttm).format('L HH:mm:ss')}</Label>
         );
         q.querylink = (
           <Button
