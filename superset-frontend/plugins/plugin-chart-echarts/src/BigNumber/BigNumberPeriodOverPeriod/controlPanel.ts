@@ -87,6 +87,42 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'previous_period_value_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add previous period value'),
+              renderTrigger: true,
+              default: true,
+              description: t('Add previous period value'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'value_difference_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add period difference'),
+              renderTrigger: true,
+              default: true,
+              description: t('Add period difference'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'percent_difference_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add percent difference'),
+              renderTrigger: true,
+              default: true,
+              description: t('Add percent difference'),
+            },
+          },
+        ],
+        [
+          {
             name: 'comparison_color_scheme',
             config: {
               type: 'SelectControl',
