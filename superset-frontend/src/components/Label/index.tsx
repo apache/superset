@@ -46,12 +46,20 @@ export interface LabelProps extends HTMLAttributes<HTMLSpanElement> {
   style?: CSSProperties;
   children?: ReactNode;
   role?: string;
+  monospace?: boolean;
 }
 
 export default function Label(props: LabelProps) {
   const theme = useTheme();
   const { colors, transitionTiming } = theme;
-  const { type = 'default', onClick, children, ...rest } = props;
+  const {
+    type = 'default',
+    monospace = false,
+    style,
+    onClick,
+    children,
+    ...rest
+  } = props;
   const {
     alert,
     primary,
@@ -89,37 +97,41 @@ export default function Label(props: LabelProps) {
     } else {
       baseColor = primary;
     }
-
     backgroundColor = baseColor.base;
     backgroundColorHover = onClick ? baseColor.dark1 : baseColor.base;
     borderColor = onClick ? baseColor.dark1 : 'transparent';
     borderColorHover = onClick ? baseColor.dark2 : 'transparent';
+  }
+  const css = {
+    transition: `background-color ${transitionTiming}s`,
+    whiteSpace: 'nowrap',
+    cursor: onClick ? 'pointer' : 'default',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    backgroundColor,
+    borderColor,
+    borderRadius: 21,
+    padding: '0.35em 0.8em',
+    lineHeight: 1,
+    color,
+    maxWidth: '100%',
+    '&:hover': {
+      backgroundColor: backgroundColorHover,
+      borderColor: borderColorHover,
+      opacity: 1,
+    },
+  };
+  if (monospace) {
+    css['font-family'] = theme.typography.families.monospace;
   }
 
   return (
     <Tag
       onClick={onClick}
       role={onClick ? 'button' : undefined}
+      style={style}
       {...rest}
-      css={{
-        transition: `background-color ${transitionTiming}s`,
-        whiteSpace: 'nowrap',
-        cursor: onClick ? 'pointer' : 'default',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        backgroundColor,
-        borderColor,
-        borderRadius: 21,
-        padding: '0.35em 0.8em',
-        lineHeight: 1,
-        color,
-        maxWidth: '100%',
-        '&:hover': {
-          backgroundColor: backgroundColorHover,
-          borderColor: borderColorHover,
-          opacity: 1,
-        },
-      }}
+      css={css}
     >
       {children}
     </Tag>
