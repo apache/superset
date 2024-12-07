@@ -23,8 +23,12 @@ kind: Job
 metadata:
   name: {{ template "superset.fullname" . }}-init-db
   namespace: {{ .Release.Namespace }}
-  {{- if .Values.extraLabels }}
   labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  {{- if .Values.extraLabels }}
     {{- toYaml .Values.extraLabels | nindent 4 }}
   {{- end }}
   {{- if .Values.init.jobAnnotations }}
@@ -36,6 +40,9 @@ spec:
       name: {{ template "superset.fullname" . }}-init-db
       {{- if .Values.init.podAnnotations }}
       annotations: {{- toYaml .Values.init.podAnnotations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.init.podLabels }}
+      labels: {{- toYaml .Values.init.podLabels | nindent 8 }}
       {{- end }}
     spec:
       {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
