@@ -87,14 +87,6 @@ const StyledResizable = styled(Resizable)`
     &.resizable-container {
       background-color: transparent;
       position: relative;
-
-      /* re-resizable sets an empty div to 100% width and height, which doesn't
-      play well with many 100% height containers we need */
-
-      & ~ div {
-        width: auto !important;
-        height: auto !important;
-      }
     }
 
     &.resizable-container--resizing {
@@ -248,7 +240,12 @@ class ResizableContainer extends React.PureComponent {
       editMode,
     } = this.props;
 
-    const size = {
+    const size = window.innerWidth <= 980
+  ? {
+      width: '100%', // Full width on mobile
+      height: 'auto', // Allow height to adjust dynamically
+    }
+  : {
       width: adjustableWidth
         ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
         : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
@@ -259,7 +256,7 @@ class ResizableContainer extends React.PureComponent {
         : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
           staticHeight ||
           undefined,
-    };
+    }
 
     let enableConfig = resizableConfig.notAdjustable;
 

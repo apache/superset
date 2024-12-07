@@ -107,6 +107,16 @@ const StyledDiv = styled.div`
     i.warning {
       color: ${theme.colors.alert.base};
     }
+
+    @media (max-width: 980px) {
+      .dragdroppable-column {
+        width: 100% ;
+        margin-bottom: 16px ;
+      }
+      .grid-column div {
+        margin-bottom: 16px ;
+      }
+    }
   `}
 `;
 
