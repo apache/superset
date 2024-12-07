@@ -17,16 +17,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-10-21 10:25+0330\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
 "Language-Team: en <LL@li.org>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.9.1\n"
 
 msgid ""
 "\n"
@@ -84,7 +84,15 @@ msgstr ""
 msgid " a new one"
 msgstr ""
 
+#, python-format
+msgid " at line %(line)d"
+msgstr ""
+
 msgid " expression which needs to adhere to the "
+msgstr ""
+
+#, python-format
+msgid " near '%(highlight)s'"
 msgstr ""
 
 msgid " source code of Superset's sandboxed parser"
@@ -355,6 +363,10 @@ msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you "
 "clear your cookies or change browsers.\n"
 "\n"
+msgstr ""
+
+#, python-format
+msgid "... and %s others"
 msgstr ""
 
 msgid "0 Selected"
@@ -993,6 +1005,13 @@ msgstr ""
 msgid "Advanced-Analytics"
 msgstr ""
 
+msgid "Affected Charts"
+msgstr ""
+
+#, fuzzy, python-format
+msgid "Affected Dashboards"
+msgstr ""
+
 msgid "After"
 msgstr ""
 
@@ -1133,7 +1152,10 @@ msgstr ""
 msgid "Allow Csv Upload"
 msgstr ""
 
-msgid "Allow DML"
+msgid "Allow DDL and DML"
+msgstr ""
+
+msgid "Allow DDL/DML"
 msgstr ""
 
 msgid "Allow changing catalogs"
@@ -1164,15 +1186,16 @@ msgstr ""
 msgid "Allow file uploads to database"
 msgstr ""
 
-msgid ""
-"Allow manipulation of the database using non-SELECT statements such as "
-"UPDATE, DELETE, CREATE, etc."
-msgstr ""
-
 msgid "Allow node selections"
 msgstr ""
 
 msgid "Allow sending multiple polygons as a filter event"
+msgstr ""
+
+msgid ""
+"Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
+"TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
+"DELETE, etc)"
 msgstr ""
 
 msgid "Allow this database to be explored"
@@ -3215,6 +3238,15 @@ msgstr ""
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr ""
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
+msgid "Dashboard cannot be favorited."
+msgstr ""
+
+msgid "Dashboard cannot be unfavorited."
+msgstr ""
+
 msgid "Dashboard could not be deleted."
 msgstr ""
 
@@ -3790,8 +3822,8 @@ msgid "Deleted: %s"
 msgstr ""
 
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -4312,6 +4344,9 @@ msgstr ""
 msgid "Embed dashboard"
 msgstr ""
 
+msgid "Embedded dashboard could not be deleted."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -4463,6 +4498,9 @@ msgstr ""
 msgid "Error Fetching Tagged Objects"
 msgstr ""
 
+msgid "Error faving chart"
+msgstr ""
+
 #, python-format
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr ""
@@ -4485,6 +4523,9 @@ msgstr ""
 msgid "Error message"
 msgstr ""
 
+msgid "Error parsing"
+msgstr ""
+
 msgid "Error reading CSV file"
 msgstr ""
 
@@ -4495,6 +4536,9 @@ msgid "Error reading Excel file"
 msgstr ""
 
 msgid "Error saving dataset"
+msgstr ""
+
+msgid "Error unfaving chart"
 msgstr ""
 
 msgid "Error while fetching charts"
@@ -5499,9 +5543,6 @@ msgstr ""
 msgid "Intervals"
 msgstr ""
 
-msgid "Intensity"
-msgstr ""
-
 msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
@@ -6165,6 +6206,9 @@ msgstr ""
 msgid "Markup type"
 msgstr ""
 
+msgid "Match time shift color with original series"
+msgstr ""
+
 msgid "Max"
 msgstr ""
 
@@ -6220,6 +6264,12 @@ msgid "Median values"
 msgstr ""
 
 msgid "Medium"
+msgstr ""
+
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
 msgstr ""
 
 msgid "Menu actions trigger"
@@ -6950,6 +7000,9 @@ msgstr ""
 msgid "One or many metrics to display"
 msgstr ""
 
+msgid "One or more annotation layers failed loading."
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr ""
 
@@ -6975,12 +7028,6 @@ msgid "One or more parameters specified in the query are malformed."
 msgstr ""
 
 msgid "One or more parameters specified in the query are missing."
-msgstr ""
-
-msgid "One or more annotation layers failed loading."
-msgstr ""
-
-msgid "Only SELECT statements are allowed against this database."
 msgstr ""
 
 msgid "Only Total"
@@ -7080,6 +7127,13 @@ msgid "Order results by selected columns"
 msgstr ""
 
 msgid "Ordering"
+msgstr ""
+
+msgid ""
+"Orders the query result that generates the source data for this chart. If"
+" a series or row limit is reached, this determines what data are "
+"truncated. If undefined, defaults to the first metric (where "
+"appropriate)."
 msgstr ""
 
 msgid "Orientation"
@@ -7871,6 +7925,9 @@ msgstr ""
 msgid "Refresh interval saved"
 msgstr ""
 
+msgid "Refresh table schema"
+msgstr ""
+
 msgid "Refresh the default values"
 msgstr ""
 
@@ -8089,6 +8146,9 @@ msgid "Results backend is not configured."
 msgstr ""
 
 msgid "Results backend needed for asynchronous queries is not configured."
+msgstr ""
+
+msgid "Retry fetching results"
 msgstr ""
 
 msgid "Return to specific datetime."
@@ -8691,6 +8751,9 @@ msgstr ""
 msgid "Select a sheet name from the uploaded file"
 msgstr ""
 
+msgid "Select a tab"
+msgstr ""
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -8829,6 +8892,9 @@ msgid "Select scheme"
 msgstr ""
 
 msgid "Select subject"
+msgstr ""
+
+msgid "Select tab"
 msgstr ""
 
 msgid "Select table or type to search tables"
@@ -9382,6 +9448,9 @@ msgstr ""
 msgid "Sort metric"
 msgstr ""
 
+msgid "Sort query by"
+msgstr ""
+
 msgid "Sort rows by"
 msgstr ""
 
@@ -9664,6 +9733,12 @@ msgid ""
 "well."
 msgstr ""
 
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
+
 msgid "Symbol"
 msgstr ""
 
@@ -9684,9 +9759,6 @@ msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
 msgstr ""
 
 msgid "TABLES"
-msgstr ""
-
-msgid "TEMPORAL X-AXIS"
 msgstr ""
 
 msgid "TEMPORAL_RANGE"
@@ -9824,6 +9896,9 @@ msgid ""
 "coming from the controls."
 msgstr ""
 
+msgid "Temporal X-Axis"
+msgstr ""
+
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
 "another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
@@ -9866,9 +9941,6 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
-msgstr ""
-
-msgid "The SQL is invalid and cannot be parsed."
 msgstr ""
 
 msgid ""
@@ -9970,11 +10042,7 @@ msgid ""
 "most case users should not need to alter this."
 msgstr ""
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
+msgid "The database"
 msgstr ""
 
 msgid "The database columns that contains lines information"
@@ -10006,11 +10074,7 @@ msgstr ""
 msgid "The database was not found."
 msgstr ""
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
+msgid "The dataset"
 msgstr ""
 
 msgid "The dataset associated with this chart no longer exists"
@@ -10162,6 +10226,11 @@ msgid ""
 "Period\" to be 7, so that all data points shown are the total of 7 "
 "periods. This will hide the \"ramp up\" taking place over the first 7 "
 "periods"
+msgstr ""
+
+msgid ""
+"The minimum value of metrics. It is an optional configuration. If not "
+"set, it will be the minimum value of the data"
 msgstr ""
 
 msgid "The name of the rule must be unique"
@@ -10353,6 +10422,9 @@ msgid ""
 "The result of this query must be a value capable of numeric "
 "interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
 "function)."
+msgstr ""
+
+msgid "The result size exceeds the allowed limit."
 msgstr ""
 
 msgid "The results backend no longer has the data from the query."
@@ -10568,6 +10640,9 @@ msgid "There was an error loading the schemas"
 msgstr ""
 
 msgid "There was an error loading the tables"
+msgstr ""
+
+msgid "There was an error retrieving dashboard tabs."
 msgstr ""
 
 #, python-format
@@ -10788,6 +10863,12 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr ""
 
+msgid ""
+"This database does not allow for DDL/DML, and the query could not be "
+"parsed to confirm it is a read-only query. Please contact your "
+"administrator for more assistance."
+msgstr ""
+
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -10847,12 +10928,6 @@ msgid "This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
 msgid "This may be triggered by:"
-msgstr ""
-
-msgid ""
-"This metric is used to define row selection criteria (how the rows are "
-"sorted) if a series or row limit is present. If not defined, it reverts "
-"to the first metric (where appropriate)."
 msgstr ""
 
 msgid "This metric might be incompatible with current dataset"
@@ -11342,6 +11417,9 @@ msgstr ""
 msgid ""
 "Unable to migrate table schema state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
+msgstr ""
+
+msgid "Unable to parse SQL"
 msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
@@ -12008,6 +12086,11 @@ msgstr ""
 msgid ""
 "When the secondary temporal columns are filtered, apply the same filter "
 "to the main datetime column."
+msgstr ""
+
+msgid ""
+"When unchecked, colors from the selected color scheme will be used for "
+"time shifted series"
 msgstr ""
 
 msgid ""
@@ -12877,9 +12960,6 @@ msgstr ""
 msgid "default"
 msgstr ""
 
-msgid "delete"
-msgstr ""
-
 msgid "descendant"
 msgstr ""
 
@@ -13033,6 +13113,19 @@ msgid "is expected to be a number"
 msgstr ""
 
 msgid "is expected to be an integer"
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 msgid "key a-z"
@@ -13340,9 +13433,6 @@ msgid "variance"
 msgstr ""
 
 msgid "view instructions"
-msgstr ""
-
-msgid "virtual"
 msgstr ""
 
 msgid "viz type"
