@@ -113,6 +113,11 @@ def _add_view_menu(session: Session, view_name: str) -> ViewMenu:
     """
     Check and add the new view menu
     """
+    # Check if the object is already in the session
+    for obj in session.identity_map.values():
+        if isinstance(obj, ViewMenu) and obj.name == view_name:
+            return obj
+
     new_view = session.query(ViewMenu).filter(ViewMenu.name == view_name).one_or_none()
     if not new_view:
         new_view = ViewMenu(name=view_name)
