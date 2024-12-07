@@ -505,7 +505,15 @@ def upgrade_schema_perms(
             .filter_by(name=current_perm)
             .one_or_none()
         ):
-            existing_pvm.name = new_perm
+            # check that new_perm does not exist
+            if session.query(ViewMenu).filter_by(name=new_perm).one_or_none():
+                logger.warning(
+                    "New permission %s already exists. Removing old one",
+                    new_perm,
+                )
+                session.delete(existing_pvm)
+            else:
+                existing_pvm.name = new_perm
         elif new_perm:
             # new schema discovered, need to create a new permission
             perms[new_perm] = ("schema_access",)
@@ -683,7 +691,15 @@ def downgrade_schema_perms(
                 None,
                 schema,
             )
-            pvms_to_rename.append((pvm, new_name))
+            # check to see if the new name already exists
+            if session.query(ViewMenu).filter_by(name=new_name).one_or_none():
+                logger.warning(
+                    "New permission %s already exists. Deleting old one",
+                    new_name,
+                )
+                pvms_to_delete.append(pvm)
+            else:
+                pvms_to_rename.append((pvm, new_name))
         else:
             # non-default catalog, delete schema perm
             pvms_to_delete.append(pvm)
