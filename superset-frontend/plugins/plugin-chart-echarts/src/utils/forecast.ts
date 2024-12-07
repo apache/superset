@@ -150,3 +150,34 @@ export function rebaseForecastDatum(
     return newRow;
   });
 }
+
+// For Confidence Bands, forecast series on mixed charts require the series sent in the following sortOrder:
+export function reorderForecastSeries(row: any[]): any[] {
+  // Define the order for sorting using ForecastSeriesEnum
+  const sortOrder = {
+    [ForecastSeriesEnum.ForecastLower]: 1,
+    [ForecastSeriesEnum.ForecastUpper]: 2,
+    [ForecastSeriesEnum.ForecastTrend]: 3,
+    [ForecastSeriesEnum.Observation]: 4,
+  };
+
+  if (
+    !row.some(item => {
+      const context = extractForecastSeriesContext(item.id);
+      return context && sortOrder.hasOwnProperty(context.type);
+    })
+  ) {
+    return row;
+  }
+
+  return row.sort((a, b) => {
+    // Extract the forecast series context from the id to determine the order
+    const aContext = extractForecastSeriesContext(a.id);
+    const bContext = extractForecastSeriesContext(b.id);
+
+    const aOrder = sortOrder[aContext.type] || Number.MAX_SAFE_INTEGER; // Put other metrics at the end
+    const bOrder = sortOrder[bContext.type] || Number.MAX_SAFE_INTEGER; // Put other metrics at the end
+
+    return aOrder - bOrder;
+  });
+}
