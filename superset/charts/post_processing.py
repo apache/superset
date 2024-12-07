@@ -34,6 +34,7 @@ import pandas as pd
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.extensions import event_logger
 from superset.utils.core import (
     extract_dataframe_dtypes,
     get_column_names,
@@ -296,6 +297,7 @@ post_processors = {
 }
 
 
+@event_logger.log_this
 def apply_post_process(
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
@@ -344,15 +346,19 @@ def apply_post_process(
         # `Tuple[str]`. Otherwise encoding to JSON later will fail because
         # maps cannot have tuples as their keys in JSON.
         processed_df.columns = [
-            " ".join(str(name) for name in column).strip()
-            if isinstance(column, tuple)
-            else column
+            (
+                " ".join(str(name) for name in column).strip()
+                if isinstance(column, tuple)
+                else column
+            )
             for column in processed_df.columns
         ]
         processed_df.index = [
-            " ".join(str(name) for name in index).strip()
-            if isinstance(index, tuple)
-            else index
+            (
+                " ".join(str(name) for name in index).strip()
+                if isinstance(index, tuple)
+                else index
+            )
             for index in processed_df.index
         ]
 

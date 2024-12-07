@@ -1710,7 +1710,7 @@ def test_alert_limit_is_applied(
         with patch.object(
             create_alert_email_chart.database.db_engine_spec,
             "fetch_data",
-            return_value=None,
+            return_value=[],
         ):  # noqa: F841
             AsyncExecuteReportScheduleCommand(
                 TEST_ID, create_alert_email_chart.id, datetime.utcnow()
