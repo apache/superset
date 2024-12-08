@@ -283,7 +283,6 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                 alt="Wand Icon"
                 style={{ width: '20px', height: '20px' }}
               />
-              &nbsp; Summarize Using Alex
             </div>
             <ChartSummaryDrawer
               visible={visible}
