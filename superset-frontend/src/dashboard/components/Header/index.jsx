@@ -58,7 +58,7 @@ import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import wandIcon from './../../../assets/images/wand.png';
-import ChartSummaryDrawer from 'src/components/AiChartSummary/ChartSummaryDrawer';
+import ChartSummaryDrawer from 'src/dashboard/components/AiChartSummary/ChartSummaryDrawer';
 
 const extensionsRegistry = getExtensionsRegistry();
 
