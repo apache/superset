@@ -112,9 +112,11 @@ const StyledDiv = styled.div`
       .dragdroppable-column {
         width: 100% ;
         margin-bottom: 16px ;
+        max-width: none ;
       }
       .grid-column div {
         margin-bottom: 16px ;
+        max-width: none ;
       }
     }
   `}
