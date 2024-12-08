@@ -31,6 +31,7 @@ from superset.exceptions import (
     SupersetGenericDBErrorException,
     SupersetTimeoutException,
 )
+from superset.models.core import temporarily_disconnect_db
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.utils import core as utils
 from superset.utils.core import get_username
@@ -126,7 +127,10 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             seconds=self._timeout_duration_in_seconds,
             error_message=self._get_timeout_error_msg(),
         ):
-            return self._get_sql_results(execution_context, rendered_query, log_params)
+            with temporarily_disconnect_db():
+                return self._get_sql_results(
+                    execution_context, rendered_query, log_params
+                )
 
     def _get_sql_results(
         self,
