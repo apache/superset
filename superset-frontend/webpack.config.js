@@ -568,7 +568,7 @@ if (isDevMode) {
         warnings: false,
         runtimeErrors: error => !/ResizeObserver/.test(error.message),
       },
-      logging: 'error',
+      logging: 'verbose',
     },
     static: path.join(process.cwd(), '../static/assets'),
   };
