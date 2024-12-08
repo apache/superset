@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-08-25 17:38+0300\n"
+"POT-Creation-Date: 2024-10-21 10:25+0330\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -99,8 +99,16 @@ msgstr " لوحة معلومات أو "
 msgid " a new one"
 msgstr " واحدة جديدة"
 
+#, python-format
+msgid " at line %(line)d"
+msgstr ""
+
 msgid " expression which needs to adhere to the "
 msgstr " التعبير الذي يحتاج إلى الالتزام بـ "
+
+#, python-format
+msgid " near '%(highlight)s'"
+msgstr ""
 
 msgid " source code of Superset's sandboxed parser"
 msgstr " الكود المصدري لمحلل الحماية الخاص بـ Superset"
@@ -406,6 +414,10 @@ msgstr ""
 "- ملاحظة: ما لم تقم بحفظ استعلامك ، فلن تستمر علامات التبويب هذه إذا قمت "
 "بمسح ملفات تعريف الارتباط أو تغيير المتصفحات.\n"
 "\n"
+
+#, python-format
+msgid "... and %s others"
+msgstr ""
 
 msgid "0 Selected"
 msgstr "0 محدد"
@@ -1081,6 +1093,14 @@ msgstr "نوع البيانات المتقدمة"
 msgid "Advanced-Analytics"
 msgstr "التحليلات المتقدمة"
 
+#, fuzzy
+msgid "Affected Charts"
+msgstr "حدد الرسوم البيانية"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "حدد لوحات المعلومات"
+
 msgid "After"
 msgstr "بعد"
 
@@ -1229,8 +1249,11 @@ msgstr "السماح بالخيار \"إنشاء طريقة عرض باسم\" ف
 msgid "Allow Csv Upload"
 msgstr "السماح بتحميل csv"
 
-msgid "Allow DML"
-msgstr "السماح ب DML"
+msgid "Allow DDL and DML"
+msgstr ""
+
+msgid "Allow DDL/DML"
+msgstr ""
 
 msgid "Allow changing catalogs"
 msgstr ""
@@ -1264,18 +1287,17 @@ msgstr ""
 msgid "Allow file uploads to database"
 msgstr "السماح بتحميل الملفات إلى قاعدة البيانات"
 
-msgid ""
-"Allow manipulation of the database using non-SELECT statements such as "
-"UPDATE, DELETE, CREATE, etc."
-msgstr ""
-"السماح بمعالجة قاعدة البيانات باستخدام عبارات غير محددة مثل التحديث "
-"والحذف والإنشاء وما إلى ذلك."
-
 msgid "Allow node selections"
 msgstr "السماح بتحديد العقدة"
 
 msgid "Allow sending multiple polygons as a filter event"
 msgstr "السماح بإرسال مضلعات متعددة كحدث تصفية"
+
+msgid ""
+"Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
+"TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
+"DELETE, etc)"
+msgstr ""
 
 msgid "Allow this database to be explored"
 msgstr "السماح باستكشاف قاعدة البيانات هذه"
@@ -3445,6 +3467,14 @@ msgstr "تمت إضافة لوحة المعلومات [{}] إليها"
 msgid "Dashboard cannot be copied due to invalid parameters."
 msgstr ""
 
+#, fuzzy
+msgid "Dashboard cannot be favorited."
+msgstr "تعذر تحديث لوحة المعلومات."
+
+#, fuzzy
+msgid "Dashboard cannot be unfavorited."
+msgstr "تعذر تحديث لوحة المعلومات."
+
 msgid "Dashboard could not be deleted."
 msgstr "تعذر حذف لوحة المعلومات."
 
@@ -4840,6 +4870,10 @@ msgstr "خطأ"
 msgid "Error Fetching Tagged Objects"
 msgstr "حدث خطأ أثناء جلب الكائنات ذات العلامات"
 
+#, fuzzy
+msgid "Error faving chart"
+msgstr "حدث خطأ أثناء حفظ مجموعة البيانات"
+
 #, python-format
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr "خطأ في تعبير jinja في جملة Having: %(msg)s"
@@ -4862,6 +4896,10 @@ msgstr "حدث خطأ أثناء تحميل مصادر بيانات المخطط
 msgid "Error message"
 msgstr "رسالة خطأ"
 
+#, fuzzy
+msgid "Error parsing"
+msgstr "خطأ مظلم"
+
 msgid "Error reading CSV file"
 msgstr ""
 
@@ -4874,6 +4912,10 @@ msgid "Error reading Excel file"
 msgstr "تحميل ملف إكسيل"
 
 msgid "Error saving dataset"
+msgstr "حدث خطأ أثناء حفظ مجموعة البيانات"
+
+#, fuzzy
+msgid "Error unfaving chart"
 msgstr "حدث خطأ أثناء حفظ مجموعة البيانات"
 
 msgid "Error while fetching charts"
@@ -5948,9 +5990,6 @@ msgstr "عمود بدء الفاصل الزمني"
 msgid "Intervals"
 msgstr "فترات"
 
-msgid "Intesity"
-msgstr "الكثافة"
-
 msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
@@ -6646,6 +6685,9 @@ msgstr "علامات"
 msgid "Markup type"
 msgstr "نوع الترميز"
 
+msgid "Match time shift color with original series"
+msgstr ""
+
 msgid "Max"
 msgstr "الحد الأقصى"
 
@@ -6706,6 +6748,12 @@ msgstr "القيم المتوسطة"
 
 msgid "Medium"
 msgstr "متوسط"
+
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
+msgstr ""
 
 msgid "Menu actions trigger"
 msgstr "مشغل إجراءات القائمة"
@@ -7469,6 +7517,10 @@ msgstr "عنصر تحكم واحد أو عدة عناصر للمحور كأعم�
 msgid "One or many metrics to display"
 msgstr "مقياس واحد أو عدة مقاييس لعرضها"
 
+#, fuzzy
+msgid "One or more annotation layers failed loading."
+msgstr "فشلت طبقة أخرى من التعليقات التوضيحية في التحميل."
+
 msgid "One or more columns already exist"
 msgstr "عمود واحد أو أكثر موجود بالفعل"
 
@@ -7495,12 +7547,6 @@ msgstr "تم تحديد معلمة واحدة أو أكثر في الاستعل�
 
 msgid "One or more parameters specified in the query are missing."
 msgstr "هناك معلمة واحدة أو أكثر محددة في الاستعلام مفقودة."
-
-msgid "One ore more annotation layers failed loading."
-msgstr "فشلت طبقة أخرى من التعليقات التوضيحية في التحميل."
-
-msgid "Only SELECT statements are allowed against this database."
-msgstr "يُسمح فقط باستخدام عبارات SELECT مقابل قاعدة البيانات هذه."
 
 msgid "Only Total"
 msgstr "الإجمالي فقط"
@@ -7606,6 +7652,13 @@ msgstr "ترتيب النتائج حسب الأعمدة المحددة"
 
 msgid "Ordering"
 msgstr "الترتيب"
+
+msgid ""
+"Orders the query result that generates the source data for this chart. If"
+" a series or row limit is reached, this determines what data are "
+"truncated. If undefined, defaults to the first metric (where "
+"appropriate)."
+msgstr ""
 
 msgid "Orientation"
 msgstr "اتجاه"
@@ -8676,6 +8729,10 @@ msgstr "لم يتم تكوين الواجهة الخلفية للنتائج."
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr "لم يتم تكوين الواجهة الخلفية للنتائج المطلوبة للاستعلامات غير المتزامنة."
+
+#, fuzzy
+msgid "Retry fetching results"
+msgstr "نتائج إعادة البحث"
 
 msgid "Return to specific datetime."
 msgstr "ارجع إلى تاريخ/وقت محدد."
@@ -10059,6 +10116,10 @@ msgstr "فرز قيم التصفية"
 msgid "Sort metric"
 msgstr "مقياس الفرز"
 
+#, fuzzy
+msgid "Sort query by"
+msgstr "استعلام التصدير"
+
 msgid "Sort rows by"
 msgstr "فرز الصفوف حسب"
 
@@ -10353,6 +10414,12 @@ msgstr ""
 "والمبعثرة والشريطية. يحتوي هذا النوع من viz على العديد من خيارات التخصيص "
 "أيضًا."
 
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
+
 msgid "Symbol"
 msgstr "الرمز "
 
@@ -10579,9 +10646,6 @@ msgstr ""
 "يأخذ GeoJsonLayer البيانات المنسقة لـ GeoJSON ويعرضها كمضلعات وخطوط ونقاط"
 " تفاعلية (دوائر ورموز و/أو نصوص)."
 
-msgid "The SQL is invalid and cannot be parsed."
-msgstr ""
-
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -10697,16 +10761,9 @@ msgstr ""
 "إدخال نوع يدويًا للأعمدة المحددة بالتعبير في بعض الحالات. في معظم "
 "الحالات، يجب ألا يحتاج المستخدمون إلى تغيير هذا."
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"ترتبط قاعدة البيانات %s بالمخططات التي تظهر على %s لوحات المعلومات %s "
-"ويكون لدى المستخدمين علامات تبويب %s SQL Lab باستخدام قاعدة البيانات هذه "
-"مفتوحة. هل أنت متأكد أنك تريد المتابعة؟ سيؤدي حذف قاعدة البيانات إلى كسر "
-"هذه الكائنات."
+#, fuzzy
+msgid "The database"
+msgstr "حذف قاعدة البيانات"
 
 msgid "The database columns that contains lines information"
 msgstr "أعمدة قاعدة البيانات التي تحتوي على معلومات الأسطر"
@@ -10739,15 +10796,9 @@ msgstr "تم حذف قاعدة البيانات."
 msgid "The database was not found."
 msgstr "لم يتم العثور على قاعدة البيانات."
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"ترتبط مجموعة البيانات %s بالمخططات %s التي تظهر على لوحات معلومات %s. هل "
-"أنت متأكد أنك تريد المتابعة؟ سيؤدي حذف مجموعة البيانات إلى كسر هذه "
-"الكائنات."
+#, fuzzy
+msgid "The dataset"
+msgstr "مجموعة بيانات جديدة"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "لم تعد مجموعة البيانات المرتبطة بهذا المخطط موجودة"
@@ -10923,6 +10974,12 @@ msgstr ""
 "إذا قمت بعمل مبلغ تراكمي في 7 أيام، فقد ترغب في أن تكون «الفترة الدنيا» "
 "7، بحيث تكون جميع نقاط البيانات المعروضة هي إجمالي 7 فترات. سيؤدي هذا إلى"
 " إخفاء «الزيادة» التي تحدث خلال الفترات السبع الأولى"
+
+#, fuzzy
+msgid ""
+"The minimum value of metrics. It is an optional configuration. If not "
+"set, it will be the minimum value of the data"
+msgstr "الحد الأقصى لقيمة المقاييس. إنه تكوين اختياري"
 
 msgid "The name of the rule must be unique"
 msgstr "يجب أن يكون اسم القاعدة فريدًا"
@@ -11162,6 +11219,9 @@ msgid ""
 "The result of this query must be a value capable of numeric "
 "interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
 "function)."
+msgstr ""
+
+msgid "The result size exceeds the allowed limit."
 msgstr ""
 
 msgid "The results backend no longer has the data from the query."
@@ -11668,6 +11728,12 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr "تم حفظ لوحة المعلومات هذه بنجاح."
 
+msgid ""
+"This database does not allow for DDL/DML, and the query could not be "
+"parsed to confirm it is a read-only query. Please contact your "
+"administrator for more assistance."
+msgstr ""
+
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr "تتم إدارة قاعدة البيانات هذه خارجيًا، ولا يمكن تحريرها في Superset"
 
@@ -11742,15 +11808,6 @@ msgstr "يوجد خطأ في مكون تخفيض السعر هذا. يرجى ا�
 
 msgid "This may be triggered by:"
 msgstr "قد يتم تشغيل هذا من خلال:"
-
-msgid ""
-"This metric is used to define row selection criteria (how the rows are "
-"sorted) if a series or row limit is present. If not defined, it reverts "
-"to the first metric (where appropriate)."
-msgstr ""
-"يُستخدم هذا المقياس لتعريف معايير اختيار الصفوف (كيفية فرز الصفوف) في "
-"حالة وجود حد للسلسلة أو الصف. إذا لم يتم تعريفه، فإنه يعود إلى المقياس "
-"الأول (عند الاقتضاء)."
 
 msgid "This metric might be incompatible with current dataset"
 msgstr "قد يكون هذا المقياس غير متوافق مع مجموعة البيانات الحالية"
@@ -12279,6 +12336,9 @@ msgstr ""
 "غير قادر على ترحيل حالة مخطط الجدول إلى الواجهة الخلفية. ستتم إعادة "
 "المحاولة من قبل Superset لاحقًا. يرجى الاتصال بالمسؤول إذا استمرت هذه "
 "المشكلة."
+
+msgid "Unable to parse SQL"
+msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "غير قادر على استرداد ألوان لوحة المعلومات"
@@ -13024,6 +13084,11 @@ msgstr ""
 "عمود التاريخ والوقت الرئيسي."
 
 msgid ""
+"When unchecked, colors from the selected color scheme will be used for "
+"time shifted series"
+msgstr ""
+
+msgid ""
 "When using \"Autocomplete filters\", this can be used to improve "
 "performance of the query fetching the values. Use this option to apply a "
 "predicate (WHERE clause) to the query selecting the distinct values from "
@@ -13189,9 +13254,10 @@ msgstr ""
 msgid "Whether to show as Nightingale chart."
 msgstr "ما إذا كان سيتم إظهار تقدم مخطط القياس"
 
+#, fuzzy
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 "سواء لإظهار عناصر تحكم إضافية أم لا. تتضمن عناصر التحكم الإضافية أشياء "
 "مثل إنشاء مخططات MultiBar مكدسة أو جنبًا إلى جنب."
@@ -13943,9 +14009,6 @@ msgstr "سطح السفينة"
 msgid "default"
 msgstr "إفتراضي"
 
-msgid "delete"
-msgstr "حذف"
-
 msgid "descendant"
 msgstr "سليل"
 
@@ -14104,6 +14167,26 @@ msgstr "من المتوقع أن يكون رقمًا"
 
 msgid "is expected to be an integer"
 msgstr "من المتوقع أن يكون عددًا صحيحًا"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"ترتبط قاعدة البيانات %s بالمخططات التي تظهر على %s لوحات المعلومات %s "
+"ويكون لدى المستخدمين علامات تبويب %s SQL Lab باستخدام قاعدة البيانات هذه "
+"مفتوحة. هل أنت متأكد أنك تريد المتابعة؟ سيؤدي حذف قاعدة البيانات إلى كسر "
+"هذه الكائنات."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"ترتبط مجموعة البيانات %s بالمخططات %s التي تظهر على لوحات معلومات %s. هل "
+"أنت متأكد أنك تريد المتابعة؟ سيؤدي حذف مجموعة البيانات إلى كسر هذه "
+"الكائنات."
 
 msgid "key a-z"
 msgstr "مفتاح من الألف إلى الياء"

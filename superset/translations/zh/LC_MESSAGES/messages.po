@@ -18,16 +18,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-10-21 10:25+0330\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
 "Language-Team: zh <benedictjin2016@gmail.com>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Plural-Forms: nplurals=1; plural=0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.9.1\n"
 
 msgid ""
 "\n"
@@ -92,8 +92,16 @@ msgstr "一个已存在的看板或者"
 msgid " a new one"
 msgstr "另存为新的"
 
+#, python-format
+msgid " at line %(line)d"
+msgstr ""
+
 msgid " expression which needs to adhere to the "
 msgstr " 表达式必须基于 "
+
+#, python-format
+msgid " near '%(highlight)s'"
+msgstr ""
 
 msgid " source code of Superset's sandboxed parser"
 msgstr ""
@@ -374,6 +382,10 @@ msgid ""
 "clear your cookies or change browsers.\n"
 "\n"
 msgstr "--  注意：除非您保存查询，否则如果清除cookie或更改浏览器时，这些选项卡将不会保留。\n"
+
+#, python-format
+msgid "... and %s others"
+msgstr ""
 
 msgid "0 Selected"
 msgstr "0个被选中"
@@ -1064,6 +1076,14 @@ msgstr "高级数据类型"
 msgid "Advanced-Analytics"
 msgstr "高级分析"
 
+#, fuzzy
+msgid "Affected Charts"
+msgstr "选择图表"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "选择看板"
+
 msgid "After"
 msgstr "之后"
 
@@ -1208,8 +1228,11 @@ msgstr "在 SQL 编辑器中允许 CREATE VIEW AS 选项"
 msgid "Allow Csv Upload"
 msgstr "允许Csv上传"
 
-msgid "Allow DML"
-msgstr "允许 DML"
+msgid "Allow DDL and DML"
+msgstr ""
+
+msgid "Allow DDL/DML"
+msgstr ""
 
 msgid "Allow changing catalogs"
 msgstr ""
@@ -1240,16 +1263,17 @@ msgstr "允许最终用户通过拖放列标题来重新排列它们。请注意
 msgid "Allow file uploads to database"
 msgstr "允许上传文件到数据库"
 
-msgid ""
-"Allow manipulation of the database using non-SELECT statements such as "
-"UPDATE, DELETE, CREATE, etc."
-msgstr "允许使用非SELECT语句(如UPDATE、DELETE、CREATE等)操作数据库。"
-
 msgid "Allow node selections"
 msgstr "允许节点选择"
 
 msgid "Allow sending multiple polygons as a filter event"
 msgstr "允许使用多个多边形来过滤事件"
+
+msgid ""
+"Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
+"TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
+"DELETE, etc)"
+msgstr ""
 
 msgid "Allow this database to be explored"
 msgstr "允许浏览此数据库"
@@ -3453,6 +3477,17 @@ msgstr "看板 [%s] 刚刚被创建，并且图表 [%s] 已被添加到其中"
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "看板 [{}] 刚刚被创建，并且图表 [{}] 已被添加到其中"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
+#, fuzzy
+msgid "Dashboard cannot be favorited."
+msgstr "看板无法更新。"
+
+#, fuzzy
+msgid "Dashboard cannot be unfavorited."
+msgstr "看板无法更新。"
+
 msgid "Dashboard could not be deleted."
 msgstr "看板无法被删除。"
 
@@ -4050,9 +4085,10 @@ msgstr "已删除：%s"
 msgid "Deleted: %s"
 msgstr "已删除：%s"
 
+#, fuzzy
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr "删除一个标签页将会移除其中的所有内容。您仍然可以回退这个操作，点击"
 
 msgid "Delimited long & lat single column"
@@ -4602,6 +4638,10 @@ msgstr "嵌入代码"
 msgid "Embed dashboard"
 msgstr "嵌入看板"
 
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "看板无法被删除。"
+
 msgid "Embedding deactivated."
 msgstr "解除嵌入。"
 
@@ -4765,6 +4805,10 @@ msgstr "错误"
 msgid "Error Fetching Tagged Objects"
 msgstr "获取标签对象错误"
 
+#, fuzzy
+msgid "Error faving chart"
+msgstr "保存数据集时发生错误"
+
 #, python-format
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr "jinja表达式中的HAVING子句出错：%(msg)s"
@@ -4788,6 +4832,10 @@ msgid "Error message"
 msgstr "错误信息"
 
 #, fuzzy
+msgid "Error parsing"
+msgstr "错误（暗色）"
+
+#, fuzzy
 msgid "Error reading CSV file"
 msgstr "保存数据集时发生错误"
 
@@ -4801,6 +4849,10 @@ msgstr "上传Excel"
 
 #, fuzzy
 msgid "Error saving dataset"
+msgstr "保存数据集时发生错误"
+
+#, fuzzy
+msgid "Error unfaving chart"
 msgstr "保存数据集时发生错误"
 
 msgid "Error while fetching charts"
@@ -5890,10 +5942,6 @@ msgid "Intervals"
 msgstr "间隔"
 
 #, fuzzy
-msgid "Intesity"
-msgstr "强度"
-
-#, fuzzy
 msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
@@ -6613,6 +6661,9 @@ msgstr "标记"
 msgid "Markup type"
 msgstr "Markup 类型"
 
+msgid "Match time shift color with original series"
+msgstr ""
+
 msgid "Max"
 msgstr "最大值"
 
@@ -6672,6 +6723,12 @@ msgstr "中位数值"
 
 msgid "Medium"
 msgstr "中"
+
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
+msgstr ""
 
 msgid "Menu actions trigger"
 msgstr ""
@@ -7464,6 +7521,10 @@ msgstr "一个或多个控件作为列进行透视"
 msgid "One or many metrics to display"
 msgstr "一个或多个指标显示"
 
+#, fuzzy
+msgid "One or more annotation layers failed loading."
+msgstr "一个或多个注释层加载失败。"
+
 msgid "One or more columns already exist"
 msgstr "一个或多个列已存在"
 
@@ -7491,12 +7552,6 @@ msgstr "查询中指定的一个或多个参数的格式不正确。"
 
 msgid "One or more parameters specified in the query are missing."
 msgstr "查询中指定的一个或多个参数丢失。"
-
-msgid "One ore more annotation layers failed loading."
-msgstr "一个或多个注释层加载失败。"
-
-msgid "Only SELECT statements are allowed against this database."
-msgstr "此数据库只允许使用 `SELECT` 语句"
 
 msgid "Only Total"
 msgstr "仅总计"
@@ -7600,6 +7655,13 @@ msgstr "按选定列对结果进行排序"
 
 msgid "Ordering"
 msgstr "排序"
+
+msgid ""
+"Orders the query result that generates the source data for this chart. If"
+" a series or row limit is reached, this determines what data are "
+"truncated. If undefined, defaults to the first metric (where "
+"appropriate)."
+msgstr ""
 
 #, fuzzy
 msgid "Orientation"
@@ -8434,6 +8496,10 @@ msgstr "刷新间隔"
 msgid "Refresh interval saved"
 msgstr "刷新间隔已保存"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "查看表结构"
+
 msgid "Refresh the default values"
 msgstr "刷新默认值"
 
@@ -8671,6 +8737,10 @@ msgstr "后端未配置结果"
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr "后端未配置异步查询所需的结果"
+
+#, fuzzy
+msgid "Retry fetching results"
+msgstr "重新获取结果"
 
 msgid "Return to specific datetime."
 msgstr "返回指定的日期时间。"
@@ -9327,6 +9397,10 @@ msgstr "指定一个模式(需要数据库支持)"
 msgid "Select a sheet name from the uploaded file"
 msgstr "选择将要上传文件的数据库"
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "删除数据库"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9483,6 +9557,10 @@ msgstr "选择方案"
 
 msgid "Select subject"
 msgstr "选择主题"
+
+#, fuzzy
+msgid "Select tab"
+msgstr "反选所有"
 
 #, fuzzy
 msgid "Select table or type to search tables"
@@ -10072,6 +10150,10 @@ msgstr "排序过滤器值"
 msgid "Sort metric"
 msgstr "排序指标"
 
+#, fuzzy
+msgid "Sort query by"
+msgstr "导出查询"
+
 msgid "Sort rows by"
 msgstr "排序 "
 
@@ -10377,6 +10459,12 @@ msgid ""
 "well."
 msgstr "用于可视化时间序列数据。在步进图、折线图、散点图和条形图之间进行选择,也有许多自定义选项"
 
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
+
 msgid "Symbol"
 msgstr "符号"
 
@@ -10398,10 +10486,6 @@ msgstr ""
 
 msgid "TABLES"
 msgstr "表"
-
-#, fuzzy
-msgid "TEMPORAL X-AXIS"
-msgstr "时间X轴"
 
 #, fuzzy
 msgid "TEMPORAL_RANGE"
@@ -10551,6 +10635,10 @@ msgid ""
 "coming from the controls."
 msgstr "模板链接，可以包含{{metric}}或来自控件的其他值。"
 
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "时间条件"
+
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
 "another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
@@ -10595,9 +10683,6 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
-msgstr ""
-
-msgid "The SQL is invalid and cannot be parsed."
 msgstr ""
 
 msgid ""
@@ -10705,14 +10790,9 @@ msgid ""
 "most case users should not need to alter this."
 msgstr "由数据库推断的数据类型。在某些情况下，可能需要为表达式定义的列手工输入一个类型。在大多数情况下，用户不需要修改这个数据类型。"
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"数据库 %s 已经关联了 %s 图表和 %s 看板，并且用户在该数据库上打开了 %s 个 SQL "
-"编辑器选项卡。确定要继续吗？删除数据库将破坏这些对象。"
+#, fuzzy
+msgid "The database"
+msgstr "删除数据库"
 
 #, fuzzy
 msgid "The database columns that contains lines information"
@@ -10746,12 +10826,9 @@ msgstr "数据库已删除。"
 msgid "The database was not found."
 msgstr "数据库没有找到"
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr "数据集 %s 已经链接到 %s 图表和 %s 看板内。确定要继续吗？删除数据集将破坏这些对象。"
+#, fuzzy
+msgid "The dataset"
+msgstr "新数据集"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr "这个图表所链接的数据集可能被删除了。"
@@ -10909,6 +10986,12 @@ msgid ""
 msgstr ""
 "显示值所需的滚动周期的最小值。例如，如果您想累积 7 天的总额，您可能希望您的“最小周期”为 7，以便显示的所有数据点都是 7 "
 "个区间的总和。这将隐藏掉前 7 个阶段的“加速”效果"
+
+#, fuzzy
+msgid ""
+"The minimum value of metrics. It is an optional configuration. If not "
+"set, it will be the minimum value of the data"
+msgstr "度量的最大值。这是一个可选配置"
 
 #, fuzzy
 msgid "The name of the rule must be unique"
@@ -11117,6 +11200,9 @@ msgid ""
 "The result of this query must be a value capable of numeric "
 "interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
 "function)."
+msgstr ""
+
+msgid "The result size exceeds the allowed limit."
 msgstr ""
 
 msgid "The results backend no longer has the data from the query."
@@ -11348,6 +11434,10 @@ msgstr "抱歉，这个看板在获取图表时发生错误："
 msgid "There was an error loading the tables"
 msgstr "您的请求有错误"
 
+#, fuzzy, python-format
+msgid "There was an error retrieving dashboard tabs."
+msgstr "抱歉，这个看板在保存时发生错误：%s"
+
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr "获取此看板的收藏夹状态时出现问题: %s"
@@ -11572,6 +11662,12 @@ msgstr "此仪表板已准备好嵌入。在您的应用程序中，将以下 ID
 msgid "This dashboard was saved successfully."
 msgstr "该看板已成功保存。"
 
+msgid ""
+"This database does not allow for DDL/DML, and the query could not be "
+"parsed to confirm it is a read-only query. Please contact your "
+"administrator for more assistance."
+msgstr ""
+
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -11635,13 +11731,6 @@ msgstr "此 markdown 组件有错误。请还原最近的更改。"
 
 msgid "This may be triggered by:"
 msgstr "这可能由以下因素触发："
-
-#, fuzzy
-msgid ""
-"This metric is used to define row selection criteria (how the rows are "
-"sorted) if a series or row limit is present. If not defined, it reverts "
-"to the first metric (where appropriate)."
-msgstr "如果存在序列或行限制，则用于定义顶部序列的排序方式的度量。如果未定义，则返回第一个度量（如果适用）。"
 
 #, fuzzy
 msgid "This metric might be incompatible with current dataset"
@@ -12155,6 +12244,9 @@ msgid ""
 "Unable to migrate table schema state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
 msgstr "无法将表结构状态迁移到后端。系统将稍后重试。如果此问题仍然存在，请与管理员联系。"
+
+msgid "Unable to parse SQL"
+msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
 msgstr ""
@@ -12861,6 +12953,11 @@ msgid ""
 msgstr "当对次要时间列进行筛选时，将相同的筛选条件应用到主日期时间列。"
 
 msgid ""
+"When unchecked, colors from the selected color scheme will be used for "
+"time shifted series"
+msgstr ""
+
+msgid ""
 "When using \"Autocomplete filters\", this can be used to improve "
 "performance of the query fetching the values. Use this option to apply a "
 "predicate (WHERE clause) to the query selecting the distinct values from "
@@ -13029,9 +13126,10 @@ msgstr "是否在浏览视图的过滤器部分中填充过滤器的下拉列表
 msgid "Whether to show as Nightingale chart."
 msgstr "是否显示量规图进度"
 
+#, fuzzy
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr "是否显示额外的控件。额外的控制包括使多栏图表堆叠或并排。"
 
 msgid "Whether to show minor ticks on the axis"
@@ -13800,9 +13898,6 @@ msgstr "deckGL图表"
 msgid "default"
 msgstr "默认"
 
-msgid "delete"
-msgstr "删除"
-
 msgid "descendant"
 msgstr "降序"
 
@@ -13972,6 +14067,21 @@ msgstr "应该为数字"
 
 msgid "is expected to be an integer"
 msgstr "应该为整数"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"数据库 %s 已经关联了 %s 图表和 %s 看板，并且用户在该数据库上打开了 %s 个 SQL "
+"编辑器选项卡。确定要继续吗？删除数据库将破坏这些对象。"
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr "数据集 %s 已经链接到 %s 图表和 %s 看板内。确定要继续吗？删除数据集将破坏这些对象。"
 
 msgid "key a-z"
 msgstr "a-z键"
@@ -14321,9 +14431,6 @@ msgstr "方差"
 #, fuzzy
 msgid "view instructions"
 msgstr "查看指引"
-
-msgid "virtual"
-msgstr "虚拟"
 
 #, fuzzy
 msgid "viz type"
