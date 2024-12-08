@@ -32,7 +32,9 @@ cd superset
 Setting things up to squeeze a "hello world" into any part of Superset should be as simple as
 
 ```bash
-docker compose up
+# getting docker compose to fire up services, and rebuilding if some docker layers have changed
+# using the `--build` suffix may be slower and optional if layers like py dependencies haven't changed
+docker compose up --build
 ```
 
 Note that:
@@ -69,6 +71,24 @@ our [installing on k8s](https://superset.apache.org/docs/installation/running-on
 documentation.
 configured to be secure.
 :::
+
+### Nuking the postgres database
+
+At times, it's possible to end up with your development database in a bad state, it's
+common while switching branches that contain migrations for instance, where the database
+version stamp that `alembic` manages is no longer available after switching branch.
+
+In that case, the easy solution is to nuke the postgres db and start fresh. Note that the full
+state of the database will be gone after doing this, so be cautious.
+
+```bash
+# first stop docker-compose if it's running
+docker-compose down
+# delete the volume containing the database
+docker volume rm superset_db_home
+# restart docker-compose, which will init a fresh database and load examples
+docker-compose up
+```
 
 ## Installing Development Tools
 
@@ -676,7 +696,7 @@ If you already have launched Docker environment please use the following command
 
 Launch environment:
 
-`CYPRESS_CONFIG=true docker compose up`
+`CYPRESS_CONFIG=true docker compose up --build`
 
 It will serve the backend and frontend on port 8088.
 
@@ -744,7 +764,7 @@ superset:
 Start Superset as usual
 
 ```bash
-docker compose up
+docker compose up --build
 ```
 
 Install the required libraries and packages to the docker container

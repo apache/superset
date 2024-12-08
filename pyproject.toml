@@ -55,6 +55,7 @@ dependencies = [
     "flask-wtf>=1.1.0, <2.0",
     "func_timeout",
     "geopy",
+    "greenlet>=3.0.3, <=3.1.1",
     "gunicorn>=22.0.0; sys_platform != 'win32'",
     "hashids>=1.3.1, <2",
     # known issue with holidays 0.26.0 and above related to prophet lib #25017
@@ -178,14 +179,11 @@ netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
+ydb = ["ydb-sqlalchemy>=0.1.2"]
 development = [
     "docker",
     "flask-testing",
     "freezegun",
-    # playwright requires greenlet==3.0.3
-    # submitted a PR to relax deps in 11/2024
-    # https://github.com/microsoft/playwright-python/pull/2669
-    "greenlet==3.0.3",
     "grpcio>=1.55.3",
     "openapi-spec-validator",
     "parameterized",

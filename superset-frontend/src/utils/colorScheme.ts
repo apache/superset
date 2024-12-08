@@ -19,9 +19,12 @@
 
 import {
   CategoricalColorNamespace,
+  ensureIsArray,
   getCategoricalSchemeRegistry,
   getLabelsColorMap,
 } from '@superset-ui/core';
+
+const EMPTY_ARRAY: string[] = [];
 
 /**
  * Force falsy namespace values to undefined to default to GLOBAL
@@ -41,7 +44,7 @@ export const getColorNamespace = (namespace?: string) => namespace || undefined;
  */
 export const enforceSharedLabelsColorsArray = (
   sharedLabelsColors: string[] | Record<string, string> | undefined,
-) => (Array.isArray(sharedLabelsColors) ? sharedLabelsColors : []);
+) => (Array.isArray(sharedLabelsColors) ? sharedLabelsColors : EMPTY_ARRAY);
 
 /**
  * Get labels shared across all charts in a dashboard.
@@ -67,7 +70,9 @@ export const getFreshSharedLabels = (
     .filter(([, count]) => count > 1)
     .map(([label]) => label);
 
-  return Array.from(new Set([...currentSharedLabels, ...duplicates]));
+  return Array.from(
+    new Set([...ensureIsArray(currentSharedLabels), ...duplicates]),
+  );
 };
 
 export const getSharedLabelsColorMapEntries = (

@@ -83,16 +83,20 @@ const selectRelevantDatamask = createSelector(
   dataMask => getRelevantDataMask(dataMask, 'ownState'), // the second parameter conducts the transformation
 );
 
+const selectChartConfiguration = (state: RootState) =>
+  state.dashboardInfo.metadata?.chart_configuration;
+const selectNativeFilters = (state: RootState) => state.nativeFilters.filters;
+const selectDataMask = (state: RootState) => state.dataMask;
+const selectAllSliceIds = (state: RootState) => state.dashboardState.sliceIds;
 // TODO: move to Dashboard.jsx when it's refactored to functional component
 const selectActiveFilters = createSelector(
-  (state: RootState) => ({
-    // eslint-disable-next-line camelcase
-    chartConfiguration: state.dashboardInfo.metadata?.chart_configuration,
-    nativeFilters: state.nativeFilters.filters,
-    dataMask: state.dataMask,
-    allSliceIds: state.dashboardState.sliceIds,
-  }),
-  ({ chartConfiguration, nativeFilters, dataMask, allSliceIds }) => ({
+  [
+    selectChartConfiguration,
+    selectNativeFilters,
+    selectDataMask,
+    selectAllSliceIds,
+  ],
+  (chartConfiguration, nativeFilters, dataMask, allSliceIds) => ({
     ...getActiveFilters(),
     ...getAllActiveFilters({
       // eslint-disable-next-line camelcase
@@ -228,17 +232,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   if (error) throw error; // caught in error boundary
 
+  const globalStyles = useMemo(
+    () => [
+      filterCardPopoverStyle(theme),
+      headerStyles(theme),
+      chartContextMenuStyles(theme),
+      focusStyle(theme),
+      chartHeaderStyles(theme),
+    ],
+    [theme],
+  );
+
+  if (error) throw error; // caught in error boundary
+
+  const DashboardBuilderComponent = useMemo(() => <DashboardBuilder />, []);
   return (
     <>
-      <Global
-        styles={[
-          filterCardPopoverStyle(theme),
-          headerStyles(theme),
-          chartContextMenuStyles(theme),
-          focusStyle(theme),
-          chartHeaderStyles(theme),
-        ]}
-      />
+      <Global styles={globalStyles} />
       {readyToRender && hasDashboardInfoInitiated ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
@@ -247,7 +257,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
               activeFilters={activeFilters}
               ownDataCharts={relevantDataMask}
             >
-              <DashboardBuilder />
+              {DashboardBuilderComponent}
             </DashboardContainer>
           </DashboardPageIdContext.Provider>
         </>
