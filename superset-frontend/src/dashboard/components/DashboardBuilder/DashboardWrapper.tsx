@@ -110,13 +110,11 @@ const StyledDiv = styled.div`
 
     @media (max-width: 980px) {
       .dragdroppable-column {
-        width: 100% ;
-        margin-bottom: 16px ;
-        max-width: none ;
+        width: 100% !important;
+        max-width: none !important;
       }
       .grid-column div {
-        margin-bottom: 16px ;
-        max-width: none ;
+        max-width: none !important;
       }
     }
   `}

@@ -291,19 +291,19 @@ const DashboardContentWrapper = styled.div`
         justify-content: center ;
         align-items: center ; 
         width: 100% ;
-        max-width: none ;
+        max-width: none !important;
       }
       .grid-row .dragdroppable-object {
-        width: 100% ;
-        max-width: none ;
+        width: 100% !important;
+        max-width: none !important;
       }
       .resizable-container div {
         width: 100% !important ; 
-        max-width: none;
+        max-width: none !important;
       }
       .resizable-container canvas {
         width: 100% !important ; 
-        max-width: none;
+        max-width: none !important;
       }
     }
   `}
