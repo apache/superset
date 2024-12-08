@@ -37,6 +37,8 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import wandIcon from './../../../assets/images/wand.png';
+import ChartSummaryDrawer from '../AiChartSummary/ChartSummaryDrawer';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -52,6 +54,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  queriesResponse: any;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -162,6 +165,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   formData,
   width,
   height,
+  queriesResponse,
 }) => {
   const SliceHeaderExtension = extensionsRegistry.get('dashboard.slice.header');
   const uiConfig = useUiConfig();
@@ -177,6 +181,11 @@ const SliceHeader: FC<SliceHeaderProps> = ({
   );
 
   const canExplore = !editMode && supersetCanExplore;
+  const [visible, setVisible] = useState(false);
+
+  const onClose = () => {
+    setVisible(false);
+  };
 
   useEffect(() => {
     const headerElement = headerRef.current;
@@ -261,6 +270,33 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
+            <div
+              role="button"
+              tabIndex={0}
+              style={{ display: 'inline-block', cursor: 'pointer' }}
+              onClick={() => {
+                setVisible(true);
+              }}
+            >
+              <img
+                src={wandIcon}
+                alt="Wand Icon"
+                style={{ width: '20px', height: '20px' }}
+              />
+              &nbsp; Summarize Using Alex
+            </div>
+            <ChartSummaryDrawer
+              visible={visible}
+              onClose={onClose}
+              title={sliceName || ''}
+              charts={{
+                1: {
+                  form_data: formData,
+                  queriesResponse,
+                  chartStatus,
+                },
+              }}
+            />
             {!uiConfig.hideChartControls && (
               <SliceHeaderControls
                 slice={slice}
