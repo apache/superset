@@ -1713,13 +1713,7 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
     "superset.async_events.async_query_manager.AsyncQueryManager"
 )
-GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
-    "port": 6379,
-    "host": "127.0.0.1",
-    "password": "",
-    "db": 0,
-    "ssl": False,
-}
+
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
@@ -1737,19 +1731,20 @@ GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
 )
 GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
+# The configuration 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG' has been deprecated and removed.
+# Please use 'GLOBAL_ASYNC_QUERIES_CACHE_BACKEND' for cache configuration.
 # Global async queries cache backend configuration options:
 # - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
 # - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
-# - Set 'CACHE_TYPE' to 'None' to fall back on 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG'.
 GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
     "CACHE_TYPE": "RedisCache",
-    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_HOST": "127.0.0.1",
     "CACHE_REDIS_PORT": 6379,
     "CACHE_REDIS_USER": "",
     "CACHE_REDIS_PASSWORD": "",
     "CACHE_REDIS_DB": 0,
     "CACHE_DEFAULT_TIMEOUT": 300,
-    "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
+    "CACHE_REDIS_SENTINELS": [("127.0.0.1", 26379)],
     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
     "CACHE_REDIS_SENTINEL_PASSWORD": None,
     "CACHE_REDIS_SSL": False,  # True or False
