@@ -24,6 +24,7 @@ import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
 import Owner from 'src/types/Owner';
 import { EmptyStateBig } from 'src/components/EmptyState';
+import { NumberParam, useQueryParam } from 'use-query-params';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -79,6 +80,7 @@ export default function AllEntitiesTable({
 }: AllEntitiesTableProps) {
   type objectType = 'dashboard' | 'chart' | 'query';
 
+  const [tagId] = useQueryParam('id', NumberParam);
   const showListViewObjs =
     objects.dashboard.length > 0 ||
     objects.chart.length > 0 ||
@@ -119,7 +121,9 @@ export default function AllEntitiesTable({
               <TagsList
                 tags={tags.filter(
                   (tag: Tag) =>
-                    tag.type === 'TagTypes.custom' || tag.type === 1,
+                    tag.type !== undefined &&
+                    ['TagType.custom', 1].includes(tag.type) &&
+                    tag.id !== tagId,
                 )}
                 maxTags={MAX_TAGS_TO_SHOW}
               />
