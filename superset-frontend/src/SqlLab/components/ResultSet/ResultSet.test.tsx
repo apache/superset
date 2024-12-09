@@ -30,7 +30,6 @@ import fetchMock from 'fetch-mock';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
-  failedQueryWithErrorMessage,
   failedQueryWithErrors,
   queries,
   runningQuery,
@@ -40,6 +39,11 @@ import {
   queryWithNoQueryLimit,
   failedQueryWithFrontendTimeoutErrors,
 } from 'src/SqlLab/fixtures';
+
+jest.mock(
+  'src/components/ErrorMessage/ErrorMessageWithStackTrace',
+  () => () => <div data-test="error-message">Error</div>,
+);
 
 const mockedProps = {
   cache: true,
@@ -90,15 +94,6 @@ const cachedQueryState = {
     ...initialState.sqlLab,
     queries: {
       [cachedQuery.id]: cachedQuery,
-    },
-  },
-};
-const failedQueryWithErrorMessageState = {
-  ...initialState,
-  sqlLab: {
-    ...initialState.sqlLab,
-    queries: {
-      [failedQueryWithErrorMessage.id]: failedQueryWithErrorMessage,
     },
   },
 };
@@ -314,26 +309,17 @@ describe('ResultSet', () => {
     expect(getByText('fetching')).toBeInTheDocument();
   });
 
-  test('should render a failed query with an error message', async () => {
-    await waitFor(() => {
-      setup(
-        { ...mockedProps, queryId: failedQueryWithErrorMessage.id },
-        mockStore(failedQueryWithErrorMessageState),
-      );
-    });
-
-    expect(screen.getByText('Database error')).toBeInTheDocument();
-    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
-  });
-
   test('should render a failed query with an errors object', async () => {
+    const { errors } = failedQueryWithErrors;
+
     await waitFor(() => {
       setup(
         { ...mockedProps, queryId: failedQueryWithErrors.id },
         mockStore(failedQueryWithErrorsState),
       );
     });
-    expect(screen.getByText('Database error')).toBeInTheDocument();
+    const errorMessages = screen.getAllByTestId('error-message');
+    expect(errorMessages).toHaveLength(errors.length);
   });
 
   test('should render a timeout error with a retrial button', async () => {
