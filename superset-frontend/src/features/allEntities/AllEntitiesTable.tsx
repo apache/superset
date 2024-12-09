@@ -121,8 +121,9 @@ export default function AllEntitiesTable({
               <TagsList
                 tags={tags.filter(
                   (tag: Tag) =>
-                    (tag.type === 'TagType.custom' && tag.id !== tagId) ||
-                    (tag.type === 1 && tag.id !== tagId),
+                    tag.type !== undefined &&
+                    ['TagType.custom', 1].includes(tag.type) &&
+                    tag.id !== tagId,
                 )}
                 maxTags={MAX_TAGS_TO_SHOW}
               />
