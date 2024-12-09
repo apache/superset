@@ -164,6 +164,7 @@
     "mustache": "^4.2.0",
     "nanoid": "^5.0.7",
     "polished": "^4.3.1",
+    "pretty-ms": "^9.2.0",
     "prop-types": "^15.8.1",
     "query-string": "^6.13.7",
     "rc-trigger": "^5.3.4",
