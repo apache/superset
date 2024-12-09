@@ -18,7 +18,7 @@
 Remove _customer_location_uc
 
 Revision ID: df3d7e2eb9a4
-Revises: 02f4f7811799
+Revises: 48cbb571fa3a
 Create Date: 2024-07-19 16:11:26.740368
 """
 
@@ -27,23 +27,26 @@ import logging
 from alembic import op
 from migration_utils import create_unique_constraint, drop_unique_constraint
 
+from superset.utils.core import generic_find_uq_constraint_name
+
 # revision identifiers, used by Alembic.
 revision = "df3d7e2eb9a4"
-down_revision = "02f4f7811799"
+down_revision = "48cbb571fa3a"
 
 logger = logging.getLogger(__name__)
 
 
 def upgrade():
-    try:
-        drop_unique_constraint(op, "_customer_location_uc", "tables")
-    except Exception:  # pylint: disable=broad-except
-        # Unfortunately the DB migration that creates this constraint has a
-        # try/except block, so that we can't know for sure if the constraint exists.
-        logger.warning(
-            "Error dropping constraint, This is expected for certain databases like "
-            "SQLite and MySQL"
-        )
+    inspector = op.get_bind().inspector()
+
+    # Unfortunately the DB migration that creates this constraint has a
+    # try/except block, so that we can't know for sure if the constraint exists.
+    if constraint_name := generic_find_uq_constraint_name(
+        "table",
+        ["database_id", "schema", "table_name"],
+        inspector,
+    ):
+        drop_unique_constraint(op, constraint_name, "tables")
 
 
 def downgrade():
