@@ -55,6 +55,18 @@ const StyledTrashIcon = styled(Icons.Trash)`
   color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
 
+const StyledFilterIcon = styled(Icons.Filter)`
+  color: ${({ theme }) => theme.colors.grayscale.light2};
+  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  line-height: normal;
+`;
+
+const StyledDividerIcon = styled(Icons.PicCenterOutlined)`
+  color: ${({ theme }) => theme.colors.grayscale.light2};
+  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  line-height: normal;
+`;
+
 const StyledWarning = styled(Icons.Warning)`
   color: ${({ theme }) => theme.colors.error.base};
   &.anticon {
@@ -78,6 +90,9 @@ interface Props {
   filters: string[];
   erroredFilters: string[];
 }
+
+const isFilterDivider = (id: string) =>
+  !!id.startsWith('NATIVE_FILTER_DIVIDER');
 
 const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
   (
@@ -120,6 +135,11 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
                 wordBreak: 'break-all',
               }}
             >
+              {isFilterDivider(id) ? (
+                <StyledDividerIcon iconSize="m" />
+              ) : (
+                <StyledFilterIcon iconSize="m" />
+              )}{' '}
               {isRemoved ? t('(Removed)') : getFilterTitle(id)}
             </div>
             {!removedFilters[id] && isErrored && (
