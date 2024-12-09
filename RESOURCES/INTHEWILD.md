@@ -122,6 +122,8 @@ Join our growing community!
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
+- [Xaqt](https://www.xaqt.com)[@stevensuting]
+- [Value Ad](https://www.value-ad.com)[@stevensuting]
 
 ### Media & Entertainment
 - [6play](https://www.6play.fr) [@CoryChaplin]
@@ -144,6 +146,7 @@ Join our growing community!
 - [Udemy](https://www.udemy.com/) [@sungjuly]
 - [VIPKID](https://www.vipkid.com.cn/) [@illpanda]
 - [WikiMedia Foundation](https://wikimediafoundation.org) [@vg]
+- [Quest Alliance](https://questalliance.net/)[@stevensuting]
 
 ### Energy
 - [Airboxlab](https://foobot.io) [@antoine-galataud]
@@ -173,6 +176,7 @@ Join our growing community!
 - [City of Ann Arbor, MI](https://www.a2gov.org/) [@sfirke]
 - [RIS3 Strategy of CZ, MIT CR](https://www.ris3.cz/) [@RIS3CZ]
 - [NRLM - Sarathi, India](https://pib.gov.in/PressReleasePage.aspx?PRID=1999586)
+- [One Acre Fund](https://oneacrefund.org)[@stevensuting]
 
 ### Travel
 - [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
