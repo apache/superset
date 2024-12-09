@@ -72,7 +72,7 @@ from superset.extensions import (
     security_manager,
     ssh_manager_factory,
 )
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
@@ -103,7 +103,7 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     value = Column(utils.MediumText(), nullable=False)
 
 
-class CssTemplate(Model, AuditMixinNullable):
+class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
@@ -1207,7 +1207,7 @@ class FavStarClassName(StrEnum):
     DASHBOARD = "Dashboard"
 
 
-class FavStar(Model):  # pylint: disable=too-few-public-methods
+class FavStar(UUIDMixin, Model):
     __tablename__ = "favstar"
 
     id = Column(Integer, primary_key=True)
