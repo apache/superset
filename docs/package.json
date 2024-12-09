@@ -20,7 +20,7 @@
     "@algolia/client-search": "^5.15.0",
     "@ant-design/icons": "^5.5.2",
     "@docsearch/react": "^3.6.3",
-    "@docusaurus/core": "^3.5.2",
+    "@docusaurus/core": "^3.6.3",
     "@docusaurus/plugin-client-redirects": "^3.5.2",
     "@docusaurus/preset-classic": "^3.5.2",
     "@emotion/core": "^10.1.1",
