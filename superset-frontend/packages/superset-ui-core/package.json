@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/core",
-  "version": "0.20.2",
+  "version": "0.20.3",
   "description": "Superset UI core",
   "keywords": [
     "superset"
