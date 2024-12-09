@@ -42,7 +42,6 @@ import {
   css,
   getNumberFormatter,
   getExtensionsRegistry,
-  ErrorLevel,
   ErrorTypeEnum,
 } from '@superset-ui/core';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -559,16 +558,7 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
-    const errors = [];
-    if (query.errorMessage) {
-      errors.push({
-        error_type: ErrorTypeEnum.GENERIC_DB_ENGINE_ERROR,
-        extra: {},
-        level: 'error' as ErrorLevel,
-        message: query.errorMessage,
-      });
-    }
-    errors.push(...(query.extra?.errors || []), ...(query.errors || []));
+    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
 
     return (
       <ResultlessStyles>
