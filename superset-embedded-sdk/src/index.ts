@@ -75,7 +75,7 @@ export type EmbeddedDashboard = {
   unmount: () => void;
   getDashboardPermalink: (anchor: string) => Promise<string>;
   getActiveTabs: () => Promise<string[]>;
-  getDataMasks: () => Promise<any[]>;
+  getDataMasks: (callbackFn: (dataMasks: any[]) => void) => void;
 };
 
 /**
@@ -199,7 +199,11 @@ export async function embedDashboard({
   const getDashboardPermalink = (anchor: string) =>
     ourPort.get<string>('getDashboardPermalink', { anchor });
   const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
-  const getDataMasks = () => ourPort.get<any[]>('getDataMasks');
+  const getDataMasks = (callbackFn: (dataMasks: any[]) => void) => {
+    ourPort.start();
+    ourPort.defineMethod("getDataMasks", callbackFn);
+  };
+
 
   return {
     getScrollSize,
