@@ -199,15 +199,17 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
       .words(data.map(d => ({ ...d })))
       .padding(5)
       .rotate(ROTATION[rotation] || ROTATION.flat)
-      .text(d => encoder.channels.text.getValueFromDatum(d))
-      .font(d =>
+      .text((d: PlainObject) => encoder.channels.text.getValueFromDatum(d))
+      .font((d: PlainObject) =>
         encoder.channels.fontFamily.encodeDatum(
           d,
           this.props.theme.typography.families.sansSerif,
         ),
       )
-      .fontWeight(d => encoder.channels.fontWeight.encodeDatum(d, 'normal'))
-      .fontSize(d => encoder.channels.fontSize.encodeDatum(d, 0))
+      .fontWeight((d: PlainObject) =>
+        encoder.channels.fontWeight.encodeDatum(d, 'normal'),
+      )
+      .fontSize((d: PlainObject) => encoder.channels.fontSize.encodeDatum(d, 0))
       .on('end', (words: Word[]) => {
         if (isValid(words) || scaleFactor > MAX_SCALE_FACTOR) {
           if (this.isComponentMounted) {

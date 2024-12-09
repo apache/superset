@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/demo",
-  "version": "0.18.25",
+  "version": "0.20.0",
   "private": true,
   "description": "Storybook for Superset UI ✨",
   "keywords": [
@@ -35,6 +35,7 @@
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.3.0",
+    "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "@react-icons/all-files": "^4.1.0",
     "@storybook/addon-actions": "8.1.11",
     "@storybook/addon-controls": "8.1.11",
@@ -50,8 +51,7 @@
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
     "react-loadable": "^5.5.0",
-    "react-resizable": "^3.0.5",
-    "@mihkeleidast/storybook-addon-source": "^1.0.1"
+    "react-resizable": "^3.0.5"
   },
   "devDependencies": {
     "@babel/core": "^7.23.9",
