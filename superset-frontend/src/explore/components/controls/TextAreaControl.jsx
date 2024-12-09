@@ -19,6 +19,10 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import { TextArea } from 'src/components/Input';
+import {
+  Tooltip,
+  TooltipProps as TooltipOptions,
+} from 'src/components/Tooltip';
 import { t, withTheme } from '@superset-ui/core';
 
 import Button from 'src/components/Button';
@@ -55,6 +59,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
+  tooltipOptions: PropTypes.oneOf([null, TooltipOptions]),
 };
 
 const defaultProps = {
@@ -67,6 +72,7 @@ const defaultProps = {
   readOnly: false,
   resize: null,
   textAreaStyles: {},
+  tooltipOptions: {},
 };
 
 class TextAreaControl extends Component {
@@ -94,31 +100,44 @@ class TextAreaControl extends Component {
       if (this.props.readOnly) {
         style.backgroundColor = '#f2f2f2';
       }
-
-      return (
-        <TextAreaEditor
-          mode={this.props.language}
-          style={style}
-          minLines={minLines}
-          maxLines={inModal ? 1000 : this.props.maxLines}
-          editorProps={{ $blockScrolling: true }}
-          defaultValue={this.props.initialValue}
-          readOnly={this.props.readOnly}
-          key={this.props.name}
-          {...this.props}
-          onChange={this.onAreaEditorChange.bind(this)}
-        />
+      const codeEditor = (
+        <div>
+          <TextAreaEditor
+            mode={this.props.language}
+            style={style}
+            minLines={minLines}
+            maxLines={inModal ? 1000 : this.props.maxLines}
+            editorProps={{ $blockScrolling: true }}
+            defaultValue={this.props.initialValue}
+            readOnly={this.props.readOnly}
+            key={this.props.name}
+            {...this.props}
+            onChange={this.onAreaEditorChange.bind(this)}
+          />
+        </div>
       );
+
+      if (this.props.tooltipOptions) {
+        return <Tooltip {...this.props.tooltipOptions}>{codeEditor}</Tooltip>;
+      }
+      return codeEditor;
     }
-    return (
-      <TextArea
-        placeholder={t('textarea')}
-        onChange={this.onControlChange.bind(this)}
-        defaultValue={this.props.initialValue}
-        disabled={this.props.readOnly}
-        style={{ height: this.props.height }}
-      />
+
+    const textArea = (
+      <div>
+        <TextArea
+          placeholder={t('textarea')}
+          onChange={this.onControlChange.bind(this)}
+          defaultValue={this.props.initialValue}
+          disabled={this.props.readOnly}
+          style={{ height: this.props.height }}
+        />
+      </div>
     );
+    if (this.props.tooltipOptions) {
+      return <Tooltip {...this.props.tooltipOptions}>{textArea}</Tooltip>;
+    }
+    return textArea;
   }
 
   renderModalBody() {
