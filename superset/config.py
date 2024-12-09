@@ -492,7 +492,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
-    "EMBEDDED_SUPERSET_EMIT_EVENTS": False,
+    "EMBEDDED_SUPERSET_EMIT_DATA_MASKS": False,
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "ALERT_REPORT_TABS": False,

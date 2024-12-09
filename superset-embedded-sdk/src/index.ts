@@ -71,11 +71,12 @@ export type Size = {
 }
 
 export type EmbeddedDashboard = {
-  getScrollSize: () => Promise<Size>
-  unmount: () => void
-  getDashboardPermalink: (anchor: string) => Promise<string>
-  getActiveTabs: () => Promise<string[]>
-}
+  getScrollSize: () => Promise<Size>;
+  unmount: () => void;
+  getDashboardPermalink: (anchor: string) => Promise<string>;
+  getActiveTabs: () => Promise<string[]>;
+  getDataMasks: () => Promise<any[]>;
+};
 
 /**
  * Embeds a Superset dashboard into the page using an iframe.
@@ -197,12 +198,14 @@ export async function embedDashboard({
   const getScrollSize = () => ourPort.get<Size>('getScrollSize');
   const getDashboardPermalink = (anchor: string) =>
     ourPort.get<string>('getDashboardPermalink', { anchor });
-  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs')
+  const getActiveTabs = () => ourPort.get<string[]>('getActiveTabs');
+  const getDataMasks = () => ourPort.get<any[]>('getDataMasks');
 
   return {
     getScrollSize,
     unmount,
     getDashboardPermalink,
     getActiveTabs,
+    getDataMasks,
   };
 }

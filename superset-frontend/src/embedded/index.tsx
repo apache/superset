@@ -219,15 +219,12 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   }
 });
 
-if (isFeatureEnabled(FeatureFlag.EmbeddedSupersetEmitEvents)) {
+if (isFeatureEnabled(FeatureFlag.EmbeddedSupersetEmitDataMasks)) {
   log('setting up Switchboard event emitter');
-
-  // TODO: should this be a redux middleware?
-  // Should there be a list of events that are allowed to be emitted?
 
   store.subscribe(() => {
     const state = store.getState();
-    Switchboard.emit('getDataMask', state.dataMask);
+    Switchboard.emit('getDataMasks', state.dataMask);
   });
 }
 
