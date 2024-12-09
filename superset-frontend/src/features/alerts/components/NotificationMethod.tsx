@@ -111,6 +111,7 @@ const TRANSLATIONS = {
   EMAIL_SUBJECT_ERROR_TEXT: t(
     'Please enter valid text. Spaces alone are not permitted.',
   ),
+  WEBHOOK_ENDPOINT_URL: t('Webhook endpoint URL'),
 };
 
 interface NotificationMethodProps {
@@ -317,7 +318,10 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
             ((!isFeatureEnabled(FeatureFlag.AlertReportSlackV2) ||
               useSlackV1) &&
               method === NotificationMethodOption.Slack) ||
-            method === NotificationMethodOption.Email,
+            [
+              NotificationMethodOption.Email,
+              NotificationMethodOption.Webhook,
+            ].includes(method),
         )
         .map(method => ({
           label:
@@ -333,7 +337,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     return null;
   }
 
-  const onRecipientsChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+  const onRecipientsChange = (
+    event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
+  ) => {
     const { target } = event;
 
     setRecipientValue(target.value);
@@ -453,158 +459,183 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           </div>
         </StyledInputContainer>
       </div>
-      {method !== undefined ? (
+      {method === NotificationMethodOption.Webhook ? (
         <>
           <div className="inline-container">
             <StyledInputContainer>
-              {method === NotificationMethodOption.Email ? (
-                <>
-                  <div className="control-label">
-                    {TRANSLATIONS.EMAIL_SUBJECT_NAME}
-                  </div>
-                  <div className={`input-container ${error ? 'error' : ''}`}>
-                    <input
-                      type="text"
-                      name="email_subject"
-                      value={email_subject}
-                      placeholder={defaultSubject}
-                      onChange={onSubjectChange}
-                    />
-                  </div>
-                  {error && (
-                    <div
-                      style={{
-                        color: theme.colors.error.base,
-                        fontSize: theme.gridUnit * 3,
-                      }}
-                    >
-                      {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
-                    </div>
-                  )}
-                </>
-              ) : null}
-            </StyledInputContainer>
-          </div>
-          <div className="inline-container">
-            <StyledInputContainer>
               <div className="control-label">
-                {t(
-                  '%s recipients',
-                  method === NotificationMethodOption.SlackV2
-                    ? NotificationMethodOption.Slack
-                    : method,
-                )}
+                {TRANSLATIONS.WEBHOOK_ENDPOINT_URL}
                 <span className="required">*</span>
               </div>
-              <div>
-                {[
-                  NotificationMethodOption.Email,
-                  NotificationMethodOption.Slack,
-                ].includes(method) ? (
-                  <>
-                    <div className="input-container">
-                      <textarea
-                        name="To"
-                        data-test="recipients"
-                        value={recipientValue}
-                        onChange={onRecipientsChange}
-                      />
-                    </div>
-                    <div className="input-container">
-                      <div className="helper">
-                        {t('Recipients are separated by "," or ";"')}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  // for SlackV2
-                  <Select
-                    ariaLabel={t('Select channels')}
-                    mode="multiple"
-                    name="recipients"
-                    value={slackRecipients}
-                    options={slackOptions}
-                    onChange={onSlackRecipientsChange}
-                    allowClear
-                    data-test="recipients"
-                    allowSelectAll={false}
-                    labelInValue
-                  />
-                )}
+              <div className={`input-container ${error ? 'error' : ''}`}>
+                <input
+                  type="text"
+                  name="recipients"
+                  value={recipientValue}
+                  onChange={onRecipientsChange}
+                />
               </div>
             </StyledInputContainer>
           </div>
-          {method === NotificationMethodOption.Email && (
-            <StyledInputContainer>
-              {/* Render "CC" input field if ccVisible is true */}
-              {ccVisible && (
-                <>
-                  <div className="control-label">
-                    {TRANSLATIONS.EMAIL_CC_NAME}
-                  </div>
-                  <div className="input-container">
-                    <textarea
-                      name="CC"
-                      data-test="cc"
-                      value={ccValue}
-                      onChange={onCcChange}
-                    />
-                  </div>
-                  <div className="input-container">
-                    <div className="helper">
-                      {t('Recipients are separated by "," or ";"')}
-                    </div>
-                  </div>
-                </>
-              )}
-              {/* Render "BCC" input field if bccVisible is true */}
-              {bccVisible && (
-                <>
-                  <div className="control-label">
-                    {TRANSLATIONS.EMAIL_BCC_NAME}
-                  </div>
-                  <div className="input-container">
-                    <textarea
-                      name="BCC"
-                      data-test="bcc"
-                      value={bccValue}
-                      onChange={onBccChange}
-                    />
-                  </div>
-                  <div className="input-container">
-                    <div className="helper">
-                      {t('Recipients are separated by "," or ";"')}
-                    </div>
-                  </div>
-                </>
-              )}
-              {/* New buttons container */}
-              <div className="ghost-button">
-                <span
-                  className="ghost-button"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setCcVisible(true)}
-                  style={{ display: ccVisible ? 'none' : 'inline-flex' }}
-                >
-                  <Icons.Email className="icon" />
-                  {t('Add CC Recipients')}
-                </span>
-                <span
-                  className="ghost-button"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setBccVisible(true)}
-                  style={{ display: bccVisible ? 'none' : 'inline-flex' }}
-                >
-                  <Icons.Email className="icon" />
-                  {t('Add BCC Recipients')}
-                </span>
-              </div>
-            </StyledInputContainer>
-          )}
         </>
-      ) : null}
+      ) : (
+        <>
+          {method !== undefined ? (
+            <>
+              <div className="inline-container">
+                <StyledInputContainer>
+                  {method === NotificationMethodOption.Email ? (
+                    <>
+                      <div className="control-label">
+                        {TRANSLATIONS.EMAIL_SUBJECT_NAME}
+                      </div>
+                      <div
+                        className={`input-container ${error ? 'error' : ''}`}
+                      >
+                        <input
+                          type="text"
+                          name="email_subject"
+                          value={email_subject}
+                          placeholder={defaultSubject}
+                          onChange={onSubjectChange}
+                        />
+                      </div>
+                      {error && (
+                        <div
+                          style={{
+                            color: theme.colors.error.base,
+                            fontSize: theme.gridUnit * 3,
+                          }}
+                        >
+                          {TRANSLATIONS.EMAIL_SUBJECT_ERROR_TEXT}
+                        </div>
+                      )}
+                    </>
+                  ) : null}
+                </StyledInputContainer>
+              </div>
+              <div className="inline-container">
+                <StyledInputContainer>
+                  <div className="control-label">
+                    {t(
+                      '%s recipients',
+                      method === NotificationMethodOption.SlackV2
+                        ? NotificationMethodOption.Slack
+                        : method,
+                    )}
+                    <span className="required">*</span>
+                  </div>
+                  <div>
+                    {[
+                      NotificationMethodOption.Email,
+                      NotificationMethodOption.Slack,
+                    ].includes(method) ? (
+                      <>
+                        <div className="input-container">
+                          <textarea
+                            name="To"
+                            data-test="recipients"
+                            value={recipientValue}
+                            onChange={onRecipientsChange}
+                          />
+                        </div>
+                        <div className="input-container">
+                          <div className="helper">
+                            {t('Recipients are separated by "," or ";"')}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      // for SlackV2
+                      <Select
+                        ariaLabel={t('Select channels')}
+                        mode="multiple"
+                        name="recipients"
+                        value={slackRecipients}
+                        options={slackOptions}
+                        onChange={onSlackRecipientsChange}
+                        allowClear
+                        data-test="recipients"
+                        allowSelectAll={false}
+                        labelInValue
+                      />
+                    )}
+                  </div>
+                </StyledInputContainer>
+              </div>
+              {method === NotificationMethodOption.Email && (
+                <StyledInputContainer>
+                  {/* Render "CC" input field if ccVisible is true */}
+                  {ccVisible && (
+                    <>
+                      <div className="control-label">
+                        {TRANSLATIONS.EMAIL_CC_NAME}
+                      </div>
+                      <div className="input-container">
+                        <textarea
+                          name="CC"
+                          data-test="cc"
+                          value={ccValue}
+                          onChange={onCcChange}
+                        />
+                      </div>
+                      <div className="input-container">
+                        <div className="helper">
+                          {t('Recipients are separated by "," or ";"')}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {/* Render "BCC" input field if bccVisible is true */}
+                  {bccVisible && (
+                    <>
+                      <div className="control-label">
+                        {TRANSLATIONS.EMAIL_BCC_NAME}
+                      </div>
+                      <div className="input-container">
+                        <textarea
+                          name="BCC"
+                          data-test="bcc"
+                          value={bccValue}
+                          onChange={onBccChange}
+                        />
+                      </div>
+                      <div className="input-container">
+                        <div className="helper">
+                          {t('Recipients are separated by "," or ";"')}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {/* New buttons container */}
+                  <div className="ghost-button">
+                    <span
+                      className="ghost-button"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setCcVisible(true)}
+                      style={{ display: ccVisible ? 'none' : 'inline-flex' }}
+                    >
+                      <Icons.Email className="icon" />
+                      {t('Add CC Recipients')}
+                    </span>
+                    <span
+                      className="ghost-button"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setBccVisible(true)}
+                      style={{ display: bccVisible ? 'none' : 'inline-flex' }}
+                    >
+                      <Icons.Email className="icon" />
+                      {t('Add BCC Recipients')}
+                    </span>
+                  </div>
+                </StyledInputContainer>
+              )}
+            </>
+          ) : null}
+        </>
+      )}
     </StyledNotificationMethod>
   );
 };
