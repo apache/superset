@@ -51,7 +51,9 @@ from superset.utils.core import override_user
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
+    chart_config_2,
     dashboard_config,
+    dashboard_config_2,
     dashboard_export,
     dashboard_metadata_config,
     database_config,
@@ -741,6 +743,65 @@ class TestImportDashboardsCommand(SupersetTestCase):
                 "table_name": ["Missing data for required field."],
             }
         }
+
+    @patch("superset.security.manager.g")
+    def test_import_v1_dashboard_overwrite_removes_deleted_charts(self, mock_g):
+        """Test that existing dashboards are updated without old charts."""
+        mock_g.user = security_manager.find_user("admin")
+
+        num_dashboards = db.session.query(Dashboard).count()
+        num_charts = db.session.query(Slice).count()
+
+        contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config),
+        }
+        command = v1.ImportDashboardsCommand(contents)
+        command.run()
+
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+
+        old_chart = dashboard.slices[0]
+        assert str(old_chart.uuid) == chart_config["uuid"]
+
+        overwrite_contents = {
+            "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+            "databases/imported_database.yaml": yaml.safe_dump(database_config),
+            "datasets/imported_dataset.yaml": yaml.safe_dump(dataset_config),
+            "charts/imported_chart.yaml": yaml.safe_dump(chart_config_2),
+            "dashboards/imported_dashboard.yaml": yaml.safe_dump(dashboard_config_2),
+        }
+        overwrite_command = v1.ImportDashboardsCommand(
+            overwrite_contents, overwrite=True
+        )
+        overwrite_command.run()
+
+        new_num_dashboards = db.session.query(Dashboard).count()
+        assert new_num_dashboards == num_dashboards + 1
+
+        dashboard = (
+            db.session.query(Dashboard).filter_by(uuid=dashboard_config["uuid"]).one()
+        )
+
+        assert len(dashboard.slices) == 1
+
+        new_chart = dashboard.slices[0]
+        assert str(new_chart.uuid) == chart_config_2["uuid"]
+
+        dataset = old_chart.table
+        database = dataset.database
+
+        db.session.delete(dashboard)
+        db.session.delete(old_chart)
+        db.session.delete(new_chart)
+        db.session.delete(dataset)
+        db.session.delete(database)
+        db.session.commit()
 
 
 class TestCopyDashboardCommand(SupersetTestCase):
