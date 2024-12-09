@@ -17,11 +17,9 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ htmlContent }: any) => (
 const ChartSummaryDrawer = (props: any) => {
   const { onClose, visible, title, charts, dashboardInfo } = props;
 
-  const chartSummary: any = [];
-  const [chartSummaryLoader, setChartSummaryLoader] = useState(true);
-  const [finalResult, setFinalResult] = useState([]);
-
   const [drawerWidth, setDrawerWidth] = useState<string | number>('40%');
+  const [results, setResults] = useState<(string | null)[]>([]);
+  const [loaders, setLoaders] = useState<boolean[]>([]);
 
   useEffect(() => {
     const updateDrawerWidth = () => {
@@ -41,37 +39,43 @@ const ChartSummaryDrawer = (props: any) => {
 
   useEffect(() => {
     if (visible) {
-      let counter = 0;
-      const sendRequest = async (data: any, formdata: any) => {
-        const { metric, viz_type, groupby, x_axis } = formdata;
-        try {
-          const response = await axios.post(
-            'https://api.development.shipmnts.com/turingbot/ai-chart-summarize',
-            { data, metric, viz_type, groupby, x_axis },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            },
-          );
+      const chartEntries = Object.values(charts) || [];
+      const initialResults = Array(chartEntries.length).fill(null);
+      const initialLoaders = Array(chartEntries.length).fill(true);
 
-          chartSummary.push(response.data.summary);
-          if (counter === chartSummary.length) {
-            setFinalResult(chartSummary);
-            setChartSummaryLoader(false);
-          }
-        } catch (error) {
-          console.error('Error:', error);
-        }
-      };
-      (Object.values(charts) || []).forEach((value: any) => {
-        if (value.chartStatus === 'rendered' && !!value?.queriesResponse) {
-          counter += 1;
-          sendRequest(value?.queriesResponse[0].data, value.form_data);
+      setResults(initialResults);
+      setLoaders(initialLoaders);
+
+      chartEntries.forEach((chart: any, index: number) => {
+        if (chart.chartStatus === 'rendered' && chart?.queriesResponse) {
+          const { data, form_data } = chart.queriesResponse[0];
+          const { metric, viz_type, groupby, x_axis } = form_data;
+
+          axios
+            .post(
+              'https://api.development.shipmnts.com/turingbot/ai-chart-summarize',
+              { data, metric, viz_type, groupby, x_axis },
+              { headers: { 'Content-Type': 'application/json' } },
+            )
+            .then((response: any) => {
+              const newResults = [...results];
+              newResults[index] = response.data.summary;
+              setResults(newResults);
+
+              const newLoaders = [...loaders];
+              newLoaders[index] = false;
+              setLoaders(newLoaders);
+            })
+            .catch((error: any) => {
+              console.error(`Error loading chart ${index}:`, error);
+
+              const newLoaders = [...loaders];
+              newLoaders[index] = false;
+              setLoaders(newLoaders);
+            });
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [charts, visible]);
 
   return (
@@ -94,20 +98,20 @@ const ChartSummaryDrawer = (props: any) => {
         visible={visible}
         width={drawerWidth}
       >
-        {chartSummaryLoader && <Spin />}
-
-        {!chartSummaryLoader && (
-          <div>
-            {finalResult.map((val, index) => (
-              <>
+        <div>
+          {(Object.values(charts) || []).map((chart: any, index: number) => (
+            <React.Fragment key={index}>
+              {loaders[index] ? (
+                <Spin />
+              ) : (
                 <Card hoverable title={title || dashboardInfo[index]}>
-                  <HTMLRenderer key={index} htmlContent={marked(val)} />
+                  <HTMLRenderer htmlContent={marked(results[index] || '')} />
                 </Card>
-                <br />
-              </>
-            ))}
-          </div>
-        )}
+              )}
+              <br />
+            </React.Fragment>
+          ))}
+        </div>
       </Drawer>
     </>
   );
