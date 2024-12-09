@@ -203,7 +203,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 
+          editUrl:
           ({versionDocsDirPath, docPath}) => {
             if (docPath === 'intro.md') {
               return 'https://github.com/apache/superset/edit/master/README.md'
