@@ -84,7 +84,12 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
 }
 
 export function removeHTMLTags(str: string): string {
-  return str.replace(/<[^>]*>/g, '');
+  let previous;
+  do {
+    previous = str;
+    str = str.replace(/<[^>]*>/g, '');
+  } while (str !== previous);
+  return str;
 }
 
 export function isJsonString(str: string): boolean {
