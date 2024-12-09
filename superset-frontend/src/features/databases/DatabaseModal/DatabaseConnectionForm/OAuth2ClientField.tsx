@@ -67,6 +67,16 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
       },
     };
     changeMethods.onEncryptedExtraInputChange(event);
+
+    // enable user impersonation if client info is provided
+    changeMethods.onParametersChange({
+      target: {
+        type: 'toggle',
+        name: 'impersonate_user',
+        checked: !!(updatedInfo.id && updatedInfo.secret),
+        value: !!(updatedInfo.id && updatedInfo.secret),
+      },
+    });
   };
 
   return (
