@@ -29,7 +29,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@types/d3-cloud": "^1.2.9",
     "@types/d3-scale": "^4.0.8",
     "d3-cloud": "^1.2.7",
     "d3-scale": "^3.0.1",
@@ -41,5 +40,8 @@
     "@types/lodash": "*",
     "@types/react": "*",
     "react": "^16.13.1"
+  },
+  "devDependencies": {
+    "@types/d3-cloud": "^1.2.9"
   }
 }
