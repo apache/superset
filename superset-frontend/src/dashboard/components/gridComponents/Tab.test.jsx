@@ -21,7 +21,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
+import AnchorLink from 'src/dashboard/components/AnchorLink';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import EditableTitle from 'src/components/EditableTitle';
@@ -59,13 +59,14 @@ describe('Tabs', () => {
     updateComponents() {},
   };
 
-  function setup(overrideProps) {
+  function setup(overrideProps = {}, storeOverrides = {}) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const mockStore = getMockStore({
       ...initialState,
       dashboardLayout: dashboardLayoutWithTabs,
       dashboardFilters: {},
+      ...storeOverrides,
     });
     const wrapper = mount(
       <Provider store={mockStore}>
@@ -109,6 +110,21 @@ describe('Tabs', () => {
       const wrapper = setup({ renderType: RENDER_TAB_CONTENT });
       // We expect 2 because this Tab has a Row child and the row has a Chart
       expect(wrapper.find(DashboardComponent)).toHaveLength(2);
+    });
+  });
+
+  describe('AnchorLink', () => {
+    it(`should not render AnchorLink without ['can_export', 'Dashboard'] permission`, () => {
+      const wrapper = setup();
+      expect(wrapper.find(AnchorLink)).not.toExist();
+    });
+
+    it(`should render AnchorLink with ['can_export', 'Dashboard'] permission`, () => {
+      const wrapper = setup(
+        {},
+        { user: { roles: { Admin: [['can_export', 'Dashboard']] } } },
+      );
+      expect(wrapper.find(AnchorLink)).toExist();
     });
   });
 });

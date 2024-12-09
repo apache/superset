@@ -19,6 +19,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
+import { connect } from 'react-redux';
 import { css, styled } from '@superset-ui/core';
 
 import PopoverDropdown from 'src/components/PopoverDropdown';
@@ -37,6 +38,7 @@ import {
   SMALL_HEADER,
   BACKGROUND_TRANSPARENT,
 } from 'src/dashboard/util/constants';
+import { findPermission } from 'src/utils/findPermission';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -52,6 +54,7 @@ const propTypes = {
   handleComponentDrop: PropTypes.func.isRequired,
   deleteComponent: PropTypes.func.isRequired,
   updateComponents: PropTypes.func.isRequired,
+  canExportChart: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {};
@@ -166,6 +169,7 @@ class Header extends PureComponent {
       index,
       handleComponentDrop,
       editMode,
+      canExportChart,
     } = this.props;
 
     const headerStyle = headerStyleOptions.find(
@@ -234,7 +238,7 @@ class Header extends PureComponent {
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
-                {!editMode && (
+                {!editMode && canExportChart && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
               </HeaderStyles>
@@ -249,4 +253,9 @@ class Header extends PureComponent {
 Header.propTypes = propTypes;
 Header.defaultProps = defaultProps;
 
-export default Header;
+function mapStateToProps(state) {
+  return {
+    canExportChart: findPermission('can_export', 'Chart', state.user?.roles),
+  };
+}
+export default connect(mapStateToProps)(Header);

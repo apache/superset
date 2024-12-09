@@ -33,6 +33,7 @@ import DragDroppable, {
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
+import { findPermission } from 'src/utils/findPermission';
 
 export const RENDER_TAB = 'RENDER_TAB';
 export const RENDER_TAB_CONTENT = 'RENDER_TAB_CONTENT';
@@ -65,6 +66,7 @@ const propTypes = {
   updateComponents: PropTypes.func.isRequired,
   setDirectPathToChild: PropTypes.func.isRequired,
   setEditMode: PropTypes.func.isRequired,
+  canExportDashboard: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -282,6 +284,7 @@ class Tab extends PureComponent {
       isHighlighted,
       onDropPositionChange,
       onDragTab,
+      canExportDashboard
     } = this.props;
 
     return (
@@ -313,7 +316,7 @@ class Tab extends PureComponent {
               showTooltip={false}
               editing={editMode && isFocused}
             />
-            {!editMode && (
+            {!editMode && canExportDashboard && (
               <AnchorLink
                 id={component.id}
                 dashboardId={this.props.dashboardId}
@@ -346,6 +349,7 @@ Tab.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     canEdit: state.dashboardInfo.dash_edit_perm,
+    canExportDashboard: findPermission('can_export', 'Dashboard', state.user?.roles)
   };
 }
 

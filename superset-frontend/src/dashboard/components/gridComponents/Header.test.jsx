@@ -24,17 +24,19 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import EditableTitle from 'src/components/EditableTitle';
+import AnchorLink from 'src/dashboard/components/AnchorLink';
 import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import Header from 'src/dashboard/components/gridComponents/Header';
+import URLShortLinkButton from 'src/dashboard/components/URLShortLinkButton';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
   HEADER_TYPE,
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
-
-import { mockStoreWithTabs } from 'spec/fixtures/mockStore';
+import { getMockStore } from 'spec/fixtures/mockStore';
+import { dashboardLayoutWithTabs } from 'spec/fixtures/mockStore';
 
 describe('Header', () => {
   const props = {
@@ -51,11 +53,17 @@ describe('Header', () => {
     updateComponents() {},
   };
 
-  function setup(overrideProps) {
+  function setup(overrideProps = {}, storeOverrides = {}) {
+    const mockStore = getMockStore({
+      dashboardLayout: dashboardLayoutWithTabs,
+      dashboardFilters: {},
+      ...storeOverrides,
+    });
+
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
     const wrapper = mount(
-      <Provider store={mockStoreWithTabs}>
+      <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
           <Header {...props} {...overrideProps} />
         </DndProvider>
@@ -117,5 +125,20 @@ describe('Header', () => {
     wrapper.find(DeleteComponentButton).simulate('click');
 
     expect(deleteComponent.callCount).toBe(1);
+  });
+
+  describe('AnchorLink', () => {
+    it(`should not render AnchorLink without ['can_export', 'Chart'] permission`, () => {
+      const wrapper = setup();
+      expect(wrapper.find(AnchorLink)).not.toExist();
+    });
+
+    it(`should render AnchorLink with ['can_export', 'Chart'] permission`, () => {
+      const wrapper = setup(
+        {},
+        { user: { roles: { Admin: [['can_export', 'Chart']] } } },
+      );
+      expect(wrapper.find(AnchorLink)).toExist();
+    });
   });
 });
