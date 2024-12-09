@@ -21,6 +21,24 @@ const ChartSummaryDrawer = (props: any) => {
   const [chartSummaryLoader, setChartSummaryLoader] = useState(true);
   const [finalResult, setFinalResult] = useState([]);
 
+  const [drawerWidth, setDrawerWidth] = useState<string | number>('40%');
+
+  useEffect(() => {
+    const updateDrawerWidth = () => {
+      setDrawerWidth(window.innerWidth < 980 ? '100%' : '40%');
+    };
+
+    // Initial check
+    updateDrawerWidth();
+
+    // Event listener for window resize
+    window.addEventListener('resize', updateDrawerWidth);
+
+    return () => {
+      window.removeEventListener('resize', updateDrawerWidth);
+    };
+  }, []);
+
   useEffect(() => {
     if (visible) {
       let counter = 0;
@@ -74,7 +92,7 @@ const ChartSummaryDrawer = (props: any) => {
         placement="right"
         onClose={onClose}
         visible={visible}
-        width="40%"
+        width={drawerWidth}
       >
         {chartSummaryLoader && <Spin />}
 
