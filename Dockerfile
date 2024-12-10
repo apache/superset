@@ -86,6 +86,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 # Transition to Python base image
 FROM python:${PY_VER} AS python-base
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
+RUN uv venv
 
 ######################################################################
 # Final lean image...
