@@ -121,6 +121,8 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         libecpg-dev \
         libldap2-dev \
     && touch superset/static/version_info.json \
+    && chown -R superset:superset /app \
+    && chmod -R 775 /app \
     && chown -R superset:superset ./* \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
