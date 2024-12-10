@@ -152,7 +152,7 @@ export function rebaseForecastDatum(
 }
 
 // For Confidence Bands, forecast series on mixed charts require the series sent in the following sortOrder:
-export function reorderForecastSeries(row: any[]): any[] {
+export function reorderForecastSeries(row: { id: string }[]): { id: string }[] {
   // Define the order for sorting using ForecastSeriesEnum
   const sortOrder = {
     [ForecastSeriesEnum.ForecastLower]: 1,
@@ -175,8 +175,9 @@ export function reorderForecastSeries(row: any[]): any[] {
     const aContext = extractForecastSeriesContext(a.id);
     const bContext = extractForecastSeriesContext(b.id);
 
-    const aOrder = sortOrder[aContext.type] || Number.MAX_SAFE_INTEGER; // Put other metrics at the end
-    const bOrder = sortOrder[bContext.type] || Number.MAX_SAFE_INTEGER; // Put other metrics at the end
+    // Use optional chaining and the nullish coalescing operator for safer access
+    const aOrder = (aContext?.type && sortOrder[aContext.type]) ?? Number.MAX_SAFE_INTEGER; 
+    const bOrder = (bContext?.type && sortOrder[bContext.type]) ?? Number.MAX_SAFE_INTEGER; 
 
     return aOrder - bOrder;
   });
