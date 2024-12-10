@@ -121,7 +121,8 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         libecpg-dev \
         libldap2-dev \
     && touch superset/static/version_info.json \
-    && chown -R superset:superset ./* \
+    && chown -R superset:superset $(dirname ${SUPERSET_HOME}) ./ \
+    && chmod -R 775 $(dirname ${SUPERSET_HOME}) \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Copy required files for Python build
