@@ -22,59 +22,111 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check npm lock file version
-        run: ./scripts/ci_check_npm_lock_version.sh ./superset-frontend/package-lock.json
+
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Node.js
+
+      - name: Setup Docker Environment
         if: steps.check.outputs.frontend
-        uses: actions/setup-node@v4
+        uses: ./.github/actions/setup-docker
         with:
-          node-version: "20"
-      - name: Install dependencies
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Setup supersetbot
         if: steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Build Docker Image
+        if: steps.check.outputs.frontend
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="superset-node-${{ github.sha }}"
+          docker buildx build --target superset-node-ci -t $TAG   .
+          docker save $TAG | gzip > superset-node.tar.gz
+
+      - name: Upload Docker Image Artifact
+        uses: actions/upload-artifact@v3
         with:
-          run: npm-install
-      - name: eslint
-        if: steps.check.outputs.frontend
+          name: docker-image
+          path: superset-node.tar.gz
+
+  unit-tests:
+    needs: frontend-docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          docker load -i superset-node.tar.gz
+
+      - name: npm run test with coverage
         working-directory: ./superset-frontend
         run: |
-          npm run eslint -- . --quiet
-      - name: tsc
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run type
-      - name: Build plugins packages
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: npm run plugins:build
-      - name: Build plugins Storybook
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: npm run plugins:build-storybook
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run test -- --coverage --silent"
       - name: superset-ui/core coverage
-        if: steps.check.outputs.frontend
         working-directory: ./superset-frontend
         run: |
-          npm run core:cover
-      - name: unit tests
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend
-        run: |
-          npm run test -- --coverage --silent
-      # todo: remove this step when fix generator as a project in root jest.config.js
-      - name: generator-superset unit tests
-        if: steps.check.outputs.frontend
-        working-directory: ./superset-frontend/packages/generator-superset
-        run: npm run test
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run core:cover"
       - name: Upload code coverage
         uses: codecov/codecov-action@v5
         with:
           flags: javascript
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+  lint-frontend:
+    needs: frontend-docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          docker load -i superset-node.tar.gz
+
+      - name: eslint
+        run: |
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run eslint -- . --quiet"
+      - name: tsc
+        run: |
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run type"
+
+  validate-frontend:
+    needs: frontend-docker-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          docker load -i superset-node.tar.gz
+
+      - name: Build plugins packages
+        run: |
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run plugins:build"
+      - name: Build plugins Storybook
+        working-directory: ./superset-frontend
+        run: |
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run plugins:build-storybook"

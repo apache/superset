@@ -24,9 +24,9 @@ ARG PY_VER=3.10-slim-bookworm
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 
 ######################################################################
-# superset-node used for building frontend assets
+# superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -65,6 +65,11 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
+
+######################################################################
+# superset-node used for compile frontend assets
+######################################################################
+FROM superset-node-ci AS superset-node
 
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
