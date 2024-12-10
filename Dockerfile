@@ -162,7 +162,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 # Add server run script
 
 # Set user and healthcheck
-RUN chown -R superset:superset /app && chmod -R 775 /app
+RUN chown -R superset:superset /app ./* && chmod -R 775 /app
 USER superset
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 
