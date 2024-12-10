@@ -28,8 +28,6 @@ FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 ARG NPM_BUILD_CMD="build"
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
-ARG INCLUDE_CHROMIUM="true"    # Include headless Chromium for alerts & reports
-ARG INCLUDE_FIREFOX="false"    # Include headless Firefox if enabled
 
 # Install system dependencies required for node-gyp
 RUN --mount=type=bind,source=./docker,target=/docker \
@@ -114,6 +112,7 @@ RUN --mount=type=bind,source=./docker,target=/docker \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
+      {SUPERSET_HOME} \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && /docker/apt-install.sh \
         curl \
@@ -182,37 +181,20 @@ USER root
 # Install dev dependencies
 RUN --mount=type=bind,source=./docker,target=/docker \
     /docker/apt-install.sh \
-        libnss3 \
-        libdbus-glib-1-2 \
-        libgtk-3-0 \
-        libx11-xcb1 \
-        libasound2 \
-        libxtst6 \
         git \
         pkg-config
 
-# Optionally install Chromium
+# Install Playwright and optionally setup headless browsers
+ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=/root/.cache/pip \
-    if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
-        uv pip install playwright && \
+    if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
+        pip install playwright && \
         playwright install-deps && \
-        playwright install chromium; \
+        if [ "$INCLUDE_CHROMIUM" = "true" ]; then playwright install chromium; fi && \
+        if [ "$INCLUDE_FIREFOX" = "true" ]; then playwright install firefox; fi; \
     else \
-        echo "Skipping Chromium installation in dev mode"; \
-    fi
-
-# Install GeckoDriver WebDriver and Firefox (if required)
-ARG GECKODRIVER_VERSION=v0.34.0
-ARG FIREFOX_VERSION=125.0.3
-RUN --mount=type=bind,source=./docker,target=/docker \
-    if [ "$INCLUDE_FIREFOX" = "true" ]; then \
-        /docker/apt-install.sh wget bzip2 \
-        && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
-        && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
-        && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
-        && apt-get autoremove -yqq --purge wget bzip2 && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/* /var/cache/apt/archives/*; \
-    else \
-        echo "Skipping Firefox installation in dev mode"; \
+        echo "Skipping browser installation"; \
     fi
 
 # Install MySQL client dependencies
