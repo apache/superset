@@ -152,10 +152,6 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         echo "Skipping translations as requested by build flag"; \
     fi
 
-# Copy custom configuration
-COPY superset_config.py /app/superset_config.py
-ENV SUPERSET_CONFIG_PATH /app/superset_config.py
-
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 USER superset
 
