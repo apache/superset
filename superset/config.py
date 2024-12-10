@@ -204,7 +204,11 @@ SQLALCHEMY_DATABASE_URI = (
 # `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}`
 # Also note that we recommend READ COMMITTED for regular operation.
 # Find out more here https://flask-sqlalchemy.palletsprojects.com/en/3.1.x/config/
+# for example, if you don't want to use a connection pool, uncomment those next 2 lines
+# from sqlalchemy.pool import NullPool
+# SQLALCHEMY_ENGINE_OPTIONS = {"poolclass": NullPool}
 SQLALCHEMY_ENGINE_OPTIONS = {}
+
 
 # In order to hook up a custom password store for all SQLALCHEMY connections
 # implement a function that takes a single argument of type 'sqla.engine.url',
@@ -563,6 +567,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
+    # This feature flag works only in combination with NullPool, and disconnects the metadata db
+    # connection temporarily during the execution of analytics queries, avoiding bottlenecks
+    "DISABLE_METADATA_DB_DURING_ANALYTICS": False,
 }
 
 # ------------------------------
