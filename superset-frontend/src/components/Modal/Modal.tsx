@@ -26,10 +26,13 @@ import {
   useState,
 } from 'react';
 import { isNil } from 'lodash';
-import { ModalFuncProps } from 'antd/lib/modal';
 import { styled, t } from '@superset-ui/core';
 import { css } from '@emotion/react';
-import { AntdModal, AntdModalProps } from 'src/components';
+import {
+  Modal as AntdModal,
+  ModalProps as AntdModalProps,
+  ModalFuncProps,
+} from 'antd-v5';
 import Button from 'src/components/Button';
 import { Resizable, ResizableProps } from 're-resizable';
 import Draggable, {
@@ -89,7 +92,7 @@ const RESIZABLE_MIN_WIDTH = '380px';
 const RESIZABLE_MAX_HEIGHT = '100vh';
 const RESIZABLE_MAX_WIDTH = '100vw';
 
-const BaseModal = (props: AntdModalProps) => (
+export const BaseModal = (props: AntdModalProps) => (
   // Removes mask animation. Fixed in 4.6.0.
   // https://github.com/ant-design/ant-design/issues/27192
   <AntdModal {...props} maskTransitionName="" />
@@ -106,23 +109,28 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       top: 0;
     `}
 
-  .ant-modal-content {
+  .antd5-modal-content {
     display: flex;
     flex-direction: column;
     max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
     margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
     margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: 0;
   }
 
-  .ant-modal-header {
+  .antd5-modal-header {
     flex: 0 0 auto;
     background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
-    padding-left: ${({ theme }) => theme.gridUnit * 4}px;
-    padding-right: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => theme.gridUnit * 4}px
+      ${({ theme }) => theme.gridUnit * 6}px;
 
-    .ant-modal-title h4 {
+    .antd5-modal-title {
+      font-weight: 500;
+    }
+
+    .antd5-modal-title h4 {
       display: flex;
       margin: 0;
       align-items: center;
@@ -142,7 +150,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  .ant-modal-body {
+  .antd5-modal-body {
     flex: 0 1 auto;
     padding: ${({ theme }) => theme.gridUnit * 4}px;
     overflow: auto;
@@ -170,14 +178,14 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     margin-top: -${({ theme }) => theme.gridUnit * 4}px;
   }
 
-  &.no-content-padding .ant-modal-body {
+  &.no-content-padding .antd5-modal-body {
     padding: 0;
   }
 
   ${({ draggable, theme }) =>
     draggable &&
     `
-    .ant-modal-header {
+    .antd5-modal-header {
       padding: 0;
       .draggable-trigger {
           cursor: move;
@@ -197,10 +205,10 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
         height: 100%;
       }
 
-      .ant-modal-content {
+      .antd5-modal-content {
         height: 100%;
 
-        .ant-modal-body {
+        .antd5-modal-body {
           /* 100% - header height - footer height */
           height: ${
             hideFooter
