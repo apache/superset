@@ -24,20 +24,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 # [0.20.0](https://github.com/apache/superset/compare/v2021.41.0...v0.20.0) (2024-09-09)
 
-### Bug Fixes
+### Features
 
-- **explore:** make SORT-Descending visible if Sort-by has value ([#17726](https://github.com/apache/superset/issues/17726)) ([d5768ab](https://github.com/apache/superset/commit/d5768ab649a70fd4f541ad4982498f622160b220))
+- **embedded-dashboard:** Share Switchboard State for Sending Events from Plugins ([#21319](https://github.com/apache/superset/issues/21319)) ([20b9dc8](https://github.com/apache/superset/commit/20b9dc84449969706efb94210bc11b2e43cc9a0f))
+- Introduce a library for embedded iframe <-> host communication ([#18652](https://github.com/apache/superset/issues/18652)) ([225015f](https://github.com/apache/superset/commit/225015fd5a94c1a92cc9b110e3e3db5cd532d47b))
 
 # [0.19.0](https://github.com/apache/superset/compare/v2021.41.0...v0.19.0) (2024-09-07)
 
-### Bug Fixes
+### Features
 
-- **explore:** make SORT-Descending visible if Sort-by has value ([#17726](https://github.com/apache/superset/issues/17726)) ([d5768ab](https://github.com/apache/superset/commit/d5768ab649a70fd4f541ad4982498f622160b220))
-
-# [0.18.0](https://github.com/apache-superset/superset-ui/compare/v0.17.87...v0.18.0) (2021-08-30)
-
-**Note:** Version bump only for package @superset-ui/legacy-plugin-chart-horizon
-
-## [0.17.61](https://github.com/apache-superset/superset-ui/compare/v0.17.60...v0.17.61) (2021-07-02)
-
-**Note:** Version bump only for package @superset-ui/legacy-plugin-chart-horizon
+- **embedded-dashboard:** Share Switchboard State for Sending Events from Plugins ([#21319](https://github.com/apache/superset/issues/21319)) ([20b9dc8](https://github.com/apache/superset/commit/20b9dc84449969706efb94210bc11b2e43cc9a0f))
+- Introduce a library for embedded iframe <-> host communication ([#18652](https://github.com/apache/superset/issues/18652)) ([225015f](https://github.com/apache/superset/commit/225015fd5a94c1a92cc9b110e3e3db5cd532d47b))
