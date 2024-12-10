@@ -191,13 +191,11 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         git \
         pkg-config
 
-# Install Playwright and its dependencies
-RUN --mount=type=cache,target=/root/.cache/pip \
-    uv pip install playwright \
-    && playwright install-deps
-
 # Optionally install Chromium
-RUN if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$INCLUDE_CHROMIUM" = "true" ]; then \
+        uv pip install playwright && \
+        playwright install-deps && \
         playwright install chromium; \
     else \
         echo "Skipping Chromium installation in dev mode"; \
