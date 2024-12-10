@@ -18,6 +18,8 @@
  */
 import { memo, useCallback, useMemo, useRef } from 'react';
 import { GeoJsonLayer } from '@deck.gl/layers';
+// ignoring the eslint error below since typescript prefers 'geojson' to '@types/geojson'
+// eslint-disable-next-line import/no-unresolved
 import { Feature, Geometry, GeoJsonProperties } from 'geojson';
 import geojsonExtent from '@mapbox/geojson-extent';
 import {
