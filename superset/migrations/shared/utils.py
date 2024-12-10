@@ -39,7 +39,7 @@ YELLOW = "\033[33m"
 RED = "\033[31m"
 LRED = "\033[91m"
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic")
 
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
@@ -208,12 +208,11 @@ def drop_fks_for_table(table_name: str) -> None:
 
     if has_table(table_name):
         foreign_keys = inspector.get_foreign_keys(table_name)
-
         for fk in foreign_keys:
+            logger.info(
+                f"Dropping foreign key {GREEN}{fk['name']}{RESET} from table {GREEN}{table_name}{RESET}..."
+            )
             op.drop_constraint(fk["name"], table_name, type_="foreignkey")
-
-
-logger = logging.getLogger("alembic")
 
 
 def create_table(table_name: str, *columns: SchemaItem) -> None:
@@ -221,7 +220,7 @@ def create_table(table_name: str, *columns: SchemaItem) -> None:
     Creates a database table with the specified name and columns.
 
     This function checks if a table with the given name already exists in the database.
-    If the table exists, it logs an informational message and skips the creation process.
+    If the table already exists, it logs an informational.
     Otherwise, it proceeds to create a new table using the provided name and schema columns.
 
     :param table_name: The name of the table to be created.
@@ -289,10 +288,10 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    For each column on columns list variable, it checks if the column already exists in the table. If a column already exists, it logs an informational
-    message and skips the addition of that column. Otherwise, it proceeds to add the new column to the table.
+    If a column already exists, it logs an informational.
+    Otherwise, it proceeds to add the new column to the table.
 
-    The operation is performed within a batch operation context which allows a more performant approach
+    The operation is performed using Alembic's batch_alter_table.
 
     :param table_name: The name of the table to which the columns will be added.
     :param columns: A list of SQLAlchemy Column objects that define the name, type, and other attributes of the columns to be added.
@@ -319,10 +318,10 @@ def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
-    For each column, it first checks if the column exists in the table. If a column does not exist, it logs an informational
-    message and skips the dropping of that column. Otherwise, it proceeds to remove the column from the table.
+    If a column does not exist, it logs an informational.
+    Otherwise, it proceeds to remove the column from the table.
 
-    The operation is performed within a batch operation context which allows a more performant approach
+    The operation is performed using Alembic's batch_alter_table.
 
     :param table_name: The name of the table from which the columns will be removed.
     :param columns: A list of column names to be dropped.
@@ -349,11 +348,8 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
     """
     Creates an index on specified columns of an existing database table.
 
-    This function checks if an index with the given name already exists on the specified table.
-    If so, it logs an informational message and skips the index creation process.
+    If the index already exists, it logs an informational.
     Otherwise, it proceeds to create a new index with the specified name on the given columns of the table.
-
-    The operation is performed within a batch operation context which allows a more performant approach
 
     :param table_name: The name of the table on which the index will be created.
     :param index_name: The name of the index to be created.
@@ -370,20 +366,15 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
         f"Creating index {GREEN}{index_name}{RESET} on table {GREEN}{table_name}{RESET}"
     )
 
-    with op.batch_alter_table(table_name) as batch_op:
-        batch_op.create_index(index_name=index_name, columns=columns)
+    op.create_index(table_name=table_name, index_name=index_name, columns=columns)
 
 
 def drop_index(table_name: str, index_name: str) -> None:
     """
     Drops an index from an existing database table.
 
-    Before attempting to drop the index, this function checks if an index with the given name
-    exists on the specified table. If not, it logs an informational message and skips the index
-      dropping process. If the index exists, it proceeds with the removal operation.
-
-    The operation is performed within a batch operation context which allows a more performant approach
-
+    If the index does not exists, it logs an informational.
+    Otherwise, it proceeds with the removal operation.
 
     :param table_name: The name of the table from which the index will be dropped.
     :param index_name: The name of the index to be dropped.
@@ -399,5 +390,4 @@ def drop_index(table_name: str, index_name: str) -> None:
         f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}"
     )
 
-    with op.batch_alter_table(table_name) as batch_op:
-        batch_op.drop_index(index_name=index_name)
+    op.drop_index(table_name=table_name, index_name=index_name)
