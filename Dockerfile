@@ -191,7 +191,7 @@ RUN --mount=type=bind,source=./docker,target=/docker \
 
 # Install Playwright and its dependencies
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --system playwright \
+    pip install playwright \
     && playwright install-deps
 
 # Optionally install Chromium
