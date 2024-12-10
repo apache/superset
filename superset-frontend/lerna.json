@@ -5,7 +5,7 @@
     "plugins/*",
     "src/setup/*"
   ],
-  "version": "0.20.3",
+  "version": "0.20.4",
   "ignoreChanges": [
     "**/*.md",
     "**/*.spec.tsx?",
