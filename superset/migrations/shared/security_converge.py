@@ -17,7 +17,6 @@
 import logging
 from dataclasses import dataclass
 
-import sqlalchemy as sqla
 from sqlalchemy import (
     Column,
     ForeignKey,
@@ -95,10 +94,7 @@ class Role(Base):  # type: ignore
 
 class PermissionView(Base):  # type: ignore
     __tablename__ = "ab_permission_view"
-    __table_args__ = (
-        sqla.Index("idx_permission_view_menu_id", "view_menu_id"),
-        sqla.Index("idx_permission_permission_id", "permission_id"),
-    )
+    __table_args__ = (UniqueConstraint("permission_id", "view_menu_id"),)
     id = Column(Integer, Sequence("ab_permission_view_id_seq"), primary_key=True)
     permission_id = Column(Integer, ForeignKey("ab_permission.id"))
     permission = relationship("Permission")
@@ -113,11 +109,6 @@ def _add_view_menu(session: Session, view_name: str) -> ViewMenu:
     """
     Check and add the new view menu
     """
-    # Check if the object is already in the session
-    for obj in session.identity_map.values():
-        if isinstance(obj, ViewMenu) and obj.name == view_name:
-            return obj
-
     new_view = session.query(ViewMenu).filter(ViewMenu.name == view_name).one_or_none()
     if not new_view:
         new_view = ViewMenu(name=view_name)
