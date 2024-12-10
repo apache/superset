@@ -63,7 +63,7 @@ from superset.utils.core import (
     get_column_names_from_columns,
     get_column_names_from_metrics,
     get_metric_names,
-    get_xaxis_label,
+    get_x_axis_label,
     is_adhoc_column,
     is_adhoc_metric,
     normalize_dttm_col,
