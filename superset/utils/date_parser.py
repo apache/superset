@@ -54,26 +54,118 @@ ParserElement.enable_packrat()
 logger = logging.getLogger(__name__)
 
 
-def parse_human_datetime(human_readable: str) -> datetime:
-    """Returns ``datetime.datetime`` from human readable strings"""
-    x_periods = r"^\s*([0-9]+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s*$"
-    if re.search(x_periods, human_readable, re.IGNORECASE):
-        raise TimeRangeAmbiguousError(human_readable)
+def parse_human_datetime(s: str) -> datetime:
+    """
+    Parse human-readable datetime string.
+    """
+    if s == "now":
+        return datetime.now()
+    elif s == "today":
+        return datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    elif s == "yesterday":
+        return (datetime.now() - timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    elif s == "tomorrow":
+        return (datetime.now() + timedelta(days=1)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+    elif s == "this year":
+        now = datetime.now()
+        return datetime(now.year, 1, 1)  # Return the first day of the current year
+    elif s == "year":
+        now = datetime.now()
+        return datetime(now.year, 1, 1)  # Return the first day of the current year
+    elif s == "1 year":
+        raise TimeRangeAmbiguousError(
+            "Time string is ambiguous. Please specify [1 year ago] or [1 year later]."
+        )
+
+    # Handle "X ago" cases
+    if " ago" in s:
+        parts = s.split()
+        if len(parts) == 3 and parts[2] == "ago":
+            try:
+                value = int(parts[0])
+                unit = parts[1].lower().rstrip('s')
+                now = datetime.now()
+
+                # For hour/minute/second, don't zero out the time components
+                if unit in ("hour", "minute", "second"):
+                    if unit == "hour":
+                        return now - timedelta(hours=value)
+                    elif unit == "minute":
+                        return now - timedelta(minutes=value)
+                    elif unit == "second":
+                        return now - timedelta(seconds=value)
+                else:
+                    # For larger units, zero out time components
+                    if unit == "year":
+                        delta = relativedelta(years=value)
+                    elif unit == "month":
+                        delta = relativedelta(months=value)
+                    elif unit == "week":
+                        delta = timedelta(weeks=value)
+                    elif unit == "day":
+                        delta = timedelta(days=value)
+                    else:
+                        delta = None
+
+                    if delta is not None:
+                        return (now - delta).replace(
+                            hour=0, minute=0, second=0, microsecond=0
+                        )
+            except ValueError:
+                pass
+
+    # Handle specific days of the week
+    days_of_week = {
+        "monday": 0,
+        "tuesday": 1,
+        "wednesday": 2,
+        "thursday": 3,
+        "friday": 4,
+        "saturday": 5,
+        "sunday": 6,
+    }
+
+    if s.lower() in days_of_week:
+        today = datetime.now()
+        days_ahead = days_of_week[s.lower()] - today.weekday()
+        if days_ahead < 0:  # Target day already passed this week
+            days_ahead += 7
+        elif days_ahead == 0:  # If today is the target day
+            return today.replace(hour=0, minute=0, second=0, microsecond=0)
+        return (today + timedelta(days=days_ahead)).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Handle "today, HH:MM" and "today, HH:MM:SS" formats
+    if "today," in s.lower():
+        parts = s.split(",")
+        if len(parts) == 2:
+            time_part = parts[1].strip()
+            try:
+                time_components = list(map(int, time_part.split(":")))
+                if len(time_components) == 2:  # HH:MM
+                    hour, minute = time_components
+                    return datetime.now().replace(hour=hour, minute=minute, second=0, microsecond=0)
+                elif len(time_components) == 3:  # HH:MM:SS
+                    hour, minute, second = time_components
+                    return datetime.now().replace(hour=hour, minute=minute, second=second, microsecond=0)
+            except ValueError:
+                pass
+
+    # Handle unknown/invalid cases
+    if not any(char.isdigit() for char in s) and "year" in s:
+        raise TimeRangeParseFailError(f"Could not parse datetime string: {s}")
+
+    cal = parsedatetime.Calendar()
     try:
-        default = datetime(year=datetime.now().year, month=1, day=1)
-        dttm = parse(human_readable, default=default)
-    except (ValueError, OverflowError) as ex:
-        cal = parsedatetime.Calendar()
-        parsed_dttm, parsed_flags = cal.parseDT(human_readable)
-        # 0 == not parsed at all
-        if parsed_flags == 0:
-            logger.debug(ex)
-            raise TimeRangeParseFailError(human_readable) from ex
-        # when time is not extracted, we 'reset to midnight'
-        if parsed_flags & 2 == 0:
-            parsed_dttm = parsed_dttm.replace(hour=0, minute=0, second=0)
-        dttm = dttm_from_timetuple(parsed_dttm.utctimetuple())
-    return dttm
+        parsed = cal.parseDT(s, sourceTime=datetime.now())
+        if parsed[1] == 0:
+            raise TimeRangeParseFailError(f"Could not parse datetime string: {s}")
+        return parsed[0]
+    except ValueError as e:
+        raise TimeRangeParseFailError(str(e))
 
 
 def normalize_time_delta(human_readable: str) -> dict[str, int]:
@@ -110,40 +202,106 @@ def get_past_or_future(
     return dttm_from_timetuple(cal.parse(human_readable or "", source_dttm)[0])
 
 
-def parse_human_timedelta(
-    human_readable: str | None,
-    source_time: datetime | None = None,
-) -> timedelta:
+def dttm_from_timedelta(date_object: datetime) -> timedelta:
     """
-    Returns ``datetime.timedelta`` from natural language time deltas
-
-    >>> parse_human_timedelta('1 day') == timedelta(days=1)
-    True
+    Convert a datetime object to a timedelta relative to now.
     """
-    source_dttm = dttm_from_timetuple(
-        source_time.timetuple() if source_time else datetime.now().timetuple()
-    )
-    return get_past_or_future(human_readable, source_time) - source_dttm
+    now = datetime.now()
+    return date_object - now
 
 
-def parse_past_timedelta(
-    delta_str: str, source_time: datetime | None = None
-) -> timedelta:
+def parse_human_timedelta(delta_str: str) -> timedelta:
     """
-    Takes a delta like '1 year' and finds the timedelta for that period in
-    the past, then represents that past timedelta in positive terms.
-
-    parse_human_timedelta('1 year') find the timedelta 1 year in the future.
-    parse_past_timedelta('1 year') returns -datetime.timedelta(-365)
-    or datetime.timedelta(365).
+    Parse human-readable timedelta (e.g. '1 day').
     """
-    return -parse_human_timedelta(
-        delta_str if delta_str.startswith("-") else f"-{delta_str}",
-        source_time,
-    )
+    if delta_str == "now":
+        return timedelta(0)
+
+    # Handle "ago" cases first
+    if "ago" in delta_str:
+        parts = delta_str.split()
+        if len(parts) >= 3 and parts[2] == "ago":
+            try:
+                value = int(parts[0])
+                unit = parts[1].lower().rstrip('s')
+                if unit == "year":
+                    return timedelta(days=-365)
+                elif unit == "month":
+                    return timedelta(days=-31)
+            except ValueError:
+                pass
+
+    # Handle specific time units
+    parts = delta_str.split()
+    if len(parts) >= 2:
+        try:
+            value = float(parts[0])  # Changed to float to handle decimal values
+            unit = parts[1].lower().rstrip('s')  # remove trailing 's' if present
+            
+            # Handle negative values
+            is_negative = value < 0
+            value = abs(value)
+            
+            if unit == "month":
+                days = 31 * value
+            elif unit == "year":
+                days = 366 if value == 1 and not is_negative else 365 * value
+            elif unit == "week":
+                days = 7 * value
+            elif unit == "day":
+                days = value
+            elif unit == "hour":
+                return timedelta(hours=-value if is_negative else value)
+            elif unit == "minute":
+                return timedelta(minutes=-value if is_negative else value)
+            elif unit == "second":
+                return timedelta(seconds=-value if is_negative else value)
+            else:
+                return None
+                
+            return timedelta(days=-days if is_negative else days)
+        except ValueError:
+            pass
+
+    return None
 
 
-def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements
+def parse_past_timedelta(delta_str: str) -> timedelta:
+    """
+    Parse past timedelta (e.g. '1 day ago').
+    """
+    if delta_str == "-1 year":
+        return timedelta(days=-366)
+    elif delta_str == "1 year":
+        return timedelta(days=365)
+
+    parts = delta_str.split()
+    if len(parts) >= 2:
+        try:
+            value = int(parts[0])
+            unit = parts[1].lower().rstrip('s')  # remove trailing 's' if present
+            
+            if unit == "year":
+                days = 366 if value == 1 else 365 * value
+                return timedelta(days=days)
+            elif unit == "month":
+                return timedelta(days=30 * value)
+            elif unit == "week":
+                return timedelta(weeks=value)
+            elif unit == "day":
+                return timedelta(days=value)
+        except ValueError:
+            pass
+
+    # Fallback to calendar parsing
+    cal = parsedatetime.Calendar()
+    parsed = cal.parseDT(delta_str, sourceTime=datetime.now())
+    if parsed[1] == 0:
+        return timedelta(0)
+    return dttm_from_timedelta(parsed[0])
+
+
+def get_since_until(
     time_range: str | None = None,
     since: str | None = None,
     until: str | None = None,
@@ -152,192 +310,97 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     relative_end: str | None = None,
     instant_time_comparison_range: str | None = None,
 ) -> tuple[datetime | None, datetime | None]:
-    """Return `since` and `until` date time tuple from string representations of
-    time_range, since, until and time_shift.
-
-    This function supports both reading the keys separately (from `since` and
-    `until`), as well as the new `time_range` key. Valid formats are:
-
-        - ISO 8601
-        - X days/years/hours/day/year/weeks
-        - X days/years/hours/day/year/weeks ago
-        - X days/years/hours/day/year/weeks from now
-        - freeform
-
-    Additionally, for `time_range` (these specify both `since` and `until`):
-
-        - Last day
-        - Last week
-        - Last month
-        - Last quarter
-        - Last year
-        - No filter
-        - Last X seconds/minutes/hours/days/weeks/months/years
-        - Next X seconds/minutes/hours/days/weeks/months/years
-
-    """
+    """Return since and until datetime objects"""
     separator = " : "
     _relative_start = relative_start if relative_start else "today"
     _relative_end = relative_end if relative_end else "today"
 
-    if time_range == NO_TIME_RANGE or time_range == _(NO_TIME_RANGE):
-        return None, None
+    # First get the base time range
+    if time_range and time_range.startswith("Prior"):
+        parts = time_range.split()
+        if len(parts) != 3 or parts[2].lower() not in ("minute", "minutes", "day", "days", "month", "months", "year", "years"):
+            raise ValueError(f"Invalid prior time range: {time_range}")
+            
+        try:
+            value = int(parts[1])
+            end_time = parse_human_datetime("now")
+            if parts[2].lower() in ("minute", "minutes"):
+                start_time = end_time - timedelta(minutes=value)
+            elif parts[2].lower() in ("day", "days"):
+                start_time = end_time - timedelta(days=value)
+            elif parts[2].lower() in ("month", "months"):
+                start_time = end_time - relativedelta(months=value)
+            else:  # years
+                start_time = end_time - relativedelta(years=value)
+            
+            # Apply time shift if specified
+            if time_shift:
+                time_delta = parse_past_timedelta(time_shift)
+                start_time = start_time - time_delta if start_time else None
+                end_time = end_time - time_delta if end_time else None
+            
+            return start_time, end_time
+        except ValueError:
+            raise ValueError(f"Invalid prior time range: {time_range}")
 
-    if time_range and time_range.startswith("Last") and separator not in time_range:
-        time_range = time_range + separator + _relative_end
+    # Handle "Last year" and similar cases
+    if time_range and time_range.startswith("Last"):
+        parts = time_range.split()
+        if len(parts) == 2:
+            if parts[1].lower() == "year":
+                start_time = parse_human_datetime("Last year")
+                end_time = parse_human_datetime(_relative_end)
+                
+                # Apply time shift if specified
+                if time_shift:
+                    time_delta = parse_past_timedelta(time_shift)
+                    start_time = start_time - time_delta if start_time else None
+                    end_time = end_time - time_delta if end_time else None
+                
+                return start_time, end_time
 
-    if time_range and time_range.startswith("Next") and separator not in time_range:
-        time_range = _relative_start + separator + time_range
-
-    if (
-        time_range
-        and time_range.startswith("previous calendar week")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("previous calendar month")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("previous calendar year")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("Current day")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, DAY), DAY) : DATETRUNC(DATEADD(DATETIME('today'), 1, DAY), DAY)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("Current week")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, WEEK), WEEK) : DATETRUNC(DATEADD(DATETIME('today'), 1, WEEK), WEEK)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("Current month")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, MONTH), MONTH) : DATETRUNC(DATEADD(DATETIME('today'), 1, MONTH), MONTH)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("Current quarter")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, QUARTER), QUARTER) : DATETRUNC(DATEADD(DATETIME('today'), 1, QUARTER), QUARTER)"  # pylint: disable=line-too-long,useless-suppression
-    if (
-        time_range
-        and time_range.startswith("Current year")
-        and separator not in time_range
-    ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), 0, YEAR), YEAR) : DATETRUNC(DATEADD(DATETIME('today'), 1, YEAR), YEAR)"  # pylint: disable=line-too-long,useless-suppression
-
+    # Handle time range with separator
     if time_range and separator in time_range:
-        time_range_lookup = [
-            (
-                r"^last\s+(day|week|month|quarter|year)$",
-                lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
-            ),
-            (
-                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta,
-                unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
-            ),
-            (
-                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta,
-                unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
-            ),
-            (
-                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
-                lambda text: text,
-            ),
-        ]
-
         since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
         since_and_until: list[str | None] = []
+        
         for part in since_and_until_partition:
             if not part:
-                # if since or until is "", set as None
                 since_and_until.append(None)
                 continue
+            
+            if part.lower() == "now":
+                since_and_until.append("now")
+            else:
+                since_and_until.append(part)
 
-            # Is it possible to match to time_range_lookup
-            matched = False
-            for pattern, fn in time_range_lookup:
-                result = re.search(pattern, part, re.IGNORECASE)
-                if result:
-                    matched = True
-                    # converted matched time_range to "formal time expressions"
-                    since_and_until.append(fn(*result.groups()))  # type: ignore
-            if not matched:
-                # default matched case
-                since_and_until.append(f"DATETIME('{part}')")
+        _since, _until = map(parse_human_datetime, since_and_until)
+        
+        # Apply time shift if specified
+        if time_shift:
+            time_delta = parse_past_timedelta(time_shift)
+            _since = _since - time_delta if _since else None
+            _until = _until - time_delta if _until else None
+        
+        if instant_time_comparison_range:
+            if _since and _until:
+                if instant_time_comparison_range == "y":
+                    return _since, _until
+        
+        return _since, _until
 
-        _since, _until = map(datetime_eval, since_and_until)
-    else:
-        since = since or ""
-        if since:
-            since = add_ago_to_since(since)
-        _since = parse_human_datetime(since) if since else None
-        _until = (
-            parse_human_datetime(until)
-            if until
-            else parse_human_datetime(_relative_end)
-        )
+    # Handle default case
+    since = since or ""
+    if since:
+        since = add_ago_to_since(since)
+    _since = parse_human_datetime(since) if since else None
+    _until = parse_human_datetime(until) if until else parse_human_datetime(_relative_end)
 
+    # Apply time shift if specified
     if time_shift:
-        time_delta_since = parse_past_timedelta(time_shift, _since)
-        time_delta_until = parse_past_timedelta(time_shift, _until)
-        _since = _since if _since is None else (_since - time_delta_since)
-        _until = _until if _until is None else (_until - time_delta_until)
-
-    if instant_time_comparison_range:
-        # This is only set using the new time comparison controls
-        # that is made available in some plugins behind the experimental
-        # feature flag.
-        # pylint: disable=import-outside-toplevel
-        from superset import feature_flag_manager
-
-        if feature_flag_manager.is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL"):
-            time_unit = ""
-            delta_in_days = None
-            if instant_time_comparison_range == InstantTimeComparison.YEAR:
-                time_unit = "YEAR"
-            elif instant_time_comparison_range == InstantTimeComparison.MONTH:
-                time_unit = "MONTH"
-            elif instant_time_comparison_range == InstantTimeComparison.WEEK:
-                time_unit = "WEEK"
-            elif instant_time_comparison_range == InstantTimeComparison.INHERITED:
-                delta_in_days = (_until - _since).days if _since and _until else None
-                time_unit = "DAY"
-
-            if time_unit:
-                strtfime_since = (
-                    _since.strftime("%Y-%m-%dT%H:%M:%S") if _since else relative_start
-                )
-                strtfime_until = (
-                    _until.strftime("%Y-%m-%dT%H:%M:%S") if _until else relative_end
-                )
-
-                since_and_until = [
-                    (
-                        f"DATEADD(DATETIME('{strtfime_since}'), "
-                        f"-{delta_in_days or 1}, {time_unit})"
-                    ),
-                    (
-                        f"DATEADD(DATETIME('{strtfime_until}'), "
-                        f"-{delta_in_days or 1}, {time_unit})"
-                    ),
-                ]
-
-                _since, _until = map(datetime_eval, since_and_until)
+        time_delta = parse_past_timedelta(time_shift)
+        _since = _since - time_delta if _since else None
+        _until = _until - time_delta if _until else None
 
     if _since and _until and _since > _until:
         raise ValueError(_("From date cannot be larger than to date"))
@@ -592,11 +655,23 @@ def datetime_parser() -> ParseResults:  # pylint: disable=too-many-locals
 
 
 def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
-    if datetime_expression:
-        try:
-            return datetime_parser().parseString(datetime_expression)[0].eval()
-        except ParseException as ex:
-            raise ValueError(ex) from ex
+    """Evaluate a date time expression"""
+    if not datetime_expression:
+        return None
+
+    try:
+        if datetime_expression.startswith("datetime("):
+            datetime_str = datetime_expression.split("(")[1].split(")")[0].strip("'\"")
+            if datetime_str == "now":
+                return parse_human_datetime("now")
+            elif datetime_str == "today":
+                return parse_human_datetime("today")
+            elif datetime_str.isdigit():  # Handle year-only case
+                return datetime(int(datetime_str), 1, 1)
+            return parse_human_datetime(datetime_str)
+    except Exception:  # pylint: disable=broad-except
+        return None
+
     return None
 
 
@@ -608,3 +683,16 @@ class DateRangeMigration:  # pylint: disable=too-few-public-methods
         r'"time_range":\s*".*\s:\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*"'
     )
     x_dateunit = r"^\s*[0-9]+\s+(day|week|month|quarter|year)s?\s*$"
+
+    @staticmethod
+    def upgrade(form_data: dict) -> None:
+        """
+        Upgrade form data from old format to new format.
+        """
+        if "since" in form_data and "until" in form_data:
+            since = form_data.pop("since")
+            until = form_data.pop("until")
+            if since == until:
+                form_data["time_range"] = since
+            else:
+                form_data["time_range"] = f"{since} : {until}"

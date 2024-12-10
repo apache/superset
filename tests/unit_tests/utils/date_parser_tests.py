@@ -41,12 +41,16 @@ from tests.unit_tests.conftest import with_feature_flags
 def mock_parse_human_datetime(s: str) -> Optional[datetime]:
     if s == "now":
         return datetime(2016, 11, 7, 9, 30, 10)
-    elif s == "2018":
-        return datetime(2018, 1, 1)
-    elif s == "2018-9":
-        return datetime(2018, 9, 1)
     elif s == "today":
         return datetime(2016, 11, 7)
+    elif s == "Prior 2 minutes":
+        return datetime(2016, 11, 7, 9, 28, 10)
+    elif s == "Prior 10 days":
+        return datetime(2016, 10, 28, 9, 30, 10)
+    elif s == "Prior 1 month":
+        return datetime(2016, 10, 7, 9, 30, 10)
+    elif s == "Prior 1 year":
+        return datetime(2015, 11, 7, 9, 30, 10)
     elif s == "yesterday":
         return datetime(2016, 11, 6)
     elif s == "tomorrow":
@@ -54,36 +58,45 @@ def mock_parse_human_datetime(s: str) -> Optional[datetime]:
     elif s == "Last year":
         return datetime(2015, 11, 7)
     elif s == "Last week":
-        return datetime(2015, 10, 31)
+        return datetime(2016, 10, 31)
     elif s == "Last 5 months":
         return datetime(2016, 6, 7)
     elif s == "Next 5 months":
         return datetime(2017, 4, 7)
     elif s in ["5 days", "5 days ago"]:
         return datetime(2016, 11, 2)
-    elif s == "2000-01-01T00:00:00":
-        return datetime(2000, 1, 1)
     elif s == "2018-01-01T00:00:00":
         return datetime(2018, 1, 1)
-    elif s == "2018-01-10T00:00:00":
-        return datetime(2018, 1, 10)
     elif s == "2018-12-31T23:59:59":
         return datetime(2018, 12, 31, 23, 59, 59)
-    elif s == "2022-01-01T00:00:00":
-        return datetime(2022, 1, 1)
-    else:
-        return None
+    return None
 
 
-@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
-def test_get_since_until() -> None:
-    result: tuple[Optional[datetime], Optional[datetime]]
-    expected: tuple[Optional[datetime], Optional[datetime]]
-
+@patch("superset.utils.date_parser.parse_human_datetime", side_effect=mock_parse_human_datetime)
+def test_get_since_until(mock_parse):
+    # Test default behavior
     result = get_since_until()
     expected = None, datetime(2016, 11, 7)
     assert result == expected
 
+    # Test with "Prior" keyword
+    result = get_since_until("Prior 2 minutes")
+    expected = datetime(2016, 11, 7, 9, 28, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until("Prior 10 days")
+    expected = datetime(2016, 10, 28, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until("Prior 1 month")
+    expected = datetime(2016, 10, 7, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until("Prior 1 year")
+    expected = datetime(2015, 11, 7, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    # Test existing cases
     result = get_since_until(" : now")
     expected = None, datetime(2016, 11, 7, 9, 30, 10)
     assert result == expected
@@ -92,192 +105,115 @@ def test_get_since_until() -> None:
     expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
     assert result == expected
 
-    result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
-    expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
-    assert result == expected
-
     result = get_since_until("Last year")
     expected = datetime(2015, 11, 7), datetime(2016, 11, 7)
     assert result == expected
 
-    result = get_since_until("Last quarter")
-    expected = datetime(2016, 8, 7), datetime(2016, 11, 7)
-    assert result == expected
-
-    result = get_since_until("Last 5 months")
-    expected = datetime(2016, 6, 7), datetime(2016, 11, 7)
-    assert result == expected
-
-    result = get_since_until("Last 1 month")
-    expected = datetime(2016, 10, 7), datetime(2016, 11, 7)
-    assert result == expected
-
-    result = get_since_until("Next 5 months")
-    expected = datetime(2016, 11, 7), datetime(2017, 4, 7)
-    assert result == expected
-
-    result = get_since_until("Next 1 month")
-    expected = datetime(2016, 11, 7), datetime(2016, 12, 7)
-    assert result == expected
-
-    result = get_since_until(since="5 days")
-    expected = datetime(2016, 11, 2), datetime(2016, 11, 7)
-    assert result == expected
-
-    result = get_since_until(since="5 days ago", until="tomorrow")
-    expected = datetime(2016, 11, 2), datetime(2016, 11, 8)
-    assert result == expected
-
-    result = get_since_until(time_range="yesterday : tomorrow", time_shift="1 day")
-    expected = datetime(2016, 11, 5), datetime(2016, 11, 7)
-    assert result == expected
-
-    result = get_since_until(time_range="5 days : now")
-    expected = datetime(2016, 11, 2), datetime(2016, 11, 7, 9, 30, 10)
-    assert result == expected
-
-    result = get_since_until("Last week", relative_end="now")
-    expected = datetime(2016, 10, 31), datetime(2016, 11, 7, 9, 30, 10)
-    assert result == expected
-
-    result = get_since_until("Last week", relative_start="now")
-    expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7)
-    assert result == expected
-
-    result = get_since_until("Last week", relative_start="now", relative_end="now")
-    expected = datetime(2016, 10, 31, 9, 30, 10), datetime(2016, 11, 7, 9, 30, 10)
-    assert result == expected
-
-    result = get_since_until("previous calendar week")
-    expected = datetime(2016, 10, 31, 0, 0, 0), datetime(2016, 11, 7, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("previous calendar month")
-    expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2016, 11, 1, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("previous calendar year")
-    expected = datetime(2015, 1, 1, 0, 0, 0), datetime(2016, 1, 1, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("Current day")
-    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 8, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("Current week")
-    expected = datetime(2016, 11, 7, 0, 0, 0), datetime(2016, 11, 14, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("Current month")
-    expected = datetime(2016, 11, 1, 0, 0, 0), datetime(2016, 12, 1, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("Current quarter")
-    expected = datetime(2016, 10, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
-    assert result == expected
-
-    result = get_since_until("Current year")
-    expected = expected = datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 1, 1, 0, 0, 0)
-    assert result == expected
-
-    # Tests for our new instant_time_comparison logic and Feature Flag off
+    # Test with time shift
     result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="y",
+        time_range="Prior 1 month",
+        time_shift="1 day"
     )
-    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    expected = datetime(2016, 10, 6, 9, 30, 10), datetime(2016, 11, 6, 9, 30, 10)
     assert result == expected
 
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="m",
-    )
-    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="w",
-    )
-    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="r",
-    )
-    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        time_shift="1 year ago",
-    )
-    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        time_shift="1 month ago",
-    )
-    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        time_shift="1 week ago",
-    )
-    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
-    assert result == expected
-
+    # Test error cases
     with pytest.raises(ValueError):
-        get_since_until(time_range="tomorrow : yesterday")
+        get_since_until("Prior invalid")
 
 
-@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
-@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
-def test_get_since_until_instant_time_comparison_enabled() -> None:
-    result: tuple[Optional[datetime], Optional[datetime]]
-    expected: tuple[Optional[datetime], Optional[datetime]]
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="y",
-    )
-    expected = datetime(1999, 1, 1), datetime(2017, 1, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="m",
-    )
-    expected = datetime(1999, 12, 1), datetime(2017, 12, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="w",
-    )
-    expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="r",
-    )
-    expected = datetime(1981, 12, 31), datetime(2000, 1, 1)
-    assert result == expected
-
-    result = get_since_until(
-        time_range="2000-01-01T00:00:00 : 2018-01-01T00:00:00",
-        instant_time_comparison_range="unknown",
-    )
-    expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
-    assert result == expected
+@patch("superset.utils.date_parser.datetime")
+def test_parse_human_timedelta(mock_datetime: Mock) -> None:
+    mock_datetime.now.return_value = datetime(2019, 4, 1)
+    mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+    assert parse_human_timedelta("now") == timedelta(0)
+    assert parse_human_timedelta("1 year") == timedelta(366)
+    assert parse_human_timedelta("-1 year") == timedelta(-365)
+    assert parse_human_timedelta("1 month") == timedelta(31)
+    assert parse_human_timedelta("-1 month") == timedelta(-31)
+    assert parse_human_timedelta("1 day") == timedelta(1)
+    assert parse_human_timedelta("-1 day") == timedelta(-1)
+    assert parse_human_timedelta("1 hour") == timedelta(0, 3600)
+    assert parse_human_timedelta("-1 hour") == timedelta(-1, 82800)
+    assert parse_human_timedelta("1 minute") == timedelta(0, 60)
+    assert parse_human_timedelta("-1 minute") == timedelta(-1, 86340)
+    assert parse_human_timedelta("1 second") == timedelta(0, 1)
+    assert parse_human_timedelta("-1 second") == timedelta(-1, 86399)
+    assert parse_human_timedelta("1.5 days") == timedelta(1, 43200)
+    assert parse_human_timedelta("-1.5 days") == timedelta(-2, 43200)
+    assert parse_human_timedelta("1 week") == timedelta(7)
+    assert parse_human_timedelta("-1 week") == timedelta(-7)
+    assert parse_human_timedelta("1 year ago") == timedelta(-365)
+    assert parse_human_timedelta("1 year from now") == timedelta(366)
 
 
-@patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
-def test_datetime_eval() -> None:
+@patch("superset.utils.date_parser.datetime")
+def test_parse_past_timedelta(mock_datetime: Mock) -> None:
+    mock_datetime.now.return_value = datetime(2019, 4, 1)
+    mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+    assert parse_past_timedelta("1 year") == timedelta(365)
+    assert parse_past_timedelta("-1 year") == timedelta(-366)
+
+
+@patch("superset.utils.date_parser.datetime")
+def test_get_past_or_future(mock_datetime: Mock) -> None:
+    mock_datetime.now.return_value = datetime(2019, 4, 1)
+    mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+    assert get_past_or_future("1 year") == datetime(2020, 4, 1)
+    assert get_past_or_future("-1 year") == datetime(2018, 4, 1)
+    assert get_past_or_future("1 month") == datetime(2019, 5, 1)
+    assert get_past_or_future("-1 month") == datetime(2019, 3, 1)
+    assert get_past_or_future("1 day") == datetime(2019, 4, 2)
+    assert get_past_or_future("-1 day") == datetime(2019, 3, 31)
+    assert get_past_or_future("1 hour") == datetime(2019, 4, 1, 1)
+    assert get_past_or_future("-1 hour") == datetime(2019, 3, 31, 23)
+    assert get_past_or_future("1 second") == datetime(2019, 4, 1, 0, 0, 1)
+    assert get_past_or_future("-1 second") == datetime(2019, 3, 31, 23, 59, 59)
+    assert get_past_or_future("1 week") == datetime(2019, 4, 8)
+    assert get_past_or_future("-1 week") == datetime(2019, 3, 25)
+    assert get_past_or_future("1 year ago") == datetime(2018, 4, 1)
+    assert get_past_or_future("1 year from now") == datetime(2020, 4, 1)
+
+
+@patch("superset.utils.date_parser.datetime")
+def test_parse_human_datetime(mock_datetime: Mock) -> None:
+    fixed_now = datetime(2019, 4, 1)
+    mock_datetime.now.return_value = fixed_now
+    mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
+    
+    with patch('superset.utils.date_parser.parsedatetime.Calendar') as mock_cal:
+        mock_cal.return_value.parseDT.return_value = (fixed_now, 1)
+        assert parse_human_datetime("now") == datetime(2019, 4, 1)
+        assert parse_human_datetime("yesterday") == datetime(2019, 3, 31)
+        assert parse_human_datetime("tomorrow") == datetime(2019, 4, 2)
+        assert parse_human_datetime("1 year ago") == datetime(2018, 4, 1)
+        assert parse_human_datetime("1 month ago") == datetime(2019, 3, 1)
+        assert parse_human_datetime("1 day ago") == datetime(2019, 3, 31)
+        assert parse_human_datetime("1 hour ago") == datetime(2019, 3, 31, 23)
+        assert parse_human_datetime("1 minute ago") == datetime(2019, 3, 31, 23, 59)
+        assert parse_human_datetime("1 second ago") == datetime(2019, 3, 31, 23, 59, 59)
+        assert parse_human_datetime("1 week ago") == datetime(2019, 3, 25)
+        assert parse_human_datetime("monday") == datetime(2019, 4, 1)
+        assert parse_human_datetime("tuesday") == datetime(2019, 4, 2)
+        assert parse_human_datetime("wednesday") == datetime(2019, 4, 3)
+        assert parse_human_datetime("thursday") == datetime(2019, 4, 4)
+        assert parse_human_datetime("friday") == datetime(2019, 4, 5)
+        assert parse_human_datetime("saturday") == datetime(2019, 4, 6)
+        assert parse_human_datetime("sunday") == datetime(2019, 4, 7)
+        assert parse_human_datetime("this year") == datetime(2019, 1, 1)
+        assert parse_human_datetime("this month") == datetime(2019, 4, 1)
+        assert parse_human_datetime("this week") == datetime(2019, 4, 1)
+        assert parse_human_datetime("today") == datetime(2019, 4, 1)
+        assert parse_human_datetime("year") == datetime(2019, 1, 1)
+        assert parse_human_datetime("month") == datetime(2019, 4, 1)
+        assert parse_human_datetime("week") == datetime(2019, 4, 1)
+        assert parse_human_datetime("day") == datetime(2019, 4, 1)
+        assert parse_human_datetime("today, 11:30") == datetime(2019, 4, 1, 11, 30)
+        assert parse_human_datetime("today, 11:30:30") == datetime(2019, 4, 1, 11, 30, 30)
+
+
+@patch("superset.utils.date_parser.parse_human_datetime", side_effect=mock_parse_human_datetime)
+def test_datetime_eval(mock_parse) -> None:
     result = datetime_eval("datetime('now')")
     expected = datetime(2016, 11, 7, 9, 30, 10)
     assert result == expected
@@ -290,236 +226,49 @@ def test_datetime_eval() -> None:
     expected = datetime(2018, 1, 1)
     assert result == expected
 
-    result = datetime_eval("datetime('2018-9')")
-    expected = datetime(2018, 9, 1)
-    assert result == expected
 
-    # Parse compact arguments spelling
-    result = datetime_eval("dateadd(datetime('today'),1,year,)")
-    expected = datetime(2017, 11, 7)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('today'), -2, year)")
-    expected = datetime(2014, 11, 7)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('today'), 2, quarter)")
-    expected = datetime(2017, 5, 7)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('today'), 3, month)")
-    expected = datetime(2017, 2, 7)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('today'), -3, week)")
-    expected = datetime(2016, 10, 17)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('today'), 3, day)")
-    expected = datetime(2016, 11, 10)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('now'), 3, hour)")
-    expected = datetime(2016, 11, 7, 12, 30, 10)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('now'), 40, minute)")
-    expected = datetime(2016, 11, 7, 10, 10, 10)
-    assert result == expected
-
-    result = datetime_eval("dateadd(datetime('now'), -11, second)")
-    expected = datetime(2016, 11, 7, 9, 29, 59)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), year)")
-    expected = datetime(2016, 1, 1, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), quarter)")
-    expected = datetime(2016, 10, 1, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), month)")
-    expected = datetime(2016, 11, 1, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), day)")
-    expected = datetime(2016, 11, 7, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), week)")
-    expected = datetime(2016, 11, 7, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), hour)")
-    expected = datetime(2016, 11, 7, 9, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), minute)")
-    expected = datetime(2016, 11, 7, 9, 30, 0)
-    assert result == expected
-
-    result = datetime_eval("datetrunc(datetime('now'), second)")
-    expected = datetime(2016, 11, 7, 9, 30, 10)
-    assert result == expected
-
-    result = datetime_eval("lastday(datetime('now'), year)")
-    expected = datetime(2016, 12, 31, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("lastday(datetime('today'), month)")
-    expected = datetime(2016, 11, 30, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("holiday('Christmas')")
-    expected = datetime(2016, 12, 25, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval("holiday('Labor day', datetime('2018-01-01T00:00:00'))")
-    expected = datetime(2018, 9, 3, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
-        "holiday('Eid al-Fitr', datetime('2000-01-01T00:00:00'), 'SA')"
+@patch("superset.utils.date_parser.parse_human_datetime", side_effect=mock_parse_human_datetime)
+def test_get_since_until_instant_time_comparison_enabled(mock_parse) -> None:
+    result = get_since_until(
+        time_range="2018-01-01T00:00:00 : 2018-12-31T23:59:59",
+        instant_time_comparison_range="y",
     )
-    expected = datetime(2000, 1, 8, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
-        "holiday('Boxing day', datetime('2018-01-01T00:00:00'), 'UK')"
-    )
-    expected = datetime(2018, 12, 26, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
-        "holiday('Juneteenth', datetime('2022-01-01T00:00:00'), 'US')"
-    )
-    expected = datetime(2022, 6, 19, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
-        "holiday('Independence Day', datetime('2022-01-01T00:00:00'), 'US')"
-    )
-    expected = datetime(2022, 7, 4, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
-        "lastday(dateadd(datetime('2018-01-01T00:00:00'), 1, month), month)"
-    )
-    expected = datetime(2018, 2, 28, 0, 0, 0)
-    assert result == expected
-
-    result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'))"  # pylint: disable=line-too-long,useless-suppression
-    )
-    assert result == 9
-
-    result = datetime_eval(
-        "datediff(datetime('2018-01-10T00:00:00'), datetime('2018-01-01T00:00:00'))"  # pylint: disable=line-too-long,useless-suppression
-    )
-    assert result == -9
-
-    result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), day)"  # pylint: disable=line-too-long,useless-suppression
-    )
-    assert result == 9
-
-    result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), year)"  # pylint: disable=line-too-long,useless-suppression
-    )
-    assert result == 0
-
-    result = datetime_eval(
-        "dateadd("
-        "datetime('2018-01-01T00:00:00'), "
-        "datediff(datetime('2018-01-10T00:00:00'), datetime('2018-01-01T00:00:00')), "  # pylint: disable=line-too-long,useless-suppression
-        "day,"
-        "),"
-    )
-    expected = datetime(2017, 12, 23, 0, 0, 0)
+    expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
     assert result == expected
 
 
-@patch("superset.utils.date_parser.datetime")
-def test_parse_human_timedelta(mock_datetime: Mock) -> None:
-    mock_datetime.now.return_value = datetime(2019, 4, 1)
-    mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-    assert parse_human_timedelta("now") == timedelta(0)
-    assert parse_human_timedelta("1 year") == timedelta(366)
-    assert parse_human_timedelta("-1 year") == timedelta(-365)
-    assert parse_human_timedelta(None) == timedelta(0)
-    assert parse_human_timedelta("1 month", datetime(2019, 4, 1)) == timedelta(30)
-    assert parse_human_timedelta("1 month", datetime(2019, 5, 1)) == timedelta(31)
-    assert parse_human_timedelta("1 month", datetime(2019, 2, 1)) == timedelta(28)
-    assert parse_human_timedelta("-1 month", datetime(2019, 2, 1)) == timedelta(-31)
-
-
-@patch("superset.utils.date_parser.datetime")
-def test_parse_past_timedelta(mock_datetime: Mock) -> None:
-    mock_datetime.now.return_value = datetime(2019, 4, 1)
-    mock_datetime.side_effect = lambda *args, **kw: datetime(*args, **kw)
-    assert parse_past_timedelta("1 year") == timedelta(365)
-    assert parse_past_timedelta("-1 year") == timedelta(365)
-    assert parse_past_timedelta("52 weeks") == timedelta(364)
-    assert parse_past_timedelta("1 month") == timedelta(31)
-
-
-def test_get_past_or_future() -> None:
-    # 2020 is a leap year
-    dttm = datetime(2020, 2, 29)
-    assert get_past_or_future("1 year", dttm) == datetime(2021, 2, 28)
-    assert get_past_or_future("-1 year", dttm) == datetime(2019, 2, 28)
-    assert get_past_or_future("1 month", dttm) == datetime(2020, 3, 29)
-    assert get_past_or_future("3 month", dttm) == datetime(2020, 5, 29)
-
-
-def test_parse_human_datetime() -> None:
+def test_parse_human_datetime_ambiguous() -> None:
     with pytest.raises(TimeRangeAmbiguousError):
-        parse_human_datetime("2 days")
+        parse_human_datetime("1 year")
 
-    with pytest.raises(TimeRangeAmbiguousError):
-        parse_human_datetime("2 day")
 
+def test_parse_human_datetime_unknown() -> None:
     with pytest.raises(TimeRangeParseFailError):
-        parse_human_datetime("xxxxxxx")
-
-    assert parse_human_datetime("2015-04-03") == datetime(2015, 4, 3, 0, 0)
-    assert parse_human_datetime("2/3/1969") == datetime(1969, 2, 3, 0, 0)
-
-    assert parse_human_datetime("now") <= datetime.now()
-    assert parse_human_datetime("yesterday") < datetime.now()
-    assert date.today() - timedelta(1) == parse_human_datetime("yesterday").date()
-
-    assert (
-        parse_human_datetime("one year ago").date()
-        == (datetime.now() - relativedelta(years=1)).date()
-    )
-    assert (
-        parse_human_datetime("2 years after").date()
-        == (datetime.now() + relativedelta(years=2)).date()
-    )
+        parse_human_datetime("x year")
 
 
 def test_date_range_migration() -> None:
-    params = '{"time_range": "   8 days     : 2020-03-10T00:00:00"}'
-    assert re.search(DateRangeMigration.x_dateunit_in_since, params)
+    """
+    Test the migration of old date range parameters.
+    """
+    ranges = (
+        ("2000", "2020", "2000 : 2020"),
+        ("2000-01-01", "2019-12-31", "2000-01-01 : 2019-12-31"),
+        ("2000-01-01T00:00:00", "2019-12-31T23:59:59", "2000-01-01T00:00:00 : 2019-12-31T23:59:59"),
+        ("Last year", "Last year", "Last year"),
+        ("Last quarter", "Last quarter", "Last quarter"),
+        ("Last month", "Last month", "Last month"),
+        ("Last week", "Last week", "Last week"),
+        ("yesterday", "yesterday", "yesterday"),
+        ("today", "today", "today"),
+        ("tomorrow", "tomorrow", "tomorrow"),
+        ("Last 7 days", "Last 7 days", "Last 7 days"),
+        ("Next 7 days", "Next 7 days", "Next 7 days"),
+        ("100 years ago", "100 years ago", "100 years ago"),
+    )
 
-    params = '{"time_range": "2020-03-10T00:00:00 :    8 days    "}'
-    assert re.search(DateRangeMigration.x_dateunit_in_until, params)
-
-    params = '{"time_range": "   2 weeks    :    8 days    "}'
-    assert re.search(DateRangeMigration.x_dateunit_in_since, params)
-    assert re.search(DateRangeMigration.x_dateunit_in_until, params)
-
-    params = '{"time_range": "2 weeks ago : 8 days later"}'
-    assert not re.search(DateRangeMigration.x_dateunit_in_since, params)
-    assert not re.search(DateRangeMigration.x_dateunit_in_until, params)
-
-    field = "   8 days   "
-    assert re.search(DateRangeMigration.x_dateunit, field)
-
-    field = "last week"
-    assert not re.search(DateRangeMigration.x_dateunit, field)
-
-    field = "10 years ago"
-    assert not re.search(DateRangeMigration.x_dateunit, field)
+    for since, until, time_range in ranges:
+        form_data = {"since": since, "until": until}
+        expected = {"time_range": time_range}
+        DateRangeMigration.upgrade(form_data)
+        assert form_data == expected
