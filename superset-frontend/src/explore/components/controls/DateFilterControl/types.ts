@@ -24,6 +24,7 @@ export type SelectOptionType = {
 export type FrameType =
   | 'Common'
   | 'Calendar'
+  | 'Current'
   | 'Custom'
   | 'Advanced'
   | 'No filter';
@@ -85,9 +86,22 @@ export type CalendarRangeType =
   | typeof PreviousCalendarMonth
   | typeof PreviousCalendarYear;
 
+export const CurrentDay = 'Current day';
+export const CurrentWeek = 'Current week';
+export const CurrentMonth = 'Current month';
+export const CurrentYear = 'Current year';
+export const CurrentQuarter = 'Current quarter';
+export type CurrentRangeType =
+  | typeof CurrentDay
+  | typeof CurrentWeek
+  | typeof CurrentMonth
+  | typeof CurrentQuarter
+  | typeof CurrentYear;
+
 export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;
+  isOverflowingFilterBar?: boolean;
 };
 
 export interface DateFilterControlProps {

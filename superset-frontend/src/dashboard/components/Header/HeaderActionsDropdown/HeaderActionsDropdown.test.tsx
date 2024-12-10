@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -24,9 +23,9 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import HeaderActionsDropdown from '.';
+import { HeaderActionsDropdown } from '.';
 
-const createProps = () => ({
+const createProps = (): HeaderDropdownProps => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss: '.ant-menu {margin-left: 100px;}',
@@ -67,8 +66,13 @@ const createProps = () => ({
   userCanCurate: false,
   lastModifiedTime: 0,
   isDropdownVisible: true,
+  setIsDropdownVisible: jest.fn(),
+  directPathToChild: [],
+  manageEmbedded: jest.fn(),
   dataMask: {},
   logEvent: jest.fn(),
+  refreshLimit: 0,
+  refreshWarning: '',
 });
 
 const editModeOnProps = {
@@ -229,9 +233,9 @@ test('should show the properties modal', async () => {
 
 describe('UNSAFE_componentWillReceiveProps', () => {
   let wrapper: any;
+
   const mockedProps = createProps();
   const props = { ...mockedProps, customCss: '' };
-
   beforeEach(() => {
     wrapper = shallow(<HeaderActionsDropdown {...props} />);
     wrapper.setState({ css: props.customCss });

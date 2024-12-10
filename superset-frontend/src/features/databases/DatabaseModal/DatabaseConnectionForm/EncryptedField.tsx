@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { AntdButton, AntdSelect } from 'src/components';
+import { Button, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
@@ -57,10 +57,11 @@ export const EncryptedField = ({
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
   const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
   const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
+  const paramValue = db?.parameters?.[encryptedField];
   const encryptedValue =
-    typeof db?.parameters?.[encryptedField] === 'object'
-      ? JSON.stringify(db?.parameters?.[encryptedField])
-      : db?.parameters?.[encryptedField];
+    paramValue && typeof paramValue === 'object'
+      ? JSON.stringify(paramValue)
+      : paramValue;
   return (
     <CredentialInfoForm>
       {db?.engine === 'gsheets' && (
@@ -142,14 +143,14 @@ export const EncryptedField = ({
             </div>
 
             {!fileToUpload && (
-              <AntdButton
+              <Button
                 className="input-upload-btn"
                 onClick={() =>
                   document?.getElementById('selectedFile')?.click()
                 }
               >
                 {t('Choose File')}
-              </AntdButton>
+              </Button>
             )}
             {fileToUpload && (
               <div className="input-upload-current">

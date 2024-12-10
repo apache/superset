@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
@@ -24,7 +24,7 @@ import * as uiCore from '@superset-ui/core';
 import { Provider } from 'react-redux';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { render, screen, act } from '@testing-library/react';
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
 import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
@@ -59,7 +59,7 @@ const mockState = {
 const store = mockStore(mockState);
 let isFeatureEnabledMock: jest.SpyInstance;
 
-const standardProvider: React.FC = ({ children }) => (
+const standardProvider: FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
     <Provider store={store}>{children}</Provider>
   </ThemeProvider>
@@ -75,7 +75,7 @@ const unsavedQueryEditor = {
   templateParams: '{ "my_value": "foo" }',
 };
 
-const standardProviderWithUnsaved: React.FC = ({ children }) => (
+const standardProviderWithUnsaved: FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
     <Provider
       store={mockStore({
@@ -127,7 +127,7 @@ describe('ShareSqlLabQuery', () => {
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
+      expect(storeQuerySpy).toHaveBeenCalledWith(expected);
       storeQuerySpy.mockRestore();
     });
 
@@ -142,7 +142,7 @@ describe('ShareSqlLabQuery', () => {
       const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
       userEvent.click(button);
       expect(storeQuerySpy.mock.calls).toHaveLength(1);
-      expect(storeQuerySpy).toBeCalledWith(expected);
+      expect(storeQuerySpy).toHaveBeenCalledWith(expected);
       storeQuerySpy.mockRestore();
     });
   });

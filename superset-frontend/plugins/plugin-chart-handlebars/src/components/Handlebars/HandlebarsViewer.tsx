@@ -19,9 +19,10 @@
 import { SafeMarkdown, styled, t } from '@superset-ui/core';
 import Handlebars from 'handlebars';
 import moment from 'moment';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { isPlainObject } from 'lodash';
 import Helpers from 'just-handlebars-helpers';
+import HandlebarsGroupBy from 'handlebars-group-by';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
@@ -88,4 +89,15 @@ Handlebars.registerHelper('stringify', (obj: any, obj2: any) => {
   return isPlainObject(obj) ? JSON.stringify(obj) : String(obj);
 });
 
+Handlebars.registerHelper(
+  'formatNumber',
+  function (number: any, locale = 'en-US') {
+    if (typeof number !== 'number') {
+      return number;
+    }
+    return number.toLocaleString(locale);
+  },
+);
+
 Helpers.registerHelpers(Handlebars);
+HandlebarsGroupBy.register(Handlebars);

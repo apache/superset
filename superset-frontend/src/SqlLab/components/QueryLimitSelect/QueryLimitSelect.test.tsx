@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { Store } from 'redux';
@@ -116,8 +115,8 @@ describe('QueryLimitSelect', () => {
     const expectedLabels = [10, 100, 1000, 10000, 50000].map(i =>
       convertToNumWithSpaces(i),
     );
-    const actualLabels = getAllByRole('menuitem').map(
-      elem => elem.textContent?.trim(),
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
     );
 
     expect(actualLabels).toEqual(expectedLabels);
@@ -136,8 +135,8 @@ describe('QueryLimitSelect', () => {
     await waitFor(() => expect(getByRole('menu')).toBeInTheDocument());
 
     const expectedLabels = [5].map(i => convertToNumWithSpaces(i));
-    const actualLabels = getAllByRole('menuitem').map(
-      elem => elem.textContent?.trim(),
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
     );
 
     expect(actualLabels).toEqual(expectedLabels);
@@ -158,8 +157,8 @@ describe('QueryLimitSelect', () => {
     const expectedLabels = [10, 100, 1000, 10000].map(i =>
       convertToNumWithSpaces(i),
     );
-    const actualLabels = getAllByRole('menuitem').map(
-      elem => elem.textContent?.trim(),
+    const actualLabels = getAllByRole('menuitem').map(elem =>
+      elem.textContent?.trim(),
     );
 
     expect(actualLabels).toEqual(expectedLabels);

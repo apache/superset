@@ -14,9 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-# pylint: disable=too-many-lines
-
+# pylint: disable=consider-using-transaction,too-many-lines
 from __future__ import annotations
 
 import contextlib
@@ -32,7 +30,6 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
-import simplejson as json
 from flask import current_app
 from flask_babel import gettext as __, lazy_gettext as _
 from packaging.version import Version
@@ -62,7 +59,7 @@ from superset.models.sql_types.presto_sql_types import (
 )
 from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
@@ -118,7 +115,7 @@ def get_children(column: ResultSetColumnType) -> list[ResultSetColumnType]:
     pattern = re.compile(r"(?P<type>\w+)\((?P<children>.*)\)")
     if not column["type"]:
         raise ValueError
-    match = pattern.match(column["type"])
+    match = pattern.match(cast(str, column["type"]))
     if not match:
         raise Exception(  # pylint: disable=broad-exception-raised
             f"Unable to parse column type {column['type']}"
@@ -259,8 +256,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "date_trunc('second', CAST({col} AS TIMESTAMP))",
+        TimeGrain.FIVE_SECONDS: "date_trunc('second', CAST({col} AS TIMESTAMP)) - interval '1' second * (second(CAST({col} AS TIMESTAMP)) % 5)",
+        TimeGrain.THIRTY_SECONDS: "date_trunc('second', CAST({col} AS TIMESTAMP)) - interval '1' second * (second(CAST({col} AS TIMESTAMP)) % 30)",
         TimeGrain.MINUTE: "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+        TimeGrain.FIVE_MINUTES: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 5)",
+        TimeGrain.TEN_MINUTES: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 10)",
+        TimeGrain.FIFTEEN_MINUTES: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 15)",
+        TimeGrain.HALF_HOUR: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 30)",
         TimeGrain.HOUR: "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+        TimeGrain.SIX_HOURS: "date_trunc('hour', CAST({col} AS TIMESTAMP)) - interval '1' hour * (hour(CAST({col} AS TIMESTAMP)) % 6)",
         TimeGrain.DAY: "date_trunc('day', CAST({col} AS TIMESTAMP))",
         TimeGrain.WEEK: "date_trunc('week', CAST({col} AS TIMESTAMP))",
         TimeGrain.MONTH: "date_trunc('month', CAST({col} AS TIMESTAMP))",
@@ -299,10 +303,13 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return "from_unixtime({col})"
 
     @classmethod
-    def get_default_catalog(cls, database: "Database") -> str | None:
+    def get_default_catalog(cls, database: Database) -> str | None:
         """
         Return the default catalog.
         """
+        if database.url_object.database is None:
+            return None
+
         return database.url_object.database.split("/")[0]
 
     @classmethod
@@ -365,9 +372,12 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return parse.unquote(database.split("/")[1])
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
+        :param database: A Database object
         :param statement: A single SQL statement
         :param cursor: Cursor instance
         :return: JSON response from Trino
@@ -536,10 +546,11 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         }
 
         for col_name, value in zip(col_names, values):
-            col_type = None
-            if col_type_name := column_type_by_name.get(col_name):
-                if col_type_class := getattr(types, col_type_name, None):
-                    col_type = col_type_class()
+            col_type = column_type_by_name.get(col_name)
+
+            if isinstance(col_type, str):
+                col_type_class = getattr(types, col_type, None)
+                col_type = col_type_class() if col_type_class else None
 
             if isinstance(col_type, types.DATE):
                 col_type = Date()
@@ -674,6 +685,209 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
             return ""
         return df.to_dict()[field_to_return][0]
 
+    @classmethod
+    def _show_columns(
+        cls,
+        inspector: Inspector,
+        table: Table,
+    ) -> list[ResultRow]:
+        """
+        Show presto column names
+        :param inspector: object that performs database schema inspection
+        :param table: table instance
+        :return: list of column objects
+        """
+        full_table_name = cls.quote_table(table, inspector.engine.dialect)
+        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table_name}").fetchall()
+
+    @classmethod
+    def _create_column_info(
+        cls, name: str, data_type: types.TypeEngine
+    ) -> ResultSetColumnType:
+        """
+        Create column info object
+        :param name: column name
+        :param data_type: column data type
+        :return: column info object
+        """
+        return {
+            "column_name": name,
+            "name": name,
+            "type": f"{data_type}",
+            "is_dttm": None,
+            "type_generic": None,
+        }
+
+    @classmethod
+    def get_columns(
+        cls,
+        inspector: Inspector,
+        table: Table,
+        options: dict[str, Any] | None = None,
+    ) -> list[ResultSetColumnType]:
+        """
+        Get columns from a Presto data source. This includes handling row and
+        array data types
+        :param inspector: object that performs database schema inspection
+        :param table: table instance
+        :param options: Extra configuration options, not used by this backend
+        :return: a list of results that contain column info
+                (i.e. column name and data type)
+        """
+        columns = cls._show_columns(inspector, table)
+        result: list[ResultSetColumnType] = []
+        for column in columns:
+            # parse column if it is a row or array
+            if is_feature_enabled("PRESTO_EXPAND_DATA") and (
+                "array" in column.Type or "row" in column.Type
+            ):
+                structural_column_index = len(result)
+                cls._parse_structural_column(column.Column, column.Type, result)
+                result[structural_column_index]["nullable"] = getattr(
+                    column, "Null", True
+                )
+                result[structural_column_index]["default"] = None
+                continue
+
+            # otherwise column is a basic data type
+            column_spec = cls.get_column_spec(column.Type)
+            column_type = column_spec.sqla_type if column_spec else None
+            if column_type is None:
+                column_type = types.String()
+                logger.info(
+                    "Did not recognize type %s of column %s",
+                    str(column.Type),
+                    str(column.Column),
+                )
+            column_info = cls._create_column_info(column.Column, column_type)
+            column_info["nullable"] = getattr(column, "Null", True)
+            column_info["default"] = None
+            column_info["column_name"] = column.Column
+            result.append(column_info)
+
+        return result
+
+    @classmethod
+    def _parse_structural_column(  # pylint: disable=too-many-locals
+        cls,
+        parent_column_name: str,
+        parent_data_type: str,
+        result: list[ResultSetColumnType],
+    ) -> None:
+        """
+        Parse a row or array column
+        :param result: list tracking the results
+        """
+        formatted_parent_column_name = parent_column_name
+        # Quote the column name if there is a space
+        if " " in parent_column_name:
+            formatted_parent_column_name = f'"{parent_column_name}"'
+        full_data_type = f"{formatted_parent_column_name} {parent_data_type}"
+        original_result_len = len(result)
+        # split on open parenthesis ( to get the structural
+        # data type and its component types
+        data_types = cls._split_data_type(full_data_type, r"\(")
+        stack: list[tuple[str, str]] = []
+        for data_type in data_types:
+            # split on closed parenthesis ) to track which component
+            # types belong to what structural data type
+            inner_types = cls._split_data_type(data_type, r"\)")
+            for inner_type in inner_types:
+                # We have finished parsing multiple structural data types
+                if not inner_type and stack:
+                    stack.pop()
+                elif cls._has_nested_data_types(inner_type):
+                    # split on comma , to get individual data types
+                    single_fields = cls._split_data_type(inner_type, ",")
+                    for single_field in single_fields:
+                        single_field = single_field.strip()
+                        # If component type starts with a comma, the first single field
+                        # will be an empty string. Disregard this empty string.
+                        if not single_field:
+                            continue
+                        # split on whitespace to get field name and data type
+                        field_info = cls._split_data_type(single_field, r"\s")
+                        # check if there is a structural data type within
+                        # overall structural data type
+                        column_spec = cls.get_column_spec(field_info[1])
+                        column_type = column_spec.sqla_type if column_spec else None
+                        if column_type is None:
+                            column_type = types.String()
+                            logger.info(
+                                "Did not recognize type %s of column %s",
+                                field_info[1],
+                                field_info[0],
+                            )
+                        if field_info[1] == "array" or field_info[1] == "row":
+                            stack.append((field_info[0], field_info[1]))
+                            full_parent_path = cls._get_full_name(stack)
+                            result.append(
+                                cls._create_column_info(full_parent_path, column_type)
+                            )
+                        else:  # otherwise this field is a basic data type
+                            full_parent_path = cls._get_full_name(stack)
+                            column_name = f"{full_parent_path}.{field_info[0]}"
+                            result.append(
+                                cls._create_column_info(column_name, column_type)
+                            )
+                    # If the component type ends with a structural data type, do not pop
+                    # the stack. We have run across a structural data type within the
+                    # overall structural data type. Otherwise, we have completely parsed
+                    # through the entire structural data type and can move on.
+                    if not (inner_type.endswith("array") or inner_type.endswith("row")):
+                        stack.pop()
+                # We have an array of row objects (i.e. array(row(...)))
+                elif inner_type in ("array", "row"):
+                    # Push a dummy object to represent the structural data type
+                    stack.append(("", inner_type))
+                # We have an array of a basic data types(i.e. array(varchar)).
+                elif stack:
+                    # Because it is an array of a basic data type. We have finished
+                    # parsing the structural data type and can move on.
+                    stack.pop()
+        # Unquote the column name if necessary
+        if formatted_parent_column_name != parent_column_name:
+            for index in range(original_result_len, len(result)):
+                result[index]["column_name"] = result[index]["column_name"].replace(
+                    formatted_parent_column_name, parent_column_name
+                )
+
+    @classmethod
+    def _split_data_type(cls, data_type: str, delimiter: str) -> list[str]:
+        """
+        Split data type based on given delimiter. Do not split the string if the
+        delimiter is enclosed in quotes
+        :param data_type: data type
+        :param delimiter: string separator (i.e. open parenthesis, closed parenthesis,
+               comma, whitespace)
+        :return: list of strings after breaking it by the delimiter
+        """
+        return re.split(rf"{delimiter}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", data_type)
+
+    @classmethod
+    def _has_nested_data_types(cls, component_type: str) -> bool:
+        """
+        Check if string contains a data type. We determine if there is a data type by
+        whitespace or multiple data types by commas
+        :param component_type: data type
+        :return: boolean
+        """
+        comma_regex = r",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
+        white_space_regex = r"\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
+        return (
+            re.search(comma_regex, component_type) is not None
+            or re.search(white_space_regex, component_type) is not None
+        )
+
+    @classmethod
+    def _get_full_name(cls, names: list[tuple[str, str]]) -> str:
+        """
+        Get the full column name
+        :param names: list of all individual column names
+        :return: full column name
+        """
+        return ".".join(column[0] for column in names if column[0])
+
 
 class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
@@ -741,8 +955,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return version is not None and Version(version) >= Version("0.319")
 
     @classmethod
-    def update_impersonation_config(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
+        database: Database,
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
@@ -751,6 +966,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         """
         Update a configuration dictionary
         that can set the correct properties for impersonating users
+
+        :param connect_args: the Database object
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username
@@ -841,211 +1058,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             cursor.execute(sql, params)
             results = cursor.fetchall()
             return {row[0] for row in results}
-
-    @classmethod
-    def _create_column_info(
-        cls, name: str, data_type: types.TypeEngine
-    ) -> ResultSetColumnType:
-        """
-        Create column info object
-        :param name: column name
-        :param data_type: column data type
-        :return: column info object
-        """
-        return {
-            "column_name": name,
-            "name": name,
-            "type": f"{data_type}",
-            "is_dttm": None,
-            "type_generic": None,
-        }
-
-    @classmethod
-    def _get_full_name(cls, names: list[tuple[str, str]]) -> str:
-        """
-        Get the full column name
-        :param names: list of all individual column names
-        :return: full column name
-        """
-        return ".".join(column[0] for column in names if column[0])
-
-    @classmethod
-    def _has_nested_data_types(cls, component_type: str) -> bool:
-        """
-        Check if string contains a data type. We determine if there is a data type by
-        whitespace or multiple data types by commas
-        :param component_type: data type
-        :return: boolean
-        """
-        comma_regex = r",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
-        white_space_regex = r"\s(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"
-        return (
-            re.search(comma_regex, component_type) is not None
-            or re.search(white_space_regex, component_type) is not None
-        )
-
-    @classmethod
-    def _split_data_type(cls, data_type: str, delimiter: str) -> list[str]:
-        """
-        Split data type based on given delimiter. Do not split the string if the
-        delimiter is enclosed in quotes
-        :param data_type: data type
-        :param delimiter: string separator (i.e. open parenthesis, closed parenthesis,
-               comma, whitespace)
-        :return: list of strings after breaking it by the delimiter
-        """
-        return re.split(rf"{delimiter}(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", data_type)
-
-    @classmethod
-    def _parse_structural_column(  # pylint: disable=too-many-locals
-        cls,
-        parent_column_name: str,
-        parent_data_type: str,
-        result: list[ResultSetColumnType],
-    ) -> None:
-        """
-        Parse a row or array column
-        :param result: list tracking the results
-        """
-        formatted_parent_column_name = parent_column_name
-        # Quote the column name if there is a space
-        if " " in parent_column_name:
-            formatted_parent_column_name = f'"{parent_column_name}"'
-        full_data_type = f"{formatted_parent_column_name} {parent_data_type}"
-        original_result_len = len(result)
-        # split on open parenthesis ( to get the structural
-        # data type and its component types
-        data_types = cls._split_data_type(full_data_type, r"\(")
-        stack: list[tuple[str, str]] = []
-        for data_type in data_types:
-            # split on closed parenthesis ) to track which component
-            # types belong to what structural data type
-            inner_types = cls._split_data_type(data_type, r"\)")
-            for inner_type in inner_types:
-                # We have finished parsing multiple structural data types
-                if not inner_type and stack:
-                    stack.pop()
-                elif cls._has_nested_data_types(inner_type):
-                    # split on comma , to get individual data types
-                    single_fields = cls._split_data_type(inner_type, ",")
-                    for single_field in single_fields:
-                        single_field = single_field.strip()
-                        # If component type starts with a comma, the first single field
-                        # will be an empty string. Disregard this empty string.
-                        if not single_field:
-                            continue
-                        # split on whitespace to get field name and data type
-                        field_info = cls._split_data_type(single_field, r"\s")
-                        # check if there is a structural data type within
-                        # overall structural data type
-                        column_spec = cls.get_column_spec(field_info[1])
-                        column_type = column_spec.sqla_type if column_spec else None
-                        if column_type is None:
-                            column_type = types.String()
-                            logger.info(
-                                "Did not recognize type %s of column %s",
-                                field_info[1],
-                                field_info[0],
-                            )
-                        if field_info[1] == "array" or field_info[1] == "row":
-                            stack.append((field_info[0], field_info[1]))
-                            full_parent_path = cls._get_full_name(stack)
-                            result.append(
-                                cls._create_column_info(full_parent_path, column_type)
-                            )
-                        else:  # otherwise this field is a basic data type
-                            full_parent_path = cls._get_full_name(stack)
-                            column_name = f"{full_parent_path}.{field_info[0]}"
-                            result.append(
-                                cls._create_column_info(column_name, column_type)
-                            )
-                    # If the component type ends with a structural data type, do not pop
-                    # the stack. We have run across a structural data type within the
-                    # overall structural data type. Otherwise, we have completely parsed
-                    # through the entire structural data type and can move on.
-                    if not (inner_type.endswith("array") or inner_type.endswith("row")):
-                        stack.pop()
-                # We have an array of row objects (i.e. array(row(...)))
-                elif inner_type in ("array", "row"):
-                    # Push a dummy object to represent the structural data type
-                    stack.append(("", inner_type))
-                # We have an array of a basic data types(i.e. array(varchar)).
-                elif stack:
-                    # Because it is an array of a basic data type. We have finished
-                    # parsing the structural data type and can move on.
-                    stack.pop()
-        # Unquote the column name if necessary
-        if formatted_parent_column_name != parent_column_name:
-            for index in range(original_result_len, len(result)):
-                result[index]["column_name"] = result[index]["column_name"].replace(
-                    formatted_parent_column_name, parent_column_name
-                )
-
-    @classmethod
-    def _show_columns(
-        cls,
-        inspector: Inspector,
-        table: Table,
-    ) -> list[ResultRow]:
-        """
-        Show presto column names
-        :param inspector: object that performs database schema inspection
-        :param table: table instance
-        :return: list of column objects
-        """
-        quote = inspector.engine.dialect.identifier_preparer.quote_identifier
-        full_table = quote(table.table)
-        if table.schema:
-            full_table = f"{quote(table.schema)}.{full_table}"
-        return inspector.bind.execute(f"SHOW COLUMNS FROM {full_table}").fetchall()
-
-    @classmethod
-    def get_columns(
-        cls,
-        inspector: Inspector,
-        table: Table,
-        options: dict[str, Any] | None = None,
-    ) -> list[ResultSetColumnType]:
-        """
-        Get columns from a Presto data source. This includes handling row and
-        array data types
-        :param inspector: object that performs database schema inspection
-        :param table: table instance
-        :param options: Extra configuration options, not used by this backend
-        :return: a list of results that contain column info
-                (i.e. column name and data type)
-        """
-        columns = cls._show_columns(inspector, table)
-        result: list[ResultSetColumnType] = []
-        for column in columns:
-            # parse column if it is a row or array
-            if is_feature_enabled("PRESTO_EXPAND_DATA") and (
-                "array" in column.Type or "row" in column.Type
-            ):
-                structural_column_index = len(result)
-                cls._parse_structural_column(column.Column, column.Type, result)
-                result[structural_column_index]["nullable"] = getattr(
-                    column, "Null", True
-                )
-                result[structural_column_index]["default"] = None
-                continue
-
-            # otherwise column is a basic data type
-            column_spec = cls.get_column_spec(column.Type)
-            column_type = column_spec.sqla_type if column_spec else None
-            if column_type is None:
-                column_type = types.String()
-                logger.info(
-                    "Did not recognize type %s of column %s",
-                    str(column.Type),
-                    str(column.Column),
-                )
-            column_info = cls._create_column_info(column.Column, column_type)
-            column_info["nullable"] = getattr(column, "Null", True)
-            column_info["default"] = None
-            column_info["column_name"] = column.Column
-            result.append(column_info)
-        return result
 
     @classmethod
     def _is_column_name_quoted(cls, column_name: str) -> bool:

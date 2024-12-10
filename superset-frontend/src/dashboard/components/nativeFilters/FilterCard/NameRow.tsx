@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -63,7 +62,13 @@ export const NameRow = ({
           onClick={hidePopover}
           initialFilterId={filter.id}
         >
-          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} />
+          <Icons.Edit
+            iconSize="l"
+            iconColor={theme.colors.grayscale.light1}
+            css={() => css`
+              cursor: pointer;
+            `}
+          />
         </FilterConfigurationLink>
       )}
     </Row>

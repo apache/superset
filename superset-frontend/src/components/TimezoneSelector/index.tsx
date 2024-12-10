@@ -17,10 +17,10 @@
  * under the License.
  */
 
-import React, { useEffect, useMemo } from 'react';
-import moment from 'moment-timezone';
+import { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
+import Loading from 'src/components/Loading';
 
 const DEFAULT_TIMEZONE = {
   name: 'GMT Standard Time',
@@ -45,62 +45,6 @@ const offsetsToName = {
   '060': ['GMT Standard Time - London', 'British Summer Time'],
 };
 
-const currentDate = moment();
-const JANUARY = moment([2021, 1]);
-const JULY = moment([2021, 7]);
-
-const getOffsetKey = (name: string) =>
-  JANUARY.tz(name).utcOffset().toString() +
-  JULY.tz(name).utcOffset().toString();
-
-const getTimezoneName = (name: string) => {
-  const offsets = getOffsetKey(name);
-  return (
-    (currentDate.tz(name).isDST()
-      ? offsetsToName[offsets]?.[1]
-      : offsetsToName[offsets]?.[0]) || name
-  );
-};
-
-const ALL_ZONES = moment.tz
-  .countries()
-  .map(country => moment.tz.zonesForCountry(country, true))
-  .flat();
-
-const TIMEZONES: moment.MomentZoneOffset[] = [];
-ALL_ZONES.forEach(zone => {
-  if (
-    !TIMEZONES.find(
-      option => getOffsetKey(option.name) === getOffsetKey(zone.name),
-    )
-  ) {
-    TIMEZONES.push(zone); // dedupe zones by offsets
-  }
-});
-
-const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
-  label: `GMT ${moment
-    .tz(currentDate, zone.name)
-    .format('Z')} (${getTimezoneName(zone.name)})`,
-  value: zone.name,
-  offsets: getOffsetKey(zone.name),
-  timezoneName: zone.name,
-}));
-
-const TIMEZONE_OPTIONS_SORT_COMPARATOR = (
-  a: (typeof TIMEZONE_OPTIONS)[number],
-  b: (typeof TIMEZONE_OPTIONS)[number],
-) =>
-  moment.tz(currentDate, a.timezoneName).utcOffset() -
-  moment.tz(currentDate, b.timezoneName).utcOffset();
-
-// pre-sort timezone options by time offset
-TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
-
-const matchTimezoneToOptions = (timezone: string) =>
-  TIMEZONE_OPTIONS.find(option => option.offsets === getOffsetKey(timezone))
-    ?.value || DEFAULT_TIMEZONE.value;
-
 export type TimezoneSelectorProps = {
   onTimezoneChange: (value: string) => void;
   timezone?: string | null;
@@ -112,17 +56,99 @@ export default function TimezoneSelector({
   timezone,
   minWidth = MIN_SELECT_WIDTH, // smallest size for current values
 }: TimezoneSelectorProps) {
-  const validTimezone = useMemo(
-    () => matchTimezoneToOptions(timezone || moment.tz.guess()),
-    [timezone],
-  );
+  const [momentLib, setMomentLib] = useState<
+    typeof import('moment-timezone') | null
+  >(null);
+
+  useEffect(() => {
+    import('moment-timezone').then(momentLib =>
+      setMomentLib(() => momentLib.default),
+    );
+  }, []);
+
+  const { TIMEZONE_OPTIONS, TIMEZONE_OPTIONS_SORT_COMPARATOR, validTimezone } =
+    useMemo(() => {
+      if (!momentLib) {
+        return {};
+      }
+      const currentDate = momentLib();
+      const JANUARY = momentLib([2021, 1]);
+      const JULY = momentLib([2021, 7]);
+
+      const getOffsetKey = (name: string) =>
+        JANUARY.tz(name).utcOffset().toString() +
+        JULY.tz(name).utcOffset().toString();
+
+      const getTimezoneName = (name: string) => {
+        const offsets = getOffsetKey(name);
+        return (
+          (currentDate.tz(name).isDST()
+            ? offsetsToName[offsets]?.[1]
+            : offsetsToName[offsets]?.[0]) || name
+        );
+      };
+
+      const ALL_ZONES = momentLib.tz
+        .countries()
+        .map(country => momentLib.tz.zonesForCountry(country, true))
+        .flat();
+
+      const TIMEZONES: import('moment-timezone').MomentZoneOffset[] = [];
+      ALL_ZONES.forEach(zone => {
+        if (
+          !TIMEZONES.find(
+            option => getOffsetKey(option.name) === getOffsetKey(zone.name),
+          )
+        ) {
+          TIMEZONES.push(zone); // dedupe zones by offsets
+        }
+      });
+
+      const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
+        label: `GMT ${momentLib
+          .tz(currentDate, zone.name)
+          .format('Z')} (${getTimezoneName(zone.name)})`,
+        value: zone.name,
+        offsets: getOffsetKey(zone.name),
+        timezoneName: zone.name,
+      }));
+
+      const TIMEZONE_OPTIONS_SORT_COMPARATOR = (
+        a: (typeof TIMEZONE_OPTIONS)[number],
+        b: (typeof TIMEZONE_OPTIONS)[number],
+      ) =>
+        momentLib.tz(currentDate, a.timezoneName).utcOffset() -
+        momentLib.tz(currentDate, b.timezoneName).utcOffset();
+
+      // pre-sort timezone options by time offset
+      TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
+
+      const matchTimezoneToOptions = (timezone: string) =>
+        TIMEZONE_OPTIONS.find(
+          option => option.offsets === getOffsetKey(timezone),
+        )?.value || DEFAULT_TIMEZONE.value;
+
+      const validTimezone = matchTimezoneToOptions(
+        timezone || momentLib.tz.guess(),
+      );
+
+      return {
+        TIMEZONE_OPTIONS,
+        TIMEZONE_OPTIONS_SORT_COMPARATOR,
+        validTimezone,
+      };
+    }, [momentLib, timezone]);
 
   // force trigger a timezone update if provided `timezone` is not invalid
   useEffect(() => {
-    if (timezone !== validTimezone) {
+    if (validTimezone && timezone !== validTimezone) {
       onTimezoneChange(validTimezone);
     }
   }, [validTimezone, onTimezoneChange, timezone]);
+
+  if (!TIMEZONE_OPTIONS || !TIMEZONE_OPTIONS_SORT_COMPARATOR) {
+    return <Loading position="inline-centered" />;
+  }
 
   return (
     <Select

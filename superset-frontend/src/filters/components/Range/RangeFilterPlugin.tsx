@@ -24,7 +24,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { rgba } from 'emotion-rgba';
 import { AntdSlider } from 'src/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -315,7 +315,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem extra={formItemExtra}>
+        <StyledFormItem
+          aria-labelledby={`filter-name-${formData.nativeFilterId}`}
+          extra={formItemExtra}
+        >
           <Wrapper
             tabIndex={-1}
             ref={inputRef}

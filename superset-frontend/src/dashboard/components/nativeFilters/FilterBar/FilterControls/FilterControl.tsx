@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useContext, useMemo, useState } from 'react';
+import { memo, useContext, useMemo, useState } from 'react';
 import {
   createHtmlPortalNode,
   InPortal,
@@ -253,7 +253,10 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle data-test="filter-control-name">
+        <FilterControlTitle
+          id={`filter-name-${filter.id}`}
+          data-test="filter-control-name"
+        >
           {name}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
@@ -315,7 +318,7 @@ const FilterControl = ({
           <div>
             <FormItem
               label={label}
-              aria-label={name}
+              htmlFor={filter.id}
               required={filter?.controlValues?.enableEmptyFilter}
               validateStatus={validateStatus}
             >
@@ -328,4 +331,4 @@ const FilterControl = ({
   );
 };
 
-export default React.memo(FilterControl);
+export default memo(FilterControl);

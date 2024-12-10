@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-
 import {
   columns,
   metrics,
@@ -126,8 +124,8 @@ test('can collapse metrics and columns', () => {
     { useDnd: true },
   );
   fireEvent.click(getByRole('button'));
-  expect(mockData.onCollapseMetricsChange).toBeCalled();
-  expect(mockData.onCollapseColumnsChange).not.toBeCalled();
+  expect(mockData.onCollapseMetricsChange).toHaveBeenCalled();
+  expect(mockData.onCollapseColumnsChange).not.toHaveBeenCalled();
 
   const startIndexOfColumnSection = mockData.metricSlice.length + 3;
   rerender(
@@ -138,7 +136,7 @@ test('can collapse metrics and columns', () => {
     />,
   );
   fireEvent.click(getByRole('button'));
-  expect(mockData.onCollapseColumnsChange).toBeCalled();
+  expect(mockData.onCollapseColumnsChange).toHaveBeenCalled();
 
   rerender(
     <DatasourcePanelItem

@@ -114,7 +114,8 @@ def _create_and_commit_unicode_slice(table: SqlaTable, title: str):
 
 def _cleanup(dash: Dashboard, slice_name: str) -> None:
     db.session.delete(dash)
-    if slice_name:
-        slice = db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    if slice_name and (
+        slice := db.session.query(Slice).filter_by(slice_name=slice_name).one_or_none()
+    ):
         db.session.delete(slice)
     db.session.commit()

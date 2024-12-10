@@ -17,7 +17,7 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 from typing import Optional
-from unittest.mock import Mock
+from unittest import mock
 
 import pytest
 import sqlparse
@@ -30,26 +30,23 @@ from superset.exceptions import (
     QueryClauseValidationException,
     SupersetSecurityException,
 )
+from superset.sql.parse import Table
 from superset.sql_parse import (
     add_table_name,
+    check_sql_functions_exist,
     extract_table_references,
     extract_tables_from_jinja_sql,
     get_rls_for_table,
     has_table_query,
     insert_rls_as_subquery,
     insert_rls_in_predicate,
-    KustoKQLStatement,
     ParsedQuery,
     sanitize_clause,
-    split_kql,
-    SQLScript,
-    SQLStatement,
     strip_comments_from_sql,
-    Table,
 )
 
 
-def extract_tables(query: str, engine: Optional[str] = None) -> set[Table]:
+def extract_tables(query: str, engine: str = "base") -> set[Table]:
     """
     Helper function to extract tables referenced in a query.
     """
@@ -284,7 +281,7 @@ def test_extract_tables_illdefined() -> None:
         extract_tables('SELECT * FROM "tbname')
     assert (
         str(excinfo.value)
-        == "You may have an error in your SQL statement. Error tokenizing 'SELECT * FROM \"tbnam'"
+        == "You may have an error in your SQL statement. Unable to tokenize script"
     )
 
     # odd edge case that works
@@ -1215,6 +1212,31 @@ def test_strip_comments_from_sql() -> None:
     )
 
 
+def test_check_sql_functions_exist() -> None:
+    """
+    Test that comments are stripped out correctly.
+    """
+    assert not (
+        check_sql_functions_exist("select a, b from version", {"version"}, "postgresql")
+    )
+
+    assert check_sql_functions_exist("select version()", {"version"}, "postgresql")
+
+    assert check_sql_functions_exist(
+        "select version from version()", {"version"}, "postgresql"
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version from version()) as a",
+        {"version"},
+        "postgresql",
+    )
+
+    assert check_sql_functions_exist(
+        "select 1, a.version from (select version()) as a", {"version"}, "postgresql"
+    )
+
+
 def test_sanitize_clause_valid():
     # regular clauses
     assert sanitize_clause("col = 1") == "col = 1"
@@ -1264,46 +1286,66 @@ def test_sqlparse_issue_652():
 
 
 @pytest.mark.parametrize(
-    "sql,expected",
+    ("engine", "sql", "expected"),
     [
-        ("SELECT * FROM table", True),
-        ("SELECT a FROM (SELECT 1 AS a) JOIN (SELECT * FROM table)", True),
-        ("(SELECT COUNT(DISTINCT name) AS foo FROM    birth_names)", True),
-        ("COUNT(*)", False),
-        ("SELECT a FROM (SELECT 1 AS a)", False),
-        ("SELECT a FROM (SELECT 1 AS a) JOIN table", True),
-        ("SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar", False),
-        ("SELECT * FROM other_table", True),
-        ("extract(HOUR from from_unixtime(hour_ts)", False),
-        ("(SELECT * FROM table)", True),
-        ("(SELECT COUNT(DISTINCT name) from birth_names)", True),
+        ("postgresql", "extract(HOUR from from_unixtime(hour_ts))", False),
+        ("postgresql", "SELECT * FROM table", True),
+        ("postgresql", "(SELECT * FROM table)", True),
         (
+            "postgresql",
+            "SELECT a FROM (SELECT 1 AS a) JOIN (SELECT * FROM table)",
+            True,
+        ),
+        (
+            "postgresql",
+            "(SELECT COUNT(DISTINCT name) AS foo FROM    birth_names)",
+            True,
+        ),
+        ("postgresql", "COUNT(*)", False),
+        ("postgresql", "SELECT a FROM (SELECT 1 AS a)", False),
+        ("postgresql", "SELECT a FROM (SELECT 1 AS a) JOIN table", True),
+        (
+            "postgresql",
+            "SELECT * FROM (SELECT 1 AS foo, 2 AS bar) ORDER BY foo ASC, bar",
+            False,
+        ),
+        ("postgresql", "SELECT * FROM other_table", True),
+        ("postgresql", "(SELECT COUNT(DISTINCT name) from birth_names)", True),
+        (
+            "postgresql",
             "(SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
             True,
         ),
         (
+            "postgresql",
             "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
             True,
         ),
         (
+            "postgresql",
             "SELECT FROM (SELECT FROM forbidden_table) AS forbidden_table;",
             True,
         ),
         (
+            "postgresql",
             "SELECT * FROM (SELECT * FROM forbidden_table) forbidden_table",
+            True,
+        ),
+        (
+            "postgresql",
+            "((select users.id from (select 'majorie' as a) b, users where b.a = users.name and users.name in ('majorie') limit 1) like 'U%')",
             True,
         ),
     ],
 )
-def test_has_table_query(sql: str, expected: bool) -> None:
+def test_has_table_query(engine: str, sql: str, expected: bool) -> None:
     """
     Test if a given statement queries a table.
 
     This is used to prevent ad-hoc metrics from querying unauthorized tables, bypassing
     row-level security.
     """
-    statement = sqlparse.parse(sql)[0]
-    assert has_table_query(statement) == expected
+    assert has_table_query(sql, engine) == expected
 
 
 @pytest.mark.parametrize(
@@ -1525,7 +1567,7 @@ def test_insert_rls_as_subquery(
             "id=42",
             "SELECT * FROM other_table WHERE 1=1",
         ),
-        # If there's no pre-existing WHERE clause we create one.
+        # If there's no preexisting WHERE clause we create one.
         (
             "SELECT * FROM table",
             "table",
@@ -1808,49 +1850,6 @@ SELECT * FROM t"""
     assert ParsedQuery("USE foo; SELECT * FROM bar").is_select()
 
 
-def test_sqlquery() -> None:
-    """
-    Test the `SQLScript` class.
-    """
-    script = SQLScript("SELECT 1; SELECT 2;", "sqlite")
-
-    assert len(script.statements) == 2
-    assert script.format() == "SELECT\n  1;\nSELECT\n  2"
-    assert script.statements[0].format() == "SELECT\n  1"
-
-    script = SQLScript("SET a=1; SET a=2; SELECT 3;", "sqlite")
-    assert script.get_settings() == {"a": "2"}
-
-    query = SQLScript(
-        """set querytrace;
-Events | take 100""",
-        "kustokql",
-    )
-    assert query.get_settings() == {"querytrace": True}
-
-
-def test_sqlstatement() -> None:
-    """
-    Test the `SQLStatement` class.
-    """
-    statement = SQLStatement(
-        "SELECT * FROM table1 UNION ALL SELECT * FROM table2",
-        "sqlite",
-    )
-
-    assert statement.tables == {
-        Table(table="table1", schema=None, catalog=None),
-        Table(table="table2", schema=None, catalog=None),
-    }
-    assert (
-        statement.format()
-        == "SELECT\n  *\nFROM table1\nUNION ALL\nSELECT\n  *\nFROM table2"
-    )
-
-    statement = SQLStatement("SET a=1", "sqlite")
-    assert statement.get_settings() == {"a": "1"}
-
-
 @pytest.mark.parametrize(
     "engine",
     [
@@ -1889,146 +1888,33 @@ def test_sqlstatement() -> None:
     ],
 )
 def test_extract_tables_from_jinja_sql(
-    engine: str, macro: str, expected: set[Table]
+    mocker: MockerFixture,
+    engine: str,
+    macro: str,
+    expected: set[Table],
 ) -> None:
     assert (
         extract_tables_from_jinja_sql(
             sql=f"'{{{{ {engine}.{macro} }}}}'",
-            database=Mock(),
+            database=mocker.Mock(),
         )
         == expected
     )
 
 
-def test_kustokqlstatement_split_query() -> None:
-    """
-    Test the `KustoKQLStatement` split method.
-    """
-    statements = KustoKQLStatement.split_query(
-        """
-let totalPagesPerDay = PageViews
-| summarize by Page, Day = startofday(Timestamp)
-| summarize count() by Day;
-let materializedScope = PageViews
-| summarize by Page, Day = startofday(Timestamp);
-let cachedResult = materialize(materializedScope);
-cachedResult
-| project Page, Day1 = Day
-| join kind = inner
-(
-    cachedResult
-    | project Page, Day2 = Day
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    {"ENABLE_TEMPLATE_PROCESSING": False},
+    clear=True,
 )
-on Page
-| where Day2 > Day1
-| summarize count() by Day1, Day2
-| join kind = inner
-    totalPagesPerDay
-on $left.Day1 == $right.Day
-| project Day1, Day2, Percentage = count_*100.0/count_1
-        """,
-        "kustokql",
-    )
-    assert len(statements) == 4
-
-
-def test_kustokqlstatement_with_program() -> None:
+def test_extract_tables_from_jinja_sql_disabled(mocker: MockerFixture) -> None:
     """
-    Test the `KustoKQLStatement` split method when the KQL has a program.
+    Test the function when the feature flag is disabled.
     """
-    statements = KustoKQLStatement.split_query(
-        """
-print program = ```
-  public class Program {
-    public static void Main() {
-      System.Console.WriteLine("Hello!");
-    }
-  }```
-        """,
-        "kustokql",
-    )
-    assert len(statements) == 1
+    database = mocker.Mock()
+    database.db_engine_spec.engine = "mssql"
 
-
-def test_kustokqlstatement_with_set() -> None:
-    """
-    Test the `KustoKQLStatement` split method when the KQL has a set command.
-    """
-    statements = KustoKQLStatement.split_query(
-        """
-set querytrace;
-Events | take 100
-        """,
-        "kustokql",
-    )
-    assert len(statements) == 2
-    assert statements[0].format() == "set querytrace"
-    assert statements[1].format() == "Events | take 100"
-
-
-@pytest.mark.parametrize(
-    "kql,statements",
-    [
-        ('print banner=strcat("Hello", ", ", "World!")', 1),
-        (r"print 'O\'Malley\'s'", 1),
-        (r"print 'O\'Mal;ley\'s'", 1),
-        ("print ```foo;\nbar;\nbaz;```\n", 1),
-    ],
-)
-def test_kustokql_statement_split_special(kql: str, statements: int) -> None:
-    assert len(KustoKQLStatement.split_query(kql, "kustokql")) == statements
-
-
-def test_split_kql() -> None:
-    """
-    Test the `split_kql` function.
-    """
-    kql = """
-let totalPagesPerDay = PageViews
-| summarize by Page, Day = startofday(Timestamp)
-| summarize count() by Day;
-let materializedScope = PageViews
-| summarize by Page, Day = startofday(Timestamp);
-let cachedResult = materialize(materializedScope);
-cachedResult
-| project Page, Day1 = Day
-| join kind = inner
-(
-    cachedResult
-    | project Page, Day2 = Day
-)
-on Page
-| where Day2 > Day1
-| summarize count() by Day1, Day2
-| join kind = inner
-    totalPagesPerDay
-on $left.Day1 == $right.Day
-| project Day1, Day2, Percentage = count_*100.0/count_1
-    """
-    assert split_kql(kql) == [
-        """
-let totalPagesPerDay = PageViews
-| summarize by Page, Day = startofday(Timestamp)
-| summarize count() by Day""",
-        """
-let materializedScope = PageViews
-| summarize by Page, Day = startofday(Timestamp)""",
-        """
-let cachedResult = materialize(materializedScope)""",
-        """
-cachedResult
-| project Page, Day1 = Day
-| join kind = inner
-(
-    cachedResult
-    | project Page, Day2 = Day
-)
-on Page
-| where Day2 > Day1
-| summarize count() by Day1, Day2
-| join kind = inner
-    totalPagesPerDay
-on $left.Day1 == $right.Day
-| project Day1, Day2, Percentage = count_*100.0/count_1
-    """,
-    ]
+    assert extract_tables_from_jinja_sql(
+        sql="SELECT 1 FROM t",
+        database=database,
+    ) == {Table("t")}

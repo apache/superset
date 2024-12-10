@@ -274,7 +274,7 @@ class SupersetShillelaghAdapter(Adapter):
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
 
-        # Does the database allow DML?
+        # Does the database allow DDL/DML?
         self._allow_dml: bool = False
 
         # Read column information from the database, and store it for later.
@@ -334,7 +334,9 @@ class SupersetShillelaghAdapter(Adapter):
         primary_keys = [
             column for column in list(self._table.primary_key) if column.primary_key
         ]
-        if len(primary_keys) == 1 and primary_keys[0].type.python_type == int:
+        if len(primary_keys) == 1 and isinstance(
+            primary_keys[0].type.python_type, type(int)
+        ):
             self._rowid = primary_keys[0].name
 
         self.columns = {

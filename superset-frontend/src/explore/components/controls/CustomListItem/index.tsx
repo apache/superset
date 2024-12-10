@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useTheme } from '@superset-ui/core';
-import { List, ListItemProps } from 'src/components';
+import { ListItemProps, List } from 'src/components/List';
 
 export interface CustomListItemProps extends ListItemProps {
   selectable: boolean;
@@ -28,8 +27,7 @@ export default function CustomListItem(props: CustomListItemProps) {
   const { selectable, children, ...rest } = props;
   const theme = useTheme();
   const css = {
-    '&.ant-list-item': {
-      padding: `${theme.gridUnit + 2}px ${theme.gridUnit * 3}px`,
+    '&.antd5-list-item': {
       ':first-of-type': {
         borderTopLeftRadius: theme.gridUnit,
         borderTopRightRadius: theme.gridUnit,

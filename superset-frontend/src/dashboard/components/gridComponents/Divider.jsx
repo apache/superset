@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { css, styled } from '@superset-ui/core';
 
@@ -62,7 +62,7 @@ const DividerLine = styled.div`
   `}
 `;
 
-class Divider extends React.PureComponent {
+class Divider extends PureComponent {
   constructor(props) {
     super(props);
     this.handleDeleteComponent = this.handleDeleteComponent.bind(this);

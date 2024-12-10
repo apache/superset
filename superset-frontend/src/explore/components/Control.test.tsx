@@ -17,7 +17,6 @@
  * under the License.
  */
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
@@ -77,9 +76,9 @@ test('call setControlValue if isVisible is false', async () => {
       default: false,
     }),
   );
-  expect(defaultProps.actions.setControlValue).not.toBeCalled();
+  expect(defaultProps.actions.setControlValue).not.toHaveBeenCalled();
   rerender(setup({ isVisible: false, default: false }));
   await waitFor(() =>
-    expect(defaultProps.actions.setControlValue).toBeCalled(),
+    expect(defaultProps.actions.setControlValue).toHaveBeenCalled(),
   );
 });

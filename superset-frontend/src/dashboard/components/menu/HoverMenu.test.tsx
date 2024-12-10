@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 
@@ -34,8 +33,8 @@ test('should call onHover when mouse enters and leaves', () => {
   const hoverMenu = screen.getByTestId('hover-menu');
 
   userEvent.hover(hoverMenu);
-  expect(onHover).toBeCalledWith({ isHovered: true });
+  expect(onHover).toHaveBeenCalledWith({ isHovered: true });
 
   userEvent.unhover(hoverMenu);
-  expect(onHover).toBeCalledWith({ isHovered: false });
+  expect(onHover).toHaveBeenCalledWith({ isHovered: false });
 });

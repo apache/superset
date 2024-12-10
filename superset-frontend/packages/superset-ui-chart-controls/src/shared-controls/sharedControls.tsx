@@ -50,6 +50,7 @@ import {
 import {
   formatSelectOptions,
   displayTimeRelatedControls,
+  getColorControlsProps,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -142,9 +143,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -333,9 +332,21 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
+};
+
+const time_shift_color: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Match time shift color with original series'),
+  default: true,
+  renderTrigger: true,
+  description: t(
+    'When unchecked, colors from the selected color scheme will be used for time shifted series',
+  ),
+  visibility: ({ controls }) =>
+    Boolean(
+      controls?.time_compare?.value && !isEmpty(controls?.time_compare?.value),
+    ),
 };
 
 const truncate_metric: SharedControlConfig<'CheckboxControl'> = {
@@ -360,6 +371,14 @@ const temporal_columns_lookup: SharedControlConfig<'HiddenControl'> = {
         .filter(option => option.is_dttm)
         .map(option => [option.column_name ?? option.name, option.is_dttm]),
     ),
+};
+
+const sort_by_metric: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Sort by metric'),
+  description: t(
+    'Whether to sort results by the selected metric in descending order.',
+  ),
 };
 
 export default {
@@ -391,6 +410,7 @@ export default {
   x_axis_time_format,
   adhoc_filters: dndAdhocFilterControl,
   color_scheme,
+  time_shift_color,
   series_columns: dndColumnsControl,
   series_limit,
   series_limit_metric: dndSortByControl,
@@ -400,4 +420,5 @@ export default {
   show_empty_columns,
   temporal_columns_lookup,
   currency_format,
+  sort_by_metric,
 };

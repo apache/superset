@@ -15,7 +15,7 @@ on:
 
 jobs:
   supersetbot:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     if: >
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot'))

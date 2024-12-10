@@ -16,7 +16,6 @@
 # under the License.
 # isort:skip_file
 
-import json
 import logging
 from collections.abc import Iterator
 from typing import Callable
@@ -30,6 +29,7 @@ from superset.commands.export.models import ExportModelsCommand
 from superset.models.slice import Slice
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class ExportChartsCommand(ExportModelsCommand):
         if payload.get("params"):
             try:
                 payload["params"] = json.loads(payload["params"])
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 logger.info("Unable to decode `params` field: %s", payload["params"])
 
         payload["version"] = EXPORT_VERSION

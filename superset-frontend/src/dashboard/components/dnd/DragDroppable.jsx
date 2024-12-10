@@ -17,8 +17,9 @@
  * under the License.
  */
 import { getEmptyImage } from 'react-dnd-html5-backend';
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { DragSource, DropTarget } from 'react-dnd';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -40,6 +41,8 @@ const propTypes = {
   style: PropTypes.object,
   onDrop: PropTypes.func,
   onHover: PropTypes.func,
+  onDropIndicatorChange: PropTypes.func,
+  onDragTab: PropTypes.func,
   editMode: PropTypes.bool,
   useEmptyDragPreview: PropTypes.bool,
 
@@ -47,6 +50,8 @@ const propTypes = {
   isDragging: PropTypes.bool,
   isDraggingOver: PropTypes.bool,
   isDraggingOverShallow: PropTypes.bool,
+  dragComponentType: PropTypes.string,
+  dragComponentId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   droppableRef: PropTypes.func,
   dragSourceRef: PropTypes.func,
   dragPreviewRef: PropTypes.func,
@@ -61,6 +66,8 @@ const defaultProps = {
   children() {},
   onDrop() {},
   onHover() {},
+  onDropIndicatorChange() {},
+  onDragTab() {},
   orientation: 'row',
   useEmptyDragPreview: false,
   isDragging: false,
@@ -112,7 +119,7 @@ const DragDroppableStyles = styled.div`
   `};
 `;
 // export unwrapped component for testing
-export class UnwrappedDragDroppable extends React.PureComponent {
+export class UnwrappedDragDroppable extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -127,6 +134,38 @@ export class UnwrappedDragDroppable extends React.PureComponent {
 
   componentWillUnmount() {
     this.mounted = false;
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    const {
+      onDropIndicatorChange,
+      isDraggingOver,
+      component,
+      index,
+      dragComponentId,
+      onDragTab,
+    } = this.props;
+    const { dropIndicator } = this.state;
+    const isTabsType = component.type === TAB_TYPE;
+    const validStateChange =
+      dropIndicator !== prevState.dropIndicator ||
+      isDraggingOver !== prevProps.isDraggingOver ||
+      index !== prevProps.index;
+
+    if (onDropIndicatorChange && isTabsType && validStateChange) {
+      onDropIndicatorChange({ dropIndicator, isDraggingOver, index });
+    }
+
+    if (dragComponentId !== prevProps.dragComponentId) {
+      setTimeout(() => {
+        /**
+         * This timeout ensures the dargSourceRef and dragPreviewRef are set
+         * before the component is removed in Tabs.jsx. Otherwise react-dnd
+         * will not render the drag preview.
+         */
+        onDragTab(dragComponentId);
+      });
+    }
   }
 
   setRef(ref) {
@@ -155,6 +194,8 @@ export class UnwrappedDragDroppable extends React.PureComponent {
       isDraggingOver,
       style,
       editMode,
+      component,
+      dragComponentType,
     } = this.props;
 
     const { dropIndicator } = this.state;
@@ -168,10 +209,14 @@ export class UnwrappedDragDroppable extends React.PureComponent {
           }
         : null;
 
+    const draggingTabOnTab =
+      component.type === TAB_TYPE && dragComponentType === TAB_TYPE;
+
     const childProps = editMode
       ? {
           dragSourceRef,
           dropIndicatorProps,
+          draggingTabOnTab,
         }
       : {};
 

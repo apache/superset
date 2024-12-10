@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, act } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import * as mockCore from '@superset-ui/core';
@@ -76,7 +75,8 @@ const FILTER_NAME = 'Time filter 1';
 const addFilterFlow = async () => {
   // open filter config modal
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByTestId(getTestId('create-filter')));
+  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
@@ -274,6 +274,10 @@ describe('FilterBar', () => {
     };
 
     renderWrapper(openedBarProps, stateWithDivider);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000); // 1s
+    });
 
     const title = await screen.findByText('Select time range');
     const description = await screen.findByText('Select year/month etc..');

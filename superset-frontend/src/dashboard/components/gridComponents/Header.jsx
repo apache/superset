@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -47,6 +47,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  embeddedMode: PropTypes.bool.isRequired,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -114,7 +115,7 @@ const HeaderStyles = styled.div`
   `}
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -166,6 +167,7 @@ class Header extends React.PureComponent {
       index,
       handleComponentDrop,
       editMode,
+      embeddedMode,
     } = this.props;
 
     const headerStyle = headerStyleOptions.find(
@@ -234,7 +236,7 @@ class Header extends React.PureComponent {
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
-                {!editMode && (
+                {!editMode && !embeddedMode && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
               </HeaderStyles>

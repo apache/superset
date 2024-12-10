@@ -16,17 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
+import { waitFor, render, fireEvent } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import thunk from 'redux-thunk';
-import { act } from 'react-dom/test-utils';
 import sinon from 'sinon';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
 import { ChangeDatasourceModal } from 'src/components/Datasource';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 
 const mockStore = configureStore([thunk]);
@@ -58,60 +53,40 @@ fetchMock.get(DATASOURCES_ENDPOINT, { result: [mockDatasource['7__table']] });
 fetchMock.get(DATASOURCE_ENDPOINT, DATASOURCE_PAYLOAD);
 fetchMock.get(INFO_ENDPOINT, {});
 
-async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<ChangeDatasourceModal store={store} {...props} />, {
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
-  await waitForComponentToPaint(mounted);
+afterEach(() => {
+  fetchMock.resetHistory();
+});
 
-  return mounted;
-}
-
-describe('ChangeDatasourceModal', () => {
-  let wrapper;
-
-  beforeEach(async () => {
-    wrapper = await mountAndWait();
+const setup = (props = mockedProps) =>
+  render(<ChangeDatasourceModal {...props} />, {
+    useRedux: true,
+    store,
   });
 
-  it('renders', () => {
-    expect(wrapper.find(ChangeDatasourceModal)).toHaveLength(1);
-  });
+test('renders', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('Swap dataset-modal')).toBeInTheDocument();
+});
 
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
-  });
+test('fetches datasources', async () => {
+  setup();
+  await waitFor(() => expect(fetchMock.calls(INFO_ENDPOINT)).toHaveLength(1));
+});
 
-  it('fetches datasources', async () => {
-    expect(fetchMock.calls(INFO_ENDPOINT)).toHaveLength(3);
-  });
+test('renders confirmation message', async () => {
+  const { findByTestId, getByRole } = setup();
+  const confirmLink = await findByTestId('datasource-link');
+  fireEvent.click(confirmLink);
+  expect(getByRole('button', { name: 'Proceed' })).toBeInTheDocument();
+});
 
-  it('renders confirmation message', async () => {
-    await waitForComponentToPaint(wrapper, 1000);
-
-    act(() => {
-      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
-    });
-
-    await waitForComponentToPaint(wrapper);
-
-    expect(wrapper.find('.proceed-btn')).toExist();
-  });
-
-  it('changes the datasource', async () => {
-    await waitForComponentToPaint(wrapper, 1000);
-
-    act(() => {
-      wrapper.find('[data-test="datasource-link"]').at(0).props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-
-    act(() => {
-      wrapper.find('.proceed-btn').at(0).props().onClick(datasourceData);
-    });
-    await waitForComponentToPaint(wrapper);
-
-    expect(fetchMock.calls(/api\/v1\/dataset\/7/)).toHaveLength(1);
-  });
+test('changes the datasource', async () => {
+  const { findByTestId, getByRole } = setup();
+  const confirmLink = await findByTestId('datasource-link');
+  fireEvent.click(confirmLink);
+  const proceedButton = getByRole('button', { name: 'Proceed' });
+  fireEvent.click(proceedButton);
+  await waitFor(() =>
+    expect(fetchMock.calls(/api\/v1\/dataset\/7/)).toHaveLength(1),
+  );
 });

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { createRef, PureComponent } from 'react';
 import { styled } from '@superset-ui/core';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import FilterScope from 'src/dashboard/containers/FilterScope';
@@ -30,7 +30,7 @@ const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
   paddingBottom: gridUnit * 3,
 }));
 
-export default class FilterScopeModal extends React.PureComponent<
+export default class FilterScopeModal extends PureComponent<
   FilterScopeModalProps,
   {}
 > {
@@ -39,7 +39,7 @@ export default class FilterScopeModal extends React.PureComponent<
   constructor(props: FilterScopeModalProps) {
     super(props);
 
-    this.modal = React.createRef() as ModalTriggerRef;
+    this.modal = createRef() as ModalTriggerRef;
     this.handleCloseModal = this.handleCloseModal.bind(this);
   }
 

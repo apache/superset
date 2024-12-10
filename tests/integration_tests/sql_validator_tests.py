@@ -58,7 +58,7 @@ class TestPrestoValidator(SupersetTestCase):
 
         errors = self.validator.validate(sql, None, schema, self.database)
 
-        self.assertEqual([], errors)
+        assert [] == errors
 
     @patch("superset.utils.core.g")
     def test_validator_db_error(self, flask_g):
@@ -95,7 +95,7 @@ class TestPrestoValidator(SupersetTestCase):
 
         errors = self.validator.validate(sql, None, schema, self.database)
 
-        self.assertEqual(1, len(errors))
+        assert 1 == len(errors)
 
 
 class TestPostgreSQLValidator(SupersetTestCase):

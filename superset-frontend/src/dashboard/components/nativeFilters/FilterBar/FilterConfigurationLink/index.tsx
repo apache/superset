@@ -16,27 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useState } from 'react';
+import { ReactNode, FC, useCallback, useState, memo } from 'react';
+
 import { useDispatch } from 'react-redux';
 import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import Button from 'src/components/Button';
-import { FilterConfiguration, styled } from '@superset-ui/core';
 import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { getFilterBarTestId } from '../utils';
+import { SaveFilterChangesType } from '../../FiltersConfigModal/types';
 
 export interface FCBProps {
   createNewOnOpen?: boolean;
   dashboardId?: number;
   initialFilterId?: string;
   onClick?: () => void;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
-const HeaderButton = styled(Button)`
-  padding: 0;
-`;
-
-export const FilterConfigurationLink: React.FC<FCBProps> = ({
+export const FilterConfigurationLink: FC<FCBProps> = ({
   createNewOnOpen,
   dashboardId,
   initialFilterId,
@@ -45,14 +41,13 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
 }) => {
   const dispatch = useDispatch();
   const [isOpen, setOpen] = useState(false);
-
   const close = useCallback(() => {
     setOpen(false);
   }, [setOpen]);
 
   const submit = useCallback(
-    async (filterConfig: FilterConfiguration) => {
-      dispatch(await setFilterConfiguration(filterConfig));
+    async (filterChanges: SaveFilterChangesType) => {
+      dispatch(await setFilterConfiguration(filterChanges));
       close();
     },
     [dispatch, close],
@@ -68,14 +63,9 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
   return (
     <>
       {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <HeaderButton
-        {...getFilterBarTestId('create-filter')}
-        buttonStyle="link"
-        buttonSize="xsmall"
-        onClick={handleClick}
-      >
+      <span {...getFilterBarTestId('create-filter')} onClick={handleClick}>
         {children}
-      </HeaderButton>
+      </span>
       <FiltersConfigModal
         isOpen={isOpen}
         onSave={submit}
@@ -88,4 +78,4 @@ export const FilterConfigurationLink: React.FC<FCBProps> = ({
   );
 };
 
-export default React.memo(FilterConfigurationLink);
+export default memo(FilterConfigurationLink);

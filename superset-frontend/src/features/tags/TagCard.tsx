@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';

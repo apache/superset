@@ -34,7 +34,9 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { SortSeriesType } from '@superset-ui/chart-controls';
-import { format, LegendComponentOption, SeriesOption } from 'echarts';
+import { format } from 'echarts/core';
+import type { LegendComponentOption } from 'echarts/components';
+import type { SeriesOption } from 'echarts';
 import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash';
 import {
   NULL_STRING,
@@ -639,4 +641,23 @@ export function getTimeCompareStackId(
       return name?.toString().includes(value);
     }) || defaultId
   );
+}
+
+const TOOLTIP_SERIES_KEY = 'seriesId';
+export function extractTooltipKeys(
+  forecastValue: any[],
+  yIndex: number,
+  richTooltip?: boolean,
+  tooltipSortByMetric?: boolean,
+): string[] {
+  if (richTooltip && tooltipSortByMetric) {
+    return forecastValue
+      .slice()
+      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .map(value => value[TOOLTIP_SERIES_KEY]);
+  }
+  if (richTooltip) {
+    return forecastValue.map(s => s[TOOLTIP_SERIES_KEY]);
+  }
+  return [forecastValue[0][TOOLTIP_SERIES_KEY]];
 }

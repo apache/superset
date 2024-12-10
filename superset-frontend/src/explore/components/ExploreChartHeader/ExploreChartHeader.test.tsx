@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import sinon from 'sinon';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -26,7 +25,7 @@ import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';
 import * as downloadAsImage from 'src/utils/downloadAsImage';
 import * as exploreUtils from 'src/explore/exploreUtils';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, VizType } from '@superset-ui/core';
 import ExploreHeader from '.';
 
 const chartEndpoint = 'glob:*api/v1/chart/*';
@@ -41,7 +40,7 @@ const createProps = (additionalProps = {}) => ({
   chart: {
     id: 1,
     latestQueryFormData: {
-      viz_type: 'histogram',
+      viz_type: VizType.LegacyHistogram,
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
@@ -81,7 +80,7 @@ const createProps = (additionalProps = {}) => ({
       slice_id: 318,
       time_range: 'No filter',
       url_params: {},
-      viz_type: 'histogram',
+      viz_type: VizType.LegacyHistogram,
       x_axis_label: 'age',
       y_axis_label: 'count',
     },
@@ -295,7 +294,7 @@ describe('Additional actions tests', () => {
     render(<ExploreHeader {...props} />, {
       useRedux: true,
     });
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
     userEvent.click(
       screen.getByRole('menuitem', { name: 'Edit chart properties' }),
@@ -310,14 +309,14 @@ describe('Additional actions tests', () => {
       useRedux: true,
     });
 
-    expect(getChartDataRequest).toBeCalledTimes(0);
+    expect(getChartDataRequest).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    expect(getChartDataRequest).toBeCalledTimes(0);
+    expect(getChartDataRequest).toHaveBeenCalledTimes(0);
 
     const menuItem = screen.getByText('View query').parentElement!;
     userEvent.click(menuItem);
 
-    await waitFor(() => expect(getChartDataRequest).toBeCalledTimes(1));
+    await waitFor(() => expect(getChartDataRequest).toHaveBeenCalledTimes(1));
   });
 
   test('Should call onOpenInEditor when click on "Run in SQL Lab"', async () => {
@@ -327,12 +326,12 @@ describe('Additional actions tests', () => {
     });
     expect(await screen.findByText('Save')).toBeInTheDocument();
 
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(0);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
 
     userEvent.click(screen.getByRole('menuitem', { name: 'Run in SQL Lab' }));
-    expect(props.actions.redirectSQLLab).toBeCalledTimes(1);
+    expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(1);
   });
 
   describe('Download', () => {
@@ -355,16 +354,16 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
 
-      expect(spy).toBeCalledTimes(0);
+      expect(spy).toHaveBeenCalledTimes(0);
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      expect(spy).toBeCalledTimes(0);
+      expect(spy).toHaveBeenCalledTimes(0);
 
       userEvent.hover(screen.getByText('Download'));
       const downloadAsImageElement =
         await screen.findByText('Download as image');
       userEvent.click(downloadAsImageElement);
 
-      expect(spy).toBeCalledTimes(1);
+      expect(spy).toHaveBeenCalledTimes(1);
     });
 
     test('Should not export to CSV if canDownload=false', async () => {
@@ -395,8 +394,22 @@ describe('Additional actions tests', () => {
       spyExportChart.restore();
     });
 
-    test('Should export to JSON', async () => {
+    test('Should not export to JSON if canDownload=false', async () => {
       const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportJsonElement = await screen.findByText('Export to .JSON');
+      userEvent.click(exportJsonElement);
+      expect(spyExportChart.callCount).toBe(0);
+      spyExportChart.restore();
+    });
+
+    test('Should export to JSON if canDownload=true', async () => {
+      const props = createProps();
+      props.canDownload = true;
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
@@ -408,10 +421,9 @@ describe('Additional actions tests', () => {
       expect(spyExportChart.callCount).toBe(1);
     });
 
-    test('Should export to pivoted CSV if canDownloadCSV=true and viz_type=pivot_table_v2', async () => {
+    test('Should not export to pivoted CSV if canDownloadCSV=false and viz_type=pivot_table_v2', async () => {
       const props = createProps();
-      props.canDownload = true;
-      props.chart.latestQueryFormData.viz_type = 'pivot_table_v2';
+      props.chart.latestQueryFormData.viz_type = VizType.PivotTable;
       render(<ExploreHeader {...props} />, {
         useRedux: true,
       });
@@ -422,6 +434,49 @@ describe('Additional actions tests', () => {
         'Export to pivoted .CSV',
       );
       userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(0);
+    });
+
+    test('Should export to pivoted CSV if canDownloadCSV=true and viz_type=pivot_table_v2', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      props.chart.latestQueryFormData.viz_type = VizType.PivotTable;
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportCSVElement = await screen.findByText(
+        'Export to pivoted .CSV',
+      );
+      userEvent.click(exportCSVElement);
+      expect(spyExportChart.callCount).toBe(1);
+    });
+
+    test('Should not export to Excel if canDownload=false', async () => {
+      const props = createProps();
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportExcelElement = await screen.findByText('Export to Excel');
+      userEvent.click(exportExcelElement);
+      expect(spyExportChart.callCount).toBe(0);
+      spyExportChart.restore();
+    });
+
+    test('Should export to Excel if canDownload=true', async () => {
+      const props = createProps();
+      props.canDownload = true;
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+      });
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
+      userEvent.hover(screen.getByText('Download'));
+      const exportExcelElement = await screen.findByText('Export to Excel');
+      userEvent.click(exportExcelElement);
       expect(spyExportChart.callCount).toBe(1);
     });
   });

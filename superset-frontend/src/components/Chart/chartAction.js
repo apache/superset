@@ -249,7 +249,7 @@ export async function getChartDataRequest({
 export function runAnnotationQuery({
   annotation,
   timeout,
-  formData = null,
+  formData,
   key,
   isDashboardRequest = false,
   force = false,
@@ -609,6 +609,7 @@ export const getDatasourceSamples = async (
       endpoint: '/datasource/samples',
       jsonPayload,
       searchParams,
+      parseMethod: 'json-bigint',
     });
 
     return response.json.result;

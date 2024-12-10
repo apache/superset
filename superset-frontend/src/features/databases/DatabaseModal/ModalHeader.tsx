@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
 import { UploadFile } from 'antd/lib/upload/interface';
 import { t } from '@superset-ui/core';

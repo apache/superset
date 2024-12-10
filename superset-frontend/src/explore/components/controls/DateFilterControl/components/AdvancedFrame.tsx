@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { SEPARATOR, t } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';

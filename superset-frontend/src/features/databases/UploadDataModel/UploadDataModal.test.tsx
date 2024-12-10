@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import UploadDataModal, {
   validateUploadFileExtension,
@@ -617,7 +616,7 @@ test('CSV, form post', async () => {
   const inputElement = document.querySelector('input[type="file"]');
 
   if (inputElement) {
-    userEvent.upload(inputElement, file);
+    userEvent.upload(inputElement as HTMLElement, file);
   }
 
   const selectDatabase = screen.getByRole('combobox', {
@@ -674,7 +673,7 @@ test('Excel, form post', async () => {
   const inputElement = document.querySelector('input[type="file"]');
 
   if (inputElement) {
-    userEvent.upload(inputElement, file);
+    userEvent.upload(inputElement as HTMLElement, file);
   }
 
   const selectDatabase = screen.getByRole('combobox', {
@@ -735,7 +734,7 @@ test('Columnar, form post', async () => {
   const inputElement = document.querySelector('input[type="file"]');
 
   if (inputElement) {
-    userEvent.upload(inputElement, file);
+    userEvent.upload(inputElement as HTMLElement, file);
   }
 
   const selectDatabase = screen.getByRole('combobox', {

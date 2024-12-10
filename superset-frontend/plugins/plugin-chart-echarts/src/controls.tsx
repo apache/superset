@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { t } from '@superset-ui/core';
+import { t, VizType } from '@superset-ui/core';
 import {
   ControlPanelsContainerProps,
   ControlSetItem,
@@ -34,7 +33,7 @@ import { defaultXAxis } from './defaults';
 const { legendMargin, legendOrientation, legendType, showLegend } =
   DEFAULT_LEGEND_FORM_DATA;
 
-const showLegendControl: ControlSetItem = {
+export const showLegendControl: ControlSetItem = {
   name: 'show_legend',
   config: {
     type: 'CheckboxControl',
@@ -211,9 +210,40 @@ const tooltipSortByMetricControl: ControlSetItem = {
   },
 };
 
+const tooltipTotalControl: ControlSetItem = {
+  name: 'showTooltipTotal',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show total'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the total value in the tooltip'),
+    visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
+      Boolean(controls?.rich_tooltip?.value) &&
+      form_data.viz_type !== VizType.MixedTimeseries,
+  },
+};
+
+const tooltipPercentageControl: ControlSetItem = {
+  name: 'showTooltipPercentage',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Show percentage'),
+    renderTrigger: true,
+    default: true,
+    description: t('Whether to display the percentage value in the tooltip'),
+    visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
+      Boolean(controls?.rich_tooltip?.value) &&
+      !controls?.contributionMode?.value &&
+      form_data.viz_type !== VizType.MixedTimeseries,
+  },
+};
+
 export const richTooltipSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
   [richTooltipControl],
+  [tooltipTotalControl],
+  [tooltipPercentageControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
 ];

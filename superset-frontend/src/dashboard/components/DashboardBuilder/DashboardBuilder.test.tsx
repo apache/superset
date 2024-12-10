@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render } from 'spec/helpers/testing-library';
 import { fireEvent, within } from '@testing-library/react';
@@ -37,6 +36,8 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
+fetchMock.put('glob:*/api/v1/dashboard/*', {});
+
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   fetchFaveStar: jest.fn(),
@@ -45,7 +46,7 @@ jest.mock('src/dashboard/actions/dashboardState', () => ({
 }));
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 
-// mock following dependant components to fix the prop warnings
+// mock following dependent components to fix the prop warnings
 jest.mock('src/components/Select/Select', () => () => (
   <div data-test="mock-select" />
 ));
@@ -170,7 +171,7 @@ describe('DashboardBuilder', () => {
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
-      // to include invisiable tab panels
+      // to include invisible tab panels
       hidden: true,
     });
     expect(tabPanels.length).toBe(expectedCount);
@@ -191,7 +192,7 @@ describe('DashboardBuilder', () => {
     const expectedCount =
       undoableDashboardLayoutWithTabs.present.TABS_ID.children.length;
     const tabPanels = within(parentSize).getAllByRole('tabpanel', {
-      // to include invisiable tab panels
+      // to include invisible tab panels
       hidden: true,
     });
     expect(tabPanels.length).toBe(expectedCount);
@@ -207,7 +208,9 @@ describe('DashboardBuilder', () => {
   });
 
   it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
-    const { queryAllByTestId } = setup({ dashboardState: { editMode: true } });
+    const { queryAllByTestId } = setup({
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    });
     const builderComponents = queryAllByTestId('mock-builder-component-pane');
     expect(builderComponents.length).toBeGreaterThanOrEqual(1);
   });
@@ -240,7 +243,7 @@ describe('DashboardBuilder', () => {
 
   it('should display a loading spinner when saving is in progress', async () => {
     const { findByAltText } = setup({
-      dashboardState: { dashboardIsSaving: true },
+      dashboardState: { ...mockState.dashboardState, dashboardIsSaving: true },
     });
 
     expect(await findByAltText('Loading...')).toBeVisible();

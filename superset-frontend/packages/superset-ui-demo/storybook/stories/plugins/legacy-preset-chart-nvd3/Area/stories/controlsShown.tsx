@@ -17,14 +17,13 @@
  * under the License.
  */
 
-import React from 'react';
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const controlsShown = () => (
   <SuperChart
-    chartType="area"
+    chartType={VizType.LegacyArea}
     datasource={dummyDatasource}
     width={400}
     height={400}
@@ -41,7 +40,7 @@ export const controlsShown = () => (
       showControls: true,
       showLegend: true,
       stackedStyle: 'stack',
-      vizType: 'area',
+      vizType: VizType.LegacyArea,
       xAxisFormat: '%Y',
       xAxisLabel: '',
       xAxisShowminmax: false,

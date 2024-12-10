@@ -27,6 +27,7 @@ from sqlalchemy.sql import select
 from sqlalchemy.types import String, TypeEngine, UnicodeText
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.models.sql_types.mssql_sql_types import GUID
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
     assert_column_spec,
@@ -46,6 +47,7 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
         ("NCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
         ("NVARCHAR(10)", UnicodeText, None, GenericDataType.STRING, False),
         ("NTEXT", UnicodeText, None, GenericDataType.STRING, False),
+        ("uniqueidentifier", GUID, None, GenericDataType.STRING, False),
     ],
 )
 def test_get_column_spec(
@@ -94,7 +96,7 @@ def test_where_clause_n_prefix() -> None:
     assert query == query_expected
 
 
-def test_time_exp_mixd_case_col_1y() -> None:
+def test_time_exp_mixed_case_col_1y() -> None:
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     col = column("MixedCase")
@@ -291,14 +293,14 @@ def test_extract_errors() -> None:
     msg = dedent(
         """
 DB-Lib error message 20009, severity 9:
-Unable to connect: Adaptive Server is unavailable or does not exist (locahost)
+Unable to connect: Adaptive Server is unavailable or does not exist (localhost_)
         """
     )
     result = MssqlEngineSpec.extract_errors(Exception(msg))
     assert result == [
         SupersetError(
             error_type=SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
-            message='The hostname "locahost" cannot be resolved.',
+            message='The hostname "localhost_" cannot be resolved.',
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",

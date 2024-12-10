@@ -17,7 +17,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 
 from superset import db
 from superset.commands.dataset.exceptions import DatasetInvalidError
@@ -27,7 +27,7 @@ from superset.models.core import Database
 
 
 @pytest.mark.usefixture("session")
-def test_update_uniqueness_error(mocker: MockFixture) -> None:
+def test_update_uniqueness_error(mocker: MockerFixture) -> None:
     SqlaTable.metadata.create_all(db.session.get_bind())
     database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
     bar = SqlaTable(table_name="bar", schema="foo", database=database)

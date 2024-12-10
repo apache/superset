@@ -48,12 +48,12 @@ export const profile = {
   favoritesSpace: '#rc-tabs-0-panel-2',
 };
 export const securityAccess = {
-  rolesBubble: '.ant-badge-count',
+  rolesBubble: '.antd5-badge-count',
 };
 export const homePage = {
   homeSection: {
     sectionArea: '.ant-collapse-content-box',
-    sectionElement: '.ant-card-meta-title',
+    sectionElement: '.antd5-card-meta-title',
   },
   sections: {
     expandedSection: '.ant-collapse-item-active',
@@ -94,7 +94,7 @@ export const databasesPage = {
     dbDropdown: '[class="ant-select-selection-search-input"]',
     dbDropdownMenu: '.rc-virtual-list-holder-inner',
     dbDropdownMenuItem: '[class="ant-select-item-option-content"]',
-    infoAlert: '.ant-alert',
+    infoAlert: '.antd5-alert',
     serviceAccountInput: '[name="credentials_info"]',
     connectionStep: {
       modal: '.ant-modal-content',
@@ -103,7 +103,7 @@ export const databasesPage = {
       helperBottom: '.helper-bottom',
       postgresDatabase: '[name="database"]',
       dbInput: '[name="database_name"]',
-      alertMessage: '.ant-alert-message',
+      alertMessage: '.antd5-alert-message',
       errorField: '[role="alert"]',
       uploadJson: '[title="Upload JSON file"]',
       chooseFile: '[class="ant-btn input-upload-btn"]',
@@ -140,7 +140,7 @@ export const sqlLabView = {
   tabsNavList: "[class='ant-tabs-nav-list']",
   tab: "[class='ant-tabs-tab-btn']",
   addTabButton: dataTestLocator('add-tab-icon'),
-  tooltip: '.ant-tooltip-content',
+  tooltip: '.antd5-tooltip-content',
   tabName: '.css-1suejie',
   schemaInput: '[data-test=DatabaseSelector] > :nth-child(2)',
   loadingIndicator: '.Select__loading-indicator',
@@ -166,7 +166,7 @@ export const sqlLabView = {
   renderedTableHeader: '.ReactVirtualized__Table__headerRow',
   renderedTableRow: '.ReactVirtualized__Table__row',
   errorBody: '.error-body',
-  alertMessage: '.ant-alert-message',
+  alertMessage: '.antd5-alert-message',
   historyTable: {
     header: '[role=columnheader]',
     table: '.QueryTable',
@@ -284,7 +284,7 @@ export const chartListView = {
   },
   card: {
     card: dataTestLocator('styled-card'),
-    cardCover: '[class="ant-card-cover"]',
+    cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
     selectedStarIcon: "[aria-label='favorite-selected']",
     unselectedStarIcon: "[aria-label='favorite-unselected']",
@@ -322,8 +322,10 @@ export const nativeFilters = {
     footer: '.ant-modal-footer',
     saveButton: dataTestLocator('native-filter-modal-save-button'),
     cancelButton: dataTestLocator('native-filter-modal-cancel-button'),
-    yesCancelButton: '[type="button"]',
-    alertXUnsavedFilters: '.ant-alert-message',
+    confirmCancelButton: dataTestLocator(
+      'native-filter-modal-confirm-cancel-button',
+    ),
+    alertXUnsavedFilters: '.antd5-alert-message',
     tabsList: {
       filterItemsContainer: dataTestLocator('filter-title-container'),
       tabsContainer: '[class="ant-tabs-nav-list"]',
@@ -332,10 +334,8 @@ export const nativeFilters = {
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
-  },
-  addFilterButton: {
-    button: `.ant-modal-content [data-test="new-dropdown-icon"]`,
-    dropdownItem: '.ant-dropdown-menu-item',
+    addNewFilterButton: dataTestLocator('add-new-filter-button'),
+    addNewDividerButton: dataTestLocator('add-new-divider-button'),
   },
   filtersPanel: {
     filterName: dataTestLocator('filters-config-modal__name-input'),
@@ -346,6 +346,7 @@ export const nativeFilters = {
     filterTypeInput: dataTestLocator('filters-config-modal__filter-type'),
     fieldInput: dataTestLocator('field-input'),
     filterTypeItem: '.ant-select-selection-item',
+    filterGear: dataTestLocator('filterbar-orientation-icon'),
   },
   filterFromDashboardView: {
     filterValueInput: '[class="ant-select-selection-search-input"]',
@@ -399,7 +400,7 @@ export const dashboardListView = {
   },
   card: {
     card: dataTestLocator('styled-card'),
-    cardCover: '[class="ant-card-cover"]',
+    cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
     selectedStarIcon: "[aria-label='favorite-selected']",
     unselectedStarIcon: "[aria-label='favorite-unselected']",

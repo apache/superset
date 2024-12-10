@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import type { Table } from 'src/SqlLab/types';
 import Collapse from 'src/components/Collapse';
@@ -32,6 +32,7 @@ import {
   syncTable,
 } from 'src/SqlLab/actions/sqlLab';
 import {
+  tableApiUtil,
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
@@ -41,6 +42,7 @@ import { IconTooltip } from 'src/components/IconTooltip';
 import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
+import { ActionType } from 'src/types/Action';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 
@@ -105,9 +107,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   const theme = useTheme();
   const dispatch = useDispatch();
   const {
-    data: tableMetadata,
+    currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
-    isLoading: isMetadataLoading,
+    isFetching: isMetadataFetching,
     isError: hasMetadataError,
   } = useTableMetadataQuery(
     {
@@ -119,7 +121,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     { skip: !expanded },
   );
   const {
-    data: tableExtendedMetadata,
+    currentData: tableExtendedMetadata,
     isSuccess: isExtraMetadataSuccess,
     isLoading: isExtraMetadataLoading,
     isError: hasExtendedMetadataError,
@@ -175,6 +177,13 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const toggleSortColumns = () => {
     setSortColumns(prevState => !prevState);
+  };
+
+  const refreshTableMetadata = () => {
+    dispatch(
+      tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
+    );
+    dispatch(syncTable(table, tableData));
   };
 
   const renderWell = () => {
@@ -258,7 +267,6 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     return (
       <ButtonGroup
         css={css`
-          display: flex;
           column-gap: ${theme.gridUnit * 1.5}px;
           margin-right: ${theme.gridUnit}px;
           & span {
@@ -268,6 +276,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           }
         `}
       >
+        <IconTooltip
+          className="fa fa-refresh pull-left m-l-2 pointer"
+          onClick={refreshTableMetadata}
+          tooltip={t('Refresh table schema')}
+        />
         {keyLink}
         <IconTooltip
           className={
@@ -313,7 +326,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
 
   const renderHeader = () => {
     const element: HTMLInputElement | null = tableNameRef.current;
-    let trigger: string[] = [];
+    let trigger = [] as ActionType[];
     if (element && element.offsetWidth < element.scrollWidth) {
       trigger = ['hover'];
     }
@@ -341,7 +354,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         </Tooltip>
 
         <div className="pull-right header-right-side">
-          {isMetadataLoading || isExtraMetadataLoading ? (
+          {isMetadataFetching || isExtraMetadataLoading ? (
             <Loading position="inline" />
           ) : (
             <Fade

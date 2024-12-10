@@ -16,13 +16,12 @@
 # under the License.
 """Unit tests for Superset with caching"""
 
-import json
-
 import pytest
 
 from superset import app, db  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
+from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -60,8 +59,8 @@ class TestCache(SupersetTestCase):
         )
         # restore DATA_CACHE_CONFIG
         app.config["DATA_CACHE_CONFIG"] = data_cache_config
-        self.assertFalse(resp["is_cached"])
-        self.assertFalse(resp_from_cache["is_cached"])
+        assert not resp["is_cached"]
+        assert not resp_from_cache["is_cached"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_slice_data_cache(self):
@@ -85,20 +84,20 @@ class TestCache(SupersetTestCase):
         resp_from_cache = self.get_json_resp(
             json_endpoint, {"form_data": json.dumps(slc.viz.form_data)}
         )
-        self.assertFalse(resp["is_cached"])
-        self.assertTrue(resp_from_cache["is_cached"])
+        assert not resp["is_cached"]
+        assert resp_from_cache["is_cached"]
         # should fallback to default cache timeout
-        self.assertEqual(resp_from_cache["cache_timeout"], 10)
-        self.assertEqual(resp_from_cache["status"], QueryStatus.SUCCESS)
-        self.assertEqual(resp["data"], resp_from_cache["data"])
-        self.assertEqual(resp["query"], resp_from_cache["query"])
+        assert resp_from_cache["cache_timeout"] == 10
+        assert resp_from_cache["status"] == QueryStatus.SUCCESS
+        assert resp["data"] == resp_from_cache["data"]
+        assert resp["query"] == resp_from_cache["query"]
         # should exists in `data_cache`
-        self.assertEqual(
-            cache_manager.data_cache.get(resp_from_cache["cache_key"])["query"],
-            resp_from_cache["query"],
+        assert (
+            cache_manager.data_cache.get(resp_from_cache["cache_key"])["query"]
+            == resp_from_cache["query"]
         )
         # should not exists in `cache`
-        self.assertIsNone(cache_manager.cache.get(resp_from_cache["cache_key"]))
+        assert cache_manager.cache.get(resp_from_cache["cache_key"]) is None
 
         # reset cache config
         app.config["DATA_CACHE_CONFIG"] = data_cache_config

@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { CSSProperties } from 'react';
+import { CSSProperties } from 'react';
 import { kebabCase } from 'lodash';
-import { TooltipPlacement } from 'antd/lib/tooltip';
 import { t } from '@superset-ui/core';
-import { Tooltip, TooltipProps } from './Tooltip';
+import { Tooltip, TooltipProps, TooltipPlacement } from './Tooltip';
 
 export interface InfoTooltipWithTriggerProps {
   label?: string;

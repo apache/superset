@@ -184,6 +184,16 @@ module.exports = {
         'react/no-unused-class-component-methods': 0,
         'import/no-relative-packages': 0,
         'prefer-exponentiation-operator': 0,
+        'react/react-in-jsx-scope': 0,
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+            message:
+              'Default React import is not required due to automatic JSX runtime in React 16.4',
+          },
+        ],
       },
       settings: {
         'import/resolver': {
@@ -242,6 +252,15 @@ module.exports = {
         'testing-library/no-container': 0,
         'testing-library/prefer-find-by': 0,
         'testing-library/no-manual-cleanup': 0,
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              "ImportDeclaration[source.value='react'] :matches(ImportDefaultSpecifier, ImportNamespaceSpecifier)",
+            message:
+              'Default React import is not required due to automatic JSX runtime in React 16.4',
+          },
+        ],
       },
     },
     {
@@ -261,7 +280,6 @@ module.exports = {
         'theme-colors/no-literal-colors': 0,
         'translation-vars/no-template-vars': 0,
         'no-restricted-imports': 0,
-        'jest/no-alias-methods': 0,
         'react/no-void-elements': 0,
       },
     },
@@ -352,7 +370,6 @@ module.exports = {
     'react-prefer-function-component/react-prefer-function-component': 1,
     'prettier/prettier': 'error',
     // disabling some things that come with the eslint 7->8 upgrade. Will address these in a separate PR
-    'jest/no-alias-methods': 0,
     'react/no-unknown-property': 0,
     'react/no-void-elements': 0,
     'react/function-component-definition': [
@@ -369,6 +386,7 @@ module.exports = {
     'default-case-last': 0,
     'no-promise-executor-return': 0,
     'react/no-unused-class-component-methods': 0,
+    'react/react-in-jsx-scope': 0,
   },
   ignorePatterns,
 };

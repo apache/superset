@@ -80,7 +80,7 @@ export default class EchartsTimeseriesBarChartPlugin extends EchartsChartPlugin<
           t('Transformable'),
           t('Stacked'),
           t('Bar'),
-          t('Popular'),
+          t('Featured'),
         ],
         thumbnail,
       },

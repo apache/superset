@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import decimal
-import json
 import logging
 import os
 import random
@@ -36,6 +35,7 @@ from sqlalchemy.sql.visitors import VisitableType
 
 from superset import db
 from superset.sql_parse import Table
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 

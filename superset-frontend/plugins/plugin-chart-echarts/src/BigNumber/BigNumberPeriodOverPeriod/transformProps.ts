@@ -24,7 +24,6 @@ import {
   getNumberFormatter,
   SimpleAdhocFilter,
   ensureIsArray,
-  getTimeOffset,
 } from '@superset-ui/core';
 import { getComparisonFontSize, getHeaderFontSize } from './utils';
 
@@ -93,22 +92,23 @@ export default function transformProps(chartProps: ChartProps) {
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
-  const metricName = getMetricLabel(metric);
+  const metricName = metric ? getMetricLabel(metric) : '';
   const timeComparison = ensureIsArray(chartProps.rawFormData?.time_compare)[0];
   const startDateOffset = chartProps.rawFormData?.start_date_offset;
   const currentTimeRangeFilter = chartProps.rawFormData?.adhoc_filters?.filter(
     (adhoc_filter: SimpleAdhocFilter) =>
       adhoc_filter.operator === 'TEMPORAL_RANGE',
   )?.[0];
+
   const isCustomOrInherit =
     timeComparison === 'custom' || timeComparison === 'inherit';
   let dataOffset: string[] = [];
   if (isCustomOrInherit) {
-    dataOffset = getTimeOffset(
-      currentTimeRangeFilter,
-      ensureIsArray(timeComparison),
-      startDateOffset || '',
-    );
+    if (timeComparison && timeComparison === 'custom') {
+      dataOffset = [startDateOffset];
+    } else {
+      dataOffset = ensureIsArray(timeComparison) || [];
+    }
   }
 
   const { value1, value2 } = data.reduce(
@@ -194,5 +194,6 @@ export default function transformProps(chartProps: ChartProps) {
     currentTimeRangeFilter,
     startDateOffset,
     shift: timeComparison,
+    dashboardTimeRange: formData?.extraFormData?.time_range,
   };
 }

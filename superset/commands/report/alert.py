@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from operator import eq, ge, gt, le, lt, ne
 from timeit import default_timer
@@ -39,6 +38,7 @@ from superset.commands.report.exceptions import (
 )
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.tasks.utils import get_executor
+from superset.utils import json
 from superset.utils.core import override_user
 from superset.utils.retries import retry_call
 

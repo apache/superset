@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { Component, cloneElement, ReactNode, ReactElement } from 'react';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
 export interface CopyToClipboardProps {
-  copyNode?: React.ReactNode;
+  copyNode?: ReactNode;
   getText?: (callback: (data: string) => void) => void;
   onCopyEnd?: () => void;
   shouldShowText?: boolean;
@@ -44,7 +44,7 @@ const defaultProps: Partial<CopyToClipboardProps> = {
   hideTooltip: false,
 };
 
-class CopyToClipboard extends React.Component<CopyToClipboardProps> {
+class CopyToClipboard extends Component<CopyToClipboardProps> {
   static defaultProps = defaultProps;
 
   constructor(props: CopyToClipboardProps) {
@@ -64,7 +64,7 @@ class CopyToClipboard extends React.Component<CopyToClipboardProps> {
   }
 
   getDecoratedCopyNode() {
-    return React.cloneElement(this.props.copyNode as React.ReactElement, {
+    return cloneElement(this.props.copyNode as ReactElement, {
       style: { cursor: 'pointer' },
       onClick: this.onClick,
     });

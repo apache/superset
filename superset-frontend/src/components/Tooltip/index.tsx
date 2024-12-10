@@ -16,48 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { useTheme, css } from '@superset-ui/core';
-import { Tooltip as AntdTooltip } from 'antd';
+import { supersetTheme } from '@superset-ui/core';
+import { Tooltip as AntdTooltip } from 'antd-v5';
 import {
-  TooltipProps,
+  TooltipProps as AntdTooltipProps,
   TooltipPlacement as AntdTooltipPlacement,
-} from 'antd/lib/tooltip';
-import { Global } from '@emotion/react';
+} from 'antd-v5/lib/tooltip';
 
 export type TooltipPlacement = AntdTooltipPlacement;
+export type TooltipProps = AntdTooltipProps;
 
-export const Tooltip = (props: TooltipProps) => {
-  const theme = useTheme();
-  return (
-    <>
-      {/* Safari hack to hide browser default tooltips */}
-      <Global
-        styles={css`
-          .ant-tooltip-open {
-            display: inline-block;
-            &::after {
-              content: '';
-              display: block;
-            }
-          }
-          .ant-tooltip-inner > p {
-            margin: 0;
-          }
-        `}
-      />
-      <AntdTooltip
-        overlayStyle={{ fontSize: theme.typography.sizes.s, lineHeight: '1.6' }}
-        overlayInnerStyle={{
-          display: '-webkit-box',
-          overflow: 'hidden',
-          WebkitLineClamp: 40,
-          WebkitBoxOrient: 'vertical',
-          textOverflow: 'ellipsis',
-        }}
-        color={`${theme.colors.grayscale.dark2}e6`}
-        {...props}
-      />
-    </>
-  );
-};
+export const Tooltip = (props: TooltipProps) => (
+  <>
+    <AntdTooltip
+      overlayInnerStyle={{
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+      }}
+      color={`${supersetTheme.colors.grayscale.dark2}e6`}
+      {...props}
+    />
+  </>
+);

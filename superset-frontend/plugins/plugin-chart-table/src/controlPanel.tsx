@@ -17,36 +17,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import {
-  ChartDataResponseResult,
+  ColumnMeta,
+  ColumnOption,
+  ControlConfig,
+  ControlPanelConfig,
+  ControlPanelsContainerProps,
+  ControlPanelState,
+  ControlState,
+  ControlStateMapping,
+  D3_TIME_FORMAT_OPTIONS,
+  Dataset,
+  defineSavedMetrics,
+  getStandardizedControls,
+  QueryModeLabel,
+  sections,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+import {
   ensureIsArray,
   GenericDataType,
   isAdhocColumn,
   isPhysicalColumn,
   QueryFormColumn,
   QueryMode,
-  smartDateFormatter,
+  SMART_DATE_ID,
   t,
 } from '@superset-ui/core';
-import {
-  ColumnOption,
-  ControlConfig,
-  ControlPanelConfig,
-  ControlPanelsContainerProps,
-  ControlStateMapping,
-  D3_TIME_FORMAT_OPTIONS,
-  QueryModeLabel,
-  sharedControls,
-  ControlPanelState,
-  ControlState,
-  Dataset,
-  ColumnMeta,
-  defineSavedMetrics,
-  getStandardizedControls,
-} from '@superset-ui/chart-controls';
 
+import { isEmpty } from 'lodash';
 import { PAGE_SIZE_OPTIONS } from './consts';
+import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -142,6 +143,48 @@ const percentMetricsControl: typeof sharedControls.metrics = {
   default: [],
   validators: [],
 };
+
+/**
+ * Generate comparison column names for a given column.
+ */
+const generateComparisonColumns = (colname: string) => [
+  `${t('Main')} ${colname}`,
+  `# ${colname}`,
+  `△ ${colname}`,
+  `% ${colname}`,
+];
+/**
+ * Generate column types for the comparison columns.
+ */
+const generateComparisonColumnTypes = (count: number) =>
+  Array(count).fill(GenericDataType.Numeric);
+
+const processComparisonColumns = (columns: any[], suffix: string) =>
+  columns
+    .map(col => {
+      if (!col.label.includes(suffix)) {
+        return [
+          {
+            label: `${t('Main')} ${col.label}`,
+            value: `${t('Main')} ${col.value}`,
+          },
+          {
+            label: `# ${col.label}`,
+            value: `# ${col.value}`,
+          },
+          {
+            label: `△ ${col.label}`,
+            value: `△ ${col.value}`,
+          },
+          {
+            label: `% ${col.label}`,
+            value: `% ${col.value}`,
+          },
+        ];
+      }
+      return [];
+    })
+    .flat();
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -339,7 +382,7 @@ const config: ControlPanelConfig = {
             name: 'show_totals',
             config: {
               type: 'CheckboxControl',
-              label: t('Show totals'),
+              label: t('Show summary'),
               default: false,
               description: t(
                 'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
@@ -362,7 +405,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               label: t('Timestamp format'),
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
               renderTrigger: true,
               clearable: false,
               choices: D3_TIME_FORMAT_OPTIONS,
@@ -398,11 +441,99 @@ const config: ControlPanelConfig = {
               description: t('Whether to include a client-side search box'),
             },
           },
+        ],
+        [
+          {
+            name: 'allow_rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+              ),
+              visibility: ({ controls }) =>
+                isEmpty(controls?.time_compare?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'allow_render_html',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Render columns in HTML format'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'column_config',
+            config: {
+              type: 'ColumnConfigControl',
+              label: t('Customize columns'),
+              description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                const timeComparisonStatus =
+                  !!explore?.controls?.time_compare?.value;
+
+                const { colnames: _colnames, coltypes: _coltypes } =
+                  chart?.queriesResponse?.[0] ?? {};
+                let colnames: string[] = _colnames || [];
+                let coltypes: GenericDataType[] = _coltypes || [];
+
+                if (timeComparisonStatus) {
+                  /**
+                   * Replace numeric columns with sets of comparison columns.
+                   */
+                  const updatedColnames: string[] = [];
+                  const updatedColtypes: GenericDataType[] = [];
+                  colnames.forEach((colname, index) => {
+                    if (coltypes[index] === GenericDataType.Numeric) {
+                      updatedColnames.push(
+                        ...generateComparisonColumns(colname),
+                      );
+                      updatedColtypes.push(...generateComparisonColumnTypes(4));
+                    } else {
+                      updatedColnames.push(colname);
+                      updatedColtypes.push(coltypes[index]);
+                    }
+                  });
+
+                  colnames = updatedColnames;
+                  coltypes = updatedColtypes;
+                }
+                return {
+                  columnsPropsObject: { colnames, coltypes },
+                };
+              },
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
+        [
           {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Cell bars'),
+              label: t('Show Cell bars'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -424,11 +555,13 @@ const config: ControlPanelConfig = {
               ),
             },
           },
+        ],
+        [
           {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Color +/-'),
+              label: t('add colors to cell bars for +/-'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -439,50 +572,41 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'allow_rearrange_columns',
+            name: 'comparison_color_enabled',
             config: {
               type: 'CheckboxControl',
-              label: t('Allow columns to be rearranged'),
+              label: t('basic conditional formatting'),
               renderTrigger: true,
+              visibility: ({ controls }) =>
+                !isEmpty(controls?.time_compare?.value),
               default: false,
               description: t(
-                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+                'This will be applied to the whole table. Arrows (↑ and ↓) will be added to ' +
+                  'main columns for increase and decrease. Basic conditional formatting can be ' +
+                  'overwritten by conditional formatting below.',
               ),
             },
           },
         ],
         [
           {
-            name: 'allow_render_html',
+            name: 'comparison_color_scheme',
             config: {
-              type: 'CheckboxControl',
-              label: t('Render columns in HTML format'),
+              type: 'SelectControl',
+              label: t('color type'),
+              default: ColorSchemeEnum.Green,
               renderTrigger: true,
-              default: true,
-              description: t('Render data in HTML format if applicable.'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'column_config',
-            config: {
-              type: 'ColumnConfigControl',
-              label: t('Customize columns'),
-              description: t('Further customize how to display each column'),
-              width: 400,
-              height: 320,
-              renderTrigger: true,
-              shouldMapStateToProps() {
-                return true;
-              },
-              mapStateToProps(explore, _, chart) {
-                return {
-                  queryResponse: chart?.queriesResponse?.[0] as
-                    | ChartDataResponseResult
-                    | undefined,
-                };
-              },
+              choices: [
+                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
+                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
+              ],
+              visibility: ({ controls }) =>
+                !isEmpty(controls?.time_compare?.value) &&
+                Boolean(controls?.comparison_color_enabled?.value),
+              description: t(
+                'Adds color to the chart symbols based on the positive or ' +
+                  'negative change from the comparison value.',
+              ),
             },
           },
         ],
@@ -492,7 +616,17 @@ const config: ControlPanelConfig = {
             config: {
               type: 'ConditionalFormattingControl',
               renderTrigger: true,
-              label: t('Conditional formatting'),
+              label: t('Custom Conditional Formatting'),
+              extraColorChoices: [
+                {
+                  value: ColorSchemeEnum.Green,
+                  label: t('Green for increase, red for decrease'),
+                },
+                {
+                  value: ColorSchemeEnum.Red,
+                  label: t('Red for increase, green for decrease'),
+                },
+              ],
               description: t(
                 'Apply conditional color formatting to numeric columns',
               ),
@@ -504,7 +638,7 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const { colnames, coltypes } =
                   chart?.queriesResponse?.[0] ?? {};
@@ -520,9 +654,18 @@ const config: ControlPanelConfig = {
                           label: verboseMap[colname] ?? colname,
                         }))
                     : [];
+                const columnOptions = explore?.controls?.time_compare?.value
+                  ? processComparisonColumns(
+                      numericColumns || [],
+                      ensureIsArray(
+                        explore?.controls?.time_compare?.value,
+                      )[0]?.toString() || '',
+                    )
+                  : numericColumns;
+
                 return {
                   removeIrrelevantConditions: chartStatus === 'success',
-                  columnOptions: numericColumns,
+                  columnOptions,
                   verboseMap,
                 };
               },
@@ -530,6 +673,14 @@ const config: ControlPanelConfig = {
           },
         ],
       ],
+    },
+    {
+      ...sections.timeComparisonControls({
+        multi: false,
+        showCalculationType: false,
+        showFullChoices: false,
+      }),
+      visibility: isAggMode,
     },
   ],
   formDataOverrides: formData => ({

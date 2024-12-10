@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import inspect
-import json
 import os
 from pathlib import Path
 from typing import Any, TypedDict
@@ -48,11 +47,17 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelMissingCredentials,
 )
 from superset.constants import PASSWORD_MASK
+from superset.databases.types import (  # pylint:disable=unused-import
+    EncryptedDict,  # noqa: F401
+    EncryptedField,
+    EncryptedString,  # noqa: F401
+)
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
+from superset.utils import json
 from superset.utils.core import markdown, parse_ssl_cert
 
 database_schemas_query_schema = {
@@ -349,7 +354,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             serialized_encrypted_extra = data.get("masked_encrypted_extra") or "{}"
             try:
                 encrypted_extra = json.loads(serialized_encrypted_extra)
-            except json.decoder.JSONDecodeError:
+            except json.JSONDecodeError:
                 encrypted_extra = {}
 
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
@@ -857,6 +862,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_cvas = fields.Boolean()
     allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
+    impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -940,20 +946,6 @@ class ImportV1DatabaseSchema(Schema):
         return
 
 
-class EncryptedField:  # pylint: disable=too-few-public-methods
-    """
-    A database field that should be stored in encrypted_extra.
-    """
-
-
-class EncryptedString(EncryptedField, fields.String):
-    pass
-
-
-class EncryptedDict(EncryptedField, fields.Dict):
-    pass
-
-
 def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
@@ -983,6 +975,9 @@ class EngineInformationSchema(Schema):
         metadata={
             "description": "The database supports multiple catalogs in a single connection"
         }
+    )
+    supports_oauth2 = fields.Boolean(
+        metadata={"description": "The database supports OAuth2"}
     )
 
 

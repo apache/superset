@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { act } from 'react-dom/test-utils';
@@ -198,14 +197,14 @@ describe('RuleList RTL', () => {
     expect(table).toBeInTheDocument();
 
     const nameColumn = await within(table).findByText('Name');
-    const fitlerTypeColumn = await within(table).findByText('Filter Type');
+    const filterTypeColumn = await within(table).findByText('Filter Type');
     const groupKeyColumn = await within(table).findByText('Group Key');
     const clauseColumn = await within(table).findByText('Clause');
     const modifiedColumn = await within(table).findByText('Last modified');
     const actionsColumn = await within(table).findByText('Actions');
 
     expect(nameColumn).toBeInTheDocument();
-    expect(fitlerTypeColumn).toBeInTheDocument();
+    expect(filterTypeColumn).toBeInTheDocument();
     expect(groupKeyColumn).toBeInTheDocument();
     expect(clauseColumn).toBeInTheDocument();
     expect(modifiedColumn).toBeInTheDocument();

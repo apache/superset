@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
@@ -33,7 +33,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: 'bar',
+  viz_type: VizType.LegacyBar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
 }));

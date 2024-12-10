@@ -17,13 +17,7 @@
  * under the License.
  */
 
-import React, {
-  ReactNode,
-  RefObject,
-  useCallback,
-  useMemo,
-  useState,
-} from 'react';
+import { ReactNode, RefObject, useCallback, useMemo, useState } from 'react';
 import { isEmpty } from 'lodash';
 import {
   Behavior,

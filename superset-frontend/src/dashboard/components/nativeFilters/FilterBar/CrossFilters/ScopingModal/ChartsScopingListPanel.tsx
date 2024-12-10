@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import {
   ChartConfiguration,

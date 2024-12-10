@@ -54,7 +54,10 @@ are compatible with Superset.
 | [Azure MS SQL](/docs/configuration/databases#sql-server)                | `pip install pymssql`                                                              | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                       |
 | [ClickHouse](/docs/configuration/databases#clickhouse)                  | `pip install clickhouse-connect`                                                   | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                    |
 | [CockroachDB](/docs/configuration/databases#cockroachdb)                | `pip install cockroachdb`                                                          | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                      |
-| [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    | `dremio://user:pwd@host:31010/`                                                                                                                        |
+| [Couchbase](/docs/configuration/databases#couchbase)                | `pip install couchbase-sqlalchemy`                                                          | `couchbase://{username}:{password}@{hostname}:{port}?truststorepath={ssl certificate path}`                                                                                      |
+| [CrateDB](/docs/configuration/databases#cratedb)                        | `pip install sqlalchemy-cratedb`                                                   | `crate://{username}:{password}@{hostname}:{port}`, often useful: `?ssl=true/false` or `?schema=testdrive`.                                             |
+| [Denodo](/docs/configuration/databases#denodo)                          | `pip install denodo-sqlalchemy`                                                    | `denodo://{username}:{password}@{hostname}:{port}/{database}`                                                                                          |
+| [Dremio](/docs/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    |`dremio+flight://{username}:{password}@{host}:32010`, often useful: `?UseEncryption=true/false`. For Legacy ODBC: `dremio+pyodbc://{username}:{password}@{host}:31010`                                                                                                                           |
 | [Elasticsearch](/docs/configuration/databases#elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                                                                  |
 | [Exasol](/docs/configuration/databases#exasol)                          | `pip install sqlalchemy-exasol`                                                    | `exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC`                                            |
 | [Google BigQuery](/docs/configuration/databases#google-bigquery)                     | `pip install sqlalchemy-bigquery`                                                  | `bigquery://{project_id}`                                                                                                                              |
@@ -64,6 +67,7 @@ are compatible with Superset.
 | [IBM Db2](/docs/configuration/databases#ibm-db2)                        | `pip install ibm_db_sa`                                                            | `db2+ibm_db://`                                                                                                                                        |
 | [IBM Netezza Performance Server](/docs/configuration/databases#ibm-netezza-performance-server) | `pip install nzalchemy`                                                            | `netezza+nzpy://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                               |
 | [MySQL](/docs/configuration/databases#mysql)                            | `pip install mysqlclient`                                                          | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
+| [OceanBase](/docs/configuration/databases#oceanbase)                    | `pip install oceanbase_py`                                                         | `oceanbase://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
 | [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://`                                                                                                                                            |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 | [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                                                            |
@@ -77,6 +81,7 @@ are compatible with Superset.
 | [TimescaleDB](/docs/configuration/databases#timescaledb)                | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>:<Port>/<Database Name>`                                                                          |
 | [Trino](/docs/configuration/databases#trino)                            | `pip install trino`                                                                | `trino://{username}:{password}@{hostname}:{port}/{catalog}`                                                                                            |
 | [Vertica](/docs/configuration/databases#vertica)                        | `pip install sqlalchemy-vertica-python`                                            | `vertica+vertica_python://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                     |
+| [YDB](/docs/configuration/databases#ydb)                                | `pip install ydb-sqlalchemy`                                                       | `ydb://{host}:{port}/{database_name}`                                                                                                                  |
 | [YugabyteDB](/docs/configuration/databases#yugabytedb)                  | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 ---
 
@@ -176,7 +181,7 @@ start Python in the Superset application container or host environment and try t
 directly to the desired database and fetch data. This eliminates Superset for the
 purposes of isolating the problem.
 
-Repeat this process for each different type of database you want Superset to be able to connect to.
+Repeat this process for each type of database you want Superset to connect to.
 
 
 ### Database-specific Instructions
@@ -372,23 +377,52 @@ cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable
 ```
 
 
-#### CrateDB
 
-The recommended connector library for CrateDB is
-[crate](https://pypi.org/project/crate/).
-You need to install the extras as well for this library.
-We recommend adding something like the following
-text to your requirements file:
+#### Couchbase
 
+The Couchbase's Superset connection is designed to support two services: Couchbase Analytics and Couchbase Columnar.
+The recommended connector library for couchbase is
+[couchbase-sqlalchemy](https://github.com/couchbase/couchbase-sqlalchemy).
 ```
-crate[sqlalchemy]==0.26.0
+pip install couchbase-sqlalchemy
 ```
 
 The expected connection string is formatted as follows:
 
 ```
+couchbase://{username}:{password}@{hostname}:{port}?truststorepath={certificate path}?ssl={true/false}
+```
+
+
+#### CrateDB
+
+The connector library for CrateDB is [sqlalchemy-cratedb].
+We recommend to add the following item to your `requirements.txt` file:
+```
+sqlalchemy-cratedb>=0.40.1,<1
+```
+
+An SQLAlchemy connection string for [CrateDB Self-Managed] on localhost,
+for evaluation purposes, looks like this:
+```
 crate://crate@127.0.0.1:4200
 ```
+An SQLAlchemy connection string for connecting to [CrateDB Cloud] looks like
+this:
+```
+crate://<username>:<password>@<clustername>.cratedb.net:4200/?ssl=true
+```
+
+Follow the steps [here](/docs/configuration/databases#installing-database-drivers)
+to install the CrateDB connector package when setting up Superset locally using
+Docker Compose.
+```
+echo "sqlalchemy-cratedb" >> ./docker/requirements-local.txt
+```
+
+[CrateDB Cloud]: https://cratedb.com/product/cloud
+[CrateDB Self-Managed]: https://cratedb.com/product/self-managed
+[sqlalchemy-cratedb]: https://pypi.org/project/sqlalchemy-cratedb/
 
 
 #### Databend
@@ -493,6 +527,16 @@ For a connection to a SQL endpoint you need to use the HTTP path from the endpoi
 ```
 
 
+#### Denodo
+
+The recommended connector library for Denodo is
+[denodo-sqlalchemy](https://pypi.org/project/denodo-sqlalchemy/).
+
+The expected connection string is formatted as follows (default port is 9996):
+
+```
+denodo://{username}:{password}@{hostname}:{port}/{database}
+```
 
 
 #### Dremio
@@ -503,7 +547,7 @@ The recommended connector library for Dremio is
 The expected connection string for ODBC (Default port is 31010) is formatted as follows:
 
 ```
-dremio://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
+dremio+pyodbc://{username}:{password}@{host}:{port}/{database_name}/dremio?SSL=1
 ```
 
 The expected connection string for Arrow Flight (Dremio 4.9.1+. Default port is 32010) is formatted as follows:
@@ -830,7 +874,7 @@ You should then be able to connect to your BigQuery datasets.
 To be able to upload CSV or Excel files to BigQuery in Superset, you'll need to also add the
 [pandas_gbq](https://github.com/pydata/pandas-gbq) library.
 
-Currently, Google BigQuery python sdk is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
+Currently, the Google BigQuery Python SDK is not compatible with `gevent`, due to some dynamic monkeypatching on python core library by `gevent`.
 So, when you deploy Superset with `gunicorn` server, you have to use worker type except `gevent`.
 
 
@@ -988,6 +1032,19 @@ Here's the recommended connection string:
 netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}
 ```
 
+#### OceanBase
+
+The [sqlalchemy-oceanbase](https://pypi.org/project/oceanbase_py/) library is the recommended
+way to connect to OceanBase through SQLAlchemy.
+
+
+The connection string for OceanBase looks like this:
+
+```
+oceanbase://<User>:<Password>@<Host>:<Port>/<Database>
+```
+
+
 #### Ocient DB
 
 The recommended connector library for Ocient is [sqlalchemy-ocient](https://pypi.org/project/sqlalchemy-ocient).
@@ -1035,6 +1092,11 @@ The expected connection string using username and password is formatted as follo
 pinot://<username>:<password>@<pinot-broker-host>:<pinot-broker-port>/query/sql?controller=http://<pinot-controller-host>:<pinot-controller-port>/verify_ssl=true``
 ```
 
+If you want to use explore view or joins, window functions, etc. then enable [multi-stage query engine](https://docs.pinot.apache.org/reference/multi-stage-engine).
+Add below argument while creating database connection in Advanced -> Other -> ENGINE PARAMETERS
+```
+{"connect_args":{"use_multistage_engine":"true"}}
+```
 
 #### Postgres
 
@@ -1270,6 +1332,10 @@ Here's what the connection string looks like:
 starrocks://<User>:<Password>@<Host>:<Port>/<Catalog>.<Database>
 ```
 
+:::note
+StarRocks maintains their Superset docuementation [here](https://docs.starrocks.io/docs/integrations/BI_integrations/Superset/).
+:::
+
 #### Teradata
 
 The recommended connector library is
@@ -1470,6 +1536,78 @@ vertica+vertica_python://{username}:{password}@{host}/{database}
 Other parameters:
 
 - Load Balancer - Backup Host
+
+
+
+#### YDB
+
+The recommended connector library for [YDB](https://ydb.tech/) is
+[ydb-sqlalchemy](https://pypi.org/project/ydb-sqlalchemy/).
+
+##### Connection String
+
+The connection string for YDB looks like this:
+
+```
+ydb://{host}:{port}/{database_name}
+```
+
+##### Protocol
+You can specify `protocol` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "protocol": "grpcs"
+}
+```
+
+Default is `grpc`.
+
+
+##### Authentication Methods
+###### Static Credentials
+To use `Static Credentials` you should provide `username`/`password` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "username": "...",
+        "password": "..."
+    }
+}
+```
+
+
+###### Access Token Credentials
+To use `Access Token Credentials` you should provide `token` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "token": "...",
+    }
+}
+```
+
+
+##### Service Account Credentials
+To use Service Account Credentials, you should provide `service_account_json` in the `Secure Extra` field at `Advanced / Security`:
+
+```
+{
+    "credentials": {
+        "service_account_json": {
+            "id": "...",
+            "service_account_id": "...",
+            "created_at": "...",
+            "key_algorithm": "...",
+            "public_key": "...",
+            "private_key": "..."
+        }
+    }
+}
+```
+
 
 
 #### YugabyteDB

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useSelector } from 'react-redux';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -203,5 +202,61 @@ describe('ControlPanelsContainer', () => {
     expect(getByTestId('mock-formdata')).not.toHaveTextContent(
       'percent_metrics',
     );
+  });
+
+  test('hidden state of controls is correctly applied', async () => {
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Time Comparison'),
+          expanded: true,
+          controlSetRows: [
+            [
+              {
+                name: 'time_compare',
+                config: {
+                  type: 'SelectControl',
+                  freeForm: true,
+                  label: t('Time shift'),
+                  choices: [],
+                },
+              },
+            ],
+            [
+              {
+                name: 'start_date_offset',
+                config: {
+                  type: 'SelectControl',
+                  choices: [],
+                  label: t('Shift start date'),
+                  hidden: true,
+                },
+              },
+            ],
+            [
+              {
+                name: 'comparison_type',
+                config: {
+                  type: 'SelectControl',
+                  label: t('Calculation type'),
+                  default: 'values',
+                  choices: [],
+                  hidden: () => true,
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    });
+    render(<ControlPanelsContainer {...getDefaultProps()} />, {
+      useRedux: true,
+    });
+
+    expect(screen.getByText('Time shift')).toBeInTheDocument();
+    expect(screen.getByText('Shift start date')).toBeInTheDocument();
+    expect(screen.getByText('Calculation type')).toBeInTheDocument();
+    expect(screen.getByText('Shift start date')).not.toBeVisible();
+    expect(screen.getByText('Calculation type')).not.toBeVisible();
   });
 });

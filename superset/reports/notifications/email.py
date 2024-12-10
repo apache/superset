@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import textwrap
 from dataclasses import dataclass
@@ -29,6 +28,7 @@ from superset.exceptions import SupersetErrorsException
 from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification
 from superset.reports.notifications.exceptions import NotificationError
+from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
@@ -84,13 +84,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _get_smtp_domain() -> str:
         return parseaddr(app.config["SMTP_MAIL_FROM"])[1].split("@")[1]
 
-    @staticmethod
-    def _error_template(text: str) -> str:
+    def _error_template(self, text: str) -> str:
+        call_to_action = self._get_call_to_action()
         return __(
             """
-            Error: %(text)s
+            <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
+            <p>Please check your dashboard/chart for errors.</p>
+            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,
             text=text,
+            url=self._content.url,
+            call_to_action=call_to_action,
         )
 
     def _get_content(self) -> EmailContent:
@@ -130,16 +134,16 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         else:
             html_table = ""
 
-        call_to_action = __(app.config["EMAIL_REPORTS_CTA"])
         img_tags = []
         for msgid in images.keys():
             img_tags.append(
                 f"""<div class="image">
-                    <img width="1000px" src="cid:{msgid}">
+                    <img width="1000" src="cid:{msgid}">
                 </div>
                 """
             )
         img_tag = "".join(img_tags)
+        call_to_action = self._get_call_to_action()
         body = textwrap.dedent(
             f"""
             <html>
@@ -153,6 +157,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                   }}
                   .image{{
                       margin-bottom: 18px;
+                      min-width: 1000px;
                   }}
                 </style>
               </head>
@@ -189,14 +194,28 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             title=self._content.name,
         )
 
+    def _get_call_to_action(self) -> str:
+        return __(app.config["EMAIL_REPORTS_CTA"])
+
     def _get_to(self) -> str:
         return json.loads(self._recipient.recipient_config_json)["target"]
+
+    def _get_cc(self) -> str:
+        # To accomadate backward compatability
+        return json.loads(self._recipient.recipient_config_json).get("ccTarget", "")
+
+    def _get_bcc(self) -> str:
+        # To accomadate backward compatability
+        return json.loads(self._recipient.recipient_config_json).get("bccTarget", "")
 
     @statsd_gauge("reports.email.send")
     def send(self) -> None:
         subject = self._get_subject()
         content = self._get_content()
         to = self._get_to()
+        cc = self._get_cc()
+        bcc = self._get_bcc()
+
         try:
             send_email_smtp(
                 to,
@@ -207,9 +226,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 data=content.data,
                 pdf=content.pdf,
                 images=content.images,
-                bcc="",
                 mime_subtype="related",
                 dryrun=False,
+                cc=cc,
+                bcc=bcc,
                 header_data=content.header_data,
             )
             logger.info(

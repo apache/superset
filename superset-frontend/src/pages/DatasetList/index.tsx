@@ -22,12 +22,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, {
-  FunctionComponent,
-  useState,
-  useMemo,
-  useCallback,
-} from 'react';
+import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -159,7 +154,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
 
   const [datasetCurrentlyDeleting, setDatasetCurrentlyDeleting] = useState<
-    (Dataset & { chart_count: number; dashboard_count: number }) | null
+    | (Dataset & {
+        charts: any;
+        dashboards: any;
+      })
+    | null
   >(null);
 
   const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
@@ -248,8 +247,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       .then(({ json = {} }) => {
         setDatasetCurrentlyDeleting({
           ...dataset,
-          chart_count: json.charts.count,
-          dashboard_count: json.dashboards.count,
+          charts: json.charts,
+          dashboards: json.dashboards,
         });
       })
       .catch(
@@ -483,7 +482,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               )}
               {canDuplicate && original.kind === 'virtual' && (
                 <Tooltip
-                  id="duplicate-action-tooltop"
+                  id="duplicate-action-tooltip"
                   title={t('Duplicate')}
                   placement="bottom"
                 >
@@ -747,13 +746,80 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               <p>
+                {t('The dataset')}
+                <b> {datasetCurrentlyDeleting.table_name} </b>
                 {t(
-                  'The dataset %s is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-                  datasetCurrentlyDeleting.table_name,
-                  datasetCurrentlyDeleting.chart_count,
-                  datasetCurrentlyDeleting.dashboard_count,
+                  'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                  datasetCurrentlyDeleting.charts.count,
+                  datasetCurrentlyDeleting.dashboards.count,
                 )}
               </p>
+              {datasetCurrentlyDeleting.dashboards.count >= 1 && (
+                <>
+                  <h4>{t('Affected Dashboards')}</h4>
+                  <ul>
+                    {datasetCurrentlyDeleting.dashboards.result
+                      .slice(0, 10)
+                      .map(
+                        (
+                          result: { id: Key | null | undefined; title: string },
+                          index: number,
+                        ) => (
+                          <li key={result.id}>
+                            <a
+                              href={`/superset/dashboard/${result.id}`}
+                              target="_atRiskItem"
+                            >
+                              {result.title}
+                            </a>
+                          </li>
+                        ),
+                      )}
+                    {datasetCurrentlyDeleting.dashboards.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          datasetCurrentlyDeleting.dashboards.result.length -
+                            10,
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
+              {datasetCurrentlyDeleting.charts.count >= 1 && (
+                <>
+                  <h4>{t('Affected Charts')}</h4>
+                  <ul>
+                    {datasetCurrentlyDeleting.charts.result.slice(0, 10).map(
+                      (
+                        result: {
+                          id: Key | null | undefined;
+                          slice_name: string;
+                        },
+                        index: number,
+                      ) => (
+                        <li key={result.id}>
+                          <a
+                            href={`/explore/?slice_id=${result.id}`}
+                            target="_atRiskItem"
+                          >
+                            {result.slice_name}
+                          </a>
+                        </li>
+                      ),
+                    )}
+                    {datasetCurrentlyDeleting.charts.result.length > 10 && (
+                      <li>
+                        {t(
+                          '... and %s others',
+                          datasetCurrentlyDeleting.charts.result.length - 10,
+                        )}
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
               {DatasetDeleteRelatedExtension && (
                 <DatasetDeleteRelatedExtension
                   dataset={datasetCurrentlyDeleting}

@@ -68,6 +68,7 @@ export type PopKPIProps = PopKPIStylesProps &
     currentTimeRangeFilter?: SimpleAdhocFilter;
     startDateOffset?: string;
     shift: string;
+    dashboardTimeRange?: string;
   };
 
 export enum ColorSchemeEnum {

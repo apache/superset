@@ -17,7 +17,6 @@
  * under the License.
  */
 import { NativeFilterType } from '@superset-ui/core';
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import HorizontalBar from './Horizontal';
 
@@ -81,16 +80,4 @@ test('should render the loading icon', async () => {
     isInitialized: false,
   });
   expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
-});
-
-test('should render Add/Edit Filters', async () => {
-  await renderWrapper();
-  expect(screen.getByText('Add/Edit Filters')).toBeInTheDocument();
-});
-
-test('should not render Add/Edit Filters', async () => {
-  await renderWrapper({
-    canEdit: false,
-  });
-  expect(screen.queryByText('Add/Edit Filters')).not.toBeInTheDocument();
 });

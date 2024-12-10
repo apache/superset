@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { styled, useTruncation } from '@superset-ui/core';
 import { Link } from 'react-router-dom';
 import CrossLinksTooltip from './CrossLinksTooltip';
@@ -38,7 +38,7 @@ const StyledCrossLinks = styled.div`
       width: 100%;
       display: flex;
 
-      .ant-tooltip-open {
+      .antd5-tooltip-open {
         display: inline;
       }
 
@@ -111,4 +111,4 @@ function CrossLinks({
   );
 }
 
-export default React.memo(CrossLinks);
+export default memo(CrossLinks);

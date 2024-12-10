@@ -17,50 +17,53 @@
  * under the License.
  */
 
-import React from 'react';
-import { shallow } from 'enzyme';
+import '@testing-library/jest-dom';
+import { screen, render } from '@testing-library/react';
 import { TooltipTable } from '@superset-ui/core';
+import { CSSProperties } from 'react';
 
 describe('TooltipTable', () => {
   it('sets className', () => {
-    const wrapper = shallow(<TooltipTable className="test-class" />);
-    expect(wrapper.render().hasClass('test-class')).toEqual(true);
+    const { container } = render(<TooltipTable className="test-class" />);
+    expect(container.querySelector('[class="test-class"]')).toBeInTheDocument();
   });
 
   it('renders empty table', () => {
-    const wrapper = shallow(<TooltipTable />);
-    expect(wrapper.find('tbody')).toHaveLength(1);
-    expect(wrapper.find('tr')).toHaveLength(0);
+    const { container } = render(<TooltipTable />);
+    expect(container.querySelector('tbody')).toBeInTheDocument();
+    expect(container.querySelector('tr')).not.toBeInTheDocument();
   });
 
-  it('renders table with content', () => {
-    const wrapper = shallow(
-      <TooltipTable
-        data={[
-          {
-            key: 'Cersei',
-            keyColumn: 'Cersei',
-            keyStyle: { padding: '10' },
-            valueColumn: 2,
-            valueStyle: { textAlign: 'right' },
-          },
-          {
-            key: 'Jaime',
-            keyColumn: 'Jaime',
-            keyStyle: { padding: '10' },
-            valueColumn: 1,
-            valueStyle: { textAlign: 'right' },
-          },
-          {
-            key: 'Tyrion',
-            keyStyle: { padding: '10' },
-            valueColumn: 2,
-          },
-        ]}
-      />,
-    );
-    expect(wrapper.find('tbody')).toHaveLength(1);
-    expect(wrapper.find('tr')).toHaveLength(3);
-    expect(wrapper.find('tr > td').first().text()).toEqual('Cersei');
+  it('renders table with content', async () => {
+    const data = [
+      {
+        key: 'Cersei',
+        keyColumn: 'Cersei',
+        keyStyle: { padding: '10' },
+        valueColumn: 2,
+        valueStyle: { textAlign: 'right' } as CSSProperties,
+      },
+      {
+        key: 'Jaime',
+        keyColumn: 'Jaime',
+        keyStyle: { padding: '10' },
+        valueColumn: 1,
+        valueStyle: { textAlign: 'right' } as CSSProperties,
+      },
+      {
+        key: 'Tyrion',
+        keyStyle: { padding: '10' },
+        valueColumn: 2,
+      },
+    ];
+
+    render(<TooltipTable data={data} />);
+
+    for await (const { key, valueColumn } of data) {
+      const keyCell = await screen.findByText(key);
+      const valueCell = keyCell?.nextSibling as HTMLElement;
+      expect(keyCell).toBeInTheDocument();
+      expect(valueCell?.textContent).toEqual(String(valueColumn));
+    }
   });
 });

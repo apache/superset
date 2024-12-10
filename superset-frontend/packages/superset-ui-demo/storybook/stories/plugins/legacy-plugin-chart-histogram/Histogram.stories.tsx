@@ -18,12 +18,13 @@
  */
 
 /* eslint-disable no-magic-numbers */
-import React from 'react';
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import HistogramChartPlugin from '@superset-ui/legacy-plugin-chart-histogram';
 import data from './data';
 
-new HistogramChartPlugin().configure({ key: 'histogram' }).register();
+new HistogramChartPlugin()
+  .configure({ key: VizType.LegacyHistogram })
+  .register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-histogram',
@@ -31,7 +32,7 @@ export default {
 
 export const basic = () => (
   <SuperChart
-    chartType="histogram"
+    chartType={VizType.LegacyHistogram}
     width={400}
     height={400}
     queriesData={[{ data }]}

@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -23,6 +22,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.config import VERSION_STRING
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 

@@ -16,24 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Button from 'src/components/Button';
-import { AsyncSelect } from 'src/components';
-import {
-  ChartCreation,
-  ChartCreationProps,
-  ChartCreationState,
-} from 'src/pages/ChartCreation';
-import VizTypeGallery from 'src/explore/components/controls/VizTypeControl/VizTypeGallery';
-import { act } from 'spec/helpers/testing-library';
+
+import userEvent from '@testing-library/user-event';
+import { screen, waitFor, render } from 'spec/helpers/testing-library';
+import fetchMock from 'fetch-mock';
+import { createMemoryHistory } from 'history';
+import { ChartCreation } from 'src/pages/ChartCreation';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
-const datasource = {
-  value: '1',
-  label: 'table',
+jest.mock('src/components/DynamicPlugins', () => ({
+  usePluginContext: () => ({
+    mountedPluginMetadata: { table: { name: 'Table', tags: [] } },
+  }),
+}));
+
+const mockDatasourceResponse = {
+  result: [
+    {
+      id: 1,
+      table_name: 'table',
+      datasource_type: 'table',
+      database: { database_name: 'test_db' },
+      schema: 'public',
+    },
+  ],
+  count: 1,
 };
+
+fetchMock.get(/\/api\/v1\/dataset\/\?q=.*/, {
+  body: mockDatasourceResponse,
+  status: 200,
+});
 
 const mockUser: UserWithPermissionsAndRoles = {
   createdOn: '2021-04-27T18:12:38.952304',
@@ -60,94 +73,112 @@ const mockUserWithDatasetWrite: UserWithPermissionsAndRoles = {
   username: 'admin',
   isAnonymous: false,
 };
+const history = createMemoryHistory();
 
-// We don't need the actual implementation for the tests
+history.push = jest.fn();
+
 const routeProps = {
-  history: {} as any,
+  history,
   location: {} as any,
   match: {} as any,
 };
 
-async function getWrapper(user = mockUser) {
-  const wrapper = mount(
+const renderOptions = {
+  useRouter: true,
+};
+
+async function renderComponent(user = mockUser) {
+  render(
     <ChartCreation user={user} addSuccessToast={() => null} {...routeProps} />,
-  ) as unknown as ReactWrapper<
-    ChartCreationProps,
-    ChartCreationState,
-    ChartCreation
-  >;
-  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
-  return wrapper;
+    renderOptions,
+  );
+  await waitFor(() => new Promise(resolve => setTimeout(resolve, 0)));
 }
 
 test('renders a select and a VizTypeGallery', async () => {
-  const wrapper = await getWrapper();
-  expect(wrapper.find(AsyncSelect)).toExist();
-  expect(wrapper.find(VizTypeGallery)).toExist();
+  await renderComponent();
+  expect(screen.getByRole('combobox', { name: 'Dataset' })).toBeInTheDocument();
+  expect(screen.getByText(/choose chart type/i)).toBeInTheDocument();
 });
 
 test('renders dataset help text when user lacks dataset write permissions', async () => {
-  const wrapper = await getWrapper();
-  expect(wrapper.find('[data-test="dataset-write"]')).not.toExist();
-  expect(wrapper.find('[data-test="no-dataset-write"]')).toExist();
+  await renderComponent();
+  expect(screen.queryByText('Add a dataset')).not.toBeInTheDocument();
+  expect(screen.getByText('view instructions')).toBeInTheDocument();
 });
 
 test('renders dataset help text when user has dataset write permissions', async () => {
-  const wrapper = await getWrapper(mockUserWithDatasetWrite);
-  expect(wrapper.find('[data-test="dataset-write"]')).toExist();
-  expect(wrapper.find('[data-test="no-dataset-write"]')).not.toExist();
+  await renderComponent(mockUserWithDatasetWrite);
+  expect(screen.getByText('Add a dataset')).toBeInTheDocument();
+  expect(screen.queryByText('view instructions')).toBeInTheDocument();
 });
 
-test('renders a button', async () => {
-  const wrapper = await getWrapper();
-  expect(wrapper.find(Button)).toExist();
+test('renders create chart button', async () => {
+  await renderComponent();
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeInTheDocument();
 });
 
 test('renders a disabled button if no datasource is selected', async () => {
-  const wrapper = await getWrapper();
+  await renderComponent();
   expect(
-    wrapper.find(Button).find({ disabled: true }).hostNodes(),
-  ).toHaveLength(1);
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeDisabled();
 });
 
 test('renders an enabled button if datasource and viz type are selected', async () => {
-  const wrapper = await getWrapper();
-  wrapper.setState({
-    datasource,
-    vizType: 'table',
-  });
+  await renderComponent();
+
+  const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+  userEvent.click(datasourceSelect);
+  userEvent.click(await screen.findByText(/test_db/i));
+
+  userEvent.click(
+    screen.getByRole('button', {
+      name: /ballot all charts/i,
+    }),
+  );
+  userEvent.click(await screen.findByText('Table'));
+
   expect(
-    wrapper.find(Button).find({ disabled: true }).hostNodes(),
-  ).toHaveLength(0);
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeEnabled();
 });
 
 test('double-click viz type does nothing if no datasource is selected', async () => {
-  const wrapper = await getWrapper();
-  wrapper.instance().gotoSlice = jest.fn();
-  wrapper.update();
-  wrapper.instance().onVizTypeDoubleClick();
-  expect(wrapper.instance().gotoSlice).not.toBeCalled();
+  await renderComponent();
+
+  userEvent.click(
+    screen.getByRole('button', {
+      name: /ballot all charts/i,
+    }),
+  );
+  userEvent.dblClick(await screen.findByText('Table'));
+
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeDisabled();
+  expect(history.push).not.toHaveBeenCalled();
 });
 
-test('double-click viz type submits if datasource is selected', async () => {
-  const wrapper = await getWrapper();
-  wrapper.instance().gotoSlice = jest.fn();
-  wrapper.update();
-  wrapper.setState({
-    datasource,
-    vizType: 'table',
-  });
+test('double-click viz type submits with formatted URL if datasource is selected', async () => {
+  await renderComponent();
 
-  wrapper.instance().onVizTypeDoubleClick();
-  expect(wrapper.instance().gotoSlice).toBeCalled();
-});
+  const datasourceSelect = screen.getByRole('combobox', { name: 'Dataset' });
+  userEvent.click(datasourceSelect);
+  userEvent.click(await screen.findByText(/test_db/i));
 
-test('formats Explore url', async () => {
-  const wrapper = await getWrapper();
-  wrapper.setState({
-    datasource,
-    vizType: 'table',
-  });
-  const formattedUrl = '/explore/?viz_type=table&datasource=1';
-  expect(wrapper.instance().exploreUrl()).toBe(formattedUrl);
+  userEvent.click(
+    screen.getByRole('button', {
+      name: /ballot all charts/i,
+    }),
+  );
+  userEvent.dblClick(await screen.findByText('Table'));
+
+  expect(
+    screen.getByRole('button', { name: 'Create new chart' }),
+  ).toBeEnabled();
+  const formattedUrl = '/explore/?viz_type=table&datasource=1__table';
+  expect(history.push).toHaveBeenCalledWith(formattedUrl);
 });

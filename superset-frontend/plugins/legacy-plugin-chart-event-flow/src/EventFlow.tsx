@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { App as EventFlowApp } from '@data-ui/event-flow';
 import { t, TimeseriesDataRecord } from '@superset-ui/core';
 

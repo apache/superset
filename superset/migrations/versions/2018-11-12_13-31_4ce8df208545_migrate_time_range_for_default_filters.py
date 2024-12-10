@@ -23,13 +23,12 @@ Create Date: 2018-11-12 13:31:07.578090
 """
 
 # revision identifiers, used by Alembic.
-import json
-
 from alembic import op
 from sqlalchemy import Column, Integer, Text
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 revision = "4ce8df208545"
 down_revision = "55e910a74826"

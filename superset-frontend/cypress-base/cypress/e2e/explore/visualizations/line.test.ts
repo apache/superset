@@ -51,10 +51,10 @@ describe('Visualization > Line', () => {
     // Title edit for saved metrics is disabled - switch to Simple
     cy.get('[id="adhoc-metric-edit-tabs-tab-SIMPLE"]').click();
 
-    cy.get('input[aria-label="Select column"]').click().type('num{enter}');
-    cy.get('input[aria-label="Select aggregate options"]')
-      .click()
-      .type('sum{enter}');
+    cy.get('input[aria-label="Select column"]').click();
+    cy.get('input[aria-label="Select column"]').type('num{enter}');
+    cy.get('input[aria-label="Select aggregate options"]').click();
+    cy.get('input[aria-label="Select aggregate options"]').type('sum{enter}');
     cy.get('[data-test="AdhocMetricEdit#save"]').contains('Save').click();
 
     cy.get('[data-test="metrics-header"]').contains('Metrics');
@@ -62,7 +62,7 @@ describe('Visualization > Line', () => {
       'not.exist',
     );
 
-    cy.get('.ant-alert-warning').should('not.exist');
+    cy.get('.antd5-alert-warning').should('not.exist');
   });
 
   it('should allow negative values in Y bounds', () => {
@@ -71,15 +71,14 @@ describe('Visualization > Line', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
     cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
-    cy.get('.ant-alert-warning').should('not.exist');
+    cy.get('.antd5-alert-warning').should('not.exist');
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
-    cy.get('.Control[data-test="color_scheme"] input[type="search"]')
-      .focus()
-      .type('bnbColors{enter}');
+    cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
+    cy.focused().type('bnbColors{enter}');
     cy.get(
       '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="bnbColors"]',
     ).should('exist');

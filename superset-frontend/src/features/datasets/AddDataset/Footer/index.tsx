@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useHistory } from 'react-router-dom';
 import Button from 'src/components/Button';
 import { t } from '@superset-ui/core';

@@ -17,7 +17,6 @@
 
 # pylint: disable=import-outside-toplevel
 
-import json
 from datetime import datetime
 from typing import Optional
 from unittest import mock
@@ -27,6 +26,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -291,3 +291,106 @@ def test_get_default_catalog() -> None:
         sqlalchemy_uri="snowflake://user:pass@account/database_name/default",
     )
     assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+
+
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private keys are masked when the database is edited.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    config = json.dumps(
+        {
+            "auth_method": "keypair",
+            "auth_params": {
+                "privatekey_body": (
+                    "-----BEGIN ENCRYPTED PRIVATE KEY-----"
+                    "..."
+                    "-----END ENCRYPTED PRIVATE KEY-----"
+                ),
+                "privatekey_pass": "my_password",
+            },
+        }
+    )
+
+    assert SnowflakeEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "keypair",
+            "auth_params": {
+                "privatekey_body": "XXXXXXXXXX",
+                "privatekey_pass": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
+def test_mask_encrypted_extra_no_fields() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    config = json.dumps(
+        {
+            # this is a fake example and the fields are made up
+            "auth_method": "token",
+            "auth_params": {
+                "jwt": "SECRET",
+            },
+        }
+    )
+
+    assert SnowflakeEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_method": "token",
+            "auth_params": {
+                "jwt": "SECRET",
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra() -> None:
+    """
+    Test that the private keys can be reused from the previous `encrypted_extra`.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    old = json.dumps(
+        {
+            "auth_method": "keypair",
+            "auth_params": {
+                "privatekey_body": (
+                    "-----BEGIN ENCRYPTED PRIVATE KEY-----"
+                    "..."
+                    "-----END ENCRYPTED PRIVATE KEY-----"
+                ),
+                "privatekey_pass": "my_password",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "foo": "bar",
+            "auth_method": "keypair",
+            "auth_params": {
+                "privatekey_body": "XXXXXXXXXX",
+                "privatekey_pass": "XXXXXXXXXX",
+            },
+        }
+    )
+
+    assert SnowflakeEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "foo": "bar",
+            "auth_method": "keypair",
+            "auth_params": {
+                "privatekey_body": (
+                    "-----BEGIN ENCRYPTED PRIVATE KEY-----"
+                    "..."
+                    "-----END ENCRYPTED PRIVATE KEY-----"
+                ),
+                "privatekey_pass": "my_password",
+            },
+        }
+    )

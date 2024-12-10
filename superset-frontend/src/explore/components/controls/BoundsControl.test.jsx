@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import BoundsControl from 'src/explore/components/controls/BoundsControl';
@@ -35,7 +34,8 @@ test('renders two inputs', () => {
 test('receives null on non-numeric', async () => {
   render(<BoundsControl {...defaultProps} />);
   const minInput = screen.getAllByRole('spinbutton')[0];
-  userEvent.type(minInput, 'text');
+  userEvent.type(minInput, '1');
+  userEvent.clear(minInput);
   await waitFor(() =>
     expect(defaultProps.onChange).toHaveBeenCalledWith([null, null]),
   );

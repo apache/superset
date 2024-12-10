@@ -17,9 +17,10 @@
  * under the License.
  */
 
-import React, {
+import {
   ChangeEvent,
   KeyboardEvent,
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -72,144 +73,154 @@ const titleStyles = (theme: SupersetTheme) => css`
     position: absolute;
     left: -9999px;
     display: inline-block;
+    white-space: pre;
   }
 `;
 
-export const DynamicEditableTitle = ({
-  title,
-  placeholder,
-  onSave,
-  canEdit,
-  label,
-}: DynamicEditableTitleProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [currentTitle, setCurrentTitle] = useState(title || '');
-  const contentRef = useRef<HTMLInputElement>(null);
-  const [showTooltip, setShowTooltip] = useState(false);
+export const DynamicEditableTitle = memo(
+  ({
+    title,
+    placeholder,
+    onSave,
+    canEdit,
+    label,
+  }: DynamicEditableTitleProps) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentTitle, setCurrentTitle] = useState(title || '');
+    const contentRef = useRef<HTMLInputElement>(null);
+    const [showTooltip, setShowTooltip] = useState(false);
 
-  const { width: inputWidth, ref: sizerRef } = useResizeDetector();
-  const { width: containerWidth, ref: containerRef } = useResizeDetector({
-    refreshMode: 'debounce',
-  });
+    const { width: inputWidth, ref: sizerRef } = useResizeDetector();
+    const { width: containerWidth, ref: containerRef } = useResizeDetector({
+      refreshMode: 'debounce',
+    });
 
-  useEffect(() => {
-    setCurrentTitle(title);
-  }, [title]);
+    useEffect(() => {
+      setCurrentTitle(title);
+    }, [title]);
 
-  useEffect(() => {
-    if (isEditing && contentRef?.current) {
-      contentRef.current.focus();
-      // move cursor and scroll to the end
-      if (contentRef.current.setSelectionRange) {
-        const { length } = contentRef.current.value;
-        contentRef.current.setSelectionRange(length, length);
-        contentRef.current.scrollLeft = contentRef.current.scrollWidth;
+    useEffect(() => {
+      if (isEditing && contentRef?.current) {
+        contentRef.current.focus();
+        // move cursor and scroll to the end
+        if (contentRef.current.setSelectionRange) {
+          const { length } = contentRef.current.value;
+          contentRef.current.setSelectionRange(length, length);
+          contentRef.current.scrollLeft = contentRef.current.scrollWidth;
+        }
       }
-    }
-  }, [isEditing]);
+    }, [isEditing]);
 
-  // a trick to make the input grow when user types text
-  // we make additional span component, place it somewhere out of view and copy input
-  // then we can measure the width of that span to resize the input element
-  useLayoutEffect(() => {
-    if (sizerRef?.current) {
-      sizerRef.current.textContent = currentTitle || placeholder;
-    }
-  }, [currentTitle, placeholder, sizerRef]);
+    // a trick to make the input grow when user types text
+    // we make additional span component, place it somewhere out of view and copy input
+    // then we can measure the width of that span to resize the input element
+    useLayoutEffect(() => {
+      if (sizerRef?.current) {
+        sizerRef.current.textContent = currentTitle || placeholder;
+      }
+    }, [currentTitle, placeholder, sizerRef]);
 
-  useEffect(() => {
-    if (
-      contentRef.current &&
-      contentRef.current.scrollWidth > contentRef.current.clientWidth
-    ) {
-      setShowTooltip(true);
-    } else {
-      setShowTooltip(false);
-    }
-  }, [inputWidth, containerWidth]);
+    useEffect(() => {
+      if (
+        contentRef.current &&
+        contentRef.current.scrollWidth > contentRef.current.clientWidth
+      ) {
+        setShowTooltip(true);
+      } else {
+        setShowTooltip(false);
+      }
+    }, [inputWidth, containerWidth]);
 
-  const handleClick = useCallback(() => {
-    if (!canEdit || isEditing) {
-      return;
-    }
-    setIsEditing(true);
-  }, [canEdit, isEditing]);
-
-  const handleBlur = useCallback(() => {
-    if (!canEdit) {
-      return;
-    }
-    const formattedTitle = currentTitle.trim();
-    setCurrentTitle(formattedTitle);
-    if (title !== formattedTitle) {
-      onSave(formattedTitle);
-    }
-    setIsEditing(false);
-  }, [canEdit, currentTitle, onSave, title]);
-
-  const handleChange = useCallback(
-    (ev: ChangeEvent<HTMLInputElement>) => {
-      if (!canEdit || !isEditing) {
+    const handleClick = useCallback(() => {
+      if (!canEdit || isEditing) {
         return;
       }
-      setCurrentTitle(ev.target.value);
-    },
-    [canEdit, isEditing],
-  );
+      setIsEditing(true);
+    }, [canEdit, isEditing]);
 
-  const handleKeyPress = useCallback(
-    (ev: KeyboardEvent<HTMLInputElement>) => {
+    const handleBlur = useCallback(() => {
       if (!canEdit) {
         return;
       }
-      if (ev.key === 'Enter') {
-        ev.preventDefault();
-        contentRef.current?.blur();
+      const formattedTitle = currentTitle.trim();
+      setCurrentTitle(formattedTitle);
+      if (title !== formattedTitle) {
+        onSave(formattedTitle);
       }
-    },
-    [canEdit],
-  );
+      setIsEditing(false);
+    }, [canEdit, currentTitle, onSave, title]);
 
-  return (
-    <div css={titleStyles} ref={containerRef}>
-      <Tooltip
-        id="title-tooltip"
-        title={showTooltip && currentTitle && !isEditing ? currentTitle : null}
-      >
-        {canEdit ? (
-          <input
-            data-test="editable-title-input"
-            className="dynamic-title-input"
-            aria-label={label ?? t('Title')}
-            ref={contentRef}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onClick={handleClick}
-            onKeyPress={handleKeyPress}
-            placeholder={placeholder}
-            value={currentTitle}
-            css={css`
-              cursor: ${isEditing ? 'text' : 'pointer'};
+    const handleChange = useCallback(
+      (ev: ChangeEvent<HTMLInputElement>) => {
+        if (!canEdit || !isEditing) {
+          return;
+        }
+        setCurrentTitle(ev.target.value);
+      },
+      [canEdit, isEditing],
+    );
 
-              ${inputWidth &&
-              inputWidth > 0 &&
-              css`
-                width: ${inputWidth + 1}px;
+    const handleKeyPress = useCallback(
+      (ev: KeyboardEvent<HTMLInputElement>) => {
+        if (!canEdit) {
+          return;
+        }
+        if (ev.key === 'Enter') {
+          ev.preventDefault();
+          contentRef.current?.blur();
+        }
+      },
+      [canEdit],
+    );
+
+    return (
+      <div css={titleStyles} ref={containerRef}>
+        <Tooltip
+          id="title-tooltip"
+          title={
+            showTooltip && currentTitle && !isEditing ? currentTitle : null
+          }
+        >
+          {canEdit ? (
+            <input
+              data-test="editable-title-input"
+              className="dynamic-title-input"
+              aria-label={label ?? t('Title')}
+              ref={contentRef}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              onClick={handleClick}
+              onKeyPress={handleKeyPress}
+              placeholder={placeholder}
+              value={currentTitle}
+              css={css`
+                cursor: ${isEditing ? 'text' : 'pointer'};
+
+                ${inputWidth &&
+                inputWidth > 0 &&
+                css`
+                  width: ${inputWidth + 1}px;
+                `}
               `}
-            `}
-          />
-        ) : (
-          <span
-            className="dynamic-title"
-            aria-label={label ?? t('Title')}
-            ref={contentRef}
-            data-test="editable-title"
-          >
-            {currentTitle}
-          </span>
-        )}
-      </Tooltip>
-      <span ref={sizerRef} className="input-sizer" aria-hidden tabIndex={-1} />
-    </div>
-  );
-};
+            />
+          ) : (
+            <span
+              className="dynamic-title"
+              aria-label={label ?? t('Title')}
+              ref={contentRef}
+              data-test="editable-title"
+            >
+              {currentTitle}
+            </span>
+          )}
+        </Tooltip>
+        <span
+          ref={sizerRef}
+          className="input-sizer"
+          aria-hidden
+          tabIndex={-1}
+        />
+      </div>
+    );
+  },
+);

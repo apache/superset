@@ -23,7 +23,6 @@ import {
   InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
 import { t, useTheme } from '@superset-ui/core';
-import React from 'react';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';

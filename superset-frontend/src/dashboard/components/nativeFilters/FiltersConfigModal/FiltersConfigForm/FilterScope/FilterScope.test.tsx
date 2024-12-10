@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Provider } from 'react-redux';
 import {
   render,
@@ -35,6 +34,7 @@ describe('FilterScope', () => {
   const save = jest.fn();
   let form: FormInstance<NativeFiltersForm>;
   const mockedProps = {
+    expanded: false,
     filterId: 'DefaultFilterId',
     dependencies: [],
     setErroredFilters: jest.fn(),
@@ -47,6 +47,7 @@ describe('FilterScope', () => {
     activeFilterPanelKeys: `DefaultFilterId-${FilterPanels.configuration.key}`,
     isActive: true,
     validateDependencies: jest.fn(),
+    onModifyFilter: jest.fn(),
   };
 
   const MockModal = ({ scope }: { scope?: object }) => {

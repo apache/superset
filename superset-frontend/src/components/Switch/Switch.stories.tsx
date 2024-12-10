@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { useArgs } from '@storybook/client-api';
+import { useArgs } from '@storybook/preview-api';
 import { Switch, SwitchProps } from '.';
 
 export default {
@@ -34,17 +33,21 @@ export const InteractiveSwitch = ({ checked, ...rest }: SwitchProps) => {
     />
   );
 };
+const defaultCheckedValue = true;
 
 InteractiveSwitch.args = {
-  checked: false,
+  checked: defaultCheckedValue,
   disabled: false,
   loading: false,
   title: 'Switch',
+  defaultChecked: defaultCheckedValue,
+  autoFocus: true,
 };
 
 InteractiveSwitch.argTypes = {
   size: {
     defaultValue: 'default',
-    control: { type: 'radio', options: ['small', 'default'] },
+    control: { type: 'radio' },
+    options: ['small', 'default'],
   },
 };

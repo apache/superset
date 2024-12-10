@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import React, { useCallback, useState } from 'react';
+import { useCallback, useState, FormEvent } from 'react';
+
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent, AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
@@ -31,6 +32,7 @@ import {
   JsonObject,
   QueryResponse,
   QueryFormData,
+  VizType,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -158,7 +160,7 @@ export const SaveDatasetModal = ({
   formData = {},
 }: SaveDatasetModalProps) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
-    state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
+    state => state.common?.conf?.DEFAULT_VIZ_TYPE || VizType.Table,
   );
 
   const getDefaultDatasetName = () =>
@@ -216,7 +218,7 @@ export const SaveDatasetModal = ({
       postFormData(datasetToOverwrite.datasetid, 'table', {
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === 'table' && {
+        ...(defaultVizType === VizType.Table && {
           all_columns: datasource?.columns?.map(column => column.column_name),
         }),
       }),
@@ -303,7 +305,7 @@ export const SaveDatasetModal = ({
         postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
-          ...(defaultVizType === 'table' && {
+          ...(defaultVizType === VizType.Table && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
         }),
@@ -328,7 +330,7 @@ export const SaveDatasetModal = ({
     setSelectedDatasetToOverwrite(value);
   };
 
-  const handleDatasetNameChange = (e: React.FormEvent<HTMLInputElement>) => {
+  const handleDatasetNameChange = (e: FormEvent<HTMLInputElement>) => {
     // @ts-expect-error
     setDatasetName(e.target.value);
   };

@@ -16,40 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
-import React from 'react';
-import { shallow } from 'enzyme';
-
-import { AGGREGATES } from 'src/explore/constants';
+import { render, screen } from 'spec/helpers/testing-library';
 import MetricDefinitionValue from 'src/explore/components/controls/MetricControl/MetricDefinitionValue';
-import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { AGGREGATES } from 'src/explore/constants';
 
 const sumValueAdhocMetric = new AdhocMetric({
   column: { type: 'DOUBLE', column_name: 'value' },
   aggregate: AGGREGATES.SUM,
 });
 
-describe('MetricDefinitionValue', () => {
-  it('renders a MetricOption given a saved metric', () => {
-    const wrapper = shallow(
-      <MetricDefinitionValue
-        onMetricEdit={() => {}}
-        option={{ metric_name: 'a_saved_metric', expression: 'COUNT(*)' }}
-        index={1}
-      />,
-    );
-    expect(wrapper.find('AdhocMetricOption')).toExist();
-  });
+const setup = propOverrides => {
+  const props = {
+    onMetricEdit: jest.fn(),
+    option: sumValueAdhocMetric,
+    index: 1,
+    columns: [],
+    savedMetrics: [],
+    savedMetricsOptions: [],
+    datasource: {},
+    onMoveLabel: jest.fn(),
+    onDropLabel: jest.fn(),
+    ...propOverrides,
+  };
+  return render(<MetricDefinitionValue {...props} />, { useDnd: true });
+};
 
-  it('renders an AdhocMetricOption given an adhoc metric', () => {
-    const wrapper = shallow(
-      <MetricDefinitionValue
-        onMetricEdit={() => {}}
-        option={sumValueAdhocMetric}
-        index={1}
-      />,
-    );
-    expect(wrapper.find(AdhocMetricOption)).toExist();
+test('renders a MetricOption given a saved metric', () => {
+  setup({
+    option: { metric_name: 'a_saved_metric', expression: 'COUNT(*)' },
   });
+  expect(screen.getByText('a_saved_metric')).toBeInTheDocument();
+});
+
+test('renders an AdhocMetricOption given an adhoc metric', () => {
+  setup();
+  expect(screen.getByText('SUM(value)')).toBeInTheDocument();
 });

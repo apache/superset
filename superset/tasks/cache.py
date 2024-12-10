@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Optional, Union
 from urllib import request
@@ -30,9 +29,11 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject
+from superset.tasks.utils import fetch_csrf_token
+from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
-from superset.utils.urls import get_url_path
+from superset.utils.urls import get_url_path, is_secure_url
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -219,7 +220,15 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
     result = {}
     try:
-        url = get_url_path("Superset.warm_up_cache")
+        url = get_url_path("ChartRestApi.warm_up_cache")
+
+        if is_secure_url(url):
+            logger.info("URL '%s' is secure. Adding Referer header.", url)
+            headers.update({"Referer": url})
+
+        # Fetch CSRF token for API request
+        headers.update(fetch_csrf_token(headers))
+
         logger.info("Fetching %s with payload %s", url, data)
         req = request.Request(
             url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
