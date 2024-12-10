@@ -85,8 +85,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 
 # Transition to Python base image
 FROM python:${PY_VER} AS python-base
-RUN pip install --no-cache-dir --upgrade setuptools pip uv
-RUN uv venv
+RUN pip install --no-cache-dir --upgrade setuptools pip
 
 ######################################################################
 # Final lean image...
@@ -192,7 +191,7 @@ RUN --mount=type=bind,source=./docker,target=/docker \
 
 # Install Playwright and its dependencies
 RUN --mount=type=cache,target=/root/.cache/pip \
-    uv pip install --system playwright \
+    pip install --system playwright \
     && playwright install-deps
 
 # Optionally install Chromium
