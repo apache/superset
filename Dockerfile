@@ -121,14 +121,15 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         libecpg-dev \
         libldap2-dev \
     && touch superset/static/version_info.json \
-    && chown -R superset:superset ./* \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # Copy required files for Python build
-COPY --chown=superset:superset pyproject.toml setup.py MANIFEST.in README.md ./
-COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
-COPY --chown=superset:superset requirements/base.txt requirements/
-COPY --chown=superset:superset scripts/check-env.py scripts/
+COPY pyproject.toml setup.py MANIFEST.in README.md ./
+COPY superset-frontend/package.json superset-frontend/
+COPY requirements/base.txt requirements/
+COPY scripts/check-env.py scripts/
+COPY ./docker/*.sh /app/docker/
+COPY ./docker/run-server.sh /usr/bin/
 
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
@@ -136,10 +137,10 @@ RUN --mount=type=bind,source=./docker,target=/docker \
     /docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 
 # Copy the compiled frontend assets from the node image
-COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
 # Copy the main Superset source code
-COPY --chown=superset:superset superset superset
+COPY superset superset
 
 # Install Superset itself using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
@@ -147,21 +148,20 @@ RUN --mount=type=bind,source=./docker,target=/docker \
     /docker/pip-install.sh -e .
 
 # Copy .json translations from the node image
-COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
+COPY --from=superset-node /app/superset/translations superset/translations
 
 # Compile backend translations and clean up
 COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
-        ./scripts/translations/generate_mo_files.sh \
-        && chown -R superset:superset superset/translations; \
+        ./scripts/translations/generate_mo_files.sh; \
     fi \
     && rm -rf superset/translations/messages.pot \
-              superset/translations/*/LC_MESSAGES/*.po
+              superset/translations/*/LC_MESSAGES/*.po;
 
 # Add server run script
-COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 
 # Set user and healthcheck
+RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 
@@ -220,18 +220,17 @@ RUN --mount=type=bind,source=./docker,target=/docker \
     /docker/apt-install.sh default-libmysqlclient-dev
 
 # Copy development requirements and install them
-COPY --chown=superset:superset requirements/development.txt requirements/
+COPY requirements/development.txt requirements/
 RUN --mount=type=bind,source=./docker,target=/docker \
     --mount=type=cache,target=/root/.cache/pip \
     /docker/pip-install.sh --requires-build-essential -r requirements/development.txt
 
+RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset
 
 ######################################################################
 # CI image...
 ######################################################################
 FROM lean AS ci
-
-COPY --chown=superset:superset --chmod=755 ./docker/*.sh /app/docker/
 
 CMD ["/app/docker/docker-ci.sh"]
