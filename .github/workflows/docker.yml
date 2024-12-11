@@ -93,7 +93,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         run: |
           sudo apt-get update
-          sudo apt-get install docker-compose
+          sudo apt-get install docker-compose-v2
 
       - name: docker-compose sanity check
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
