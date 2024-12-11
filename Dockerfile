@@ -32,7 +32,7 @@ ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
-COPY --chmod=750 docker/*.sh /app/docker/
+COPY --chmod=700 docker/*.sh /app/docker/
 # Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
 
@@ -98,7 +98,7 @@ ENV LANG=C.UTF-8 \
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
 
 # Some bash scripts needed throughout the layers
-COPY --chmod=750 docker/*.sh /app/docker/
+COPY --chmod=700 docker/*.sh /app/docker/
 
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
 
@@ -140,7 +140,7 @@ RUN mkdir -p \
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/
 COPY scripts/check-env.py scripts/
-COPY --chmod=750 ./docker/run-server.sh /usr/bin/
+COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 
 # Some debian libs
 RUN /app/docker/apt-install.sh \
@@ -160,7 +160,7 @@ COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
 # Add the translations script
-COPY --chmod=750 ./scripts/translations/generate_mo_files.sh ./scripts/translations/
+COPY --chmod=755 ./scripts/translations/generate_mo_files.sh ./scripts/translations/
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/usr/bin/run-server.sh"]
