@@ -112,6 +112,7 @@ RUN --mount=type=bind,source=./docker,target=/docker \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
+      ${SUPERSET_HOME} \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && /docker/apt-install.sh \
         curl \
@@ -121,6 +122,8 @@ RUN --mount=type=bind,source=./docker,target=/docker \
         libecpg-dev \
         libldap2-dev \
     && touch superset/static/version_info.json \
+    && chown -R superset:superset /app \
+    && chmod -R 775 /app \
     && chown -R superset:superset ./* \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
@@ -160,6 +163,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 
 # Add server run script
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
+RUN chown superset:superset /usr/bin/run-server.sh
 
 # Set user and healthcheck
 USER superset
