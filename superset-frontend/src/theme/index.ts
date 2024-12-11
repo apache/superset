@@ -101,6 +101,7 @@ const baseConfig: ThemeConfig = {
       contentBg: supersetTheme.colors.grayscale.light5,
       titleFontSize: supersetTheme.gridUnit * 4,
       titleColor: `${supersetTheme.colors.grayscale.dark2}D9`,
+      headerBg: supersetTheme.colors.grayscale.light4,
     },
     Tag: {
       borderRadiusSM: 2,

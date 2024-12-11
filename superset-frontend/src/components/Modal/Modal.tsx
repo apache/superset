@@ -41,6 +41,7 @@ import Draggable, {
   DraggableEvent,
   DraggableProps,
 } from 'react-draggable';
+import { mix } from 'polished';
 
 export interface ModalProps {
   className?: string;
@@ -83,6 +84,8 @@ interface StyledModalProps {
   resizable?: boolean;
 }
 
+export type { ModalFuncProps };
+
 const MODAL_HEADER_HEIGHT = 55;
 const MODAL_MIN_CONTENT_HEIGHT = 54;
 const MODAL_FOOTER_HEIGHT = 65;
@@ -120,14 +123,13 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
   .antd5-modal-header {
     flex: 0 0 auto;
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
     padding: ${({ theme }) => theme.gridUnit * 4}px
       ${({ theme }) => theme.gridUnit * 6}px;
 
     .antd5-modal-title {
-      font-weight: 500;
+      font-weight: ${({ theme }) => theme.typography.weights.medium};
     }
 
     .antd5-modal-title h4 {
@@ -137,9 +139,17 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   }
 
-  .ant-modal-close-x {
+  .antd5-modal-close {
+    width: ${({ theme }) => theme.gridUnit * 14}px;
+    height: ${({ theme }) => theme.gridUnit * 14}px;
+    top: 0;
+    right: 0;
+  }
+  
+  .antd5-modal-close-x {
     display: flex;
     align-items: center;
+    justify-content: start;
 
     .close {
       flex: 1 1 auto;
@@ -156,11 +166,12 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
-  .ant-modal-footer {
+  .antd5-modal-footer {
     flex: 0 0 1;
     border-top: ${({ theme }) => theme.gridUnit / 4}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
     padding: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: 0;
 
     .btn {
       font-size: 12px;
@@ -220,6 +231,31 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
   `}
 `;
+
+const OkButton = styled(Button)<{ theme: any }>`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  background: ${({ theme }) => theme.colors.primary.base};
+  border: none;
+  color: ${({ theme }) => theme.colors.grayscale.light5};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary.dark1};
+  }
+`;
+
+const CancelButton = styled(Button)<{ theme: any }>`
+  border-radius: ${({ theme }) => theme.borderRadius}px;
+  background: ${({ theme }) => theme.colors.primary.light4};
+  border: none;
+  color: ${({ theme }) => theme.colors.primary.dark1};
+  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  &:hover {
+    background: ${({ theme }) => mix(0.1, theme.colors.primary.base, theme.colors.primary.light4)};
+  }
+`;
+
 const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   maxHeight: RESIZABLE_MAX_HEIGHT,
   maxWidth: RESIZABLE_MAX_WIDTH,
@@ -341,7 +377,7 @@ const CustomModal = ({
       width={modalWidth}
       maxWidth={maxWidth}
       responsive={responsive}
-      visible={show}
+      open={show}
       title={<ModalTitle />}
       closeIcon={
         <span className="close" aria-hidden="true">
@@ -385,26 +421,40 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
-// Ant Design 4 does not allow overriding Modal's buttons when
-// using one of the pre-defined functions. Ant Design 5 Modal introduced
-// the footer property that will allow that. Meanwhile, we're replicating
-// Button style using global CSS in src/GlobalStyles.tsx.
-// TODO: Replace this logic when on Ant Design 5.
-const buttonProps = {
-  okButtonProps: { className: 'modal-functions-ok-button' },
-  cancelButtonProps: { className: 'modal-functions-cancel-button' },
-};
-
 // TODO: in another PR, rename this to CompatabilityModal
 // and demote it as the default export.
 // We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
   error: (config: ModalFuncProps) =>
-    AntdModal.error({ ...config, ...buttonProps }),
+    AntdModal.error({
+      ...config,
+      footer: (originNode, extra : {OkButton, CancelButton }) => (
+        <>
+          <CancelButton/>
+          <OkButton/>
+        </>
+      ),
+    }),
   warning: (config: ModalFuncProps) =>
-    AntdModal.warning({ ...config, ...buttonProps }),
+    AntdModal.warning({
+      ...config,
+      footer: (originNode, { OkBtn, CancelBtn }) => (
+        <>
+          <CancelButton as={CancelBtn} />
+          <OkButton as={OkBtn} />
+        </>
+      ),
+    }),
   confirm: (config: ModalFuncProps) =>
-    AntdModal.confirm({ ...config, ...buttonProps }),
+    AntdModal.confirm({
+      ...config,
+      footer: (originNode, { OkBtn, CancelBtn }) => (
+        <>
+          <CancelButton as={CancelBtn} />
+          <OkButton as={OkBtn} />
+        </>
+      ),
+    }),
   useModal: AntdModal.useModal,
 });
 

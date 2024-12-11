@@ -705,7 +705,7 @@ function FiltersConfigModal({
 
   return (
     <StyledModalWrapper
-      visible={isOpen}
+      open={isOpen}
       maskClosable={false}
       title={t('Add and edit filters')}
       expanded={expanded}
