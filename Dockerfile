@@ -130,8 +130,8 @@ RUN mkdir -p ${PYTHONPATH} \
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/
 COPY scripts/check-env.py scripts/
-COPY --chmod=755 docker/*.sh /app/docker/
-COPY --chmod=755 ./docker/run-server.sh /usr/bin/
+COPY --chmod=750 docker/*.sh /app/docker/
+COPY --chmod=750 ./docker/run-server.sh /usr/bin/
 
 # Some debian libs
 RUN /app/docker/apt-install.sh \
@@ -168,7 +168,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     uv pip install . && \
     /app/docker/docker-translate.sh
 
-RUN chown -R superset:superset /app && chmod -R 775 /app
+RUN chown -R superset:superset /app && chmod -R 750 /app
 USER superset
 
 ######################################################################
@@ -195,7 +195,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Compile translations
 RUN /app/docker/docker-translate.sh
 
-RUN chown -R superset:superset /app && chmod -R 775 /app
+RUN chown -R superset:superset /app && chmod -R 750 /app
 USER superset
 
 ######################################################################
