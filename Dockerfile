@@ -130,7 +130,6 @@ COPY superset-frontend/package.json superset-frontend/
 COPY requirements/base.txt requirements/
 COPY scripts/check-env.py scripts/
 COPY ./docker/*.sh /app/docker/
-COPY ./docker/run-server.sh /usr/bin/
 
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
@@ -168,7 +167,7 @@ HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 
 # Expose port and set CMD
 EXPOSE ${SUPERSET_PORT}
-CMD ["/usr/bin/run-server.sh"]
+CMD ["/app/docker/run-server.sh"]
 
 
 ######################################################################
