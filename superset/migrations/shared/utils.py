@@ -228,12 +228,12 @@ def create_table(table_name: str, *columns: SchemaItem) -> None:
     """
 
     if has_table(table_name=table_name):
-        logger.info(f"Table {LRED}{table_name}{RESET} already exists Skipping...")
+        logger.info(f"Table {LRED}{table_name}{RESET} already exists. Skipping...")
         return
 
     logger.info(f"Creating table {GREEN}{table_name}{RESET}...")
     op.create_table(table_name, *columns)
-    logger.info(f"Table {GREEN}{table_name}{RESET} created")
+    logger.info(f"Table {GREEN}{table_name}{RESET} created.")
 
 
 def drop_table(table_name: str) -> None:
@@ -249,13 +249,13 @@ def drop_table(table_name: str) -> None:
     """
 
     if not has_table(table_name=table_name):
-        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist Skipping...")
+        logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
         return
 
     logger.info(f"Dropping table {GREEN}{table_name}{RESET}...")
     drop_fks_for_table(table_name)
     op.drop_table(table_name=table_name)
-    logger.info(f"Table {GREEN}{table_name}{RESET} dropped")
+    logger.info(f"Table {GREEN}{table_name}{RESET} dropped.")
 
 
 def batch_operation(
@@ -268,11 +268,18 @@ def batch_operation(
     that performs the operation on each batch. The function logs the progress of the operation as it processes
     through the batches.
 
+    If count is set to 0 or lower, it logs an informational message and skips the batch process.
+
     :param callable: A callable function that takes two integer arguments:
     the start index and the end index of the current batch.
     :param count: The total number of items to process.
     :param batch_size: The number of items to process in each batch.
     """
+    if count <= 0:
+        logger.info(
+            f"No records to process in batch {LRED}(count <= 0){RESET} for callable {LRED}other_callable_example{RESET}. Skipping..."
+        )
+        return
     for offset in range(0, count, batch_size):
         percentage = (offset / count) * 100 if count else 0
         logger.info(f"Progress: {offset:,}/{count:,} ({percentage:.2f}%)")
@@ -280,7 +287,7 @@ def batch_operation(
 
     logger.info(f"Progress: {count:,}/{count:,} (100%)")
     logger.info(
-        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed"
+        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed."
     )
 
 
@@ -288,7 +295,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    If a column already exists, it logs an informational.
+    If a column already exists, it logs an informational message and skips the adding process.
     Otherwise, it proceeds to add the new column to the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -301,7 +308,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     for col in columns:
         if table_has_column(table_name=table_name, column_name=col.name):
             logger.info(
-                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET} Skipping..."
+                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET}. Skipping..."
             )
         else:
             cols_to_add.append(col)
@@ -309,7 +316,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_add:
             logger.info(
-                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}"
+                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}..."
             )
             batch_op.add_column(col)
 
@@ -318,7 +325,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     """
     Drops specified columns from an existing database table.
 
-    If a column does not exist, it logs an informational.
+    If a column does not exist, it logs an informational message and skips the dropping process.
     Otherwise, it proceeds to remove the column from the table.
 
     The operation is performed using Alembic's batch_alter_table.
@@ -331,7 +338,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     for col in columns:
         if not table_has_column(table_name=table_name, column_name=col):
             logger.info(
-                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET} Skipping..."
+                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET}. Skipping..."
             )
         else:
             cols_to_drop.append(col)
@@ -339,7 +346,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_drop:
             logger.info(
-                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}"
+                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}..."
             )
             batch_op.drop_column(col)
 
@@ -348,7 +355,7 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
     """
     Creates an index on specified columns of an existing database table.
 
-    If the index already exists, it logs an informational.
+    If the index already exists, it logs an informational message and skips the creation process.
     Otherwise, it proceeds to create a new index with the specified name on the given columns of the table.
 
     :param table_name: The name of the table on which the index will be created.
@@ -358,7 +365,7 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
 
     if table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET} Skipping..."
+            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET}. Skipping..."
         )
         return
 
@@ -373,7 +380,7 @@ def drop_index(table_name: str, index_name: str) -> None:
     """
     Drops an index from an existing database table.
 
-    If the index does not exists, it logs an informational.
+    If the index does not exists, it logs an informational message and skips the dropping process.
     Otherwise, it proceeds with the removal operation.
 
     :param table_name: The name of the table from which the index will be dropped.
@@ -382,12 +389,12 @@ def drop_index(table_name: str, index_name: str) -> None:
 
     if not table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET} Skipping..."
+            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET}. Skipping..."
         )
         return
 
     logger.info(
-        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}"
+        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}..."
     )
 
     op.drop_index(table_name=table_name, index_name=index_name)
