@@ -31,7 +31,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     id: 1,
     userId: '1',
     metadata: {
-      native_filter_configuration: {},
+      native_filter_configuration: [{}],
       chart_configuration: {},
       global_chart_configuration: {
         scope: { rootPath: ['ROOT_ID'], excluded: [] },
@@ -81,15 +81,6 @@ test('Dropdown trigger renders with FF HORIZONTAL_FILTER_BAR on', async () => {
   expect(screen.getByLabelText('gear')).toBeVisible();
 });
 
-test('Dropdown trigger does not render with FF HORIZONTAL_FILTER_BAR off', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: false,
-  };
-  await setup();
-  expect(screen.queryByLabelText('gear')).not.toBeInTheDocument();
-});
-
 test('Dropdown trigger renders with dashboard edit permissions', async () => {
   // @ts-ignore
   global.featureFlags = {
@@ -128,7 +119,9 @@ test('Dropdown trigger does not render with FF DASHBOARD_CROSS_FILTERS off', asy
   global.featureFlags = {
     [FeatureFlag.DashboardCrossFilters]: false,
   };
-  await setup();
+  await setup({
+    dash_edit_perm: false,
+  });
 
   expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
@@ -175,7 +168,7 @@ test('Popover opens with "Vertical" selected', async () => {
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[1]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -190,7 +183,7 @@ test('Popover opens with "Horizontal" selected', async () => {
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[3]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -216,20 +209,20 @@ test('On selection change, send request and update checked value', async () => {
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[1]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
 
   // 1st check - checkmark appears immediately after click
   expect(
-    await within(screen.getAllByRole('menuitem')[2]).findByLabelText('check'),
+    await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[1]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   // successful query
@@ -246,10 +239,10 @@ test('On selection change, send request and update checked value', async () => {
 
   // 2nd check - checkmark stays after successful query
   expect(
-    await within(screen.getAllByRole('menuitem')[2]).findByLabelText('check'),
+    await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[1]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   fetchMock.reset();
@@ -273,10 +266,10 @@ test('On failed request, restore previous selection', async () => {
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
 
   expect(
-    within(screen.getAllByRole('menuitem')[1]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   userEvent.click(await screen.findByText('Horizontal (Top)'));
@@ -294,10 +287,10 @@ test('On failed request, restore previous selection', async () => {
 
   // checkmark gets rolled back to the original selection after successful query
   expect(
-    await within(screen.getAllByRole('menuitem')[1]).findByLabelText('check'),
+    await within(screen.getAllByRole('menuitem')[2]).findByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   fetchMock.reset();

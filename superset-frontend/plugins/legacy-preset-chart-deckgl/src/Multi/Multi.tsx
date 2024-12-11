@@ -30,7 +30,7 @@ import {
   SupersetClient,
   usePrevious,
 } from '@superset-ui/core';
-import { Layer } from 'deck.gl/typed';
+import { Layer } from '@deck.gl/core';
 
 import {
   DeckGLContainerHandle,

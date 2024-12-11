@@ -30,7 +30,7 @@ import {
   t,
 } from '@superset-ui/core';
 
-import { PolygonLayer } from 'deck.gl/typed';
+import { PolygonLayer } from '@deck.gl/layers';
 
 import Legend from '../../components/Legend';
 import TooltipRow from '../../TooltipRow';
@@ -150,7 +150,7 @@ export function getLayer(
     getLineWidth: fd.line_width,
     extruded: fd.extruded,
     lineWidthUnits: fd.line_width_unit,
-    getElevation: d => getElevation(d, colorScaler),
+    getElevation: (d: any) => getElevation(d, colorScaler),
     elevationScale: fd.multiplier,
     fp64: true,
     ...commonLayerProps(fd, setTooltip, tooltipContentGenerator, onSelect),
