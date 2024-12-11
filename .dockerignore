@@ -30,6 +30,7 @@
 **/*.egg-info
 **/*.bak
 **/*.db
+translations/**/*.mo
 **/*.pyc
 **/*.sqllite
 **/*.swp

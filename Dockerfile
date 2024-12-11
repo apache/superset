@@ -22,17 +22,20 @@ ARG PY_VER=3.10-slim-bookworm
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
+
+######################################################################
+# superset-node used for building frontend assets
+######################################################################
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
-
-COPY --chmod=750 docker/*.sh /app/docker/
-
-# Arguments for build configuration
-ARG NPM_BUILD_CMD="build"
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
+COPY --chmod=750 docker/*.sh /app/docker/
+
+# Arguments for build configuration
+ARG NPM_BUILD_CMD="build"
 
 # Install system dependencies required for node-gyp
 RUN /app/docker/apt-install.sh build-essential python3 zstd
@@ -50,6 +53,9 @@ WORKDIR /app/superset-frontend
 RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
 
+# Copy translation files
+COPY superset/translations /app/superset/translations
+
 # Mount package files and install dependencies if not in dev mode
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
@@ -62,13 +68,10 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
 
-
-# Copy translation files
-COPY superset/translations /app/superset/translations
-
 # Build the frontend if not in dev mode
 RUN if [ "$DEV_MODE" = "false" ]; then \
         echo "Running 'npm run ${BUILD_CMD}'"; \
+        npm run build-translation; \
         npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
@@ -79,6 +82,10 @@ RUN if [ "$DEV_MODE" = "false" ]; then \
 # Base python layer
 ######################################################################
 FROM python:${PY_VER} AS python-base
+ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
+ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
+ARG DEV_MODE="false"           # Skip frontend build in dev mode
+ENV DEV_MODE=${DEV_MODE}
 
 # Some bash scripts needed throughout the layers
 COPY --chmod=750 docker/*.sh /app/docker/
@@ -107,9 +114,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Python common layer
 ######################################################################
 FROM python-base AS python-common
-
-# Build argument for including translations
-ARG BUILD_TRANSLATIONS="false"
 
 WORKDIR /app
 ENV LANG=C.UTF-8 \
@@ -149,13 +153,14 @@ RUN /app/docker/apt-install.sh \
 
 # Copy the main Superset source code
 COPY superset superset
+# Copy .json translations from frontend image
+COPY --from=superset-node /app/superset/translations superset/translations
 
 # Copy the compiled frontend assets from the node image
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
-# Copy .json translations from the node image
+# Add the translations script
 COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
-COPY --from=superset-node /app/superset/translations superset/translations
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/usr/bin/run-server.sh"]
@@ -193,7 +198,7 @@ RUN /app/docker/apt-install.sh \
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=/root/.cache/pip \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt && \
     uv pip install . && \
     /app/docker/docker-translate.sh
 
