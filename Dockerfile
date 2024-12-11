@@ -163,6 +163,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 
 # Add server run script
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
+RUN chown superset:superset /usr/bin/run-server.sh
 
 # Set user and healthcheck
 USER superset
