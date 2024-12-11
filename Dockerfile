@@ -151,9 +151,8 @@ COPY docker/*.sh /app/docker/
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 
 # Install Python dependencies using docker/pip-install.sh
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh --requires-build-essential -r requirements/base.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 
 # Copy the compiled frontend assets from the node image
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
@@ -162,12 +161,11 @@ COPY --from=superset-node /app/superset/static/assets superset/static/assets
 COPY superset superset
 
 # Install Superset itself using docker/pip-install.sh
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/pip \
     if [ "$DEV_MODE" = "true" ]; then \
-        uv pip install -e . \
+        uv pip install -e .; \
     else \
-        uv pip install . \
+        uv pip install .; \
     fi
 
 # Copy .json translations from the node image
@@ -212,17 +210,16 @@ RUN --mount=type=bind,source=./docker,target=/docker \
 
 # Copy development requirements and install them
 COPY requirements/development.txt requirements/
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh --requires-build-essential -r requirements/development.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
 
 # Install Superset itself using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
     --mount=type=cache,target=/root/.cache/pip \
     if [ "$DEV_MODE" = "true" ]; then \
-        uv pip install -e . \
+        uv pip install -e .; \
     else \
-        uv pip install . \
+        uv pip install .; \
     fi
 
 RUN chown -R superset:superset /app && chmod -R 775 /app
