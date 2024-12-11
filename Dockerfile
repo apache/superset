@@ -168,7 +168,7 @@ HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 
 # Expose port and set CMD
 EXPOSE ${SUPERSET_PORT}
-CMD ["/app/docker/run-server.sh"]
+CMD ["/usr/bin/run-server.sh"]
 
 
 ######################################################################
