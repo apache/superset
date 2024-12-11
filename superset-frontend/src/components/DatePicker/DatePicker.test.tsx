@@ -16,25 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePicker as AntdDatePicker } from 'antd-v5';
-// import { RangePickerProps } from 'antd-v5/es/date-picker';
-import {
-  RangePickerProps as BaseRangePickerProps,
-  PickerProps,
-} from 'antd-v5/es/date-picker/generatePicker/interface';
-import { Moment } from 'moment';
-import momentGenerateConfig from 'antd-v5/node_modules/rc-picker/lib/generate/moment';
 
-export type DatePickerProps = PickerProps<Moment>;
+import { render } from 'spec/helpers/testing-library';
+import { DatePicker, RangePicker } from '.';
 
-export type RangePickerProps = BaseRangePickerProps<Moment>;
+test('should render date picker', () => {
+  const { container } = render(<DatePicker />);
+  expect(container).toBeInTheDocument();
+});
 
-export const DatePicker = AntdDatePicker.generatePicker<Moment>(
-  momentGenerateConfig,
-) as React.FC<DatePickerProps>;
-
-export const { RangePicker } = AntdDatePicker.generatePicker<Moment>(
-  momentGenerateConfig,
-) as {
-  RangePicker: React.FC<RangePickerProps>;
-};
+test('should render range picker', () => {
+  const { container } = render(<RangePicker />);
+  expect(container).toBeInTheDocument();
+});
