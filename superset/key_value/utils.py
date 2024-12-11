@@ -61,7 +61,7 @@ def decode_permalink_id(key: str, salt: str) -> int:
 
 
 def get_uuid_namespace(seed: str) -> UUID:
-    md5_obj = md5()
+    md5_obj = md5(usedforsecurity=False)
     md5_obj.update(seed.encode("utf-8"))
     return UUID(md5_obj.hexdigest())
 
