@@ -3197,3 +3197,114 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 404
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_put_dashboard_colors(self):
+        """
+        Dashboard API: Test updating dashboard colors
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard = Dashboard.get("world_health")
+
+        colors = {
+            "label_colors": {"Sales": "#FF0000", "Profit": "#00FF00"},
+            "shared_label_colors": ["#0000FF", "#FFFF00"],
+            "map_label_colors": {"Revenue": "#FFFFFF"},
+            "color_scheme": "d3Category10",
+        }
+
+        uri = f"api/v1/dashboard/{dashboard.id}/colors"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 200
+
+        updated_dashboard = db.session.query(Dashboard).get(dashboard.id)
+        updated_label_colors = json.loads(updated_dashboard.json_metadata).get(
+            "label_colors"
+        )
+        updated_shared_label_colors = json.loads(updated_dashboard.json_metadata).get(
+            "shared_label_colors"
+        )
+        updated_map_label_colors = json.loads(updated_dashboard.json_metadata).get(
+            "map_label_colors"
+        )
+        updated_color_scheme = json.loads(updated_dashboard.json_metadata).get(
+            "color_scheme"
+        )
+
+        assert updated_label_colors == colors["label_colors"]
+        assert updated_shared_label_colors == colors["shared_label_colors"]
+        assert updated_map_label_colors == colors["map_label_colors"]
+        assert updated_color_scheme == colors["color_scheme"]
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_put_dashboard_colors_no_mark_updated(self):
+        """
+        Dashboard API: Test updating dashboard colors without marking the dashboard as updated
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard = Dashboard.get("world_health")
+
+        colors = {"color_scheme": "d3Category10"}
+
+        previous_changed_on = dashboard.changed_on
+        uri = f"api/v1/dashboard/{dashboard.id}/colors?mark_updated=false"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 200
+
+        updated_dashboard = db.session.query(Dashboard).get(dashboard.id)
+        updated_color_scheme = json.loads(updated_dashboard.json_metadata).get(
+            "color_scheme"
+        )
+
+        assert updated_color_scheme == colors["color_scheme"]
+        assert updated_dashboard.changed_on == previous_changed_on
+
+    def test_put_dashboard_colors_not_found(self):
+        """
+        Dashboard API: Test updating colors for dashboard that does not exist
+        """
+        self.login(ADMIN_USERNAME)
+
+        colors = {"label_colors": {"Sales": "#FF0000"}}
+
+        invalid_id = self.get_nonexistent_numeric_id(Dashboard)
+        uri = f"api/v1/dashboard/{invalid_id}/colors"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_put_dashboard_colors_invalid(self):
+        """
+        Dashboard API: Test updating dashboard colors with invalid color format
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard = Dashboard.get("world_health")
+
+        colors = {"test_invalid_prop": {"Sales": "invalid"}}
+
+        uri = f"api/v1/dashboard/{dashboard.id}/colors"
+        rv = self.client.put(uri, json=colors)
+        assert rv.status_code == 400
+
+    def test_put_dashboard_colors_not_authorized(self):
+        """
+        Dashboard API: Test updating colors without authorization
+        """
+        with self.create_app().app_context():
+            admin = security_manager.find_user("admin")
+            dashboard = self.insert_dashboard("title", None, [admin.id])
+
+            assert dashboard.id is not None
+
+            colors = {"label_colors": {"Sales": "#FF0000"}}
+
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/colors"
+            rv = self.client.put(uri, json=colors)
+            assert rv.status_code == 403
+
+            yield dashboard
+
+            # Cleanup
+            db.session.delete(dashboard)
+            db.session.commit()

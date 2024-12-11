@@ -391,6 +391,24 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
         return updated_configuration
 
+    @classmethod
+    def update_colors_config(
+        cls, dashboard: Dashboard, attributes: dict[str, Any]
+    ) -> None:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+
+        for key in [
+            "color_scheme_domain",
+            "color_scheme",
+            "shared_label_colors",
+            "map_label_colors",
+            "label_colors",
+        ]:
+            if key in attributes:
+                metadata[key] = attributes[key]
+
+        dashboard.json_metadata = json.dumps(metadata)
+
     @staticmethod
     def add_favorite(dashboard: Dashboard) -> None:
         ids = DashboardDAO.favorited_ids([dashboard])
