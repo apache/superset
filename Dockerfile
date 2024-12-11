@@ -27,6 +27,7 @@ FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 # Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
+ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
@@ -66,20 +67,11 @@ COPY superset/translations /app/superset/translations
 
 # Build the frontend if not in dev mode
 RUN if [ "$DEV_MODE" = "false" ]; then \
-        BUILD_TRANSLATIONS=$BUILD_TRANSLATIONS npm run ${BUILD_CMD}; \
+        echo "Running 'npm run ${BUILD_CMD}'"; \
+        npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
     fi
-
-# Compile .json files from .po translations (if required) and clean up .po files
-RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
-        npm run build-translation; \
-    else \
-        echo "Skipping translations as requested by build flag"; \
-    fi \
-	# removing translations files regardless
-    && rm -rf /app/superset/translations/*/LC_MESSAGES/*.po \
-              /app/superset/translations/messages.pot
 
 
 ######################################################################
@@ -107,9 +99,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 
 ######################################################################
-# Final lean image...
+# Python common layer
 ######################################################################
-FROM python-base AS lean
+FROM python-base AS python-common
 
 # Build argument for including translations
 ARG BUILD_TRANSLATIONS="false"
@@ -124,8 +116,7 @@ ENV LANG=C.UTF-8 \
     SUPERSET_PORT=8088
 
 # Set up necessary directories and user
-RUN --mount=type=bind,source=./docker,target=/docker \
-    mkdir -p ${PYTHONPATH} \
+RUN mkdir -p ${PYTHONPATH} \
       superset/static \
       requirements \
       superset-frontend \
@@ -133,82 +124,76 @@ RUN --mount=type=bind,source=./docker,target=/docker \
       requirements \
       {SUPERSET_HOME} \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
-    && /docker/apt-install.sh \
-        curl \
-        libsasl2-dev \
-        libsasl2-modules-gssapi-mit \
-        libpq-dev \
-        libecpg-dev \
-        libldap2-dev \
-    && touch superset/static/version_info.json \
-    && rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
+    && touch superset/static/version_info.json
 
 # Copy required files for Python build
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/
-COPY requirements/base.txt requirements/
 COPY scripts/check-env.py scripts/
-COPY docker/*.sh /app/docker/
+COPY --chmod=755 docker/*.sh /app/docker/
 COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 
-# Install Python dependencies using docker/pip-install.sh
-RUN --mount=type=cache,target=/root/.cache/pip \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
-
-# Copy the compiled frontend assets from the node image
-COPY --from=superset-node /app/superset/static/assets superset/static/assets
+# Some debian libs
+RUN /app/docker/apt-install.sh \
+      curl \
+      libsasl2-dev \
+      libsasl2-modules-gssapi-mit \
+      libpq-dev \
+      libecpg-dev \
+      libldap2-dev
 
 # Copy the main Superset source code
 COPY superset superset
 
-# Install Superset itself using docker/pip-install.sh
-RUN --mount=type=cache,target=/root/.cache/pip \
-    uv pip install .
+# Copy the compiled frontend assets from the node image
+COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
 # Copy .json translations from the node image
+COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
 COPY --from=superset-node /app/superset/translations superset/translations
 
-# Compile backend translations and clean up
-COPY ./scripts/translations/generate_mo_files.sh ./scripts/translations/
-RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
-        ./scripts/translations/generate_mo_files.sh; \
-    fi \
-    && rm -rf superset/translations/messages.pot \
-              superset/translations/*/LC_MESSAGES/*.po;
+HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
+CMD ["/usr/bin/run-server.sh"]
+EXPOSE ${SUPERSET_PORT}
 
-# Add server run script
+######################################################################
+# Final lean image...
+######################################################################
+FROM python-common AS lean
 
-# Set user and healthcheck
+# Install Python dependencies using docker/pip-install.sh
+COPY requirements/base.txt requirements/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
+    uv pip install . && \
+    /app/docker/docker-translate.sh
+
 RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset
-HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
-
-# Expose port and set CMD
-EXPOSE ${SUPERSET_PORT}
-CMD ["/usr/bin/run-server.sh"]
-
 
 ######################################################################
 # Dev image...
 ######################################################################
-FROM lean AS dev
+FROM python-common AS dev
 
 USER root
 
-# Convenience libs for development
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/apt-install.sh \
-        git \
-        pkg-config
-
-# Install MySQL client dependencies
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/apt-install.sh default-libmysqlclient-dev
+# Debian libs needed for dev
+RUN /app/docker/apt-install.sh \
+    git \
+    pkg-config \
+    default-libmysqlclient-dev
 
 # Copy development requirements and install them
-COPY requirements/development.txt requirements/
+COPY requirements/*.txt requirements/
+# Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=/root/.cache/pip \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
+    uv pip install . && \
+    /app/docker/docker-translate.sh
+
+# Compile translations
+RUN /app/docker/docker-translate.sh
 
 RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset
