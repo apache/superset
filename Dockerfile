@@ -98,7 +98,7 @@ ENV LANG=C.UTF-8 \
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
 
 # Some bash scripts needed throughout the layers
-COPY --chown=superset:superset --chmod=750 docker/*.sh /app/docker/
+COPY --chmod=750 docker/*.sh /app/docker/
 
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
 
@@ -127,7 +127,7 @@ FROM python-base AS python-common
 WORKDIR /app
 # Set up necessary directories and user
 RUN mkdir -p \
-      {SUPERSET_HOME} \
+      ${SUPERSET_HOME} \
       ${PYTHONPATH} \
       superset/static \
       requirements \
@@ -137,10 +137,10 @@ RUN mkdir -p \
     && touch superset/static/version_info.json
 
 # Copy required files for Python build
-COPY --chown=superset:superset pyproject.toml setup.py MANIFEST.in README.md ./
-COPY --chown=superset:superset superset-frontend/package.json superset-frontend/
-COPY --chown=superset:superset scripts/check-env.py scripts/
-COPY --chown=superset:superset --chmod=750 ./docker/run-server.sh /usr/bin/
+COPY pyproject.toml setup.py MANIFEST.in README.md ./
+COPY superset-frontend/package.json superset-frontend/
+COPY scripts/check-env.py scripts/
+COPY --chmod=750 ./docker/run-server.sh /usr/bin/
 
 # Some debian libs
 RUN /app/docker/apt-install.sh \
@@ -152,15 +152,15 @@ RUN /app/docker/apt-install.sh \
       libldap2-dev
 
 # Copy the main Superset source code
-COPY --chown=superset:superset superset superset
+COPY superset superset
 # Copy .json translations from frontend image
-COPY --chown=superset:superset --from=superset-node /app/superset/translations superset/translations
+COPY --from=superset-node /app/superset/translations superset/translations
 
 # Copy the compiled frontend assets from the node image
-COPY --chown=superset:superset --from=superset-node /app/superset/static/assets superset/static/assets
+COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
 # Add the translations script
-COPY --chown=superset:superset --chmod=750 ./scripts/translations/generate_mo_files.sh ./scripts/translations/
+COPY --chmod=750 ./scripts/translations/generate_mo_files.sh ./scripts/translations/
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/usr/bin/run-server.sh"]
@@ -172,7 +172,7 @@ EXPOSE ${SUPERSET_PORT}
 FROM python-common AS lean
 
 # Install Python dependencies using docker/pip-install.sh
-COPY --chown=superset:superset requirements/base.txt requirements/
+COPY requirements/base.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
     uv pip install .
@@ -195,7 +195,7 @@ RUN /app/docker/apt-install.sh \
     default-libmysqlclient-dev
 
 # Copy development requirements and install them
-COPY --chown=superset:superset requirements/*.txt requirements/
+COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt && \
