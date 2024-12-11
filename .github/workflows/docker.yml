@@ -91,7 +91,9 @@ jobs:
 
       - name: Install Docker Compose
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        run: sudo apt-get install docker-compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install docker-compose-plugin
 
       - name: docker-compose sanity check
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
