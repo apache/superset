@@ -164,7 +164,11 @@ COPY superset superset
 # Install Superset itself using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
     --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh -e .
+    if [ "$DEV_MODE" = "true" ]; then \
+        uv pip install -e . \
+    else \
+        uv pip install . \
+    fi
 
 # Copy .json translations from the node image
 COPY --from=superset-node /app/superset/translations superset/translations
@@ -215,7 +219,11 @@ RUN --mount=type=bind,source=./docker,target=/docker \
 # Install Superset itself using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
     --mount=type=cache,target=/root/.cache/pip \
-    /docker/pip-install.sh -e .
+    if [ "$DEV_MODE" = "true" ]; then \
+        uv pip install -e . \
+    else \
+        uv pip install . \
+    fi
 
 RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset
