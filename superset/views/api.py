@@ -130,7 +130,6 @@ class Api(BaseSupersetView):
     @event_logger.log_this
     @api
     @handle_api_exception
-    @has_access_api
     @expose("/v1/presigned_urls/", methods=("POST",))
     def get_presigned_urls(self) -> FlaskResponse:
         image_links = request.json.get("image_links")

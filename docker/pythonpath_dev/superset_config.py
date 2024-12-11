@@ -97,13 +97,32 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {"ALERT_REPORTS": True,"EMBEDDED_SUPERSET": True,"ENABLE_TEMPLATE_PROCESSING": True,}
+# EMBED CODE  IFRAME OPTIONS
+TALISMAN_ENABLED = False
+ENABLE_CORS = True
+HTTP_HEADERS={"X-Frame-Options":"ALLOWALL"} 
+
+# Dashboard embedding 
+GUEST_ROLE_NAME = "Admin" 
+GUEST_TOKEN_JWT_SECRET = "0f9792d37bddef9d94a1df80e3c7d04f2003b73fdb08edb2781681a73a2e13e67050d07b0c458165fcb8ea0d332ce5e3411aa4b4f5a006dbd5c5728a9a003a45209d386be26fb36f44878156f77ed14379dbc131e353cf2a8f3d876b413bf7d5d90a592b213a6f572cdd74c9b6ddb7e94a948f12be3bc97de0254eda7514e9e9a918f54e8026d4f611ea9a5a12d8a2ffeed51b80dd4030c88fdf6a96ec6860af33294e50bbc816bc8d78fadd649351f7c187637ef2b49ea5aa2c64af99bf6a24ac18518f1fe8bd7c7af00bc27e4026011e2cb2f88eea7ccc32f967708be454219f1b94d323d7664909d16369ec9edcc23afcb0c9de6a6b3168e352c5c1d590f1" 
+GUEST_TOKEN_JWT_ALGO = "HS256" 
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken" 
+GUEST_TOKEN_JWT_EXP_SECONDS = 900 # 15 minutes
+
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl should be http://superset_app:8088/
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 SQLLAB_CTAS_NO_LIMIT = True
 
+
+HTML_SANITIZATION_SCHEMA_EXTENSIONS = {
+        "attributes": {
+          "*": ["style","className","script","target"],
+        },
+        "tagNames": ["style","script"],
+      }
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden

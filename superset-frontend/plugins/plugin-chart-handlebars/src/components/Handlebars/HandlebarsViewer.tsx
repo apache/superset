@@ -104,7 +104,7 @@ hb.registerHelper('dateFormat', function (context: any, block: any) {
 hb.registerHelper('parseJSON', (jsonString: string) => {
   if (jsonString === undefined)
     throw Error('Please call with an object. Example: `parseJSON myObj`');
-  return JSON.parse(jsonString.replace(/'/g, '"'));
+  return JSON.parse(jsonString);
 });
 
 hb.registerHelper('inc', (value: string) => {
@@ -157,44 +157,88 @@ hb.registerHelper('getPresignedUrls', async (imageLinks: string[]) => {
 });
 
 hb.registerHelper('jsonToHtmlTable', (jsonData1: string, jsonData2: string) => {
-  const assignmentData = JSON.parse(jsonData1.replace(/'/g, '"'));
-  const reviewData = JSON.parse(jsonData2.replace(/'/g, '"'));
-  const { items } = assignmentData;
-  const errors = reviewData.diff;
+  const assignmentData = JSON.parse(jsonData1);
+  const reviewData = JSON.parse(jsonData2);
+  const items = assignmentData.items || [];
+  const errors = reviewData.diff || [];
+  let html = '';
 
-  // Start building the HTML table structure
-  let html = '<table id="receipt_item_table" class="pretty_table"><tbody>';
-  html +=
-    '<tr><th>Type</th><th>Qty</th><th>Item Number</th><th>RSD</th><th>Price</th><th>Per Item</th><th>Errors</th></tr>';
+  let Total = assignmentData.total || '';
+  const Date = assignmentData.txn ? assignmentData.txn.date || '' : '';
+  const Hour = assignmentData.txn ? assignmentData.txn.hour || '' : '';
+  const Minute = assignmentData.txn ? assignmentData.txn.minute || '' : '';
+  const Suffix = assignmentData.txn ? assignmentData.txn.suffix || '' : '';
+  let Channel = assignmentData.channel || '';
 
-  items.forEach((item: any, index: any) => {
-    let { qty } = item;
-    let isError = false;
-
-    // Check for quantity errors in the review data
+  if (items) {
     errors.forEach((error: any[][]) => {
-      if (error[1][1] === index && error[1][2] === 'qty') {
-        isError = true;
-        qty += `<br><span class="is_error">${error[2][0]}</span>`; // Add the incorrect original quantity
+      if (error[1][0] === 'total') {
+        Total += `<br><span class="is_error">${error[2][0]}</span>`; // Add the incorrect original quantity
+      } else if (error[1][0] === 'channel') {
+        Channel += `<br><span class="is_error">${error[2][0]}</span>`; // Add the incorrect original quantity
       }
     });
 
-    const perItem = (parseFloat(item.amount) / parseInt(item.qty, 10)).toFixed(
-      2,
-    );
+    html +=
+      '<h3>Summary</h3><table id="receipt_summary_table" class="pretty_table"><tbody>';
+    html += `<tr><td>Total</td><td>${Total}</td></tr>
+           <tr><td>Transaction Date</td><td>${Date}</td></tr>
+           <tr><td>Transaction Time</td><td>${Hour}:${Minute}:${Suffix}</td></tr>
+           <tr><td>Channel</td><td>${Channel}</td></tr>`;
+    html += '</tbody></table>';
+    // Check if items exist
+    if (items.length === 0) {
+      html += '<h3>Items</h3><br><p>No items found in the receipt data.</p>';
+      return html;
+    }
 
-    html += `<tr id="item_${index}" class="">
-                  <td>${item.type}</td>
-                  <td>${qty}</td>
-                  <td></td>
-                  <td>${item.rsd}</td>
-                  <td>${item.amount}</td>
-                  <td>${perItem}</td>
-                  <td>${isError ? 'Incorrect Quantity' : ''}</td>
-              </tr>`;
-  });
+    if (items) {
+      html +=
+        '<h3>Items</h3><table id="receipt_item_table" class="pretty_table"><tbody>';
+      items.forEach((item: any, index: any) => {
+        let { qty } = item;
+        let rin = item.upc || item.rin || '';
+        let rsd = item.rsd || '';
+        let { amount } = item;
+        const errorMessages: string[] = [];
 
-  html += '</tbody></table>';
+        // Check for quantity errors in the review data
+        errors.forEach((error: any[][]) => {
+          if (error[1][1] === index && error[1][2] === 'qty') {
+            errorMessages.push('Incorrect Quantity');
+            qty += `<br><span class="is_error">${error[2][0]}</span>`; // Add the incorrect original quantity
+          } else if (
+            error[1][1] === index &&
+            (error[1][2] === 'rin' || error[1][2] === 'upc')
+          ) {
+            rin += `<br><span class="is_error">${error[2][0]}</span>`;
+            errorMessages.push('Incorrect RIN');
+          } else if (error[1][1] === index && error[1][2] === 'rsd') {
+            rsd += `<br><span class="is_error">${error[2][0]}</span>`;
+            errorMessages.push('Incorrect RSD');
+          } else if (error[1][1] === index && error[1][2] === 'amount') {
+            amount += `<br><span class="is_error">${error[2][0]}</span>`;
+            errorMessages.push('Incorrect amount');
+          }
+        });
+
+        const perItem = (
+          parseFloat(item.amount) / parseInt(item.qty, 10)
+        ).toFixed(2);
+
+        html += `<tr id="item_${index}" class="">
+                    <td>${item.type}</td>
+                    <td>${qty}</td>
+                    <td>${rin}</td>
+                    <td>${rsd}</td>
+                    <td>${amount}</td>
+                    <td>${perItem}</td>
+                    <td>${errorMessages.join(', ')}</td>
+                </tr>`;
+      });
+      html += '</tbody></table>';
+    }
+  }
   return html;
 });
 
