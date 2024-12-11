@@ -711,10 +711,13 @@ class QueryContextProcessor:
             if time_grain == TimeGrain.MONTH:
                 return value.strftime("%Y-%m")
 
-        if time_grain == TimeGrain.QUARTER:
-            return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
+            if time_grain == TimeGrain.QUARTER:
+                return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
 
-        return row[column_index].strftime("%Y")
+            if time_grain == TimeGrain.YEAR:
+                return row[column_index].strftime("%Y")
+
+        return str(value)
 
     def get_data(
         self, df: pd.DataFrame, coltypes: list[GenericDataType]
