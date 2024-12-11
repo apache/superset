@@ -33,7 +33,6 @@ ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
 COPY --chmod=750 docker/*.sh /app/docker/
-
 # Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
 
@@ -87,6 +86,17 @@ ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    SUPERSET_ENV=production \
+    FLASK_APP="superset.app:create_app()" \
+    PYTHONPATH="/app/pythonpath" \
+    SUPERSET_HOME="/app/superset_home" \
+    SUPERSET_PORT=8088
+
+
+RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
+
 # Some bash scripts needed throughout the layers
 COPY --chown=superset:superset --chmod=750 docker/*.sh /app/docker/
 
@@ -109,21 +119,12 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         echo "Skipping browser installation"; \
     fi
 
-
 ######################################################################
 # Python common layer
 ######################################################################
 FROM python-base AS python-common
 
 WORKDIR /app
-ENV LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8 \
-    SUPERSET_ENV=production \
-    FLASK_APP="superset.app:create_app()" \
-    PYTHONPATH="/app/pythonpath" \
-    SUPERSET_HOME="/app/superset_home" \
-    SUPERSET_PORT=8088
-
 # Set up necessary directories and user
 RUN mkdir -p \
       {SUPERSET_HOME} \
@@ -133,7 +134,6 @@ RUN mkdir -p \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
-    && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && touch superset/static/version_info.json
 
 # Copy required files for Python build
@@ -175,8 +175,11 @@ FROM python-common AS lean
 COPY --chown=superset:superset requirements/base.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
-    uv pip install . && \
-    /app/docker/docker-translate.sh
+    uv pip install .
+
+RUN python -m compileall /app/superset
+
+RUN /app/docker/docker-translate.sh
 
 USER superset
 
@@ -184,8 +187,6 @@ USER superset
 # Dev image...
 ######################################################################
 FROM python-common AS dev
-
-USER root
 
 # Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
@@ -198,11 +199,11 @@ COPY --chown=superset:superset requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt && \
-    uv pip install . && \
-    /app/docker/docker-translate.sh
+    uv pip install .
 
-# Compile translations
 RUN /app/docker/docker-translate.sh
+
+RUN python -m compileall /app/superset
 
 USER superset
 

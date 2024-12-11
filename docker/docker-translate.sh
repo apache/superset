@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 if [ "$BUILD_TRANSLATIONS" = "true" ]; then
-    npm run build-translation;
+    ./scripts/translations/generate_mo_files.sh
 else \
     echo "Skipping translations as requested by build flag";
 fi \
