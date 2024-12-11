@@ -155,7 +155,8 @@ jobs:
           supersetbot docker \
             --preset ci \
             --platform  linux/amd64 \
-            --context-ref "$RELEASE"
+            --context-ref "$RELEASE" \
+            --extra-flags "--build-arg INCLUDE_CHROMIUM=false"
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
