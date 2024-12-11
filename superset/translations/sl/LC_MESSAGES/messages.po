@@ -17,17 +17,17 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2024-10-05 23:48+0200\n"
+"POT-Creation-Date: 2024-10-21 10:25+0330\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
 "Language-Team: \n"
 "Plural-Forms: nplurals=4; plural=(n%100==1 ? 0 : n%100==2 ? 1 : n%100>=3 "
-"&& n%100<=4 ? 2 : 3);\n"
+"&& n%100<=4 ? 2 : 3)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.9.1\n"
 
 msgid ""
 "\n"
@@ -643,10 +643,6 @@ msgstr "90 days"
 
 msgid ":"
 msgstr ":"
-
-#, python-format
-msgid ":%(column)d"
-msgstr ":%(column)d"
 
 msgid "< (Smaller than)"
 msgstr "< (manjše kot)"
@@ -6720,6 +6716,12 @@ msgstr "Mediane"
 msgid "Medium"
 msgstr "Srednje"
 
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
+msgstr ""
+
 msgid "Menu actions trigger"
 msgstr "Preklapljanje funkcionalnosti menijev"
 
@@ -11188,6 +11190,10 @@ msgstr ""
 "Rezultat te poizvedbe mora biti številska vrednost, kot je 1, 1.0 ali "
 "\"1\" (kompatibilno s Pythonovo float() funkcijo)."
 
+#, fuzzy
+msgid "The result size exceeds the allowed limit."
+msgstr "Velikost datoteke presega največjo dovoljeno."
+
 msgid "The results backend no longer has the data from the query."
 msgstr "Zaledni sistem rezultatov nima več podatkov iz poizvedbe."
 
@@ -12311,6 +12317,9 @@ msgid ""
 msgstr ""
 "Stanja sheme tabele ni mogoče prenesti v sistem. Superset bo ponovil "
 "poskus kasneje. Če se težava ponavlja, kontaktirajte administratorja."
+
+msgid "Unable to parse SQL"
+msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
 msgstr "Neuspešno pridobivanje barv nadzorne plošče"
