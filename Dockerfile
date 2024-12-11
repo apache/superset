@@ -212,6 +212,11 @@ RUN --mount=type=bind,source=./docker,target=/docker \
     --mount=type=cache,target=/root/.cache/pip \
     /docker/pip-install.sh --requires-build-essential -r requirements/development.txt
 
+# Install Superset itself using docker/pip-install.sh
+RUN --mount=type=bind,source=./docker,target=/docker \
+    --mount=type=cache,target=/root/.cache/pip \
+    /docker/pip-install.sh -e .
+
 RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset
 
