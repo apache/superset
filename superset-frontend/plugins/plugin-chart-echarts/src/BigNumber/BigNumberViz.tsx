@@ -120,7 +120,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
         className="kicker"
         style={{
           fontSize,
-          height: maxHeight,
+          height: 'auto',
         }}
       >
         {text}
@@ -156,7 +156,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     document.body.append(container);
     const fontSize = computeMaxFontSize({
       text,
-      maxWidth: width - 8, // Decrease 8px for more precise font size
+      maxWidth: width *0.9, // reduced it's max width
       maxHeight,
       className: 'header-line',
       container,
@@ -174,9 +174,12 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       <div
         className="header-line"
         style={{
+          display:'flex',
+          alignItems:'center',
           fontSize,
-          height: maxHeight,
+          height: 'auto',
           color: numberColor,
+          marginBottom:'10px'
         }}
         onContextMenu={onContextMenu}
       >
@@ -204,7 +207,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       document.body.append(container);
       fontSize = computeMaxFontSize({
         text,
-        maxWidth: width,
+        maxWidth: width*0.9, //max with reduced
         maxHeight,
         className: 'subheader-line',
         container,
