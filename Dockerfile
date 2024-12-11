@@ -112,7 +112,7 @@ RUN --mount=type=bind,source=./docker,target=/docker \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
-      {SUPERSET_HOME} \
+      ${SUPERSET_HOME} \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && /docker/apt-install.sh \
         curl \
