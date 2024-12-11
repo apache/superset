@@ -28,7 +28,7 @@ jobs:
   docker-build:
     name: docker-build
     needs: setup_matrix
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
@@ -93,7 +93,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         run: |
           sudo apt-get update
-          sudo apt-get install docker-compose-plugin
+          sudo apt-get install docker-compose
 
       - name: docker-compose sanity check
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
