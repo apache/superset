@@ -28,6 +28,7 @@ FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 ARG NPM_BUILD_CMD="build"
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
+ENV DEV_MODE=${DEV_MODE}
 
 # Install system dependencies required for node-gyp
 RUN --mount=type=bind,source=./docker,target=/docker \
@@ -162,11 +163,7 @@ COPY superset superset
 
 # Install Superset itself using docker/pip-install.sh
 RUN --mount=type=cache,target=/root/.cache/pip \
-    if [ "$DEV_MODE" = "true" ]; then \
-        uv pip install -e .; \
-    else \
-        uv pip install .; \
-    fi
+    uv pip install .
 
 # Copy .json translations from the node image
 COPY --from=superset-node /app/superset/translations superset/translations
@@ -212,15 +209,6 @@ RUN --mount=type=bind,source=./docker,target=/docker \
 COPY requirements/development.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
-
-# Install Superset itself using docker/pip-install.sh
-RUN --mount=type=bind,source=./docker,target=/docker \
-    --mount=type=cache,target=/root/.cache/pip \
-    if [ "$DEV_MODE" = "true" ]; then \
-        uv pip install -e .; \
-    else \
-        uv pip install .; \
-    fi
 
 RUN chown -R superset:superset /app && chmod -R 775 /app
 USER superset

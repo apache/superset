@@ -18,6 +18,11 @@
 
 set -eo pipefail
 
+# Make python interactive
+if [ "$DEV_MODE" == "true" ]; then
+    echo "Reinstalling the app in editable mode"
+    uv pip install -e .
+fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
 # If Cypress run – overwrite the password for admin and export env variables
 if [ "$CYPRESS_CONFIG" == "true" ]; then
