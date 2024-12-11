@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
@@ -14,36 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-**/__pycache__/
-**/.git
-**/.apache_superset.egg-info
-**/.github
-**/.mypy_cache
-**/.pytest_cache
-**/.tox
-**/.vscode
-**/.idea
-**/.coverage
-**/.DS_Store
-**/.eggs
-**/.python-version
-**/*.egg-info
-**/*.bak
-**/*.db
-translations/**/*.mo
-**/*.pyc
-**/*.sqllite
-**/*.swp
-**/.terser-plugin-cache/
-**/.storybook/
-**/node_modules/
-
-tests/
-docs/
-install/
-superset-frontend/cypress-base/
-superset-frontend/coverage/
-superset/static/assets/
-superset-websocket/dist/
-venv
-.venv
+if [ "$BUILD_TRANSLATIONS" = "true" ]; then
+    ./scripts/translations/generate_mo_files.sh
+else \
+    echo "Skipping translations as requested by build flag";
+fi \
+# removing translations files regardless
+rm -f /app/superset/translations/*/LC_MESSAGES/*.po /app/superset/translations/messages.pot

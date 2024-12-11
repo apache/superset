@@ -148,6 +148,14 @@ jobs:
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
 
+      - name: Try to login to DockerHub
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        continue-on-error: true
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: Build ephemeral env image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
