@@ -130,6 +130,7 @@ COPY superset-frontend/package.json superset-frontend/
 COPY requirements/base.txt requirements/
 COPY scripts/check-env.py scripts/
 COPY ./docker/*.sh /app/docker/
+COPY --chmod=755 ./docker/run-server.sh /usr/bin/
 
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=bind,source=./docker,target=/docker \
