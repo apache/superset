@@ -163,22 +163,22 @@ class TestSavedQueryApi(SupersetTestCase):
             tag_associations = [
                 TaggedObject(
                     object_id=queries[0].id,
-                    object_type=ObjectType.chart,
+                    object_type=ObjectType.CHART,
                     tag=tags["first_tag"],
                 ),
                 TaggedObject(
                     object_id=queries[1].id,
-                    object_type=ObjectType.chart,
+                    object_type=ObjectType.CHART,
                     tag=tags["second_tag"],
                 ),
                 TaggedObject(
                     object_id=queries[2].id,
-                    object_type=ObjectType.chart,
+                    object_type=ObjectType.CHART,
                     tag=tags["first_tag"],
                 ),
                 TaggedObject(
                     object_id=queries[2].id,
-                    object_type=ObjectType.chart,
+                    object_type=ObjectType.CHART,
                     tag=tags["second_tag"],
                 ),
             ]

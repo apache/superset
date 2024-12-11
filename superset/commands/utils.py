@@ -130,7 +130,7 @@ def validate_tags(
         return
 
     # No changes in the list
-    current_custom_tags = [tag.id for tag in current_tags if tag.type == TagType.custom]
+    current_custom_tags = [tag.id for tag in current_tags if tag.type == TagType.CUSTOM]
     if Counter(current_custom_tags) == Counter(new_tag_ids):
         return
 
@@ -140,7 +140,7 @@ def validate_tags(
         or security_manager.can_access("can_tag", object_type.name.capitalize())
     ):
         validation_error = (
-            f"You do not have permission to manage tags on {object_type.name}s"
+            f"You do not have permission to manage tags on {object_type.name.lower()}s"
         )
         raise TagForbiddenError(validation_error)
 
@@ -169,9 +169,9 @@ def update_tags(
     :param new_tag_ids: list of tags specified in the update payload
     """
 
-    current_custom_tags = [tag for tag in current_tags if tag.type == TagType.custom]
+    current_custom_tags = [tag for tag in current_tags if tag.type == TagType.CUSTOM]
     current_custom_tag_ids = [
-        tag.id for tag in current_tags if tag.type == TagType.custom
+        tag.id for tag in current_tags if tag.type == TagType.CUSTOM
     ]
 
     tags_to_delete = [tag for tag in current_custom_tags if tag.id not in new_tag_ids]

@@ -60,7 +60,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
         # Update tags
         if (tags := self._properties.pop("tags", None)) is not None:
-            update_tags(ObjectType.dashboard, self._model.id, self._model.tags, tags)
+            update_tags(ObjectType.DASHBOARD, self._model.id, self._model.tags, tags)
 
         dashboard = DashboardDAO.update(self._model, self._properties)
         if self._properties.get("json_metadata"):
@@ -103,7 +103,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
 
         # validate tags
         try:
-            validate_tags(ObjectType.dashboard, self._model.tags, tag_ids)
+            validate_tags(ObjectType.DASHBOARD, self._model.tags, tag_ids)
         except ValidationError as ex:
             exceptions.append(ex)
 
