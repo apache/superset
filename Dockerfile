@@ -116,13 +116,14 @@ ENV LANG=C.UTF-8 \
     SUPERSET_PORT=8088
 
 # Set up necessary directories and user
-RUN mkdir -p ${PYTHONPATH} \
+RUN mkdir -p \
+      {SUPERSET_HOME} \
+      ${PYTHONPATH} \
       superset/static \
       requirements \
       superset-frontend \
       apache_superset.egg-info \
       requirements \
-      {SUPERSET_HOME} \
     && useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && touch superset/static/version_info.json
 
