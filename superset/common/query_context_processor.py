@@ -712,10 +712,10 @@ class QueryContextProcessor:
                 return value.strftime("%Y-%m")
 
             if time_grain == TimeGrain.QUARTER:
-                return row[column_index].strftime("%Y-Q") + str(row[column_index].quarter)
+                return value.strftime("%Y-Q") + str(value.quarter)
 
             if time_grain == TimeGrain.YEAR:
-                return row[column_index].strftime("%Y")
+                return value.strftime("%Y")
 
         return str(value)
 
