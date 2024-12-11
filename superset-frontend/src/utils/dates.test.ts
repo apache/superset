@@ -30,12 +30,14 @@ describe('fDuration', () => {
   });
 
   it('returns a string', () => {
-    expect(typeof fDuration(new Date(), new Date())).toBe('string');
+    expect(typeof fDuration(new Date().getTime(), new Date().getTime())).toBe(
+      'string',
+    );
   });
 
   it('returns the expected output', () => {
-    const output = fDuration('1496293608897', '1496293623406');
-    expect(output).toBe('00:00:14.50');
+    const output = fDuration(1496293608897, 1496293623406);
+    expect(output).toBe('00:00:14.509');
   });
 });
 

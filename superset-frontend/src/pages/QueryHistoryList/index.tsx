@@ -54,9 +54,13 @@ import Icons from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
+
+dayjs.extend(utc);
 
 const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
   table .table-cell {
@@ -214,7 +218,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const startMoment = moment.utc(start_time).local();
+          const startMoment = dayjs.utc(start_time).local();
           const formattedStartTimeData = startMoment
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
@@ -238,7 +242,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
           const timerTime = end_time
-            ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
+            ? dayjs(dayjs.utc(end_time - start_time)).format(TIME_WITH_MS)
             : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
