@@ -81,11 +81,29 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
               /app/superset/translations/messages.pot
 
 
-# Transition to Python base image
+######################################################################
+# Base python layer
+######################################################################
 FROM python:${PY_VER} AS python-base
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
+
+# Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:${PATH}"
+
+# Install Playwright and optionally setup headless browsers
+ARG INCLUDE_CHROMIUM="true"
+ARG INCLUDE_FIREFOX="false"
+RUN --mount=type=cache,target=/root/.cache/pip \
+    if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
+        pip install playwright && \
+        playwright install-deps && \
+        if [ "$INCLUDE_CHROMIUM" = "true" ]; then playwright install chromium; fi && \
+        if [ "$INCLUDE_FIREFOX" = "true" ]; then playwright install firefox; fi; \
+    else \
+        echo "Skipping browser installation"; \
+    fi
+
 
 ######################################################################
 # Final lean image...
@@ -178,24 +196,11 @@ FROM lean AS dev
 
 USER root
 
-# Install dev dependencies
+# Convenience libs for development
 RUN --mount=type=bind,source=./docker,target=/docker \
     /docker/apt-install.sh \
         git \
         pkg-config
-
-# Install Playwright and optionally setup headless browsers
-ARG INCLUDE_CHROMIUM="true"
-ARG INCLUDE_FIREFOX="false"
-RUN --mount=type=cache,target=/root/.cache/pip \
-    if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
-        pip install playwright && \
-        playwright install-deps && \
-        if [ "$INCLUDE_CHROMIUM" = "true" ]; then playwright install chromium; fi && \
-        if [ "$INCLUDE_FIREFOX" = "true" ]; then playwright install firefox; fi; \
-    else \
-        echo "Skipping browser installation"; \
-    fi
 
 # Install MySQL client dependencies
 RUN --mount=type=bind,source=./docker,target=/docker \
