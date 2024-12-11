@@ -99,7 +99,7 @@ class TestCacheWarmUp(SupersetTestCase):
         "load_unicode_dashboard_with_slice", "load_birth_names_dashboard_with_slices"
     )
     def test_dashboard_tags_strategy(self):
-        tag1 = get_tag("tag1", db.session, TagType.custom)
+        tag1 = get_tag("tag1", db.session, TagType.CUSTOM)
         # delete first to make test idempotent
         self.reset_tag(tag1)
 
@@ -109,11 +109,11 @@ class TestCacheWarmUp(SupersetTestCase):
         assert result == expected
 
         # tag dashboard 'births' with `tag1`
-        tag1 = get_tag("tag1", db.session, TagType.custom)
+        tag1 = get_tag("tag1", db.session, TagType.CUSTOM)
         dash = self.get_dash_by_slug("births")
         tag1_urls = [{"chart_id": chart.id} for chart in dash.slices]
         tagged_object = TaggedObject(
-            tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
+            tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.DASHBOARD
         )
         db.session.add(tagged_object)
         db.session.commit()
@@ -121,7 +121,7 @@ class TestCacheWarmUp(SupersetTestCase):
         self.assertCountEqual(strategy.get_payloads(), tag1_urls)  # noqa: PT009
 
         strategy = DashboardTagsStrategy(["tag2"])
-        tag2 = get_tag("tag2", db.session, TagType.custom)
+        tag2 = get_tag("tag2", db.session, TagType.CUSTOM)
         self.reset_tag(tag2)
 
         result = strategy.get_payloads()
@@ -134,7 +134,7 @@ class TestCacheWarmUp(SupersetTestCase):
         tag2_urls = [{"chart_id": chart.id}]
         object_id = chart.id
         tagged_object = TaggedObject(
-            tag_id=tag2.id, object_id=object_id, object_type=ObjectType.chart
+            tag_id=tag2.id, object_id=object_id, object_type=ObjectType.CHART
         )
         db.session.add(tagged_object)
         db.session.commit()

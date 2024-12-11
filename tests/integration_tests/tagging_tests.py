@@ -71,9 +71,9 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a dataset tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        assert 1 == len(tags)
-        assert "ObjectType.dataset" == str(tags[0].object_type)
-        assert test_dataset.id == tags[0].object_id
+        assert len(tags) == 1
+        assert str(tags[0].object_type) == "ObjectType.DATASET"
+        assert tags[0].object_id == test_dataset.id
 
         # Cleanup the db
         db.session.delete(test_dataset)
@@ -109,9 +109,9 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        assert 1 == len(tags)
-        assert "ObjectType.chart" == str(tags[0].object_type)
-        assert test_chart.id == tags[0].object_id
+        assert len(tags) == 1
+        assert "ObjectType.CHART" == str(tags[0].object_type)
+        assert tags[0].object_id == test_chart.id
 
         # Cleanup the db
         db.session.delete(test_chart)
@@ -145,9 +145,9 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a dashboard tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        assert 1 == len(tags)
-        assert "ObjectType.dashboard" == str(tags[0].object_type)
-        assert test_dashboard.id == tags[0].object_id
+        assert len(tags) == 1
+        assert str(tags[0].object_type) == "ObjectType.DASHBOARD"
+        assert tags[0].object_id == test_dashboard.id
 
         # Cleanup the db
         db.session.delete(test_dashboard)
@@ -180,15 +180,15 @@ class TestTagging(SupersetTestCase):
 
         assert 2 == len(tags)
 
-        assert "ObjectType.query" == str(tags[0].object_type)
-        assert "owner:None" == str(tags[0].tag.name)
-        assert "TagType.owner" == str(tags[0].tag.type)
-        assert test_saved_query.id == tags[0].object_id
+        assert str(tags[0].object_type) == "ObjectType.QUERY"
+        assert str(tags[0].tag.name) == "owner:None"
+        assert str(tags[0].tag.type) == "TagType.OWNER"
+        assert tags[0].object_id == test_saved_query.id
 
-        assert "ObjectType.query" == str(tags[1].object_type)
-        assert "type:query" == str(tags[1].tag.name)
-        assert "TagType.type" == str(tags[1].tag.type)
-        assert test_saved_query.id == tags[1].object_id
+        assert str(tags[1].object_type) == "ObjectType.QUERY"
+        assert str(tags[1].tag.name) == "type:query"
+        assert str(tags[1].tag.type) == "TagType.TYPE"
+        assert tags[1].object_id == test_saved_query.id
 
         # Cleanup the db
         db.session.delete(test_saved_query)
@@ -218,9 +218,9 @@ class TestTagging(SupersetTestCase):
 
         # Test to make sure that a favorited object tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
-        assert 1 == len(tags)
-        assert "ObjectType.chart" == str(tags[0].object_type)
-        assert test_saved_query.obj_id == tags[0].object_id
+        assert len(tags) == 1
+        assert str(tags[0].object_type) == "ObjectType.CHART"
+        assert tags[0].object_id == test_saved_query.obj_id
 
         # Cleanup the db
         db.session.delete(test_saved_query)

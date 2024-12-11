@@ -142,7 +142,7 @@ class TestTagApi(SupersetTestCase):
             "created_by": None,
             "id": tag.id,
             "name": "test get tag",
-            "type": TagType.custom.value,
+            "type": TagType.CUSTOM.value,
         }
         data = json.loads(rv.data.decode("utf-8"))
         for key, value in expected_result.items():
@@ -243,7 +243,7 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         dashboard_id = dashboard.id
-        dashboard_type = ObjectType.dashboard.value
+        dashboard_type = ObjectType.DASHBOARD.value
         uri = f"api/v1/tag/{dashboard_type}/{dashboard_id}/"
         example_tag_names = ["example_tag_1", "example_tag_2"]
         data = {"properties": {"tags": example_tag_names}}
@@ -258,7 +258,7 @@ class TestTagApi(SupersetTestCase):
         tagged_objects = db.session.query(TaggedObject).filter(
             TaggedObject.tag_id.in_(tag_ids),
             TaggedObject.object_id == dashboard_id,
-            TaggedObject.object_type == ObjectType.dashboard,
+            TaggedObject.object_type == ObjectType.DASHBOARD,
         )
         assert tagged_objects.count() == 2
         # clean up tags and tagged objects
@@ -276,7 +276,7 @@ class TestTagApi(SupersetTestCase):
     def test_delete_tagged_objects(self):
         self.login(ADMIN_USERNAME)
         dashboard_id = 1
-        dashboard_type = ObjectType.dashboard
+        dashboard_type = ObjectType.DASHBOARD
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
         assert tags.count() == 2
@@ -346,7 +346,7 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         dashboard_id = dashboard.id
-        dashboard_type = ObjectType.dashboard
+        dashboard_type = ObjectType.DASHBOARD
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
         for tag in tags:
@@ -382,7 +382,7 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         dashboard_id = dashboard.id
-        dashboard_type = ObjectType.dashboard
+        dashboard_type = ObjectType.DASHBOARD
         tag_names = ["example_tag_1", "example_tag_2"]
         tags = db.session.query(Tag).filter(Tag.name.in_(tag_names))
         for tag in tags:
@@ -531,7 +531,7 @@ class TestTagApi(SupersetTestCase):
         self.get_user(username="admin").get_id()  # noqa: F841
         tag = (
             db.session.query(Tag)
-            .filter(Tag.name == "my_tag", Tag.type == TagType.custom)
+            .filter(Tag.name == "my_tag", Tag.type == TagType.CUSTOM)
             .one_or_none()
         )
         assert tag is not None
@@ -630,8 +630,8 @@ class TestTagApi(SupersetTestCase):
             .join(Tag)
             .filter(
                 TaggedObject.object_id == dashboard.id,
-                TaggedObject.object_type == ObjectType.dashboard,
-                Tag.type == TagType.custom,
+                TaggedObject.object_type == ObjectType.DASHBOARD,
+                Tag.type == TagType.CUSTOM,
             )
         )
         assert tagged_objects.count() == 2
@@ -641,8 +641,8 @@ class TestTagApi(SupersetTestCase):
             .join(Tag)
             .filter(
                 TaggedObject.object_id == chart.id,
-                TaggedObject.object_type == ObjectType.chart,
-                Tag.type == TagType.custom,
+                TaggedObject.object_type == ObjectType.CHART,
+                Tag.type == TagType.CUSTOM,
             )
         )
         assert tagged_objects.count() == 2
