@@ -24,6 +24,8 @@ ARG PY_VER=3.10-slim-bookworm
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 
+COPY --chmod=750 docker/*.sh /app/docker/
+
 # Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
@@ -31,17 +33,16 @@ ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
+
 # Install system dependencies required for node-gyp
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/apt-install.sh build-essential python3 zstd
+RUN /app/docker/apt-install.sh build-essential python3 zstd
 
 # Define environment variables for frontend build
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Run the frontend memory monitoring script
-RUN --mount=type=bind,source=./docker,target=/docker \
-    /docker/frontend-mem-nag.sh
+RUN /app/docker/frontend-mem-nag.sh
 
 WORKDIR /app/superset-frontend
 
@@ -78,6 +79,10 @@ RUN if [ "$DEV_MODE" = "false" ]; then \
 # Base python layer
 ######################################################################
 FROM python:${PY_VER} AS python-base
+
+# Some bash scripts needed throughout the layers
+COPY --chmod=750 docker/*.sh /app/docker/
+
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
 
 # Using uv as it's faster/simpler than pip
@@ -131,7 +136,6 @@ RUN mkdir -p \
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/
 COPY scripts/check-env.py scripts/
-COPY --chmod=750 docker/*.sh /app/docker/
 COPY --chmod=750 ./docker/run-server.sh /usr/bin/
 
 # Some debian libs
