@@ -177,7 +177,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
             db.session.query(TaggedObject)
             .filter(
                 and_(
-                    TaggedObject.object_type == "dashboard",
+                    TaggedObject.object_type == "DASHBOARD",
                     TaggedObject.tag_id.in_(tag_ids),
                 )
             )
@@ -196,7 +196,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
             db.session.query(TaggedObject)
             .filter(
                 and_(
-                    TaggedObject.object_type == "chart",
+                    TaggedObject.object_type == "CHART",
                     TaggedObject.tag_id.in_(tag_ids),
                 )
             )

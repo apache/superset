@@ -524,7 +524,7 @@ class TestTagApi(SupersetTestCase):
         )
         rv = self.client.post(
             uri,
-            json={"name": "my_tag", "objects_to_tag": [["dashboard", dashboard.id]]},
+            json={"name": "my_tag", "objects_to_tag": [["DASHBOARD", dashboard.id]]},
         )
 
         assert rv.status_code == 201
@@ -547,7 +547,7 @@ class TestTagApi(SupersetTestCase):
         )
         rv = self.client.post(
             uri,
-            json={"name": "", "objects_to_tag": [["dashboard", dashboard.id]]},
+            json={"name": "", "objects_to_tag": [["DASHBOARD", dashboard.id]]},
         )
 
         assert rv.status_code == 400
@@ -601,17 +601,17 @@ class TestTagApi(SupersetTestCase):
                     {
                         "name": "tag1",
                         "objects_to_tag": [
-                            ["dashboard", dashboard.id],
-                            ["chart", chart.id],
+                            ["DASHBOARD", dashboard.id],
+                            ["CHART", chart.id],
                         ],
                     },
                     {
                         "name": "tag2",
-                        "objects_to_tag": [["dashboard", dashboard.id]],
+                        "objects_to_tag": [["DASHBOARD", dashboard.id]],
                     },
                     {
                         "name": "tag3",
-                        "objects_to_tag": [["chart", chart.id]],
+                        "objects_to_tag": [["CHART", chart.id]],
                     },
                 ]
             },
@@ -619,10 +619,10 @@ class TestTagApi(SupersetTestCase):
 
         assert rv.status_code == 200
 
-        result = TagDAO.get_tagged_objects_for_tags(tags, ["dashboard"])
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["DASHBOARD"])
         assert len(result) == 1
 
-        result = TagDAO.get_tagged_objects_for_tags(tags, ["chart"])
+        result = TagDAO.get_tagged_objects_for_tags(tags, ["CHART"])
         assert len(result) == 1
 
         tagged_objects = (
@@ -671,16 +671,16 @@ class TestTagApi(SupersetTestCase):
                     {
                         "name": "tag1",
                         "objects_to_tag": [
-                            ["dashboard", alpha_dash.id],
+                            ["DASHBOARD", alpha_dash.id],
                         ],
                     },
                     {
                         "name": "tag2",
-                        "objects_to_tag": [["dashboard", dashboard.id]],
+                        "objects_to_tag": [["DASHBOARD", dashboard.id]],
                     },
                     {
                         "name": "tag3",
-                        "objects_to_tag": [["chart", chart.id]],
+                        "objects_to_tag": [["CHART", chart.id]],
                     },
                 ]
             },
