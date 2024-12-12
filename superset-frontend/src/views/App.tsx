@@ -88,10 +88,17 @@ function hasOnlyGuestRole(data: BootstrapData) {
 
 const App = () => {
   useEffect(() => {
+    console.info('*********************** Executing useEffect');
     // Check if user exists and has the role "Guest"
     if (hasOnlyGuestRole(bootstrapData)) {
+      console.info('*********************** Executing hasOnlyGuestRole');
       // Send message to opener window
       if (window.opener) {
+        const frontend_origin = process.env.CORS_FRONTEND_ORIGIN;
+        console.info(
+          '*********************** About to post message to ',
+          frontend_origin,
+        );
         window.opener.postMessage(
           {
             type: 'OAUTH2_SUCCESS',
@@ -99,8 +106,9 @@ const App = () => {
               // Add any additional data you need to send
             },
           },
-          process.env.CORS_FRONTEND_ORIGIN,
+          frontend_origin,
         );
+        console.info('*********************** message posted ');
       }
     }
   }, []); // Empty dependency array means this runs once when component mounts
