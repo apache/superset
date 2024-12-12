@@ -2268,7 +2268,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.put_assert_metric(uri, update_payload, "put")
         assert rv.status_code == 403
         assert (
-            rv.json["message"] == "You do not have permission to manage tags on charts"
+            rv.json["message"]
+            == "You do not have permission to manage tags of type CHART"
         )
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)
@@ -2298,7 +2299,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.put_assert_metric(uri, update_payload, "put")
         assert rv.status_code == 403
         assert (
-            rv.json["message"] == "You do not have permission to manage tags on charts"
+            rv.json["message"]
+            == "You do not have permission to manage tags of type CHART"
         )
 
         security_manager.add_permission_role(alpha_role, write_tags_perm)

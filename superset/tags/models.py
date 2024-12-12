@@ -67,7 +67,6 @@ class TagType(enum.Enum):
     can find all their objects by querying for the tag `owner:alice`.
     """
 
-    # pylint: disable=invalid-name
     # explicit tags, added manually by the owner
     CUSTOM = 1
 
@@ -80,7 +79,6 @@ class TagType(enum.Enum):
 class ObjectType(enum.Enum):
     """Object types."""
 
-    # pylint: disable=invalid-name
     QUERY = 1
     CHART = 2
     DASHBOARD = 3

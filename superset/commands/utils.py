@@ -140,7 +140,7 @@ def validate_tags(
         or security_manager.can_access("can_tag", object_type.name.capitalize())
     ):
         validation_error = (
-            f"You do not have permission to manage tags on {object_type.name.lower()}s"
+            f"You do not have permission to manage tags of type {object_type.name}"
         )
         raise TagForbiddenError(validation_error)
 

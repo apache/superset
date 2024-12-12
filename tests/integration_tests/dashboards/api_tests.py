@@ -2944,7 +2944,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 403
         assert (
             rv.json["message"]
-            == "You do not have permission to manage tags on dashboards"
+            == "You do not have permission to manage tags of type DASHBOARD"
         )
 
         security_manager.add_permission_role(gamma_role, write_tags_perm)
@@ -2978,7 +2978,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert rv.status_code == 403
         assert (
             rv.json["message"]
-            == "You do not have permission to manage tags on dashboards"
+            == "You do not have permission to manage tags of type DASHBOARD"
         )
 
         security_manager.add_permission_role(gamma_role, write_tags_perm)
