@@ -290,7 +290,7 @@ class ObjectUpdater:
 
 
 class ChartUpdater(ObjectUpdater):
-    object_type = "chart"
+    object_type = "CHART"
 
     @classmethod
     def get_owners_ids(cls, target: Slice) -> list[int]:
@@ -298,7 +298,7 @@ class ChartUpdater(ObjectUpdater):
 
 
 class DashboardUpdater(ObjectUpdater):
-    object_type = "dashboard"
+    object_type = "DASHBOARD"
 
     @classmethod
     def get_owners_ids(cls, target: Dashboard) -> list[int]:
@@ -306,7 +306,7 @@ class DashboardUpdater(ObjectUpdater):
 
 
 class QueryUpdater(ObjectUpdater):
-    object_type = "query"
+    object_type = "QUERY"
 
     @classmethod
     def get_owners_ids(cls, target: Query) -> list[int]:
@@ -314,7 +314,7 @@ class QueryUpdater(ObjectUpdater):
 
 
 class DatasetUpdater(ObjectUpdater):
-    object_type = "dataset"
+    object_type = "DATASET"
 
     @classmethod
     def get_owners_ids(cls, target: SqlaTable) -> list[int]:

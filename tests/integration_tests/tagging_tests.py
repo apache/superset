@@ -94,7 +94,7 @@ class TestTagging(SupersetTestCase):
         self.clear_tagged_object_table()
 
         # Test to make sure nothing is in the tagged_object table
-        assert [] == self.query_tagged_object_table()
+        assert self.query_tagged_object_table() == []
 
         # Create a chart and add it to the db
         test_chart = Slice(
@@ -110,7 +110,7 @@ class TestTagging(SupersetTestCase):
         # Test to make sure that a chart tag was added to the tagged_object table
         tags = self.query_tagged_object_table()
         assert len(tags) == 1
-        assert "ObjectType.CHART" == str(tags[0].object_type)
+        assert str(tags[0].object_type) == "ObjectType.CHART"
         assert tags[0].object_id == test_chart.id
 
         # Cleanup the db
@@ -118,7 +118,7 @@ class TestTagging(SupersetTestCase):
         db.session.commit()
 
         # Test to make sure the tag is deleted when the associated object is deleted
-        assert [] == self.query_tagged_object_table()
+        assert self.query_tagged_object_table() == []
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
     def test_dashboard_tagging(self):
