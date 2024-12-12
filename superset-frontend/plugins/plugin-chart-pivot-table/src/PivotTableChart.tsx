@@ -51,6 +51,7 @@ const Styles = styled.div<PivotTableStylesProps>`
       width: ${
         typeof width === 'string' ? parseInt(width, 10) : width - margin * 2
       }px;
+      white-space: nowrap;
  `}
 `;
 
