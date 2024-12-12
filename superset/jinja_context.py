@@ -357,10 +357,8 @@ class ExtraCache:
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
                 and val
-               ):
-                if (
-                    flt.get("subject") == column
-                ) or (
+            ):
+                if (flt.get("subject") == column) or (
                     isinstance(flt.get("subject"), dict)
                     and flt.get("subject").get("label") == column
                 ):
