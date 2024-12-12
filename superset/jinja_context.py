@@ -356,7 +356,7 @@ class ExtraCache:
             if (
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
-                and val 
+                and val
                ):
                 if (
                     flt.get("subject") == column
