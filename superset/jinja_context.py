@@ -355,16 +355,16 @@ class ExtraCache:
             op: str = flt["operator"].upper() if flt.get("operator") else None
             # fltOpName: str = flt.get("filterOptionName")
             if (
-                (flt.get("expressionType") == "SIMPLE"
+                flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject") == column
-                and val)
-                or 
-                (isinstance(flt.get("subject"), dict)
+                and val
+            ) or (
+                isinstance(flt.get("subject"), dict)
                 and flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject").get("label") == column
-                and val)
+                and val
             ):
                 if remove_filter:
                     if column not in self.removed_filters:
