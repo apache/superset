@@ -75,18 +75,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'comparison_color_enabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Add color for positive/negative change'),
-              renderTrigger: true,
-              default: false,
-              description: t('Add color for positive/negative change'),
-            },
-          },
-        ],
-        [
-          {
             name: 'previous_period_value_enabled',
             config: {
               type: 'CheckboxControl',
@@ -118,6 +106,18 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t('Add percent difference'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison_color_enabled',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Add color for positive/negative change'),
+              renderTrigger: true,
+              default: false,
+              description: t('Add color for positive/negative change'),
             },
           },
         ],

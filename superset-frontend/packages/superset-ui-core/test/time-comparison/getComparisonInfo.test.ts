@@ -63,6 +63,9 @@ const form_data = {
   header_font_size: 60,
   subheader_font_size: 26,
   comparison_color_enabled: true,
+  previous_period_value_enabled: true,
+  value_difference_enabled: true,
+  percent_difference_enabled: true,
   extra_form_data: {},
   force: false,
   result_format: 'json',
@@ -142,7 +145,7 @@ describe('getComparisonInfo', () => {
     expect(resultFormData.adhoc_filters?.[0]).toEqual(expectedFilters[0]);
   });
 
-  it('If adhoc_filter is undefrined the code wont break', () => {
+  it('If adhoc_filter is undefined the code wont break', () => {
     const resultFormData = getComparisonInfo(
       {
         ...form_data,
@@ -174,5 +177,22 @@ describe('getComparisonInfo', () => {
     ];
     expect(resultFormData.adhoc_filters?.length).toEqual(1);
     expect(resultFormData.adhoc_filters).toEqual(expectedFilters);
+  });
+
+  it('Updates comparison display values when toggled', () => {
+    const resultFormData = getComparisonInfo(
+      {
+        ...form_data,
+        previous_period_value_enabled: false,
+        value_difference_enabled: false,
+        percent_difference_enabled: false,
+      },
+      ComparisonTimeRangeType.Year,
+      {},
+    );
+
+    expect(resultFormData.previous_period_value_enabled).toEqual(false);
+    expect(resultFormData.value_difference_enabled).toEqual(false);
+    expect(resultFormData.percent_difference_enabled).toEqual(false);
   });
 });
