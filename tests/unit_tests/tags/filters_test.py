@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Type
+
 import pytest
 from flask_appbuilder import Model
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -27,15 +29,17 @@ from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
 
 FILTER_MODELS = [Slice, Dashboard, SavedQuery]
 OBJECT_TYPES = {
-    "dashboards": "dashboard",
-    "slices": "chart",
-    "saved_query": "query",
+    "dashboards": "DASHBOARD",
+    "slices": "CHART",
+    "saved_query": "QUERY",
 }
 
 
 @pytest.mark.parametrize("model", FILTER_MODELS)
 @pytest.mark.parametrize("name", ["my_tag", "test tag", "blaah"])
-def test_base_tag_filter_by_name(session: Session, model: Model, name: str) -> None:
+def test_base_tag_filter_by_name(
+    session: Session, model: Type[Model], name: str
+) -> None:
     table = model.__tablename__
     engine = session.get_bind()
     query = session.query(model)
@@ -61,7 +65,7 @@ def test_base_tag_filter_by_name(session: Session, model: Model, name: str) -> N
 
 @pytest.mark.parametrize("model", FILTER_MODELS)
 @pytest.mark.parametrize("id", [3, 5, 8])
-def test_base_tag_filter_by_id(session: Session, model: Model, id: int) -> None:
+def test_base_tag_filter_by_id(session: Session, model: Type[Model], id: int) -> None:
     table = model.__tablename__
     engine = session.get_bind()
     query = session.query(model)

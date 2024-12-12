@@ -86,9 +86,9 @@ def test_create_command_success(session_with_data: Session, mocker: MockerFixtur
     mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=query)
 
     objects_to_tag = [
-        (ObjectType.query, query.id),
-        (ObjectType.chart, chart.id),
-        (ObjectType.dashboard, dashboard.id),
+        (ObjectType.QUERY, query.id),
+        (ObjectType.CHART, chart.id),
+        (ObjectType.DASHBOARD, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(
@@ -129,9 +129,9 @@ def test_create_command_success_clear(
     mocker.patch("superset.daos.query.SavedQueryDAO.find_by_id", return_value=query)
 
     objects_to_tag = [
-        (ObjectType.query, query.id),
-        (ObjectType.chart, chart.id),
-        (ObjectType.dashboard, dashboard.id),
+        (ObjectType.QUERY, query.id),
+        (ObjectType.CHART, chart.id),
+        (ObjectType.DASHBOARD, dashboard.id),
     ]
 
     CreateCustomTagWithRelationshipsCommand(

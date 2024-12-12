@@ -32,37 +32,37 @@ from superset.commands.utils import (
 )
 from superset.tags.models import ObjectType
 
-OBJECT_TYPES = {ObjectType.chart, ObjectType.chart}
+OBJECT_TYPES = {ObjectType.CHART, ObjectType.CHART}
 MOCK_TAGS = [
     Tag(
         id=1,
         name="first",
-        type=TagType.custom,
+        type=TagType.CUSTOM,
     ),
     Tag(
         id=2,
         name="second",
-        type=TagType.custom,
+        type=TagType.CUSTOM,
     ),
     Tag(
         id=3,
         name="third",
-        type=TagType.custom,
+        type=TagType.CUSTOM,
     ),
     Tag(
         id=4,
         name="type:dashboard",
-        type=TagType.type,
+        type=TagType.TYPE,
     ),
     Tag(
         id=4,
         name="owner:1",
-        type=TagType.owner,
+        type=TagType.OWNER,
     ),
     Tag(
         id=4,
         name="avorited_by:2",
-        type=TagType.favorited_by,
+        type=TagType.FAVORITED_BY,
     ),
 ]
 
@@ -256,7 +256,7 @@ def test_validate_tags_no_changes_can_write_on_tag(mock_sm, object_type):
     Test the ``validate_tags`` method when new_tags is equal to existing tags
     and user has permission to write on tag.
     """
-    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     validate_tags(object_type, MOCK_TAGS, new_tags)
     mock_sm.can_access.assert_not_called()
 
@@ -268,7 +268,7 @@ def test_validate_tags_no_changes_can_tag_on_object(mock_sm, object_type):
     Test the ``validate_tags`` method when new_tags is equal to existing tags
     and user has permission to tag objects.
     """
-    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     validate_tags(object_type, MOCK_TAGS, new_tags)
     mock_sm.can_access.assert_not_called()
 
@@ -280,7 +280,7 @@ def test_validate_tags_no_changes_missing_permission(mock_sm, object_type):
     Test the ``validate_tags`` method when new_tags is equal to existing tags
     the user doens't have the required perms.
     """
-    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag.id for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     validate_tags(object_type, MOCK_TAGS, new_tags)
     mock_sm.can_access.assert_not_called()
 
@@ -295,11 +295,11 @@ def test_validate_tags_add_new_tags_can_write_on_tag(
     Test the ``validate_tags`` method when new_tags are added and user has
     permission to write on tag.
     """
-    new_tag_ids = [tag.id for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tag_ids = [tag.id for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     new_tag = {
         "id": 10,
         "name": "New test tag",
-        "type": TagType.custom,
+        "type": TagType.CUSTOM,
     }
     new_tag_ids.append(new_tag["id"])
 
@@ -321,7 +321,7 @@ def test_validate_tags_add_new_tags_can_tag_on_object(
     Test the ``validate_tags`` method when new_tags are added and user has
     permission to tag objects.
     """
-    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     new_tag = current_tags.pop()
     new_tag_ids = [tag.id for tag in current_tags]
     new_tag_ids.append(new_tag.id)
@@ -380,9 +380,9 @@ def test_update_tags_adding_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when adding tags.
     """
-    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    current_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     new_tag = current_tags.pop()
-    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     new_tag_ids = [tag.id for tag in new_tags]
 
     mock_tag_dao.find_by_ids.return_value = [new_tag]
@@ -402,7 +402,7 @@ def test_update_tags_removing_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when removing existing tags.
     """
-    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     tag_to_be_removed = new_tags.pop()
     new_tag_ids = [tag.id for tag in new_tags]
 
@@ -420,9 +420,9 @@ def test_update_tags_adding_and_removing_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when adding and removing existing tags.
     """
-    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     tag_to_be_removed = new_tags.pop()
-    new_tag = Tag(id=10, name="my new tag", type=TagType.custom)
+    new_tag = Tag(id=10, name="my new tag", type=TagType.CUSTOM)
     new_tags.append(new_tag)
     new_tag_ids = [tag.id for tag in new_tags]
 
@@ -451,7 +451,7 @@ def test_update_tags_removing_all_tags(mock_tag_dao, object_type):
         [
             call(object_type, 1, tag.name)
             for tag in MOCK_TAGS
-            if tag.type == TagType.custom
+            if tag.type == TagType.CUSTOM
         ]
     )
     mock_tag_dao.create_custom_tagged_objects.assert_not_called()
@@ -463,8 +463,8 @@ def test_update_tags_no_tags(mock_tag_dao, object_type):
     """
     Test the ``update_tags`` method when the asset only has system tags.
     """
-    system_tags = [tag for tag in MOCK_TAGS if tag.type != TagType.custom]
-    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.custom]
+    system_tags = [tag for tag in MOCK_TAGS if tag.type != TagType.CUSTOM]
+    new_tags = [tag for tag in MOCK_TAGS if tag.type == TagType.CUSTOM]
     new_tag_ids = [tag.id for tag in new_tags]
     new_tag_names = [tag.name for tag in new_tags]
 

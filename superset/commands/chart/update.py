@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from datetime import datetime
 from functools import partial
@@ -63,7 +65,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Update tags
         if (tags := self._properties.pop("tags", None)) is not None:
-            update_tags(ObjectType.chart, self._model.id, self._model.tags, tags)
+            update_tags(ObjectType.CHART, self._model.id, self._model.tags, tags)
 
         if self._properties.get("query_context_generation") is None:
             self._properties["last_saved_at"] = datetime.now()
@@ -79,6 +81,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # Validate if datasource_id is provided datasource_type is required
         datasource_id = self._properties.get("datasource_id")
+        datasource_type: str | None = None
         if datasource_id is not None:
             datasource_type = self._properties.get("datasource_type", "")
             if not datasource_type:
@@ -106,12 +109,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         # validate tags
         try:
-            validate_tags(ObjectType.chart, self._model.tags, tag_ids)
+            validate_tags(ObjectType.CHART, self._model.tags, tag_ids)
         except ValidationError as ex:
             exceptions.append(ex)
 
         # Validate/Populate datasource
-        if datasource_id is not None:
+        if datasource_id is not None and datasource_type is not None:
             try:
                 datasource = get_datasource_by_id(datasource_id, datasource_type)
                 self._properties["datasource_name"] = datasource.name
