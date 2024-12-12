@@ -1,12 +1,12 @@
 name: E2E
 
 on:
-  push:
-    branches:
-      - "master"
-      - "[0-9].[0-9]*"
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+#  push:
+#    branches:
+#      - "master"
+#      - "[0-9].[0-9]*"
+#  pull_request:
+#    types: [synchronize, opened, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       use_dashboard:
