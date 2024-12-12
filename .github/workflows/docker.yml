@@ -74,8 +74,16 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         run: |
           sudo apt-get update
-          sudo apt-get install docker-ce docker-ce-cli containerd.io
-          sudo apt-get install docker-compose-v2
+          sudo apt install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt update
+          sudo apt install docker-compose-plugin -y
+          docker compose version
 
 
       - name: Build Docker Image
@@ -101,4 +109,4 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         shell: bash
         run: |
-          docker-compose up superset-init
+          docker compose up superset-init
