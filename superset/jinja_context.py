@@ -356,28 +356,27 @@ class ExtraCache:
             if (
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
-                and flt.get("subject") == column
-                and val
-            ) or (
-                isinstance(flt.get("subject"), dict)
-                and flt.get("expressionType") == "SIMPLE"
-                and flt.get("clause") == "WHERE"
-                and flt.get("subject").get("label") == column
-                and val
-            ):
-                if remove_filter:
-                    if column not in self.removed_filters:
-                        self.removed_filters.append(column)
-                if column not in self.applied_filters:
-                    self.applied_filters.append(column)
+                and val 
+               ):
+                if (
+                    flt.get("subject") == column
+                ) or (
+                    isinstance(flt.get("subject"), dict)
+                    and flt.get("subject").get("label") == column
+                ):
+                    if remove_filter:
+                        if column not in self.removed_filters:
+                            self.removed_filters.append(column)
+                    if column not in self.applied_filters:
+                        self.applied_filters.append(column)
 
-                if op in (
-                    FilterOperator.IN.value,
-                    FilterOperator.NOT_IN.value,
-                ) and not isinstance(val, list):
-                    val = [val]
+                    if op in (
+                        FilterOperator.IN.value,
+                        FilterOperator.NOT_IN.value,
+                    ) and not isinstance(val, list):
+                        val = [val]
 
-                filters.append({"op": op, "col": column, "val": val})
+                    filters.append({"op": op, "col": column, "val": val})
 
         return filters
 
