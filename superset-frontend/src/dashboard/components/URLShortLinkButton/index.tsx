@@ -22,7 +22,7 @@ import Popover, { PopoverProps } from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 
 export type URLShortLinkButtonProps = {
@@ -42,10 +42,13 @@ export default function URLShortLinkButton({
 }: URLShortLinkButtonProps) {
   const [shortUrl, setShortUrl] = useState('');
   const { addDangerToast } = useToasts();
-  const { dataMask, activeTabs } = useSelector((state: RootState) => ({
-    dataMask: state.dataMask,
-    activeTabs: state.dashboardState.activeTabs,
-  }));
+  const { dataMask, activeTabs } = useSelector(
+    (state: RootState) => ({
+      dataMask: state.dataMask,
+      activeTabs: state.dashboardState.activeTabs,
+    }),
+    shallowEqual,
+  );
 
   const getCopyUrl = async () => {
     try {

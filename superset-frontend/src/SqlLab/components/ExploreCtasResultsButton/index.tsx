@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useSelector, useDispatch } from 'react-redux';
-import { t, JsonObject } from '@superset-ui/core';
+import { t, JsonObject, VizType } from '@superset-ui/core';
 import {
   createCtasDatasource,
   addInfoToast,
@@ -60,7 +60,7 @@ const ExploreCtasResultsButton = ({
           datasource: `${data.table_id}__table`,
           metrics: ['count'],
           groupby: [],
-          viz_type: 'table',
+          viz_type: VizType.Table,
           since: '100 years ago',
           all_columns: [],
           row_limit: 1000,

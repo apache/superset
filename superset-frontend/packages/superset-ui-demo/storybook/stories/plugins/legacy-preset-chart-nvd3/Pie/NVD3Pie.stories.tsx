@@ -17,9 +17,10 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { PieChartPlugin } from '@superset-ui/legacy-preset-chart-nvd3';
 
-new PieChartPlugin().configure({ key: 'pie' }).register();
+new PieChartPlugin().configure({ key: VizType.Pie }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-preset-chart-nvd3/Pie',

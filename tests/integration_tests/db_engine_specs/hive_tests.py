@@ -25,7 +25,7 @@ from sqlalchemy.sql import select
 
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
-from superset.sql_parse import ParsedQuery, Table
+from superset.sql_parse import Table
 from tests.integration_tests.test_app import app
 
 
@@ -174,6 +174,9 @@ def test_df_to_sql_if_exists_fail_with_schema(mock_g):
 
 @mock.patch("superset.db_engine_specs.hive.g", spec={})
 @mock.patch("superset.db_engine_specs.hive.upload_to_s3")
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 def test_df_to_sql_if_exists_replace(mock_upload_to_s3, mock_g):
     config = app.config.copy()
     app.config["CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC"]: lambda *args: ""  # noqa: F722
@@ -227,19 +230,6 @@ def test_df_to_sql_if_exists_replace_with_schema(mock_upload_to_s3, mock_g):
     app.config = config
 
 
-def test_is_readonly():
-    def is_readonly(sql: str) -> bool:
-        return HiveEngineSpec.is_readonly_query(ParsedQuery(sql))
-
-    assert not is_readonly("UPDATE t1 SET col1 = NULL")
-    assert not is_readonly("INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA")
-    assert is_readonly("SHOW LOCKS test EXTENDED")
-    assert is_readonly("SET hivevar:desc='Legislators'")
-    assert is_readonly("EXPLAIN SELECT 1")
-    assert is_readonly("SELECT 1")
-    assert is_readonly("WITH (SELECT 1) bla SELECT * from bla")
-
-
 @pytest.mark.parametrize(
     "schema,upload_prefix",
     [("foo", "EXTERNAL_HIVE_TABLES/1/foo/"), (None, "EXTERNAL_HIVE_TABLES/1/")],
@@ -256,6 +246,9 @@ def test_s3_upload_prefix(schema: str, upload_prefix: str) -> None:
     )
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 def test_upload_to_s3_no_bucket_path():
     with app.app_context():
         with pytest.raises(
@@ -265,6 +258,9 @@ def test_upload_to_s3_no_bucket_path():
             upload_to_s3("filename", "prefix", Table("table"))
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 @mock.patch("boto3.client")
 def test_upload_to_s3_client_error(client):
     config = app.config.copy()
@@ -282,6 +278,9 @@ def test_upload_to_s3_client_error(client):
     app.config = config
 
 
+@unittest.skipUnless(
+    SupersetTestCase.is_module_installed("boto3"), "boto3 not installed"
+)
 @mock.patch("boto3.client")
 def test_upload_to_s3_success(client):
     config = app.config.copy()

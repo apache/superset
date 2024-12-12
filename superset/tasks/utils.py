@@ -133,7 +133,7 @@ def fetch_csrf_token(
             data = json.loads(body)
             res = {"X-CSRF-Token": data["result"]}
             if session_cookie is not None:
-                res["Cookie"] = session_cookie
+                res["Cookie"] = f"{session_cookie_name}={session_cookie}"
             return res
 
     logger.error("Error fetching CSRF token, status code: %s", response.status)

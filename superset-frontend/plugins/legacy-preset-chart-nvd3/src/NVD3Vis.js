@@ -31,6 +31,7 @@ import {
   NumberFormats,
   SMART_DATE_VERBOSE_ID,
   t,
+  VizType,
 } from '@superset-ui/core';
 
 import 'nvd3-fork/build/nv.d3.css';
@@ -125,7 +126,13 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const TIMESERIES_VIZ_TYPES = ['line', 'area', 'compare', 'bar', 'time_pivot'];
+const TIMESERIES_VIZ_TYPES = [
+  VizType.LegacyLine,
+  VizType.LegacyArea,
+  VizType.Compare,
+  VizType.LegacyBar,
+  VizType.TimePivot,
+];
 
 const CHART_ID_PREFIX = 'chart-id-';
 
@@ -165,7 +172,6 @@ const propTypes = {
         }),
       ]),
     ),
-    // bullet
     bulletDataType,
   ]),
   width: PropTypes.number,
@@ -182,16 +188,16 @@ const propTypes = {
   showMarkers: PropTypes.bool,
   useRichTooltip: PropTypes.bool,
   vizType: PropTypes.oneOf([
-    'area',
-    'bar',
-    'box_plot',
+    VizType.LegacyArea,
+    VizType.LegacyBar,
+    VizType.BoxPlot,
     'bubble',
-    'bullet',
-    'compare',
+    VizType.Bullet,
+    VizType.Compare,
     'column',
-    'dist_bar',
-    'line',
-    'time_pivot',
+    VizType.DistBar,
+    VizType.LegacyLine,
+    VizType.TimePivot,
     'pie',
   ]),
   xAxisFormat: PropTypes.string,
@@ -341,13 +347,14 @@ function nvd3Vis(element, props) {
     if (svg.empty()) {
       svg = d3Element.append('svg');
     }
-    const height = vizType === 'bullet' ? Math.min(maxHeight, 50) : maxHeight;
+    const height =
+      vizType === VizType.Bullet ? Math.min(maxHeight, 50) : maxHeight;
     const isTimeSeries = isVizTypes(TIMESERIES_VIZ_TYPES);
 
     // Handling xAxis ticks settings
     const staggerLabels = xTicksLayout === 'staggered';
     const xLabelRotation =
-      (xTicksLayout === 'auto' && isVizTypes(['column', 'dist_bar'])) ||
+      (xTicksLayout === 'auto' && isVizTypes(['column', VizType.DistBar])) ||
       xTicksLayout === '45°'
         ? 45
         : 0;
@@ -367,7 +374,7 @@ function nvd3Vis(element, props) {
     const numberFormatter = getNumberFormatter(numberFormat);
 
     switch (vizType) {
-      case 'line':
+      case VizType.LegacyLine:
         if (canShowBrush) {
           chart = nv.models.lineWithFocusChart();
           if (staggerLabels) {
@@ -384,13 +391,13 @@ function nvd3Vis(element, props) {
         chart.clipEdge(false);
         break;
 
-      case 'time_pivot':
+      case VizType.TimePivot:
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
         break;
 
-      case 'bar':
+      case VizType.LegacyBar:
         chart = nv.models
           .multiBarChart()
           .showControls(showControls)
@@ -404,7 +411,7 @@ function nvd3Vis(element, props) {
         chart.stacked(isBarStacked);
         break;
 
-      case 'dist_bar':
+      case VizType.DistBar:
         chart = nv.models
           .multiBarChart()
           .showControls(showControls)
@@ -429,7 +436,7 @@ function nvd3Vis(element, props) {
         chart.width(width);
         break;
 
-      case 'pie':
+      case VizType.Pie:
         chart = nv.models.pieChart();
         colorKey = 'x';
         chart.valueFormat(numberFormatter);
@@ -478,14 +485,14 @@ function nvd3Vis(element, props) {
         chart = nv.models.multiBarChart().reduceXTicks(false);
         break;
 
-      case 'compare':
+      case VizType.Compare:
         chart = nv.models.cumulativeLineChart();
         chart.xScale(d3.time.scale.utc());
         chart.useInteractiveGuideline(true);
         chart.xAxis.showMaxMin(false);
         break;
 
-      case 'bubble':
+      case VizType.LegacyBubble:
         chart = nv.models.scatterChart();
         chart.showDistX(false);
         chart.showDistY(false);
@@ -508,21 +515,21 @@ function nvd3Vis(element, props) {
         ]);
         break;
 
-      case 'area':
+      case VizType.LegacyArea:
         chart = nv.models.stackedAreaChart();
         chart.showControls(showControls);
         chart.style(areaStackedStyle);
         chart.xScale(d3.time.scale.utc());
         break;
 
-      case 'box_plot':
+      case VizType.BoxPlot:
         colorKey = 'label';
         chart = nv.models.boxPlotChart();
         chart.x(d => d.label);
         chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
         break;
 
-      case 'bullet':
+      case VizType.Bullet:
         chart = nv.models.bulletChart();
         data.rangeLabels = rangeLabels;
         data.ranges = ranges;
@@ -572,7 +579,7 @@ function nvd3Vis(element, props) {
     }
 
     if ('showLegend' in chart && typeof showLegend !== 'undefined') {
-      if (width < BREAKPOINTS.small && vizType !== 'pie') {
+      if (width < BREAKPOINTS.small && vizType !== VizType.Pie) {
         chart.showLegend(false);
       } else {
         chart.showLegend(showLegend);
@@ -598,7 +605,7 @@ function nvd3Vis(element, props) {
       chart.x2Axis.tickFormat(xAxisFormatter);
     }
     if (chart.xAxis && chart.xAxis.tickFormat) {
-      const isXAxisString = isVizTypes(['dist_bar', 'box_plot']);
+      const isXAxisString = isVizTypes([VizType.DistBar, VizType.BoxPlot]);
       if (isXAxisString) {
         chart.xAxis.tickFormat(d =>
           d.length > MAX_NO_CHARACTERS_IN_LABEL
@@ -641,7 +648,7 @@ function nvd3Vis(element, props) {
     setAxisShowMaxMin(chart.yAxis, yAxisShowMinMax);
     setAxisShowMaxMin(chart.y2Axis, yAxis2ShowMinMax || yAxisShowMinMax);
 
-    if (vizType === 'time_pivot') {
+    if (vizType === VizType.TimePivot) {
       if (baseColor) {
         const { r, g, b } = baseColor;
         chart.color(d => {
@@ -655,16 +662,24 @@ function nvd3Vis(element, props) {
       chart.interactiveLayer.tooltip.contentGenerator(d =>
         generateTimePivotTooltip(d, xAxisFormatter, yAxisFormatter),
       );
-    } else if (vizType !== 'bullet') {
+    } else if (vizType !== VizType.Bullet) {
       const colorFn = getScale(colorScheme);
       chart.color(
         d => d.color || colorFn(cleanColorInput(d[colorKey]), sliceId),
       );
     }
 
-    if (isVizTypes(['line', 'area', 'bar', 'dist_bar']) && useRichTooltip) {
+    if (
+      isVizTypes([
+        VizType.LegacyLine,
+        VizType.LegacyArea,
+        VizType.LegacyBar,
+        VizType.DistBar,
+      ]) &&
+      useRichTooltip
+    ) {
       chart.useInteractiveGuideline(true);
-      if (vizType === 'line' || vizType === 'bar') {
+      if (vizType === VizType.LegacyLine || vizType === VizType.LegacyBar) {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(
             d,
@@ -672,7 +687,7 @@ function nvd3Vis(element, props) {
             yAxisFormatter,
           ),
         );
-      } else if (vizType === 'dist_bar') {
+      } else if (vizType === VizType.DistBar) {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateCompareTooltipContent(d, yAxisFormatter),
         );
@@ -689,7 +704,7 @@ function nvd3Vis(element, props) {
       }
     }
 
-    if (isVizTypes(['compare'])) {
+    if (isVizTypes([VizType.Compare])) {
       chart.interactiveLayer.tooltip.contentGenerator(d =>
         generateCompareTooltipContent(d, yAxisFormatter),
       );
@@ -732,7 +747,7 @@ function nvd3Vis(element, props) {
 
         if (
           (hasCustomMin || hasCustomMax) &&
-          vizType === 'area' &&
+          vizType === VizType.LegacyArea &&
           chart.style() === 'expand'
         ) {
           // Because there are custom bounds, we need to override them back to 0%-100% since this
@@ -740,7 +755,7 @@ function nvd3Vis(element, props) {
           chart.yDomain([0, 1]);
         } else if (
           (hasCustomMin || hasCustomMax) &&
-          vizType === 'area' &&
+          vizType === VizType.LegacyArea &&
           chart.style() === 'stream'
         ) {
           // Because there are custom bounds, we need to override them back to the domain of the
@@ -757,8 +772,9 @@ function nvd3Vis(element, props) {
           // These viz types can be stacked
           // They correspond to the nvd3 stackedAreaChart and multiBarChart
           if (
-            vizType === 'area' ||
-            (isVizTypes(['bar', 'dist_bar']) && chart.stacked())
+            vizType === VizType.LegacyArea ||
+            (isVizTypes([VizType.LegacyBar, VizType.DistBar]) &&
+              chart.stacked())
           ) {
             // This is a stacked area chart or a stacked bar chart
             [trueMin, trueMax] = computeStackedYDomain(data);
@@ -939,7 +955,7 @@ function nvd3Vis(element, props) {
         let xMax;
         let xMin;
         let xScale;
-        if (vizType === 'bar') {
+        if (vizType === VizType.LegacyBar) {
           xMin = d3.min(data[0].values, d => d.x);
           xMax = d3.max(data[0].values, d => d.x);
           xScale = d3.scale
@@ -963,7 +979,7 @@ function nvd3Vis(element, props) {
 
         if (formulas.length > 0) {
           const xValues = [];
-          if (vizType === 'bar') {
+          if (vizType === VizType.LegacyBar) {
             // For bar-charts we want one data point evaluated for every
             // data point that will be displayed.
             const distinct = data.reduce((xVals, d) => {

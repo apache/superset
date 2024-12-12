@@ -69,6 +69,7 @@ import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
 import getOverwriteItems from '../util/getOverwriteItems';
 import {
   applyColors,
+  enforceSharedLabelsColorsArray,
   isLabelsColorMapSynced,
   getColorSchemeDomain,
   getColorNamespace,
@@ -294,8 +295,9 @@ export function saveDashboardRequest(data, id, saveType) {
     const metadataCrossFiltersEnabled = data.metadata?.cross_filters_enabled;
     const colorScheme = data.metadata?.color_scheme;
     const customLabelsColor = data.metadata?.label_colors || {};
-    const sharedLabelsColor = data.metadata?.shared_label_colors || [];
-    // making sure the data is what the backend expects
+    const sharedLabelsColor = enforceSharedLabelsColorsArray(
+      data.metadata?.shared_label_colors,
+    );
     const cleanedData = {
       ...data,
       certified_by: certified_by || '',
@@ -866,7 +868,9 @@ export const ensureSyncedSharedLabelsColors =
         dashboardState: { sharedLabelsColorsMustSync },
       } = getState();
       const updatedMetadata = { ...metadata };
-      const sharedLabelsColors = metadata.shared_label_colors || [];
+      const sharedLabelsColors = enforceSharedLabelsColorsArray(
+        metadata.shared_label_colors,
+      );
       const freshLabelsColors = getFreshSharedLabels(
         forceFresh ? [] : sharedLabelsColors,
       );
@@ -907,7 +911,9 @@ export const updateDashboardLabelsColor =
       const colorScheme = metadata.color_scheme;
       const labelsColorMapInstance = getLabelsColorMap();
       const fullLabelsColors = metadata.map_label_colors || {};
-      const sharedLabelsColors = metadata.shared_label_colors || [];
+      const sharedLabelsColors = enforceSharedLabelsColorsArray(
+        metadata.shared_label_colors,
+      );
       const customLabelsColors = metadata.label_colors || {};
 
       // for dashboards with no color scheme, the charts should always use their individual schemes
