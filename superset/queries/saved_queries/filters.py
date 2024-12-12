@@ -16,7 +16,6 @@
 # under the License.
 from typing import Any
 
-from flask import g
 from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
@@ -82,10 +81,8 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
-        Filter saved queries to only those created by current user.
+        Allow access to all saved queries.
 
         :returns: flask-sqlalchemy query
         """
-        return query.filter(
-            SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
-        )
+        return query
