@@ -120,7 +120,20 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     fi
 
 ######################################################################
-# Python common layer
+# Python translation compiler layer
+######################################################################
+FROM python-base AS python-translation-compiler
+
+# Install Python dependencies using docker/pip-install.sh
+COPY requirements/translations.txt requirements/
+RUN --mount=type=cache,target=/root/.cache/pip \
+    /app/docker/pip-install.sh -r requirements/translations.txt
+
+COPY superset/translations /app/translations_work
+RUN flask fab babel-compile --target translations_work
+
+######################################################################
+# Python APP common layer
 ######################################################################
 FROM python-base AS python-common
 
@@ -151,16 +164,20 @@ RUN /app/docker/apt-install.sh \
       libecpg-dev \
       libldap2-dev
 
-# Copy the main Superset source code
-COPY superset superset
-# Copy .json translations from frontend image
-COPY --from=superset-node /app/superset/translations superset/translations
-
-# Copy the compiled frontend assets from the node image
+# Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
+COPY --from=superset-node /app/superset/translations/ superset/translations/
+COPY --from=python-translation-compiler /app/translations_work/*/*.mo superset/translations_mo/
 
-# Add the translations script
-COPY --chmod=755 ./scripts/translations/generate_mo_files.sh ./scripts/translations/
+# Create symlinks for the compiled translations
+RUN find ./superset/translations_mo/ -name "*.mo" | while read f; do \
+    relpath=${f#./superset/translations_mo/} && \
+    target_dir="/app/superset/translations/$(dirname $relpath)" && \
+    #mkdir -p "$target_dir" && \
+    echo "ln -s \"$f\" \"$target_dir/$(basename $f)\"" && \
+    ln -s "$f" "$target_dir/$(basename $f)"; \
+
+done
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/usr/bin/run-server.sh"]
@@ -170,6 +187,7 @@ EXPOSE ${SUPERSET_PORT}
 # Final lean image...
 ######################################################################
 FROM python-common AS lean
+COPY superset superset
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
@@ -179,14 +197,13 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 RUN python -m compileall /app/superset
 
-RUN /app/docker/docker-translate.sh
-
 USER superset
 
 ######################################################################
 # Dev image...
 ######################################################################
 FROM python-common AS dev
+COPY superset superset
 
 # Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
@@ -200,8 +217,6 @@ COPY requirements/*.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt && \
     uv pip install .
-
-RUN /app/docker/docker-translate.sh
 
 RUN python -m compileall /app/superset
 
