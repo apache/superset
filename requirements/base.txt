@@ -335,7 +335,7 @@ rich==13.9.4
     # via flask-limiter
 rsa==4.9
     # via google-auth
-selenium==3.141.0
+selenium==4.14.0
     # via apache-superset
 shillelagh[gsheetsapi]==1.2.18
     # via apache-superset
