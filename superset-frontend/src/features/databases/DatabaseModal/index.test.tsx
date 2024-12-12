@@ -379,7 +379,7 @@ describe('DatabaseModal', () => {
         hidden: true,
       });
 
-      const footer = document.getElementsByClassName('ant-modal-footer');
+      const footer = document.getElementsByClassName('antd5-modal-footer');
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert

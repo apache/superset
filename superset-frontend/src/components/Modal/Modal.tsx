@@ -41,7 +41,6 @@ import Draggable, {
   DraggableEvent,
   DraggableProps,
 } from 'react-draggable';
-import { mix } from 'polished';
 
 export interface ModalProps {
   className?: string;
@@ -145,7 +144,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     top: 0;
     right: 0;
   }
-  
+
   .antd5-modal-close-x {
     display: flex;
     align-items: center;
@@ -230,30 +229,6 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       }
     }
   `}
-`;
-
-const OkButton = styled(Button)<{ theme: any }>`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  background: ${({ theme }) => theme.colors.primary.base};
-  border: none;
-  color: ${({ theme }) => theme.colors.grayscale.light5};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  &:hover {
-    background: ${({ theme }) => theme.colors.primary.dark1};
-  }
-`;
-
-const CancelButton = styled(Button)<{ theme: any }>`
-  border-radius: ${({ theme }) => theme.borderRadius}px;
-  background: ${({ theme }) => theme.colors.primary.light4};
-  border: none;
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  &:hover {
-    background: ${({ theme }) => mix(0.1, theme.colors.primary.base, theme.colors.primary.light4)};
-  }
 `;
 
 const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
@@ -421,40 +396,26 @@ const CustomModal = ({
 };
 CustomModal.displayName = 'Modal';
 
+// Ant Design 4 does not allow overriding Modal's buttons when
+// using one of the pre-defined functions. Ant Design 5 Modal introduced
+// the footer property that will allow that. Meanwhile, we're replicating
+// Button style using global CSS in src/GlobalStyles.tsx.
+// TODO: Replace this logic when on Ant Design 5.
+const buttonProps = {
+  okButtonProps: { className: 'modal-functions-ok-button' },
+  cancelButtonProps: { className: 'modal-functions-cancel-button' },
+};
+
 // TODO: in another PR, rename this to CompatabilityModal
 // and demote it as the default export.
 // We should start using AntD component interfaces going forward.
 const Modal = Object.assign(CustomModal, {
   error: (config: ModalFuncProps) =>
-    AntdModal.error({
-      ...config,
-      footer: (originNode, extra : {OkButton, CancelButton }) => (
-        <>
-          <CancelButton/>
-          <OkButton/>
-        </>
-      ),
-    }),
+    AntdModal.error({ ...config, ...buttonProps }),
   warning: (config: ModalFuncProps) =>
-    AntdModal.warning({
-      ...config,
-      footer: (originNode, { OkBtn, CancelBtn }) => (
-        <>
-          <CancelButton as={CancelBtn} />
-          <OkButton as={OkBtn} />
-        </>
-      ),
-    }),
+    AntdModal.warning({ ...config, ...buttonProps }),
   confirm: (config: ModalFuncProps) =>
-    AntdModal.confirm({
-      ...config,
-      footer: (originNode, { OkBtn, CancelBtn }) => (
-        <>
-          <CancelButton as={CancelBtn} />
-          <OkButton as={OkBtn} />
-        </>
-      ),
-    }),
+    AntdModal.confirm({ ...config, ...buttonProps }),
   useModal: AntdModal.useModal,
 });
 
