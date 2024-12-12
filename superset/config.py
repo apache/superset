@@ -399,7 +399,7 @@ LANGUAGES = {
     "it": {"flag": "it", "name": "Italian"},
     "fr": {"flag": "fr", "name": "French"},
     "de": {"flag": "de", "name": "German"},
-    "nl": {"flag": "nl", "name": "Dutch"}
+    "nl": {"flag": "nl", "name": "Dutch"},
 }
 
 
