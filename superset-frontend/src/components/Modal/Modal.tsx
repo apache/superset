@@ -148,7 +148,6 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   .antd5-modal-close-x {
     display: flex;
     align-items: center;
-    justify-content: start;
 
     .close {
       flex: 1 1 auto;
