@@ -1,8 +1,9 @@
 name: License Template Check
 
 on:
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch: 
+#  pull_request:
+#    types: [synchronize, opened, reopened, ready_for_review]
 
 # cancel previous workflow jobs for PRs
 concurrency:
