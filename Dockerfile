@@ -176,7 +176,6 @@ RUN find ./superset/translations_mo/ -name "*.mo" | while read f; do \
     #mkdir -p "$target_dir" && \
     echo "ln -s \"$f\" \"$target_dir/$(basename $f)\"" && \
     ln -s "$f" "$target_dir/$(basename $f)"; \
-
 done
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
