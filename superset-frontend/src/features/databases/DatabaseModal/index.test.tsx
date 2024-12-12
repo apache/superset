@@ -331,7 +331,7 @@ describe('DatabaseModal', () => {
   afterEach(cleanup);
 
   describe('Visual: New database connection', () => {
-    test('renders the initial load of Step 1 correctly', () => {
+    test.only('renders the initial load of Step 1 correctly', () => {
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButton = screen.getByLabelText('Close');
@@ -415,6 +415,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
+        console.log(component)
         expect(component).toBeVisible();
       });
       // there should be a footer but it should not have any buttons in it
