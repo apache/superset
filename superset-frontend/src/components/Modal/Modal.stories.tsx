@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ModalFuncProps } from 'antd/lib/modal';
-import Modal, { ModalProps } from '.';
+
+import Modal, { ModalProps, ModalFuncProps } from '.';
 import Button from '../Button';
 
 export default {

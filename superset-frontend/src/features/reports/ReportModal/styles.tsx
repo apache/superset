@@ -24,7 +24,7 @@ import { Radio } from 'src/components/Radio';
 import { CronPicker } from 'src/components/CronPicker';
 
 export const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0;
   }
 `;

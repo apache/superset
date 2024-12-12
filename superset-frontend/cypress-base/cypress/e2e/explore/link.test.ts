@@ -42,8 +42,8 @@ describe('Test explore links', () => {
     cy.wait('@chartData').then(() => {
       cy.get('code');
     });
-    cy.get('.ant-modal-content').within(() => {
-      cy.get('button.ant-modal-close').first().click({ force: true });
+    cy.get('.antd5-modal-content').within(() => {
+      cy.get('button.antd5-modal-close').first().click({ force: true });
     });
   });
 
