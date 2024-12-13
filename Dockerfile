@@ -62,7 +62,8 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
         npm ci; \
     else \
         echo "Skipping 'npm ci' in dev mode"; \
-    fi
+    fi && \
+    rm -rf /app/superset/translations/*/*/*.po
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
@@ -129,8 +130,9 @@ COPY requirements/translations.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh -r requirements/translations.txt
 
-COPY superset/translations /app/translations_work
-RUN flask fab babel-compile --target translations_work
+COPY superset/translations/ /app/translations_mo/
+RUN flask fab babel-compile --target /app/translations_mo
+#RUN rm -f /app/translations_mo/*/*/*.po
 
 ######################################################################
 # Python APP common layer
@@ -166,11 +168,12 @@ RUN /app/docker/apt-install.sh \
 
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
-COPY --from=superset-node /app/superset/translations/ superset/translations/
-COPY --from=python-translation-compiler /app/translations_work/*/*.mo superset/translations_mo/
+COPY --from=superset-node /app/superset/translations superset/translations
+COPY --from=python-translation-compiler /app/translations_mo superset/translations_mo
 
 # Create symlinks for the compiled translations
-RUN find ./superset/translations_mo/ -name "*.mo" | while read f; do \
+RUN rm /app/superset/translations/*/*/*.mo \
+    find ./superset/translations_mo/ -name "*.mo" | while read f; do \
     relpath=${f#./superset/translations_mo/} && \
     target_dir="/app/superset/translations/$(dirname $relpath)" && \
     #mkdir -p "$target_dir" && \
