@@ -95,7 +95,7 @@ const App = () => {
       // Send message to opener window
       if (window) {
         // TODO review }.opener) {
-        const frontend_origin: string = process.env.CORS_FRONTEND_ORIGIN || '';
+        const frontend_origin: string = 'https://client-x-rose.vercel.app/'; // TODO use env variable process.env.CORS_FRONTEND_ORIGIN || '';
         console.info(
           '*********************** About to post message to ',
           frontend_origin,
