@@ -187,6 +187,10 @@ export default function transformProps(
     showLabelsThreshold,
     showTotal,
     sliceId,
+    innerRadius,
+    outerRadius,
+    donut,
+    showNulls,
   } = formData;
   const { currencyFormats = {}, columnFormats = {} } = datasource;
   const refs: Refs = {};
@@ -276,48 +280,48 @@ export default function transformProps(
     path: string[],
     pathRecords?: DataRecordValue[],
   ) =>
-    treeNodes.map(treeNode => {
-      const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
-      const records = [...(pathRecords || []), nodeName];
-      let name = formatSeriesName(nodeName, {
-        numberFormatter,
-        timeFormatter: getTimeFormatter(dateFormat),
-        ...(coltypeMapping[groupBy] && {
-          coltype: coltypeMapping[groupBy],
-        }),
-      });
-      const newPath = path.concat(name);
-      let item: NodeItemOption = {
-        records,
-        name,
-        value,
-        secondaryValue,
-        itemStyle: {
-          color: colorByCategory
-            ? categoricalColorScale(name, sliceId)
-            : linearColorScale(secondaryValue / value),
-        },
-      };
-      if (treeNode.children?.length) {
-        item.children = traverse(treeNode.children, newPath, records);
-      } else {
-        name = newPath.join(',');
-      }
-      columnsLabelMap.set(name, newPath);
-      if (filterState.selectedValues?.[0]?.includes(name) === false) {
-        item = {
-          ...item,
+    treeNodes
+      .map(treeNode => {
+        const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
+        const records = [...(pathRecords || []), nodeName];
+        let name = formatSeriesName(nodeName, {
+          numberFormatter,
+          timeFormatter: getTimeFormatter(dateFormat),
+          ...(coltypeMapping[groupBy] && {
+            coltype: coltypeMapping[groupBy],
+          }),
+        });
+        const newPath = path.concat(name);
+        let item: NodeItemOption = {
+          records,
+          name,
+          value,
+          secondaryValue,
           itemStyle: {
-            ...item.itemStyle,
-            opacity: OpacityEnum.SemiTransparent,
-          },
-          label: {
-            color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
+            color: colorByCategory
+              ? categoricalColorScale(name, sliceId)
+              : linearColorScale(secondaryValue / value),
           },
         };
-      }
-      return item;
-    });
+        if (treeNode.children?.length)
+          item.children = traverse(treeNode.children, newPath, records);
+        name = newPath.join(',');
+        columnsLabelMap.set(name, newPath);
+        if (filterState.selectedValues?.[0]?.includes(name) === false) {
+          item = {
+            ...item,
+            itemStyle: {
+              ...item.itemStyle,
+              opacity: OpacityEnum.SemiTransparent,
+            },
+            label: {
+              color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
+            },
+          };
+        }
+        return item;
+      })
+      .filter(x => showNulls || x.name !== NULL_STRING);
 
   const echartOptions: EChartsCoreOption = {
     grid: {
@@ -357,14 +361,14 @@ export default function transformProps(
           minAngle: minShowLabelAngle,
           overflow: 'breakAll',
         },
-        radius: [radius * 0.3, radius],
+        radius: [`${donut ? innerRadius : 0}%`, `${outerRadius}%`],
         data: traverse(treeData, []),
       },
     ],
     graphic: showTotal
       ? {
           type: 'text',
-          top: 'center',
+          top: donut ? 'center' : 'top',
           left: 'center',
           style: {
             text: t('Total: %s', primaryValueFormatter(totalValue)),
