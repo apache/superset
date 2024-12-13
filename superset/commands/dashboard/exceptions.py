@@ -62,6 +62,10 @@ class DashboardNativeFiltersUpdateFailedError(UpdateFailedError):
     message = _("Dashboard native filters could not be patched.")
 
 
+class DashboardColorsConfigUpdateFailedError(UpdateFailedError):
+    message = _("Dashboard color configuration could not be updated.")
+
+
 class DashboardDeleteFailedError(DeleteFailedError):
     message = _("Dashboard could not be deleted.")
 

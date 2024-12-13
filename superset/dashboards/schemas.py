@@ -428,6 +428,15 @@ class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
     reordered = fields.List(fields.String(), allow_none=False)
 
 
+class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
+    color_namespace = fields.String(allow_none=True)
+    color_scheme = fields.String(allow_none=True)
+    map_label_colors = fields.Dict(allow_none=False)
+    shared_label_colors = SharedLabelsColorsField()
+    label_colors = fields.Dict(allow_none=False)
+    color_scheme_domain = fields.List(fields.String(), allow_none=False)
+
+
 class DashboardScreenshotPostSchema(Schema):
     dataMask = fields.Dict(
         keys=fields.Str(),
