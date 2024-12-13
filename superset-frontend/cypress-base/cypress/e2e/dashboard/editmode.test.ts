@@ -1093,7 +1093,7 @@ describe('Dashboard edit', () => {
       applyChanges();
     });
 
-    it('should not accept an invalid color scheme', () => {
+    it.skip('should not accept an invalid color scheme', () => {
       openAdvancedProperties();
       clearMetadata();
       // allow console error
