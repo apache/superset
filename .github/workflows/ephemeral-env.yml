@@ -159,6 +159,9 @@ jobs:
       - name: Build ephemeral env image
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
         run: |
           supersetbot docker \
             --preset ci \
