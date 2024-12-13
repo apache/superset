@@ -32,7 +32,6 @@ import {
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import * as hooks from 'src/views/CRUD/hooks';
-import componentTypes from 'src/dashboard/util/componentTypes';
 import { DatabaseObject, ConfigurationMethod } from '../types';
 import DatabaseModal, {
   dbReducer,
