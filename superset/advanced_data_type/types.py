@@ -17,7 +17,7 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Optional, TypedDict, Union
 
-from sqlalchemy import Column
+from sqlalchemy import Column, Row
 from sqlalchemy.sql.expression import BinaryExpression
 
 from superset.superset_typing import FilterValues
@@ -56,4 +56,4 @@ class AdvancedDataType:
     description: str
     valid_data_types: list[str]
     translate_type: Callable[[AdvancedDataTypeRequest], AdvancedDataTypeResponse]
-    translate_filter: Callable[[Column, FilterOperator, Any], BinaryExpression]
+    translate_filter: Callable[[Row, FilterOperator, Any],[Column, FilterOperator, Any], BinaryExpression]
