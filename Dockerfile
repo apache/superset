@@ -101,7 +101,7 @@ ENV LANG=C.UTF-8 \
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
 
 # Some bash scripts needed throughout the layers
-COPY --chmod=700 docker/*.sh /app/docker/
+COPY --chmod=750 docker/*.sh /app/docker/
 
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
 
@@ -133,8 +133,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh -r requirements/translations.txt
 
 COPY superset/translations/ /app/translations_mo/
-RUN flask fab babel-compile --target /app/translations_mo
-#RUN rm -f /app/translations_mo/*/*/*.po
+RUN flask fab babel-compile --target /app/translations_mo && \
+    rm -f /app/translations_mo/*/*/*.po
 
 ######################################################################
 # Python APP common layer
@@ -170,6 +170,8 @@ RUN /app/docker/apt-install.sh \
 
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
+
+# Merging translations from backend and frontend stages
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
