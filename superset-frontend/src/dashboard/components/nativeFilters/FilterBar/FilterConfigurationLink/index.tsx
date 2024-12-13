@@ -62,10 +62,13 @@ export const FilterConfigurationLink: FC<FCBProps> = ({
 
   return (
     <>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <span {...getFilterBarTestId('create-filter')} onClick={handleClick}>
+      <div
+        {...getFilterBarTestId('create-filter')}
+        onClick={handleClick}
+        role="button"
+      >
         {children}
-      </span>
+      </div>
       <FiltersConfigModal
         isOpen={isOpen}
         onSave={submit}
