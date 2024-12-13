@@ -635,35 +635,38 @@ function FiltersConfigModal({
         const isDivider = id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX);
         const isActive = currentFilterId === id;
         return (
-          isActive && (
-            <>
-              {isDivider ? (
-                <DividerConfigForm
-                  componentId={id}
-                  divider={filterConfigMap[id] as Divider}
-                />
-              ) : (
-                <FiltersConfigForm
-                  expanded={expanded}
-                  ref={configFormRef}
-                  form={form}
-                  filterId={id}
-                  filterToEdit={filterConfigMap[id] as Filter}
-                  removedFilters={removedFilters}
-                  restoreFilter={restoreFilter}
-                  getAvailableFilters={getAvailableFilters}
-                  key={id}
-                  activeFilterPanelKeys={activeFilterPanelKey}
-                  handleActiveFilterPanelChange={handleActiveFilterPanelChange}
-                  isActive={isActive}
-                  setErroredFilters={setErroredFilters}
-                  validateDependencies={validateDependencies}
-                  getDependencySuggestion={getDependencySuggestion}
-                  onModifyFilter={handleModifyFilter}
-                />
-              )}
-            </>
-          )
+          <div
+            style={{
+              display: isActive ? '' : 'none',
+              height: '100%',
+            }}
+          >
+            {isDivider ? (
+              <DividerConfigForm
+                componentId={id}
+                divider={filterConfigMap[id] as Divider}
+              />
+            ) : (
+              <FiltersConfigForm
+                expanded={expanded}
+                ref={configFormRef}
+                form={form}
+                filterId={id}
+                filterToEdit={filterConfigMap[id] as Filter}
+                removedFilters={removedFilters}
+                restoreFilter={restoreFilter}
+                getAvailableFilters={getAvailableFilters}
+                key={id}
+                activeFilterPanelKeys={activeFilterPanelKey}
+                handleActiveFilterPanelChange={handleActiveFilterPanelChange}
+                isActive={isActive}
+                setErroredFilters={setErroredFilters}
+                validateDependencies={validateDependencies}
+                getDependencySuggestion={getDependencySuggestion}
+                onModifyFilter={handleModifyFilter}
+              />
+            )}
+          </div>
         );
       }),
     [
