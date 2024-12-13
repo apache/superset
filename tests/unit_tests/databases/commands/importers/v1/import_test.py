@@ -23,7 +23,6 @@ from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
-from superset.commands.database.importers.v1.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.utils import json
 
@@ -194,28 +193,25 @@ def test_import_database_with_version(mocker: MockerFixture, session: Session) -
     assert json.loads(database.extra)["version"] == "1.1.1"
 
 
-def test_add_permissions(mocker: MockerFixture) -> None:
+def test_import_database_with_user_impersonation(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
     """
-    Test adding permissions to a database when it's imported.
+    Test importing a database that is managed externally.
     """
-    database = mocker.MagicMock()
-    database.database_name = "my_db"
-    database.db_engine_spec.supports_catalog = True
-    database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
-    database.get_all_schema_names.side_effect = [["schema1"], ["schema2"]]
-    ssh_tunnel = mocker.MagicMock()
-    add_permission_view_menu = mocker.patch(
-        "superset.commands.database.importers.v1.utils.security_manager."
-        "add_permission_view_menu"
-    )
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
 
-    add_permissions(database, ssh_tunnel)
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
 
-    add_permission_view_menu.assert_has_calls(
-        [
-            mocker.call("catalog_access", "[my_db].[catalog1]"),
-            mocker.call("catalog_access", "[my_db].[catalog2]"),
-            mocker.call("schema_access", "[my_db].[catalog1].[schema1]"),
-            mocker.call("schema_access", "[my_db].[catalog2].[schema2]"),
-        ]
-    )
+    config = copy.deepcopy(database_config)
+    config["impersonate_user"] = True
+
+    database = import_database(config)
+    assert database.impersonate_user is True

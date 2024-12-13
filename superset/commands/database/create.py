@@ -39,11 +39,11 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelInvalidError,
 )
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
+from superset.commands.database.utils import add_permissions
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
-from superset.db_engine_specs.base import GenericDBException
 from superset.exceptions import SupersetErrorsException
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction
 
@@ -100,28 +100,7 @@ class CreateDatabaseCommand(BaseCommand):
                 ).run()
 
             # add catalog/schema permissions
-            if database.db_engine_spec.supports_catalog:
-                catalogs = database.get_all_catalog_names(
-                    cache=False,
-                    ssh_tunnel=ssh_tunnel,
-                )
-                for catalog in catalogs:
-                    security_manager.add_permission_view_menu(
-                        "catalog_access",
-                        security_manager.get_catalog_perm(
-                            database.database_name, catalog
-                        ),
-                    )
-            else:
-                # add a dummy catalog for DBs that don't support them
-                catalogs = [None]
-
-            for catalog in catalogs:
-                try:
-                    self.add_schema_permissions(database, catalog, ssh_tunnel)
-                except GenericDBException:  # pylint: disable=broad-except
-                    logger.warning("Error processing catalog '%s'", catalog)
-                    continue
+            add_permissions(database, ssh_tunnel)
         except (
             SSHTunnelInvalidError,
             SSHTunnelCreateFailedError,
@@ -148,26 +127,6 @@ class CreateDatabaseCommand(BaseCommand):
             stats_logger.incr("db_creation_success.ssh_tunnel")
 
         return database
-
-    def add_schema_permissions(
-        self,
-        database: Database,
-        catalog: str,
-        ssh_tunnel: Optional[SSHTunnel],
-    ) -> None:
-        for schema in database.get_all_schema_names(
-            catalog=catalog,
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        ):
-            security_manager.add_permission_view_menu(
-                "schema_access",
-                security_manager.get_schema_perm(
-                    database.database_name,
-                    catalog,
-                    schema,
-                ),
-            )
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
