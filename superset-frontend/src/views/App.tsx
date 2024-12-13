@@ -101,7 +101,7 @@ const App = () => {
           frontend_origin,
         );
         window.postMessage(
-          //TODO review .opener.postMessage(
+          // TODO review .opener.postMessage(
           {
             type: 'OAUTH2_SUCCESS',
             data: {
