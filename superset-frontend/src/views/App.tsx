@@ -93,13 +93,15 @@ const App = () => {
     if (hasOnlyGuestRole(bootstrapData)) {
       console.info('*********************** Executing hasOnlyGuestRole');
       // Send message to opener window
-      if (window.opener) {
-        const frontend_origin = process.env.CORS_FRONTEND_ORIGIN;
+      if (window) {
+        // TODO review }.opener) {
+        const frontend_origin: string = process.env.CORS_FRONTEND_ORIGIN || '';
         console.info(
           '*********************** About to post message to ',
           frontend_origin,
         );
-        window.opener.postMessage(
+        window.postMessage(
+          //TODO review .opener.postMessage(
           {
             type: 'OAUTH2_SUCCESS',
             data: {
