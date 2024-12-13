@@ -32,7 +32,7 @@ ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
 
-COPY --chmod=700 docker/*.sh /app/docker/
+COPY docker/ /app/docker/
 # Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
 
@@ -101,7 +101,7 @@ ENV LANG=C.UTF-8 \
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset
 
 # Some bash scripts needed throughout the layers
-COPY --chmod=750 docker/*.sh /app/docker/
+COPY --chmod=755 docker/*.sh /app/docker/
 
 RUN pip install --no-cache-dir --upgrade setuptools pip uv
 
@@ -140,6 +140,8 @@ RUN pybabel compile -d /app/translations_mo | true && \
 # Python APP common layer
 ######################################################################
 FROM python-base AS python-common
+# Copy the entrypoints, make them executable in userspace
+COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
 WORKDIR /app
 # Set up necessary directories and user
@@ -157,7 +159,9 @@ RUN mkdir -p \
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/
 COPY scripts/check-env.py scripts/
-COPY --chmod=755 ./docker/run-server.sh /usr/bin/
+
+# keeping for backward compatibility
+COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
 
 # Some debian libs
 RUN /app/docker/apt-install.sh \
@@ -176,7 +180,7 @@ COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
-CMD ["/usr/bin/run-server.sh"]
+CMD ["/app/docker/entrypoints/run-server.sh"]
 EXPOSE ${SUPERSET_PORT}
 
 ######################################################################
@@ -223,4 +227,4 @@ USER superset
 ######################################################################
 FROM lean AS ci
 
-CMD ["/app/docker/docker-ci.sh"]
+CMD ["/app/docker/entrypoints/docker-ci.sh"]
