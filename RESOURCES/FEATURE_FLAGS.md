@@ -46,7 +46,8 @@ These features are **finished** but currently being tested. They are usable, but
 - CONFIRM_DASHBOARD_DIFF
 - DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS
-- ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/configuration/databases/#querying-across-databases)
+- DATE_FORMAT_IN_EMAIL_SUBJECT: [(docs)](https://superset.apache.org/docs/configuration/databases/#querying-across-databases)
+- ENABLE_SUPERSET_META_DB: [(docs)](https://github.com/apache/superset/pull/31413)
 - ESTIMATE_QUERY_COST
 - GLOBAL_ASYNC_QUERIES [(docs)](https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries)
 - HORIZONTAL_FILTER_BAR
