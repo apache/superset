@@ -93,15 +93,13 @@ const App = () => {
     if (hasOnlyGuestRole(bootstrapData)) {
       console.info('*********************** Executing hasOnlyGuestRole');
       // Send message to opener window
-      if (window) {
-        // TODO review }.opener) {
+      if (window.opener) {
         const frontend_origin = 'https://client-x-rose.vercel.app/'; // TODO use env variable process.env.CORS_FRONTEND_ORIGIN || '';
         console.info(
           '*********************** About to post message to ',
           frontend_origin,
         );
-        window.postMessage(
-          // TODO review .opener.postMessage(
+        window.opener.postMessage(
           {
             type: 'OAUTH2_SUCCESS',
             data: {
