@@ -88,6 +88,9 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('horizontal-filterbar-empty')
       .contains('No filters are currently added to this dashboard.')
       .should('exist');
+    cy.get(nativeFilters.filtersPanel.filterGear).click({
+      force: true,
+    });
     cy.getBySel('filter-bar__create-filter').should('exist');
     cy.getBySel('filterbar-action-buttons').should('exist');
   });
@@ -120,7 +123,7 @@ describe('Horizontal FilterBar', () => {
 
     cy.getBySel('form-item-value').should('have.length', 3);
     cy.viewport(768, 1024);
-    cy.getBySel('form-item-value').should('have.length', 0);
+    cy.getBySel('form-item-value').should('have.length', 1);
     openMoreFilters(false);
     cy.getBySel('form-item-value').should('have.length', 3);
 

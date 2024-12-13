@@ -62,7 +62,7 @@ describe('Visualization > Line', () => {
       'not.exist',
     );
 
-    cy.get('.ant-alert-warning').should('not.exist');
+    cy.get('.antd5-alert-warning').should('not.exist');
   });
 
   it('should allow negative values in Y bounds', () => {
@@ -71,7 +71,7 @@ describe('Visualization > Line', () => {
     cy.get('#controlSections-tab-display').click();
     cy.get('span').contains('Y Axis Bounds').scrollIntoView();
     cy.get('input[placeholder="Min"]').type('-0.1', { delay: 100 });
-    cy.get('.ant-alert-warning').should('not.exist');
+    cy.get('.antd5-alert-warning').should('not.exist');
   });
 
   it('should allow type to search color schemes and apply the scheme', () => {

@@ -23,11 +23,11 @@
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "uuid": "^11.0.2",
-    "winston": "^3.15.0",
+    "winston": "^3.17.0",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@eslint/js": "^9.11.0",
+    "@eslint/js": "^9.16.0",
     "@types/cookie": "^0.6.0",
     "@types/eslint__js": "^8.42.3",
     "@types/ioredis": "^4.27.8",

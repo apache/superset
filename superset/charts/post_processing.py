@@ -26,6 +26,7 @@ In order to do that, we reproduce the post-processing in Python
 for these chart types.
 """
 
+import csv
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -353,15 +354,19 @@ def apply_post_process(
             # `Tuple[str]`. Otherwise encoding to JSON later will fail because
             # maps cannot have tuples as their keys in JSON.
             processed_df.columns = [
-                " ".join(str(name) for name in column).strip()
-                if isinstance(column, tuple)
-                else column
+                (
+                    " ".join(str(name) for name in column).strip()
+                    if isinstance(column, tuple)
+                    else column
+                )
                 for column in processed_df.columns
             ]
             processed_df.index = [
-                " ".join(str(name) for name in index).strip()
-                if isinstance(index, tuple)
-                else index
+                (
+                    " ".join(str(name) for name in index).strip()
+                    if isinstance(index, tuple)
+                    else index
+                )
                 for index in processed_df.index
             ]
             query["data"] = processed_df.to_dict()
@@ -373,6 +378,7 @@ def apply_post_process(
                 sep=csv_export_settings.get("sep", ","),
                 encoding=csv_export_settings.get("encoding", "utf-8"),
                 decimal=csv_export_settings.get("decimal", "."),
+                quoting=csv.QUOTE_NONNUMERIC,
             )
             buf.seek(0)
             query["data"] = buf.getvalue()
