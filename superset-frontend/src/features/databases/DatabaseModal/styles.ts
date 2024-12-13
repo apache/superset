@@ -166,81 +166,24 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDAlertStyles = (theme: SupersetTheme) => css`
-  border: 1px solid ${theme.colors.info.base};
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px 0;
-
-  .ant-alert-message {
-    color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: ${theme.typography.weights.bold};
-  }
-
-  .ant-alert-description {
-    color: ${theme.colors.info.dark2};
-    font-size: ${theme.typography.sizes.m}px;
-    line-height: ${theme.gridUnit * 5}px;
-
-    a {
-      text-decoration: underline;
-    }
-
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
-  }
 `;
 
 export const StyledAlertMargin = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.gridUnit * 4}px -${theme.gridUnit * 4}px;
+    margin: 0 ${theme.gridUnit * 4}px ${theme.gridUnit * 4}px;
   `}
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
-  border: ${theme.colors.error.base} 1px solid;
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
-  color: ${theme.colors.error.dark2};
-  .ant-alert-message {
-    font-size: ${theme.typography.sizes.m}px;
-    font-weight: ${theme.typography.weights.bold};
-  }
-  .ant-alert-description {
-    font-size: ${theme.typography.sizes.m}px;
-    line-height: ${theme.gridUnit * 5}px;
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
-  }
 `;
 
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
-  border: 1px solid ${theme.colors.warning.light1};
-  padding: ${theme.gridUnit * 4}px;
   margin: ${theme.gridUnit * 4}px 0;
-  color: ${theme.colors.warning.dark2};
 
-  .ant-alert-message {
+  .antd5-alert-message {
     margin: 0;
-  }
-
-  .ant-alert-description {
-    font-size: ${theme.typography.sizes.s + 1}px;
-    line-height: ${theme.gridUnit * 4}px;
-
-    .ant-alert-icon {
-      margin-right: ${theme.gridUnit * 2.5}px;
-      font-size: ${theme.typography.sizes.l + 1}px;
-      position: relative;
-      top: ${theme.gridUnit / 4}px;
-    }
   }
 `;
 

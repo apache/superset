@@ -23,10 +23,9 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { Menu } from 'src/components/Menu';
-import SliceHeaderControls, {
-  SliceHeaderControlsProps,
-  handleDropdownNavigation,
-} from '.';
+import SliceHeaderControls from '.';
+import { SliceHeaderControlsProps } from './types';
+import { handleDropdownNavigation } from './utils';
 
 jest.mock('src/components/Dropdown', () => {
   const original = jest.requireActual('src/components/Dropdown');
@@ -310,13 +309,13 @@ test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', (
   (global as any).featureFlags = {
     [FeatureFlag.DrillToDetail]: true,
   };
-  const props = {
-    ...createProps(),
-    supersetCanExplore: true,
-  };
+  const props = createProps();
   props.slice.slice_id = 18;
   renderWrapper(props, {
-    Admin: [['can_samples', 'Datasource']],
+    Admin: [
+      ['can_samples', 'Datasource'],
+      ['can_explore', 'Superset'],
+    ],
   });
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });

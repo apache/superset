@@ -76,7 +76,8 @@ on latest base images using `docker compose build --pull`. In most cases though,
 ### Option #1 - for an interactive development environment
 
 ```bash
-docker compose up
+# The --build argument insures all the layers are up-to-date
+docker compose up --build
 ```
 
 :::tip
@@ -235,3 +236,11 @@ may want to find the exact hostname you want to use, for that you can do `ifconf
 Docker for you. Alternately if you don't even see the `docker0` interface try (if needed with sudo)
 `docker network inspect bridge` and see if there is an entry for `"Gateway"` and note the IP
 address.
+
+## 4. To build or not to build
+
+When running `docker compose up`, docker will build what is required behind the scene, but
+may use the docker cache if assets already exist. Running `docker compose build` prior to
+`docker compose up` or the equivalent shortcut `docker compose up --build` ensures that your
+docker images matche the definition in the repository. This should only apply to the main
+docker-compose.yml file (default) and not to the alternative methods defined above.

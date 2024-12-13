@@ -207,7 +207,7 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            return self._get_tab_url(dashboard_state)
+            return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
@@ -234,7 +234,7 @@ class BaseReportState:
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list: list[str] = json.loads(anchor)
-                    return self._get_tabs_urls(anchor_list)
+                    return self._get_tabs_urls(anchor_list, user_friendly=user_friendly)
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
             return [self._get_tab_url(dashboard_state)]
@@ -254,7 +254,9 @@ class BaseReportState:
             )
         ]
 
-    def _get_tab_url(self, dashboard_state: DashboardPermalinkState) -> str:
+    def _get_tab_url(
+        self, dashboard_state: DashboardPermalinkState, user_friendly: bool = False
+    ) -> str:
         """
         Get one tab url
         """
@@ -262,9 +264,15 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
-        return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        return get_url_path(
+            "Superset.dashboard_permalink",
+            key=permalink_key,
+            user_friendly=user_friendly,
+        )
 
-    def _get_tabs_urls(self, tab_anchors: list[str]) -> list[str]:
+    def _get_tabs_urls(
+        self, tab_anchors: list[str], user_friendly: bool = False
+    ) -> list[str]:
         """
         Get multple tabs urls
         """
@@ -275,7 +283,8 @@ class BaseReportState:
                     "dataMask": None,
                     "activeTabs": None,
                     "urlParams": None,
-                }
+                },
+                user_friendly=user_friendly,
             )
             for tab_anchor in tab_anchors
         ]

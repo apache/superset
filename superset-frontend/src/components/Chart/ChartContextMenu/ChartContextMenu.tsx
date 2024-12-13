@@ -40,13 +40,13 @@ import {
 } from '@superset-ui/core';
 import { RootState } from 'src/dashboard/types';
 import { Menu } from 'src/components/Menu';
+import { usePermissions } from 'src/hooks/usePermissions';
 import { AntdDropdown as Dropdown } from 'src/components/index';
 import { updateDataMask } from 'src/dataMask/actions';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
-import { usePermissions } from './usePermissions';
 
 export enum ContextMenuItem {
   CrossFilter,
