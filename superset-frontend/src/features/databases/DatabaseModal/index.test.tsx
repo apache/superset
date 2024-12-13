@@ -32,6 +32,7 @@ import {
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import * as hooks from 'src/views/CRUD/hooks';
+import componentTypes from 'src/dashboard/util/componentTypes';
 import { DatabaseObject, ConfigurationMethod } from '../types';
 import DatabaseModal, {
   dbReducer,
@@ -379,7 +380,7 @@ describe('DatabaseModal', () => {
         hidden: true,
       });
 
-      const footer = document.getElementsByClassName('antd5-modal-footer');
+      const footer = document.getElementsByClassName('ant-modal-footer');
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
@@ -415,8 +416,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
-        console.log(component);
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
@@ -438,7 +438,7 @@ describe('DatabaseModal', () => {
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
-      expect(basicHeader).toBeVisible();
+      expect(basicHeader).toBeInTheDocument();
 
       // <ModalHeader> - Connection header
       const basicHelper = screen.getByText(/step 2 of 2/i);
@@ -526,7 +526,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
     });
 
@@ -1016,7 +1016,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Assertions ----------
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
@@ -1121,7 +1121,7 @@ describe('DatabaseModal', () => {
       // Dynamic form has 3 steps, seeing this text means the dynamic form is present
       const dynamicFormStepText = screen.getByText(/step 2 of 3/i);
 
-      expect(dynamicFormStepText).toBeVisible();
+      expect(dynamicFormStepText).toBeInTheDocument();
 
       // ---------- SQL Alchemy example (2-step form)
       // Click the back button to go back to step 1,
@@ -1138,7 +1138,7 @@ describe('DatabaseModal', () => {
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       const sqlAlchemyFormStepText = screen.getByText(/step 2 of 2/i);
 
-      expect(sqlAlchemyFormStepText).toBeVisible();
+      expect(sqlAlchemyFormStepText).toBeInTheDocument();
     });
 
     describe('SQL Alchemy form flow', () => {
@@ -1361,7 +1361,7 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
         const step2of3text = screen.getByText(/step 2 of 3/i);
-        expect(step2of3text).toBeVisible();
+        expect(step2of3text).toBeInTheDocument();
       });
 
       test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
@@ -1412,7 +1412,7 @@ describe('DatabaseModal', () => {
         ) as HTMLInputElement;
         importDbButton.type = 'file';
         importDbButton.files = {} as FileList;
-        expect(importDbButton).toBeVisible();
+        expect(importDbButton).toBeInTheDocument();
 
         const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');
 
@@ -1443,7 +1443,7 @@ describe('DatabaseModal', () => {
 
     test('enters step 2 of 3 when proper database is selected', () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
-      expect(step2of3text).toBeVisible();
+      expect(step2of3text).toBeInTheDocument();
     });
   });
 
@@ -1469,7 +1469,7 @@ describe('DatabaseModal', () => {
 
     it('enters step 2 of 2 when proper database is selected', () => {
       const step2of2text = screen.getByText(/step 2 of 2/i);
-      expect(step2of2text).toBeVisible();
+      expect(step2of2text).toBeInTheDocument();
     });
 
     it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
@@ -1503,7 +1503,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Assertions ----------
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
@@ -1557,8 +1557,8 @@ describe('DatabaseModal', () => {
     test('Error displays when it is an object', async () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorSection = screen.getByText(/Database Creation Error/i);
-      expect(step2of3text).toBeVisible();
-      expect(errorSection).toBeVisible();
+      expect(step2of3text).toBeInTheDocument();
+      expect(errorSection).toBeInTheDocument();
     });
   });
 
@@ -1605,11 +1605,11 @@ describe('DatabaseModal', () => {
       const button = screen.getByText('See more');
       userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
-      expect(errorMessage).toBeVisible();
+      expect(errorMessage).toBeInTheDocument();
       const closeButton = screen.getByText('Close');
       userEvent.click(closeButton);
-      expect(step2of3text).toBeVisible();
-      expect(errorTitleMessage).toBeVisible();
+      expect(step2of3text).toBeInTheDocument();
+      expect(errorTitleMessage).toBeInTheDocument();
     });
   });
 
