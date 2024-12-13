@@ -44,6 +44,7 @@ const TabsContainer = styled.div`
   flex-direction: column;
   padding: ${({ theme }) => theme.gridUnit * 3}px;
   padding-top: 2px;
+  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
 const FilterTitlePane: FC<Props> = ({
@@ -79,25 +80,18 @@ const FilterTitlePane: FC<Props> = ({
   };
   return (
     <TabsContainer>
-      <div
-        css={{
-          height: '100%',
-          overflowY: 'auto',
-        }}
-      >
-        <FilterTitleContainer
-          ref={filtersContainerRef}
-          filters={filters}
-          currentFilterId={currentFilterId}
-          removedFilters={removedFilters}
-          getFilterTitle={getFilterTitle}
-          erroredFilters={erroredFilters}
-          onChange={onChange}
-          onRemove={onRemove}
-          onRearrange={onRearrange}
-          restoreFilter={restoreFilter}
-        />
-      </div>
+      <FilterTitleContainer
+        ref={filtersContainerRef}
+        filters={filters}
+        currentFilterId={currentFilterId}
+        removedFilters={removedFilters}
+        getFilterTitle={getFilterTitle}
+        erroredFilters={erroredFilters}
+        onChange={onChange}
+        onRemove={onRemove}
+        onRearrange={onRearrange}
+        restoreFilter={restoreFilter}
+      />
       <div
         css={{
           display: 'flex',

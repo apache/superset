@@ -241,19 +241,14 @@ const StyledCollapse = styled(Collapse)`
 `;
 
 const StyledTabs = styled(Tabs)`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   .ant-tabs-nav {
-    position: sticky;
-    top: 0;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    z-index: 1;
+    margin-bottom: 0;
   }
-
-  .ant-tabs-nav-list {
-    padding: 0;
-  }
-
-  .ant-form-item-label {
-    padding-bottom: 0;
+  .ant-tabs-content-holder {
+    overflow-y: scroll;
   }
 `;
 
