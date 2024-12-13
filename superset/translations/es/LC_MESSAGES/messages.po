@@ -17,16 +17,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2024-10-21 10:25+0330\n"
 "PO-Revision-Date: 2018-11-03 00:11+0100\n"
 "Last-Translator: Ruben Sastre <ruben.sastre@decathlon.com>\n"
 "Language: es\n"
 "Language-Team: Español; Castellano <>\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.9.1\n"
 
 msgid ""
 "\n"
@@ -86,7 +86,15 @@ msgstr "Guardar Dashboard"
 msgid " a new one"
 msgstr "Cambiado el"
 
+#, python-format
+msgid " at line %(line)d"
+msgstr ""
+
 msgid " expression which needs to adhere to the "
+msgstr ""
+
+#, python-format
+msgid " near '%(highlight)s'"
 msgstr ""
 
 msgid " source code of Superset's sandboxed parser"
@@ -364,6 +372,10 @@ msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you "
 "clear your cookies or change browsers.\n"
 "\n"
+msgstr ""
+
+#, python-format
+msgid "... and %s others"
 msgstr ""
 
 msgid "0 Selected"
@@ -1085,6 +1097,14 @@ msgid "Advanced-Analytics"
 msgstr "Analíticos Avanzadas"
 
 #, fuzzy
+msgid "Affected Charts"
+msgstr "Todos los gráficos"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "Dashboard Superset"
+
+#, fuzzy
 msgid "After"
 msgstr "fecha"
 
@@ -1233,8 +1253,11 @@ msgstr "Permitie opción CREATE VIEW AS en el laboratorio SQL"
 msgid "Allow Csv Upload"
 msgstr "Permitir carga de CSV"
 
-msgid "Allow DML"
-msgstr "Permitir DML"
+msgid "Allow DDL and DML"
+msgstr ""
+
+msgid "Allow DDL/DML"
+msgstr ""
 
 msgid "Allow changing catalogs"
 msgstr ""
@@ -1265,16 +1288,17 @@ msgstr ""
 msgid "Allow file uploads to database"
 msgstr "Selecciona un archivo de Excel para ser cargado a una base de datos."
 
-msgid ""
-"Allow manipulation of the database using non-SELECT statements such as "
-"UPDATE, DELETE, CREATE, etc."
-msgstr ""
-
 #, fuzzy
 msgid "Allow node selections"
 msgstr "Permitir selección múltiple"
 
 msgid "Allow sending multiple polygons as a filter event"
+msgstr ""
+
+msgid ""
+"Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
+"TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
+"DELETE, etc)"
 msgstr ""
 
 msgid "Allow this database to be explored"
@@ -3561,6 +3585,17 @@ msgstr "El dashboard [{}] ha sido creado y el gráfico [{}] ha sido añadido a �
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr "El dashboard [{}] ha sido creado y el gráfico [{}] ha sido añadido a él"
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
+#, fuzzy
+msgid "Dashboard cannot be favorited."
+msgstr "El Dashboard no pudo ser actualizado."
+
+#, fuzzy
+msgid "Dashboard cannot be unfavorited."
+msgstr "El Dashboard no pudo ser actualizado."
+
 msgid "Dashboard could not be deleted."
 msgstr "El Dashboard no pudo ser eliminado."
 
@@ -4203,8 +4238,8 @@ msgid "Deleted: %s"
 msgstr "Eliminado: %s"
 
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -4764,6 +4799,10 @@ msgstr ""
 msgid "Embed dashboard"
 msgstr "Guardar Dashboard"
 
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "El Dashboard no pudo ser eliminado."
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -4938,6 +4977,10 @@ msgstr ""
 "Lo sentimos, hubo un error al obtener la información de la base de datos:"
 " %s"
 
+#, fuzzy
+msgid "Error faving chart"
+msgstr "Se produjo un error al crear el origen de datos"
+
 #, python-format
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
 msgstr "Error en la expresión jinja en la cláusula HAVING: %(msg)s"
@@ -4960,6 +5003,9 @@ msgstr ""
 msgid "Error message"
 msgstr "Mensaje de error"
 
+msgid "Error parsing"
+msgstr ""
+
 #, fuzzy
 msgid "Error reading CSV file"
 msgstr "Se produjo un error al crear el origen de datos"
@@ -4974,6 +5020,10 @@ msgstr "Subir Excel"
 
 #, fuzzy
 msgid "Error saving dataset"
+msgstr "Se produjo un error al crear el origen de datos"
+
+#, fuzzy
+msgid "Error unfaving chart"
 msgstr "Se produjo un error al crear el origen de datos"
 
 #, fuzzy
@@ -6112,10 +6162,6 @@ msgstr "Filtrar por estado"
 msgid "Intervals"
 msgstr "Intérvalo de actualización"
 
-#, fuzzy
-msgid "Intesity"
-msgstr "Entidad"
-
 msgid ""
 "Invalid Connection String: Expecting String of the form "
 "'ocient://user:pass@host:port/database'."
@@ -6855,6 +6901,9 @@ msgstr "alertas"
 msgid "Markup type"
 msgstr "Tipo de Markup"
 
+msgid "Match time shift color with original series"
+msgstr ""
+
 msgid "Max"
 msgstr "Máx"
 
@@ -6914,6 +6963,12 @@ msgid "Median values"
 msgstr "Limitar valores del selector"
 
 msgid "Medium"
+msgstr ""
+
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
 msgstr ""
 
 msgid "Menu actions trigger"
@@ -7737,6 +7792,10 @@ msgstr "Uno o varios controles para pivotar como columnas"
 msgid "One or many metrics to display"
 msgstr "Una o varias métricas para mostrar"
 
+#, fuzzy
+msgid "One or more annotation layers failed loading."
+msgstr "Una o más capas de anotación fallaron al cargar."
+
 msgid "One or more columns already exist"
 msgstr "Una o más columnas ya existen"
 
@@ -7766,13 +7825,6 @@ msgstr "Issue 1006 - Faltan uno o más parámetros especificados en la consulta.
 #, fuzzy
 msgid "One or more parameters specified in the query are missing."
 msgstr "Issue 1006 - Faltan uno o más parámetros especificados en la consulta."
-
-msgid "One ore more annotation layers failed loading."
-msgstr "Una o más capas de anotación fallaron al cargar."
-
-#, fuzzy
-msgid "Only SELECT statements are allowed against this database."
-msgstr "Solo las consultas `SELECT` están permitidas en esta base de datos"
 
 msgid "Only Total"
 msgstr ""
@@ -7880,6 +7932,13 @@ msgstr ""
 #, fuzzy
 msgid "Ordering"
 msgstr "Orden descendente"
+
+msgid ""
+"Orders the query result that generates the source data for this chart. If"
+" a series or row limit is reached, this determines what data are "
+"truncated. If undefined, defaults to the first metric (where "
+"appropriate)."
+msgstr ""
 
 #, fuzzy
 msgid "Orientation"
@@ -8764,6 +8823,10 @@ msgstr "Intérvalo de actualización"
 msgid "Refresh interval saved"
 msgstr "Intérvalo de actualización"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "Ver esquema de tabla"
+
 msgid "Refresh the default values"
 msgstr ""
 
@@ -9020,6 +9083,10 @@ msgstr ""
 
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
+
+#, fuzzy
+msgid "Retry fetching results"
+msgstr "ver resultados"
 
 msgid "Return to specific datetime."
 msgstr ""
@@ -9695,6 +9762,10 @@ msgstr "Especifica un esquema (si el sistema de base de datos lo soporta)."
 msgid "Select a sheet name from the uploaded file"
 msgstr ""
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "Eliminar base de datos"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9861,6 +9932,10 @@ msgstr "Selecciona un esquema (%s)"
 
 msgid "Select subject"
 msgstr ""
+
+#, fuzzy
+msgid "Select tab"
+msgstr "¿Realmente quieres borrar todo?"
 
 #, fuzzy
 msgid "Select table or type to search tables"
@@ -10477,6 +10552,10 @@ msgid "Sort metric"
 msgstr "Métroca de orden"
 
 #, fuzzy
+msgid "Sort query by"
+msgstr "Ver consulta"
+
+#, fuzzy
 msgid "Sort rows by"
 msgstr "Ordenar por"
 
@@ -10799,6 +10878,12 @@ msgid ""
 "well."
 msgstr ""
 
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
+msgstr ""
+
 #, fuzzy
 msgid "Symbol"
 msgstr "tornillo"
@@ -10822,10 +10907,6 @@ msgstr ""
 
 msgid "TABLES"
 msgstr "TABLAS"
-
-#, fuzzy
-msgid "TEMPORAL X-AXIS"
-msgstr "Es temporal"
 
 #, fuzzy
 msgid "TEMPORAL_RANGE"
@@ -10980,6 +11061,10 @@ msgid ""
 "coming from the controls."
 msgstr ""
 
+#, fuzzy
+msgid "Temporal X-Axis"
+msgstr "Es temporal"
+
 msgid ""
 "Terminate running queries when browser window closed or navigated to "
 "another page. Available for Presto, Hive, MySQL, Postgres and Snowflake "
@@ -11025,9 +11110,6 @@ msgstr ""
 msgid ""
 "The GeoJsonLayer takes in GeoJSON formatted data and renders it as "
 "interactive polygons, lines and points (circles, icons and/or texts)."
-msgstr ""
-
-msgid "The SQL is invalid and cannot be parsed."
 msgstr ""
 
 msgid ""
@@ -11142,15 +11224,9 @@ msgstr ""
 "expresión. En la mayoría de los casos, los usuarios no deberían necesitar"
 " alterar esto."
 
-#, fuzzy, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
-"La base de datos %s está vinculada a %s gráficos que aparecen en %s "
-"dashboards. ¿Estás seguro de que quieres continuar? Eliminar la base de "
-"datos dejará inutilizables esos objetos."
+#, fuzzy
+msgid "The database"
+msgstr "Eliminar base de datos"
 
 msgid "The database columns that contains lines information"
 msgstr ""
@@ -11187,15 +11263,9 @@ msgstr "La base de datos no han podido ser eliminada."
 msgid "The database was not found."
 msgstr "La base de datos no existe"
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
-"El conjunto de datos %s está vinculado a %s gráficos que aparecen en %s "
-"tableros. ¿Está seguro de que desea continuar? Eliminar el conjunto de "
-"datos romperá esos objetos."
+#, fuzzy
+msgid "The dataset"
+msgstr "Cambiar fuente"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr ""
@@ -11359,6 +11429,11 @@ msgstr ""
 " que quieras que tu \"Período mínimo\" sea 7, de modo que todos los "
 "puntos de datos mostrados sean el total de 7 períodos. Esto ocultará el "
 "\"incremento\" que tendrá lugar durante los primeros 7 períodos."
+
+msgid ""
+"The minimum value of metrics. It is an optional configuration. If not "
+"set, it will be the minimum value of the data"
+msgstr ""
 
 #, fuzzy
 msgid "The name of the rule must be unique"
@@ -11568,6 +11643,9 @@ msgid ""
 "The result of this query must be a value capable of numeric "
 "interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() "
 "function)."
+msgstr ""
+
+msgid "The result size exceeds the allowed limit."
 msgstr ""
 
 msgid "The results backend no longer has the data from the query."
@@ -11815,6 +11893,12 @@ msgid "There was an error loading the tables"
 msgstr "Hubo un error con tu solicitud"
 
 #, fuzzy, python-format
+msgid "There was an error retrieving dashboard tabs."
+msgstr ""
+"Lo sentimos, hubo un error al obtener la información de la base de datos:"
+" %s"
+
+#, fuzzy, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr "Hubo un problema al eliminar las plantillas seleccionadas: %s"
 
@@ -12051,6 +12135,12 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr "Este Dashboard se guardó con éxito."
 
+msgid ""
+"This database does not allow for DDL/DML, and the query could not be "
+"parsed to confirm it is a read-only query. Please contact your "
+"administrator for more assistance."
+msgstr ""
+
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -12116,12 +12206,6 @@ msgid "This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
 msgid "This may be triggered by:"
-msgstr ""
-
-msgid ""
-"This metric is used to define row selection criteria (how the rows are "
-"sorted) if a series or row limit is present. If not defined, it reverts "
-"to the first metric (where appropriate)."
 msgstr ""
 
 msgid "This metric might be incompatible with current dataset"
@@ -12669,6 +12753,9 @@ msgstr ""
 msgid ""
 "Unable to migrate table schema state to backend. Superset will retry "
 "later. Please contact your administrator if this problem persists."
+msgstr ""
+
+msgid "Unable to parse SQL"
 msgstr ""
 
 msgid "Unable to retrieve dashboard colors"
@@ -13400,6 +13487,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"When unchecked, colors from the selected color scheme will be used for "
+"time shifted series"
+msgstr ""
+
+msgid ""
 "When using \"Autocomplete filters\", this can be used to improve "
 "performance of the query fetching the values. Use this option to apply a "
 "predicate (WHERE clause) to the query selecting the distinct values from "
@@ -13571,7 +13663,7 @@ msgstr "Serie Temporal - Gráfico de Nightingale Rose"
 
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 
 msgid "Whether to show minor ticks on the axis"
@@ -14355,9 +14447,6 @@ msgstr ""
 msgid "default"
 msgstr "Por defecto"
 
-msgid "delete"
-msgstr "eliminar"
-
 #, fuzzy
 msgid "descendant"
 msgstr "Orden descendente"
@@ -14532,6 +14621,25 @@ msgstr ""
 
 msgid "is expected to be an integer"
 msgstr ""
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+"La base de datos %s está vinculada a %s gráficos que aparecen en %s "
+"dashboards. ¿Estás seguro de que quieres continuar? Eliminar la base de "
+"datos dejará inutilizables esos objetos."
+
+#, fuzzy, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
+msgstr ""
+"El conjunto de datos %s está vinculado a %s gráficos que aparecen en %s "
+"tableros. ¿Está seguro de que desea continuar? Eliminar el conjunto de "
+"datos romperá esos objetos."
 
 msgid "key a-z"
 msgstr ""
@@ -14892,9 +15000,6 @@ msgstr "Triángulo"
 #, fuzzy
 msgid "view instructions"
 msgstr "Tiempo en segundos"
-
-msgid "virtual"
-msgstr ""
 
 #, fuzzy
 msgid "viz type"
