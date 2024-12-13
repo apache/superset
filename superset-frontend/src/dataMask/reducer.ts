@@ -42,26 +42,24 @@ import {
 import { areObjectsEqual } from '../reduxUtils';
 
 export function getInitialDataMask(
+  id: string | number,
+  moreProps?: DataMask,
+): DataMaskWithId;
+export function getInitialDataMask(
   id?: string | number,
   moreProps?: DataMask,
 ): DataMask;
 export function getInitialDataMask(
-  id: string | number,
+  id?: string | number,
   moreProps: DataMask = {},
-): DataMaskWithId {
-  let otherProps = {};
-  if (id) {
-    otherProps = {
-      id,
-    };
-  }
+): DataMask {
   return {
-    ...otherProps,
+    id: id !== undefined ? String(id) : undefined,
     extraFormData: {},
     filterState: {},
     ownState: {},
     ...moreProps,
-  } as DataMaskWithId;
+  };
 }
 
 function fillNativeFilters(
