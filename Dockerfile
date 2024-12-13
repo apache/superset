@@ -133,7 +133,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     /app/docker/pip-install.sh -r requirements/translations.txt
 
 COPY superset/translations/ /app/translations_mo/
-RUN flask fab babel-compile --target /app/translations_mo && \
+RUN pybabel compile -d /app/translations_mo | true && \
     rm -f /app/translations_mo/*/*/*.po
 
 ######################################################################
