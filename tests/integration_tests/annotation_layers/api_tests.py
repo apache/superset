@@ -17,8 +17,9 @@
 # isort:skip_file
 """Unit tests for Superset"""
 
-import pytest
 import prison
+import pytest
+from parameterized import parameterized
 from sqlalchemy.sql import func
 
 import tests.integration_tests.test_app  # noqa: F401
@@ -157,8 +158,17 @@ class TestAnnotationLayerApi(SupersetTestCase):
             rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
 
+    @parameterized.expand(
+        [
+            ("2", {"name": "name2", "descr": "descr2"}, 1),
+            ("descr3", {"name": "name3", "descr": "descr3"}, 1),
+            ("", {"name": "name0", "descr": "descr0"}, ANNOTATION_LAYERS_COUNT),
+        ],
+    )
     @pytest.mark.usefixtures("create_annotation_layers")
-    def test_get_list_annotation_layer_filter(self):
+    def test_get_list_annotation_layer_filter(
+        self, filter_value, expected_result, expected_count
+    ):
         """
         Annotation Api: Test filters on get list annotation layers
         """
@@ -166,38 +176,19 @@ class TestAnnotationLayerApi(SupersetTestCase):
         arguments = {
             "columns": ["name", "descr"],
             "filters": [
-                {"col": "name", "opr": "annotation_layer_all_text", "value": "2"}
+                {
+                    "col": "name",
+                    "opr": "annotation_layer_all_text",
+                    "value": filter_value,
+                }
             ],
         }
         uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
         rv = self.get_assert_metric(uri, "get_list")
 
-        expected_result = {
-            "name": "name2",
-            "descr": "descr2",
-        }
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 1
-        assert data["result"][0] == expected_result
-
-        arguments = {
-            "columns": ["name", "descr"],
-            "filters": [
-                {"col": "name", "opr": "annotation_layer_all_text", "value": "descr3"}
-            ],
-        }
-        uri = f"api/v1/annotation_layer/?q={prison.dumps(arguments)}"
-        rv = self.get_assert_metric(uri, "get_list")
-
-        expected_result = {
-            "name": "name3",
-            "descr": "descr3",
-        }
-
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 1
+        assert data["count"] == expected_count
         assert data["result"][0] == expected_result
 
     def test_create_annotation_layer(self):
@@ -478,8 +469,15 @@ class TestAnnotationLayerApi(SupersetTestCase):
             rv = self.get_assert_metric(uri, "get_list")
             assert rv.status_code == 200
 
+    @parameterized.expand(
+        [
+            ("2", 1),
+            ("descr3", 1),
+            ("", ANNOTATIONS_COUNT),
+        ],
+    )
     @pytest.mark.usefixtures("create_annotation_layers")
-    def test_get_list_annotation_filter(self):
+    def test_get_list_annotation_filter(self, filter_value, expected_count):
         """
         Annotation Api: Test filters on get list annotation layers
         """
@@ -487,7 +485,11 @@ class TestAnnotationLayerApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         arguments = {
             "filters": [
-                {"col": "short_descr", "opr": "annotation_all_text", "value": "2"}
+                {
+                    "col": "short_descr",
+                    "opr": "annotation_all_text",
+                    "value": filter_value,
+                }
             ]
         }
         uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
@@ -495,19 +497,7 @@ class TestAnnotationLayerApi(SupersetTestCase):
 
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 1
-
-        arguments = {
-            "filters": [
-                {"col": "short_descr", "opr": "annotation_all_text", "value": "descr3"}
-            ]
-        }
-        uri = f"api/v1/annotation_layer/{layer.id}/annotation/?q={prison.dumps(arguments)}"
-        rv = self.get_assert_metric(uri, "get_list")
-
-        assert rv.status_code == 200
-        data = json.loads(rv.data.decode("utf-8"))
-        assert data["count"] == 1
+        assert data["count"] == expected_count
 
     @pytest.mark.usefixtures("create_annotation_layers")
     def test_create_annotation(self):
