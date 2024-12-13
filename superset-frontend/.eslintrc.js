@@ -197,7 +197,9 @@ module.exports = {
       },
       settings: {
         'import/resolver': {
-          typescript: {},
+          typescript: {
+            moduleDirectory: ['node_modules', '.'],
+          },
         },
         react: {
           version: 'detect',
