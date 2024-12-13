@@ -62,8 +62,7 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
         npm ci; \
     else \
         echo "Skipping 'npm ci' in dev mode"; \
-    fi && \
-    rm -rf /app/superset/translations/*/*/*.po
+    fi
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
@@ -71,11 +70,14 @@ COPY superset-frontend /app/superset-frontend
 # Build the frontend if not in dev mode
 RUN if [ "$DEV_MODE" = "false" ]; then \
         echo "Running 'npm run ${BUILD_CMD}'"; \
-        npm run build-translation; \
+        if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
+            npm run build-translation; \
+        fi; \
         npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
-    fi
+    fi && \
+    rm -rf /app/superset/translations/*/*/*.po
 
 
 ######################################################################
@@ -169,17 +171,7 @@ RUN /app/docker/apt-install.sh \
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 COPY --from=superset-node /app/superset/translations superset/translations
-COPY --from=python-translation-compiler /app/translations_mo superset/translations_mo
-
-# Create symlinks for the compiled translations
-RUN rm /app/superset/translations/*/*/*.mo \
-    find ./superset/translations_mo/ -name "*.mo" | while read f; do \
-    relpath=${f#./superset/translations_mo/} && \
-    target_dir="/app/superset/translations/$(dirname $relpath)" && \
-    #mkdir -p "$target_dir" && \
-    echo "ln -s \"$f\" \"$target_dir/$(basename $f)\"" && \
-    ln -s "$f" "$target_dir/$(basename $f)"; \
-done
+COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/usr/bin/run-server.sh"]
