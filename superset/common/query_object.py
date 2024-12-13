@@ -346,7 +346,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             default=str,
         )
 
-    def cache_key(self, **extra: Any) -> str:
+    def cache_key(self, **extra: Any) -> str:  # noqa: C901
         """
         The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`
