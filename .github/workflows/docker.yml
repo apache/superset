@@ -73,18 +73,6 @@ jobs:
       - name: Install Docker Compose
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         run: |
-          sudo apt-get update
-          sudo apt install ca-certificates curl
-          sudo install -m 0755 -d /etc/apt/keyrings
-          sudo chmod a+r /etc/apt/keyrings/docker.asc
-          echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
-            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-          sudo apt update
-          sudo apt install docker-compose-plugin -y
-          docker compose version
-
 
       - name: Build Docker Image
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
@@ -104,6 +92,27 @@ jobs:
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
             $PLATFORM_ARG
+
+      - name: Print docker stats
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        run: |
+          IMAGE_ID=$(docker images --format "{{.ID}}" --sort=created | head -n 1)
+          docker history $IMAGE_ID
+
+      - name: Install Docker Compose
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt update
+          sudo apt install docker-compose-plugin -y
+          docker compose version
 
       - name: docker-compose sanity check
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
