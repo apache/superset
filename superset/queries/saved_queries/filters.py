@@ -83,17 +83,11 @@ class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
         Filters the SavedQuery objects based on the user's role and permissions.
-
-        Args:
-            query (Query): The SQLAlchemy Query object for SavedQuery.
-            value (Any): The filter value (unused here).
-
-        Returns:
-            Query: The filtered SQLAlchemy Query object.
         """
         if "Admin" in [role.name for role in g.user.roles]:
             return query
 
+        # Only include queries linked to valid databases or owned by the user
         return query.filter(
             (SavedQuery.user_id == g.user.id) | (SavedQuery.db_id.is_not(None))
-        )
+        ).distinct()
