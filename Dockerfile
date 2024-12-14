@@ -134,9 +134,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 COPY superset/translations/ /app/translations_mo/
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
-        pybabel compile -d /app/translations_mo | true && \
+        pybabel compile -d /app/translations_mo | true; \
     fi; \
-    rm -f /app/translations_mo/*/*/*.po
+    rm -f /app/translations_mo/*/*/*.po;
 
 ######################################################################
 # Python APP common layer
