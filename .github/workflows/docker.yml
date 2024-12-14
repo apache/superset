@@ -108,6 +108,7 @@ jobs:
           sudo apt-get install -y ca-certificates curl
           sudo install -m 0755 -d /etc/apt/keyrings
           sudo touch /etc/apt/keyrings/docker.asc
+          curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
           sudo chmod a+r /etc/apt/keyrings/docker.asc
           echo \
             "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
