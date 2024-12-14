@@ -90,4 +90,4 @@ class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         # Only include queries linked to valid databases or owned by the user
         return query.filter(
             (SavedQuery.user_id == g.user.id) | (SavedQuery.db_id.is_not(None))
-        ).distinct()
+        )
