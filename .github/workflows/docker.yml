@@ -70,10 +70,6 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-supersetbot/
 
-      - name: Install Docker Compose
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        run: |
-
       - name: Build Docker Image
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         shell: bash
