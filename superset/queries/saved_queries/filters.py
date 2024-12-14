@@ -16,8 +16,8 @@
 # under the License.
 from typing import Any
 
+from flask import g
 from flask_babel import lazy_gettext as _
-from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
@@ -79,10 +79,20 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 
 
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
+    def apply(self, query: Query, value: Any) -> Query:
         """
-        Allow access to all saved queries.
+        Filters the SavedQuery objects based on the user's role and permissions.
 
-        :returns: flask-sqlalchemy query
+        Args:
+            query (Query): The SQLAlchemy Query object for SavedQuery.
+            value (Any): The filter value (unused here).
+
+        Returns:
+            Query: The filtered SQLAlchemy Query object.
         """
-        return query
+        if "Admin" in [role.name for role in g.user.roles]:
+            return query
+
+        return query.filter(
+            (SavedQuery.user_id == g.user.id) | (SavedQuery.db_id.is_not(None))
+        )
