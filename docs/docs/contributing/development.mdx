@@ -72,6 +72,18 @@ documentation.
 configured to be secure.
 :::
 
+### Supported environment variables
+
+Affecting the Docker build process:
+- **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
+- **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
+- **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
+
+For more env vars that affect your configuration, see this
+[superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
+used in the `docker compose` context to assign env vars to the superset configuration.
+
+
 ### Nuking the postgres database
 
 At times, it's possible to end up with your development database in a bad state, it's
