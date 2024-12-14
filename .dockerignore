@@ -45,3 +45,4 @@ superset-frontend/coverage/
 superset/static/assets/
 superset-websocket/dist/
 venv
+.venv
