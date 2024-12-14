@@ -96,7 +96,7 @@ jobs:
       - name: Print docker stats
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         run: |
-          IMAGE_ID=$(docker images --format "{{.ID}}" --sort=created | head -n 1)
+          IMAGE_ID=$(docker images --format "{{.ID}} {{.CreatedAt}}" | sort -k2 -r | head -n 1 | awk '{print $1}')
           docker history $IMAGE_ID
 
       - name: Install Docker Compose
