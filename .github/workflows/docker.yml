@@ -91,6 +91,7 @@ jobs:
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "--build-arg INCLUDE_CHROMIUM=false" \
             $PLATFORM_ARG
 
       - name: Print docker stats
