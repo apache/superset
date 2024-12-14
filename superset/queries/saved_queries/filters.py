@@ -18,6 +18,7 @@ from typing import Any
 
 from flask import g
 from flask_babel import lazy_gettext as _
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
@@ -79,7 +80,7 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 
 
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
-    def apply(self, query: Query, value: Any) -> Query:
+    def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
         Filters the SavedQuery objects based on the user's role and permissions.
 
