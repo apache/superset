@@ -35,7 +35,7 @@ x-superset-volumes: &superset-volumes
 
 x-common-build: &common-build
   context: .
-  target: dev
+  target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
   args:
