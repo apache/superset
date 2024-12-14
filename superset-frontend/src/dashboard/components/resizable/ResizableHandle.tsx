@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export function BottomRightResizeHandle() {
+export function BottomRightResizeHandle(): JSX.Element {
   return <div className="resize-handle resize-handle--bottom-right" />;
 }
 
-export function RightResizeHandle() {
+export function RightResizeHandle(): JSX.Element {
   return <div className="resize-handle resize-handle--right" />;
 }
 
-export function BottomResizeHandle() {
+export function BottomResizeHandle(): JSX.Element {
   return <div className="resize-handle resize-handle--bottom" />;
 }
 
