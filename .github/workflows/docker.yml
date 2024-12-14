@@ -107,15 +107,24 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ca-certificates curl
           sudo install -m 0755 -d /etc/apt/keyrings
-          sudo touch /etc/apt/keyrings/docker.asc
+
+          # Download and save the Docker GPG key in the correct format
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-          sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+          # Ensure the key file is readable
+          sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+          # Add the Docker repository using the correct key
           echo \
-            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
             $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
             sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+          # Update package lists and install Docker Compose plugin
           sudo apt update
-          sudo apt install docker-compose-plugin -y
+          sudo apt install -y docker-compose-plugin
+
+          # Verify Docker Compose plugin installation
           docker compose version
 
       - name: docker-compose sanity check
