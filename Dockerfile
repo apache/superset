@@ -103,7 +103,7 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
-RUN pip install --no-cache-dir --upgrade setuptools pip uv
+RUN pip install --no-cache-dir --upgrade uv
 
 # Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
@@ -112,9 +112,9 @@ ENV PATH="/app/.venv/bin:${PATH}"
 # Install Playwright and optionally setup headless browsers
 ARG INCLUDE_CHROMIUM="true"
 ARG INCLUDE_FIREFOX="false"
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/uv\
     if [ "$INCLUDE_CHROMIUM" = "true" ] || [ "$INCLUDE_FIREFOX" = "true" ]; then \
-        pip install playwright && \
+        uv pip install playwright && \
         playwright install-deps && \
         if [ "$INCLUDE_CHROMIUM" = "true" ]; then playwright install chromium; fi && \
         if [ "$INCLUDE_FIREFOX" = "true" ]; then playwright install firefox; fi; \
@@ -129,7 +129,7 @@ FROM python-base AS python-translation-compiler
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/translations.txt requirements/
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/uv \
     /app/docker/pip-install.sh -r requirements/translations.txt
 
 COPY superset/translations/ /app/translations_mo/
@@ -193,7 +193,7 @@ COPY superset superset
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
     uv pip install .
 
@@ -216,7 +216,7 @@ RUN /app/docker/apt-install.sh \
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
-RUN --mount=type=cache,target=/root/.cache/pip \
+RUN --mount=type=cache,target=/root/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt && \
     uv pip install .
 
