@@ -130,4 +130,4 @@ jobs:
         run: |
           export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
           docker compose build superset-init --build-arg DEV_MODE=false --build-arg INCLUDE_CHROMIUM=false
-          docker compose up superset-init
+          docker compose up superset-init --exit-code-from superset-init
