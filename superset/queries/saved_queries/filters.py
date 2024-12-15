@@ -16,7 +16,6 @@
 # under the License.
 from typing import Any
 
-from flask import current_app
 from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
@@ -90,8 +89,7 @@ class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         """
         user_id = get_user_id()
 
-        if not current_app.config.get("TESTING"):
-            if security_manager.can_access("can_read", "SavedQuery"):
-                return query
+        if security_manager.can_access("can_read", "SavedQuery"):
+            return query
 
         return query.filter(SavedQuery.user_id == user_id)
