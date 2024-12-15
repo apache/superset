@@ -68,6 +68,7 @@ COPY superset-frontend /app/superset-frontend
 
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
+    --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
         echo "Running 'npm run ${BUILD_CMD}'"; \
         npm run ${BUILD_CMD}; \
