@@ -96,6 +96,7 @@ jobs:
           IMAGE_ID=$(docker images --filter "label=sha=${{ github.sha }}" --format "{{.ID}}" | head -n 1)
           echo "SHA: ${{ github.sha }}"
           echo "IMAGE: $IMAGE_ID"
+          docker images $IMAGE_ID
           docker history $IMAGE_ID
 
       - name: Install Docker Compose
