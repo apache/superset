@@ -52,12 +52,11 @@ WORKDIR /app/superset-frontend
 RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
 
-# Copy translation files
-COPY superset/translations /app/superset/translations
-
 # Mount package files and install dependencies if not in dev mode
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
+    --mount=type=cache,target=/root/.cache \
+    --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
         npm ci; \
     else \
@@ -68,15 +67,23 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 COPY superset-frontend /app/superset-frontend
 
 # Build the frontend if not in dev mode
-RUN if [ "$DEV_MODE" = "false" ]; then \
+RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
+    if [ "$DEV_MODE" = "false" ]; then \
         echo "Running 'npm run ${BUILD_CMD}'"; \
-        if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
-            npm run build-translation; \
-        fi; \
         npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
     fi && \
+    rm -rf /app/superset/translations/*/*/*.po
+
+# Copy translation files
+COPY superset/translations /app/superset/translations
+
+#FROM superset-node AS superset-node-translation
+# Build the frontend if not in dev mode
+RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
+        npm run build-translation; \
+    fi; \
     rm -rf /app/superset/translations/*/*/*.po
 
 
@@ -181,6 +188,11 @@ COPY --from=superset-node /app/superset/static/assets superset/static/assets
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
+# TODO, when the next version comes out, use --exclude superset/translations
+COPY superset superset
+# TODO in the meantime, remove the .po files
+RUN rm superset/translations/*/*/*.po
+
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/app/docker/entrypoints/run-server.sh"]
 EXPOSE ${SUPERSET_PORT}
@@ -189,7 +201,6 @@ EXPOSE ${SUPERSET_PORT}
 # Final lean image...
 ######################################################################
 FROM python-common AS lean
-COPY superset superset
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
@@ -205,7 +216,6 @@ USER superset
 # Dev image...
 ######################################################################
 FROM python-common AS dev
-COPY superset superset
 
 # Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
