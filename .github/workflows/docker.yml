@@ -99,7 +99,7 @@ jobs:
           docker history $IMAGE_ID
 
       - name: Install Docker Compose
-        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'dev'
+        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
         run: |
           sudo apt-get update
           sudo apt-get install -y ca-certificates curl
