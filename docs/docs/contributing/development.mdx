@@ -75,6 +75,7 @@ configured to be secure.
 ### Supported environment variables
 
 Affecting the Docker build process:
+- **SUPERSET_BUILD_TARGET (default=dev):** which --target to build, either `lean` or `dev` are commonly used
 - **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
 - **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
