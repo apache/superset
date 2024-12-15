@@ -80,7 +80,6 @@ RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
 # Copy translation files
 COPY superset/translations /app/superset/translations
 
-#FROM superset-node AS superset-node-translation
 # Build the frontend if not in dev mode
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
