@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import textwrap
 from typing import Union
 
@@ -39,6 +40,8 @@ from .helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def gen_filter(
@@ -83,8 +86,7 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
             method="multi",
             index=False,
         )
-    print("Done loading table!")
-    print("-" * 80)
+    logging.debug("Done loading table!")
 
 
 def load_birth_names(
@@ -104,7 +106,7 @@ def load_birth_names(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
-        print(f"Creating table [{tbl_name}] reference")
+        logging.debug(f"Creating table [{tbl_name}] reference")
         obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
@@ -196,7 +198,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "datasource_type": DatasourceType.TABLE,
     }
 
-    print("Creating some slices")
+    logger.debug("Creating some slices")
     slices = [
         Slice(
             **slice_kwargs,
@@ -561,7 +563,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
 
 
 def create_dashboard(slices: list[Slice]) -> Dashboard:
-    print("Creating a dashboard")
+    logger.debug("Creating a dashboard")
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
