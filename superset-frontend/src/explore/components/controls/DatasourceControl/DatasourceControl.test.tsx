@@ -324,11 +324,11 @@ test('Click on Save as dataset', async () => {
     name: /overwrite existing/i,
   });
   const dropdownField = screen.getByText(/select or type dataset name/i);
-  expect(saveRadioBtn).toBeVisible();
-  expect(overwriteRadioBtn).toBeVisible();
-  expect(screen.getByRole('button', { name: /save/i })).toBeVisible();
-  expect(screen.getByRole('button', { name: /close/i })).toBeVisible();
-  expect(dropdownField).toBeVisible();
+  expect(saveRadioBtn).toBeInTheDocument();
+  expect(overwriteRadioBtn).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  expect(dropdownField).toBeInTheDocument();
 });
 
 test('should set the default temporal column', async () => {

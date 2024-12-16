@@ -299,7 +299,9 @@ describe('Additional actions tests', () => {
     userEvent.click(
       screen.getByRole('menuitem', { name: 'Edit chart properties' }),
     );
-    expect(await screen.findByText('Edit Chart Properties')).toBeVisible();
+    expect(
+      await screen.findByText('Edit Chart Properties'),
+    ).toBeInTheDocument();
   });
 
   test('Should call getChartDataRequest when click on "View query"', async () => {

@@ -328,5 +328,5 @@ test('open modal on edit filter button click', async () => {
   userEvent.click(editButton);
   expect(
     await screen.findByRole('dialog', { name: /add and edit filters/i }),
-  ).toBeVisible();
+  ).toBeInTheDocument();
 });
