@@ -66,6 +66,7 @@ export const FilterConfigurationLink: FC<FCBProps> = ({
         {...getFilterBarTestId('create-filter')}
         onClick={handleClick}
         role="button"
+        tabIndex={0}
       >
         {children}
       </div>
