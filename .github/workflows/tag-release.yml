@@ -52,7 +52,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker-environment
+        uses: ./.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
