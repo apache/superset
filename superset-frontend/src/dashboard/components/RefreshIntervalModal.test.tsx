@@ -121,7 +121,7 @@ test('renders refresh interval modal', async () => {
   await openRefreshIntervalModal();
 
   // Assert that modal exists by checking for the modal title
-  expect(screen.getByText('Refresh interval')).toBeVisible();
+  expect(screen.getByText('Refresh interval')).toBeInTheDocument();
 });
 
 test('renders refresh interval options', async () => {

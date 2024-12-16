@@ -415,7 +415,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
-        expect(component).toBeInTheDocument();
+        expect(component).toBeVisible();
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer[0]).toBeEmptyDOMElement();
@@ -437,7 +437,7 @@ describe('DatabaseModal', () => {
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
-      expect(basicHeader).toBeInTheDocument();
+      expect(basicHeader).toBeVisible();
 
       // <ModalHeader> - Connection header
       const basicHelper = screen.getByText(/step 2 of 2/i);
@@ -525,7 +525,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
-        expect(component).toBeInTheDocument();
+        expect(component).toBeVisible();
       });
     });
 
@@ -1015,7 +1015,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Assertions ----------
       visibleComponents.forEach(component => {
-        expect(component).toBeInTheDocument();
+        expect(component).toBeVisible();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
@@ -1120,7 +1120,7 @@ describe('DatabaseModal', () => {
       // Dynamic form has 3 steps, seeing this text means the dynamic form is present
       const dynamicFormStepText = screen.getByText(/step 2 of 3/i);
 
-      expect(dynamicFormStepText).toBeInTheDocument();
+      expect(dynamicFormStepText).toBeVisible();
 
       // ---------- SQL Alchemy example (2-step form)
       // Click the back button to go back to step 1,
@@ -1137,7 +1137,7 @@ describe('DatabaseModal', () => {
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       const sqlAlchemyFormStepText = screen.getByText(/step 2 of 2/i);
 
-      expect(sqlAlchemyFormStepText).toBeInTheDocument();
+      expect(sqlAlchemyFormStepText).toBeVisible();
     });
 
     describe('SQL Alchemy form flow', () => {
@@ -1360,7 +1360,7 @@ describe('DatabaseModal', () => {
         expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
 
         const step2of3text = screen.getByText(/step 2 of 3/i);
-        expect(step2of3text).toBeInTheDocument();
+        expect(step2of3text).toBeVisible();
       });
 
       test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
@@ -1411,7 +1411,7 @@ describe('DatabaseModal', () => {
         ) as HTMLInputElement;
         importDbButton.type = 'file';
         importDbButton.files = {} as FileList;
-        expect(importDbButton).toBeInTheDocument();
+        expect(importDbButton).toBeVisible();
 
         const testFile = new File([new ArrayBuffer(1)], 'model_export.zip');
 
@@ -1442,7 +1442,7 @@ describe('DatabaseModal', () => {
 
     test('enters step 2 of 3 when proper database is selected', () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
-      expect(step2of3text).toBeInTheDocument();
+      expect(step2of3text).toBeVisible();
     });
   });
 
@@ -1468,7 +1468,7 @@ describe('DatabaseModal', () => {
 
     it('enters step 2 of 2 when proper database is selected', () => {
       const step2of2text = screen.getByText(/step 2 of 2/i);
-      expect(step2of2text).toBeInTheDocument();
+      expect(step2of2text).toBeVisible();
     });
 
     it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
@@ -1502,7 +1502,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Assertions ----------
       visibleComponents.forEach(component => {
-        expect(component).toBeInTheDocument();
+        expect(component).toBeVisible();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
@@ -1556,8 +1556,8 @@ describe('DatabaseModal', () => {
     test('Error displays when it is an object', async () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorSection = screen.getByText(/Database Creation Error/i);
-      expect(step2of3text).toBeInTheDocument();
-      expect(errorSection).toBeInTheDocument();
+      expect(step2of3text).toBeVisible();
+      expect(errorSection).toBeVisible();
     });
   });
 
@@ -1604,11 +1604,11 @@ describe('DatabaseModal', () => {
       const button = screen.getByText('See more');
       userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
-      expect(errorMessage).toBeInTheDocument();
+      expect(errorMessage).toBeVisible();
       const closeButton = screen.getByText('Close');
       userEvent.click(closeButton);
-      expect(step2of3text).toBeInTheDocument();
-      expect(errorTitleMessage).toBeInTheDocument();
+      expect(step2of3text).toBeVisible();
+      expect(errorTitleMessage).toBeVisible();
     });
   });
 
