@@ -379,11 +379,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       }
       destroyTooltipOnHide
     >
-      <Tooltip
-        placement="top"
-        title={tooltipTitle}
-        getPopupContainer={trigger => trigger.parentElement as HTMLElement}
-      >
+      <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel
           name={name}
           aria-labelledby={`filter-name-${props.name}`}
@@ -400,11 +396,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const modalContent = (
     <>
-      <Tooltip
-        placement="top"
-        title={tooltipTitle}
-        getPopupContainer={trigger => trigger.parentElement as HTMLElement}
-      >
+      <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel
           name={name}
           aria-labelledby={`filter-name-${props.name}`}
