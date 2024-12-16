@@ -36,6 +36,8 @@ export enum FeatureFlag {
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   DisableLegacyDatasourceEditor = 'DISABLE_LEGACY_DATASOURCE_EDITOR',
+  DownloadCSVFromS3 = 'DOWNLOAD_CSV_FROM_S3',
+  ShowDefaultCSVOptions = 'SHOW_DEFAULT_CSV_OPTIONS',
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
   DynamicPlugins = 'DYNAMIC_PLUGINS',

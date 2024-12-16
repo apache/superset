@@ -257,3 +257,28 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
 
   stubbedExportXLSX.mockRestore();
 });
+
+test('should call exportChart with row_limit props.maxRows when exportCSVFromS3 is clicked', async () => {
+  global.featureFlags = {
+    [FeatureFlag.DownloadCSVFromS3]: true,
+  };
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation(() => {});
+  const { findByText, getByRole } = setup({ supersetCanCSV: true });
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('button', { name: 'Download right' }));
+  const exportAction = await findByText('Download CSV from S3');
+  fireEvent.click(exportAction);
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      formData: expect.objectContaining({
+        row_limit: 666,
+      }),
+      resultType: 'full',
+      resultFormat: 'csv',
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});

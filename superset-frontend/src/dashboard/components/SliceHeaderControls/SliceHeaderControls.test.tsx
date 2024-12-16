@@ -47,6 +47,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     exploreChart: jest.fn(),
     exportCSV: jest.fn(),
     exportFullCSV: jest.fn(),
+    downloadCSVFromS3: jest.fn(),
     exportXLSX: jest.fn(),
     exportFullXLSX: jest.fn(),
     forceRefresh: jest.fn(),
@@ -232,6 +233,40 @@ test('Should not show export full CSV if report is not table', async () => {
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
+});
+
+test('Download CSV from S3 is under featureflag', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DownloadCSVFromS3]: false,
+  };
+  const props = createProps(VizType.Table);
+  renderWrapper(props);
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+  expect(screen.queryByText('Download CSV from S3')).not.toBeInTheDocument();
+});
+
+test('Should "download CSV from S3"', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DownloadCSVFromS3]: true,
+  };
+  const props = createProps(VizType.Table);
+  renderWrapper(props);
+  expect(props.downloadCSVFromS3).toHaveBeenCalledTimes(0);
+  userEvent.hover(screen.getByText('Download'));
+  userEvent.click(await screen.findByText('Download CSV from S3'));
+  expect(props.downloadCSVFromS3).toHaveBeenCalledTimes(1);
+  expect(props.downloadCSVFromS3).toHaveBeenCalledWith(371);
+});
+
+test('Should not show download CSV from S3 if report is not table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DownloadCSVFromS3]: true,
+  };
+  renderWrapper();
+  userEvent.hover(screen.getByText('Download'));
+  expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+  expect(screen.queryByText('Download CSV from S3')).not.toBeInTheDocument();
 });
 
 test('Export full Excel is under featureflag', async () => {

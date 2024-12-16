@@ -116,6 +116,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
+from superset.common.chart_data import ChartDataResultLocation
 
 config = app.config
 metadata = Model.metadata  # pylint: disable=no-member
@@ -1703,7 +1704,7 @@ class SqlaTable(
 
         return or_(*groups)
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def query(self, query_obj: QueryObjectDict, result_location: ChartDataResultLocation = ChartDataResultLocation.SUPERSET) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
@@ -1739,9 +1740,10 @@ class SqlaTable(
         try:
             df = self.database.get_df(
                 sql,
-                self.catalog,
-                self.schema or None,
+                catalog = self.catalog,
+                schema = self.schema or None,
                 mutator=assign_column_label,
+                result_location=result_location
             )
         except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should

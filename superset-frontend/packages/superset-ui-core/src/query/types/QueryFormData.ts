@@ -180,6 +180,7 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   force?: boolean;
   result_format?: string;
   result_type?: string;
+  result_location?: string;
   annotation_layers?: AnnotationLayer[];
   url_params?: Record<string, string>;
   custom_params?: Record<string, string>;

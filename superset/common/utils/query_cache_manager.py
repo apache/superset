@@ -65,6 +65,7 @@ class QueryCacheManager:
         cache_dttm: str | None = None,
         cache_value: dict[str, Any] | None = None,
         sql_rowcount: int | None = None,
+        output_location: str | None = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -81,6 +82,7 @@ class QueryCacheManager:
         self.cache_dttm = cache_dttm
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
+        self.output_location = "" if output_location is None else output_location
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -106,6 +108,7 @@ class QueryCacheManager:
             self.df = query_result.df
             self.sql_rowcount = query_result.sql_rowcount
             self.annotation_data = {} if annotation_data is None else annotation_data
+            self.output_location = getattr(query_result.df, "output_location", "")
 
             if self.status != QueryStatus.FAILED:
                 stats_logger.incr("loaded_from_source")
@@ -121,6 +124,7 @@ class QueryCacheManager:
                 "rejected_filter_columns": self.rejected_filter_columns,
                 "annotation_data": self.annotation_data,
                 "sql_rowcount": self.sql_rowcount,
+                "output_location": self.output_location,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
@@ -172,6 +176,7 @@ class QueryCacheManager:
                 query_cache.is_loaded = True
                 query_cache.is_cached = cache_value is not None
                 query_cache.sql_rowcount = cache_value.get("sql_rowcount", None)
+                query_cache.output_location = cache_value.get("output_location", None)
                 query_cache.cache_dttm = (
                     cache_value["dttm"] if cache_value is not None else None
                 )

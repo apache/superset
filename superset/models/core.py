@@ -77,9 +77,11 @@ from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
 from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
 from superset.utils import cache as cache_util, core as utils, json
+from superset.utils.aws import run_query_and_get_s3_url
 from superset.utils.backports import StrEnum
 from superset.utils.core import DatasourceName, get_username
 from superset.utils.oauth2 import get_oauth2_access_token, OAuth2ClientConfigSchema
+from superset.common.chart_data import ChartDataResultLocation
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -673,6 +675,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        result_location: ChartDataResultLocation | None = None,
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
@@ -687,6 +690,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     __name__,
                     security_manager,
                 )
+
+        if self.db_engine_spec.engine == 'awsathena' and is_feature_enabled("DOWNLOAD_CSV_FROM_S3") and result_location == ChartDataResultLocation.S3:
+                s3_url = run_query_and_get_s3_url(sqls[-1])
+                df = pd.DataFrame()
+                df.output_location = s3_url
+                return df
 
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
@@ -709,7 +718,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                         result_set = SupersetResultSet(
                             data, cursor.description, self.db_engine_spec
                         )
+
                         df = result_set.to_pandas_df()
+
             if mutator:
                 df = mutator(df)
 

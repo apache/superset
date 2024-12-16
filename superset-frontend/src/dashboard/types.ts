@@ -255,6 +255,7 @@ export enum MenuKeys {
   ExportCsv = 'export_csv',
   ExportPivotCsv = 'export_pivot_csv',
   ExportFullCsv = 'export_full_csv',
+  DownloadCSVFromS3 = 'download_csv_from_s3',
   ExportXlsx = 'export_xlsx',
   ExportFullXlsx = 'export_full_xlsx',
   ForceRefresh = 'force_refresh',
