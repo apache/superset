@@ -83,7 +83,7 @@ dependencies = [
     "python-dateutil",
     "python-dotenv",
     "python-geohash",
-    "pyarrow>=14.0.1, <15",
+    "pyarrow>=14.0.1, <19",
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=4.6.0, <5.0",
