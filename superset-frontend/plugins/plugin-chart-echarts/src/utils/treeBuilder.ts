@@ -74,9 +74,10 @@ export function treeBuilder(
               0,
             )
           : metricValue;
+        const validChildren = children.filter(child => child.name !== null);
         result.push({
           name,
-          children,
+          children: validChildren,
           value: metricValue,
           secondaryValue,
           groupBy: curGroupBy,
