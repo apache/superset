@@ -74,8 +74,7 @@ RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
         npm run ${BUILD_CMD}; \
     else \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
-    fi && \
-    rm -rf /app/superset/translations/*/*/*.po
+    fi;
 
 # Copy translation files
 COPY superset/translations /app/superset/translations
@@ -84,7 +83,8 @@ COPY superset/translations /app/superset/translations
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
     fi; \
-    rm -rf /app/superset/translations/*/*/*.po
+    rm -rf /app/superset/translations/*/*/*.po; \
+    rm -rf /app/superset/translations/*/*/*.mo;
 
 
 ######################################################################
@@ -143,7 +143,8 @@ COPY superset/translations/ /app/translations_mo/
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         pybabel compile -d /app/translations_mo | true; \
     fi; \
-    rm -f /app/translations_mo/*/*/*.po;
+    rm -f /app/translations_mo/*/*/*.po; \
+    rm -f /app/translations_mo/*/*/*.json;
 
 ######################################################################
 # Python APP common layer
@@ -184,14 +185,14 @@ RUN /app/docker/apt-install.sh \
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
-# Merging translations from backend and frontend stages
-COPY --from=superset-node /app/superset/translations superset/translations
-COPY --from=python-translation-compiler /app/translations_mo superset/translations
-
 # TODO, when the next version comes out, use --exclude superset/translations
 COPY superset superset
 # TODO in the meantime, remove the .po files
 RUN rm superset/translations/*/*/*.po
+
+# Merging translations from backend and frontend stages
+COPY --from=superset-node /app/superset/translations superset/translations
+COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
 HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
 CMD ["/app/docker/entrypoints/run-server.sh"]
