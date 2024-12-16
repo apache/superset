@@ -733,7 +733,6 @@ function FiltersConfigModal({
           form={form}
           onValuesChange={handleValuesChange}
           layout="vertical"
-          className="test2"
         >
           <FilterConfigurePane
             erroredFilters={erroredFilters}
