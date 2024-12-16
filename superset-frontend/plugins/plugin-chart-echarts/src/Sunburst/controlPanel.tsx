@@ -93,6 +93,18 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'node_click',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Node Click'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to enable drill down by node clicking'),
+            },
+          },
+        ],
+        [
+          {
             name: 'label_type',
             config: {
               type: 'SelectControl',
