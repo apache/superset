@@ -74,6 +74,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
+from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import (
     DbapiDescription,
@@ -740,6 +741,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         qry: Select,
         catalog: str | None = None,
         schema: str | None = None,
+        is_virtual: bool = False,
     ) -> str:
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -747,6 +749,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # pylint: disable=protected-access
             if engine.dialect.identifier_preparer._double_percents:  # noqa
                 sql = sql.replace("%%", "%")
+
+        # for nwo we only optimize queries on virtual datasources, since the only
+        # optimization available is predicate pushdown
+        if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
+            script = SQLScript(sql, self.db_engine_spec.engine).optimize()
+            sql = script.format()
 
         return sql
 

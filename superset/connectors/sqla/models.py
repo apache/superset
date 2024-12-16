@@ -1568,7 +1568,11 @@ class SqlaTable(
                     # probe adhoc column type
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
-                    sql = self.database.compile_sqla_query(qry)
+                    sql = self.database.compile_sqla_query(
+                        qry,
+                        catalog=self.catalog,
+                        schema=self.schema,
+                    )
                     col_desc = get_columns_description(
                         self.database,
                         self.catalog,
