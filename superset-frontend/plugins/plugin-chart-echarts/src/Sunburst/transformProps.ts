@@ -100,6 +100,7 @@ export function formatTooltip({
   totalValue,
   metricLabel,
   secondaryMetricLabel,
+  nodeClick,
 }: {
   params: CallbackDataParams & {
     treePathInfo: {
@@ -114,8 +115,14 @@ export function formatTooltip({
   totalValue: number;
   metricLabel: string;
   secondaryMetricLabel?: string;
+  nodeClick: boolean;
 }): string {
   const { data, treePathInfo = [] } = params;
+
+  if (nodeClick && treePathInfo.length <= 1) {
+    return t('Back to the parent node');
+  }
+
   const node = data as TreeNode;
   const formattedValue = primaryValueFormatter(node.value);
   const formattedSecondaryValue = secondaryValueFormatter?.(
@@ -186,6 +193,7 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
+    nodeClick,
     sliceId,
   } = formData;
   const { currencyFormats = {}, columnFormats = {} } = datasource;
@@ -336,13 +344,14 @@ export default function transformProps(
           totalValue,
           metricLabel,
           secondaryMetricLabel,
+          nodeClick,
         }),
     },
     series: [
       {
         type: 'sunburst',
         ...padding,
-        nodeClick: false,
+        nodeClick: nodeClick ? 'rootToNode' : false,
         emphasis: {
           focus: 'ancestor',
           label: {
