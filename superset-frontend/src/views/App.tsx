@@ -94,7 +94,7 @@ const App = () => {
       console.info('*********************** Executing hasOnlyGuestRole');
       // Send message to opener window
       if (window.opener) {
-        const frontend_origin = 'https://client-x-rose.vercel.app/'; // TODO use env variable process.env.CORS_FRONTEND_ORIGIN || '';
+        const frontend_origin = process.env.CORS_FRONTEND_ORIGIN || ''; // 'https://client-x-rose.vercel.app/'; // TODO use env variable process.env.CORS_FRONTEND_ORIGIN || '';
         console.info(
           '*********************** About to post message to ',
           frontend_origin,
