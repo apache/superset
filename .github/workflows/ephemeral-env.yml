@@ -143,7 +143,6 @@ jobs:
           persist-credentials: false
 
       - name: Setup Docker Environment
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-docker-environment
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
