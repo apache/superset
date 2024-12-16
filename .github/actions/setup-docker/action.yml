@@ -56,7 +56,6 @@ runs:
         sudo apt update
         sudo apt install -y docker-compose-plugin
 
-        # Verify Docker Compose plugin installation
-
     - name: Docker Version Info
+      shell: bash
       run: docker info
