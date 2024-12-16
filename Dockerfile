@@ -206,7 +206,9 @@ FROM python-common AS lean
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt && \
+    /app/docker/pip-install.sh -r requirements/base.txt
+# Install the superset package
+RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install .
 
 RUN python -m compileall /app/superset
@@ -228,7 +230,9 @@ RUN /app/docker/apt-install.sh \
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=/root/.cache/uv \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt && \
+    /app/docker/pip-install.sh -r requirements/development.txt
+# Install the superset package
+RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install .
 
 RUN python -m compileall /app/superset
