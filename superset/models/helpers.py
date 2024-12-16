@@ -329,13 +329,13 @@ class ImportExportMixin:
             is_new_obj = True
             # Create new DB object
             obj = cls(**dict_rep)
-            logger.info("Importing new %s %s", obj.__tablename__, str(obj))
+            logger.debug("Importing new %s %s", obj.__tablename__, str(obj))
             if cls.export_parent and parent:
                 setattr(obj, cls.export_parent, parent)
             db.session.add(obj)
         else:
             is_new_obj = False
-            logger.info("Updating %s %s", obj.__tablename__, str(obj))
+            logger.debug("Updating %s %s", obj.__tablename__, str(obj))
             # Update columns
             for k, v in dict_rep.items():
                 setattr(obj, k, v)
