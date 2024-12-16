@@ -36,7 +36,6 @@ RUN apt-get update -qq \
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-ENV CORS_FRONTEND_ORIGIN='*'
 # NPM ci first, as to NOT invalidate previous steps except for when package.json changes
 
 RUN --mount=type=bind,target=/frontend-mem-nag.sh,src=./docker/frontend-mem-nag.sh \
