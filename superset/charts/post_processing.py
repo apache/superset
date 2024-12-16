@@ -36,6 +36,7 @@ from flask import current_app
 from flask_babel import gettext as __
 
 from superset.common.chart_data import ChartDataResultFormat
+from superset.extensions import event_logger
 from superset.utils.core import (
     extract_dataframe_dtypes,
     get_column_names,
@@ -299,7 +300,7 @@ post_processors = {
     "table": table,
 }
 
-
+@event_logger.log_this
 def apply_post_process(
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
