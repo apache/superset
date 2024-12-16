@@ -18,7 +18,6 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import moment from 'moment';
 import {
   formatNumber,
   formatTime,
@@ -35,6 +34,8 @@ import {
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 
 interface Props {
   ariaLabel: string;
@@ -57,6 +58,8 @@ const MARGIN = {
   bottom: 8,
   left: 8,
 };
+
+dayjs.extend(utc);
 
 function getSparklineTextWidth(text: string) {
   return (
@@ -223,7 +226,7 @@ const SparklineCell = ({
                   {idx !== undefined &&
                     formatTime(
                       dateFormat,
-                      moment.utc(entries[idx].time).toDate(),
+                      dayjs.utc(entries[idx].time).toDate(),
                     )}
                 </div>
               </div>

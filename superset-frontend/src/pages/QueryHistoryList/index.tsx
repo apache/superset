@@ -25,7 +25,6 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import moment from 'moment';
 import {
   createFetchRelated,
   createFetchDistinct,
