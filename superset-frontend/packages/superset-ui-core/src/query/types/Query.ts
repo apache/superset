@@ -162,6 +162,8 @@ export interface QueryContext {
   result_type: string;
   /** Response format */
   result_format: string;
+  /** Response query location */
+  result_location: string;
   queries: QueryObject[];
   form_data?: QueryFormData;
 }

@@ -50,6 +50,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  databaseBackend?: string;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -151,6 +152,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       exportPivotCSV,
       exportFullCSV,
       exportFullXLSX,
+      downloadCSVFromS3,
       slice,
       componentId,
       dashboardId,
@@ -162,6 +164,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
+      databaseBackend,
     },
     ref,
   ) => {
@@ -279,6 +282,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportCSV={exportCSV}
                   exportPivotCSV={exportPivotCSV}
                   exportFullCSV={exportFullCSV}
+                  downloadCSVFromS3={downloadCSVFromS3}
                   exportXLSX={exportXLSX}
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
@@ -295,6 +299,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  databaseBackend={databaseBackend}
                 />
               )}
             </>

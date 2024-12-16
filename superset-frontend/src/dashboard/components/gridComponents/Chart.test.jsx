@@ -257,3 +257,4 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
 
   stubbedExportXLSX.mockRestore();
 });
+
