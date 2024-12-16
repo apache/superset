@@ -821,6 +821,7 @@ const FiltersConfigForm = (
         tab={FilterTabs.configuration.name}
         key={FilterTabs.configuration.key}
         forceRender
+        data-test="filter-configuration-tab"
       >
         <StyledContainer>
           <StyledFormItem
