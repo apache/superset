@@ -16,17 +16,17 @@
 
 # Notify E2E test maintainers of changes
 
-/superset-frontend/cypress-base/ @jinghua-qa @geido @eschutho @rusackas @betodealmeida
+/superset-frontend/cypress-base/ @sadpandajoe @geido @eschutho @rusackas @betodealmeida
 
 # Notify PMC members of changes to GitHub Actions
 
-/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar
+/.github/ @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar
 
 # Notify PMC members of changes to required GitHub Actions
 
-/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @john-bodley @kgabryje @dpgaspar
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar
 
-# Maps are a finnicky contribution process we care about
+# Maps are a finicky contribution process we care about
 
 **/*.geojson @villebro @rusackas
 /superset-frontend/plugins/legacy-plugin-chart-country-map/ @villebro @rusackas
