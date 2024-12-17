@@ -93,6 +93,18 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'show_null_values',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show Null Values'),
+              default: false,
+              renderTrigger: true,
+              description: t('Whether to display null values'),
+            },
+          },
+        ],
+        [
+          {
             name: 'label_type',
             config: {
               type: 'SelectControl',
