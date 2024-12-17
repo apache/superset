@@ -74,6 +74,7 @@ jobs:
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             PLATFORM_ARG="--platform linux/amd64"
           fi
+          PLATFORM_ARG="--platform linux/arm64 --platform linux/amd64"
 
           supersetbot docker \
             --preset ${{ matrix.build_preset }} \
@@ -82,7 +83,9 @@ jobs:
             --extra-flags "--build-arg INCLUDE_CHROMIUM=false" \
             $PLATFORM_ARG
 
-          docker pull apache/superset:GHA-${GITHUB_RUN_ID}
+      - name: Print docker stats
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        run:  docker pull apache/superset:GHA-${GITHUB_RUN_ID}
 
       - name: Print docker stats
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
