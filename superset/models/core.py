@@ -75,7 +75,11 @@ from superset.extensions import (
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin
 from superset.result_set import SupersetResultSet
 from superset.sql_parse import Table
-from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
+from superset.superset_typing import (
+    DbapiDescription,
+    OAuth2ClientConfig,
+    ResultSetColumnType,
+)
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import DatasourceName, get_username
@@ -667,7 +671,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
         return sql_
 
-    def get_df(  # pylint: disable=too-many-locals
+    def get_df(
         self,
         sql: str,
         catalog: str | None = None,
@@ -700,20 +704,36 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     object_ref=__name__,
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
-                    if i < len(sqls) - 1:
-                        # If it's not the last, we don't keep the results
-                        cursor.fetchall()
-                    else:
-                        # Last query, fetch and process the results
-                        data = self.db_engine_spec.fetch_data(cursor)
-                        result_set = SupersetResultSet(
-                            data, cursor.description, self.db_engine_spec
-                        )
-                        df = result_set.to_pandas_df()
+
+                rows = self.fetch_rows(cursor, i == len(sqls) - 1)
+                if rows is not None:
+                    df = self.load_into_dataframe(cursor.description, rows)
+
             if mutator:
                 df = mutator(df)
 
             return self.post_process_df(df)
+
+    @event_logger.log_this
+    def fetch_rows(self, cursor: Any, last: bool) -> list[tuple[Any, ...]] | None:
+        if not last:
+            cursor.fetchall()
+            return None
+
+        return self.db_engine_spec.fetch_data(cursor)
+
+    @event_logger.log_this
+    def load_into_dataframe(
+        self,
+        description: DbapiDescription,
+        data: list[tuple[Any, ...]],
+    ) -> pd.DataFrame:
+        result_set = SupersetResultSet(
+            data,
+            description,
+            self.db_engine_spec,
+        )
+        return result_set.to_pandas_df()
 
     def compile_sqla_query(
         self,

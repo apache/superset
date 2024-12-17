@@ -384,6 +384,7 @@ export default function transformProps(
             xAxisType,
             colorScale,
             sliceId,
+            orientation,
           ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
@@ -395,6 +396,7 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            orientation,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
@@ -406,6 +408,7 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            orientation,
           ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
@@ -417,6 +420,7 @@ export default function transformProps(
             annotationData,
             colorScale,
             sliceId,
+            orientation,
           ),
         );
       }

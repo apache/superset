@@ -174,7 +174,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             description={
               canEdit &&
               t(
-                'Click on "+Add/Edit Filters" button to create new dashboard filters',
+                'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
               )
             }
           />
