@@ -75,6 +75,7 @@ const baseConfig: ThemeConfig = {
     Card: {
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
+      colorBgContainer: supersetTheme.colors.grayscale.light4,
     },
     Input: {
       colorBorder: supersetTheme.colors.secondary.light3,
