@@ -52,7 +52,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-test('use the timezone from `moment` if no timezone provided', async () => {
+test('use the timezone from `dayjs` if no timezone provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
   render(<TimezoneSelector onTimezoneChange={onTimezoneChange} />);
