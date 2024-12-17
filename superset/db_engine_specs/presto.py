@@ -256,8 +256,15 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "date_trunc('second', CAST({col} AS TIMESTAMP))",
+        TimeGrain.FIVE_SECONDS: "date_trunc('second', CAST({col} AS TIMESTAMP)) - interval '1' second * (second(CAST({col} AS TIMESTAMP)) % 5)",
+        TimeGrain.THIRTY_SECONDS: "date_trunc('second', CAST({col} AS TIMESTAMP)) - interval '1' second * (second(CAST({col} AS TIMESTAMP)) % 30)",
         TimeGrain.MINUTE: "date_trunc('minute', CAST({col} AS TIMESTAMP))",
+        TimeGrain.FIVE_MINUTES: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 5)",
+        TimeGrain.TEN_MINUTES: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 10)",
+        TimeGrain.FIFTEEN_MINUTES: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 15)",
+        TimeGrain.HALF_HOUR: "date_trunc('minute', CAST({col} AS TIMESTAMP)) - interval '1' minute * (minute(CAST({col} AS TIMESTAMP)) % 30)",
         TimeGrain.HOUR: "date_trunc('hour', CAST({col} AS TIMESTAMP))",
+        TimeGrain.SIX_HOURS: "date_trunc('hour', CAST({col} AS TIMESTAMP)) - interval '1' hour * (hour(CAST({col} AS TIMESTAMP)) % 6)",
         TimeGrain.DAY: "date_trunc('day', CAST({col} AS TIMESTAMP))",
         TimeGrain.WEEK: "date_trunc('week', CAST({col} AS TIMESTAMP))",
         TimeGrain.MONTH: "date_trunc('month', CAST({col} AS TIMESTAMP))",
@@ -365,9 +372,12 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         return parse.unquote(database.split("/")[1])
 
     @classmethod
-    def estimate_statement_cost(cls, statement: str, cursor: Any) -> dict[str, Any]:
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
         """
         Run a SQL query that estimates the cost of a given statement.
+        :param database: A Database object
         :param statement: A single SQL statement
         :param cursor: Cursor instance
         :return: JSON response from Trino
@@ -945,8 +955,9 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         return version is not None and Version(version) >= Version("0.319")
 
     @classmethod
-    def update_impersonation_config(
+    def update_impersonation_config(  # pylint: disable=too-many-arguments
         cls,
+        database: Database,
         connect_args: dict[str, Any],
         uri: str,
         username: str | None,
@@ -955,6 +966,8 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         """
         Update a configuration dictionary
         that can set the correct properties for impersonating users
+
+        :param connect_args: the Database object
         :param connect_args: config to be updated
         :param uri: URI string
         :param username: Effective username

@@ -901,7 +901,6 @@ on $left.Day1 == $right.Day
 @pytest.mark.parametrize(
     ("engine", "sql", "expected"),
     [
-        # SQLite tests
         ("sqlite", "SELECT 1", False),
         ("sqlite", "INSERT INTO foo VALUES (1)", True),
         ("sqlite", "UPDATE foo SET bar = 2 WHERE id = 1", True),
@@ -946,6 +945,28 @@ on $left.Day1 == $right.Day
         ("kustokql", "set querytrace; Events | take 100", False),
         ("kustokql", ".drop table foo", True),
         ("kustokql", ".set-or-append table foo <| bar", True),
+        ("base", "SHOW LOCKS test EXTENDED", False),
+        ("base", "SET hivevar:desc='Legislators'", False),
+        ("base", "UPDATE t1 SET col1 = NULL", True),
+        ("base", "EXPLAIN SELECT 1", False),
+        ("base", "SELECT 1", False),
+        ("base", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("base", "SHOW CATALOGS", False),
+        ("base", "SHOW TABLES", False),
+        ("hive", "UPDATE t1 SET col1 = NULL", True),
+        ("hive", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("hive", "SHOW LOCKS test EXTENDED", False),
+        ("hive", "SET hivevar:desc='Legislators'", False),
+        ("hive", "EXPLAIN SELECT 1", False),
+        ("hive", "SELECT 1", False),
+        ("hive", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("presto", "SET hivevar:desc='Legislators'", False),
+        ("presto", "UPDATE t1 SET col1 = NULL", True),
+        ("presto", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("presto", "SHOW LOCKS test EXTENDED", False),
+        ("presto", "EXPLAIN SELECT 1", False),
+        ("presto", "SELECT 1", False),
+        ("presto", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
     ],
 )
 def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
@@ -979,3 +1000,73 @@ def test_custom_dialect(app: None) -> None:
     Test that custom dialects are loaded correctly.
     """
     assert SQLGLOT_DIALECTS.get("custom") == Dialects.MYSQL
+
+
+@pytest.mark.parametrize(
+    "engine",
+    [
+        "ascend",
+        "awsathena",
+        "base",
+        "bigquery",
+        "clickhouse",
+        "clickhousedb",
+        "cockroachdb",
+        "couchbase",
+        "crate",
+        "databend",
+        "databricks",
+        "db2",
+        "denodo",
+        "dremio",
+        "drill",
+        "druid",
+        "duckdb",
+        "dynamodb",
+        "elasticsearch",
+        "exa",
+        "firebird",
+        "firebolt",
+        "gsheets",
+        "hana",
+        "hive",
+        "ibmi",
+        "impala",
+        "kustokql",
+        "kustosql",
+        "kylin",
+        "mariadb",
+        "motherduck",
+        "mssql",
+        "mysql",
+        "netezza",
+        "oceanbase",
+        "ocient",
+        "odelasticsearch",
+        "oracle",
+        "pinot",
+        "postgresql",
+        "presto",
+        "pydoris",
+        "redshift",
+        "risingwave",
+        "rockset",
+        "shillelagh",
+        "snowflake",
+        "solr",
+        "sqlite",
+        "starrocks",
+        "superset",
+        "teradatasql",
+        "trino",
+        "vertica",
+    ],
+)
+def test_is_mutating(engine: str) -> None:
+    """
+    Global tests for `is_mutating`, covering all supported engines.
+    """
+    assert not SQLStatement(
+        "with source as ( select 1 as one ) select * from source",
+        engine=engine,
+    ).is_mutating()

@@ -43,7 +43,7 @@ export function CancelConfirmationAlert({
       css={{
         textAlign: 'left',
         flex: 1,
-        '& .ant-alert-action': { alignSelf: 'center' },
+        '& .antd5-alert-action': { alignSelf: 'center' },
       }}
       description={children}
       action={
@@ -61,6 +61,7 @@ export function CancelConfirmationAlert({
             buttonSize="small"
             buttonStyle="primary"
             onClick={onConfirm}
+            data-test="native-filter-modal-confirm-cancel-button"
           >
             {t('Yes, cancel')}
           </Button>

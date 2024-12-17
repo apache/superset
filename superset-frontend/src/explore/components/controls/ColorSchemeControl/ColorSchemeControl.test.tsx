@@ -29,6 +29,7 @@ import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = () => ({
   hasCustomLabelsColor: false,
+  sharedLabelsColors: [],
   label: 'Color scheme',
   labelMargin: 0,
   name: 'color',
@@ -128,8 +129,8 @@ test('displays color scheme options', async () => {
   });
 });
 
-test('Renders control with dashboard id', () => {
-  setup({ dashboardId: 1 });
+test('Renders control with dashboard id and dashboard color scheme', () => {
+  setup({ dashboardId: 1, hasDashboardColorScheme: true });
   expect(screen.getByText('Dashboard scheme')).toBeInTheDocument();
   expect(
     screen.getByLabelText('Select color scheme', { selector: 'input' }),

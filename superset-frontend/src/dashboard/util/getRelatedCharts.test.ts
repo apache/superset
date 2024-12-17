@@ -19,11 +19,9 @@
 
 import {
   AppliedCrossFilterType,
-  DatasourceType,
   Filter,
   NativeFilterType,
 } from '@superset-ui/core';
-import { DatasourcesState } from '../types';
 import { getRelatedCharts } from './getRelatedCharts';
 
 const slices = {
@@ -32,48 +30,11 @@ const slices = {
   '3': { datasource: 'ds1', slice_id: 3 },
 } as any;
 
-const datasources: DatasourcesState = {
-  ds1: {
-    uid: 'ds1',
-    datasource_name: 'ds1',
-    table_name: 'table1',
-    description: '',
-    id: 100,
-    columns: [{ column_name: 'column1' }, { column_name: 'column2' }],
-    column_names: ['column1', 'column2'],
-    column_types: [],
-    type: DatasourceType.Table,
-    metrics: [],
-    column_formats: {},
-    currency_formats: {},
-    verbose_map: {},
-    main_dttm_col: '',
-    filter_select_enabled: true,
-  },
-  ds2: {
-    uid: 'ds2',
-    datasource_name: 'ds2',
-    table_name: 'table2',
-    description: '',
-    id: 200,
-    columns: [{ column_name: 'column3' }, { column_name: 'column4' }],
-    column_names: ['column3', 'column4'],
-    column_types: [],
-    type: DatasourceType.Table,
-    metrics: [],
-    column_formats: {},
-    currency_formats: {},
-    verbose_map: {},
-    main_dttm_col: '',
-    filter_select_enabled: true,
-  },
-};
-
-test('Return chart ids matching the dataset id with native filter', () => {
+test('Return all chart ids in global scope with native filters', () => {
   const filters = {
     filterKey1: {
       filterType: 'filter_select',
-      chartsInScope: [1, 2],
+      chartsInScope: [1, 2, 3],
       scope: {
         excluded: [],
         rootPath: [],
@@ -88,54 +49,48 @@ test('Return chart ids matching the dataset id with native filter', () => {
     } as unknown as Filter,
   };
 
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    filterKey1: [1],
-  });
+  const result = getRelatedCharts('filterKey1', filters.filterKey1, slices);
+  expect(result).toEqual([1, 2, 3]);
 });
 
-test('Return chart ids matching the dataset id with cross filter', () => {
-  const filters = {
-    '3': {
-      filterType: undefined,
-      scope: [1, 2],
-      targets: [],
-      values: null,
-    } as AppliedCrossFilterType,
-  };
-
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    '3': [1],
-  });
-});
-
-test('Return chart ids matching the column name with native filter', () => {
+test('Return only chart ids in specific scope with native filters', () => {
   const filters = {
     filterKey1: {
       filterType: 'filter_select',
-      chartsInScope: [1, 2],
+      chartsInScope: [1, 3],
       scope: {
         excluded: [],
         rootPath: [],
       },
       targets: [
         {
-          column: { name: 'column3' },
-          datasetId: 999,
+          column: { name: 'column1' },
+          datasetId: 100,
         },
       ],
       type: NativeFilterType.NativeFilter,
     } as unknown as Filter,
   };
 
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    filterKey1: [2],
-  });
+  const result = getRelatedCharts('filterKey1', filters.filterKey1, slices);
+  expect(result).toEqual([1, 3]);
 });
 
-test('Return chart ids matching the column name with cross filter', () => {
+test('Return all chart ids with cross filter in global scope', () => {
+  const filters = {
+    '3': {
+      filterType: undefined,
+      scope: [1, 2, 3],
+      targets: [],
+      values: null,
+    } as AppliedCrossFilterType,
+  };
+
+  const result = getRelatedCharts('3', filters['3'], slices);
+  expect(result).toEqual([1, 2]);
+});
+
+test('Return only chart ids in specific scope with cross filter', () => {
   const filters = {
     '1': {
       filterType: undefined,
@@ -147,108 +102,6 @@ test('Return chart ids matching the column name with cross filter', () => {
     } as AppliedCrossFilterType,
   };
 
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    '1': [2],
-  });
-});
-
-test('Return chart ids when column display name matches with native filter', () => {
-  const filters = {
-    filterKey1: {
-      filterType: 'filter_select',
-      chartsInScope: [1, 2],
-      scope: {
-        excluded: [],
-        rootPath: [],
-      },
-      targets: [
-        {
-          column: { name: 'column4', displayName: 'column4' },
-          datasetId: 999,
-        },
-      ],
-      type: NativeFilterType.NativeFilter,
-    } as unknown as Filter,
-  };
-
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    filterKey1: [2],
-  });
-});
-
-test('Return chart ids when column display name matches with cross filter', () => {
-  const filters = {
-    '1': {
-      filterType: undefined,
-      scope: [1, 2],
-      targets: [],
-      values: {
-        filters: [{ col: 'column4' }],
-      },
-    } as AppliedCrossFilterType,
-  };
-
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    '1': [2],
-  });
-});
-
-test('Return scope when filterType is not filter_select', () => {
-  const filters = {
-    filterKey1: {
-      filterType: 'filter_time',
-      chartsInScope: [3, 4],
-    } as Filter,
-  };
-
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    filterKey1: [3, 4],
-  });
-});
-
-test('Return an empty array if no matching charts found with native filter', () => {
-  const filters = {
-    filterKey1: {
-      filterType: 'filter_select',
-      chartsInScope: [1, 2],
-      scope: {
-        excluded: [],
-        rootPath: [],
-      },
-      targets: [
-        {
-          column: { name: 'nonexistent_column' },
-          datasetId: 300,
-        },
-      ],
-      type: NativeFilterType.NativeFilter,
-    } as unknown as Filter,
-  };
-
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    filterKey1: [],
-  });
-});
-
-test('Return an empty array if no matching charts found with cross filter', () => {
-  const filters = {
-    '1': {
-      filterType: undefined,
-      scope: [1, 2],
-      targets: [],
-      values: {
-        filters: [{ col: 'nonexistent_column' }],
-      },
-    } as AppliedCrossFilterType,
-  };
-
-  const result = getRelatedCharts(filters, null, slices, datasources);
-  expect(result).toEqual({
-    '1': [],
-  });
+  const result = getRelatedCharts('1', filters['1'], slices);
+  expect(result).toEqual([2]);
 });

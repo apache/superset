@@ -394,17 +394,24 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            response_data = json.dumps(
-                {"result": result["queries"]},
-                default=json.json_int_dttm_ser,
-                ignore_nan=True,
-            )
+            queries = result["queries"]
+            if security_manager.is_guest_user():
+                for query in queries:
+                    with contextlib.suppress(KeyError):
+                        del query["query"]
+            with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
+                response_data = json.dumps(
+                    {"result": queries},
+                    default=json.json_int_dttm_ser,
+                    ignore_nan=True,
+                )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
+    @event_logger.log_this
     def _get_data_response(
         self,
         command: ChartDataCommand,
@@ -430,11 +437,13 @@ class ChartDataRestApi(ChartRestApi):
     ) -> dict[str, Any]:
         return {
             "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
-            "dataset_id": form_data.get("datasource", {}).get("id")
-            if isinstance(form_data.get("datasource"), dict)
-            and form_data.get("datasource", {}).get("type")
-            == DatasourceType.TABLE.value
-            else None,
+            "dataset_id": (
+                form_data.get("datasource", {}).get("id")
+                if isinstance(form_data.get("datasource"), dict)
+                and form_data.get("datasource", {}).get("type")
+                == DatasourceType.TABLE.value
+                else None
+            ),
             "slice_id": form_data.get("form_data", {}).get("slice_id"),
         }
 

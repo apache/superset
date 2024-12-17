@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const expanded = () => (
   <SuperChart
-    chartType="area"
+    chartType={VizType.LegacyArea}
     datasource={dummyDatasource}
     width={400}
     height={400}
@@ -40,7 +40,7 @@ export const expanded = () => (
       showControls: false,
       showLegend: true,
       stackedStyle: 'expand',
-      vizType: 'area',
+      vizType: VizType.LegacyArea,
       xAxisFormat: '%Y',
       xAxisLabel: '',
       xAxisShowminmax: false,

@@ -45,8 +45,8 @@ test('Calling "onHide"', () => {
   };
   const modal = <DeleteModal {...props} />;
   render(modal);
-  expect(props.onHide).toBeCalledTimes(0);
-  expect(props.onConfirm).toBeCalledTimes(0);
+  expect(props.onHide).toHaveBeenCalledTimes(0);
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // type "del" in the input
   userEvent.type(screen.getByTestId('delete-modal-input'), 'del');
@@ -55,8 +55,8 @@ test('Calling "onHide"', () => {
   // close the modal
   expect(screen.getByText('×')).toBeVisible();
   userEvent.click(screen.getByText('×'));
-  expect(props.onHide).toBeCalledTimes(1);
-  expect(props.onConfirm).toBeCalledTimes(0);
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // confirm input has been cleared
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
@@ -71,19 +71,19 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
     open: true,
   };
   render(<DeleteModal {...props} />);
-  expect(props.onHide).toBeCalledTimes(0);
-  expect(props.onConfirm).toBeCalledTimes(0);
+  expect(props.onHide).toHaveBeenCalledTimes(0);
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
   expect(screen.getByTestId('delete-modal-input')).toBeVisible();
-  expect(props.onConfirm).toBeCalledTimes(0);
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"
   userEvent.click(screen.getByText('Delete'));
-  expect(props.onConfirm).toBeCalledTimes(0);
+  expect(props.onConfirm).toHaveBeenCalledTimes(0);
 
   // execute "onConfirm" if you have typed "delete"
   userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
   userEvent.click(screen.getByText('Delete'));
-  expect(props.onConfirm).toBeCalledTimes(1);
+  expect(props.onConfirm).toHaveBeenCalledTimes(1);
 
   // confirm input has been cleared
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');

@@ -39,7 +39,6 @@ from importlib.resources import files
 from typing import Any, Callable, Iterator, Literal, TYPE_CHECKING, TypedDict
 
 import click
-import pkg_resources
 from celery.schedules import crontab
 from flask import Blueprint
 from flask_appbuilder.security.manager import AUTH_DB
@@ -86,7 +85,7 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-BASE_DIR = pkg_resources.resource_filename("superset", "")
+BASE_DIR = str(files("superset"))
 if "SUPERSET_HOME" in os.environ:
     DATA_DIR = os.environ["SUPERSET_HOME"]
 else:
@@ -357,7 +356,7 @@ AUTH_TYPE = AUTH_DB
 # OPENID_PROVIDERS = [
 #    { 'name': 'Yahoo', 'url': 'https://open.login.yahoo.com/' },
 #    { 'name': 'Flickr', 'url': 'https://www.flickr.com/<username>' },
-
+# ]
 # ---------------------------------------------------
 # Roles config
 # ---------------------------------------------------
@@ -478,6 +477,14 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
+    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
+    "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
+    # Generate screenshots (PDF or JPG) of dashboards using the web driver.
+    # When disabled, screenshots are generated on the fly by the browser.
+    # This feature flag is used by the download feature in the dashboard view.
+    # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
+    "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
@@ -486,6 +493,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ESCAPE_MARKDOWN_HTML": False,
     "DASHBOARD_CROSS_FILTERS": True,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
+    # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
     "EMBEDDED_SUPERSET": False,
     # Enables Alerts and reports new implementation
@@ -1333,7 +1341,7 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "table_to_xml_and_xmlschema",
         "version",
     },
-    "clickhouse": {"url"},
+    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
     "mysql": {"version"},
 }
 
@@ -1534,9 +1542,12 @@ PREFERRED_DATABASES: list[str] = [
 # one here.
 TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 
-# Details needed for databases that allows user to authenticate using personal
-# OAuth2 tokens. See https://github.com/apache/superset/issues/20300 for more
-# information. The scope and URIs are optional.
+# Details needed for databases that allows user to authenticate using personal OAuth2
+# tokens. See https://github.com/apache/superset/issues/20300 for more information. The
+# scope and URIs are usually optional.
+# NOTE that if you change the id, scope, or URIs in this file, you probably need to purge
+# the existing tokens from the database. This needs to be done by running a query to
+# delete the existing tokens.
 DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # "Google Sheets": {
     #     "id": "XXX.apps.googleusercontent.com",
@@ -1552,14 +1563,17 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     #     "token_request_uri": "https://oauth2.googleapis.com/token",
     # },
 }
+
 # OAuth2 state is encoded in a JWT using the alogorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
+
 # By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
 # specified. If you're running multiple Superset instances you might want to have a
 # proxy handling the redirects, since redirect URIs need to be registered in the OAuth2
 # applications. In that case, the proxy can forward the request to the correct instance
 # by looking at the `default_redirect_uri` attribute in the OAuth2 state object.
 # DATABASE_OAUTH2_REDIRECT_URI = "http://localhost:8088/api/v1/database/oauth2/"
+
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
@@ -1769,7 +1783,7 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 #    def DATASET_HEALTH_CHECK(datasource: SqlaTable) -> Optional[str]:
 #        if (
 #            datasource.sql and
-#            len(sql_parse.ParsedQuery(datasource.sql, strip_comments=True).tables) == 1
+#            len(SQLScript(datasource.sql).tables) == 1
 #        ):
 #            return (
 #                "This virtual dataset queries only one table and therefore could be "

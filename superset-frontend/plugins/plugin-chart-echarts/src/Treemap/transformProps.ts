@@ -176,18 +176,18 @@ export default function transformProps(
       let item: TreemapSeriesNodeItemOption = {
         name,
         value,
+        colorSaturation: COLOR_SATURATION,
+        itemStyle: {
+          borderColor: BORDER_COLOR,
+          color: colorFn(name, sliceId),
+          borderWidth: BORDER_WIDTH,
+          gapWidth: GAP_WIDTH,
+        },
       };
       if (treeNode.children?.length) {
         item = {
           ...item,
           children: traverse(treeNode.children, newPath),
-          colorSaturation: COLOR_SATURATION,
-          itemStyle: {
-            borderColor: BORDER_COLOR,
-            color: colorFn(name, sliceId, colorScheme),
-            borderWidth: BORDER_WIDTH,
-            gapWidth: GAP_WIDTH,
-          },
         };
       } else {
         const joinedName = newPath.join(',');
@@ -217,7 +217,7 @@ export default function transformProps(
       colorSaturation: COLOR_SATURATION,
       itemStyle: {
         borderColor: BORDER_COLOR,
-        color: colorFn(`${metricLabel}`, sliceId, colorScheme),
+        color: colorFn(`${metricLabel}`, sliceId),
         borderWidth: BORDER_WIDTH,
         gapWidth: GAP_WIDTH,
       },

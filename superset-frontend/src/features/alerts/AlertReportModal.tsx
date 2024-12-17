@@ -34,6 +34,7 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
+  VizType,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -79,9 +80,9 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 export interface AlertReportModalProps {
@@ -823,10 +824,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       })
         .then(response => {
           const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          tabTree.push({
+            title: 'All Tabs',
+            // select tree only works with string value
+            value: JSON.stringify(Object.keys(allTabs)),
+          });
           setTabOptions(tabTree);
+
           const anchor = currentAlert?.extra?.dashboard?.anchor;
-          if (anchor && !(anchor in allTabs)) {
-            updateAnchorState(undefined);
+          if (anchor) {
+            try {
+              const parsedAnchor = JSON.parse(anchor);
+              if (Array.isArray(parsedAnchor)) {
+                // Check if all elements in parsedAnchor list are in allTabs
+                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                if (!isValidSubset) {
+                  updateAnchorState(undefined);
+                }
+              } else {
+                throw new Error('Parsed value is not an array');
+              }
+            } catch (error) {
+              if (!(anchor in allTabs)) {
+                updateAnchorState(undefined);
+              }
+            }
           }
         })
         .catch(() => {
@@ -983,8 +1005,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
+  const onCustomWidthChange = (value: number | string | null | undefined) => {
+    const numValue =
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && Number.isNaN(Number(value)))
+        ? null
+        : Number(value);
+    updateAlertState('custom_width', numValue);
   };
 
   const onTimeoutVerifyChange = (

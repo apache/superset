@@ -17,7 +17,11 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { ChartMetadata, getChartMetadataRegistry } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  getChartMetadataRegistry,
+  VizType,
+} from '@superset-ui/core';
 import ChartRenderer from 'src/components/Chart/ChartRenderer';
 import { ChartSource } from 'src/types/ChartSource';
 
@@ -40,7 +44,7 @@ const requiredProps = {
   latestQueryFormData: {
     testControl: 'bar',
   },
-  vizType: 'table',
+  vizType: VizType.Table,
   source: ChartSource.Dashboard,
 };
 

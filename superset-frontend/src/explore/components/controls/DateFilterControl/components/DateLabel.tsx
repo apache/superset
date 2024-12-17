@@ -23,6 +23,7 @@ import { css, styled, useTheme, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 export type DateLabelProps = {
+  name?: string;
   label: ReactNode;
   isActive?: boolean;
   isPlaceholder?: boolean;
@@ -87,8 +88,12 @@ export const DateLabel = forwardRef(
   (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
     const theme = useTheme();
     return (
-      <LabelContainer {...props} tabIndex={0}>
-        <span className="date-label-content" ref={ref}>
+      <LabelContainer {...props} tabIndex={0} role="button">
+        <span
+          id={`date-label-${props.name}`}
+          className="date-label-content"
+          ref={ref}
+        >
           {typeof props.label === 'string' ? t(props.label) : props.label}
         </span>
         <Icons.CalendarOutlined

@@ -45,7 +45,6 @@ import {
 import rison from 'rison';
 import { debounce } from 'lodash';
 import { FixedSizeList as List } from 'react-window';
-import { AntdInput } from 'src/components';
 import Icons from 'src/components/Icons';
 import { Input } from 'src/components/Input';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -55,6 +54,7 @@ import {
   supersetGetCache,
 } from 'src/utils/cachedSupersetGet';
 import { useVerboseMap } from 'src/hooks/apiResources/datasets';
+import { InputRef } from 'antd-v5';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import DrillByModal from './DrillByModal';
 import { getSubmenuYOffset } from '../utils';
@@ -114,11 +114,12 @@ export const DrillByMenuItems = ({
   const { addDangerToast } = useToasts();
   const [isLoadingColumns, setIsLoadingColumns] = useState(true);
   const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearchInput, setDebouncedSearchInput] = useState('');
   const [dataset, setDataset] = useState<Dataset>();
   const [columns, setColumns] = useState<Column[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [currentColumn, setCurrentColumn] = useState();
-  const ref = useRef<AntdInput>(null);
+  const ref = useRef<InputRef>(null);
   const showSearch =
     loadDrillByOptions || columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
   const handleSelection = useCallback(
@@ -138,11 +139,11 @@ export const DrillByMenuItems = ({
 
   useEffect(() => {
     if (open) {
-      ref.current?.input.focus({ preventScroll: true });
+      ref.current?.input?.focus({ preventScroll: true });
     } else {
       // Reset search input when menu is closed
-      ref.current?.setValue('');
       setSearchInput('');
+      setDebouncedSearchInput('');
     }
   }, [open]);
 
@@ -207,19 +208,27 @@ export const DrillByMenuItems = ({
     hasDrillBy,
   ]);
 
-  const handleInput = debounce(
-    (value: string) => setSearchInput(value),
-    FAST_DEBOUNCE,
+  const debouncedSetSearchInput = useMemo(
+    () =>
+      debounce((value: string) => {
+        setDebouncedSearchInput(value);
+      }, FAST_DEBOUNCE),
+    [],
   );
+
+  const handleInput = (value: string) => {
+    setSearchInput(value);
+    debouncedSetSearchInput(value);
+  };
 
   const filteredColumns = useMemo(
     () =>
       columns.filter(column =>
         (column.verbose_name || column.column_name)
           .toLowerCase()
-          .includes(searchInput.toLowerCase()),
+          .includes(debouncedSearchInput.toLowerCase()),
       ),
-    [columns, searchInput],
+    [columns, debouncedSearchInput],
   );
 
   const submenuYOffset = useMemo(
@@ -311,6 +320,7 @@ export const DrillByMenuItems = ({
                 margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
                 box-shadow: none;
               `}
+              value={searchInput}
             />
           )}
           {isLoadingColumns ? (

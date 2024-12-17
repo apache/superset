@@ -19,6 +19,7 @@ import logging
 from typing import Any
 
 from superset import app, db, security_manager
+from superset.commands.database.utils import add_permissions
 from superset.commands.exceptions import ImportFailedError
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
@@ -86,40 +87,3 @@ def import_database(
         logger.warning(ex.message)
 
     return database
-
-
-def add_permissions(database: Database, ssh_tunnel: SSHTunnel) -> None:
-    """
-    Add DAR for catalogs and schemas.
-    """
-    if database.db_engine_spec.supports_catalog:
-        catalogs = database.get_all_catalog_names(
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        )
-
-        for catalog in catalogs:
-            security_manager.add_permission_view_menu(
-                "catalog_access",
-                security_manager.get_catalog_perm(
-                    database.database_name,
-                    catalog,
-                ),
-            )
-    else:
-        catalogs = [None]
-
-    for catalog in catalogs:
-        for schema in database.get_all_schema_names(
-            catalog=catalog,
-            cache=False,
-            ssh_tunnel=ssh_tunnel,
-        ):
-            security_manager.add_permission_view_menu(
-                "schema_access",
-                security_manager.get_schema_perm(
-                    database.database_name,
-                    catalog,
-                    schema,
-                ),
-            )

@@ -23,7 +23,8 @@ Create Date: 2024-04-11 15:41:34.663989
 """
 
 import sqlalchemy as sa
-from alembic import op
+
+from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
 revision = "5f57af97bc3f"
@@ -34,12 +35,9 @@ tables = ["tables", "query", "saved_query", "tab_state", "table_schema"]
 
 def upgrade():
     for table in tables:
-        op.add_column(
-            table,
-            sa.Column("catalog", sa.String(length=256), nullable=True),
-        )
+        add_columns(table, sa.Column("catalog", sa.String(length=256), nullable=True))
 
 
 def downgrade():
     for table in reversed(tables):
-        op.drop_column(table, "catalog")
+        drop_columns(table, "catalog")

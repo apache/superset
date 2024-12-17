@@ -55,9 +55,13 @@ export const LabelGallery = () => (
 );
 
 export const InteractiveLabel = (args: any) => {
-  const { hasOnClick, label, ...rest } = args;
+  const { hasOnClick, label, monospace, ...rest } = args;
   return (
-    <Label onClick={hasOnClick ? action('clicked') : undefined} {...rest}>
+    <Label
+      onClick={hasOnClick ? action('clicked') : undefined}
+      monospace={monospace}
+      {...rest}
+    >
       {label}
     </Label>
   );
@@ -66,4 +70,5 @@ export const InteractiveLabel = (args: any) => {
 InteractiveLabel.args = {
   hasOnClick: true,
   label: 'Example',
+  monospace: true,
 };

@@ -36,6 +36,8 @@ import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
 
+fetchMock.put('glob:*/api/v1/dashboard/*', {});
+
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
   fetchFaveStar: jest.fn(),
@@ -206,7 +208,9 @@ describe('DashboardBuilder', () => {
   });
 
   it('should render a BuilderComponentPane if editMode=true and user selects "Insert Components" pane', () => {
-    const { queryAllByTestId } = setup({ dashboardState: { editMode: true } });
+    const { queryAllByTestId } = setup({
+      dashboardState: { ...mockState.dashboardState, editMode: true },
+    });
     const builderComponents = queryAllByTestId('mock-builder-component-pane');
     expect(builderComponents.length).toBeGreaterThanOrEqual(1);
   });
@@ -239,7 +243,7 @@ describe('DashboardBuilder', () => {
 
   it('should display a loading spinner when saving is in progress', async () => {
     const { findByAltText } = setup({
-      dashboardState: { dashboardIsSaving: true },
+      dashboardState: { ...mockState.dashboardState, dashboardIsSaving: true },
     });
 
     expect(await findByAltText('Loading...')).toBeVisible();

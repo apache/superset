@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useMemo, ReactNode } from 'react';
 import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
-import Label from 'src/components/Label';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -35,6 +34,7 @@ import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
 import { fDuration } from 'src/utils/dates';
 import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import ModalTrigger from 'src/components/ModalTrigger';
@@ -44,11 +44,16 @@ import HighlightedSql from '../HighlightedSql';
 import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
 
 interface QueryTableQuery
-  extends Omit<QueryResponse, 'state' | 'sql' | 'progress' | 'results'> {
+  extends Omit<
+    QueryResponse,
+    'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+  > {
   state?: Record<string, any>;
   sql?: Record<string, any>;
   progress?: Record<string, any>;
   results?: Record<string, any>;
+  duration?: ReactNode;
+  started?: ReactNode;
 }
 
 interface QueryTableProps {
@@ -125,55 +130,95 @@ const QueryTable = ({
     const statusAttributes = {
       success: {
         config: {
-          icon: <Icons.Check iconColor={theme.colors.success.base} />,
+          icon: (
+            <Icons.CheckOutlined
+              iconColor={theme.colors.success.base}
+              iconSize="m"
+            />
+          ),
+          // icon: <Icons.Edit iconSize="xl" />,
           label: t('Success'),
         },
       },
       failed: {
         config: {
-          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.CloseOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
+          ),
           label: t('Failed'),
         },
       },
       stopped: {
         config: {
-          icon: <Icons.XSmall iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.CloseOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
+          ),
           label: t('Failed'),
         },
       },
       running: {
         config: {
-          icon: <Icons.Running iconColor={theme.colors.primary.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
+          ),
           label: t('Running'),
         },
       },
       fetching: {
         config: {
-          icon: <Icons.Queued iconColor={theme.colors.primary.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
+          ),
           label: t('Fetching'),
         },
       },
       timed_out: {
         config: {
-          icon: <Icons.Offline iconColor={theme.colors.grayscale.light1} />,
+          icon: (
+            <Icons.Clock iconColor={theme.colors.error.base} iconSize="m" />
+          ),
           label: t('Offline'),
         },
       },
       scheduled: {
         config: {
-          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.warning.base}
+              iconSize="m"
+            />
+          ),
           label: t('Scheduled'),
         },
       },
       pending: {
         config: {
-          icon: <Icons.Queued iconColor={theme.colors.grayscale.base} />,
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.warning.base}
+              iconSize="m"
+            />
+          ),
           label: t('Scheduled'),
         },
       },
       error: {
         config: {
-          icon: <Icons.Error iconColor={theme.colors.error.base} />,
+          icon: (
+            <Icons.Error iconColor={theme.colors.error.base} iconSize="m" />
+          ),
           label: t('Unknown Status'),
         },
       },
@@ -187,16 +232,10 @@ const QueryTable = ({
         const status = statusAttributes[state] || statusAttributes.error;
 
         if (q.endDttm) {
-          q.duration = fDuration(q.startDttm, q.endDttm);
+          q.duration = (
+            <Label monospace>{fDuration(q.startDttm, q.endDttm)}</Label>
+          );
         }
-        const time = moment(q.startDttm).format().split('T');
-        q.time = (
-          <div>
-            <span>
-              {time[0]} <br /> {time[1]}
-            </span>
-          </div>
-        );
         q.user = (
           <Button
             buttonSize="small"
@@ -215,7 +254,9 @@ const QueryTable = ({
             {q.db}
           </Button>
         );
-        q.started = moment(q.startDttm).format('L HH:mm:ss');
+        q.started = (
+          <Label monospace>{moment(q.startDttm).format('L HH:mm:ss')}</Label>
+        );
         q.querylink = (
           <Button
             buttonSize="small"
@@ -241,9 +282,9 @@ const QueryTable = ({
             <ModalTrigger
               className="ResultsModal"
               triggerNode={
-                <Label type="info" className="pointer">
+                <Button buttonSize="xsmall" buttonStyle="tertiary">
                   {t('View')}
-                </Label>
+                </Button>
               }
               modalTitle={t('Data preview')}
               beforeOpen={() => openAsyncResults(query, displayLimit)}
@@ -275,9 +316,7 @@ const QueryTable = ({
             <ProgressBar percent={parseInt(progress.toFixed(0), 10)} striped />
           );
         q.state = (
-          <Tooltip title={status.config.label} placement="bottom">
-            <span>{status.config.icon}</span>
-          </Tooltip>
+          <Tooltip title={status.config.label}>{status.config.icon}</Tooltip>
         );
         q.actions = (
           <div>
@@ -287,6 +326,7 @@ const QueryTable = ({
                 'Overwrite text in the editor with a query on this table',
               )}
               placement="top"
+              className="pointer"
             >
               <Icons.Edit iconSize="xl" />
             </StyledTooltip>
@@ -294,6 +334,7 @@ const QueryTable = ({
               onClick={() => openQueryInNewTab(query)}
               tooltip={t('Run query in a new tab')}
               placement="top"
+              className="pointer"
             >
               <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
             </StyledTooltip>
@@ -301,6 +342,7 @@ const QueryTable = ({
               <StyledTooltip
                 tooltip={t('Remove query from log')}
                 onClick={() => dispatch(removeQuery(query))}
+                className="pointer"
               >
                 <Icons.Trash iconSize="xl" />
               </StyledTooltip>

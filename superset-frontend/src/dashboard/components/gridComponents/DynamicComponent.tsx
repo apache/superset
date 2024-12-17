@@ -20,7 +20,7 @@ import { FC, Suspense } from 'react';
 import { DashboardComponentMetadata, JsonObject, t } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
-import { useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import { Draggable } from '../dnd/DragDroppable';
 import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
@@ -103,6 +103,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
       nativeFilters,
       dataMask,
     }),
+    shallowEqual,
   );
 
   return (

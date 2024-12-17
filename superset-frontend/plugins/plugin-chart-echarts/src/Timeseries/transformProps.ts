@@ -65,6 +65,7 @@ import {
   extractDataTotalValues,
   extractSeries,
   extractShowValueIndexes,
+  extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
   getLegendProps,
@@ -171,6 +172,8 @@ export default function transformProps(
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
+    showTooltipTotal,
+    showTooltipPercentage,
     truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
@@ -192,7 +195,9 @@ export default function transformProps(
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
-  const labelMap = Object.entries(label_map).reduce((acc, entry) => {
+  const labelMap: { [key: string]: string[] } = Object.entries(
+    label_map,
+  ).reduce((acc, entry) => {
     if (
       entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
@@ -202,7 +207,6 @@ export default function transformProps(
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
-
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
   const rebasedData = rebaseForecastDatum(data, verboseMap);
   let xAxisLabel = getXAxisLabel(chartProps.rawFormData) as string;
@@ -252,7 +256,7 @@ export default function transformProps(
     legendState,
   });
   const seriesContexts = extractForecastSeriesContexts(
-    Object.values(rawSeries).map(series => series.name as string),
+    rawSeries.map(series => series.name as string),
   );
   const isAreaExpand = stack === StackControlsValue.Expand;
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
@@ -381,6 +385,7 @@ export default function transformProps(
             xAxisType,
             colorScale,
             sliceId,
+            orientation,
           ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
@@ -392,6 +397,7 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            orientation,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
@@ -403,6 +409,7 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            orientation,
           ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
@@ -414,6 +421,7 @@ export default function transformProps(
             annotationData,
             colorScale,
             sliceId,
+            orientation,
           ),
         );
       }
@@ -488,7 +496,9 @@ export default function transformProps(
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && timeGrainSqla
-        ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+        ? TIMEGRAIN_TO_TIMESTAMP[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
         : 0,
     ...getMinAndMaxFromBounds(
       xAxisType,
@@ -544,11 +554,12 @@ export default function transformProps(
           ? params[0].value[xIndex]
           : params.value[xIndex];
         const forecastValue: any[] = richTooltip ? params : [params];
-
-        if (richTooltip && tooltipSortByMetric) {
-          forecastValue.sort((a, b) => b.data[yIndex] - a.data[yIndex]);
-        }
-
+        const sortedKeys = extractTooltipKeys(
+          forecastValue,
+          yIndex,
+          richTooltip,
+          tooltipSortByMetric,
+        );
         const forecastValues: Record<string, ForecastValue> =
           extractForecastValuesFromTooltipParams(forecastValue, isHorizontal);
 
@@ -567,35 +578,40 @@ export default function transformProps(
             value.observation !== undefined ? acc + value.observation : acc,
           0,
         );
-        const showTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
-        const showPercentage = showTotal && !forcePercentFormatter;
+        const allowTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
+        const showPercentage =
+          allowTotal && !forcePercentFormatter && showTooltipPercentage;
         const keys = Object.keys(forecastValues);
         let focusedRow;
-        keys.forEach(key => {
-          const value = forecastValues[key];
-          if (value.observation === 0 && stack) {
-            return;
-          }
-          const row = formatForecastTooltipSeries({
-            ...value,
-            seriesName: key,
-            formatter,
+        sortedKeys
+          .filter(key => keys.includes(key))
+          .forEach(key => {
+            const value = forecastValues[key];
+            if (value.observation === 0 && stack) {
+              return;
+            }
+            const row = formatForecastTooltipSeries({
+              ...value,
+              seriesName: key,
+              formatter,
+            });
+            if (showPercentage && value.observation !== undefined) {
+              row.push(
+                percentFormatter.format(value.observation / (total || 1)),
+              );
+            }
+            rows.push(row);
+            if (key === focusedSeries) {
+              focusedRow = rows.length - 1;
+            }
           });
-          if (showPercentage && value.observation !== undefined) {
-            row.push(percentFormatter.format(value.observation / (total || 1)));
-          }
-          rows.push(row);
-          if (key === focusedSeries) {
-            focusedRow = rows.length - 1;
-          }
-        });
         if (stack) {
           rows.reverse();
           if (focusedRow !== undefined) {
             focusedRow = rows.length - focusedRow - 1;
           }
         }
-        if (showTotal) {
+        if (allowTotal && showTooltipTotal) {
           const totalRow = ['Total', formatter.format(total)];
           if (showPercentage) {
             totalRow.push(percentFormatter.format(1));
