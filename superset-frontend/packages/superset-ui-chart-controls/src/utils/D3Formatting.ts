@@ -48,6 +48,7 @@ const d3Formatted: [string, string][] = [
   ',.3f',
   '+,',
   '$,.2f',
+  ' ,.2f',
 ].map(fmt => [fmt, `${fmt} (${getNumberFormatter(fmt).preview()})`]);
 
 // input choices & options

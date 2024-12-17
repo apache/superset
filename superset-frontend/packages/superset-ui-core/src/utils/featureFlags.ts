@@ -27,6 +27,7 @@ export enum FeatureFlag {
   AlertReportTabs = 'ALERT_REPORT_TABS',
   AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
+  AllowPivotTableHtml = 'ALLOW_PIVOT_TABLE_HTML',
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
