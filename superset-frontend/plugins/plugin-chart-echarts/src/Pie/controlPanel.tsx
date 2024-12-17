@@ -27,6 +27,7 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
   sharedControls,
+  ControlStateMapping,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { legendSection } from '../controls';
@@ -172,6 +173,31 @@ const config: ControlPanelConfig = {
               choices: D3_TIME_FORMAT_OPTIONS,
               default: 'smart_date',
               description: D3_FORMAT_DOCS,
+            },
+          },
+        ],
+        [
+          {
+            name: 'metric_unit',
+            config: {
+              type: 'SelectControl',
+              clearable: true,
+              label: t('Metric unit value'),
+              renderTrigger: true,
+              mapStateToProps: ({
+                controls,
+              }: {
+                controls: ControlStateMapping;
+              }) => ({
+                choices:
+                  (controls?.adhoc_filters?.value as []).map((x: any) => [
+                    x.subject,
+                    x.subject,
+                  ]) || [],
+              }),
+              description: t(
+                'Metric unit. Value dynamically forming from "Filters"',
+              ),
             },
           },
         ],

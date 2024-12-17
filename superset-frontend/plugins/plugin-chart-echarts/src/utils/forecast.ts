@@ -61,13 +61,14 @@ export const extractForecastValuesFromTooltipParams = (
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
-    const { marker, seriesId, value } = param;
+    const { marker, seriesId, value, color } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
     if (isNumber(numericValue)) {
       if (!(context.name in values))
         values[context.name] = {
           marker: marker || '',
+          isTooltipHidden: color === 'transparent',
         };
       const forecastValues = values[context.name];
       if (context.type === ForecastSeriesEnum.Observation)
@@ -86,18 +87,31 @@ export const extractForecastValuesFromTooltipParams = (
 export const formatForecastTooltipSeries = ({
   seriesName,
   observation,
+  cumulative,
   forecastTrend,
   forecastLower,
   forecastUpper,
   marker,
   formatter,
+  disableSanitizeHtml = false,
+  fromToTooltip = false,
 }: ForecastValue & {
   seriesName: string;
   marker: TooltipMarker;
   formatter: ValueFormatter;
+  disableSanitizeHtml?: boolean;
+  fromToTooltip?: boolean;
 }): string[] => {
-  const name = `${marker}${sanitizeHtml(seriesName)}`;
+  const name = `${marker}${disableSanitizeHtml ? seriesName : sanitizeHtml(seriesName)}`;
   let value = isNumber(observation) ? formatter(observation) : '';
+  if (fromToTooltip) {
+    const valueFrom =
+      isNumber(observation) && isNumber(cumulative)
+        ? formatter(cumulative - observation)
+        : '';
+    const valueTo = isNumber(cumulative) ? formatter(cumulative) : '';
+    return [name, valueFrom, valueTo];
+  }
   if (forecastTrend || forecastLower || forecastUpper) {
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend

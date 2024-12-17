@@ -145,7 +145,10 @@ export default function transformProps(
     colorScheme,
     contributionMode,
     forecastEnabled,
+    adhocFilters,
+    extraFormData,
     groupby,
+    groupByHidden,
     legendOrientation,
     legendType,
     legendMargin,
@@ -160,8 +163,11 @@ export default function transformProps(
     orientation,
     percentageThreshold,
     richTooltip,
+    fromToTooltip,
+    disableSanitizeHtml,
     seriesType,
     connectPoints,
+    waterfallView,
     showLegend,
     showValue,
     sliceId,
@@ -190,6 +196,8 @@ export default function transformProps(
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
+    yAxisTitleSuffix,
+    yAxisInvert,
     zoomable,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
@@ -268,6 +276,18 @@ export default function transformProps(
     isHorizontal,
     legendState,
   });
+  if (groupByHidden !== undefined) {
+    rawSeries.forEach(option => {
+      const displayLabel = labelMap[option.id as string]
+        .filter((_: any, i: number) => i !== formData.groupByHidden)
+        .join();
+      // eslint-disable-next-line no-param-reassign
+      option.id = displayLabel;
+      // eslint-disable-next-line no-param-reassign
+      option.name = displayLabel;
+    });
+  }
+
   const seriesContexts = extractForecastSeriesContexts(
     rawSeries.map(series => series.name as string),
   );
@@ -303,6 +323,15 @@ export default function transformProps(
       series.stack = `${series.stack}.${stackMap[series.id]}`;
     }
     return series;
+  };
+
+  /* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["series"] }] */
+  const updateSeriesStyle = (series: any) => {
+    if (labelMap[series.id][0] === (metrics[0] as any).label) {
+      series.itemStyle.color = 'transparent';
+      series.name = undefined;
+      series.silent = true;
+    }
   };
 
   rawSeries.forEach(entry => {
@@ -365,6 +394,9 @@ export default function transformProps(
       },
     );
     if (transformedSeries) {
+      if (waterfallView) {
+        updateSeriesStyle(transformedSeries);
+      }
       if (stack === StackControlsValue.Stream) {
         // bug in Echarts - `stackStrategy: 'all'` doesn't work with nulls, so we cast them to 0
         series.push({
@@ -506,6 +538,17 @@ export default function transformProps(
     .map(entry => entry.name || '')
     .concat(extractAnnotationLabels(annotationLayers, annotationData));
 
+  const yAxisNameComputed = [yAxisTitle]
+    .concat(
+      adhocFilters?.find((x: any) => x.subject === yAxisTitleSuffix)
+        ?.comparator,
+    )
+    .concat(
+      extraFormData.filters?.find((x: any) => x.col === yAxisTitleSuffix)?.val,
+    )
+    ?.filter(Boolean)
+    .join(', ');
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -535,6 +578,7 @@ export default function transformProps(
     type: logAxis ? AxisType.Log : AxisType.Value,
     min: yAxisMin,
     max: yAxisMax,
+    inverse: yAxisInvert,
     minorTick: { show: minorTicks },
     minorSplitLine: { show: minorSplitLine },
     axisLabel: {
@@ -547,7 +591,7 @@ export default function transformProps(
       ),
     },
     scale: truncateYAxis,
-    name: yAxisTitle,
+    name: yAxisNameComputed,
     nameGap: convertInteger(yAxisTitleMargin),
     nameLocation: yAxisTitlePosition === 'Left' ? 'middle' : 'end',
   };
@@ -571,6 +615,10 @@ export default function transformProps(
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
         const [xIndex, yIndex] = isHorizontal ? [1, 0] : [0, 1];
+        if (!params.value) {
+          // eslint-disable-next-line no-param-reassign
+          params.value = [];
+        }
         const xValue: number = richTooltip
           ? params[0].value[xIndex]
           : params.value[xIndex];
@@ -603,6 +651,7 @@ export default function transformProps(
         const showPercentage = showTotal && !forcePercentFormatter;
         const keys = Object.keys(forecastValues);
         let focusedRow;
+        let cumulativeObservation = 0;
         sortedKeys
           .filter(key => keys.includes(key))
           .forEach(key => {
@@ -610,31 +659,48 @@ export default function transformProps(
             if (value.observation === 0 && stack) {
               return;
             }
+            if (value.observation) {
+              cumulativeObservation += value.observation;
+              value.cumulative = value.cumulative
+                ? (value.cumulative += cumulativeObservation)
+                : cumulativeObservation;
+            }
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
               formatter,
+              disableSanitizeHtml,
+              fromToTooltip,
             });
-            if (showPercentage && value.observation !== undefined) {
+            if (
+              showPercentage &&
+              value.observation !== undefined &&
+              !value.isTooltipHidden
+            ) {
               row.push(
                 percentFormatter.format(value.observation / (total || 1)),
               );
             }
-            rows.push(row);
+            if (!value.isTooltipHidden) {
+              rows.push(row);
+            }
             if (key === focusedSeries) {
               focusedRow = rows.length - 1;
             }
           });
-        if (stack) {
+        if (stack && !yAxisInvert) {
           rows.reverse();
           if (focusedRow !== undefined) {
             focusedRow = rows.length - focusedRow - 1;
           }
         }
         if (showTotal) {
-          const totalRow = ['Total', formatter.format(total)];
+          const totalRow = [t('Total'), formatter.format(total)];
           if (showPercentage) {
             totalRow.push(percentFormatter.format(1));
+          }
+          if (fromToTooltip) {
+            totalRow.splice(1, 0, '');
           }
           rows.push(totalRow);
         }

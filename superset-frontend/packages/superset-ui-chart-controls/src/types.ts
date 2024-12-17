@@ -529,6 +529,7 @@ export type ControlFormItemSpec<T extends ControlType = ControlType> = {
   ? {
       allowNewOptions?: boolean;
       options: any;
+      allowClear?: boolean;
       value?: string;
       defaultValue?: string;
       creatable?: boolean;

@@ -31,6 +31,7 @@ export type SharedColumnConfigProp =
   | 'alignPositiveNegative'
   | 'colorPositiveNegative'
   | 'columnWidth'
+  | 'titleSuffixValue'
   | 'fractionDigits'
   | 'd3NumberFormat'
   | 'd3SmallNumberFormat'
@@ -67,6 +68,17 @@ const d3TimeFormat: ControlFormItemSpec<'Select'> = {
   creatable: true,
   minWidth: '10em',
   debounceDelay: 500,
+};
+
+const titleSuffixValue: ControlFormItemSpec<'Select'> = {
+  controlType: 'Select',
+  label: t('Title suffix value'),
+  description: t('Title suffix. Value dynamically forming from "Filters"'),
+  options: [],
+  allowClear: true,
+  allowNewOptions: true,
+  creatable: true,
+  minWidth: '10em',
 };
 
 const fractionDigits: ControlFormItemSpec<'Slider'> = {
@@ -122,6 +134,7 @@ const alignPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   description: t(
     'Whether to align positive and negative values in cell bar chart at 0',
   ),
+  width: 130,
   defaultValue: false,
   debounceDelay: 200,
 };
@@ -132,6 +145,7 @@ const colorPositiveNegative: ControlFormItemSpec<'Checkbox'> = {
   description: t(
     'Whether to colorize numeric values by if they are positive or negative',
   ),
+  width: 130,
   defaultValue: false,
   debounceDelay: 200,
 };
@@ -168,6 +182,7 @@ export const SHARED_COLUMN_CONFIG_PROPS = {
   d3TimeFormat,
   fractionDigits,
   columnWidth,
+  titleSuffixValue,
   truncateLongCells,
   horizontalAlign,
   showCellBars,
@@ -183,6 +198,7 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
       { name: 'horizontalAlign', override: { defaultValue: 'left' } },
     ],
     ['truncateLongCells'],
+    ['titleSuffixValue'],
   ],
   [GenericDataType.Numeric]: [
     {
@@ -193,8 +209,8 @@ export const DEFAULT_CONFIG_FORM_LAYOUT: ColumnConfigFormLayout = {
           { name: 'horizontalAlign', override: { defaultValue: 'right' } },
         ],
         ['showCellBars'],
-        ['alignPositiveNegative'],
-        ['colorPositiveNegative'],
+        ['alignPositiveNegative', 'colorPositiveNegative'],
+        ['titleSuffixValue'],
       ],
     },
     {

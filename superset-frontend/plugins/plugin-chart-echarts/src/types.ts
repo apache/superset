@@ -91,6 +91,8 @@ export type ForecastValue = {
   forecastTrend?: number;
   forecastLower?: number;
   forecastUpper?: number;
+  cumulative?: number;
+  isTooltipHidden?: boolean;
 };
 
 export type LegendFormData = {

@@ -185,6 +185,30 @@ const richTooltipControl: ControlSetItem = {
   },
 };
 
+const fromToTooltipControl: ControlSetItem = {
+  name: 'from_to_tooltip',
+  config: {
+    type: 'CheckboxControl',
+    label: t('From-To tooltip format'),
+    renderTrigger: true,
+    default: true,
+    description: t('Calculate and use values from & to'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.rich_tooltip?.value),
+  },
+};
+
+const useHtmlTooltipControl: ControlSetItem = {
+  name: 'disable_sanitize_html',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Use html tooltip'),
+    renderTrigger: true,
+    default: false,
+    description: t('Whether tooltip is treated as HTML string'),
+  },
+};
+
 const tooltipTimeFormatControl: ControlSetItem = {
   name: 'tooltipTimeFormat',
   config: {
@@ -206,13 +230,16 @@ const tooltipSortByMetricControl: ControlSetItem = {
       'Whether to sort tooltip by the selected metric in descending order.',
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
-      Boolean(controls?.rich_tooltip?.value),
+      Boolean(controls?.rich_tooltip?.value) &&
+      !controls?.from_to_tooltip?.value,
   },
 };
 
 export const richTooltipSection: ControlSetRow[] = [
   [<ControlSubSectionHeader>{t('Tooltip')}</ControlSubSectionHeader>],
   [richTooltipControl],
+  [fromToTooltipControl],
+  [useHtmlTooltipControl],
   [tooltipSortByMetricControl],
   [tooltipTimeFormatControl],
 ];

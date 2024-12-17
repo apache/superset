@@ -35,6 +35,7 @@ import {
   SMART_DATE_ID,
   TimeFormats,
   TimeFormatter,
+  SetAdhocFilter,
 } from '@superset-ui/core';
 import {
   ColorFormatters,
@@ -224,10 +225,28 @@ const processColumns = memoizeOne(function processColumns(
       // because users can also add things like `MAX(str_col)` as a metric.
       const isMetric = metricsSet.has(key) && isNumeric(key, records);
       const isPercentMetric = percentMetricsSet.has(key);
-      const label =
+      const labelRaw =
         isPercentMetric && verboseMap?.hasOwnProperty(key.replace('%', ''))
           ? `%${verboseMap[key.replace('%', '')]}`
           : verboseMap?.[key] || key;
+      const label = [labelRaw]
+        .concat(
+          (
+            props.rawFormData.adhoc_filters?.find(
+              (x: any) => x.subject === columnConfig[key]?.titleSuffixValue,
+            ) as SetAdhocFilter
+          )?.comparator,
+        )
+        .concat(
+          (
+            props.rawFormData.extra_form_data?.filters?.find(
+              (x: any) => x.col === columnConfig[key]?.titleSuffixValue,
+            ) as { val: string | string[] }
+          )?.val,
+        )
+        ?.filter(Boolean)
+        .join(', ');
+
       const isTime = dataType === GenericDataType.Temporal;
       const isNumber = dataType === GenericDataType.Numeric;
       const savedFormat = columnFormats?.[key];

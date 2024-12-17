@@ -49,6 +49,7 @@ export type TableColumnConfig = {
   colorPositiveNegative?: boolean;
   truncateLongCells?: boolean;
   currencyFormat?: Currency;
+  titleSuffixValue?: string;
 };
 
 export interface DataColumnMeta {

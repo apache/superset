@@ -19,6 +19,7 @@
 import { t } from '@superset-ui/core';
 import { ControlPanelSectionConfig, ControlSetRow } from '../types';
 import {
+  groupByHiddenControl,
   contributionModeControl,
   xAxisForceCategoricalControl,
   xAxisSortAscControl,
@@ -30,6 +31,7 @@ import {
 const controlsWithoutXAxis: ControlSetRow[] = [
   ['metrics'],
   ['groupby'],
+  [groupByHiddenControl],
   [contributionModeControl],
   ['adhoc_filters'],
   ['limit'],
@@ -38,6 +40,7 @@ const controlsWithoutXAxis: ControlSetRow[] = [
   ['row_limit'],
   ['truncate_metric'],
   ['show_empty_columns'],
+  ['waterfall_view'],
   ['connect_points'],
 ];
 

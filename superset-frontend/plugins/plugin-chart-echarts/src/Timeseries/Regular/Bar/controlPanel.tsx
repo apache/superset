@@ -50,6 +50,7 @@ const {
   logAxis,
   minorSplitLine,
   truncateYAxis,
+  yAxisInvert,
   yAxisBounds,
   zoomable,
   orientation,
@@ -141,6 +142,33 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
         },
       },
     ],
+    [
+      {
+        name: 'y_axis_title_suffix',
+        config: {
+          type: 'SelectControl',
+          clearable: true,
+          label: t('Axis suffix value'),
+          renderTrigger: true,
+          mapStateToProps: ({
+            controls,
+          }: {
+            controls: ControlStateMapping;
+          }) => ({
+            choices:
+              (controls?.adhoc_filters?.value as []).map((x: any) => [
+                x.subject,
+                x.subject,
+              ]) || [],
+          }),
+          description: t(
+            'Axis suffix. Value dynamically forming from "Filters"',
+          ),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
+        },
+      },
+    ],
   ];
 }
 
@@ -208,6 +236,20 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
           renderTrigger: true,
           default: minorSplitLine,
           description: t('Draw split lines for minor axis ticks'),
+          visibility: ({ controls }: ControlPanelsContainerProps) =>
+            isXAxis ? isHorizontal(controls) : isVertical(controls),
+        },
+      },
+    ],
+    [
+      {
+        name: 'yAxisInvert',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Invert Axis'),
+          default: yAxisInvert,
+          renderTrigger: true,
+          description: t('Invert Y Axis'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             isXAxis ? isHorizontal(controls) : isVertical(controls),
         },

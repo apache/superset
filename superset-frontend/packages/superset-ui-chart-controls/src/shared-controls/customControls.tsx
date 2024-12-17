@@ -41,6 +41,24 @@ import {
 import { checkColumnType } from '../utils/checkColumnType';
 import { isSortable } from '../utils/isSortable';
 
+export const groupByHiddenControl = {
+  name: 'groupByHidden',
+  config: {
+    type: 'SelectControl',
+    label: t('Hide dimension'),
+    default: null,
+    description: t(
+      'Hide dimension while displaying on chart. Using as hidden sort by name',
+    ),
+    mapStateToProps: ({ controls }: { controls: ControlStateMapping }) => ({
+      choices:
+        (controls?.groupby?.value as []).map((x: any, index: number) =>
+          typeof x === 'string' ? [index, x] : [index, x.label],
+        ) || [],
+    }),
+  },
+};
+
 export const contributionModeControl = {
   name: 'contributionMode',
   config: {

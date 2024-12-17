@@ -364,6 +364,21 @@ const show_empty_columns: SharedControlConfig<'CheckboxControl'> = {
   description: t('Show empty columns'),
 };
 
+const waterfall_view: SharedControlConfig<'CheckboxControl'> = {
+  type: 'CheckboxControl',
+  label: t('Waterfall View'),
+  default: false,
+  description: t(
+    'Waterfall View requires: "Bar" series type; "Stack"/"StackNone" stack style; Metrics [(1)from, (2)value]. Optional: remove "Show empty columns"',
+  ),
+  visibility: ({ controls }) =>
+    Boolean(
+      !controls?.seriesType?.value ||
+        (controls.seriesType.value === EchartsTimeseriesSeriesType.Bar &&
+          (controls.metrics.value as Array<Object>)?.length === 2),
+    ),
+};
+
 const connect_points: SharedControlConfig<'CheckboxControl'> = {
   type: 'CheckboxControl',
   label: t('Connect points'),
@@ -428,6 +443,7 @@ export default {
   truncate_metric,
   x_axis: dndXAxisControl,
   show_empty_columns,
+  waterfall_view,
   connect_points,
   temporal_columns_lookup,
   currency_format,

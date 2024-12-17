@@ -139,6 +139,8 @@ export default function transformProps(
   const {
     colorScheme,
     donut,
+    adhocFilters,
+    extraFormData,
     groupby,
     innerRadius,
     labelsOutside,
@@ -149,6 +151,7 @@ export default function transformProps(
     legendOrientation,
     legendType,
     metric = '',
+    metricUnit,
     numberFormat,
     currencyFormat,
     dateFormat,
@@ -358,6 +361,19 @@ export default function transformProps(
     },
   ];
 
+  const metricUnitComputed = []
+    .concat(
+      adhocFilters?.find((x: any) => x.subject === metricUnit)?.comparator,
+    )
+    .concat(extraFormData.filters?.find((x: any) => x.col === metricUnit)?.val)
+    ?.filter(Boolean)
+    .join(', ');
+  const totalValuePadding = getTotalValuePadding({
+    chartPadding,
+    donut,
+    width,
+    height,
+  });
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
@@ -382,18 +398,34 @@ export default function transformProps(
       ...getLegendProps(legendType, legendOrientation, showLegend, theme),
       data: keys,
     },
-    graphic: showTotal
-      ? {
-          type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height }),
-          style: {
-            text: t('Total: %s', numberFormatter(totalValue)),
-            fontSize: 16,
-            fontWeight: 'bold',
-          },
-          z: 10,
-        }
-      : null,
+    graphic: {
+      elements: [
+        showTotal
+          ? {
+              type: 'text',
+              ...totalValuePadding,
+              style: {
+                text: t('Total: %s', numberFormatter(totalValue)),
+                fontSize: 16,
+                fontWeight: 'bold',
+              },
+              z: 10,
+            }
+          : null,
+        metricUnitComputed
+          ? {
+              type: 'text',
+              top: totalValuePadding.top,
+              right: 0,
+              style: {
+                text: `${t('Metric')}: ${metricUnitComputed}`,
+                fontSize: 14,
+              },
+              z: 10,
+            }
+          : null,
+      ],
+    },
     series,
   };
 
