@@ -18,7 +18,6 @@
  */
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
-import moment from 'moment';
 import {
   FeatureFlag,
   isDefined,
@@ -43,6 +42,10 @@ import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesCo
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { safeStringify } from 'src/utils/safeStringify';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+
+dayjs.extend(utc);
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -454,7 +457,7 @@ export function exploreJSON(
                 formData.extra_filters && formData.extra_filters.length > 0,
               viz_type: formData.viz_type,
               data_age: resultItem.is_cached
-                ? moment(new Date()).diff(moment.utc(resultItem.cached_dttm))
+                ? dayjs(new Date()).diff(dayjs.utc(resultItem.cached_dttm))
                 : null,
             }),
           ),

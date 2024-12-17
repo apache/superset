@@ -19,7 +19,8 @@
 import { MouseEvent, Key, useState, useRef, RefObject } from 'react';
 
 import { useHistory } from 'react-router-dom';
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import {
   Behavior,
   css,
@@ -49,6 +50,8 @@ import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFil
 import { handleDropdownNavigation } from './utils';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 import { SliceHeaderControlsProps } from './types';
+
+dayjs.extend(utc);
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
@@ -257,9 +260,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
   const isTable = slice.viz_type === VizType.Table;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
-    moment.utc(itemCachedDttm).fromNow(),
+    dayjs.utc(itemCachedDttm).fromNow(),
   );
-  const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
+  const updatedWhen = updatedDttm ? dayjs.utc(updatedDttm).fromNow() : '';
   const getCachedTitle = (itemCached: boolean) => {
     if (itemCached) {
       return t('Cached %s', cachedWhen);

@@ -158,6 +158,7 @@
     "markdown-to-jsx": "^7.4.7",
     "match-sorter": "^6.3.4",
     "memoize-one": "^5.2.1",
+    "moment": "^2.30.1",
     "mousetrap": "^1.6.5",
     "mustache": "^4.2.0",
     "nanoid": "^5.0.7",

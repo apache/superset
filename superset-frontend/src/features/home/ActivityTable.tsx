@@ -18,6 +18,9 @@
  */
 import { useEffect, useState } from 'react';
 import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
@@ -34,6 +37,9 @@ import Icons from 'src/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
+
+dayjs.extend(utc);
+dayjs.extend(relativeTime);
 
 /**
  * Return result from /api/v1/log/recent_activity/
@@ -112,7 +118,7 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   if ('time' in entity) {
-    return t('Viewed %s', moment(entity.time).fromNow());
+    return t('Viewed %s', dayjs(entity.time).fromNow());
   }
 
   let time: number | string | undefined | null;
