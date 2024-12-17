@@ -35,6 +35,7 @@ runs:
 
     - name: Install Docker Compose
       if: ${{ inputs.install-docker-compose == 'true' }}
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y ca-certificates curl
