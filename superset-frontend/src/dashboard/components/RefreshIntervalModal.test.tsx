@@ -118,6 +118,8 @@ test('is valid', () => {
 
 test('renders refresh interval modal', async () => {
   render(setup(editModeOnProps));
+
+  expect(screen.queryByText('Refresh Interval')).not.toBeInTheDocument();
   await openRefreshIntervalModal();
 
   // Assert that modal exists by checking for the modal title

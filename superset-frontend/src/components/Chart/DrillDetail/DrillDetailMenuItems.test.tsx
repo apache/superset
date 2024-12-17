@@ -117,6 +117,7 @@ const expectDrillToDetailModal = async (
   filters: BinaryQueryObjectFilterClause[] = [],
 ) => {
   const button = screen.getByRole('menuitem', { name: buttonName });
+
   userEvent.click(button);
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,

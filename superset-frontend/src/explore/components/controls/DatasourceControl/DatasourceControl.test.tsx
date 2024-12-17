@@ -314,6 +314,15 @@ test('Click on Save as dataset', async () => {
     useRouter: true,
   });
   userEvent.click(screen.getByTestId('datasource-menu-trigger'));
+  expect(
+    screen.queryByRole('button', { name: /save/i }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: /close/i }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByText(/select or type dataset name/i),
+  ).not.toBeInTheDocument();
   userEvent.click(screen.getByText('Save as dataset'));
 
   // Renders a save dataset modal
