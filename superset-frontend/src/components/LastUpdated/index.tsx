@@ -26,6 +26,7 @@ import {
 import { extendedDayjs } from 'src/utils/dates';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import dayjs from 'dayjs';
 
 const REFRESH_INTERVAL = 60000; // every minute
 
@@ -62,7 +63,7 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   updatedAt,
   update,
 }) => {
-  const [timeSince, setTimeSince] = useState<extendedDayjs.Dayjs>(
+  const [timeSince, setTimeSince] = useState<dayjs.Dayjs>(
     extendedDayjs(updatedAt),
   );
 
