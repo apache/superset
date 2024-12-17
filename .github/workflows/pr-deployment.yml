@@ -1,0 +1,50 @@
+name: PR Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+    name: Build
+    secrets: inherit
+    permissions:
+      checks: write
+      actions: write
+      contents: write
+      packages: read
+      issues: read
+      pull-requests: write
+
+  labels:
+    runs-on: ubuntu-latest
+    name: Add Labels
+    steps:
+      - name: Add labels
+        id: add_labels
+        run: |
+          echo "feature_name=superset-pr-${{ github.event.pull_request.number }}" | sed 's:\.:-:g' >> $GITHUB_OUTPUT
+    outputs:
+      feature_name: ${{ steps.add_labels.outputs.feature_name }}
+
+  deploy:
+    name: Deploy to Feature Environment
+    needs: [labels]
+    uses: webgains/github-workflows/.github/workflows/deploy-service-to-environment.yml@WI-5868-allow-service-deploy-workflow-to-use-any-repositor
+    secrets: inherit
+    with:
+      environment: feature
+      name: ${{ needs.labels.outputs.feature_name }}
+      stack: ${{ needs.labels.outputs.feature_name }}
+      service: superset
+      component: service
+      override: |
+        {
+          "namespace": "${{ needs.labels.outputs.feature_name }}",
+          "supersetImageTag": "${{ needs.build.outputs.tag_hash }}"
+        }
+    permissions:
+      contents: read
+      deployments: write
+      id-token: write
