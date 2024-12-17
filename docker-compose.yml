@@ -35,11 +35,14 @@ x-superset-volumes: &superset-volumes
 
 x-common-build: &common-build
   context: .
-  target: dev
+  target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
   args:
     DEV_MODE: "true"
+    INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
+    INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
+    BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
 
 services:
   nginx:
@@ -157,6 +160,7 @@ services:
         # and build it on startup while firing docker-frontend.sh in dev mode, where
         # it'll mount and watch local files and rebuild as you update them
         DEV_MODE: "true"
+        BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
     environment:
       # set this to false if you have perf issues running the npm i; npm run dev in-docker
       # if you do so, you have to run this manually on the host, which should perform better!
