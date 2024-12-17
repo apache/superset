@@ -152,6 +152,7 @@ export default function transformProps(
     legendType,
     metric = '',
     metricUnit,
+    metricUnitIsStatic,
     numberFormat,
     currencyFormat,
     dateFormat,
@@ -361,13 +362,17 @@ export default function transformProps(
     },
   ];
 
-  const metricUnitComputed = []
-    .concat(
-      adhocFilters?.find((x: any) => x.subject === metricUnit)?.comparator,
-    )
-    .concat(extraFormData.filters?.find((x: any) => x.col === metricUnit)?.val)
-    ?.filter(Boolean)
-    .join(', ');
+  const metricUnitComputed = metricUnitIsStatic
+    ? metricUnit
+    : []
+        .concat(
+          adhocFilters?.find((x: any) => x.subject === metricUnit)?.comparator,
+        )
+        .concat(
+          extraFormData.filters?.find((x: any) => x.col === metricUnit)?.val,
+        )
+        ?.filter(Boolean)
+        .join(', ');
   const totalValuePadding = getTotalValuePadding({
     chartPadding,
     donut,

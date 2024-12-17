@@ -184,6 +184,7 @@ const config: ControlPanelConfig = {
               clearable: true,
               label: t('Metric unit value'),
               renderTrigger: true,
+              freeForm: true,
               mapStateToProps: ({
                 controls,
               }: {
@@ -197,6 +198,20 @@ const config: ControlPanelConfig = {
               }),
               description: t(
                 'Metric unit. Value dynamically forming from "Filters"',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'metric_unit_is_static',
+            config: {
+              type: 'CheckboxControl',
+              renderTrigger: true,
+              default: false,
+              label: t('Static metric unit value'),
+              description: t(
+                'Whether metric unit value forming from "Filters" or use static text',
               ),
             },
           },
