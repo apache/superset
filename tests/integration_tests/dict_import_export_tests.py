@@ -80,7 +80,8 @@ class TestDictImportExport(SupersetTestCase):
             "id": id,
             "params": json.dumps(params),
             "columns": [
-                {"column_name": c, "uuid": u} for c, u in zip(cols_names, cols_uuids)
+                {"column_name": c, "uuid": u}
+                for c, u in zip(cols_names, cols_uuids, strict=False)
             ],
             "metrics": [{"metric_name": c, "expression": ""} for c in metric_names],
         }
@@ -88,7 +89,7 @@ class TestDictImportExport(SupersetTestCase):
         table = SqlaTable(
             id=id, schema=schema, table_name=name, params=json.dumps(params)
         )
-        for col_name, uuid in zip(cols_names, cols_uuids):
+        for col_name, uuid in zip(cols_names, cols_uuids, strict=False):
             table.columns.append(TableColumn(column_name=col_name, uuid=uuid))
         for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))

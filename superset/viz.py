@@ -1779,6 +1779,7 @@ class MapboxViz(BaseViz):
                     df[self.form_data.get("all_columns_y")],
                     metric_col,
                     point_radius_col,
+                    strict=False,
                 )
             ],
         }
@@ -1902,6 +1903,7 @@ class BaseDeckGLViz(BaseViz):
                 zip(
                     pd.to_numeric(df[spatial.get("lonCol")], errors="coerce"),
                     pd.to_numeric(df[spatial.get("latCol")], errors="coerce"),
+                    strict=False,
                 )
             )
         elif spatial.get("type") == "delimited":

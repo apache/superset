@@ -448,7 +448,7 @@ nh3==0.2.19
     #   apache-superset
 nodeenv==1.8.0
     # via pre-commit
-numpy==1.23.5
+numpy==1.26.4
     # via
     #   -c requirements/base.txt
     #   apache-superset
