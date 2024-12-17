@@ -1,6 +1,10 @@
 name: "Setup Docker Environment"
 description: "Reusable steps for setting up QEMU, Docker Buildx, DockerHub login, Supersetbot, and optionally Docker Compose"
 inputs:
+  build:
+    description: "Used for building?"
+    required: false
+    default: "false"
   dockerhub-user:
     description: "DockerHub username"
     required: false
@@ -19,10 +23,13 @@ outputs: {}
 runs:
   using: "composite"
   steps:
+
     - name: Set up QEMU
+      if: ${{ inputs.build == 'true' }}
       uses: docker/setup-qemu-action@v3
 
     - name: Set up Docker Buildx
+      if: ${{ inputs.build == 'true' }}
       uses: docker/setup-buildx-action@v3
 
     - name: Try to login to DockerHub
