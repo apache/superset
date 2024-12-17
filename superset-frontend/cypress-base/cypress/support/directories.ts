@@ -362,7 +362,7 @@ export const nativeFilters = {
   silentLoading: '.loading inline-centered css-101mkpk',
   filterConfigurationSections: {
     sectionHeader: '.ant-collapse-header',
-    displayedSection: 'div[style="height: 100%; overflow-y: auto;"]',
+    displayedSection: dataTestLocator('filter-configuration-tab'),
     collapseExpandButton: '.ant-collapse-arrow',
     checkedCheckbox: '.ant-checkbox-wrapper-checked',
     infoTooltip: '[aria-label="Show info tooltip"]',
