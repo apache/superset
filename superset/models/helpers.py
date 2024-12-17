@@ -51,7 +51,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import app, db, is_feature_enabled
+from superset import app, db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
@@ -579,7 +579,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
-        self.query = query
+        self.query = query if security_manager.can_access('can_view_query', 'Dashboard') else ''
         self.duration = duration
         self.applied_template_filters = applied_template_filters or []
         self.applied_filter_columns = applied_filter_columns or []
