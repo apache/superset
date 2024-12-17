@@ -1,4 +1,4 @@
-name: Frontend
+name: "Frontend Build CI (unit tests, linting & sanity checks)"
 
 on:
   push:
@@ -21,7 +21,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          submodules: recursive
 
       - name: Check for file changes
         id: check
@@ -35,6 +34,7 @@ jobs:
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          build: "true"
 
       - name: Setup supersetbot
         if: steps.check.outputs.frontend
@@ -47,21 +47,32 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="superset-node-${{ github.sha }}"
-          docker buildx build --target superset-node-ci -t $TAG   .
+
+          supersetbot docker \
+            --load \
+            --preset superset-node-ci \
+            --platform "linux/amd64" \
+            --extra-flags "--tag $TAG"
+
           docker save $TAG | gzip > superset-node.tar.gz
 
       - name: Upload Docker Image Artifact
-        uses: actions/upload-artifact@v3
+        if: steps.check.outputs.frontend
+        uses: actions/upload-artifact@v4
         with:
           name: docker-image
           path: superset-node.tar.gz
 
-  unit-tests:
-    needs: frontend-docker-build
-    runs-on: ubuntu-latest
+  sharded-jest-tests:
+    needs: frontend-build
+    if: needs.frontend-build.result == 'success'
+    strategy:
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
+    runs-on: ubuntu-22.04
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-image
 
@@ -70,15 +81,39 @@ jobs:
           docker load -i superset-node.tar.gz
 
       - name: npm run test with coverage
-        working-directory: ./superset-frontend
         run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
-          "npm run test -- --coverage --silent"
-      - name: superset-ui/core coverage
-        working-directory: ./superset-frontend
-        run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
-          "npm run core:cover"
+          mkdir -p ${{ github.workspace }}/coverage
+          docker run \
+          --rm superset-node-${{ github.sha }} \
+          -v ${{ github.workspace }}/coverage:/app/superset-frontend/coverage \
+          bash -c \
+          'npm run test -- --coverage --silent --shard=${{ matrix.shard }}/8 --coverageReporters="json-summary" && find ./coverage'
+          find ${{ github.workspace }}/coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-artifacts-${{ matrix.shard }}
+          path: coverage/
+
+  report-coverage:
+    needs: [sharded-jest-tests]
+    if: needs.frontend-build.result == 'success'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-artifacts
+          merge-multiple: true
+          pattern: coverage/*
+
+      - name: Show files
+        run: find .
+
+      - name: Merge Code Coverage
+        run: npx nyc merge coverage/ merged-output/merged-coverage.json
+
       - name: Upload code coverage
         uses: codecov/codecov-action@v5
         with:
@@ -86,12 +121,32 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
 
-  lint-frontend:
-    needs: frontend-docker-build
-    runs-on: ubuntu-latest
+  core-cover:
+    needs: frontend-build
+    if: needs.frontend-build.result == 'success'
+    runs-on: ubuntu-22.04
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker Image
+        run: |
+          docker load -i superset-node.tar.gz
+
+      - name: superset-ui/core coverage
+        run: |
+          docker run --rm superset-node-${{ github.sha }} bash -c \
+          "npm run core:cover"
+
+  lint-frontend:
+    needs: frontend-build
+    if: needs.frontend-build.result == 'success'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download Docker Image Artifact
+        uses: actions/download-artifact@v4
         with:
           name: docker-image
 
@@ -102,18 +157,19 @@ jobs:
       - name: eslint
         run: |
           docker run --rm superset-node-${{ github.sha }} bash -c \
-          "npm run eslint -- . --quiet"
+          "npm i && npm run eslint -- . --quiet"
       - name: tsc
         run: |
           docker run --rm superset-node-${{ github.sha }} bash -c \
           "npm run type"
 
   validate-frontend:
-    needs: frontend-docker-build
-    runs-on: ubuntu-latest
+    needs: frontend-build
+    if: needs.frontend-build.result == 'success'
+    runs-on: ubuntu-22.04
     steps:
       - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-image
 
@@ -126,7 +182,6 @@ jobs:
           docker run --rm superset-node-${{ github.sha }} bash -c \
           "npm run plugins:build"
       - name: Build plugins Storybook
-        working-directory: ./superset-frontend
         run: |
           docker run --rm superset-node-${{ github.sha }} bash -c \
           "npm run plugins:build-storybook"
