@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, Optional
 
 from marshmallow import Schema
 from sqlalchemy.orm import Session  # noqa: F401
@@ -42,7 +42,11 @@ class ImportDatabasesCommand(ImportModelsCommand):
     import_error = DatabaseImportError
 
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(
+        configs: dict[str, Any],
+        overwrite: bool = False,
+        contents: Optional[dict[str, Any]] = None,
+    ) -> None:
         # first import databases
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
