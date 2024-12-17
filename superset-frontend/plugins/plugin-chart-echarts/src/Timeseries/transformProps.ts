@@ -616,7 +616,7 @@ export default function transformProps(
       ),
       data: legendData as string[],
     },
-    series: dedupSeries(reorderForecastSeries(series)),
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,

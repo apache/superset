@@ -18,7 +18,7 @@
  */
 import { isNumber } from 'lodash';
 import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
-import type { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
 import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
@@ -152,8 +152,7 @@ export function rebaseForecastDatum(
 }
 
 // For Confidence Bands, forecast series on mixed charts require the series sent in the following sortOrder:
-export function reorderForecastSeries(row: { id: string }[]): { id: string }[] {
-  // Define the order for sorting using ForecastSeriesEnum
+export function reorderForecastSeries(row: SeriesOption[]): SeriesOption[] {
   const sortOrder = {
     [ForecastSeriesEnum.ForecastLower]: 1,
     [ForecastSeriesEnum.ForecastUpper]: 2,
@@ -161,24 +160,24 @@ export function reorderForecastSeries(row: { id: string }[]): { id: string }[] {
     [ForecastSeriesEnum.Observation]: 4,
   };
 
+  // Check if any item needs reordering
   if (
-    !row.some(item => {
-      const context = extractForecastSeriesContext(item.id);
-      return context && sortOrder.hasOwnProperty(context.type);
-    })
+    !row.some(
+      item =>
+        item.id &&
+        sortOrder.hasOwnProperty(extractForecastSeriesContext(item.id).type),
+    )
   ) {
     return row;
   }
 
   return row.sort((a, b) => {
-    // Extract the forecast series context from the id to determine the order
-    const aContext = extractForecastSeriesContext(a.id);
-    const bContext = extractForecastSeriesContext(b.id);
-
-    // Use optional chaining and the nullish coalescing operator for safer access
-    const aOrder = (aContext?.type && sortOrder[aContext.type]) ?? Number.MAX_SAFE_INTEGER; 
-    const bOrder = (bContext?.type && sortOrder[bContext.type]) ?? Number.MAX_SAFE_INTEGER; 
-
+    const aOrder =
+      sortOrder[extractForecastSeriesContext(a.id ?? '').type] ??
+      Number.MAX_SAFE_INTEGER;
+    const bOrder =
+      sortOrder[extractForecastSeriesContext(b.id ?? '').type] ??
+      Number.MAX_SAFE_INTEGER;
     return aOrder - bOrder;
   });
 }
