@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import { extendedDayjs } from 'src/utils/dates';
 import { t, styled } from '@superset-ui/core';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { TagsList } from 'src/components/Tags';
@@ -25,8 +24,6 @@ import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
 import Owner from 'src/types/Owner';
 import { EmptyStateBig } from 'src/components/EmptyState';
-
-dayjs.extend(utc);
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -90,7 +87,7 @@ export default function AllEntitiesTable({
   const renderTable = (type: objectType) => {
     const data = objects[type].map((o: TaggedObject) => ({
       [type]: <a href={o.url}>{o.name}</a>,
-      modified: dayjs.utc(o.changed_on).fromNow(),
+      modified: extendedDayjs.utc(o.changed_on).fromNow(),
       tags: o.tags,
       owners: o.owners,
     }));

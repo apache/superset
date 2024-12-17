@@ -17,8 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import dayjs from 'dayjs';
-import duration from 'dayjs/plugin/duration';
+import { extendedDayjs } from 'src/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   styled,
@@ -90,7 +89,6 @@ import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
 
 const extensionsRegistry = getExtensionsRegistry();
-dayjs.extend(duration);
 
 const headerContainerStyle = theme => css`
   border-bottom: 1px solid ${theme.colors.grayscale.light2};
@@ -260,7 +258,9 @@ const Header = () => {
         if (predefinedValue) {
           intervalMessage = t(predefinedValue[1]);
         } else {
-          intervalMessage = dayjs.duration(interval, 'millisecond').humanize();
+          intervalMessage = extendedDayjs
+            .duration(interval, 'millisecond')
+            .humanize();
         }
       }
 

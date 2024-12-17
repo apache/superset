@@ -17,8 +17,7 @@
  * under the License.
  */
 import { Fragment, useMemo, useCallback, RefObject, createRef } from 'react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import { extendedDayjs } from 'src/utils/dates';
 import { useDispatch } from 'react-redux';
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { useInView } from 'react-intersection-observer';
@@ -34,8 +33,6 @@ import { SAVE_TYPE_OVERWRITE_CONFIRMED } from 'src/dashboard/util/constants';
 
 const STICKY_HEADER_TOP = 16;
 const STICKY_HEADER_HEIGHT = 32;
-
-dayjs.extend(utc);
 
 const StyledTitle = styled.h2`
   ${({ theme }) => `
@@ -182,7 +179,9 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                     newValue={newValue}
                     leftTitle={t(
                       'Last Updated %s by %s',
-                      dayjs.utc(overwriteConfirmMetadata.updatedAt).calendar(),
+                      extendedDayjs
+                        .utc(overwriteConfirmMetadata.updatedAt)
+                        .calendar(),
                       overwriteConfirmMetadata.updatedBy,
                     )}
                     rightTitle="new value"

@@ -18,13 +18,8 @@
  */
 
 import { FC } from 'react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { extendedDayjs } from 'src/utils/dates';
 import { t } from '@superset-ui/core';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 interface Props {
   cachedTimestamp?: string;
@@ -33,7 +28,7 @@ export const TooltipContent: FC<Props> = ({ cachedTimestamp }) => {
   const cachedText = cachedTimestamp ? (
     <span>
       {t('Loaded data cached')}
-      <b> {dayjs.utc(cachedTimestamp).fromNow()}</b>
+      <b> {extendedDayjs.utc(cachedTimestamp).fromNow()}</b>
     </span>
   ) : (
     t('Loaded from cache')

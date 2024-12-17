@@ -18,13 +18,8 @@
  */
 
 import { render, screen } from 'spec/helpers/testing-library';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { extendedDayjs } from 'src/utils/dates';
 import { TooltipContent } from './TooltipContent';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 test('Rendering TooltipContent correctly - no timestep', () => {
   render(<TooltipContent />);
@@ -36,7 +31,7 @@ test('Rendering TooltipContent correctly - no timestep', () => {
 test('Rendering TooltipContent correctly - with timestep', () => {
   render(<TooltipContent cachedTimestamp="01-01-2000" />);
   expect(screen.getByTestId('tooltip-content')?.textContent).toBe(
-    `Loaded data cached ${dayjs
+    `Loaded data cached ${extendedDayjs
       .utc('01-01-2000')
       .fromNow()}. Click to force-refresh`,
   );

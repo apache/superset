@@ -21,19 +21,13 @@ import { useEffect, useMemo } from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import { isDST } from 'src/utils/dates';
+import { isDST, extendedDayjs } from 'src/utils/dates';
 import { listTimeZones } from 'timezone-support';
 
 const DEFAULT_TIMEZONE = {
   name: 'GMT Standard Time',
   value: 'Africa/Abidjan', // timezones are deduped by the first alphabetical value
 };
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 const MIN_SELECT_WIDTH = '400px';
 
@@ -66,9 +60,9 @@ export default function TimezoneSelector({
 }: TimezoneSelectorProps) {
   const { TIMEZONE_OPTIONS, TIMEZONE_OPTIONS_SORT_COMPARATOR, validTimezone } =
     useMemo(() => {
-      const currentDate = dayjs();
-      const JANUARY = dayjs.tz('2021-01-01');
-      const JULY = dayjs.tz('2021-07-01');
+      const currentDate = extendedDayjs();
+      const JANUARY = extendedDayjs.tz('2021-01-01');
+      const JULY = extendedDayjs.tz('2021-07-01');
 
       const getOffsetKey = (name: string) =>
         JANUARY.tz(name).utcOffset().toString() +
@@ -95,7 +89,7 @@ export default function TimezoneSelector({
       });
 
       const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
-        label: `GMT ${dayjs
+        label: `GMT ${extendedDayjs
           .tz(currentDate, zone)
           .format('Z')} (${getTimezoneName(zone)})`,
         value: zone,
@@ -107,8 +101,8 @@ export default function TimezoneSelector({
         a: (typeof TIMEZONE_OPTIONS)[number],
         b: (typeof TIMEZONE_OPTIONS)[number],
       ) =>
-        dayjs.tz(currentDate, a.timezoneName).utcOffset() -
-        dayjs.tz(currentDate, b.timezoneName).utcOffset();
+        extendedDayjs.tz(currentDate, a.timezoneName).utcOffset() -
+        extendedDayjs.tz(currentDate, b.timezoneName).utcOffset();
 
       // pre-sort timezone options by time offset
       TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
@@ -119,7 +113,7 @@ export default function TimezoneSelector({
         )?.value || DEFAULT_TIMEZONE.value;
 
       const validTimezone = matchTimezoneToOptions(
-        timezone || dayjs.tz.guess(),
+        timezone || extendedDayjs.tz.guess(),
       );
 
       return {

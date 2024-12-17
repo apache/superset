@@ -19,9 +19,21 @@
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
+import calendar from 'dayjs/plugin/calendar';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+import duration from 'dayjs/plugin/duration';
+import updateLocale from 'dayjs/plugin/updateLocale';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
+dayjs.extend(calendar);
+dayjs.extend(relativeTime);
+dayjs.extend(customParseFormat);
+dayjs.extend(duration);
+dayjs.extend(updateLocale);
+
+export const extendedDayjs = dayjs;
 
 export const fDuration = function (
   t1: number,

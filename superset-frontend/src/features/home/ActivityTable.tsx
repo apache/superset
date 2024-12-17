@@ -17,9 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import relativeTime from 'dayjs/plugin/relativeTime';
+import { extendedDayjs } from 'src/utils/dates';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
@@ -36,9 +34,6 @@ import Icons from 'src/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
-
-dayjs.extend(utc);
-dayjs.extend(relativeTime);
 
 /**
  * Return result from /api/v1/log/recent_activity/
@@ -117,13 +112,16 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   if ('time' in entity) {
-    return t('Viewed %s', dayjs(entity.time).fromNow());
+    return t('Viewed %s', extendedDayjs(entity.time).fromNow());
   }
 
   let time: number | string | undefined | null;
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-  return t('Modified %s', time == null ? UNKNOWN_TIME : dayjs(time).fromNow());
+  return t(
+    'Modified %s',
+    time == null ? UNKNOWN_TIME : extendedDayjs(time).fromNow(),
+  );
 };
 
 export default function ActivityTable({

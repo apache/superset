@@ -23,16 +23,9 @@ import {
   MouseEventHandler,
 } from 'react';
 
-import dayjs from 'dayjs';
-import calendar from 'dayjs/plugin/calendar';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
-import updateLocale from 'dayjs/plugin/updateLocale';
+import { extendedDayjs } from 'src/utils/dates';
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-
-dayjs.extend(calendar);
-dayjs.extend(customParseFormat);
-dayjs.extend(updateLocale);
 
 const REFRESH_INTERVAL = 60000; // every minute
 
@@ -40,7 +33,7 @@ interface LastUpdatedProps {
   updatedAt: string | number | Date | undefined;
   update?: MouseEventHandler<HTMLSpanElement>;
 }
-dayjs.updateLocale('en', {
+extendedDayjs.updateLocale('en', {
   calendar: {
     lastDay: '[Yesterday at] LTS',
     sameDay: '[Today at] LTS',
@@ -69,14 +62,16 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   updatedAt,
   update,
 }) => {
-  const [timeSince, setTimeSince] = useState<dayjs.Dayjs>(dayjs(updatedAt));
+  const [timeSince, setTimeSince] = useState<extendedDayjs.Dayjs>(
+    extendedDayjs(updatedAt),
+  );
 
   useEffect(() => {
-    setTimeSince(() => dayjs(updatedAt));
+    setTimeSince(() => extendedDayjs(updatedAt));
 
     // update UI every minute in case day changes
     const interval = setInterval(() => {
-      setTimeSince(() => dayjs(updatedAt));
+      setTimeSince(() => extendedDayjs(updatedAt));
     }, REFRESH_INTERVAL);
 
     return () => clearInterval(interval);

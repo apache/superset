@@ -17,15 +17,10 @@
  * under the License.
  */
 import { FC } from 'react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
+import { extendedDayjs } from 'src/utils/dates';
 import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import type { TimezoneSelectorProps } from './index';
-
-dayjs.extend(utc);
-dayjs.extend(timezone);
 
 const loadComponent = (mockCurrentTime?: string) => {
   if (mockCurrentTime) {
@@ -46,7 +41,7 @@ const openSelectMenu = () => {
   userEvent.click(searchInput);
 };
 
-jest.spyOn(dayjs.tz, 'guess').mockReturnValue('America/New_York');
+jest.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');
 
 afterEach(() => {
   jest.useRealTimers();

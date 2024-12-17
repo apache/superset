@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
+import { extendedDayjs } from 'src/utils/dates';
 import Timer, { TimerProps } from './index';
-
-dayjs.extend(utc);
 
 export default {
   title: 'Timer',
@@ -35,7 +32,7 @@ InteractiveTimer.args = {
 
 InteractiveTimer.argTypes = {
   startTime: {
-    defaultValue: dayjs().utc().valueOf(),
+    defaultValue: extendedDayjs().utc().valueOf(),
     table: {
       disable: true,
     },

@@ -17,8 +17,6 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import Label from 'src/components/Label';
@@ -34,7 +32,7 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
-import { fDuration } from 'src/utils/dates';
+import { fDuration, extendedDayjs } from 'src/utils/dates';
 import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -60,8 +58,6 @@ interface QueryTableProps {
   displayLimit: number;
   latestQueryId?: string | undefined;
 }
-
-dayjs.extend(utc);
 
 const openQuery = (id: number) => {
   const url = `/sqllab?queryId=${id}`;
@@ -192,7 +188,7 @@ const QueryTable = ({
         if (q.endDttm) {
           q.duration = fDuration(q.startDttm, q.endDttm);
         }
-        const time = dayjs(q.startDttm).format().split('T');
+        const time = extendedDayjs(q.startDttm).format().split('T');
         q.time = (
           <div>
             <span>
@@ -218,7 +214,7 @@ const QueryTable = ({
             {q.db}
           </Button>
         );
-        q.started = dayjs(q.startDttm).format('L HH:mm:ss');
+        q.started = extendedDayjs(q.startDttm).format('L HH:mm:ss');
         q.querylink = (
           <Button
             buttonSize="small"
