@@ -79,7 +79,7 @@ Join our growing community!
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Caizin](https://caizin.com/) [@tejaskatariya]
-- [Careem](https://www.careem.com/) [@SamraHanifCareem]
+- [Careem](https://www.careem.com/) [@SamraHanifCareem,@samraHanif0340]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
