@@ -412,7 +412,7 @@ class SupersetShillelaghAdapter(Adapter):
             connection = engine.connect()
             rows = connection.execute(query)
             for i, row in enumerate(rows):
-                data = dict(zip(self.columns, row))
+                data = dict(zip(self.columns, row, strict=False))
                 data["rowid"] = data[self._rowid] if self._rowid else i
                 yield data
 

@@ -87,7 +87,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         inspector.bind.execute.return_value.fetchall = mock.Mock(return_value=[row])
         results = PrestoEngineSpec.get_columns(inspector, Table("", ""))
         assert len(expected_results) == len(results)
-        for expected_result, result in zip(expected_results, results):
+        for expected_result, result in zip(expected_results, results, strict=False):
             assert expected_result[0] == result["column_name"]
             assert expected_result[1] == str(result["type"])
 
@@ -191,7 +191,9 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                 "label": 'column."quoted.nested obj"',
             },
         ]
-        for actual_result, expected_result in zip(actual_results, expected_results):
+        for actual_result, expected_result in zip(
+            actual_results, expected_results, strict=False
+        ):
             assert actual_result.element.name == expected_result["column_name"]
             assert actual_result.name == expected_result["label"]
 

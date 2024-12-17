@@ -679,7 +679,9 @@ class TestCore(SupersetTestCase):
                 count_ds = series["values"]
             if series["key"] == "COUNT(name)":
                 count_name = series["values"]
-        for expected, actual_ds, actual_name in zip(resp["data"], count_ds, count_name):
+        for expected, actual_ds, actual_name in zip(
+            resp["data"], count_ds, count_name, strict=False
+        ):
             assert expected["count_name"] == actual_name["y"]
             assert expected["count_ds"] == actual_ds["y"]
 

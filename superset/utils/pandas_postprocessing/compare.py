@@ -59,7 +59,7 @@ def compare(  # pylint: disable=too-many-arguments
     if len(source_columns) == 0:
         return df
 
-    for s_col, c_col in zip(source_columns, compare_columns):
+    for s_col, c_col in zip(source_columns, compare_columns, strict=False):
         s_df = df.loc[:, [s_col]]
         s_df.rename(columns={s_col: "__intermediate"}, inplace=True)
         c_df = df.loc[:, [c_col]]
