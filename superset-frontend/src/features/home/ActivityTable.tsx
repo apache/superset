@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import moment from 'moment';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -124,7 +123,7 @@ const getEntityLastActionOn = (entity: ActivityObject) => {
   let time: number | string | undefined | null;
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-  return t('Modified %s', time == null ? UNKNOWN_TIME : moment(time).fromNow());
+  return t('Modified %s', time == null ? UNKNOWN_TIME : dayjs(time).fromNow());
 };
 
 export default function ActivityTable({

@@ -37,7 +37,7 @@ dayjs.extend(updateLocale);
 const REFRESH_INTERVAL = 60000; // every minute
 
 interface LastUpdatedProps {
-  updatedAt: string | number | Date;
+  updatedAt: string | number | Date | undefined;
   update?: MouseEventHandler<HTMLSpanElement>;
 }
 dayjs.updateLocale('en', {

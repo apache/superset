@@ -16,8 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import Timer, { TimerProps } from './index';
+
+dayjs.extend(utc);
 
 export default {
   title: 'Timer',
@@ -32,7 +35,7 @@ InteractiveTimer.args = {
 
 InteractiveTimer.argTypes = {
   startTime: {
-    defaultValue: moment().utc().valueOf(),
+    defaultValue: dayjs().utc().valueOf(),
     table: {
       disable: true,
     },

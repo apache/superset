@@ -38,12 +38,15 @@ import Icons from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { FilterOperator } from 'src/components/ListView';
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import TruncatedList from 'src/components/TruncatedList';
 
 interface DatasetUsageProps {
   datasetId: string;
 }
+
+dayjs.extend(utc);
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -92,7 +95,7 @@ const columns: ColumnsType<Chart> = [
     sorter: true,
     defaultSortOrder: 'descend',
     render: (value, record) =>
-      record.last_saved_at ? moment.utc(record.last_saved_at).fromNow() : null,
+      record.last_saved_at ? dayjs.utc(record.last_saved_at).fromNow() : null,
   },
   {
     key: 'last_saved_by.first_name',
