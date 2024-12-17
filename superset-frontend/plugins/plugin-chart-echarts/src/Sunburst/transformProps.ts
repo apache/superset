@@ -186,6 +186,7 @@ export default function transformProps(
     showLabels,
     showLabelsThreshold,
     showTotal,
+    showNullValues,
     sliceId,
   } = formData;
   const {
@@ -242,6 +243,7 @@ export default function transformProps(
     columnLabels,
     metricLabel,
     secondaryMetricLabel,
+    !showNullValues,
   );
   const totalValue = treeData.reduce(
     (result, treeNode) => result + treeNode.value,

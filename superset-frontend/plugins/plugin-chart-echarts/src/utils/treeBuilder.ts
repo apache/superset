@@ -36,6 +36,7 @@ export function treeBuilder(
   groupBy: string[],
   metric: string,
   secondaryMetric?: string,
+  filterNullNames?: boolean,
 ): TreeNode[] {
   const [curGroupBy, ...restGroupby] = groupBy;
   const curData = _groupBy(data, curGroupBy);
@@ -63,6 +64,7 @@ export function treeBuilder(
           restGroupby,
           metric,
           secondaryMetric,
+          filterNullNames,
         );
         const metricValue = children.reduce(
           (prev, cur) => prev + (cur.value as number),
@@ -74,7 +76,9 @@ export function treeBuilder(
               0,
             )
           : metricValue;
-        const validChildren = children.filter(child => child.name !== null);
+        const validChildren = filterNullNames
+          ? children.filter(child => child.name !== null)
+          : children;
         result.push({
           name,
           children: validChildren,
