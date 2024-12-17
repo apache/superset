@@ -26,10 +26,10 @@ import {
 
 import { mix } from 'polished';
 import cx from 'classnames';
-import { Button as AntdButton } from 'antd';
+import { Button as AntdButton } from 'antd-v5';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip, TooltipProps } from 'src/components/Tooltip';
-import { ButtonProps as AntdButtonProps } from 'antd/lib/button';
+import { ButtonProps as AntdButtonProps } from 'antd-v5/lib/button';
 
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
@@ -85,7 +85,7 @@ export default function Button(props: ButtonProps) {
     padding = 10;
   }
 
-  let backgroundColor = primary.light4;
+  let backgroundColor;
   let backgroundColorHover = mix(0.1, primary.base, primary.light4);
   let backgroundColorActive = mix(0.25, primary.base, primary.light4);
   let backgroundColorDisabled = grayscale.light2;
@@ -97,13 +97,7 @@ export default function Button(props: ButtonProps) {
   let borderColorHover = 'transparent';
   let borderColorDisabled = 'transparent';
 
-  if (buttonStyle === 'primary') {
-    backgroundColor = primary.base;
-    backgroundColorHover = primary.dark1;
-    backgroundColorActive = mix(0.2, grayscale.dark2, primary.dark1);
-    color = grayscale.light5;
-    colorHover = color;
-  } else if (buttonStyle === 'tertiary' || buttonStyle === 'dashed') {
+  if (buttonStyle === 'tertiary' || buttonStyle === 'dashed') {
     backgroundColor = grayscale.light5;
     backgroundColorHover = grayscale.light5;
     backgroundColorActive = grayscale.light5;
@@ -114,10 +108,6 @@ export default function Button(props: ButtonProps) {
     borderColorHover = primary.light1;
     borderColorDisabled = grayscale.light2;
   } else if (buttonStyle === 'danger') {
-    backgroundColor = error.base;
-    backgroundColorHover = mix(0.1, grayscale.light5, error.base);
-    backgroundColorActive = mix(0.2, grayscale.dark2, error.base);
-    color = grayscale.light5;
     colorHover = color;
   } else if (buttonStyle === 'warning') {
     backgroundColor = warning.base;
@@ -153,6 +143,7 @@ export default function Button(props: ButtonProps) {
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
+      type = {buttonStyle}
       className={cx(
         className,
         'superset-button',

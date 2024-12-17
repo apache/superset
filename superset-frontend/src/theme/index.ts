@@ -20,6 +20,7 @@
 import { type ThemeConfig } from 'antd-v5';
 import { theme as supersetTheme } from 'src/preamble';
 import { lightAlgorithm } from './light';
+import { mix } from 'polished';
 
 export enum ThemeType {
   LIGHT = 'light',
@@ -71,6 +72,16 @@ const baseConfig: ThemeConfig = {
     },
     Badge: {
       paddingXS: supersetTheme.gridUnit * 2,
+    },
+    Button: {
+      colorPrimaryHover: supersetTheme.colors.primary.dark1,
+      colorPrimaryActive: mix(0.2, supersetTheme.colors.grayscale.dark2, supersetTheme.colors.primary.dark1),
+      primaryColor: supersetTheme.colors.grayscale.light5,
+      colorPrimaryTextHover: supersetTheme.colors.grayscale.light5,
+      colorError: supersetTheme.colors.error.base,
+      colorErrorHover: mix(0.1, supersetTheme.colors.grayscale.light5, supersetTheme.colors.error.base),
+      colorErrorBg:  mix(0.2, supersetTheme.colors.grayscale.dark2, supersetTheme.colors.error.base),
+      dangerColor: supersetTheme.colors.grayscale.light5
     },
     Card: {
       paddingLG: supersetTheme.gridUnit * 6,
