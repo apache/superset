@@ -26,3 +26,5 @@ uv pip compile pyproject.toml -c requirements/base.in -o requirements/base.txt $
 
 # Generate the requirements/development.txt file, making sure requirements/base.txt is a constraint to keep the versions in sync
 uv pip compile pyproject.toml requirements/development.in -c requirements/base.txt -o requirements/development.txt $ADDITIONAL_ARGS
+
+uv pip compile pyproject.toml requirements/translations.in -o requirements/translations.txt $ADDITIONAL_ARGS
