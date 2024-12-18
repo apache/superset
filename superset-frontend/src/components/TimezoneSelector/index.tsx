@@ -22,7 +22,6 @@ import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import { isDST, extendedDayjs } from 'src/utils/dates';
-import { listTimeZones } from 'timezone-support';
 
 const DEFAULT_TIMEZONE = {
   name: 'GMT Standard Time',
