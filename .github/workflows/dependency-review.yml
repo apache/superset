@@ -5,7 +5,18 @@
 # Source repository: https://github.com/actions/dependency-review-action
 # Public documentation: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-dependency-review#dependency-review-enforcement
 name: "Dependency Review"
-on: [pull_request]
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -39,6 +50,10 @@ jobs:
     steps:
       - name: "Checkout Repository"
         uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+
       - name: "Set up liccheck"
         run: |
           pip install liccheck
