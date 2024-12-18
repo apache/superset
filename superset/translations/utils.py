@@ -38,7 +38,7 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
     pack = ALL_LANGUAGE_PACKS.get(locale)
     if not pack:
         filename = DIR + f"/{locale}/LC_MESSAGES/messages.json"
-        if not locale or locale == "en":
+        if not locale:
             # Forcing a dummy, quasy-empty language pack for English since the file
             # in the en directory is contains data with empty mappings
             filename = DIR + "/empty_language_pack.json"
@@ -50,5 +50,5 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
             logger.error(
                 "Error loading language pack for, falling back on en %s", locale
             )
-            pack = get_language_pack("en")
+            pack = get_language_pack('')
     return pack
