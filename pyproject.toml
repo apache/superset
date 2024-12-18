@@ -392,6 +392,6 @@ python-geohash = "0"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
-#func-timeout = "4"  # AGPL
+func-timeout = "4"  # AGPL
 paramiko = "3"  # GPL
 pyxlsb = "1"  # GPL
