@@ -73,7 +73,7 @@ export default function Button(props: ButtonProps) {
 
   const theme = useTheme();
   const { colors, transitionTiming, borderRadius, typography } = theme;
-  const { primary, grayscale, success, warning, error } = colors;
+  const { primary, grayscale, success, warning} = colors;
 
   let height = 32;
   let padding = 18;
@@ -86,15 +86,15 @@ export default function Button(props: ButtonProps) {
   }
 
   let backgroundColor;
-  let backgroundColorHover = mix(0.1, primary.base, primary.light4);
-  let backgroundColorActive = mix(0.25, primary.base, primary.light4);
+  let backgroundColorHover;
+  let backgroundColorActive;
   let backgroundColorDisabled = grayscale.light2;
-  let color = primary.dark1;
-  let colorHover = color;
+  let color;
+  let colorHover;
   let borderWidth = 0;
   let borderStyle = 'none';
-  let borderColor = 'transparent';
-  let borderColorHover = 'transparent';
+  let borderColor;
+  let borderColorHover;
   let borderColorDisabled = 'transparent';
 
   if (buttonStyle === 'tertiary' || buttonStyle === 'dashed') {
@@ -125,7 +125,6 @@ export default function Button(props: ButtonProps) {
     backgroundColor = 'transparent';
     backgroundColorHover = 'transparent';
     backgroundColorActive = 'transparent';
-    colorHover = primary.base;
   }
 
   const element = children as ReactElement;

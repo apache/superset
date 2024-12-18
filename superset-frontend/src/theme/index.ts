@@ -81,7 +81,17 @@ const baseConfig: ThemeConfig = {
       colorError: supersetTheme.colors.error.base,
       colorErrorHover: mix(0.1, supersetTheme.colors.grayscale.light5, supersetTheme.colors.error.base),
       colorErrorBg:  mix(0.2, supersetTheme.colors.grayscale.dark2, supersetTheme.colors.error.base),
-      dangerColor: supersetTheme.colors.grayscale.light5
+      dangerColor: supersetTheme.colors.grayscale.light5,
+      colorLinkHover: supersetTheme.colors.primary.base,
+      linkHoverBg: 'transparent',
+      defaultBg: supersetTheme.colors.primary.base,
+      defaultHoverBg: mix(0.1, supersetTheme.colors.primary.base, supersetTheme.colors.primary.light4),
+      defaultActiveBg: mix(0.25, supersetTheme.colors.primary.base, supersetTheme.colors.primary.light4),
+      defaultColor: supersetTheme.colors.primary.dark1,
+      defaultHoverColor: supersetTheme.colors.primary.dark1,
+      defaultBorderColor: 'transparent',
+      defaultHoverBorderColor: 'transparent'
+
     },
     Card: {
       paddingLG: supersetTheme.gridUnit * 6,
