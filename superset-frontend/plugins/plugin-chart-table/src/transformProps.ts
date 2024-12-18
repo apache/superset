@@ -118,21 +118,21 @@ const processComparisonTotals = (
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
-        transformedTotals[`Main ${key}`] =
-          parseInt(transformedTotals[`Main ${key}`]?.toString() || '0', 10) +
+        transformedTotals[`${t('sv_current')} ${key}`] =
+          parseInt(transformedTotals[`${t('sv_current')} ${key}`]?.toString() || '0', 10) +
           parseInt(totalRecord[key]?.toString() || '0', 10);
-        transformedTotals[`# ${key}`] =
-          parseInt(transformedTotals[`# ${key}`]?.toString() || '0', 10) +
+        transformedTotals[`${t('sv_previous')} ${key}`] =
+          parseInt(transformedTotals[`${t('sv_previous')} ${key}`]?.toString() || '0', 10) +
           parseInt(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
             10,
           );
         const { valueDifference, percentDifferenceNum } = calculateDifferences(
-          transformedTotals[`Main ${key}`] as number,
-          transformedTotals[`# ${key}`] as number,
+          transformedTotals[`${t('sv_current')} ${key}`] as number,
+          transformedTotals[`${t('sv_previous')} ${key}`] as number,
         );
-        transformedTotals[`△ ${key}`] = valueDifference;
-        transformedTotals[`% ${key}`] = percentDifferenceNum;
+        transformedTotals[`${t('sv_change')} ${key}`] = valueDifference;
+        transformedTotals[`${t('sv_change_percentage')} ${key}`] = percentDifferenceNum;
       }
     }),
   );
@@ -166,10 +166,10 @@ const processComparisonDataRecords = memoizeOne(
               comparisonValue as number,
             );
 
-          transformedItem[`Main ${origCol.key}`] = originalValue;
-          transformedItem[`# ${origCol.key}`] = comparisonValue;
-          transformedItem[`△ ${origCol.key}`] = valueDifference;
-          transformedItem[`% ${origCol.key}`] = percentDifferenceNum;
+          transformedItem[`${t('sv_current')} ${origCol.key}`] = originalValue;
+          transformedItem[`${t('sv_previous')} ${origCol.key}`] = comparisonValue;
+          transformedItem[`${t('sv_change')} ${origCol.key}`] = valueDifference;
+          transformedItem[`${t('sv_change_percentage')} ${origCol.key}`] = percentDifferenceNum;
         }
       });
 
@@ -355,11 +355,11 @@ const processComparisonColumns = (
         return [
           {
             ...col,
-            label: t('Main'),
-            key: `${t('Main')} ${col.key}`,
-            config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+            label: t('sv_current'),
+            key: `${t('sv_current')} ${col.key}`,
+            config: getComparisonColConfig(t('sv_current'), col.key, columnConfig),
             formatter: getComparisonColFormatter(
-              t('Main'),
+              t('sv_current'),
               col,
               columnConfig,
               savedFormat,
@@ -368,11 +368,11 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: `#`,
-            key: `# ${col.key}`,
-            config: getComparisonColConfig(`#`, col.key, columnConfig),
+            label: t('sv_previous'),
+            key: `${t('sv_previous')} ${col.key}`,
+            config: getComparisonColConfig(t('sv_previous'), col.key, columnConfig),
             formatter: getComparisonColFormatter(
-              `#`,
+              t('sv_previous'),
               col,
               columnConfig,
               savedFormat,
@@ -381,11 +381,11 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: `△`,
-            key: `△ ${col.key}`,
-            config: getComparisonColConfig(`△`, col.key, columnConfig),
+            label: t('sv_change'),
+            key: `${t('sv_change')} ${col.key}`,
+            config: getComparisonColConfig(t('sv_change'), col.key, columnConfig),
             formatter: getComparisonColFormatter(
-              `△`,
+              t('sv_change'),
               col,
               columnConfig,
               savedFormat,
@@ -394,11 +394,11 @@ const processComparisonColumns = (
           },
           {
             ...col,
-            label: `%`,
-            key: `% ${col.key}`,
-            config: getComparisonColConfig(`%`, col.key, columnConfig),
+            label: t('sv_change_percentage'),
+            key: `${t('sv_change_percentage')} ${col.key}`,
+            config: getComparisonColConfig(t('sv_change_percentage'), col.key, columnConfig),
             formatter: getComparisonColFormatter(
-              `%`,
+              t('sv_change_percentage'),
               col,
               columnConfig,
               savedFormat,

@@ -64,7 +64,12 @@ function addLocaleData(data: LocaleData) {
 }
 
 function t(input: string, ...args: unknown[]) {
-  return getInstance().translate(input, ...args);
+  input = null as unknown as string
+  try {
+    return getInstance().translate(input, ...args);
+  } catch (e) {
+    return `${input}`
+  }
 }
 
 function tn(key: string, ...args: unknown[]) {
