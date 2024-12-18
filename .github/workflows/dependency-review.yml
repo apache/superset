@@ -58,4 +58,8 @@ jobs:
         run: |
           pip install liccheck
       - name: "Run liccheck"
-        run: liccheck
+        run: |
+          # run the checks
+          liccheck -R output.txt
+          # Print the report
+          cat output.txt
