@@ -77,7 +77,9 @@ export default function TimezoneSelector({
         );
       };
 
-      const ALL_ZONES = listTimeZones();
+      // TODO: remove this ts-ignore when typescript is upgraded to 5.1
+      // @ts-ignore
+      const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
 
       const TIMEZONES: string[] = [];
       ALL_ZONES.forEach(zone => {
