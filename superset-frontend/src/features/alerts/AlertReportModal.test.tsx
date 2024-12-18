@@ -193,10 +193,8 @@ const comboboxSelect = async (
 ) => {
   expect(element).toBeInTheDocument();
   userEvent.type(element, `${value}{enter}`);
-  await waitFor(() => {
-    const element = newElementQuery();
-    expect(element).toBeInTheDocument();
-  });
+  const newElement = newElementQuery();
+  expect(newElement).toBeInTheDocument();
 };
 
 // --------------- TEST SECTION ------------------
