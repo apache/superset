@@ -526,7 +526,9 @@ test('renders default Schedule fields', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
+  if (screen.queryByLabelText('Loading')) {
+    await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
+  }
   const scheduleType = screen.getByRole('combobox', {
     name: /schedule type/i,
   });
