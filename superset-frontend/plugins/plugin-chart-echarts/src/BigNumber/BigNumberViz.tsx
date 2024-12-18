@@ -179,7 +179,6 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           fontSize,
           height: 'auto',
           color: numberColor,
-          marginBottom: '10px',
         }}
         onContextMenu={onContextMenu}
       >
@@ -359,6 +358,7 @@ export default styled(BigNumberVis)`
       position: relative;
       line-height: 1em;
       white-space: nowrap;
+      margin-bottom:${theme.gridUnit * 2}px;
       span {
         position: absolute;
         bottom: 0;
