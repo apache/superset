@@ -152,7 +152,6 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
   }
 
   .antd5-modal-close-x .close {
-    color: ${theme.colors.grayscale.dark1};
     opacity: 1;
   }
 
