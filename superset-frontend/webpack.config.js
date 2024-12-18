@@ -526,7 +526,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: 'source-map',
+  devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -544,7 +544,6 @@ console.log(''); // pure cosmetic new line
 let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
-  config.devtool = 'eval-cheap-module-source-map';
   config.devServer = {
     onBeforeSetupMiddleware(devServer) {
       // load proxy config when manifest updates

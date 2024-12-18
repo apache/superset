@@ -22,9 +22,10 @@ from typing import Any, Optional
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
-from superset import app, security_manager
+from superset import app, db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
 from superset.commands.dashboard.exceptions import (
+    DashboardColorsConfigUpdateFailedError,
     DashboardForbiddenError,
     DashboardInvalidError,
     DashboardNativeFiltersUpdateFailedError,
@@ -202,3 +203,29 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         )
 
         return configuration
+
+
+class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
+    def __init__(
+        self, model_id: int, data: dict[str, Any], mark_updated: bool = True
+    ) -> None:
+        super().__init__(model_id, data)
+        self._mark_updated = mark_updated
+
+    @transaction(
+        on_error=partial(on_error, reraise=DashboardColorsConfigUpdateFailedError)
+    )
+    def run(self) -> Model:
+        super().validate()
+        assert self._model
+
+        original_changed_on = self._model.changed_on
+
+        DashboardDAO.update_colors_config(self._model, self._properties)
+
+        if not self._mark_updated:
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            # restore the original changed_on value
+            self._model.changed_on = original_changed_on
+
+        return self._model

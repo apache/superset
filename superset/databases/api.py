@@ -1632,10 +1632,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def csv_metadata(self) -> Response:
-        """Upload an CSV file and returns file metadata.
+        """Upload a CSV file and returns file metadata.
         ---
         post:
-          summary: Upload an CSV file and returns file metadata
+          summary: Upload a CSV file and returns file metadata
           requestBody:
             required: true
             content:

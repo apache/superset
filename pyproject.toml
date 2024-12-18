@@ -70,7 +70,11 @@ dependencies = [
     "nh3>=0.2.11, <0.3",
     "numpy==1.23.5",
     "packaging",
-    "pandas[excel,performance]>=2.0.3, <2.1",
+    # --------------------------
+    # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
+    "pandas[excel]>=2.0.3, <2.1",
+    "bottleneck",
+    # --------------------------
     "parsedatetime",
     "paramiko>=3.4.0",
     "pgsanity",
@@ -193,7 +197,6 @@ development = [
     "psutil",
     "pyfakefs",
     "pyinstrument>=4.0.2,<5",
-    "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-cov",
     "pytest-mock",
@@ -286,11 +289,25 @@ select = [
     "E4",
     "E7",
     "E9",
-    "F",
     "PT009",
     "TRY201",
+    # TODO add these rules in follow up PR
+    # "B",
+    # "C",
+    # "E",
+    # "F",
+    #"F",
+    # "I",
+    # "N",
+    # "PT",
+    # "Q",
+    # "S",
+    # "T",
+    #"W",
 ]
-ignore = []
+ignore = [
+    "S101",
+]
 
 extend-select = ["I"]
 

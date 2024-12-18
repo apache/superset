@@ -27,6 +27,9 @@ jobs:
     outputs:
       slash-command: ${{ steps.eval-body.outputs.result }}
       feature-flags: ${{ steps.eval-feature-flags.outputs.result }}
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
     steps:
     - name: Debug
@@ -139,11 +142,13 @@ jobs:
           ref: ${{ steps.get-sha.outputs.sha }}
           persist-credentials: false
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Setup Docker Environment
+        uses: ./.github/actions/setup-docker
+        with:
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          build: "true"
+          install-docker-compose: "false"
 
       - name: Setup supersetbot
         uses: ./.github/actions/setup-supersetbot/
