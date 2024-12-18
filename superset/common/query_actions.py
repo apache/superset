@@ -21,7 +21,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
-from superset import app
+from superset import app, security_manager
 from superset.common.chart_data import ChartDataResultType
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import BaseDatasource
@@ -87,7 +87,10 @@ def _get_query(
     datasource = _get_datasource(query_context, query_obj)
     result = {"language": datasource.query_language}
     try:
-        result["query"] = datasource.get_query_str(query_obj.to_dict())
+        if security_manager.can_access('can_view_query', 'Dashboard'):
+            result["query"] = datasource.get_query_str(query_obj.to_dict())
+        else:
+            result["query"] = 'Forbidden'
     except QueryObjectValidationError as err:
         result["error"] = err.message
     return result
