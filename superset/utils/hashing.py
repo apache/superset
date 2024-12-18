@@ -20,8 +20,8 @@ from typing import Any, Callable, Optional
 from superset.utils import json
 
 
-def md5_sha_from_str(val: str) -> str:
-    return hashlib.md5(val.encode("utf-8")).hexdigest()
+def sha256_from_str(val: str) -> str:
+    return hashlib.sha256(val.encode("utf-8")).hexdigest()
 
 
 def md5_sha_from_dict(
@@ -33,4 +33,4 @@ def md5_sha_from_dict(
         obj, sort_keys=True, ignore_nan=ignore_nan, default=default, allow_nan=True
     )
 
-    return md5_sha_from_str(json_data)
+    return sha256_from_str(json_data)

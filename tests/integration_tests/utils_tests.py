@@ -805,7 +805,7 @@ class TestUtils(SupersetTestCase):
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
-        expected_filename = md5_sha_from_str(ssl_certificate)
+        expected_filename = sha256_from_str(ssl_certificate)
         assert expected_filename in path
         assert os.path.exists(path)
 
