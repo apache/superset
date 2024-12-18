@@ -563,11 +563,12 @@ test('shows CRON Expression when CRON is selected', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  await comboboxSelect(
+  userEvent.click(screen.getByRole('combobox', { name: /schedule type/i }));
+  userEvent.type(
     screen.getByRole('combobox', { name: /schedule type/i }),
-    'cron schedule',
-    () => screen.getByPlaceholderText(/cron expression/i),
+    'cron schedule{enter}',
   );
+  expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
   expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
 });
 test('defaults to day when CRON is not selected', async () => {
