@@ -1,0 +1,146 @@
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Deploy CDK Application to Environment
+
+# Need different workflows for service deployments and UI deployments
+# Possibly need different workflows for the destruction of the stacks as well
+# UI deployments require the build artifact to be built before triggering the deployment
+# static-site-deploy repository includes shell scripts to replace variables at deploy-time
+# Service deployments will need environment variables replaced at deploy-time too, not sure how we'll do that yet
+
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        description: The subdomain name to deploy to
+        required: false
+        default: helloworld
+        type: string
+      ref:
+        description: The git tag/branch/hash to deploy, defaults to `github.ref`
+        required: false
+        type: string
+        default: ${{ github.ref }}
+      stack:
+        description: The CloudFormation stack name
+        required: false
+        default: ''
+        type: string
+      environment:
+        description: The environment to deploy to
+        required: true
+        default: dev
+        type: string
+      repository:
+        description: The repository to deploy
+        required: false
+        type: string
+        default: ${{ github.repository }}
+      cdk_working_directory:
+        description: The directory the CDK application is in, can be omitted if it is the root directory
+        required: false
+        type: string
+        default: .
+      service:
+        description: The service this deployment relates to, the CDK application will be tagged with this value
+        required: true
+        type: string
+      component:
+        description: The service component this deployment relates to, the CDK application will be tagged with this value
+        required: true
+        type: string
+      override:
+        description: JSON object of vars to override in the .env file
+        required: false
+        type: string
+        default: ''
+    outputs:
+      endpoint:
+        description: The endpoint of the deployed service
+        value: ${{ jobs.deploy.outputs.endpoint }}
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    env:
+      AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      DEPLOY_ROLE_ARN: ${{ vars.DEPLOY_ROLE_ARN }}
+      DOMAIN_NAME: ${{ vars.DOMAIN_NAME }}
+      STACK_CONFIG: ${{ vars.STACK_CONFIG }}
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ steps.set_endpoint.outputs.endpoint }}
+    concurrency:
+      group: ${{ inputs.environment }}-${{ inputs.name }}
+    permissions:
+      contents: read
+      id-token: write
+      deployments: write
+
+    steps:
+      - name: Bootstrap Environment Variables
+        run: |
+          INPUT_STACK=${{ inputs.stack }}
+          echo "STACK_NAME=$(tr '[:upper:]' '[:lower:]' <<< "${INPUT_STACK:-${{ inputs.name }}-${{ inputs.environment }}}")" >> $GITHUB_ENV
+          echo "HAS_STACK_SECRETS=$([ -n "${{ (secrets.STACK_SECRETS != '') || '' }}" ] && echo 1 || echo 0)" >> "$GITHUB_ENV"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repository || github.repository }}
+          ref: ${{ inputs.ref || github.ref }}
+
+      - name: Assume AWS role
+        id: assume_role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: ${{ env.DEPLOY_ROLE_ARN }}
+          role-session-name: deploy-${{ github.run_id }}
+
+      - name: Create Environment File
+        uses: webgains/action-generate-dotenv@main
+        with:
+          file: .env
+          template: .env.dist
+          name: ${{ inputs.name }}
+          environment: ${{ inputs.environment }}
+          stack_name: ${{ env.STACK_NAME }}
+          aws_account_id: ${{ env.AWS_ACCOUNT_ID }}
+          aws_region: ${{ env.AWS_REGION }}
+          domain_name: ${{ env.DOMAIN_NAME }}
+          stack_config: ${{ env.STACK_CONFIG }}
+          stack_secrets: ${{ secrets.STACK_SECRETS }}
+          cdk_working_directory: ${{ inputs.cdk_working_directory }}
+          override: ${{ inputs.override }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.cdk_working_directory }}
+        run: npm install
+
+      - name: CDK Deploy
+        working-directory: ${{ inputs.cdk_working_directory }}
+        run: |
+          cat .env
+          npm run cdk deploy -- \
+            --ci \
+            --require-approval never \
+            --tags Name=${{ inputs.name }}-${{ inputs.environment }}-${{ inputs.service }} \
+            --tags Service=${{ inputs.service }} --tags Component=${{ inputs.component }} \
+            --tags Environment=${{ inputs.environment }} --tags AutomatedBy=cdk/github \
+            --tags Version=${{ github.ref_name }} --tags GitHash=${{ github.sha }}
+
+      # TODO get from stack outputs
+      - name: Set the endpoint
+        id: set_endpoint
+        run: echo "endpoint=https://${{ inputs.name }}.${{ env.DOMAIN_NAME }}" >> $GITHUB_OUTPUT
+
+    outputs:
+      endpoint: ${{ steps.set_endpoint.outputs.endpoint }}
