@@ -33,6 +33,7 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import event_logger
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import json, pandas_postprocessing
@@ -189,8 +190,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
+            x if is_str_or_adhoc(x) else x["label"]
+            for x in metrics  # type: ignore
         ]
 
     def _set_post_processing(
@@ -417,6 +418,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
         return md5_sha_from_dict(cache_dict, default=json_int_dttm_ser, ignore_nan=True)
 
+    @event_logger.log_this
     def exec_post_processing(self, df: DataFrame) -> DataFrame:
         """
         Perform post processing operations on DataFrame.
