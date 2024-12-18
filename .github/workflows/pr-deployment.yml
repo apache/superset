@@ -30,7 +30,7 @@ jobs:
 
   deploy:
     name: Deploy to Feature Environment
-    needs: [labels]
+    needs: [labels, build]
     uses: webgains/github-workflows/.github/workflows/deploy-service-to-environment.yml@WI-5868-allow-service-deploy-workflow-to-use-any-repositor
     secrets: inherit
     with:
