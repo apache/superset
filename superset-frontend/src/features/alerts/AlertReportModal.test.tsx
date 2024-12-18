@@ -21,7 +21,6 @@ import fetchMock from 'fetch-mock';
 import {
   render,
   screen,
-  waitFor,
   within,
   waitForElementToBeRemoved,
 } from 'spec/helpers/testing-library';
