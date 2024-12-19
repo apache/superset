@@ -143,7 +143,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
                 try:
                     time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
-                    with utils.timeout(time_delta.total_seconds()):
+                    with utils.timeout(int(time_delta.total_seconds())):
                         alive = ping(engine)
                 except (sqlite3.ProgrammingError, RuntimeError):
                     # SQLite can't run on a separate thread, so ``utils.timeout`` fails
