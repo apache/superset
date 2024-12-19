@@ -56,7 +56,7 @@ class TestRowLevelSecurity(SupersetTestCase):
     """
 
     rls_entry = None
-    query_obj: dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(  # noqa: C408
         groupby=[],
         metrics=None,
         filter=[],
@@ -153,7 +153,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         db.session.delete(self.get_user("NoRlsRoleUser"))
         db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_dataset(self):
         with self.create_app().app_context():
             dataset = SqlaTable(database_id=1, schema=None, table_name="table1")
@@ -268,7 +268,7 @@ class TestRowLevelSecurity(SupersetTestCase):
         # establish that the filters are grouped together correctly with
         # ANDs, ORs and parens in the correct place
         assert (
-            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"
+            "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"  # noqa: E501
             in sql
         )
 
@@ -622,7 +622,7 @@ RLS_GENDER_REGEX = re.compile(r"AND \([\s\n]*gender = 'girl'[\s\n]*\)")
     EMBEDDED_SUPERSET=True,
 )
 class GuestTokenRowLevelSecurityTests(SupersetTestCase):
-    query_obj: dict[str, Any] = dict(
+    query_obj: dict[str, Any] = dict(  # noqa: C408
         groupby=[],
         metrics=None,
         filter=[],

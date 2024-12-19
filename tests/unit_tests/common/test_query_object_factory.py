@@ -17,7 +17,7 @@
 from typing import Any, Optional
 from unittest.mock import Mock
 
-from pytest import fixture
+from pytest import fixture  # noqa: PT013
 
 from superset.common.query_object_factory import QueryObjectFactory
 from tests.common.query_context_generator import QueryContextGenerator

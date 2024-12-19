@@ -33,7 +33,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database(mocker: MockerFixture, session: Session) -> Database:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database

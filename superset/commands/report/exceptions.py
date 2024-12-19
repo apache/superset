@@ -95,7 +95,7 @@ class ReportScheduleEitherChartOrDashboardError(ValidationError):
         )
 
 
-class ReportScheduleFrequencyNotAllowed(ValidationError):
+class ReportScheduleFrequencyNotAllowed(ValidationError):  # noqa: N818
     """
     Marshmallow validation error for report schedule configured to run more
     frequently than allowed
@@ -140,7 +140,7 @@ class DashboardNotSavedValidationError(ValidationError):
     def __init__(self) -> None:
         super().__init__(
             _(
-                "Please save your dashboard first, then try creating a new email report."
+                "Please save your dashboard first, then try creating a new email report."  # noqa: E501
             ),
             field_name="dashboard",
         )

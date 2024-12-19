@@ -79,7 +79,7 @@ class PickleKeyValueCodec(KeyValueCodec):
         return pickle.dumps(value)
 
     def decode(self, value: bytes) -> dict[Any, Any]:
-        return pickle.loads(value)
+        return pickle.loads(value)  # noqa: S301
 
 
 class MarshmallowKeyValueCodec(JsonKeyValueCodec):

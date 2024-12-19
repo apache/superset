@@ -19,7 +19,7 @@ import sys
 
 import pandas as pd
 
-from superset.constants import PandasPostprocessingCompare as PPC
+from superset.constants import PandasPostprocessingCompare as PPC  # noqa: N817
 from superset.utils import pandas_postprocessing as pp
 from superset.utils.pandas_postprocessing.utils import FLAT_COLUMN_SEPARATOR
 from tests.unit_tests.fixtures.dataframes import multiple_metrics_df, timeseries_df2
@@ -166,7 +166,7 @@ def test_compare_multi_index_column():
     0  2021-01-01                         0                         0                         0                         0
     1  2021-01-02                         0                         0                         0                         0
     2  2021-01-03                         0                         0                         0                         0
-    """
+    """  # noqa: E501
     assert flat_df.equals(
         pd.DataFrame(
             data={
@@ -230,7 +230,7 @@ def test_compare_multi_index_column_non_lex_sorted():
     0  2021-01-01                         0                         0                         0                         0
     1  2021-01-02                         0                         0                         0                         0
     2  2021-01-03                         0                         0                         0                         0
-    """
+    """  # noqa: E501
     assert flat_df.equals(
         pd.DataFrame(
             data={
@@ -282,7 +282,7 @@ def test_compare_after_pivot():
             dttm  difference__count_metric__sum_metric, UK  difference__count_metric__sum_metric, US
     0 2019-01-01                                        -4                                        -4
     1 2019-01-02                                        -4                                        -4
-    """
+    """  # noqa: E501
     assert flat_df.equals(
         pd.DataFrame(
             data={
