@@ -17,7 +17,7 @@
  * under the License.
  */
 import { action } from '@storybook/addon-actions';
-import Label, { Type } from './index';
+import Label, { Type, DatasetTypeLabel, PublishedLabel } from './index';
 
 export default {
   title: 'Label',
@@ -36,39 +36,47 @@ export const options: Type[] = [
   'secondary',
 ];
 
-export const LabelGallery = () => (
-  <>
-    <h4>Non-interactive</h4>
-    {Object.values(options).map((opt: Type) => (
-      <Label key={opt} type={opt}>
-        {`style: "${opt}"`}
-      </Label>
-    ))}
-    <br />
-    <h4>Interactive</h4>
-    {Object.values(options).map((opt: Type) => (
-      <Label key={opt} type={opt} onClick={action('clicked')}>
-        {`style: "${opt}"`}
-      </Label>
-    ))}
-  </>
-);
-
-export const InteractiveLabel = (args: any) => {
-  const { hasOnClick, label, monospace, ...rest } = args;
+export const LabelGallery = props => {
+  if (props.hasOnClick) {
+    props.onClick = action('clicked');
+  }
   return (
-    <Label
-      onClick={hasOnClick ? action('clicked') : undefined}
-      monospace={monospace}
-      {...rest}
-    >
-      {label}
-    </Label>
+    <>
+      <h4>Non-interactive</h4>
+      {Object.values(options).map((opt: Type) => (
+        <Label key={opt} type={opt}>
+          {`style: "${opt}"`}
+        </Label>
+      ))}
+      <br />
+      <h4>Interactive</h4>
+      {Object.values(options).map((opt: Type) => (
+        <Label key={opt} type={opt} {...props}>
+          {`style: "${opt}"`}
+        </Label>
+      ))}
+      <h4>Reusable Labels</h4>
+      <h5>DatasetType</h5>
+      <DatasetTypeLabel datasetType="physical" />
+      <DatasetTypeLabel datasetType="virtual" />
+      <h5>PublishedLabel</h5>
+      <PublishedLabel isPublished={true} />
+      <PublishedLabel isPublished={false} />
+    </>
   );
 };
 
-InteractiveLabel.args = {
+LabelGallery.args = {
   hasOnClick: true,
-  label: 'Example',
-  monospace: true,
+  monospace: false,
+};
+LabelGallery.argTypes = {
+  monospace: {
+    name: 'monospace',
+    control: { type: 'boolean' },
+  },
+  hasOnClick: {
+    name: 'hasOnClick',
+    control: { type: 'boolean' },
+  },
 };
