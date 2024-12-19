@@ -39,6 +39,10 @@ export const GlobalStyles = () => (
       .echarts-tooltip[style*='visibility: hidden'] {
         display: none !important;
       }
+      .antd5-dropdown,
+      .ant-dropdown {
+        z-index: ${theme.zIndex.max};
+      }
       // TODO: Remove when buttons have been upgraded to Ant Design 5.
       // Check src/components/Modal for more info.
       .ant-modal-confirm {
