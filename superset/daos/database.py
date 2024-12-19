@@ -51,7 +51,7 @@ class DatabaseDAO(BaseDAO[Database]):
         of the credentials.
 
         The masked values should be unmasked before the database is updated.
-        """
+        """  # noqa: E501
 
         if item and attributes and "encrypted_extra" in attributes:
             attributes["encrypted_extra"] = item.db_engine_spec.unmask_encrypted_extra(
@@ -181,7 +181,7 @@ class SSHTunnelDAO(BaseDAO[SSHTunnel]):
         the aforementioned fields.
 
         The masked values should be unmasked before the ssh tunnel is updated.
-        """
+        """  # noqa: E501
         # ID cannot be updated so we remove it if present in the payload
 
         if item and attributes:

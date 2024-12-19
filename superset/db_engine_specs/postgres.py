@@ -103,13 +103,13 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "DATE_TRUNC('second', {col})",
-        TimeGrain.FIVE_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 5)",
-        TimeGrain.THIRTY_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 30)",
+        TimeGrain.FIVE_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 5)",  # noqa: E501
+        TimeGrain.THIRTY_SECONDS: "DATE_TRUNC('minute', {col}) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM {col}) / 30)",  # noqa: E501
         TimeGrain.MINUTE: "DATE_TRUNC('minute', {col})",
-        TimeGrain.FIVE_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 5)",
-        TimeGrain.TEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 10)",
-        TimeGrain.FIFTEEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 15)",
-        TimeGrain.THIRTY_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 30)",
+        TimeGrain.FIVE_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 5)",  # noqa: E501
+        TimeGrain.TEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 10)",  # noqa: E501
+        TimeGrain.FIFTEEN_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 15)",  # noqa: E501
+        TimeGrain.THIRTY_MINUTES: "DATE_TRUNC('hour', {col}) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM {col}) / 30)",  # noqa: E501
         TimeGrain.HOUR: "DATE_TRUNC('hour', {col})",
         TimeGrain.DAY: "DATE_TRUNC('day', {col})",
         TimeGrain.WEEK: "DATE_TRUNC('week', {col})",
@@ -294,7 +294,7 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
                 SupersetError(
                     error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
                     message=__(
-                        "Users are not allowed to set a search path for security reasons."
+                        "Users are not allowed to set a search path for security reasons."  # noqa: E501
                     ),
                     level=ErrorLevel.ERROR,
                 )
@@ -471,7 +471,7 @@ WHERE datistemplate = false;
         """
         try:
             cursor.execute(
-                "SELECT pg_terminate_backend(pid) "
+                "SELECT pg_terminate_backend(pid) "  # noqa: S608
                 "FROM pg_stat_activity "
                 f"WHERE pid='{cancel_query_id}'"
             )

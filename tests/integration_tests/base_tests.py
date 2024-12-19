@@ -49,7 +49,7 @@ from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
-DEFAULT_PASSWORD = "general"
+DEFAULT_PASSWORD = "general"  # noqa: S105
 test_client = app.test_client()
 
 
@@ -555,7 +555,7 @@ class SupersetTestCase(TestCase):
         dashboard_title: str,
         slug: Optional[str],
         owners: list[int],
-        roles: list[int] = [],
+        roles: list[int] = [],  # noqa: B006
         created_by=None,
         slices: Optional[list[Slice]] = None,
         position_json: str = "",
@@ -565,8 +565,8 @@ class SupersetTestCase(TestCase):
         certified_by: Optional[str] = None,
         certification_details: Optional[str] = None,
     ) -> Dashboard:
-        obj_owners = list()
-        obj_roles = list()
+        obj_owners = list()  # noqa: C408
+        obj_roles = list()  # noqa: C408
         slices = slices or []
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
@@ -595,7 +595,7 @@ class SupersetTestCase(TestCase):
     def get_list(
         self,
         asset_type: str,
-        filter: dict[str, Any] = {},
+        filter: dict[str, Any] = {},  # noqa: B006
         username: str = ADMIN_USERNAME,
     ) -> Response:
         """

@@ -151,7 +151,7 @@ class TestAsyncQueries(SupersetTestCase):
         }
         errors = ["A timeout occurred while loading chart data"]
 
-        with pytest.raises(SoftTimeLimitExceeded):
+        with pytest.raises(SoftTimeLimitExceeded):  # noqa: PT012
             with mock.patch(
                 "superset.tasks.async_queries.set_form_data"
             ) as set_form_data:
@@ -270,7 +270,7 @@ class TestAsyncQueries(SupersetTestCase):
         }
         errors = ["A timeout occurred while loading explore JSON data"]
 
-        with pytest.raises(SoftTimeLimitExceeded):
+        with pytest.raises(SoftTimeLimitExceeded):  # noqa: PT012
             with mock.patch(
                 "superset.tasks.async_queries.set_form_data"
             ) as set_form_data:

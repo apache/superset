@@ -82,7 +82,7 @@ class ImportAssetsCommand(BaseCommand):
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any]) -> None:
+    def _import(configs: dict[str, Any]) -> None:  # noqa: C901
         # import databases first
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():

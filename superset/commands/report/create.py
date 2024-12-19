@@ -61,7 +61,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         a list of `ValidationErrors` to be returned in the API response if any.
 
         Fields were loaded according to the `ReportSchedulePostSchema` schema.
-        """
+        """  # noqa: E501
         # Required fields
         cron_schedule = self._properties["crontab"]
         name = self._properties["name"]

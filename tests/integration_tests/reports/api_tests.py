@@ -60,7 +60,7 @@ REPORTS_GAMMA_USER = "reports_gamma"
 
 
 class TestReportSchedulesApi(SupersetTestCase):
-    @pytest.fixture()
+    @pytest.fixture
     def gamma_user_with_alerts_role(self):
         with self.create_app().app_context():
             user = self.create_user(
@@ -91,7 +91,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(user)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_admin_report_schedule(self):
         with self.create_app().app_context():
             admin_user = self.get_user("admin")
@@ -115,8 +115,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_gamma_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
             chart = db.session.query(Slice).first()
@@ -139,8 +138,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.mark.usefixtures("gamma_user_with_alerts_role")
-    @pytest.fixture()
+    @pytest.fixture
     def create_working_shared_report_schedule(self, gamma_user_with_alerts_role):
         with self.create_app().app_context():
             admin_user = self.get_user("admin")
@@ -165,7 +163,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_report_schedules(self):
         with self.create_app().app_context():
             report_schedules = []
@@ -196,7 +194,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         type=ReportScheduleType.ALERT,
                         name=f"name{cx}",
                         crontab=f"*/{cx} * * * *",
-                        sql=f"SELECT value from table{cx}",
+                        sql=f"SELECT value from table{cx}",  # noqa: S608
                         description=f"Some description {cx}",
                         chart=chart,
                         database=example_db,
@@ -213,7 +211,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 db.session.delete(report_schedule)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_alpha_users(self):
         with self.create_app().app_context():
             users = [
@@ -380,16 +378,16 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == REPORTS_COUNT
-        data_keys = sorted(list(data["result"][0].keys()))
+        data_keys = sorted(list(data["result"][0].keys()))  # noqa: C414
         assert expected_fields == data_keys
 
         # Assert nested fields
         expected_owners_fields = ["first_name", "id", "last_name"]
-        data_keys = sorted(list(data["result"][0]["owners"][0].keys()))
+        data_keys = sorted(list(data["result"][0]["owners"][0].keys()))  # noqa: C414
         assert expected_owners_fields == data_keys
 
         expected_recipients_fields = ["id", "type"]
-        data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))
+        data_keys = sorted(list(data["result"][1]["recipients"][0].keys()))  # noqa: C414
         assert expected_recipients_fields == data_keys
 
     @parameterized.expand(
@@ -993,7 +991,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
-        # this second time it should receive an error because the chart has an attached report
+        # this second time it should receive an error because the chart has an attached report  # noqa: E501
         # with the same creation method from the same user.
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -1018,7 +1016,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ]
                     },
@@ -1051,7 +1049,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
 
-        # this second time it should receive an error because the dashboard has an attached report
+        # this second time it should receive an error because the dashboard has an attached report  # noqa: E501
         # with the same creation method from the same user.
         report_schedule_data = {
             "type": ReportScheduleType.REPORT,
@@ -1076,7 +1074,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ]
                     },
@@ -1184,7 +1182,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert data == {"message": {"dashboard": "Dashboard does not exist"}}
 
     # @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished
+    # TODO (AAfghahi): I am going to enable this when the report schedule feature is fully finished  # noqa: E501
     # def test_create_report_schedule_no_creation_method(self):
     #     """
     #     ReportSchedule Api: Test create report schedule
@@ -1355,7 +1353,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Alert schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 6 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 6 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1368,7 +1366,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Report schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 8 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 8 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1456,7 +1454,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Alert schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 6 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 6 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1472,7 +1470,7 @@ class TestReportSchedulesApi(SupersetTestCase):
                 "message": {
                     "crontab": (
                         "Report schedule frequency exceeding limit. "
-                        "Please configure a schedule with a minimum interval of 4 minutes per execution."
+                        "Please configure a schedule with a minimum interval of 4 minutes per execution."  # noqa: E501
                     )
                 }
             }
@@ -1670,7 +1668,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         report_schedule_data = {
             "active": False,
         }
@@ -1819,7 +1817,7 @@ class TestReportSchedulesApi(SupersetTestCase):
             .one_or_none()
         )
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         uri = f"api/v1/report/{report_schedule.id}"
         rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 403
@@ -1876,7 +1874,7 @@ class TestReportSchedulesApi(SupersetTestCase):
         )
         report_schedules_ids = [report_schedule.id]
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         uri = f"api/v1/report/?q={prison.dumps(report_schedules_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 403

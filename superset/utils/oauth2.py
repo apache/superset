@@ -59,7 +59,7 @@ def get_oauth2_access_token(
     simultaneous requests for refreshing a stale token; in that case only the first
     process to acquire the lock will perform the refresh, and othe process should find a
     a valid token when they retry.
-    """
+    """  # noqa: E501
     # pylint: disable=import-outside-toplevel
     from superset.models.core import DatabaseUserOAuth2Tokens
 

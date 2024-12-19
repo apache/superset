@@ -58,7 +58,13 @@ class TestDictImportExport(SupersetTestCase):
         cls.delete_imports()
 
     def create_table(
-        self, name, schema=None, id=0, cols_names=[], cols_uuids=None, metric_names=[]
+        self,
+        name,
+        schema=None,
+        id=0,
+        cols_names=[],  # noqa: B006
+        cols_uuids=None,
+        metric_names=[],  # noqa: B006
     ):
         database_name = "main"
         name = f"{NAME_PREFIX}{name}"
@@ -250,7 +256,7 @@ class TestDictImportExport(SupersetTestCase):
             back_references=False,
             include_defaults=False,
         )
-        self.get_resp("/login/", data=dict(username="admin", password="general"))
+        self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
         resp = self.get_resp(
             "/databaseview/action_post", {"action": "yaml_export", "rowid": 1}
         )

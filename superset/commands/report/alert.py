@@ -96,7 +96,7 @@ class AlertCommand(BaseCommand):
         if len(rows) > 1:
             raise AlertQueryMultipleRowsError(
                 message=_(
-                    "Alert query returned more than one row. %(num_rows)s rows returned",
+                    "Alert query returned more than one row. %(num_rows)s rows returned",  # noqa: E501
                     num_rows=len(rows),
                 )
             )

@@ -41,7 +41,7 @@ logger.setLevel(logging.INFO)
 
 
 # pylint: disable=too-many-branches
-def get_executor(
+def get_executor(  # noqa: C901
     executor_types: list[ExecutorType],
     model: Dashboard | ReportSchedule | Slice,
     current_user: str | None = None,
@@ -115,9 +115,9 @@ def fetch_csrf_token(
     """
     url = get_url_path("SecurityRestApi.csrf_token")
     logger.info("Fetching %s", url)
-    req = request.Request(url, headers=headers, method="GET")
+    req = request.Request(url, headers=headers, method="GET")  # noqa: S310
     response: HTTPResponse
-    with request.urlopen(req, timeout=600) as response:
+    with request.urlopen(req, timeout=600) as response:  # noqa: S310
         body = response.read().decode("utf-8")
         session_cookie: Optional[str] = None
         cookie_headers = response.headers.get_all("set-cookie")

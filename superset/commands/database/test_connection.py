@@ -93,7 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches
+    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches  # noqa: C901
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -155,7 +155,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
                         message=(
-                            "Please check your connection details and database settings, "
+                            "Please check your connection details and database settings, "  # noqa: E501
                             "and ensure that your database is accepting connections, "
                             "then try connecting again."
                         ),

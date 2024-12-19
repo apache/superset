@@ -87,7 +87,7 @@ def pivot(  # pylint: disable=too-many-arguments
     if not drop_missing_columns and columns:
         for row in df[columns].itertuples():
             for metric in aggfunc.keys():
-                series_set.add(tuple([metric]) + tuple(row[1:]))
+                series_set.add(tuple([metric]) + tuple(row[1:]))  # noqa: C409
 
     df = df.pivot_table(
         values=aggfunc.keys(),

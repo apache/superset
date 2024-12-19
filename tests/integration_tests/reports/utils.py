@@ -117,8 +117,8 @@ def create_report_notification(
     extra: Optional[dict[str, Any]] = None,
     force_screenshot: bool = False,
     owners: Optional[list[User]] = None,
-    ccTarget: Optional[str] = None,
-    bccTarget: Optional[str] = None,
+    ccTarget: Optional[str] = None,  # noqa: N803
+    bccTarget: Optional[str] = None,  # noqa: N803
 ) -> ReportSchedule:
     if not owners:
         owners = [

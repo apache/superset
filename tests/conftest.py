@@ -28,7 +28,7 @@ from __future__ import annotations
 from typing import Callable, TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, PropertyMock
 
-from pytest import fixture
+from pytest import fixture  # noqa: PT013
 
 from tests.example_data.data_loading.pandas.pandas_data_loader import PandasDataLoader
 from tests.example_data.data_loading.pandas.pands_data_loading_conf import (

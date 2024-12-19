@@ -53,7 +53,9 @@ def test_elasticsearch_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec as spec
+    from superset.db_engine_specs.elasticsearch import (
+        ElasticSearchEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm, db_extra)
 
@@ -70,7 +72,9 @@ def test_opendistro_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec as spec
+    from superset.db_engine_specs.elasticsearch import (
+        OpenDistroEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 

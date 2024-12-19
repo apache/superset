@@ -57,7 +57,7 @@ def upgrade():
             if params.get("select_country"):
                 params["select_country"] = params["select_country"].lower()
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()
@@ -78,7 +78,7 @@ def downgrade():
                 country = params["select_country"].lower()
                 params["select_country"] = country[0].upper() + country[1:]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

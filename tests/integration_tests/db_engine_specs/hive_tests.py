@@ -33,7 +33,7 @@ def test_0_progress():
     log = """
         17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=compile from=org.apache.hadoop.hive.ql.Driver>
         17/02/07 18:26:27 INFO log.PerfLogger: <PERFLOG method=parse from=org.apache.hadoop.hive.ql.Driver>
-    """.split("\n")
+    """.split("\n")  # noqa: E501
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -57,7 +57,7 @@ def test_job_1_launched_stage_1():
         17/02/07 19:15:55 INFO ql.Driver: Total jobs = 2
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
-    """.split("\n")
+    """.split("\n")  # noqa: E501
     assert HiveEngineSpec.progress(log) == 0
 
 
@@ -67,7 +67,7 @@ def test_job_1_launched_stage_1_map_40_progress():  # pylint: disable=invalid-na
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 1 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
-    """.split("\n")
+    """.split("\n")  # noqa: E501
     assert HiveEngineSpec.progress(log) == 10
 
 
@@ -78,7 +78,7 @@ def test_job_1_launched_stage_1_map_80_reduce_40_progress():  # pylint: disable=
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 80%,  reduce = 40%
-    """.split("\n")
+    """.split("\n")  # noqa: E501
     assert HiveEngineSpec.progress(log) == 30
 
 
@@ -91,7 +91,7 @@ def test_job_1_launched_stage_2_stages_progress():  # pylint: disable=invalid-na
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 80%,  reduce = 40%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-2 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 100%,  reduce = 0%
-    """.split("\n")
+    """.split("\n")  # noqa: E501
     assert HiveEngineSpec.progress(log) == 12
 
 
@@ -103,7 +103,7 @@ def test_job_2_launched_stage_2_stages_progress():  # pylint: disable=invalid-na
         17/02/07 19:15:55 INFO ql.Driver: Launching Job 2 out of 2
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 0%,  reduce = 0%
         17/02/07 19:16:09 INFO exec.Task: 2017-02-07 19:16:09,173 Stage-1 map = 40%,  reduce = 0%
-    """.split("\n")
+    """.split("\n")  # noqa: E501
     assert HiveEngineSpec.progress(log) == 60
 
 

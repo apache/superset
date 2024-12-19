@@ -319,7 +319,7 @@ class TagDAO(BaseDAO[Tag]):
         Example:
             favorited_ids([tag1, tag2, tag3])
             Output: [tag_id1, tag_id3]   # if the current user has favorited tag1 and tag3
-        """
+        """  # noqa: E501
         ids = [tag.id for tag in tags]
         return [
             star.tag_id

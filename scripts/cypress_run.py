@@ -74,7 +74,7 @@ def run_cypress_for_test_file(
             print(f"DRY RUN: {cmd}")
             return 0
 
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S602
             cmd,
             shell=True,
             stdout=subprocess.PIPE,

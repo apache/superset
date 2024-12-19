@@ -230,10 +230,10 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
         headers.update(fetch_csrf_token(headers))
 
         logger.info("Fetching %s with payload %s", url, data)
-        req = request.Request(
+        req = request.Request(  # noqa: S310
             url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
         )
-        response = request.urlopen(  # pylint: disable=consider-using-with
+        response = request.urlopen(  # pylint: disable=consider-using-with  # noqa: S310
             req, timeout=600
         )
         logger.info(

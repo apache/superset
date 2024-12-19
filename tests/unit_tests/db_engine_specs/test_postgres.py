@@ -24,7 +24,7 @@ from sqlalchemy import column, types
 from sqlalchemy.dialects.postgresql import DOUBLE_PRECISION, ENUM, JSON
 from sqlalchemy.engine.url import make_url
 
-from superset.db_engine_specs.postgres import PostgresEngineSpec as spec
+from superset.db_engine_specs.postgres import PostgresEngineSpec as spec  # noqa: N813
 from superset.exceptions import SupersetSecurityException
 from superset.utils.core import GenericDataType
 from tests.unit_tests.db_engine_specs.utils import (
@@ -121,7 +121,7 @@ def test_get_schema_from_engine_params() -> None:
         == "secret"
     )
 
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(Exception) as excinfo:  # noqa: PT011
         spec.get_schema_from_engine_params(
             make_url("postgresql://user:password@host/db1"),
             {"options": "-csearch_path=secret,public"},
@@ -204,28 +204,28 @@ def test_get_default_catalog() -> None:
         ("PT1S", "DATE_TRUNC('second', col)"),
         (
             "PT5S",
-            "DATE_TRUNC('minute', col) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM col) / 5)",
+            "DATE_TRUNC('minute', col) + INTERVAL '5 seconds' * FLOOR(EXTRACT(SECOND FROM col) / 5)",  # noqa: E501
         ),
         (
             "PT30S",
-            "DATE_TRUNC('minute', col) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM col) / 30)",
+            "DATE_TRUNC('minute', col) + INTERVAL '30 seconds' * FLOOR(EXTRACT(SECOND FROM col) / 30)",  # noqa: E501
         ),
         ("PT1M", "DATE_TRUNC('minute', col)"),
         (
             "PT5M",
-            "DATE_TRUNC('hour', col) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 5)",
+            "DATE_TRUNC('hour', col) + INTERVAL '5 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 5)",  # noqa: E501
         ),
         (
             "PT10M",
-            "DATE_TRUNC('hour', col) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 10)",
+            "DATE_TRUNC('hour', col) + INTERVAL '10 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 10)",  # noqa: E501
         ),
         (
             "PT15M",
-            "DATE_TRUNC('hour', col) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 15)",
+            "DATE_TRUNC('hour', col) + INTERVAL '15 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 15)",  # noqa: E501
         ),
         (
             "PT30M",
-            "DATE_TRUNC('hour', col) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 30)",
+            "DATE_TRUNC('hour', col) + INTERVAL '30 minutes' * FLOOR(EXTRACT(MINUTE FROM col) / 30)",  # noqa: E501
         ),
         ("PT1H", "DATE_TRUNC('hour', col)"),
         ("P1D", "DATE_TRUNC('day', col)"),

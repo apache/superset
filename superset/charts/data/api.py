@@ -306,7 +306,7 @@ class ChartDataRestApi(ChartRestApi):
             cached_data = self._load_query_context_form_from_cache(cache_key)
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            setattr(g, "form_data", cached_data)
+            g.form_data = cached_data
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()
@@ -343,7 +343,7 @@ class ChartDataRestApi(ChartRestApi):
         result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
 
-    def _send_chart_response(
+    def _send_chart_response(  # noqa: C901
         self,
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,

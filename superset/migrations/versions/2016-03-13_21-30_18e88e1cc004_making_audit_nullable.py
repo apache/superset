@@ -97,7 +97,7 @@ def upgrade():
         )
         op.alter_column("url", "changed_on", existing_type=sa.DATETIME(), nullable=True)
         op.alter_column("url", "created_on", existing_type=sa.DATETIME(), nullable=True)
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
 

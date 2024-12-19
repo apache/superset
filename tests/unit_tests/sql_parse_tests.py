@@ -58,7 +58,7 @@ def test_table() -> None:
     Test the ``Table`` class and its string conversion.
 
     Special characters in the table, schema, or catalog name should be escaped correctly.
-    """
+    """  # noqa: E501
     assert str(Table("tbname")) == "tbname"
     assert str(Table("tbname", "schemaname")) == "schemaname.tbname"
     assert (
@@ -260,21 +260,21 @@ def test_extract_tables_illdefined() -> None:
         extract_tables("SELECT * FROM schemaname.")
     assert (
         str(excinfo.value)
-        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:25"
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:25"  # noqa: E501
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM catalogname.schemaname.")
     assert (
         str(excinfo.value)
-        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:37"
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:37"  # noqa: E501
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
         extract_tables("SELECT * FROM catalogname..")
     assert (
         str(excinfo.value)
-        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:27"
+        == "You may have an error in your SQL statement. Error parsing near '.' at line 1:27"  # noqa: E501
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
@@ -1313,12 +1313,12 @@ def test_sqlparse_issue_652():
         ("postgresql", "(SELECT COUNT(DISTINCT name) from birth_names)", True),
         (
             "postgresql",
-            "(SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            "(SELECT table_name FROM information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",  # noqa: E501
             True,
         ),
         (
             "postgresql",
-            "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",
+            "(SELECT table_name FROM /**/ information_schema.tables WHERE table_name LIKE '%user%' LIMIT 1)",  # noqa: E501
             True,
         ),
         (
@@ -1333,7 +1333,7 @@ def test_sqlparse_issue_652():
         ),
         (
             "postgresql",
-            "((select users.id from (select 'majorie' as a) b, users where b.a = users.name and users.name in ('majorie') limit 1) like 'U%')",
+            "((select users.id from (select 'majorie' as a) b, users where b.a = users.name and users.name in ('majorie') limit 1) like 'U%')",  # noqa: E501
             True,
         ),
     ],
@@ -1536,7 +1536,7 @@ def test_insert_rls_as_subquery(
             "id=42",
             "SELECT * FROM some_table WHERE ( 1=1) AND some_table.id=42",
         ),
-        # Any existing predicates MUST to be wrapped in parenthesis because AND has higher
+        # Any existing predicates MUST to be wrapped in parenthesis because AND has higher  # noqa: E501
         # precedence than OR. If the RLS it `1=0` and we didn't add parenthesis a user
         # could bypass it by crafting a query with `WHERE TRUE OR FALSE`, since
         # `WHERE TRUE OR FALSE AND 1=0` evaluates to `WHERE TRUE OR (FALSE AND 1=0)`.
@@ -1604,7 +1604,7 @@ def test_insert_rls_as_subquery(
             "id=42",
             "SELECT * FROM some_table        WHERE some_table.id=42",
         ),
-        # We add the RLS even if it's already present, to be conservative. It should have
+        # We add the RLS even if it's already present, to be conservative. It should have  # noqa: E501
         # no impact on the query, and it's easier than testing if the RLS is already
         # present (it could be present in an OR clause, eg).
         (
@@ -1666,7 +1666,7 @@ def test_insert_rls_as_subquery(
             "SELECT * FROM table UNION ALL SELECT * FROM other_table",
             "table",
             "id=42",
-            "SELECT * FROM table  WHERE table.id=42 UNION ALL SELECT * FROM other_table",
+            "SELECT * FROM table  WHERE table.id=42 UNION ALL SELECT * FROM other_table",  # noqa: E501
         ),
         (
             "SELECT * FROM table UNION ALL SELECT * FROM other_table",
@@ -1836,7 +1836,7 @@ def test_is_select() -> None:
     """
     assert not ParsedQuery("SELECT 1; DROP DATABASE superset").is_select()
     assert ParsedQuery(
-        "with base as(select id from table1 union all select id from table2) select * from base"
+        "with base as(select id from table1 union all select id from table2) select * from base"  # noqa: E501
     ).is_select()
     assert ParsedQuery(
         """

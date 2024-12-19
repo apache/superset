@@ -27,7 +27,7 @@ def test_validate_update_uniqueness(session: Session) -> None:
 
     In particular, allow datasets with the same name in the same database as long as they
     are in different schemas
-    """
+    """  # noqa: E501
     from superset import db
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database

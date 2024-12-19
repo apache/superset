@@ -187,10 +187,13 @@ def test_query_datasources_by_permissions_with_catalog_schema(
         ["[my_db].[db1].[schema1]", "[my_other_db].[schema]"],  # type: ignore
     )
     clause = db.session.query().filter_by().filter.mock_calls[0].args[0]
-    assert str(clause.compile(engine, compile_kwargs={"literal_binds": True})) == (
-        "tables.perm IN ('[my_db].[table1](id:1)') OR "
-        "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "
-        "tables.catalog_perm IN ('[my_db].[db1]')"
+    assert (
+        str(clause.compile(engine, compile_kwargs={"literal_binds": True}))
+        == (
+            "tables.perm IN ('[my_db].[table1](id:1)') OR "
+            "tables.schema_perm IN ('[my_db].[db1].[schema1]', '[my_other_db].[schema]') OR "  # noqa: E501
+            "tables.catalog_perm IN ('[my_db].[db1]')"
+        )
     )
 
 

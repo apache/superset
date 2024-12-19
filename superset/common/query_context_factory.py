@@ -112,7 +112,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         self._apply_filters(query_object)
         return query_object
 
-    def _apply_granularity(
+    def _apply_granularity(  # noqa: C901
         self,
         query_object: QueryObject,
         form_data: dict[str, Any] | None,

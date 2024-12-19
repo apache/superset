@@ -103,11 +103,11 @@ class TestSqlLab(SupersetTestCase):
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             }
@@ -121,7 +121,7 @@ class TestSqlLab(SupersetTestCase):
                 "issue_codes": [
                     {
                         "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                     }
                 ],
                 "engine_name": engine_name,
@@ -132,27 +132,30 @@ class TestSqlLab(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         data = self.run_sql("DELETE FROM birth_names", "1")
-        assert data == {
-            "errors": [
-                {
-                    "message": (
-                        "This database does not allow for DDL/DML, and the query "
-                        "could not be parsed to confirm it is a read-only query. Please "
-                        "contact your administrator for more assistance."
-                    ),
-                    "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                    "level": ErrorLevel.ERROR,
-                    "extra": {
-                        "issue_codes": [
-                            {
-                                "code": 1022,
-                                "message": "Issue 1022 - Database does not allow data manipulation.",
-                            }
-                        ]
-                    },
-                }
-            ]
-        }
+        assert (
+            data
+            == {
+                "errors": [
+                    {
+                        "message": (
+                            "This database does not allow for DDL/DML, and the query "
+                            "could not be parsed to confirm it is a read-only query. Please "  # noqa: E501
+                            "contact your administrator for more assistance."
+                        ),
+                        "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                        "level": ErrorLevel.ERROR,
+                        "extra": {
+                            "issue_codes": [
+                                {
+                                    "code": 1022,
+                                    "message": "Issue 1022 - Database does not allow data manipulation.",  # noqa: E501
+                                }
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -185,10 +188,10 @@ class TestSqlLab(SupersetTestCase):
             examples_db = get_example_database()
             with examples_db.get_sqla_engine() as engine:
                 data = engine.execute(
-                    f"SELECT * FROM admin_database.{tmp_table_name}"
+                    f"SELECT * FROM admin_database.{tmp_table_name}"  # noqa: S608
                 ).fetchall()
                 names_count = engine.execute(
-                    f"SELECT COUNT(*) FROM birth_names"  # noqa: F541
+                    f"SELECT COUNT(*) FROM birth_names"  # noqa: F541, S608
                 ).first()
                 assert names_count[0] == len(
                     data
@@ -275,16 +278,18 @@ class TestSqlLab(SupersetTestCase):
 
         with examples_db.get_sqla_engine() as engine:
             engine.execute(
-                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"
+                f"CREATE TABLE IF NOT EXISTS {CTAS_SCHEMA_NAME}.test_table AS SELECT 1 as c1, 2 as c2"  # noqa: E501
             )
 
         data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table", "3", username="SchemaUser"
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",  # noqa: S608
+            "3",
+            username="SchemaUser",  # noqa: S608
         )
         assert 1 == len(data["data"])
 
         data = self.run_sql(
-            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",
+            f"SELECT * FROM {CTAS_SCHEMA_NAME}.test_table",  # noqa: S608
             "4",
             username="SchemaUser",
             schema=CTAS_SCHEMA_NAME,
@@ -350,7 +355,7 @@ class TestSqlLab(SupersetTestCase):
         assert len(data["data"]) == test_limit
 
         data = self.run_sql(
-            f"SELECT * FROM birth_names LIMIT {test_limit}",
+            f"SELECT * FROM birth_names LIMIT {test_limit}",  # noqa: S608
             client_id="sql_limit_3",
             query_limit=test_limit + 1,
         )
@@ -358,7 +363,7 @@ class TestSqlLab(SupersetTestCase):
         assert data["query"]["limitingFactor"] == LimitingFactor.QUERY
 
         data = self.run_sql(
-            f"SELECT * FROM birth_names LIMIT {test_limit + 1}",
+            f"SELECT * FROM birth_names LIMIT {test_limit + 1}",  # noqa: S608
             client_id="sql_limit_4",
             query_limit=test_limit,
         )
@@ -366,7 +371,7 @@ class TestSqlLab(SupersetTestCase):
         assert data["query"]["limitingFactor"] == LimitingFactor.DROPDOWN
 
         data = self.run_sql(
-            f"SELECT * FROM birth_names LIMIT {test_limit}",
+            f"SELECT * FROM birth_names LIMIT {test_limit}",  # noqa: S608
             client_id="sql_limit_5",
             query_limit=test_limit,
         )
@@ -544,7 +549,7 @@ class TestSqlLab(SupersetTestCase):
         assert data["status"] == "success"
 
         data = self.run_sql(
-            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }}\nLIMIT 10",
+            "SELECT * FROM birth_names WHERE state = '{{ state }}' -- blabblah {{ extra1 }}\nLIMIT 10",  # noqa: E501
             "3",
             template_params=json.dumps({"state": "CA", "extra1": "comment"}),
         )
@@ -560,7 +565,7 @@ class TestSqlLab(SupersetTestCase):
             "issue_codes": [
                 {
                     "code": 1006,
-                    "message": "Issue 1006 - One or more parameters specified in the query are missing.",
+                    "message": "Issue 1006 - One or more parameters specified in the query are missing.",  # noqa: E501
                 }
             ],
             "template_parameters": {"state": "CA"},
@@ -779,14 +784,14 @@ class TestSqlLab(SupersetTestCase):
                 log_params=None,
             )
         assert excinfo.value.error == SupersetError(
-            message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+            message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",  # noqa: E501
             error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
             level=ErrorLevel.ERROR,
             extra={
                 "issue_codes": [
                     {
                         "code": 1023,
-                        "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",
+                        "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",  # noqa: E501
                     }
                 ]
             },
@@ -812,18 +817,18 @@ class TestSqlLab(SupersetTestCase):
                 log_params=None,
             )
         assert excinfo.value.error == SupersetError(
-            message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",
+            message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",  # noqa: E501
             error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
             level=ErrorLevel.ERROR,
             extra={
                 "issue_codes": [
                     {
                         "code": 1024,
-                        "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",
+                        "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",  # noqa: E501
                     },
                     {
                         "code": 1025,
-                        "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",
+                        "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",  # noqa: E501
                     },
                 ]
             },
@@ -843,30 +848,33 @@ class TestSqlLab(SupersetTestCase):
             handle_cursor.side_effect = SoftTimeLimitExceeded()
             data = self.run_sql("SELECT * FROM birth_names LIMIT 1", "1")
 
-        assert data == {
-            "errors": [
-                {
-                    "message": (
-                        "The query was killed after 21600 seconds. It might be too complex, "
-                        "or the database might be under heavy load."
-                    ),
-                    "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
-                    "level": ErrorLevel.ERROR,
-                    "extra": {
-                        "issue_codes": [
-                            {
-                                "code": 1026,
-                                "message": "Issue 1026 - Query is too complex and takes too long to run.",
-                            },
-                            {
-                                "code": 1027,
-                                "message": "Issue 1027 - The database is currently running too many queries.",
-                            },
-                        ]
-                    },
-                }
-            ]
-        }
+        assert (
+            data
+            == {
+                "errors": [
+                    {
+                        "message": (
+                            "The query was killed after 21600 seconds. It might be too complex, "  # noqa: E501
+                            "or the database might be under heavy load."
+                        ),
+                        "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                        "level": ErrorLevel.ERROR,
+                        "extra": {
+                            "issue_codes": [
+                                {
+                                    "code": 1026,
+                                    "message": "Issue 1026 - Query is too complex and takes too long to run.",  # noqa: E501
+                                },
+                                {
+                                    "code": 1027,
+                                    "message": "Issue 1027 - The database is currently running too many queries.",  # noqa: E501
+                                },
+                            ]
+                        },
+                    }
+                ]
+            }
+        )
 
     def test_apply_limit_if_exists_when_incremented_limit_is_none(self):
         sql = """

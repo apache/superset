@@ -37,7 +37,7 @@ def test_table() -> None:
     Test the `Table` class and its string conversion.
 
     Special characters in the table, schema, or catalog name should be escaped correctly.
-    """
+    """  # noqa: E501
     assert str(Table("tbname")) == "tbname"
     assert str(Table("tbname", "schemaname")) == "schemaname.tbname"
     assert (

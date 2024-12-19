@@ -62,7 +62,7 @@ class TestImportAssetsCommand(SupersetTestCase):
     def setUp(self):
         user = self.get_user("admin")
         self.user = user
-        setattr(g, "user", user)
+        g.user = user
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_assets(self, mock_add_permissions):

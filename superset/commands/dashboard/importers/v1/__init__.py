@@ -60,7 +60,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:  # noqa: C901
         # discover charts and datasets associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()

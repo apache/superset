@@ -322,12 +322,12 @@ class TestDatabaseModel(SupersetTestCase):
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
-                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'
+                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'  # noqa: E501
                 in sql
             )
         elif db.backend == "hive":
             assert (
-                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"
+                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"  # noqa: E501
                 in sql
             )
         else:
@@ -385,7 +385,7 @@ class TestDatabaseModel(SupersetTestCase):
             return_value={Exception: SupersetException}
         )
         mocked_create_engine.side_effect = Exception()
-        with self.assertRaises(SupersetException):
+        with self.assertRaises(SupersetException):  # noqa: PT027
             model._get_sqla_engine()
 
 
@@ -448,10 +448,10 @@ class TestSqlaTableModel(SupersetTestCase):
         old_inner_join = spec.allows_joins
         spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
-        arbitrary_metric = dict(
+        arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[arbitrary_gby, "name"],
             metrics=[arbitrary_metric],
             filter=[],
@@ -460,7 +460,7 @@ class TestSqlaTableModel(SupersetTestCase):
             granularity="ds",
             from_dttm=None,
             to_dttm=None,
-            extras=dict(time_grain_sqla="P1Y"),
+            extras=dict(time_grain_sqla="P1Y"),  # noqa: C408
             series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
@@ -502,7 +502,7 @@ class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=None,
             filter=[],
@@ -528,7 +528,7 @@ class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator_different_params(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=None,
             filter=[],
@@ -555,7 +555,7 @@ class TestSqlaTableModel(SupersetTestCase):
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")
 
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=["invalid"],
             filter=[],
@@ -567,14 +567,14 @@ class TestSqlaTableModel(SupersetTestCase):
             extras={},
         )
 
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(Exception) as context:  # noqa: PT027
             tbl.get_query_str(query_obj)
 
         assert "Metric 'invalid' does not exist", context.exception
 
     def test_query_label_without_group_by(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             columns=[
                 "gender",

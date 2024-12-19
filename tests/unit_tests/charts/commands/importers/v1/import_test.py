@@ -68,7 +68,7 @@ def session_with_schema(session: Session) -> Generator[Session, None, None]:
     engine = session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
 
-    yield session
+    return session
 
 
 def test_import_chart(mocker: MockerFixture, session_with_schema: Session) -> None:
@@ -158,7 +158,7 @@ def test_filter_chart_annotations(session: Session) -> None:
     annotation_layers = params["annotation_layers"]
 
     assert len(annotation_layers) == 1
-    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])
+    assert all([al["annotationType"] == "FORMULA" for al in annotation_layers])  # noqa: C419
 
 
 def test_import_existing_chart_without_permission(
@@ -186,7 +186,7 @@ def test_import_existing_chart_without_permission(
             import_chart(chart_config, overwrite=True)
         assert (
             str(excinfo.value)
-            == "A chart already exists and user doesn't have permissions to overwrite it"
+            == "A chart already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
     # Assert that the can write to chart was checked

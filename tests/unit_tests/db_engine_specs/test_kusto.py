@@ -126,7 +126,7 @@ def test_kql_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.kusto import KustoKqlEngineSpec as spec
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -146,6 +146,6 @@ def test_sql_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.kusto import KustoSqlEngineSpec as spec
+    from superset.db_engine_specs.kusto import KustoSqlEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)

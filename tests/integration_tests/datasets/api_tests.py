@@ -79,7 +79,7 @@ class TestDatasetApi(SupersetTestCase):
         sql: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> SqlaTable:
-        obj_owners = list()
+        obj_owners = list()  # noqa: C408
         for owner in owners:
             user = db.session.query(security_manager.user_model).get(owner)
             obj_owners.append(user)
@@ -115,7 +115,7 @@ class TestDatasetApi(SupersetTestCase):
             .all()
         )
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_virtual_datasets(self):
         with self.create_app().app_context():
             datasets = []
@@ -137,7 +137,7 @@ class TestDatasetApi(SupersetTestCase):
                 db.session.delete(dataset)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_datasets(self):
         with self.create_app().app_context():
             datasets = []
@@ -254,7 +254,7 @@ class TestDatasetApi(SupersetTestCase):
             "sql",
             "table_name",
         ]
-        assert sorted(list(response["result"][0].keys())) == expected_columns
+        assert sorted(list(response["result"][0].keys())) == expected_columns  # noqa: C414
 
     def test_get_dataset_list_gamma(self):
         """
@@ -519,7 +519,7 @@ class TestDatasetApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
 
-        uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"
+        uri = f"api/v1/dataset/{dataset.id}?q=(columns:!(id,sql))&include_rendered_sql=true"  # noqa: E501
         rv = self.get_assert_metric(uri, "get")
         assert rv.status_code == 400
         response = json.loads(rv.data.decode("utf-8"))
@@ -2204,11 +2204,11 @@ class TestDatasetApi(SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "datasets/imported_dataset.yaml": "Dataset already exists and `overwrite=true` was not passed",
+                        "datasets/imported_dataset.yaml": "Dataset already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ],
                     },
@@ -2327,7 +2327,7 @@ class TestDatasetApi(SupersetTestCase):
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ]
                     },

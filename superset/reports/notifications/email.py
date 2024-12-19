@@ -91,7 +91,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
-            """,
+            """,  # noqa: E501
             text=text,
             url=self._content.url,
             call_to_action=call_to_action,

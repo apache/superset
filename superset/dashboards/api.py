@@ -481,7 +481,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
-        """
+        """  # noqa: E501
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
             result = self.tab_schema.dump(tabs)

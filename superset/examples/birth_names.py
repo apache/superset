@@ -851,7 +851,7 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
             "type": "ROW"
           }
         }
-        """
+        """  # noqa: E501
         )
     )
     # pylint: enable=line-too-long

@@ -272,14 +272,14 @@ class GitLogs:
 
     @staticmethod
     def _git_get_current_head() -> str:
-        output = os.popen("git status | head -1").read()
+        output = os.popen("git status | head -1").read()  # noqa: S605, S607
         match = re.match("(?:HEAD detached at|On branch) (.*)", output)
         if not match:
             return ""
         return match.group(1)
 
     def _git_checkout(self, git_ref: str) -> None:
-        os.popen(f"git checkout {git_ref}").read()
+        os.popen(f"git checkout {git_ref}").read()  # noqa: S605
         current_head = self._git_get_current_head()
         if current_head != git_ref:
             print(f"Could not checkout {git_ref}")
@@ -290,7 +290,7 @@ class GitLogs:
         current_git_ref = self._git_get_current_head()
         self._git_checkout(self._git_ref)
         output = (
-            os.popen('git --no-pager log --pretty=format:"%h|%an|%ae|%ad|%s|"')
+            os.popen('git --no-pager log --pretty=format:"%h|%an|%ae|%ad|%s|"')  # noqa: S605, S607
             .read()
             .split("\n")
         )

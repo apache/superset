@@ -129,7 +129,7 @@ def handle_api_exception(
     return functools.update_wrapper(wraps, f)
 
 
-def set_app_error_handlers(app: Flask) -> None:
+def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
     """
     Set up error handlers for the Flask app
     Refer to SIP-40 and SIP-41 for more details on the error handling strategy

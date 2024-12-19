@@ -120,7 +120,7 @@ def assign_uuids(
     for dialect, sql in uuid_by_dialect.items():
         if isinstance(bind.dialect, dialect):
             op.execute(
-                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"
+                f"UPDATE {dialect().identifier_preparer.quote(table_name)} SET uuid = {sql}"  # noqa: S608, E501
             )
             print(f"Done. Assigned {count} uuids in {time.time() - start_time:.3f}s.\n")
             return
@@ -210,7 +210,7 @@ def drop_fks_for_table(table_name: str) -> None:
         foreign_keys = inspector.get_foreign_keys(table_name)
         for fk in foreign_keys:
             logger.info(
-                f"Dropping foreign key {GREEN}{fk['name']}{RESET} from table {GREEN}{table_name}{RESET}..."
+                f"Dropping foreign key {GREEN}{fk['name']}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
             op.drop_constraint(fk["name"], table_name, type_="foreignkey")
 
@@ -225,7 +225,7 @@ def create_table(table_name: str, *columns: SchemaItem) -> None:
 
     :param table_name: The name of the table to be created.
     :param columns: A variable number of arguments representing the schema just like when calling alembic's method create_table()
-    """
+    """  # noqa: E501
 
     if has_table(table_name=table_name):
         logger.info(f"Table {LRED}{table_name}{RESET} already exists. Skipping...")
@@ -246,7 +246,7 @@ def drop_table(table_name: str) -> None:
     (handled by `drop_fks_for_table`) and then proceeds to drop the table.
 
     :param table_name: The name of the table to be dropped.
-    """
+    """  # noqa: E501
 
     if not has_table(table_name=table_name):
         logger.info(f"Table {GREEN}{table_name}{RESET} doesn't exist. Skipping...")
@@ -274,10 +274,10 @@ def batch_operation(
     the start index and the end index of the current batch.
     :param count: The total number of items to process.
     :param batch_size: The number of items to process in each batch.
-    """
+    """  # noqa: E501
     if count <= 0:
         logger.info(
-            f"No records to process in batch {LRED}(count <= 0){RESET} for callable {LRED}other_callable_example{RESET}. Skipping..."
+            f"No records to process in batch {LRED}(count <= 0){RESET} for callable {LRED}other_callable_example{RESET}. Skipping..."  # noqa: E501
         )
         return
     for offset in range(0, count, batch_size):
@@ -287,7 +287,7 @@ def batch_operation(
 
     logger.info(f"Progress: {count:,}/{count:,} (100%)")
     logger.info(
-        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed."
+        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed."  # noqa: E501
     )
 
 
@@ -302,13 +302,13 @@ def add_columns(table_name: str, *columns: Column) -> None:
 
     :param table_name: The name of the table to which the columns will be added.
     :param columns: A list of SQLAlchemy Column objects that define the name, type, and other attributes of the columns to be added.
-    """
+    """  # noqa: E501
 
     cols_to_add = []
     for col in columns:
         if table_has_column(table_name=table_name, column_name=col.name):
             logger.info(
-                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET}. Skipping..."
+                f"Column {LRED}{col.name}{RESET} already present on table {LRED}{table_name}{RESET}. Skipping..."  # noqa: E501
             )
         else:
             cols_to_add.append(col)
@@ -316,7 +316,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_add:
             logger.info(
-                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}..."
+                f"Adding column {GREEN}{col.name}{RESET} to table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
             batch_op.add_column(col)
 
@@ -332,13 +332,13 @@ def drop_columns(table_name: str, *columns: str) -> None:
 
     :param table_name: The name of the table from which the columns will be removed.
     :param columns: A list of column names to be dropped.
-    """
+    """  # noqa: E501
 
     cols_to_drop = []
     for col in columns:
         if not table_has_column(table_name=table_name, column_name=col):
             logger.info(
-                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET}. Skipping..."
+                f"Column {LRED}{col}{RESET} is not present on table {LRED}{table_name}{RESET}. Skipping..."  # noqa: E501
             )
         else:
             cols_to_drop.append(col)
@@ -346,7 +346,7 @@ def drop_columns(table_name: str, *columns: str) -> None:
     with op.batch_alter_table(table_name) as batch_op:
         for col in cols_to_drop:
             logger.info(
-                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}..."
+                f"Dropping column {GREEN}{col}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
             batch_op.drop_column(col)
 
@@ -361,11 +361,11 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
     :param table_name: The name of the table on which the index will be created.
     :param index_name: The name of the index to be created.
     :param columns: A list column names where the index will be created
-    """
+    """  # noqa: E501
 
     if table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET}. Skipping..."
+            f"Table {LRED}{table_name}{RESET} already has index {LRED}{index_name}{RESET}. Skipping..."  # noqa: E501
         )
         return
 
@@ -385,16 +385,16 @@ def drop_index(table_name: str, index_name: str) -> None:
 
     :param table_name: The name of the table from which the index will be dropped.
     :param index_name: The name of the index to be dropped.
-    """
+    """  # noqa: E501
 
     if not table_has_index(table=table_name, index=index_name):
         logger.info(
-            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET}. Skipping..."
+            f"Table {LRED}{table_name}{RESET} doesn't have index {LRED}{index_name}{RESET}. Skipping..."  # noqa: E501
         )
         return
 
     logger.info(
-        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}..."
+        f"Dropping index {GREEN}{index_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
     )
 
     op.drop_index(table_name=table_name, index_name=index_name)

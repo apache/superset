@@ -131,7 +131,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert col.is_numeric == (db_col_type == GenericDataType.NUMERIC)
             assert col.is_string == (db_col_type == GenericDataType.STRING)
 
-        for str_type, db_col_type in test_cases.items():
+        for str_type, db_col_type in test_cases.items():  # noqa: B007
             col = TableColumn(column_name="foo", type=str_type, table=tbl, is_dttm=True)
             assert col.is_temporal
 
@@ -321,7 +321,7 @@ class TestDatabaseModel(SupersetTestCase):
             sqla_query = table.get_sqla_query(**query_obj)
             sql = table.database.compile_sqla_query(sqla_query.sqla_query)
             if isinstance(filter_.expected, list):
-                assert any([candidate in sql for candidate in filter_.expected])
+                assert any([candidate in sql for candidate in filter_.expected])  # noqa: C419
             else:
                 assert filter_.expected in sql
 
@@ -524,7 +524,7 @@ class TestDatabaseModel(SupersetTestCase):
         db.session.commit()
 
 
-@pytest.fixture()
+@pytest.fixture
 def text_column_table(app_context: AppContext):
     table = SqlaTable(
         table_name="text_column_table",
@@ -542,7 +542,7 @@ def text_column_table(app_context: AppContext):
     )
     TableColumn(column_name="foo", type="VARCHAR(255)", table=table)
     SqlMetric(metric_name="count", expression="count(*)", table=table)
-    yield table
+    return table
 
 
 def test_values_for_column_on_text_column(text_column_table):
@@ -741,7 +741,7 @@ def test_should_generate_closed_and_open_time_filter_range(login_as_admin):
                UNION SELECT '2023-03-10'::timestamp) AS virtual_table
             WHERE datetime_col >= TO_TIMESTAMP('2022-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
               AND datetime_col < TO_TIMESTAMP('2023-01-01 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')
-    """
+    """  # noqa: E501
     assert result_object.df.iloc[0]["count"] == 2
 
 
@@ -769,7 +769,7 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
         assert result.df["count"][0] == expected["count"]
         assert expected["sql_should_contain"] in result.query.upper()
 
-    with pytest.raises(QueryObjectValidationError):
+    with pytest.raises(QueryObjectValidationError):  # noqa: PT012
         for flt in [
             FilterOperator.GREATER_THAN,
             FilterOperator.LESS_THAN,

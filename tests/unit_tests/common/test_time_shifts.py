@@ -16,7 +16,7 @@
 # under the License.
 from pandas import DataFrame, Series, Timestamp
 from pandas.testing import assert_frame_equal
-from pytest import fixture, mark
+from pytest import fixture, mark  # noqa: PT013
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext

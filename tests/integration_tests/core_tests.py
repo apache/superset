@@ -80,7 +80,7 @@ def cleanup():
     db.session.query(Query).delete()
     db.session.query(models.Log).delete()
     db.session.commit()
-    yield
+    return
 
 
 class TestCore(SupersetTestCase):
@@ -105,7 +105,7 @@ class TestCore(SupersetTestCase):
         )
         return dashboard
 
-    @pytest.fixture()
+    @pytest.fixture
     def insert_dashboard_created_by_gamma(self):
         dashboard = self.insert_dashboard_created_by("gamma")
         yield dashboard
@@ -113,14 +113,15 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_login(self):
-        resp = self.get_resp("/login/", data=dict(username="admin", password="general"))
+        resp = self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
         assert "User confirmation needed" not in resp
 
         resp = self.get_resp("/logout/", follow_redirects=True)
         assert "User confirmation needed" in resp
 
         resp = self.get_resp(
-            "/login/", data=dict(username="admin", password="wrongPassword")
+            "/login/",
+            data=dict(username="admin", password="wrongPassword"),  # noqa: S106, C408
         )
         assert "User confirmation needed" in resp
 
@@ -177,9 +178,9 @@ class TestCore(SupersetTestCase):
         slice_name = f"Energy Sankey"  # noqa: F541
         slice_id = self.get_slice(slice_name).id
         copy_name_prefix = "Test Sankey"
-        copy_name = f"{copy_name_prefix}[save]{random.random()}"
+        copy_name = f"{copy_name_prefix}[save]{random.random()}"  # noqa: S311
         tbl_id = self.table_ids.get("energy_usage")
-        new_slice_name = f"{copy_name_prefix}[overwrite]{random.random()}"
+        new_slice_name = f"{copy_name_prefix}[overwrite]{random.random()}"  # noqa: S311
 
         url = (
             "/superset/explore/table/{}/?slice_name={}&"
@@ -248,7 +249,7 @@ class TestCore(SupersetTestCase):
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(ADMIN_USERNAME)
-        Slc = Slice
+        Slc = Slice  # noqa: N806
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
@@ -275,7 +276,7 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 200
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_slices_V2(self):
+    def test_slices_V2(self):  # noqa: N802
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with explore-v2-beta role
         security_manager.add_role("explore-v2-beta")
@@ -286,11 +287,11 @@ class TestCore(SupersetTestCase):
             " user",
             "explore_beta@airbnb.com",
             security_manager.find_role("explore-v2-beta"),
-            password="general",
+            password="general",  # noqa: S106
         )
-        self.login(username="explore_beta", password="general")
+        self.login(username="explore_beta", password="general")  # noqa: S106
 
-        Slc = Slice
+        Slc = Slice  # noqa: N806
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [(slc.slice_name, "slice_url", slc.slice_url)]
@@ -320,7 +321,7 @@ class TestCore(SupersetTestCase):
         models.custom_password_store = custom_password_store
         conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
         if conn_pre.password:
-            assert conn.password == "password_store_test"
+            assert conn.password == "password_store_test"  # noqa: S105
             assert conn.password != conn_pre.password
         # Disable for password store for later tests
         models.custom_password_store = None
@@ -415,7 +416,7 @@ class TestCore(SupersetTestCase):
         assert 404 == resp.status_code
 
         value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))
+        resp = self.client.post("/kv/store/", data=dict(data=value))  # noqa: C408
         assert resp.status_code == 404
 
     @with_feature_flags(KV_STORE=True)
@@ -426,7 +427,7 @@ class TestCore(SupersetTestCase):
         assert 404 == resp.status_code
 
         value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))
+        resp = self.client.post("/kv/store/", data=dict(data=value))  # noqa: C408
         assert resp.status_code == 200
         kv = db.session.query(models.KeyValue).first()
         kv_value = kv.value
@@ -507,7 +508,7 @@ class TestCore(SupersetTestCase):
         )
         assert (
             json_str
-            == '[{"data": "2017-11-18T21:53:00.219225+01:00"}, {"data": "2017-11-18T22:06:30+01:00"}]'
+            == '[{"data": "2017-11-18T21:53:00.219225+01:00"}, {"data": "2017-11-18T22:06:30+01:00"}]'  # noqa: E501
         )
 
     def test_mssql_engine_spec_pymssql(self):
@@ -588,7 +589,7 @@ class TestCore(SupersetTestCase):
             "viz_type": "dist_bar",
             "url_params": {},
             "granularity_sqla": "ds",
-            "time_range": 'DATEADD(DATETIME("2021-01-22T00:00:00"), -100, year) : 2021-01-22T00:00:00',
+            "time_range": 'DATEADD(DATETIME("2021-01-22T00:00:00"), -100, year) : 2021-01-22T00:00:00',  # noqa: E501
             "metrics": [
                 {
                     "expressionType": "SIMPLE",
@@ -661,7 +662,7 @@ class TestCore(SupersetTestCase):
             GROUP BY name
             ORDER BY count_name DESC
             LIMIT 10;
-            """,
+            """,  # noqa: E501
             client_id="client_id_1",
             username="admin",
         )
@@ -749,7 +750,7 @@ class TestCore(SupersetTestCase):
     @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
     def test_explore_json_data(self, mock_force_cached, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
-        form_data = dict(
+        form_data = dict(  # noqa: C418
             {
                 "form_data": {
                     "datasource": f"{tbl_id}__table",
@@ -787,7 +788,7 @@ class TestCore(SupersetTestCase):
     )
     def test_explore_json_data_no_login(self, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
-        form_data = dict(
+        form_data = dict(  # noqa: C418
             {
                 "form_data": {
                     "datasource": f"{tbl_id}__table",

@@ -46,7 +46,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         TimeGrain.SECOND: "DATEADD(second, \
             'DATEDIFF(second, 2000-01-01', {col}), '2000-01-01')",
         TimeGrain.MINUTE: "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
-        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
+        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",  # noqa: E501
         TimeGrain.TEN_MINUTES: "DATEADD(minute, \
             DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
         TimeGrain.FIFTEEN_MINUTES: "DATEADD(minute, \

@@ -205,7 +205,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     engine_name: str | None = None  # for user messages, overridden in child classes
 
-    # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;
+    # These attributes map the DB engine spec to one or more SQLAlchemy dialects/drivers;  # noqa: E501
     # see the ``supports_url`` and ``supports_backend`` methods below.
     engine = "base"  # str as defined in sqlalchemy.engine.engine
     engine_aliases: set[str] = set()
@@ -410,12 +410,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # if True, database will be listed as option in the upload file form
     supports_file_upload = True
 
-    # Is the DB engine spec able to change the default schema? This requires implementing
+    # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
 
     # Does the DB support catalogs? A catalog here is a group of schemas, and has
-    # different names depending on the DB: BigQuery calles it a "project", Postgres calls
+    # different names depending on the DB: BigQuery calles it a "project", Postgres calls  # noqa: E501
     # it a "database", Trino calls it a "catalog", etc.
     #
     # When this is changed to true in a DB engine spec it MUST support the
@@ -433,7 +433,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     oauth2_scope = ""
     oauth2_authorization_request_uri: str | None = None  # pylint: disable=invalid-name
     oauth2_token_request_uri: str | None = None
-    oauth2_token_request_type = "data"
+    oauth2_token_request_type = "data"  # noqa: S105
 
     # Driver-specific exception that should be mapped to OAuth2RedirectError
     oauth2_exception = OAuth2RedirectError
@@ -690,7 +690,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str | None:
         """
         Return the schema configured in a SQLALchemy URI and connection arguments, if any.
-        """
+        """  # noqa: E501
         return None
 
     @classmethod
@@ -719,7 +719,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Determining the correct schema is crucial for managing access to data, so please
         make sure you understand this logic when working on a new DB engine spec.
-        """
+        """  # noqa: E501
         # dynamic schema varies on a per-query basis
         if cls.supports_dynamic_schema:
             return query.schema
@@ -808,7 +808,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             ...     connection = engine.connect()
             ...     connection.execute(sql)
 
-        """
+        """  # noqa: E501
         return database.get_sqla_engine(catalog=catalog, schema=schema, source=source)
 
     @classmethod
@@ -1101,7 +1101,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # old method that doesn't work with catalogs
         if hasattr(cls, "extra_table_metadata"):
-            warnings.warn(
+            warnings.warn(  # noqa: B028
                 "The `extra_table_metadata` method is deprecated, please implement "
                 "the `get_extra_table_metadata` method in the DB engine spec.",
                 DeprecationWarning,
@@ -1145,7 +1145,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return sql
 
     @classmethod
-    def apply_top_to_sql(cls, sql: str, limit: int) -> str:
+    def apply_top_to_sql(cls, sql: str, limit: int) -> str:  # noqa: C901
         """
         Alters the SQL statement to apply a TOP clause
         :param limit: Maximum number of rows to be returned by the query
@@ -1419,7 +1419,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         that when catalog support is added to Superset the interface remains the same.
         This is important because DB engine specs can be installed from 3rd party
         packages, so we want to keep these methods as stable as possible.
-        """
+        """  # noqa: E501
         return uri, {
             **connect_args,
             **cls.enforce_uri_query_params.get(uri.get_driver_name(), {}),

@@ -153,7 +153,7 @@ def test_excel_reader_wrong_columns_to_read():
             "__filename: string"
         )
         != (
-            "Parsing error: Usecols do not match columns, columns expected but not found: "
+            "Parsing error: Usecols do not match columns, columns expected but not found: "  # noqa: E501
             "['xpto'] (sheet: 0)"
         )
     )

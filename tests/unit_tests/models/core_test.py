@@ -634,16 +634,16 @@ def test_purge_oauth2_tokens(session: Session) -> None:
         DatabaseUserOAuth2Tokens(
             user_id=user.id,
             database_id=database1.id,
-            access_token="my_access_token",
+            access_token="my_access_token",  # noqa: S106
             access_token_expiration=datetime(2023, 1, 1),
-            refresh_token="my_refresh_token",
+            refresh_token="my_refresh_token",  # noqa: S106
         ),
         DatabaseUserOAuth2Tokens(
             user_id=user.id,
             database_id=database2.id,
-            access_token="my_other_access_token",
+            access_token="my_other_access_token",  # noqa: S106
             access_token_expiration=datetime(2024, 1, 1),
-            refresh_token="my_other_refresh_token",
+            refresh_token="my_other_refresh_token",  # noqa: S106
         ),
     ]
     session.add_all(tokens)
@@ -658,9 +658,9 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     )
     assert token.user_id == user.id
     assert token.database_id == database1.id
-    assert token.access_token == "my_access_token"
+    assert token.access_token == "my_access_token"  # noqa: S105
     assert token.access_token_expiration == datetime(2023, 1, 1)
-    assert token.refresh_token == "my_refresh_token"
+    assert token.refresh_token == "my_refresh_token"  # noqa: S105
 
     database1.purge_oauth2_tokens()
 
