@@ -1,0 +1,19 @@
+name: Label Draft PRs
+description: "Add `review:draft` label to pull requests that are opened as a draft or converted to a draft"
+on:
+  pull_request:
+    types:
+      - opened
+      - converted_to_draft
+jobs:
+  label-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Add `review:draft` Label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: "review:draft"
