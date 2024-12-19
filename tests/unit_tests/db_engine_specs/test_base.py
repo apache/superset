@@ -226,7 +226,7 @@ def test_select_star(mocker: MockerFixture) -> None:
 
     # mock the database so we can compile the query
     database = mocker.MagicMock()
-    database.compile_sqla_query = lambda query: str(
+    database.compile_sqla_query = lambda query, catalog, schema: str(
         query.compile(dialect=sqlite.dialect())
     )
 

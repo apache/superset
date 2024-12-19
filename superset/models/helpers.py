@@ -877,7 +877,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         mutate: bool = True,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
-        sql = self.database.compile_sqla_query(sqlaq.sqla_query)
+        sql = self.database.compile_sqla_query(
+            sqlaq.sqla_query,
+            catalog=self.catalog,
+            schema=self.schema,
+            is_virtual=bool(self.sql),
+        )
         sql = self._apply_cte(sql, sqlaq.cte)
 
         if mutate:
