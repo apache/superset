@@ -43,7 +43,6 @@ export enum VizType {
   LegacyHeatmap = 'heatmap',
   LegacyHistogram = 'histogram',
   LegacyLine = 'line',
-  LegacySankey = 'sankey',
   Line = 'echarts_timeseries_line',
   MapBox = 'mapbox',
   MixedTimeseries = 'mixed_timeseries',
