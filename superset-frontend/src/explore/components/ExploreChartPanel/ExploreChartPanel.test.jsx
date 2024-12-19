@@ -36,11 +36,11 @@ const createProps = (overrides = {}) => ({
   containerId: 'foo',
   width: '500px',
   isStarred: false,
-  vizType: VizType.LegacyHistogram,
+  vizType: VizType.Histogram,
   chart: {
     id: 1,
     latestQueryFormData: {
-      viz_type: VizType.LegacyHistogram,
+      viz_type: VizType.Histogram,
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
@@ -74,7 +74,7 @@ describe('ChartContainer', () => {
       chart: { chartStatus: 'rendered', queriesResponse: [{}] },
     });
     getChartMetadataRegistry().registerValue(
-      VizType.LegacyHistogram,
+      VizType.Histogram,
       new ChartMetadata({
         name: 'fake table',
         thumbnail: '.png',
