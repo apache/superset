@@ -45,7 +45,7 @@
     "@types/react-loadable": "^5.5.11",
     "antd": "4.10.3",
     "core-js": "3.38.1",
-    "gh-pages": "^5.0.0",
+    "gh-pages": "^6.2.0",
     "jquery": "^3.7.1",
     "memoize-one": "^5.2.1",
     "react": "^16.13.1",
