@@ -23,6 +23,7 @@ permissions:
 
 jobs:
   dependency-review:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-22.04
     steps:
       - name: "Checkout Repository"
@@ -53,10 +54,12 @@ jobs:
 
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+        with:
+          requirements-type: base
 
       - name: "Set up liccheck"
         run: |
-          pip install liccheck
+          uv pip install --system liccheck
       - name: "Run liccheck"
         run: |
           # run the checks
