@@ -259,7 +259,7 @@ polyline==2.0.2
 prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.48
-    # via click-
+    # via click-repl
 pyarrow==18.1.0
     # via apache-superset (pyproject.toml)
 pyasn1==0.6.1
