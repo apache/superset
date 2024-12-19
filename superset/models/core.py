@@ -458,7 +458,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     sqlalchemy_uri=sqlalchemy_uri,
                 )
 
-    def _get_sqla_engine(  # pylint: disable=too-many-locals
+    def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
         catalog: str | None = None,
         schema: str | None = None,
@@ -584,7 +584,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         ) as engine:
             try:
                 with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected schema and, in the
+                    # pre-session queries are used to set the selected schema and, in the  # noqa: E501
                     # future, the selected catalog
                     for prequery in self.db_engine_spec.get_prequeries(
                         database=self,
@@ -626,7 +626,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         can change the default schema on a per-query basis; in other DB engine specs the
         default schema is defined in the SQLAlchemy URI; and in others the default schema
         might be determined by the database itself (like `public` for Postgres).
-        """
+        """  # noqa: E501
         return self.db_engine_spec.get_default_schema_for_query(self, query)
 
     @staticmethod
@@ -661,7 +661,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
           sql is broken down into smaller queries. If False, the SQL query mutator applies
           on the group of queries as a whole. Here the called passes the context
           as to whether the SQL is split or already.
-        """
+        """  # noqa: E501
         sql_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
@@ -1069,7 +1069,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return f"[{self.database_name}].(id:{self.id})"
 
     @perm.expression  # type: ignore
-    def perm(cls) -> str:  # pylint: disable=no-self-argument
+    def perm(cls) -> str:  # pylint: disable=no-self-argument  # noqa: N805
         return (
             "[" + cls.database_name + "].(id:" + expression.cast(cls.id, String) + ")"
         )

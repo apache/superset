@@ -119,7 +119,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
-    def process_tab_diff(self) -> None:
+    def process_tab_diff(self) -> None:  # noqa: C901
         def find_deleted_tabs() -> list[str]:
             position_json = self._properties.get("position_json", "")
             current_tabs = self._model.tabs  # type: ignore
@@ -143,7 +143,7 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 """
                 The dashboard tab used in this report has been deleted and your report has been deactivated.
                 Please update your report settings to remove or change the tab used.
-                """
+                """  # noqa: E501
             )
 
             html_content = textwrap.dedent(

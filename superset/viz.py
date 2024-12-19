@@ -297,7 +297,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         if not df.empty:
             utils.normalize_dttm_col(
                 df=df,
-                dttm_cols=tuple(
+                dttm_cols=tuple(  # noqa: C409
                     [
                         DateColumn.get_legacy_time_column(
                             timestamp_format=timestamp_format,
@@ -514,7 +514,7 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return payload
 
     @deprecated(deprecated_in="3.0")
-    def get_df_payload(  # pylint: disable=too-many-statements
+    def get_df_payload(  # pylint: disable=too-many-statements  # noqa: C901
         self, query_obj: QueryObjectDict | None = None, **kwargs: Any
     ) -> dict[str, Any]:
         """Handles caching around the df payload retrieval"""
@@ -753,7 +753,7 @@ class CalHeatmapViz(BaseViz):
     is_timeseries = True
 
     @deprecated(deprecated_in="3.0")
-    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=too-many-locals
+    def get_data(self, df: pd.DataFrame) -> VizData:  # pylint: disable=too-many-locals  # noqa: C901
         if df.empty:
             return None
 
@@ -940,7 +940,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return query_obj
 
     @deprecated(deprecated_in="3.0")
-    def to_series(  # pylint: disable=too-many-branches
+    def to_series(  # pylint: disable=too-many-branches  # noqa: C901
         self, df: pd.DataFrame, classed: str = "", title_suffix: str = ""
     ) -> list[dict[str, Any]]:
         cols = []

@@ -922,7 +922,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         mock_database = mock.MagicMock()
         mock_cursor = mock.MagicMock()
         mock_cursor.execute.side_effect = Exception()
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             PrestoEngineSpec.estimate_statement_cost(
                 mock_database, "DROP TABLE brth_names", mock_cursor
             )
@@ -946,7 +946,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         database.get_raw_connection().__enter__().cursor().execute = mock_execute
         schema = "schema"
         table = "table"
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             PrestoEngineSpec.get_create_view(database, schema=schema, table=table)
 
     def test_get_create_view_database_error(self):
@@ -997,7 +997,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1002,
-                            "message": "Issue 1002 - The database returned an unexpected error.",
+                            "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                         }
                     ],
                 },
@@ -1016,11 +1016,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1004,
-                            "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                            "message": "Issue 1004 - The column was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -1031,7 +1031,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message="The table \"'tpch.tiny.region2'\" does not exist. A valid table must be used to run this query.",
+                message="The table \"'tpch.tiny.region2'\" does not exist. A valid table must be used to run this query.",  # noqa: E501
                 error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -1039,11 +1039,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -1054,7 +1054,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         result = PrestoEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='The schema "tin" does not exist. A valid schema must be used to run this query.',
+                message='The schema "tin" does not exist. A valid schema must be used to run this query.',  # noqa: E501
                 error_type=SupersetErrorType.SCHEMA_DOES_NOT_EXIST_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -1062,11 +1062,11 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                         },
                         {
                             "code": 1016,
-                            "message": "Issue 1005 - The schema was deleted or renamed in the database.",
+                            "message": "Issue 1005 - The schema was deleted or renamed in the database.",  # noqa: E501
                         },
                     ],
                 },
@@ -1085,14 +1085,14 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
+                            "message": "Issue 1014 - Either the username or the password is wrong.",  # noqa: E501
                         }
                     ],
                 },
             )
         ]
 
-        msg = "Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known"
+        msg = "Failed to establish a new connection: [Errno 8] nodename nor servname provided, or not known"  # noqa: E501
         result = PrestoEngineSpec.extract_errors(
             Exception(msg), {"hostname": "badhost"}
         )
@@ -1106,7 +1106,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1007,
-                            "message": "Issue 1007 - The hostname provided can't be resolved.",
+                            "message": "Issue 1007 - The hostname provided can't be resolved.",  # noqa: E501
                         }
                     ],
                 },
@@ -1119,7 +1119,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
         )
         assert result == [
             SupersetError(
-                message='The host "badhost" might be down, and can\'t be reached on port 12345.',
+                message='The host "badhost" might be down, and can\'t be reached on port 12345.',  # noqa: E501
                 error_type=SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={
@@ -1127,7 +1127,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1009,
-                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                            "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",  # noqa: E501
                         }
                     ],
                 },
@@ -1164,7 +1164,7 @@ class TestPrestoDbEngineSpec(TestDbEngineSpec):
                     "issue_codes": [
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",  # noqa: E501
                         }
                     ],
                 },
