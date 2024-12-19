@@ -53,7 +53,6 @@ dependencies = [
     "flask-migrate>=3.1.0, <4.0",
     "flask-session>=0.4.0, <1.0",
     "flask-wtf>=1.1.0, <2.0",
-    "func_timeout",
     "geopy",
     "greenlet>=3.0.3, <=3.1.1",
     "gunicorn>=22.0.0; sys_platform != 'win32'",
@@ -391,6 +390,5 @@ python-geohash = "0"
 # --------------------------------------------------------------
 
 # TODO REMOVE THESE DEPS FROM CODEBASE
-func-timeout = "4"  # AGPL
 paramiko = "3"  # GPL
 pyxlsb = "1"  # GPL
