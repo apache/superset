@@ -18,6 +18,7 @@
  * under the License.
  */
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const webpack = require('webpack');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
@@ -26,7 +27,9 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
+const CompressionPlugin = require('compression-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const {
   WebpackManifestPlugin,
   getCompilerHooks,
@@ -71,6 +74,12 @@ const {
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
+
+// Thread pool configuration for parallel processing
+const THREAD_POOL = {
+  workers: os.cpus().length - 1, // Leave one core free for OS
+  poolTimeout: isDevMode ? Infinity : 2000,
+};
 
 const output = {
   path: BUILD_DIR,
@@ -179,7 +188,15 @@ if (!isDevMode) {
   );
 
   // Runs type checking on a separate process to speed up the build
-  plugins.push(new ForkTsCheckerWebpackPlugin());
+  plugins.push(
+    new ForkTsCheckerWebpackPlugin(),
+    new CompressionPlugin({
+      algorithm: 'gzip',
+      test: /\.(js|css|html|svg)$/,
+      threshold: 10240,
+      minRatio: 0.8,
+    }),
+  );
 }
 
 const PREAMBLE = [path.join(APP_DIR, '/src/preamble.ts')];
@@ -316,7 +333,19 @@ const config = {
       },
     },
     usedExports: 'global',
-    minimizer: [new CssMinimizerPlugin(), '...'],
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        terserOptions: {
+          compress: {
+            passes: 2,
+          },
+        },
+      }),
+      new CssMinimizerPlugin({
+        parallel: true,
+      }),
+    ],
   },
   resolve: {
     // resolve modules from `/superset_frontend/node_modules` and `/superset_frontend`
@@ -366,7 +395,10 @@ const config = {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/],
         use: [
-          'thread-loader',
+          {
+            loader: 'thread-loader',
+            options: THREAD_POOL,
+          },
           babelLoader,
           {
             loader: 'ts-loader',
@@ -399,7 +431,13 @@ const config = {
           ), // redundant but required for windows
           /@encodable/,
         ],
-        use: [babelLoader],
+        use: [
+          {
+            loader: 'thread-loader',
+            options: THREAD_POOL,
+          },
+          babelLoader,
+        ],
       },
       {
         test: /ace-builds.*\/worker-.*$/,
