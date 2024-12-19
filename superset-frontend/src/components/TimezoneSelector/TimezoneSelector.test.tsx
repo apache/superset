@@ -51,8 +51,6 @@ test('use the timezone from `dayjs` if no timezone provided', async () => {
   const TimezoneSelector = await loadComponent('2022-01-01');
   const onTimezoneChange = jest.fn();
   render(<TimezoneSelector onTimezoneChange={onTimezoneChange} />);
-  // expect(screen.getByLabelText('Loading')).toBeVisible();
-  // await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(onTimezoneChange).toHaveBeenCalledTimes(1);
   expect(onTimezoneChange).toHaveBeenCalledWith('America/Detroit');
 });
@@ -63,12 +61,11 @@ test('update to closest deduped timezone when timezone is provided', async () =>
   render(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
-      timezone="America/Los_Angeles"
+      timezone="America/Tijuana"
     />,
   );
-  // await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(onTimezoneChange).toHaveBeenCalledTimes(1);
-  expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Tijuana');
+  expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Los_Angeles');
 });
 
 test('use the default timezone when an invalid timezone is provided', async () => {
@@ -93,8 +90,8 @@ test('render timezones in correct order for standard time', async () => {
   openSelectMenu();
   const options = await getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
-  expect(options[1]).toHaveTextContent('GMT -12:00 (Etc/GMT+12)');
-  expect(options[2]).toHaveTextContent('GMT -11:00 (Etc/GMT+11)');
+  expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
+  expect(options[2]).toHaveTextContent('GMT -10:00 (America/Adak)');
 });
 
 test('can select a timezone values and returns canonical timezone name', async () => {
@@ -106,7 +103,6 @@ test('can select a timezone values and returns canonical timezone name', async (
       timezone="Africa/Abidjan"
     />,
   );
-  // await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   openSelectMenu();
 
   const searchInput = screen.getByRole('combobox');

@@ -20,7 +20,6 @@
 import { useEffect, useMemo } from 'react';
 import { t } from '@superset-ui/core';
 import { Select } from 'src/components';
-import Loading from 'src/components/Loading';
 import { isDST, extendedDayjs } from 'src/utils/dates';
 
 const DEFAULT_TIMEZONE = {
@@ -76,18 +75,19 @@ export default function TimezoneSelector({
         );
       };
 
+      const dedupedTimezones = new Map();
+
       // TODO: remove this ts-ignore when typescript is upgraded to 5.1
       // @ts-ignore
       const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
 
-      const TIMEZONES: string[] = [];
       ALL_ZONES.forEach(zone => {
-        if (
-          !TIMEZONES.find(option => getOffsetKey(option) === getOffsetKey(zone))
-        ) {
-          TIMEZONES.push(zone); // dedupe zones by offsets
+        const offsetKey = getOffsetKey(zone);
+        if (!dedupedTimezones.has(offsetKey)) {
+          dedupedTimezones.set(offsetKey, zone);
         }
       });
+      const TIMEZONES: string[] = Array.from(dedupedTimezones.values());
 
       const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
         label: `GMT ${extendedDayjs
@@ -130,10 +130,6 @@ export default function TimezoneSelector({
       onTimezoneChange(validTimezone);
     }
   }, [validTimezone, onTimezoneChange, timezone]);
-
-  if (!TIMEZONE_OPTIONS || !TIMEZONE_OPTIONS_SORT_COMPARATOR) {
-    return <Loading position="inline-centered" />;
-  }
 
   return (
     <Select
