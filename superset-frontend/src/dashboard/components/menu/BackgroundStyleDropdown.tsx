@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
-import cx from 'classnames';
 import { css, styled, t } from '@superset-ui/core';
+import cx from 'classnames';
+import { PureComponent } from 'react';
 
-import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {
-  OptionProps,
   OnChangeHandler,
+  OptionProps,
 } from 'src/components/PopoverDropdown';
+import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 
 interface BackgroundStyleDropdownProps {
   id: string;
@@ -62,7 +62,11 @@ const BackgroundStyleOption = styled.div`
           ${theme.colors.text.label} 25%,
           transparent 25%
         ),
-        linear-gradient(-45deg, ${theme.colors.text.label} 25%, transparent 25%),
+        linear-gradient(
+          -45deg,
+          ${theme.colors.text.label} 25%,
+          transparent 25%
+        ),
         linear-gradient(45deg, transparent 75%, ${theme.colors.text.label} 75%),
         linear-gradient(-45deg, transparent 75%, ${theme.colors.text.label} 75%);
       background-size: ${theme.gridUnit * 2}px ${theme.gridUnit * 2}px;
