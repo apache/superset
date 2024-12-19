@@ -15,15 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Functions to reproduce the post-processing of data on text charts.
+Functions to reproduce the client post-processing of data on charts.
 
-Some text-based charts (pivot tables and t-test table) perform
-post-processing of the data in JavaScript. When sending the data
-to users in reports we want to show the same data they would see
-on Explore.
+Some text-based charts (pivot tables and t-test table) perform post-processing of the
+data in JavaScript. When sending the data to users in reports we want to show the same
+data they would see on Explore.
 
-In order to do that, we reproduce the post-processing in Python
-for these chart types.
+In order to do that, we reproduce the post-processing in Python for these chart types.
 """
 
 from io import StringIO
@@ -298,7 +296,7 @@ post_processors = {
 
 
 @event_logger.log_this
-def apply_post_process(  # noqa: C901
+def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
