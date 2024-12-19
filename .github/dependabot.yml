@@ -22,8 +22,7 @@ updates:
 
 
   # - package-ecosystem: "pip"
-  # NOTE: as dependabot isn't compatible with our python
-  # dependency setup (pip-compile-multi), we'll be using
+  # NOTE: as dependabot isn't compatible with our usage of `uv pip compile` we're using
   # `supersetbot` instead
 
   - package-ecosystem: "npm"
