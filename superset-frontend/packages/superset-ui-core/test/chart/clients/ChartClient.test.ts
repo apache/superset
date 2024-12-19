@@ -102,13 +102,13 @@ describe('ChartClient', () => {
           formData: {
             datasource: '1__table',
             granularity: 'minute',
-            viz_type: VizType.LegacyLine,
+            viz_type: VizType.Line,
           },
         }),
       ).resolves.toEqual({
         datasource: '1__table',
         granularity: 'minute',
-        viz_type: VizType.LegacyLine,
+        viz_type: VizType.Line,
       }));
     it('rejects if none of sliceId or formData is specified', () =>
       expect(
@@ -256,7 +256,7 @@ describe('ChartClient', () => {
     it('loadAllDataNecessaryForAChart', () => {
       fetchMock.get(`glob:*/api/v1/form_data/?slice_id=${sliceId}`, {
         granularity: 'minute',
-        viz_type: VizType.LegacyLine,
+        viz_type: VizType.Line,
         datasource: '1__table',
         color: 'living-coral',
       });
@@ -276,12 +276,12 @@ describe('ChartClient', () => {
       });
 
       getChartMetadataRegistry().registerValue(
-        VizType.LegacyLine,
+        VizType.Line,
         new ChartMetadata({ name: 'Line', thumbnail: '.gif' }),
       );
 
       getChartBuildQueryRegistry().registerValue(
-        VizType.LegacyLine,
+        VizType.Line,
         (formData: QueryFormData) => buildQueryContext(formData),
       );
 
@@ -297,7 +297,7 @@ describe('ChartClient', () => {
         },
         formData: {
           granularity: 'minute',
-          viz_type: VizType.LegacyLine,
+          viz_type: VizType.Line,
           datasource: '1__table',
           color: 'living-coral',
         },

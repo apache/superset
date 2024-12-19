@@ -39,8 +39,6 @@ export enum VizType {
   Horizon = 'horizon',
   LegacyArea = 'area',
   LegacyBubble = 'bubble',
-  LegacyHistogram = 'histogram',
-  LegacyLine = 'line',
   Line = 'echarts_timeseries_line',
   MapBox = 'mapbox',
   MixedTimeseries = 'mixed_timeseries',

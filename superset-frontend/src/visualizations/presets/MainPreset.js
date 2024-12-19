@@ -39,7 +39,6 @@ import {
   BubbleChartPlugin,
   BulletChartPlugin,
   CompareChartPlugin,
-  LineChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
 import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
@@ -121,7 +120,6 @@ export default class MainPreset extends Preset {
           key: VizType.MixedTimeseries,
         }),
         new HorizonChartPlugin().configure({ key: VizType.Horizon }),
-        new LineChartPlugin().configure({ key: VizType.LegacyLine }),
         new MapBoxChartPlugin().configure({ key: VizType.MapBox }),
         new PairedTTestChartPlugin().configure({ key: VizType.PairedTTest }),
         new ParallelCoordinatesChartPlugin().configure({

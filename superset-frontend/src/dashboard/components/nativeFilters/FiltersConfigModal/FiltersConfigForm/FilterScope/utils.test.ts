@@ -2886,7 +2886,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.LegacyLine,
+        viz_type: VizType.Line,
         slice_id: 95,
         url_params: {
           preselect_filters:

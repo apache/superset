@@ -139,7 +139,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20130%7D',
       slice_name: 'Growth Rate',
       form_data: {},
-      viz_type: VizType.LegacyLine,
+      viz_type: VizType.Line,
       datasource: '2__table',
       description: '',
       description_markdown: '',

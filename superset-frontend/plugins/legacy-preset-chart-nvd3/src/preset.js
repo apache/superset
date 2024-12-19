@@ -22,7 +22,6 @@ import BoxPlotChartPlugin from './BoxPlot';
 import BubbleChartPlugin from './Bubble';
 import BulletChartPlugin from './Bullet';
 import CompareChartPlugin from './Compare';
-import LineChartPlugin from './Line';
 import PieChartPlugin from './Pie';
 import TimePivotChartPlugin from './TimePivot';
 
@@ -36,7 +35,6 @@ export default class NVD3ChartPreset extends Preset {
         new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }),
         new BulletChartPlugin().configure({ key: VizType.Bullet }),
         new CompareChartPlugin().configure({ key: VizType.Compare }),
-        new LineChartPlugin().configure({ key: VizType.LegacyLine }),
         new PieChartPlugin().configure({ key: VizType.Pie }),
         new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
       ],
