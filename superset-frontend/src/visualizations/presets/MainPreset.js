@@ -25,7 +25,6 @@ import {
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import EventFlowChartPlugin from '@superset-ui/legacy-plugin-chart-event-flow';
 import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
@@ -113,7 +112,6 @@ export default class MainPreset extends Preset {
         new ChordChartPlugin().configure({ key: VizType.Chord }),
         new CompareChartPlugin().configure({ key: VizType.Compare }),
         new CountryMapChartPlugin().configure({ key: VizType.CountryMap }),
-        new EventFlowChartPlugin().configure({ key: VizType.EventFlow }),
         new EchartsFunnelChartPlugin().configure({ key: VizType.Funnel }),
         new EchartsSankeyChartPlugin().configure({ key: VizType.Sankey }),
         new EchartsTreemapChartPlugin().configure({ key: VizType.Treemap }),

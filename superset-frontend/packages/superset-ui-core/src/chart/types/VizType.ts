@@ -30,7 +30,6 @@ export enum VizType {
   Chord = 'chord',
   Compare = 'compare',
   CountryMap = 'country_map',
-  EventFlow = 'event_flow',
   Funnel = 'funnel',
   Gauge = 'gauge_chart',
   Graph = 'graph_chart',
