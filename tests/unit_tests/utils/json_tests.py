@@ -183,7 +183,7 @@ def test_sensitive_fields() -> None:
     }
 
     new_payload = copy.deepcopy(redacted_payload)
-    new_payload["credentials"]["user_token"] = "NEW_TOKEN"
+    new_payload["credentials"]["user_token"] = "NEW_TOKEN"  # noqa: S105
 
     assert json.reveal_sensitive(payload, new_payload, sensitive_fields) == {
         "password": "SECRET",

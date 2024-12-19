@@ -306,7 +306,7 @@ class ChartDataRestApi(ChartRestApi):
             cached_data = self._load_query_context_form_from_cache(cache_key)
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            setattr(g, "form_data", cached_data)
+            g.form_data = cached_data
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()
@@ -343,7 +343,7 @@ class ChartDataRestApi(ChartRestApi):
         result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
 
-    def _send_chart_response(
+    def _send_chart_response(  # noqa: C901
         self,
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
@@ -399,17 +399,19 @@ class ChartDataRestApi(ChartRestApi):
                 for query in queries:
                     with contextlib.suppress(KeyError):
                         del query["query"]
-            response_data = json.dumps(
-                {"result": queries},
-                default=json.json_int_dttm_ser,
-                ignore_nan=True,
-            )
+            with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
+                response_data = json.dumps(
+                    {"result": queries},
+                    default=json.json_int_dttm_ser,
+                    ignore_nan=True,
+                )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
+    @event_logger.log_this
     def _get_data_response(
         self,
         command: ChartDataCommand,
@@ -435,11 +437,13 @@ class ChartDataRestApi(ChartRestApi):
     ) -> dict[str, Any]:
         return {
             "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
-            "dataset_id": form_data.get("datasource", {}).get("id")
-            if isinstance(form_data.get("datasource"), dict)
-            and form_data.get("datasource", {}).get("type")
-            == DatasourceType.TABLE.value
-            else None,
+            "dataset_id": (
+                form_data.get("datasource", {}).get("id")
+                if isinstance(form_data.get("datasource"), dict)
+                and form_data.get("datasource", {}).get("type")
+                == DatasourceType.TABLE.value
+                else None
+            ),
             "slice_id": form_data.get("form_data", {}).get("slice_id"),
         }
 

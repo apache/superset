@@ -38,20 +38,17 @@ repos:
             types-paramiko,
             types-Markdown,
           ]
-  - repo: https://github.com/peterdemin/pip-compile-multi
-    rev: v2.6.4
-    hooks:
-      - id: pip-compile-multi-verify
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
+        exclude: .*/lerna\.json$
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
@@ -80,17 +77,3 @@ repos:
       - id: ruff
         args: [ --fix ]
       - id: ruff-format
-  - repo: local
-    hooks:
-      - id: pylint
-        name: pylint
-        entry: pylint
-        language: system
-        types: [python]
-        exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
-        args:
-          [
-            "-rn", # Only display messages
-            "-sn", # Don't display the score
-            "--rcfile=.pylintrc",
-          ]

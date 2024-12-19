@@ -32,7 +32,7 @@ from selenium.common.exceptions import (
 from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset import feature_flag_manager
@@ -133,7 +133,7 @@ class WebDriverPlaywright(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements
+    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
         with sync_playwright() as playwright:
@@ -162,7 +162,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
             except PlaywrightTimeout:
                 logger.exception(
-                    "Web event %s not detected. Page %s might not have been fully loaded",
+                    "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
                     current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
                 )
@@ -226,7 +226,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
                         logger.warning(
-                            "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                            "%i errors found in the screenshot. URL: %s. Errors are: %s",  # noqa: E501
                             len(unexpected_errors),
                             url,
                             unexpected_errors,
@@ -285,11 +285,11 @@ class WebDriverSelenium(WebDriverProxy):
         # and catch-all exceptions
         try:
             retry_call(driver.close, max_tries=tries)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
         try:
             driver.quit()
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
 
     @staticmethod
