@@ -112,6 +112,9 @@ jobs:
     concurrency:
       group: ${{ github.workflow }}-${{ github.event.inputs.issue_number || github.event.issue.number || github.run_id }}-build
       cancel-in-progress: true
+    env:
+      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
     needs: ephemeral-env-comment
     if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: ephemeral-docker-build
