@@ -17,12 +17,11 @@
 """
 Functions to reproduce the client post-processing of data on charts.
 
-Some text-based charts (pivot tables and t-test table) perform post-processing of the data
-in JavaScript. When sending the data to users in reports we want to show the same data
-they would see on Explore.
+Some text-based charts (pivot tables and t-test table) perform post-processing of the
+data in JavaScript. When sending the data to users in reports we want to show the same
+data they would see on Explore.
 
-In order to do that, we reproduce the post-processing in Python
-for these chart types.
+In order to do that, we reproduce the post-processing in Python for these chart types.
 """
 
 from io import StringIO
