@@ -26,7 +26,7 @@
   "dependencies": {
     "@deck.gl/aggregation-layers": "^9.0.37",
     "@deck.gl/core": "^9.0.37",
-    "@deck.gl/layers": "^9.0.37",
+    "@deck.gl/layers": "^9.0.38",
     "@deck.gl/react": "^9.0.37",
     "@mapbox/geojson-extent": "^1.0.1",
     "@math.gl/web-mercator": "^3.2.2",
