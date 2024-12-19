@@ -24,6 +24,7 @@ import {
   RefObject,
 } from 'react';
 
+// TODO: @msyavuz - Replace with dayjs after migrating datepicker to antd5
 import moment, { Moment } from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';

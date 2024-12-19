@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: @msyavuz - Replace this with dayjs after datepicker migration
 import moment, { Moment } from 'moment';
 import { CustomRangeType } from 'src/explore/components/controls/DateFilterControl/types';
 import { MOMENT_FORMAT } from './constants';

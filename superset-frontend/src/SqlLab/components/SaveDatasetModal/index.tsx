@@ -35,7 +35,7 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -164,7 +164,7 @@ export const SaveDatasetModal = ({
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${dayjs().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SaveNew,
