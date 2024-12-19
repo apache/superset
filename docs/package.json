@@ -22,7 +22,7 @@
     "@docsearch/react": "^3.6.3",
     "@docusaurus/core": "^3.5.2",
     "@docusaurus/plugin-client-redirects": "^3.5.2",
-    "@docusaurus/preset-classic": "^3.5.2",
+    "@docusaurus/preset-classic": "^3.6.3",
     "@emotion/core": "^10.1.1",
     "@emotion/styled": "^10.0.27",
     "@mdx-js/react": "^3.1.0",
