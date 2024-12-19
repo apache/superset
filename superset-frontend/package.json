@@ -354,7 +354,7 @@
     "ts-loader": "^9.5.1",
     "typescript": "^4.8.4",
     "vm-browserify": "^1.1.2",
-    "webpack": "^5.94.0",
+    "webpack": "^5.97.1",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.15.1",
