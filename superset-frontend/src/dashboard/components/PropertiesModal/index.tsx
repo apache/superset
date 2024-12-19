@@ -302,6 +302,7 @@ const PropertiesModal = ({
         content: t('A valid color scheme is required'),
         okButtonProps: { danger: true, className: 'btn-danger' },
       });
+      onHide();
       throw new Error('A valid color scheme is required');
     }
 

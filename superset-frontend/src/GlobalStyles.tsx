@@ -39,34 +39,37 @@ export const GlobalStyles = () => (
       .echarts-tooltip[style*='visibility: hidden'] {
         display: none !important;
       }
-      // TODO: Remove when on Ant Design 5.
-      // Check src/components/Modal for more info.
-      .modal-functions-ok-button {
-        border-radius: ${theme.borderRadius}px;
-        background: ${theme.colors.primary.base};
-        border: none;
-        color: ${theme.colors.grayscale.light5};
-        line-height: 1.5715;
-        font-size: ${theme.typography.sizes.s}px;
-        font-weight: ${theme.typography.weights.bold};
-        &:hover {
-          background: ${theme.colors.primary.dark1};
-        }
+      .antd5-dropdown,
+      .ant-dropdown {
+        z-index: ${theme.zIndex.max};
       }
-      .modal-functions-cancel-button {
-        border-radius: ${theme.borderRadius}px;
-        background: ${theme.colors.primary.light4};
-        border: none;
-        color: ${theme.colors.primary.dark1};
-        line-height: 1.5715;
-        font-size: ${theme.typography.sizes.s}px;
-        font-weight: ${theme.typography.weights.bold};
-        &:hover {
-          background: ${mix(
-            0.1,
-            theme.colors.primary.base,
-            theme.colors.primary.light4,
-          )};
+      // TODO: Remove when buttons have been upgraded to Ant Design 5.
+      // Check src/components/Modal for more info.
+      .ant-modal-confirm {
+        button {
+          border: none;
+          border-radius: ${theme.borderRadius}px;
+          line-height: 1.5715;
+          font-size: ${theme.typography.sizes.s}px;
+          font-weight: ${theme.typography.weights.bold};
+        }
+        .ant-btn-primary:not(.btn-danger) {
+          background: ${theme.colors.primary.base};
+          color: ${theme.colors.grayscale.light5};
+          &:hover {
+            background: ${theme.colors.primary.dark1};
+          }
+        }
+        .ant-btn-default:not(.btn-danger) {
+          background: ${theme.colors.primary.light4};
+          color: ${theme.colors.primary.dark1};
+          &:hover {
+            background: ${mix(
+              0.1,
+              theme.colors.primary.base,
+              theme.colors.primary.light4,
+            )};
+          }
         }
       }
       .column-config-popover {

@@ -428,7 +428,7 @@ export default function DrillByModal({
   return (
     <Modal
       css={css`
-        .ant-modal-footer {
+        .antd5-modal-footer {
           border-top: none;
         }
       `}
