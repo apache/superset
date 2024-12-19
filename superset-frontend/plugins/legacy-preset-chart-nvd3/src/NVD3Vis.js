@@ -45,18 +45,15 @@ import isTruthy from './utils/isTruthy';
 import {
   cleanColorInput,
   computeYDomain,
-  computeStackedYDomain,
   drawBarValues,
   generateBubbleTooltipContent,
   generateCompareTooltipContent,
   generateTimePivotTooltip,
   generateTooltipClassName,
-  generateAreaChartTooltipContent,
   getMaxLabelSize,
   getTimeOrNumberFormatter,
   hideTooltips,
   tipFactory,
-  tryNumify,
   removeTooltip,
   setAxisShowMaxMin,
   stringifyTimeRange,
@@ -127,11 +124,7 @@ const BREAKPOINTS = {
   small: 340,
 };
 
-const TIMESERIES_VIZ_TYPES = [
-  VizType.LegacyArea,
-  VizType.Compare,
-  VizType.TimePivot,
-];
+const TIMESERIES_VIZ_TYPES = [VizType.Compare, VizType.TimePivot];
 
 const CHART_ID_PREFIX = 'chart-id-';
 
@@ -185,9 +178,7 @@ const propTypes = {
   onError: PropTypes.func,
   showLegend: PropTypes.bool,
   showMarkers: PropTypes.bool,
-  useRichTooltip: PropTypes.bool,
   vizType: PropTypes.oneOf([
-    VizType.LegacyArea,
     VizType.BoxPlot,
     'bubble',
     VizType.Bullet,
@@ -207,15 +198,9 @@ const propTypes = {
   yAxisLabel: PropTypes.string,
   yAxisShowMinMax: PropTypes.bool,
   yIsLogScale: PropTypes.bool,
-  // 'dist-bar' only
-  orderBars: PropTypes.bool,
   // 'bar' or 'dist-bar'
   isBarStacked: PropTypes.bool,
   showBarValue: PropTypes.bool,
-  // 'bar', 'dist-bar' or 'column'
-  reduceXTicks: PropTypes.bool,
-  // 'bar', 'dist-bar' or 'area'
-  showControls: PropTypes.bool,
   // 'line' only
   showBrush: PropTypes.oneOf([true, 'yes', false, 'no', 'auto']),
   onBrushEnd: PropTypes.func,
@@ -235,8 +220,6 @@ const propTypes = {
     'key_value_percent',
   ]),
   showLabels: PropTypes.bool,
-  // 'area' only
-  areaStackedStyle: PropTypes.string,
   // 'bubble' only
   entity: PropTypes.string,
   maxBubbleSize: PropTypes.number,
@@ -257,7 +240,6 @@ function nvd3Vis(element, props) {
     height: maxHeight,
     annotationData,
     annotationLayers = [],
-    areaStackedStyle,
     baseColor,
     bottomMargin,
     colorScheme,
@@ -276,19 +258,15 @@ function nvd3Vis(element, props) {
     maxBubbleSize,
     onBrushEnd = NOOP,
     onError = NOOP,
-    orderBars,
     pieLabelType,
     rangeLabels,
     ranges,
-    reduceXTicks = false,
     showBarValue,
     showBrush,
-    showControls,
     showLabels,
     showLegend,
     showMarkers,
     sizeField,
-    useRichTooltip,
     vizType,
     xAxisFormat,
     numberFormat,
@@ -325,7 +303,7 @@ function nvd3Vis(element, props) {
   }
 
   let chart;
-  let width = maxWidth;
+  const width = maxWidth;
   let colorKey = 'key';
 
   container.style.width = `${maxWidth}px`;
@@ -449,13 +427,6 @@ function nvd3Vis(element, props) {
           0,
           d3.max(data, d => d3.max(d.values, v => v.size)),
         ]);
-        break;
-
-      case VizType.LegacyArea:
-        chart = nv.models.stackedAreaChart();
-        chart.showControls(showControls);
-        chart.style(areaStackedStyle);
-        chart.xScale(d3.time.scale.utc());
         break;
 
       case VizType.BoxPlot:
@@ -605,18 +576,6 @@ function nvd3Vis(element, props) {
       );
     }
 
-    if (isVizTypes([VizType.LegacyArea]) && useRichTooltip) {
-      chart.useInteractiveGuideline(true);
-      chart.interactiveLayer.tooltip.contentGenerator(d =>
-        generateAreaChartTooltipContent(
-          d,
-          smartDateVerboseFormatter,
-          yAxisFormatter,
-          chart,
-        ),
-      );
-    }
-
     if (isVizTypes([VizType.Compare])) {
       chart.interactiveLayer.tooltip.contentGenerator(d =>
         generateCompareTooltipContent(d, yAxisFormatter),
@@ -658,39 +617,13 @@ function nvd3Vis(element, props) {
         const hasCustomMin = isDefined(customMin) && !Number.isNaN(customMin);
         const hasCustomMax = isDefined(customMax) && !Number.isNaN(customMax);
 
-        if (
-          (hasCustomMin || hasCustomMax) &&
-          vizType === VizType.LegacyArea &&
-          chart.style() === 'expand'
-        ) {
-          // Because there are custom bounds, we need to override them back to 0%-100% since this
-          // is an expanded area chart
-          chart.yDomain([0, 1]);
-        } else if (
-          (hasCustomMin || hasCustomMax) &&
-          vizType === VizType.LegacyArea &&
-          chart.style() === 'stream'
-        ) {
-          // Because there are custom bounds, we need to override them back to the domain of the
-          // data since this is a stream area chart
-          chart.yDomain(computeStackedYDomain(data));
-        } else if (hasCustomMin && hasCustomMax) {
+        if (hasCustomMin && hasCustomMax) {
           // Override the y domain if there's both a custom min and max
           chart.yDomain([customMin, customMax]);
           chart.clipEdge(true);
         } else if (hasCustomMin || hasCustomMax) {
           // Only one of the bounds has been set, so we need to manually calculate the other one
-          let [trueMin, trueMax] = [0, 1];
-
-          // These viz types can be stacked
-          // They correspond to the nvd3 stackedAreaChart and multiBarChart
-          if (vizType === VizType.LegacyArea) {
-            // This is a stacked area chart or a stacked bar chart
-            [trueMin, trueMax] = computeStackedYDomain(data);
-          } else {
-            [trueMin, trueMax] = computeYDomain(data);
-          }
-
+          const [trueMin, trueMax] = computeYDomain(data);
           const min = hasCustomMin ? customMin : trueMin;
           const max = hasCustomMax ? customMax : trueMax;
           chart.yDomain([min, max]);
@@ -861,8 +794,8 @@ function nvd3Vis(element, props) {
           a => a.annotationType === ANNOTATION_TYPES.FORMULA,
         );
 
-        let xMax = chart.xAxis.scale().domain()[1].valueOf();
-        let xMin = chart.xAxis.scale().domain()[0].valueOf();
+        const xMax = chart.xAxis.scale().domain()[1].valueOf();
+        const xMin = chart.xAxis.scale().domain()[0].valueOf();
         let xScale;
         if (chart.xScale) {
           xScale = chart.xScale();

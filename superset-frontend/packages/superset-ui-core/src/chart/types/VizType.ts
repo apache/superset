@@ -37,7 +37,6 @@ export enum VizType {
   Heatmap = 'heatmap_v2',
   Histogram = 'histogram_v2',
   Horizon = 'horizon',
-  LegacyArea = 'area',
   LegacyBubble = 'bubble',
   Line = 'echarts_timeseries_line',
   MapBox = 'mapbox',
