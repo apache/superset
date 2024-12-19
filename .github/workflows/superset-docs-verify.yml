@@ -24,7 +24,7 @@ jobs:
       - uses: JustinBeckwith/linkinator-action@v1.11.0
         continue-on-error: true # This will make the job advisory (non-blocking, no red X)
         with:
-          paths: "**/*.md, **/*.mdx"
+          paths: "**/*.md, **/*.mdx, !superset-frontend/CHANGELOG.md"
           linksToSkip: >-
             ^https://github.com/apache/(superset|incubator-superset)/(pull|issue)/\d+,
             http://localhost:8088/,
