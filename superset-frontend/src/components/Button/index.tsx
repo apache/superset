@@ -56,6 +56,25 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> &
     showMarginRight?: boolean;
   };
 
+const decideType = (buttonStyle: ButtonStyle) => {
+  const typeMap: Record<
+    ButtonStyle,
+    'primary' | 'default' | 'dashed' | 'link'
+  > = {
+    primary: 'primary',
+    danger: 'primary',
+    warning: 'primary',
+    success: 'primary',
+    secondary: 'default',
+    default: 'default',
+    tertiary: 'dashed',
+    dashed: 'dashed',
+    link: 'link',
+  };
+
+  return typeMap[buttonStyle];
+};
+
 export default function Button(props: ButtonProps) {
   const {
     tooltip,
@@ -73,7 +92,7 @@ export default function Button(props: ButtonProps) {
 
   const theme = useTheme();
   const { colors, transitionTiming, borderRadius, typography } = theme;
-  const { primary, grayscale, success, warning} = colors;
+  const { primary, grayscale, success, warning } = colors;
 
   let height = 32;
   let padding = 18;
@@ -125,6 +144,7 @@ export default function Button(props: ButtonProps) {
     backgroundColor = 'transparent';
     backgroundColorHover = 'transparent';
     backgroundColorActive = 'transparent';
+    color = primary.dark1;
   }
 
   const element = children as ReactElement;
@@ -138,11 +158,14 @@ export default function Button(props: ButtonProps) {
   const firstChildMargin =
     showMarginRight && renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
 
+  const effectiveButtonStyle: ButtonStyle = buttonStyle ?? 'default';
+
   const button = (
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      type = {buttonStyle}
+      type={decideType(effectiveButtonStyle)}
+      danger={effectiveButtonStyle === 'danger'}
       className={cx(
         className,
         'superset-button',
@@ -169,12 +192,22 @@ export default function Button(props: ButtonProps) {
         borderColor,
         borderRadius,
         color,
-        backgroundColor,
-        '&:hover': {
-          color: colorHover,
-          backgroundColor: backgroundColorHover,
-          borderColor: borderColorHover,
-        },
+        background: backgroundColor,
+        ...(colorHover && {
+          '&&:hover': {
+            color: `${colorHover} !important`,
+          },
+        }),
+        ...(backgroundColorHover && {
+          '&&:hover': {
+            backgroundColor: `${backgroundColorHover} !important`,
+          },
+        }),
+        ...(borderColorHover && {
+          '&&:hover': {
+            borderColor: `${borderColorHover} !important`,
+          },
+        }),
         '&:active': {
           color,
           backgroundColor: backgroundColorActive,
