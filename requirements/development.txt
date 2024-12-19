@@ -255,10 +255,6 @@ fonttools==4.55.0
     # via matplotlib
 freezegun==1.5.1
     # via apache-superset
-func-timeout==4.3.5
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
 future==1.0.0
     # via pyhive
 geographiclib==2.0

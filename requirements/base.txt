@@ -138,8 +138,6 @@ flask-wtf==1.2.2
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
-func-timeout==4.3.5
-    # via apache-superset (pyproject.toml)
 geographiclib==2.0
     # via geopy
 geopy==2.4.1
