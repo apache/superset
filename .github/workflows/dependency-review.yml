@@ -23,6 +23,7 @@ permissions:
 
 jobs:
   dependency-review:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-22.04
     steps:
       - name: "Checkout Repository"
