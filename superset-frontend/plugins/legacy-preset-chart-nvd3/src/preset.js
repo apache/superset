@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Preset, VizType } from '@superset-ui/core';
-import AreaChartPlugin from './Area';
 import BoxPlotChartPlugin from './BoxPlot';
 import BubbleChartPlugin from './Bubble';
 import BulletChartPlugin from './Bullet';
@@ -30,7 +29,6 @@ export default class NVD3ChartPreset extends Preset {
     super({
       name: 'NVD3 charts',
       plugins: [
-        new AreaChartPlugin().configure({ key: VizType.LegacyArea }),
         new BoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
         new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }),
         new BulletChartPlugin().configure({ key: VizType.Bullet }),

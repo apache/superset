@@ -140,46 +140,6 @@ export function generateCompareTooltipContent(d, valueFormatter) {
   return dompurify.sanitize(tooltip);
 }
 
-export function generateAreaChartTooltipContent(
-  d,
-  timeFormatter,
-  valueFormatter,
-  chart,
-) {
-  const total =
-    chart.style() === 'expand'
-      ? // expand mode does not include total row
-        d3.sum(d.series, s => s.value)
-      : // other modes include total row at the end
-        d.series[d.series.length - 1].value;
-  let tooltip = '';
-  tooltip +=
-    "<table><thead><tr><td colspan='4'>" +
-    `<strong class='x-value'>${timeFormatter(d.value)}</strong>` +
-    '</td></tr></thead><tbody>' +
-    '<tr class="tooltip-header"><td></td><td>Category</td><td>Value</td><td>% to total</td></tr>';
-  d.series.forEach(series => {
-    const key = getFormattedKey(series.key, true);
-    const isTotal = series.key === 'TOTAL';
-    let trClass = '';
-    if (series.highlight) {
-      trClass = 'superset-legacy-chart-nvd3-tr-highlight';
-    } else if (isTotal) {
-      trClass = 'superset-legacy-chart-nvd3-tr-total';
-    }
-    tooltip +=
-      `<tr class="${trClass}" style="border-color: ${series.color}">` +
-      `<td style="color: ${series.color}">${isTotal ? '' : '&#9724;'}</td>` +
-      `<td>${key}</td>` +
-      `<td>${valueFormatter(isTotal ? total : series?.point?.y)}</td>` +
-      `<td>${((100 * series.value) / total).toFixed(2)}%</td>` +
-      '</tr>';
-  });
-  tooltip += '</tbody></table>';
-
-  return dompurify.sanitize(tooltip);
-}
-
 export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
   const tooltipTitle = xFormatter(d.value);
   let tooltip = '';
@@ -357,13 +317,6 @@ export function formatLabel(input, verboseMap = {}) {
     : verboseLookup(input);
 }
 
-export function tryNumify(s) {
-  // Attempts casting to Number, returns string when failing
-  const n = Number(s);
-
-  return Number.isNaN(n) ? s : n;
-}
-
 export function stringifyTimeRange(extent) {
   if (extent.some(d => d.toISOString === undefined)) {
     return null;
@@ -387,21 +340,6 @@ export function computeYDomain(data) {
     const maxOfMax = d3.max(extents, ([, max]) => max);
 
     return [minOfMin, maxOfMax];
-  }
-
-  return [0, 1];
-}
-
-export function computeStackedYDomain(data) {
-  if (Array.isArray(data) && data.length > 0 && Array.isArray(data[0].values)) {
-    const series = data
-      .filter(d => !d.disabled)
-      .map(d => d.values.map(v => v.y));
-    const stackedValues = series[0].map((_, i) =>
-      series.reduce((acc, cur) => acc + cur[i], 0),
-    );
-
-    return [Math.min(0, ...stackedValues), Math.max(0, ...stackedValues)];
   }
 
   return [0, 1];

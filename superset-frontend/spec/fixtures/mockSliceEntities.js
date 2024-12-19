@@ -223,7 +223,7 @@ export const sliceEntitiesForDashboard = {
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20134%7D',
       slice_name: "World's Pop Growth",
       form_data: {},
-      viz_type: VizType.LegacyArea,
+      viz_type: VizType.Area,
       datasource: '2__table',
       description: '',
       description_markdown: '',
