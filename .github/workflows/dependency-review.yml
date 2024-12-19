@@ -56,7 +56,7 @@ jobs:
 
       - name: "Set up liccheck"
         run: |
-          pip install liccheck
+          uv pip install --system liccheck
       - name: "Run liccheck"
         run: |
           # run the checks
