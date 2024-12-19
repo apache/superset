@@ -23,7 +23,7 @@ on:
 
 jobs:
   bump-python-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
       contents: write
