@@ -76,6 +76,8 @@ jobs:
           fi
 
           supersetbot docker \
+            --push \
+            --load \
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
