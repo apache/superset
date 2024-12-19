@@ -33,6 +33,7 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import event_logger
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
 from superset.utils import json, pandas_postprocessing
@@ -189,8 +190,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
+            x if is_str_or_adhoc(x) else x["label"]
+            for x in metrics  # type: ignore
         ]
 
     def _set_post_processing(
@@ -428,19 +429,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                  is incorrect
         """
         logger.debug("post_processing: \n %s", pformat(self.post_processing))
-        for post_process in self.post_processing:
-            operation = post_process.get("operation")
-            if not operation:
-                raise InvalidPostProcessingError(
-                    _("`operation` property of post processing object undefined")
-                )
-            if not hasattr(pandas_postprocessing, operation):
-                raise InvalidPostProcessingError(
-                    _(
-                        "Unsupported post processing operation: %(operation)s",
-                        type=operation,
+        with event_logger.log_context(f"{self.__class__.__name__}.post_processing"):
+            for post_process in self.post_processing:
+                operation = post_process.get("operation")
+                if not operation:
+                    raise InvalidPostProcessingError(
+                        _("`operation` property of post processing object undefined")
                     )
-                )
-            options = post_process.get("options", {})
-            df = getattr(pandas_postprocessing, operation)(df, **options)
-        return df
+                if not hasattr(pandas_postprocessing, operation):
+                    raise InvalidPostProcessingError(
+                        _(
+                            "Unsupported post processing operation: %(operation)s",
+                            type=operation,
+                        )
+                    )
+                options = post_process.get("options", {})
+                df = getattr(pandas_postprocessing, operation)(df, **options)
+            return df

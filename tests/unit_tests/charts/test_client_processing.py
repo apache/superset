@@ -21,7 +21,7 @@ import pytest
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
-from superset.charts.post_processing import apply_post_process, pivot_df, table
+from superset.charts.client_processing import apply_client_processing, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import GenericDataType
 
@@ -1841,16 +1841,16 @@ def test_table():
     )
 
 
-def test_apply_post_process_no_form_invalid_viz_type():
+def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
     """
     result = {"foo": "bar"}
     form_data = {"viz_type": "baz"}
-    assert apply_post_process(result, form_data) == result
+    assert apply_client_processing(result, form_data) == result
 
 
-def test_apply_post_process_without_result_format():
+def test_apply_client_processing_without_result_format():
     """
     A query without result_format should raise an exception
     """
@@ -1858,12 +1858,12 @@ def test_apply_post_process_without_result_format():
     form_data = {"viz_type": "pivot_table_v2"}
 
     with pytest.raises(Exception) as ex:  # noqa: PT011
-        apply_post_process(result, form_data)
+        apply_client_processing(result, form_data)
 
     assert ex.match("Result format foo not supported") is True  # noqa: E712
 
 
-def test_apply_post_process_json_format():
+def test_apply_client_processing_json_format():
     """
     It should be able to process json results
     """
@@ -1944,7 +1944,7 @@ def test_apply_post_process_json_format():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,
@@ -1966,7 +1966,7 @@ def test_apply_post_process_json_format():
     }
 
 
-def test_apply_post_process_csv_format():
+def test_apply_client_processing_csv_format():
     """
     It should be able to process csv results
     """
@@ -2042,7 +2042,7 @@ COUNT(is_software_dev)
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [
             {
                 "result_format": ChartDataResultFormat.CSV,
@@ -2056,7 +2056,7 @@ COUNT(is_software_dev)
     }
 
 
-def test_apply_post_process_csv_format_empty_string():
+def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
     """
@@ -2122,13 +2122,13 @@ def test_apply_post_process_csv_format_empty_string():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.CSV, "data": ""}]
     }
 
 
 @pytest.mark.parametrize("data", [None, "", "\n"])
-def test_apply_post_process_csv_format_no_data(data):
+def test_apply_client_processing_csv_format_no_data(data):
     """
     It should be able to process csv results with no data
     """
@@ -2194,12 +2194,12 @@ def test_apply_post_process_csv_format_no_data(data):
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
     }
 
 
-def test_apply_post_process_csv_format_no_data_multiple_queries():
+def test_apply_client_processing_csv_format_no_data_multiple_queries():
     """
     It should be able to process csv results multiple queries if one query has no data
     """
@@ -2276,7 +2276,7 @@ COUNT(is_software_dev)
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [
             {"result_format": ChartDataResultFormat.CSV, "data": ""},
             {
@@ -2291,7 +2291,7 @@ COUNT(is_software_dev)
     }
 
 
-def test_apply_post_process_json_format_empty_string():
+def test_apply_client_processing_json_format_empty_string():
     """
     It should be able to process json results with no data
     """
@@ -2357,12 +2357,12 @@ def test_apply_post_process_json_format_empty_string():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": ""}]
     }
 
 
-def test_apply_post_process_json_format_data_is_none():
+def test_apply_client_processing_json_format_data_is_none():
     """
     It should be able to process json results with no data
     """
@@ -2428,12 +2428,12 @@ def test_apply_post_process_json_format_data_is_none():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]
     }
 
 
-def test_apply_post_process_verbose_map(session: Session):
+def test_apply_client_processing_verbose_map(session: Session):
     from superset import db
     from superset.connectors.sqla.models import SqlaTable, SqlMetric
     from superset.models.core import Database
@@ -2487,7 +2487,7 @@ def test_apply_post_process_verbose_map(session: Session):
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data, datasource=sqla_table) == {
+    assert apply_client_processing(result, form_data, datasource=sqla_table) == {
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,
