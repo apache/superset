@@ -30,7 +30,7 @@
   "dependencies": {
     "chalk": "^5.3.0",
     "lodash-es": "^4.17.21",
-    "yeoman-generator": "^7.3.2",
+    "yeoman-generator": "^7.4.0",
     "yosay": "^3.0.0"
   },
   "devDependencies": {
