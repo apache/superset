@@ -53,6 +53,8 @@ jobs:
 
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
+        with:
+          requirements-type: base
 
       - name: "Set up liccheck"
         run: |
