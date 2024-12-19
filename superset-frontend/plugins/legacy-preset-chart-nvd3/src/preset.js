@@ -17,11 +17,9 @@
  * under the License.
  */
 import { Preset, VizType } from '@superset-ui/core';
-import BoxPlotChartPlugin from './BoxPlot';
 import BubbleChartPlugin from './Bubble';
 import BulletChartPlugin from './Bullet';
 import CompareChartPlugin from './Compare';
-import PieChartPlugin from './Pie';
 import TimePivotChartPlugin from './TimePivot';
 
 export default class NVD3ChartPreset extends Preset {
@@ -29,11 +27,9 @@ export default class NVD3ChartPreset extends Preset {
     super({
       name: 'NVD3 charts',
       plugins: [
-        new BoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
         new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }),
         new BulletChartPlugin().configure({ key: VizType.Bullet }),
         new CompareChartPlugin().configure({ key: VizType.Compare }),
-        new PieChartPlugin().configure({ key: VizType.Pie }),
         new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
       ],
     });
