@@ -131,7 +131,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             # uses the max size for redshift nvarchar(65335)
             # the default object and string types create a varchar(256)
             col_name: NVARCHAR(length=65535)
-            for col_name, type in zip(df.columns, df.dtypes)
+            for col_name, type in zip(df.columns, df.dtypes, strict=False)
             if isinstance(type, pd.StringDtype)
         }
 
