@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import React, { useEffect, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import Loader from 'src/assets/images/loading.gif';
 
 export type PositionOption =
   | 'floating'
@@ -61,6 +60,19 @@ export default function Loading({
   image,
   className,
 }: Props) {
+  const [Loader, setLoader] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    fetch('/superset/loaders/')
+      .then(response => response.json())
+      .then(data => {
+        if (data && Array.isArray(data) && data[0]?.src) {
+          setLoader(data[0].src);
+        }
+      })
+      .catch(() => {
+        setLoader(undefined);
+      });
+  }, []);
   return (
     <LoaderImg
       className={cls('loading', position, className)}

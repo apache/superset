@@ -111,6 +111,7 @@ PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 # },
 FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
+LOADERS = [{"src": "/static/assets/images/loading.gif"}]
 
 def _try_json_readversion(filepath: str) -> str | None:
     try:
