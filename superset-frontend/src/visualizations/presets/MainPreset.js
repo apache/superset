@@ -25,7 +25,6 @@ import {
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
 import CountryMapChartPlugin from '@superset-ui/legacy-plugin-chart-country-map';
-import HeatmapChartPlugin from '@superset-ui/legacy-plugin-chart-heatmap';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import MapBoxChartPlugin from '@superset-ui/legacy-plugin-chart-map-box';
 import PairedTTestChartPlugin from '@superset-ui/legacy-plugin-chart-paired-t-test';
@@ -121,7 +120,6 @@ export default class MainPreset extends Preset {
         new EchartsMixedTimeseriesChartPlugin().configure({
           key: VizType.MixedTimeseries,
         }),
-        new HeatmapChartPlugin().configure({ key: VizType.LegacyHeatmap }),
         new HorizonChartPlugin().configure({ key: VizType.Horizon }),
         new LineChartPlugin().configure({ key: VizType.LegacyLine }),
         new MapBoxChartPlugin().configure({ key: VizType.MapBox }),

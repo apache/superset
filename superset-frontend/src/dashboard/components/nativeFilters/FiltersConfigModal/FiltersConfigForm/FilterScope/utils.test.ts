@@ -684,7 +684,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       chartUpdateStartTime: 1673046994633,
       latestQueryFormData: {
         datasource: '20__table',
-        viz_type: VizType.LegacyHeatmap,
+        viz_type: VizType.Heatmap,
         slice_id: 93,
         url_params: {},
         granularity_sqla: 'year',
@@ -733,7 +733,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           errors: [],
           form_data: {
             datasource: '20__table',
-            viz_type: VizType.LegacyHeatmap,
+            viz_type: VizType.Heatmap,
             slice_id: 93,
             url_params: {},
             granularity_sqla: 'year',
@@ -2842,7 +2842,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.LegacyHeatmap,
+        viz_type: VizType.Heatmap,
         slice_id: 93,
         url_params: {},
         granularity_sqla: 'year',
