@@ -925,3 +925,12 @@ class Superset(BaseSupersetView):
     @deprecated(new_target="/sqllab/history")
     def sqllab_history(self) -> FlaskResponse:
         return redirect("/sqllab/history")
+
+    @api
+    @expose("/loaders/", methods=("GET",))
+    def get_loaders(self) -> FlaskResponse:
+        """
+        Expose the custom LOADERS configuration via an API endpoint.
+        """
+        loaders = app.config.get("LOADERS", [])
+        return loaders

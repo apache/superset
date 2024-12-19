@@ -14,6 +14,7 @@
   {% import 'appbuilder/general/lib.html' as lib %} {% from
   'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context
   %} {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% set loaders = appbuilder.app.config['LOADERS'] %}
   {% import "superset/macros.html" as macros %}
   <html>
     <head>
@@ -74,9 +75,10 @@
     <body {% if standalone_mode %}class="standalone" {% endif %}>
       {% block navbar %} {% if not standalone_mode %} {% include
       'appbuilder/navbar.html' %} {% endif %} {% endblock %} {% block body %}
-      <div id="app" data-bootstrap="{{ bootstrap_data }}">
+      <div id="app" data-bootstrap="{{ bootstrap_data }}" {% if standalone_mode %}  {% endif %}>
+        {% for loader in loaders %}
         <img
-          src="{{ assets_prefix }}/static/assets/images/loading.gif"
+          src="{{ assets_prefix }}{{loader.src}}"
           style="
             width: 50px;
             position: absolute;
@@ -85,6 +87,7 @@
             transform: translate(-50%, -50%);
           "
         />
+        {% endfor %}
       </div>
       {% endblock %}
 
