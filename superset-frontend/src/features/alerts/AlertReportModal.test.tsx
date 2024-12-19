@@ -18,12 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  within,
-  waitForElementToBeRemoved,
-} from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
