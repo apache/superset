@@ -66,6 +66,7 @@ const MIN_WIDTH = 880;
 const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
   min-width: ${MIN_WIDTH}px;
   width: ${({ expanded }) => (expanded ? '100%' : MIN_WIDTH)} !important;
+  height: 100vh;
 
   @media (max-width: ${MIN_WIDTH + MODAL_MARGIN * 2}px) {
     width: 100% !important;
@@ -74,35 +75,24 @@ const StyledModalWrapper = styled(StyledModal)<{ expanded: boolean }>`
 
   .ant-modal-body {
     padding: 0px;
+    flex-basis: 100vh;
   }
 
   ${({ expanded }) =>
     expanded &&
     css`
-      height: 100%;
-
       .ant-modal-body {
         flex: 1 1 auto;
-      }
-      .ant-modal-content {
-        height: 100%;
       }
     `}
 `;
 
-export const StyledModalBody = styled.div<{ expanded: boolean }>`
-  display: flex;
-  height: ${({ expanded }) => (expanded ? '100%' : '700px')};
-  flex-direction: row;
-  flex: 1;
-  .filters-list {
-    width: ${({ theme }) => theme.gridUnit * 50}px;
-    overflow: auto;
-  }
-`;
-
 export const StyledForm = styled(AntdForm)`
   width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  display: flex;
 `;
 
 export const StyledExpandButtonWrapper = styled.div`
@@ -646,11 +636,9 @@ function FiltersConfigModal({
         const isActive = currentFilterId === id;
         return (
           <div
-            key={id}
             style={{
-              height: '100%',
-              overflowY: 'auto',
               display: isActive ? '' : 'none',
+              height: '100%',
             }}
           >
             {isDivider ? (
@@ -741,28 +729,26 @@ function FiltersConfigModal({
       }
     >
       <ErrorBoundary>
-        <StyledModalBody expanded={expanded}>
-          <StyledForm
-            form={form}
-            onValuesChange={handleValuesChange}
-            layout="vertical"
+        <StyledForm
+          form={form}
+          onValuesChange={handleValuesChange}
+          layout="vertical"
+        >
+          <FilterConfigurePane
+            erroredFilters={erroredFilters}
+            onRemove={handleRemoveItem}
+            onAdd={addFilter}
+            onChange={handleTabChange}
+            getFilterTitle={getFilterTitle}
+            currentFilterId={currentFilterId}
+            removedFilters={removedFilters}
+            restoreFilter={restoreFilter}
+            onRearrange={handleRearrange}
+            filters={orderedFilters}
           >
-            <FilterConfigurePane
-              erroredFilters={erroredFilters}
-              onRemove={handleRemoveItem}
-              onAdd={addFilter}
-              onChange={handleTabChange}
-              getFilterTitle={getFilterTitle}
-              currentFilterId={currentFilterId}
-              removedFilters={removedFilters}
-              restoreFilter={restoreFilter}
-              onRearrange={handleRearrange}
-              filters={orderedFilters}
-            >
-              {formList}
-            </FilterConfigurePane>
-          </StyledForm>
-        </StyledModalBody>
+            {formList}
+          </FilterConfigurePane>
+        </StyledForm>
       </ErrorBoundary>
     </StyledModalWrapper>
   );

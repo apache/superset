@@ -35,20 +35,14 @@ interface Props {
   removedFilters: Record<string, FilterRemoval>;
 }
 
-const Container = styled.div`
-  display: flex;
-  height: 100%;
-`;
-
 const ContentHolder = styled.div`
   flex-grow: 3;
   margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
 `;
 
-const TitlesContainer = styled.div`
+const FiltersListPane = styled(FilterTitlePane)`
   min-width: 300px;
   max-width: 300px;
-  border-right: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
 `;
 
 const FilterConfigurePane: FC<Props> = ({
@@ -64,23 +58,21 @@ const FilterConfigurePane: FC<Props> = ({
   filters,
   removedFilters,
 }) => (
-  <Container>
-    <TitlesContainer>
-      <FilterTitlePane
-        currentFilterId={currentFilterId}
-        filters={filters}
-        removedFilters={removedFilters}
-        erroredFilters={erroredFilters}
-        getFilterTitle={getFilterTitle}
-        onChange={onChange}
-        onAdd={(type: NativeFilterType) => onAdd(type)}
-        onRearrange={onRearrange}
-        onRemove={(id: string) => onRemove(id)}
-        restoreFilter={restoreFilter}
-      />
-    </TitlesContainer>
+  <>
+    <FiltersListPane
+      currentFilterId={currentFilterId}
+      filters={filters}
+      removedFilters={removedFilters}
+      erroredFilters={erroredFilters}
+      getFilterTitle={getFilterTitle}
+      onChange={onChange}
+      onAdd={(type: NativeFilterType) => onAdd(type)}
+      onRearrange={onRearrange}
+      onRemove={(id: string) => onRemove(id)}
+      restoreFilter={restoreFilter}
+    />
     <ContentHolder>{children}</ContentHolder>
-  </Container>
+  </>
 );
 
 export default FilterConfigurePane;
