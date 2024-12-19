@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import {
+  ZoomConfigs,
+  ZoomConfigsFixed,
+  ZoomConfigsLinear,
+  ZoomConfigsExp,
+} from './types';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
+export const isZoomConfigsFixed = (
+  zoomConfigs: ZoomConfigs,
+): zoomConfigs is ZoomConfigsFixed => zoomConfigs.type === 'FIXED';
 
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
+export const isZoomConfigsLinear = (
+  zoomConfigs: ZoomConfigs,
+): zoomConfigs is ZoomConfigsLinear => zoomConfigs.type === 'LINEAR';
 
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+export const isZoomConfigsExp = (
+  zoomConfigs: ZoomConfigs,
+): zoomConfigs is ZoomConfigsExp => zoomConfigs.type === 'EXP';

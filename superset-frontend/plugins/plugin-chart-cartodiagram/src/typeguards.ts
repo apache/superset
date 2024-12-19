@@ -16,25 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import { LayerConf, WfsLayerConf, WmsLayerConf, XyzLayerConf } from './types';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
+export const isWmsLayerConf = (
+  layerConf: LayerConf,
+): layerConf is WmsLayerConf => layerConf.type === 'WMS';
 
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
+export const isWfsLayerConf = (
+  layerConf: LayerConf,
+): layerConf is WfsLayerConf => layerConf.type === 'WFS';
 
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+export const isXyzLayerConf = (
+  layerConf: LayerConf,
+): layerConf is XyzLayerConf => layerConf.type === 'XYZ';
