@@ -40,11 +40,9 @@ import { WordCloudChartPlugin } from '@superset-ui/plugin-chart-word-cloud';
 import WorldMapChartPlugin from '@superset-ui/legacy-plugin-chart-world-map';
 import {
   AreaChartPlugin,
-  BarChartPlugin,
   BubbleChartPlugin,
   BulletChartPlugin,
   CompareChartPlugin,
-  DistBarChartPlugin,
   LineChartPlugin,
   TimePivotChartPlugin,
 } from '@superset-ui/legacy-preset-chart-nvd3';
@@ -106,7 +104,6 @@ export default class MainPreset extends Preset {
       presets: [new DeckGLChartPreset()],
       plugins: [
         new AreaChartPlugin().configure({ key: VizType.LegacyArea }),
-        new BarChartPlugin().configure({ key: VizType.LegacyBar }),
         new BigNumberChartPlugin().configure({ key: VizType.BigNumber }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
@@ -118,7 +115,6 @@ export default class MainPreset extends Preset {
         new ChordChartPlugin().configure({ key: VizType.Chord }),
         new CompareChartPlugin().configure({ key: VizType.Compare }),
         new CountryMapChartPlugin().configure({ key: VizType.CountryMap }),
-        new DistBarChartPlugin().configure({ key: VizType.DistBar }),
         new EventFlowChartPlugin().configure({ key: VizType.EventFlow }),
         new EchartsFunnelChartPlugin().configure({ key: VizType.Funnel }),
         new EchartsSankeyChartPlugin().configure({ key: VizType.Sankey }),

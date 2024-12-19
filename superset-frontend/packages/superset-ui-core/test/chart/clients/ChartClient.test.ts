@@ -87,13 +87,13 @@ describe('ChartClient', () => {
           sliceId,
           formData: {
             granularity: 'second',
-            viz_type: VizType.LegacyBar,
+            viz_type: VizType.Bar,
           },
         }),
       ).resolves.toEqual({
         ...sankeyFormData,
         granularity: 'second',
-        viz_type: VizType.LegacyBar,
+        viz_type: VizType.Bar,
       });
     });
     it('returns promise of formData if only formData was given', () =>

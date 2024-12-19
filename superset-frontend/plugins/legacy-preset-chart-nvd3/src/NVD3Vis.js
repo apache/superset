@@ -44,7 +44,6 @@ import ANNOTATION_TYPES, {
 import isTruthy from './utils/isTruthy';
 import {
   cleanColorInput,
-  computeBarChartWidth,
   computeYDomain,
   computeStackedYDomain,
   drawBarValues,
@@ -133,7 +132,6 @@ const TIMESERIES_VIZ_TYPES = [
   VizType.LegacyLine,
   VizType.LegacyArea,
   VizType.Compare,
-  VizType.LegacyBar,
   VizType.TimePivot,
 ];
 
@@ -192,13 +190,11 @@ const propTypes = {
   useRichTooltip: PropTypes.bool,
   vizType: PropTypes.oneOf([
     VizType.LegacyArea,
-    VizType.LegacyBar,
     VizType.BoxPlot,
     'bubble',
     VizType.Bullet,
     VizType.Compare,
     'column',
-    VizType.DistBar,
     VizType.LegacyLine,
     VizType.TimePivot,
     'pie',
@@ -356,11 +352,7 @@ function nvd3Vis(element, props) {
 
     // Handling xAxis ticks settings
     const staggerLabels = xTicksLayout === 'staggered';
-    const xLabelRotation =
-      (xTicksLayout === 'auto' && isVizTypes(['column', VizType.DistBar])) ||
-      xTicksLayout === '45°'
-        ? 45
-        : 0;
+    const xLabelRotation = xTicksLayout === '45°' ? 45 : 0;
     if (xLabelRotation === 45 && isTruthy(showBrush)) {
       onError(
         t('You cannot use 45° tick layout along with the time range filter'),
@@ -398,45 +390,6 @@ function nvd3Vis(element, props) {
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
         chart.interpolate(lineInterpolation);
-        break;
-
-      case VizType.LegacyBar:
-        chart = nv.models
-          .multiBarChart()
-          .showControls(showControls)
-          .groupSpacing(0.1);
-
-        if (!reduceXTicks) {
-          width = computeBarChartWidth(data, isBarStacked, maxWidth);
-        }
-        chart.width(width);
-        chart.xAxis.showMaxMin(false);
-        chart.stacked(isBarStacked);
-        break;
-
-      case VizType.DistBar:
-        chart = nv.models
-          .multiBarChart()
-          .showControls(showControls)
-          .reduceXTicks(reduceXTicks)
-          .groupSpacing(0.1); // Distance between each group of bars.
-
-        chart.xAxis.showMaxMin(false);
-
-        chart.stacked(isBarStacked);
-        if (orderBars) {
-          data.forEach(d => {
-            const newValues = [...d.values]; // need to copy values to avoid redux store changed.
-            // eslint-disable-next-line no-param-reassign
-            d.values = newValues.sort((a, b) =>
-              tryNumify(a.x) < tryNumify(b.x) ? -1 : 1,
-            );
-          });
-        }
-        if (!reduceXTicks) {
-          width = computeBarChartWidth(data, isBarStacked, maxWidth);
-        }
-        chart.width(width);
         break;
 
       case VizType.Pie:
@@ -608,7 +561,7 @@ function nvd3Vis(element, props) {
       chart.x2Axis.tickFormat(xAxisFormatter);
     }
     if (chart.xAxis && chart.xAxis.tickFormat) {
-      const isXAxisString = isVizTypes([VizType.DistBar, VizType.BoxPlot]);
+      const isXAxisString = isVizTypes([VizType.BoxPlot]);
       if (isXAxisString) {
         chart.xAxis.tickFormat(d =>
           d.length > MAX_NO_CHARACTERS_IN_LABEL
@@ -673,26 +626,17 @@ function nvd3Vis(element, props) {
     }
 
     if (
-      isVizTypes([
-        VizType.LegacyLine,
-        VizType.LegacyArea,
-        VizType.LegacyBar,
-        VizType.DistBar,
-      ]) &&
+      isVizTypes([VizType.LegacyLine, VizType.LegacyArea]) &&
       useRichTooltip
     ) {
       chart.useInteractiveGuideline(true);
-      if (vizType === VizType.LegacyLine || vizType === VizType.LegacyBar) {
+      if (vizType === VizType.LegacyLine) {
         chart.interactiveLayer.tooltip.contentGenerator(d =>
           generateRichLineTooltipContent(
             d,
             smartDateVerboseFormatter,
             yAxisFormatter,
           ),
-        );
-      } else if (vizType === VizType.DistBar) {
-        chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateCompareTooltipContent(d, yAxisFormatter),
         );
       } else {
         // area chart
@@ -774,11 +718,7 @@ function nvd3Vis(element, props) {
 
           // These viz types can be stacked
           // They correspond to the nvd3 stackedAreaChart and multiBarChart
-          if (
-            vizType === VizType.LegacyArea ||
-            (isVizTypes([VizType.LegacyBar, VizType.DistBar]) &&
-              chart.stacked())
-          ) {
+          if (vizType === VizType.LegacyArea) {
             // This is a stacked area chart or a stacked bar chart
             [trueMin, trueMax] = computeStackedYDomain(data);
           } else {
@@ -955,26 +895,15 @@ function nvd3Vis(element, props) {
           a => a.annotationType === ANNOTATION_TYPES.FORMULA,
         );
 
-        let xMax;
-        let xMin;
+        let xMax = chart.xAxis.scale().domain()[1].valueOf();
+        let xMin = chart.xAxis.scale().domain()[0].valueOf();
         let xScale;
-        if (vizType === VizType.LegacyBar) {
-          xMin = d3.min(data[0].values, d => d.x);
-          xMax = d3.max(data[0].values, d => d.x);
-          xScale = d3.scale
-            .quantile()
-            .domain([xMin, xMax])
-            .range(chart.xAxis.range());
+        if (chart.xScale) {
+          xScale = chart.xScale();
+        } else if (chart.xAxis.scale) {
+          xScale = chart.xAxis.scale();
         } else {
-          xMin = chart.xAxis.scale().domain()[0].valueOf();
-          xMax = chart.xAxis.scale().domain()[1].valueOf();
-          if (chart.xScale) {
-            xScale = chart.xScale();
-          } else if (chart.xAxis.scale) {
-            xScale = chart.xAxis.scale();
-          } else {
-            xScale = d3.scale.linear();
-          }
+          xScale = d3.scale.linear();
         }
         if (xScale && xScale.clamp) {
           xScale.clamp(true);
@@ -982,36 +911,21 @@ function nvd3Vis(element, props) {
 
         if (formulas.length > 0) {
           const xValues = [];
-          if (vizType === VizType.LegacyBar) {
-            // For bar-charts we want one data point evaluated for every
-            // data point that will be displayed.
-            const distinct = data.reduce((xVals, d) => {
-              d.values.forEach(x => xVals.add(x.x));
-
-              return xVals;
-            }, new Set());
-            xValues.push(...distinct.values());
-            xValues.sort();
-          } else {
-            // For every other time visualization it should be ok, to have a
-            // data points in even intervals.
-            let period = Math.min(
-              ...data.map(d =>
-                Math.min(
-                  ...d.values.slice(1).map((v, i) => v.x - d.values[i].x),
-                ),
-              ),
-            );
-            const dataPoints = (xMax - xMin) / (period || 1);
-            // make sure that there are enough data points and not too many
-            period = dataPoints < 100 ? (xMax - xMin) / 100 : period;
-            period = dataPoints > 500 ? (xMax - xMin) / 500 : period;
-            xValues.push(xMin);
-            for (let x = xMin; x < xMax; x += period) {
-              xValues.push(x);
-            }
-            xValues.push(xMax);
+          let period = Math.min(
+            ...data.map(d =>
+              Math.min(...d.values.slice(1).map((v, i) => v.x - d.values[i].x)),
+            ),
+          );
+          const dataPoints = (xMax - xMin) / (period || 1);
+          // make sure that there are enough data points and not too many
+          period = dataPoints < 100 ? (xMax - xMin) / 100 : period;
+          period = dataPoints > 500 ? (xMax - xMin) / 500 : period;
+          xValues.push(xMin);
+          for (let x = xMin; x < xMax; x += period) {
+            xValues.push(x);
           }
+          xValues.push(xMax);
+
           const formulaData = formulas.map(fo => {
             const { value: expression } = fo;
             return {

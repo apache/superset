@@ -392,18 +392,6 @@ export function formatLabel(input, verboseMap = {}) {
     : verboseLookup(input);
 }
 
-const MIN_BAR_WIDTH = 18;
-
-export function computeBarChartWidth(data, stacked, maxWidth) {
-  const barCount = stacked
-    ? d3.max(data, d => d.values.length)
-    : d3.sum(data, d => d.values.length);
-
-  const barWidth = barCount * MIN_BAR_WIDTH;
-
-  return Math.max(barWidth, maxWidth);
-}
-
 export function tryNumify(s) {
   // Attempts casting to Number, returns string when failing
   const n = Number(s);
