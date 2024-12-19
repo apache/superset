@@ -122,12 +122,9 @@ export default function transformProps(chartProps) {
   if (vizType === VizType.Pie) {
     numberFormat = numberFormat || grabD3Format(datasource, metric);
   } else if (
-    [
-      VizType.LegacyLine,
-      VizType.DistBar,
-      VizType.LegacyBar,
-      VizType.LegacyArea,
-    ].includes(chartProps.formData.vizType)
+    [VizType.LegacyLine, VizType.LegacyArea].includes(
+      chartProps.formData.vizType,
+    )
   ) {
     yAxisFormat =
       yAxisFormat ||

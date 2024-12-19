@@ -53,7 +53,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: uiCore.VizType.LegacyBar,
+  viz_type: uiCore.VizType.Bar,
   datasource_name: `ds${i}`,
   thumbnail_url: '/thumbnail',
 }));
