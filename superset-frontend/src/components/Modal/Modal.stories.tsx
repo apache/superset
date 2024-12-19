@@ -37,6 +37,7 @@ InteractiveModal.args = {
   title: "I'm a modal!",
   resizable: false,
   draggable: false,
+  width: 500,
 };
 
 InteractiveModal.argTypes = {
@@ -55,4 +56,8 @@ export const ModalFunctions = (props: ModalFuncProps) => (
 ModalFunctions.args = {
   title: 'Modal title',
   content: 'Modal content',
+  keyboard: true,
+  okText: 'Test',
+  maskClosable: true,
+  mask: true,
 };

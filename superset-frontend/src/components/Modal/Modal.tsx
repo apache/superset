@@ -145,6 +145,10 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     right: 0;
   }
 
+  .antd5-modal-close:hover {
+    background: transparent;
+  }
+
   .antd5-modal-close-x {
     display: flex;
     align-items: center;
