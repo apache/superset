@@ -22,6 +22,7 @@ import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { TooltipContent } from './TooltipContent';
+import Icons from 'src/components/Icons';
 
 export interface CacheLabelProps {
   onClick?: MouseEventHandler<HTMLElement>;
@@ -34,7 +35,7 @@ const CacheLabel: FC<CacheLabelProps> = ({
   onClick,
   cachedTimestamp,
 }) => {
-  const [hovered, setHovered] = useState(false);
+  const [hovered] = useState(false);
 
   const labelType = hovered ? 'primary' : 'default';
   return (
@@ -46,10 +47,9 @@ const CacheLabel: FC<CacheLabelProps> = ({
         className={`${className}`}
         type={labelType}
         onClick={onClick}
-        onMouseOver={() => setHovered(true)}
-        onMouseOut={() => setHovered(false)}
+        icon={<Icons.Refresh iconSize="m" />}
       >
-        {t('Cached')} <i className="fa fa-refresh" />
+        {t('Cached')}
       </Label>
     </Tooltip>
   );
