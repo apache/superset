@@ -360,3 +360,36 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.liccheck]
+requirement_txt_file = "requirements/base.txt"
+authorized_licenses = [
+    "academic free license (afl)",
+    "apache license 2.0",
+    "apache software",
+    "apache software, bsd",
+    "bsd",
+    "isc license (iscl)",
+    "isc license",
+    "mit",
+    "mozilla public license 2.0 (mpl 2.0)",
+    "osi approved",
+    "osi approved",
+    "python software foundation",
+    "the unlicense (unlicense)",
+    "the unlicense",
+]
+[tool.liccheck.authorized_packages]
+# --------------------------------------------------------------
+# These are ok, checked manually
+# Seems ok, might need legal review
+# https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
+polyline = "2"
+# Apache 2.0 https://github.com/hkwi/python-geohash
+python-geohash = "0"
+# --------------------------------------------------------------
+
+# TODO REMOVE THESE DEPS FROM CODEBASE
+func-timeout = "4"  # AGPL
+paramiko = "3"  # GPL
+pyxlsb = "1"  # GPL
