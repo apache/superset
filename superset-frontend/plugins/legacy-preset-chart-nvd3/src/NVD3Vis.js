@@ -48,7 +48,6 @@ import {
   drawBarValues,
   generateBubbleTooltipContent,
   generateCompareTooltipContent,
-  generateRichLineTooltipContent,
   generateTimePivotTooltip,
   generateTooltipClassName,
   generateAreaChartTooltipContent,
@@ -126,7 +125,6 @@ const BREAKPOINTS = {
 };
 
 const TIMESERIES_VIZ_TYPES = [
-  VizType.LegacyLine,
   VizType.LegacyArea,
   VizType.Compare,
   VizType.TimePivot,
@@ -192,7 +190,6 @@ const propTypes = {
     VizType.Bullet,
     VizType.Compare,
     'column',
-    VizType.LegacyLine,
     VizType.TimePivot,
     'pie',
   ]),
@@ -366,23 +363,6 @@ function nvd3Vis(element, props) {
     const numberFormatter = getNumberFormatter(numberFormat);
 
     switch (vizType) {
-      case VizType.LegacyLine:
-        if (canShowBrush) {
-          chart = nv.models.lineWithFocusChart();
-          if (staggerLabels) {
-            // Give a bit more room to focus area if X axis ticks are staggered
-            chart.focus.margin({ bottom: 40 });
-            chart.focusHeight(80);
-          }
-          chart.focus.xScale(d3.time.scale.utc());
-        } else {
-          chart = nv.models.lineChart();
-        }
-        chart.xScale(d3.time.scale.utc());
-        chart.interpolate(lineInterpolation);
-        chart.clipEdge(false);
-        break;
-
       case VizType.TimePivot:
         chart = nv.models.lineChart();
         chart.xScale(d3.time.scale.utc());
@@ -622,30 +602,16 @@ function nvd3Vis(element, props) {
       );
     }
 
-    if (
-      isVizTypes([VizType.LegacyLine, VizType.LegacyArea]) &&
-      useRichTooltip
-    ) {
+    if (isVizTypes([VizType.LegacyArea]) && useRichTooltip) {
       chart.useInteractiveGuideline(true);
-      if (vizType === VizType.LegacyLine) {
-        chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateRichLineTooltipContent(
-            d,
-            smartDateVerboseFormatter,
-            yAxisFormatter,
-          ),
-        );
-      } else {
-        // area chart
-        chart.interactiveLayer.tooltip.contentGenerator(d =>
-          generateAreaChartTooltipContent(
-            d,
-            smartDateVerboseFormatter,
-            yAxisFormatter,
-            chart,
-          ),
-        );
-      }
+      chart.interactiveLayer.tooltip.contentGenerator(d =>
+        generateAreaChartTooltipContent(
+          d,
+          smartDateVerboseFormatter,
+          yAxisFormatter,
+          chart,
+        ),
+      );
     }
 
     if (isVizTypes([VizType.Compare])) {
