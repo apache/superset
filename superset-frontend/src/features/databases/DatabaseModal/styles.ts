@@ -119,7 +119,7 @@ export const antDTabsStyles = css`
 `;
 
 export const antDModalNoPaddingStyles = css`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding-left: 0;
     padding-right: 0;
     padding-top: 0;
@@ -146,21 +146,20 @@ export const antDModalStyles = (theme: SupersetTheme) => css`
     height: ${theme.gridUnit * 40}px;
   }
 
-  .ant-modal-header {
+  .antd5-modal-header {
     padding: ${theme.gridUnit * 4.5}px ${theme.gridUnit * 4}px
       ${theme.gridUnit * 4}px;
   }
 
-  .ant-modal-close-x .close {
-    color: ${theme.colors.grayscale.dark1};
+  .antd5-modal-close-x .close {
     opacity: 1;
   }
 
-  .ant-modal-body {
+  .antd5-modal-body {
     height: ${theme.gridUnit * MODAL_BODY_HEIGHT}px;
   }
 
-  .ant-modal-footer {
+  .antd5-modal-footer {
     height: ${theme.gridUnit * 16.25}px;
   }
 `;

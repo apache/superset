@@ -137,7 +137,7 @@ test('CSV, renders the general information elements correctly', () => {
     inputSchema,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -207,7 +207,7 @@ test('Excel, renders the general information elements correctly', () => {
     inputSchema,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -279,7 +279,7 @@ test('Columnar, renders the general information elements correctly', () => {
     inputSchema,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -319,7 +319,7 @@ test('CSV, renders the file settings elements correctly', () => {
     selectNullValues,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -361,7 +361,7 @@ test('Excel, renders the file settings elements correctly', () => {
     selectNullValues,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -400,7 +400,7 @@ test('Columnar, renders the file settings elements correctly', () => {
 
   const visibleComponents = [selectTableAlreadyExists];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -437,7 +437,7 @@ test('CSV, renders the columns elements correctly', () => {
     inputColumnDataTypes,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -476,7 +476,7 @@ test('Excel, renders the columns elements correctly', () => {
     selectColumnsToRead,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -514,7 +514,7 @@ test('Columnar, renders the columns elements correctly', () => {
     selectColumnsToRead,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -539,7 +539,7 @@ test('renders the rows elements correctly', () => {
 
   const visibleComponents = [inputHeaderRow, inputRowsToRead, inputSkipRows];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 

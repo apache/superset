@@ -74,8 +74,8 @@ interface ChangeDatasourceModalProps {
   show: boolean;
 }
 
-const Modal = styled(StyledModal)`
-  .ant-modal-body {
+const CustomStyledModal = styled(StyledModal)`
+  .antd5-modal-body {
     display: flex;
     flex-direction: column;
   }
@@ -255,7 +255,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   };
 
   return (
-    <Modal
+    <CustomStyledModal
       show={show}
       onHide={onHide}
       responsive
@@ -323,7 +323,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
         )}
         {confirmChange && <>{CONFIRM_WARNING_MESSAGE}</>}
       </>
-    </Modal>
+    </CustomStyledModal>
   );
 };
 

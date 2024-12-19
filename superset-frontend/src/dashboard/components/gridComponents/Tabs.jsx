@@ -23,7 +23,7 @@ import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
 import { LOG_ACTIONS_SELECT_DASHBOARD_TAB } from 'src/logger/LogUtils';
-import { AntdModal } from 'src/components';
+import Modal from 'src/components/Modal';
 import { DROP_LEFT, DROP_RIGHT } from 'src/dashboard/util/getDropPosition';
 import { Draggable } from '../dnd/DragDroppable';
 import DragHandle from '../dnd/DragHandle';
@@ -298,7 +298,7 @@ const Tabs = props => {
   const showDeleteConfirmModal = useCallback(
     key => {
       const { component, deleteComponent } = props;
-      AntdModal.confirm({
+      Modal.confirm({
         title: t('Delete dashboard tab?'),
         content: (
           <span>

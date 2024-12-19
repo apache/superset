@@ -97,6 +97,13 @@ const baseConfig: ThemeConfig = {
       colorSplit: supersetTheme.colors.grayscale.light3,
       colorText: supersetTheme.colors.grayscale.dark1,
     },
+    Modal: {
+      colorBgMask: `${supersetTheme.colors.grayscale.dark2}73`,
+      contentBg: supersetTheme.colors.grayscale.light5,
+      titleFontSize: supersetTheme.gridUnit * 4,
+      titleColor: `${supersetTheme.colors.grayscale.dark2}D9`,
+      headerBg: supersetTheme.colors.grayscale.light4,
+    },
     Tag: {
       borderRadiusSM: 2,
       defaultBg: supersetTheme.colors.grayscale.light4,

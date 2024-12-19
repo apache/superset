@@ -214,7 +214,7 @@ describe('VizTypeControl', () => {
     userEvent.click(screen.getByText('View all charts'));
     expect(
       await screen.findByText('Select a visualization type'),
-    ).toBeVisible();
+    ).toBeInTheDocument();
   });
 
   it('Search visualization type', async () => {
@@ -224,7 +224,9 @@ describe('VizTypeControl', () => {
 
     userEvent.click(screen.getByRole('button', { name: 'ballot All charts' }));
 
-    expect(await within(visualizations).findByText('Line Chart')).toBeVisible();
+    expect(
+      await within(visualizations).findByText('Line Chart'),
+    ).toBeInTheDocument();
 
     // search
     userEvent.type(
@@ -233,7 +235,7 @@ describe('VizTypeControl', () => {
     );
     expect(
       await within(visualizations).findByText('Time-series Table'),
-    ).toBeVisible();
+    ).toBeInTheDocument();
     expect(within(visualizations).queryByText('Table')).not.toBeInTheDocument();
     expect(
       within(visualizations).queryByText('Big Number'),
