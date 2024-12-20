@@ -67,10 +67,12 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
             placement="bottom"
             title={draftButtonTooltip}
           >
-            <PublishedLabel
-              isPublished={isPublished}
-              onClick={this.togglePublished}
-            />
+            <div>
+              <PublishedLabel
+                isPublished={isPublished}
+                onClick={this.togglePublished}
+              />
+            </div>
           </Tooltip>
         );
       }
@@ -80,7 +82,9 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
           placement="bottom"
           title={draftDivTooltip}
         >
-          <PublishedLabel isPublished={isPublished} />
+          <div>
+            <PublishedLabel isPublished={isPublished} />
+          </div>
         </Tooltip>
       );
     }
@@ -93,10 +97,12 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
           placement="bottom"
           title={publishedTooltip}
         >
-          <PublishedLabel
-            isPublished={isPublished}
-            onClick={this.togglePublished}
-          />
+          <div>
+            <PublishedLabel
+              isPublished={isPublished}
+              onClick={this.togglePublished}
+            />
+          </div>
         </Tooltip>
       );
     }
