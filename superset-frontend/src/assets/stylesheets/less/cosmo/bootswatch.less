@@ -29,13 +29,6 @@
     outline: 0;
   }
 
-  &-inverse {
-    .badge {
-      background-color: @lightest;
-      color: @brand-primary;
-    }
-  }
-
   .caret {
     display: inline-block;
     padding: 0 5px 18px 5px;
@@ -48,10 +41,6 @@
 
 .navbar-inverse .navbar-nav > .active > a,
 .navbar-inverse .navbar-nav > .active > a:hover,
-.navbar-inverse .navbar-nav > .active > a:focus {
-  background: transparent;
-}
-
 .navbar-nav > li > a {
   padding-top: 18px;
 }
@@ -71,7 +60,6 @@
     &:active,
     &:focus {
       border-color: transparent;
-      background-color: transparent;
       box-shadow: none;
     }
   }
@@ -230,7 +218,6 @@ table,
 .dropdown-menu {
   & > li > a:hover,
   & > li > a:focus {
-    background-image: none;
     text-decoration: none;
   }
 }
@@ -278,18 +265,6 @@ table,
   font-weight: @font-weight-normal;
   font-size: @font-size-s;
 }
-.label-default:hover {
-  background-color: darken(@label-default-bg, 5%);
-}
-.label-warning:hover {
-  background-color: darken(@label-warning-bg, 5%);
-}
-.label-danger:hover {
-  background-color: darken(@label-danger-bg, 5%);
-}
-.label-primary:hover {
-  background-color: darken(@label-primary-bg, 5%);
-}
 
 label {
   font-weight: @font-weight-normal;
@@ -323,7 +298,6 @@ label {
   &-default {
     .panel-heading {
       padding: 15px 15px 0 15px;
-      background-color: transparent;
     }
 
     .panel-title {
@@ -350,7 +324,6 @@ label {
   &-primary {
     .panel-heading {
       padding: 15px 15px 0 15px;
-      background-color: transparent;
     }
 
     .panel-title {
@@ -405,41 +378,6 @@ label {
   padding-bottom: 5px;
 }
 
-a.list-group-item {
-  &-success {
-    &.active {
-      background-color: @state-success-bg;
-    }
-
-    &.active:hover,
-    &.active:focus {
-      background-color: darken(@state-success-bg, 5%);
-    }
-  }
-
-  &-warning {
-    &.active {
-      background-color: @state-warning-bg;
-    }
-
-    &.active:hover,
-    &.active:focus {
-      background-color: darken(@state-warning-bg, 5%);
-    }
-  }
-
-  &-danger {
-    &.active {
-      background-color: @state-danger-bg;
-    }
-
-    &.active:hover,
-    &.active:focus {
-      background-color: darken(@state-danger-bg, 5%);
-    }
-  }
-}
-
 .modal {
   .close {
     color: @text-color;
@@ -460,7 +398,6 @@ a.list-group-item {
 .nav-tabs > li.active > a,
 .nav-tabs > li.active > a:hover,
 .nav-tabs > li.active > a:focus {
-  background-color: @lightest;
   font-weight: @font-weight-bold;
   border-top: 3px solid @brand-primary;
 }
