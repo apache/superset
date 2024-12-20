@@ -18,8 +18,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import type { PickerLocale } from 'antd/lib/date-picker/generatePicker';
-import { Moment } from 'moment';
+import type { PickerLocale } from 'antd-v5/lib/date-picker/generatePicker';
 import { isInteger } from 'lodash';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -33,10 +32,10 @@ import {
   SINCE_MODE_OPTIONS,
   UNTIL_GRAIN_OPTIONS,
   UNTIL_MODE_OPTIONS,
-  MOMENT_FORMAT,
+  DAYJS_FORMAT,
   MIDNIGHT,
   customTimeRangeEncode,
-  dttmToMoment,
+  dttmToDayjs,
   LOCALE_MAPPING,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
@@ -45,6 +44,7 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
 import Loading from 'src/components/Loading';
+import { Dayjs } from 'dayjs';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -160,9 +160,9 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row>
               <DatePicker
                 showTime
-                defaultValue={dttmToMoment(sinceDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
+                defaultValue={dttmToDayjs(sinceDatetime)}
+                onChange={(datetime: Dayjs) =>
+                  onChange('sinceDatetime', datetime.format(DAYJS_FORMAT))
                 }
                 allowClear={false}
                 locale={datePickerLocale}
@@ -218,9 +218,9 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row>
               <DatePicker
                 showTime
-                defaultValue={dttmToMoment(untilDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
+                defaultValue={dttmToDayjs(untilDatetime)}
+                onChange={(datetime: Dayjs) =>
+                  onChange('untilDatetime', datetime.format(DAYJS_FORMAT))
                 }
                 allowClear={false}
                 locale={datePickerLocale}
@@ -280,9 +280,9 @@ export function CustomFrame(props: FrameComponentProps) {
               <Col>
                 <DatePicker
                   showTime
-                  defaultValue={dttmToMoment(anchorValue)}
-                  onChange={(datetime: Moment) =>
-                    onChange('anchorValue', datetime.format(MOMENT_FORMAT))
+                  defaultValue={dttmToDayjs(anchorValue)}
+                  onChange={(datetime: Dayjs) =>
+                    onChange('anchorValue', datetime.format(DAYJS_FORMAT))
                   }
                   allowClear={false}
                   className="control-anchor-to-datetime"

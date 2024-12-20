@@ -24,11 +24,11 @@ import {
   RefObject,
 } from 'react';
 
-// TODO: @msyavuz - Replace with dayjs after migrating datepicker to antd5
-import moment, { Moment } from 'moment';
 import { styled, t } from '@superset-ui/core';
 import { RangePicker } from 'src/components/DatePicker';
 import { FormLabel } from 'src/components/Form';
+import { extendedDayjs } from 'src/utils/dates';
+import { Dayjs } from 'dayjs';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
@@ -51,9 +51,9 @@ function DateRangeFilter(
   ref: RefObject<FilterHandler>,
 ) {
   const [value, setValue] = useState<ValueState | null>(initialValue ?? null);
-  const momentValue = useMemo((): [Moment, Moment] | null => {
+  const dayjsValue = useMemo((): [Dayjs, Dayjs] | null => {
     if (!value || (Array.isArray(value) && !value.length)) return null;
-    return [moment(value[0]), moment(value[1])];
+    return [extendedDayjs(value[0]), extendedDayjs(value[1])];
   }, [value]);
 
   useImperativeHandle(ref, () => ({
@@ -69,16 +69,16 @@ function DateRangeFilter(
       <RangePicker
         placeholder={[t('Start date'), t('End date')]}
         showTime
-        value={momentValue}
-        onChange={(momentRange: [Moment, Moment]) => {
-          if (!momentRange) {
+        value={dayjsValue}
+        onCalendarChange={(dayjsRange: [Dayjs, Dayjs]) => {
+          if (!dayjsRange?.[0]?.valueOf() || !dayjsRange?.[1]?.valueOf()) {
             setValue(null);
             onSubmit([]);
             return;
           }
           const changeValue = [
-            momentRange[0]?.valueOf() ?? 0,
-            momentRange[1]?.valueOf() ?? 0,
+            dayjsRange[0]?.valueOf() ?? 0,
+            dayjsRange[1]?.valueOf() ?? 0,
           ] as ValueState;
           setValue(changeValue);
           onSubmit(changeValue);

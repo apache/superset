@@ -17,24 +17,6 @@
  * under the License.
  */
 import { DatePicker as AntdDatePicker } from 'antd-v5';
-// import { RangePickerProps } from 'antd-v5/es/date-picker';
-import {
-  RangePickerProps as BaseRangePickerProps,
-  PickerProps,
-} from 'antd-v5/es/date-picker/generatePicker/interface';
-import { Moment } from 'moment';
-import momentGenerateConfig from 'antd-v5/node_modules/rc-picker/lib/generate/moment';
 
-export type DatePickerProps = PickerProps<Moment>;
-
-export type RangePickerProps = BaseRangePickerProps<Moment>;
-
-export const DatePicker = AntdDatePicker.generatePicker<Moment>(
-  momentGenerateConfig,
-) as React.FC<DatePickerProps>;
-
-export const { RangePicker } = AntdDatePicker.generatePicker<Moment>(
-  momentGenerateConfig,
-) as {
-  RangePicker: React.FC<RangePickerProps>;
-};
+export const DatePicker = AntdDatePicker;
+export const { RangePicker } = AntdDatePicker;

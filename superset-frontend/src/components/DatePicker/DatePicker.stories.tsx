@@ -16,24 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePicker, RangePicker, RangePickerProps, DatePickerProps } from '.';
+import { DatePickerProps } from 'antd-v5';
+import { RangePickerProps } from 'antd-v5/es/date-picker';
+import { DatePicker, RangePicker } from '.';
 
 export default {
   title: 'DatePicker',
   component: DatePicker,
 };
 
-const commonArgs = {
-  allowClear: true,
+const commonArgs: DatePickerProps = {
+  allowClear: false,
   autoFocus: true,
-  bordered: true,
   disabled: false,
-  order: true,
-  inputReadOnly: false,
-  size: 'middle',
   format: 'YYYY-MM-DD hh:mm a',
-  showTime: { format: 'hh:mm a' },
+  inputReadOnly: false,
+  order: true,
+  picker: 'date',
   placement: 'bottomLeft',
+  size: 'middle',
+  showNow: true,
+  showTime: { format: 'hh:mm a' },
 };
 
 const interactiveTypes = {
@@ -77,9 +80,9 @@ export const InteractiveDatePicker = (args: DatePickerProps) => (
 
 InteractiveDatePicker.args = {
   ...commonArgs,
-  picker: 'date',
   placeholder: 'Placeholder',
   showToday: true,
+  showTime: { format: 'hh:mm a', needConfirm: false },
 };
 
 InteractiveDatePicker.argTypes = interactiveTypes;
@@ -90,9 +93,8 @@ export const InteractiveRangePicker = (args: RangePickerProps) => (
 
 InteractiveRangePicker.args = {
   ...commonArgs,
-  allowEmpty: true,
-  showNow: true,
   separator: '-',
+  showTime: { format: 'hh:mm a', needConfirm: false },
 };
 
 InteractiveRangePicker.argTypes = interactiveTypes;
