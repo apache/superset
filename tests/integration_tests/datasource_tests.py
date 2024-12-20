@@ -58,10 +58,10 @@ def create_test_table_context(database: Database):
 
     with database.get_sqla_engine() as engine:
         engine.execute(
-            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"
+            f"CREATE TABLE IF NOT EXISTS {full_table_name} AS SELECT 1 as first, 2 as second"  # noqa: E501
         )
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")
-        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (1, 2)")  # noqa: S608
+        engine.execute(f"INSERT INTO {full_table_name} (first, second) VALUES (3, 4)")  # noqa: S608
 
     yield db.session
 
@@ -151,11 +151,11 @@ class TestDatasource(SupersetTestCase):
         with create_and_cleanup_table(table):
             table.always_filter_main_dttm = False
             result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-            assert "default_dttm" not in result and "additional_dttm" in result
+            assert "default_dttm" not in result and "additional_dttm" in result  # noqa: PT018
 
             table.always_filter_main_dttm = True
             result = str(table.get_sqla_query(**query_obj).sqla_query.whereclause)
-            assert "default_dttm" in result and "additional_dttm" in result
+            assert "default_dttm" in result and "additional_dttm" in result  # noqa: PT018
 
     def test_external_metadata_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
@@ -372,7 +372,7 @@ class TestDatasource(SupersetTestCase):
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl_id
         datasource_post["owners"] = [1]
-        data = dict(data=json.dumps(datasource_post))
+        data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.get_json_resp("/datasource/save/", data)
         for k in datasource_post:
             if k == "columns":
@@ -394,12 +394,12 @@ class TestDatasource(SupersetTestCase):
         datasource_post["id"] = tbl_id
         datasource_post["owners"] = [1]
         datasource_post["default_endpoint"] = "http://localhost/superset/1"
-        data = dict(data=json.dumps(datasource_post))
+        data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.client.post("/datasource/save/", data=data)
         assert resp.status_code == 200
 
     def save_datasource_from_dict(self, datasource_post):
-        data = dict(data=json.dumps(datasource_post))
+        data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.get_json_resp("/datasource/save/", data)
         return resp
 
@@ -451,7 +451,7 @@ class TestDatasource(SupersetTestCase):
                 },
             ]
         )
-        data = dict(data=json.dumps(datasource_post))
+        data = dict(data=json.dumps(datasource_post))  # noqa: C408
         resp = self.get_json_resp("/datasource/save/", data, raise_on_error=False)
         assert "Duplicate column name(s): <new column>" in resp["error"]
 
@@ -463,7 +463,7 @@ class TestDatasource(SupersetTestCase):
         datasource_post = get_datasource_post()
         datasource_post["id"] = tbl.id
         datasource_post["owners"] = [admin_user.id]
-        data = dict(data=json.dumps(datasource_post))
+        data = dict(data=json.dumps(datasource_post))  # noqa: C408
         self.get_json_resp("/datasource/save/", data)
         url = f"/datasource/get/{tbl.type}/{tbl.id}/"
         resp = self.get_json_resp(url)
@@ -537,7 +537,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert rv.json["result"]["is_cached"]
 
     # 2. should read through cache data
-    uri2 = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&force=true"
+    uri2 = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&force=true"  # noqa: E501
     # feeds data
     test_client.post(uri2, json={})
     # force query
@@ -556,7 +556,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert "data" in rv2.json["result"]
 
     sql = (
-        f"select * from ({virtual_dataset.sql}) as tbl "
+        f"select * from ({virtual_dataset.sql}) as tbl "  # noqa: S608
         f'limit {app.config["SAMPLES_ROW_LIMIT"]}'
     )
     eager_samples = virtual_dataset.database.get_df(sql)
@@ -722,12 +722,12 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     # 2. incorrect per_page
     per_pages = (app.config["SAMPLES_ROW_LIMIT"] + 1, 0, "xx")
     for per_page in per_pages:
-        uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"
+        uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page={per_page}"  # noqa: E501
         rv = test_client.post(uri, json={})
         assert rv.status_code == 400
 
     # 3. incorrect page or datasource_type
-    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&page=xx"
+    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&page=xx"  # noqa: E501
     rv = test_client.post(uri, json={})
     assert rv.status_code == 400
 
@@ -736,14 +736,14 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert rv.status_code == 400
 
     # 4. turning pages
-    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=1"
+    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=1"  # noqa: E501
     rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 1
     assert rv.json["result"]["per_page"] == 2
     assert rv.json["result"]["total_count"] == 10
     assert [row["col1"] for row in rv.json["result"]["data"]] == [0, 1]
 
-    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=2"
+    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=2"  # noqa: E501
     rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 2
     assert rv.json["result"]["per_page"] == 2
@@ -751,7 +751,7 @@ def test_get_samples_pagination(test_client, login_as_admin, virtual_dataset):
     assert [row["col1"] for row in rv.json["result"]["data"]] == [2, 3]
 
     # 5. Exceeding the maximum pages
-    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=6"
+    uri = f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table&per_page=2&page=6"  # noqa: E501
     rv = test_client.post(uri, json={})
     assert rv.json["result"]["page"] == 6
     assert rv.json["result"]["per_page"] == 2

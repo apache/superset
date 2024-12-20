@@ -49,7 +49,7 @@ const StyledModal = styled(Modal)`
   max-width: 1200px;
   min-width: min-content;
   width: 100%;
-  .ant-modal-footer {
+  .antd5-modal-footer {
     white-space: nowrap;
   }
 `;

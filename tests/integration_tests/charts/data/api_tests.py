@@ -124,7 +124,7 @@ class BaseTestChartDataApi(SupersetTestCase):
                                 GROUP BY name
                                 ORDER BY sum__num DESC
                                 LIMIT 100) AS inner__query
-                        """
+                        """  # noqa: S608
         resp = self.run_sql(sql, client_id, raise_on_error=True)
         db.session.query(Query).delete()
         db.session.commit()
@@ -832,7 +832,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_with_series_limit(self):
-        SERIES_LIMIT = 5
+        SERIES_LIMIT = 5  # noqa: N806
         self.query_context_payload["queries"][0]["columns"] = ["state", "name"]
         self.query_context_payload["queries"][0]["series_columns"] = ["name"]
         self.query_context_payload["queries"][0]["series_limit"] = SERIES_LIMIT
@@ -844,7 +844,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         unique_names = {row["name"] for row in data}
         self.maxDiff = None
         assert len(unique_names) == SERIES_LIMIT
-        assert {column for column in data[0].keys()} == {"state", "name", "sum__num"}
+        assert {column for column in data[0].keys()} == {"state", "name", "sum__num"}  # noqa: C416
 
     @pytest.mark.usefixtures(
         "create_annotation_layers", "load_birth_names_dashboard_with_slices"
@@ -935,7 +935,7 @@ class TestPostChartDataApi(BaseTestChartDataApi):
         assert rv.status_code == 200
         result = rv.json["result"][0]
         data = result["data"]
-        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}
+        assert {col for col in data[0].keys()} == {"foo", "bar", "state", "count"}  # noqa: C416
         # make sure results and query parameters are unescaped
         assert {row["foo"] for row in data} == {":foo"}
         assert {row["bar"] for row in data} == {":bar:"}
@@ -1255,7 +1255,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         data = result["data"]
-        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}
+        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}  # noqa: C416
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
@@ -1275,7 +1275,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         response_payload = json.loads(rv.data.decode("utf-8"))
         result = response_payload["result"][0]
         data = result["data"]
-        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}
+        assert {column for column in data[0].keys()} == {"male_or_female", "sum__num"}  # noqa: C416
         unique_genders = {row["male_or_female"] for row in data}
         assert unique_genders == {"male", "female"}
         assert result["applied_filters"] == [{"column": "male_or_female"}]
@@ -1287,7 +1287,7 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         ]
 
 
-@pytest.fixture()
+@pytest.fixture
 def physical_query_context(physical_dataset) -> dict[str, Any]:
     return {
         "datasource": {
@@ -1342,7 +1342,7 @@ def test_time_filter_with_grain(test_client, login_as_admin, physical_query_cont
     backend = get_example_database().backend
     if backend == "sqlite":
         assert (
-            "DATETIME(col5, 'start of day',             -strftime('%w', col5) || ' days') >="
+            "DATETIME(col5, 'start of day',             -strftime('%w', col5) || ' days') >="  # noqa: E501
             in query
         )
     elif backend == "mysql":

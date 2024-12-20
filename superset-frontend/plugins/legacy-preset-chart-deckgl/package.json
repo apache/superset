@@ -24,12 +24,12 @@
     "lib"
   ],
   "dependencies": {
-    "@deck.gl/aggregation-layers": "^9.0.37",
+    "@deck.gl/aggregation-layers": "^9.0.38",
     "@deck.gl/core": "^9.0.37",
-    "@deck.gl/layers": "^9.0.37",
+    "@deck.gl/layers": "^9.0.38",
     "@deck.gl/react": "^9.0.37",
     "@mapbox/geojson-extent": "^1.0.1",
-    "@math.gl/web-mercator": "^3.2.2",
+    "@math.gl/web-mercator": "^4.1.0",
     "@types/d3-array": "^2.0.0",
     "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",

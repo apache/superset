@@ -32,7 +32,7 @@ from selenium.common.exceptions import (
 from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
 
 from superset import feature_flag_manager
@@ -105,8 +105,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 alert_div.get_by_role("button").click()
 
                 # wait for modal to show up
-                page.locator(".ant-modal-content").wait_for(state="visible")
-                err_msg_div = page.locator(".ant-modal-content .ant-modal-body")
+                page.locator(".antd5-modal-content").wait_for(state="visible")
+                err_msg_div = page.locator(".antd5-modal-content .antd5-modal-body")
                 #
                 # # collect error message
                 error_messages.append(err_msg_div.text_content())
@@ -115,10 +115,10 @@ class WebDriverPlaywright(WebDriverProxy):
                 error_as_html = err_msg_div.inner_html().replace("'", "\\'")
                 #
                 # # close modal after collecting error messages
-                page.locator(".ant-modal-content .ant-modal-close").click()
+                page.locator(".antd5-modal-content .antd5-modal-close").click()
                 #
                 # # wait until the modal becomes invisible
-                page.locator(".ant-modal-content").wait_for(state="detached")
+                page.locator(".antd5-modal-content").wait_for(state="detached")
                 try:
                     # Even if some errors can't be updated in the screenshot,
                     # keep all the errors in the server log and do not fail the loop
@@ -133,7 +133,7 @@ class WebDriverPlaywright(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements
+    def get_screenshot(  # pylint: disable=too-many-locals, too-many-statements  # noqa: C901
         self, url: str, element_name: str, user: User
     ) -> bytes | None:
         with sync_playwright() as playwright:
@@ -162,7 +162,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
             except PlaywrightTimeout:
                 logger.exception(
-                    "Web event %s not detected. Page %s might not have been fully loaded",
+                    "Web event %s not detected. Page %s might not have been fully loaded",  # noqa: E501
                     current_app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
                     url,
                 )
@@ -226,7 +226,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     unexpected_errors = WebDriverPlaywright.find_unexpected_errors(page)
                     if unexpected_errors:
                         logger.warning(
-                            "%i errors found in the screenshot. URL: %s. Errors are: %s",
+                            "%i errors found in the screenshot. URL: %s. Errors are: %s",  # noqa: E501
                             len(unexpected_errors),
                             url,
                             unexpected_errors,
@@ -285,11 +285,11 @@ class WebDriverSelenium(WebDriverProxy):
         # and catch-all exceptions
         try:
             retry_call(driver.close, max_tries=tries)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
         try:
             driver.quit()
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
 
     @staticmethod
@@ -312,17 +312,17 @@ class WebDriverSelenium(WebDriverProxy):
                     current_app.config["SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE"],
                 ).until(
                     EC.visibility_of_any_elements_located(
-                        (By.CLASS_NAME, "ant-modal-content")
+                        (By.CLASS_NAME, "antd5-modal-content")
                     )
                 )[0]
 
-                err_msg_div = modal.find_element(By.CLASS_NAME, "ant-modal-body")
+                err_msg_div = modal.find_element(By.CLASS_NAME, "antd5-modal-body")
 
                 # collect error message
                 error_messages.append(err_msg_div.text)
 
                 # close modal after collecting error messages
-                modal.find_element(By.CLASS_NAME, "ant-modal-close").click()
+                modal.find_element(By.CLASS_NAME, "antd5-modal-close").click()
 
                 # wait until the modal becomes invisible
                 WebDriverWait(

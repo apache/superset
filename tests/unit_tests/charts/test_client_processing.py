@@ -21,7 +21,7 @@ import pytest
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
-from superset.charts.post_processing import apply_post_process, pivot_df, table
+from superset.charts.client_processing import apply_client_processing, pivot_df, table
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import GenericDataType
 
@@ -300,7 +300,7 @@ def test_pivot_df_single_row_two_metrics():
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
 | ('{_("Total")} (Sum)',) |                 47123 |                 118065 |                  1280 |                   2588 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # combine_metrics does nothing in this case
@@ -469,7 +469,7 @@ def test_pivot_df_single_row_null_values():
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
 | ('Total (Sum)',) |                   nan |                 118065 |                   nan |                   2588 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # combine_metrics does nothing in this case
@@ -639,7 +639,7 @@ def test_pivot_df_single_row_null_mix_values_strings():
 |:-----------------|:----------------------|-----------------------:|----------------------:|-----------------------:|
 | ('Total (Sum)',) | NULL                  |                 118065 |                   nan |                   2588 |
 
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # combine_metrics does nothing in this case
@@ -776,7 +776,7 @@ def test_pivot_df_single_row_null_mix_values_numbers():
         == """
 |                  |   ('SUM(num)', 'boy') |   ('SUM(num)', 'girl') |   ('MAX(num)', 'boy') |   ('MAX(num)', 'girl') |
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
-| ('Total (Sum)',) |                    21 |                 118065 |                   nan |                   2588 |    """.strip()
+| ('Total (Sum)',) |                    21 |                 118065 |                   nan |                   2588 |    """.strip()  # noqa: E501
     )
 
     # combine_metrics does nothing in this case
@@ -998,7 +998,7 @@ def test_pivot_df_complex():
 | ('girl', 'Cindy')  |                14149 |                 1218 |                  842 |                  217 |
 | ('girl', 'Dawn')   |                11403 |                 5089 |                 1157 |                  461 |
 | ('girl', 'Sophia') |                18859 |                 7181 |                 2588 |                 1187 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # transpose_pivot
@@ -1021,7 +1021,7 @@ def test_pivot_df_complex():
 |:--------|--------------------------------:|------------------------------:|------------------------------:|--------------------------------:|-------------------------------:|---------------------------------:|--------------------------------:|------------------------------:|------------------------------:|--------------------------------:|-------------------------------:|---------------------------------:|
 | ('CA',) |                           31290 |                          3765 |                         45426 |                           14149 |                          11403 |                            18859 |                            1280 |                           598 |                          2227 |                             842 |                           1157 |                             2588 |
 | ('FL',) |                            9395 |                          2673 |                         14740 |                            1218 |                           5089 |                             7181 |                             389 |                           247 |                           854 |                             217 |                            461 |                             1187 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # combine_metrics
@@ -1048,7 +1048,7 @@ def test_pivot_df_complex():
 | ('girl', 'Cindy')  |                14149 |                  842 |                 1218 |                  217 |
 | ('girl', 'Dawn')   |                11403 |                 1157 |                 5089 |                  461 |
 | ('girl', 'Sophia') |                18859 |                 2588 |                 7181 |                 1187 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # show totals
@@ -1078,7 +1078,7 @@ def test_pivot_df_complex():
 | ('girl', 'Sophia')   |                18859 |                 7181 |                      26040 |                 2588 |                 1187 |                       3775 |                 29815 |
 | ('girl', 'Subtotal') |                89837 |                28228 |                     118065 |                 6814 |                 2719 |                       9533 |                127598 |
 | ('Total (Sum)', '')  |               124892 |                40296 |                     165188 |                 8692 |                 3355 |                      12047 |                177235 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # apply_metrics_on_rows
@@ -1172,7 +1172,7 @@ def test_pivot_df_complex():
 | ('FL', 'MAX(num)')  |                 389 |               247 |                   636 |               854 |                 217 |                461 |                 1187 |                   2719 |                  3355 |
 | ('FL', 'Subtotal')  |                9784 |              2920 |                 12704 |             15594 |                1435 |               5550 |                 8368 |                  30947 |                 43651 |
 | ('Total (Sum)', '') |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # fraction
@@ -1202,7 +1202,7 @@ def test_pivot_df_complex():
 | ('girl', 'Sophia')                         |            0.151002  |            0.178206  |            0.297745  |            0.3538    |
 | ('girl', 'Subtotal')                       |            0.719317  |            0.700516  |            0.783939  |            0.810432  |
 | ('Total (Sum as Fraction of Columns)', '') |            1         |            1         |            1         |            1         |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
 
@@ -1290,7 +1290,7 @@ def test_pivot_df_multi_column():
 |:-----------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
 | ('CA',)          |                 35055 |                  89837 |                  1878 |                   6814 |
 | ('Total (Sum)',) |                 12068 |                  28228 |                   636 |                   2719 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # transpose_pivot
@@ -1338,7 +1338,7 @@ def test_pivot_df_multi_column():
 |:-----------------|----------------------:|----------------------:|-----------------------:|-----------------------:|
 | ('CA',)          |                 35055 |                  1878 |                  89837 |                   6814 |
 | ('Total (Sum)',) |                 12068 |                   636 |                  28228 |                   2719 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # show totals
@@ -1362,7 +1362,7 @@ def test_pivot_df_multi_column():
 | ('CA',)          |                 35055 |                  89837 |                     124892 |                  1878 |                   6814 |                       8692 |                133584 |
 | ('Total (Sum)',) |                 12068 |                  28228 |                      40296 |                   636 |                   2719 |                       3355 |                 43651 |
 
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # apply_metrics_on_rows
@@ -1385,7 +1385,7 @@ def test_pivot_df_multi_column():
 |:--------------|----------------:|-----------------:|----------------:|-----------------:|
 | ('SUM(num)',) |           35055 |            89837 |           12068 |            28228 |
 | ('MAX(num)',) |            1878 |             6814 |             636 |             2719 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # apply_metrics_on_rows with combine_metrics
@@ -1408,7 +1408,7 @@ def test_pivot_df_multi_column():
 |:--------------|----------------:|-----------------:|----------------:|-----------------:|
 | ('SUM(num)',) |           35055 |            89837 |           12068 |            28228 |
 | ('MAX(num)',) |            1878 |             6814 |             636 |             2719 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # everything
@@ -1459,7 +1459,7 @@ def test_pivot_df_multi_column():
 |:----------------------------------------|----------------------:|-----------------------:|----------------------:|-----------------------:|
 | ('CA',)                                 |              0.743904 |               0.760911 |              0.747017 |                0.71478 |
 | ('Total (Sum as Fraction of Columns)',) |              0.256096 |               0.239089 |              0.252983 |                0.28522 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
 
@@ -1607,7 +1607,7 @@ def test_pivot_df_complex_null_values():
 |        |   ('SUM(num)', 'boy', 'Edward') |   ('SUM(num)', 'boy', 'Tony') |   ('SUM(num)', 'girl', 'Amy') |   ('SUM(num)', 'girl', 'Cindy') |   ('SUM(num)', 'girl', 'Dawn') |   ('SUM(num)', 'girl', 'Sophia') |   ('MAX(num)', 'boy', 'Edward') |   ('MAX(num)', 'boy', 'Tony') |   ('MAX(num)', 'girl', 'Amy') |   ('MAX(num)', 'girl', 'Cindy') |   ('MAX(num)', 'girl', 'Dawn') |   ('MAX(num)', 'girl', 'Sophia') |
 |:-------|--------------------------------:|------------------------------:|------------------------------:|--------------------------------:|-------------------------------:|---------------------------------:|--------------------------------:|------------------------------:|------------------------------:|--------------------------------:|-------------------------------:|---------------------------------:|
 | (nan,) |                           40685 |                          6438 |                         60166 |                           15367 |                          16492 |                            26040 |                            1669 |                           845 |                          3081 |                            1059 |                           1618 |                             3775 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # combine_metrics
@@ -1664,7 +1664,7 @@ def test_pivot_df_complex_null_values():
 | ('girl', 'Sophia')   |               26040 |                      26040 |                3775 |                       3775 |                 29815 |
 | ('girl', 'Subtotal') |              118065 |                     118065 |                9533 |                       9533 |                127598 |
 | ('Total (Sum)', '')  |              165188 |                     165188 |               12047 |                      12047 |                177235 |
-  """.strip()
+  """.strip()  # noqa: E501
     )
 
     # apply_metrics_on_rows
@@ -1755,7 +1755,7 @@ def test_pivot_df_complex_null_values():
 | (nan, 'MAX(num)')   |                1669 |               845 |                  2514 |              3081 |                1059 |               1618 |                 3775 |                   9533 |                 12047 |
 | (nan, 'Subtotal')   |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
 | ('Total (Sum)', '') |               42354 |              7283 |                 49637 |             63247 |               16426 |              18110 |                29815 |                 127598 |                177235 |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
     # fraction
@@ -1785,7 +1785,7 @@ def test_pivot_df_complex_null_values():
 | ('girl', 'Sophia')                         |           0.157639  |           0.313356  |
 | ('girl', 'Subtotal')                       |           0.714731  |           0.791317  |
 | ('Total (Sum as Fraction of Columns)', '') |           1         |           1         |
-    """.strip()
+    """.strip()  # noqa: E501
     )
 
 
@@ -1841,29 +1841,29 @@ def test_table():
     )
 
 
-def test_apply_post_process_no_form_invalid_viz_type():
+def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
     """
     result = {"foo": "bar"}
     form_data = {"viz_type": "baz"}
-    assert apply_post_process(result, form_data) == result
+    assert apply_client_processing(result, form_data) == result
 
 
-def test_apply_post_process_without_result_format():
+def test_apply_client_processing_without_result_format():
     """
     A query without result_format should raise an exception
     """
     result = {"queries": [{"result_format": "foo"}]}
     form_data = {"viz_type": "pivot_table_v2"}
 
-    with pytest.raises(Exception) as ex:
-        apply_post_process(result, form_data)
+    with pytest.raises(Exception) as ex:  # noqa: PT011
+        apply_client_processing(result, form_data)
 
     assert ex.match("Result format foo not supported") is True  # noqa: E712
 
 
-def test_apply_post_process_json_format():
+def test_apply_client_processing_json_format():
     """
     It should be able to process json results
     """
@@ -1944,7 +1944,7 @@ def test_apply_post_process_json_format():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,
@@ -1966,7 +1966,7 @@ def test_apply_post_process_json_format():
     }
 
 
-def test_apply_post_process_csv_format():
+def test_apply_client_processing_csv_format():
     """
     It should be able to process csv results
     """
@@ -2042,7 +2042,7 @@ COUNT(is_software_dev)
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [
             {
                 "result_format": ChartDataResultFormat.CSV,
@@ -2056,7 +2056,7 @@ COUNT(is_software_dev)
     }
 
 
-def test_apply_post_process_csv_format_empty_string():
+def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
     """
@@ -2122,13 +2122,13 @@ def test_apply_post_process_csv_format_empty_string():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.CSV, "data": ""}]
     }
 
 
 @pytest.mark.parametrize("data", [None, "", "\n"])
-def test_apply_post_process_csv_format_no_data(data):
+def test_apply_client_processing_csv_format_no_data(data):
     """
     It should be able to process csv results with no data
     """
@@ -2194,12 +2194,12 @@ def test_apply_post_process_csv_format_no_data(data):
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]
     }
 
 
-def test_apply_post_process_csv_format_no_data_multiple_queries():
+def test_apply_client_processing_csv_format_no_data_multiple_queries():
     """
     It should be able to process csv results multiple queries if one query has no data
     """
@@ -2276,7 +2276,7 @@ COUNT(is_software_dev)
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [
             {"result_format": ChartDataResultFormat.CSV, "data": ""},
             {
@@ -2291,7 +2291,7 @@ COUNT(is_software_dev)
     }
 
 
-def test_apply_post_process_json_format_empty_string():
+def test_apply_client_processing_json_format_empty_string():
     """
     It should be able to process json results with no data
     """
@@ -2357,12 +2357,12 @@ def test_apply_post_process_json_format_empty_string():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": ""}]
     }
 
 
-def test_apply_post_process_json_format_data_is_none():
+def test_apply_client_processing_json_format_data_is_none():
     """
     It should be able to process json results with no data
     """
@@ -2428,12 +2428,12 @@ def test_apply_post_process_json_format_data_is_none():
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data) == {
+    assert apply_client_processing(result, form_data) == {
         "queries": [{"result_format": ChartDataResultFormat.JSON, "data": None}]
     }
 
 
-def test_apply_post_process_verbose_map(session: Session):
+def test_apply_client_processing_verbose_map(session: Session):
     from superset import db
     from superset.connectors.sqla.models import SqlaTable, SqlMetric
     from superset.models.core import Database
@@ -2487,7 +2487,7 @@ def test_apply_post_process_verbose_map(session: Session):
         "result_type": "results",
     }
 
-    assert apply_post_process(result, form_data, datasource=sqla_table) == {
+    assert apply_client_processing(result, form_data, datasource=sqla_table) == {
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,

@@ -72,6 +72,19 @@ documentation.
 configured to be secure.
 :::
 
+### Supported environment variables
+
+Affecting the Docker build process:
+- **SUPERSET_BUILD_TARGET (default=dev):** which --target to build, either `lean` or `dev` are commonly used
+- **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
+- **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
+- **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
+
+For more env vars that affect your configuration, see this
+[superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
+used in the `docker compose` context to assign env vars to the superset configuration.
+
+
 ### Nuking the postgres database
 
 At times, it's possible to end up with your development database in a bad state, it's
@@ -242,19 +255,19 @@ If you add a new requirement or update an existing requirement (per the `install
 $ python3 -m venv venv
 $ source venv/bin/activate
 $ python3 -m pip install -r requirements/development.txt
-$ pip-compile-multi --no-upgrade
+$ ./scripts/uv-pip-compile.sh
 ```
 
-When upgrading the version number of a single package, you should run `pip-compile-multi` with the `-P` flag:
+When upgrading the version number of a single package, you should run `./scripts/uv-pip-compile.sh` with the `-P` flag:
 
 ```bash
-$ pip-compile-multi -P my-package
+$ ./scripts/uv-pip-compile.sh -P some-package-to-upgrade
 ```
 
-To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run pip-compile-multi` without any flags:
+To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run `./scripts/uv-pip-compile.sh --upgrade`
 
 ```bash
-$ pip-compile-multi
+$ ./scripts/uv-pip-compile.sh --upgrade
 ```
 
 This should be done periodically, but it is recommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
@@ -478,37 +491,7 @@ A series of checks will now run when you make a git commit.
 
 ## Linting
 
-### Python
-
-We use [Pylint](https://pylint.org/) for linting which can be invoked via:
-
-```bash
-pylint
-```
-
-In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
-
-Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
-
-### TypeScript
-
-```bash
-cd superset-frontend
-npm ci
-# run eslint checks
-npm run eslint -- .
-# run tsc (typescript) checks
-npm run type
-```
-
-If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
-
-```json
-"eslint.workingDirectories": [
-  "superset-frontend"
-]
-```
+See [how tos](/docs/contributing/howtos#linting)
 
 
 ## GitHub Actions and `act`

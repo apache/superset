@@ -47,7 +47,7 @@ import { loadTags } from 'src/components/Tags/utils';
 import {
   applyColors,
   getColorNamespace,
-  getLabelsColorMapEntries,
+  getFreshLabelsColorMapEntries,
 } from 'src/utils/colorScheme';
 import getOwnerName from 'src/utils/getOwnerName';
 import Owner from 'src/types/Owner';
@@ -302,6 +302,7 @@ const PropertiesModal = ({
         content: t('A valid color scheme is required'),
         okButtonProps: { danger: true, className: 'btn-danger' },
       });
+      onHide();
       throw new Error('A valid color scheme is required');
     }
 
@@ -369,7 +370,7 @@ const PropertiesModal = ({
     dispatch(
       setDashboardMetadata({
         ...updatedDashboardMetadata,
-        map_label_colors: getLabelsColorMapEntries(customLabelColors),
+        map_label_colors: getFreshLabelsColorMapEntries(customLabelColors),
       }),
     );
 
