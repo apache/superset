@@ -40,12 +40,12 @@ jobs:
       stack: ${{ needs.labels.outputs.feature_name }}
       service: superset
       component: service
-      repository: Webgains/superset-service
       override: |
         {
           "namespace": "${{ needs.labels.outputs.feature_name }}",
           "supersetImageTag": "${{ needs.build.outputs.tag_hash }}"
         }
+
     permissions:
       contents: read
       deployments: write
