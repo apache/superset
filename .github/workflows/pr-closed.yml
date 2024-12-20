@@ -7,12 +7,23 @@ on:
 jobs:
   destroy:
     name: Destroy Stack
-    uses: webgains/github-workflows/.github/workflows/destroy-stack.yml@main
-    secrets: inherit
-    with:
-      environment: feature
-      stack: superset-pr-${{ github.event.pull_request.number }}SupersetService
+    runs-on: ubuntu-latest
+    environment: feature
+    concurrency:
+      group: superset-pr-${{ github.event.pull_request.number }}SupersetService-feature
     permissions:
       contents: read
       deployments: write
       id-token: write
+
+    steps:
+      - name: Assume AWS role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ vars.DEPLOY_ROLE_ARN }}
+          role-session-name: deploy-${{ github.run_id }}
+
+      - name: Delete Stack
+        run: aws cloudformation delete-stack --stack-name superset-pr-${{ github.event.pull_request.number }}SupersetService
+
