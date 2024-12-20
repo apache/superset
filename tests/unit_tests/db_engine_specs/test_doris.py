@@ -86,25 +86,25 @@ def test_get_column_spec(
         (
             "doris://user:password@host/db1",
             {"param1": "some_value"},
-            "db1",
+            "internal.information_schema",
             {"param1": "some_value"},
         ),
         (
             "pydoris://user:password@host/db1",
             {"param1": "some_value"},
-            "db1",
+            "internal.information_schema",
             {"param1": "some_value"},
         ),
         (
             "doris://user:password@host/catalog1.db1",
             {"param1": "some_value"},
-            "catalog1.db1",
+            "catalog1.information_schema",
             {"param1": "some_value"},
         ),
         (
             "pydoris://user:password@host/catalog1.db1",
             {"param1": "some_value"},
-            "catalog1.db1",
+            "catalog1.information_schema",
             {"param1": "some_value"},
         ),
     ],
@@ -121,6 +121,11 @@ def test_adjust_engine_params(
     returned_url, returned_connect_args = DorisEngineSpec.adjust_engine_params(
         url, connect_args
     )
+    # # Update expected schema to include .information_schema
+    # if return_schema not in ".":
+    #     expected_schema = f"{return_schema}.information_schema"
+    # else:
+    #     expected_schema = return_schema
     assert returned_url.database == return_schema
     assert returned_connect_args == return_connect_args
 

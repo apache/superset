@@ -251,7 +251,7 @@ class DorisEngineSpec(MySQLEngineSpec):
         if uri.database and "." in uri.database:
             current_catalog, _ = uri.database.split(".", 1)
         else:
-            current_catalog = uri.database
+            current_catalog = "internal"
 
         # In Apache Doris, each catalog has an information_schema for BI tool
         # compatibility. See: https://github.com/apache/doris/pull/28919
