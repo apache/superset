@@ -28,21 +28,25 @@ interface ShowSQLProps {
   sql: string;
   title: string;
   tooltipText: string;
+  triggerNode?: React.ReactNode;
 }
 
 export default function ShowSQL({
   tooltipText,
   title,
   sql: sqlString,
+  triggerNode,
 }: ShowSQLProps) {
   return (
     <ModalTrigger
       modalTitle={title}
       triggerNode={
-        <IconTooltip
-          className="fa fa-eye pull-left m-l-2"
-          tooltip={tooltipText}
-        />
+        triggerNode || (
+          <IconTooltip
+            className="fa fa-eye pull-left m-l-2"
+            tooltip={tooltipText}
+          />
+        )
       }
       modalBody={
         <div>

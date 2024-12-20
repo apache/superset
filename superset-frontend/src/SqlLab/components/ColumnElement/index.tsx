@@ -72,18 +72,40 @@ interface ColumnElementProps {
     name: string;
     keys?: { type: ColumnKeyTypeType }[];
     type: string;
+    longType: string;
   };
+  searchText?: string;
 }
 
 const NowrapDiv = styled.div`
   white-space: nowrap;
 `;
 
-const ColumnElement = ({ column }: ColumnElementProps) => {
-  let columnName: ReactNode = column.name;
+const HighlightText = styled.span`
+  background-color: ${({ theme }) => theme.colors.alert.light1};
+`;
+
+const ColumnElement = ({ column, searchText }: ColumnElementProps) => {
+  const columnName = column.name;
+  const index = searchText ? columnName.indexOf(searchText) : -1;
+  const beforeStr = columnName.substring(0, index);
+  const afterStr = columnName.slice(index + (searchText?.length ?? 0));
   let icons;
+  let columnDisplayName = (
+    <>
+      {index > -1 ? (
+        <span>
+          {beforeStr}
+          <HighlightText>{searchText}</HighlightText>
+          {afterStr}
+        </span>
+      ) : (
+        columnName
+      )}
+    </>
+  );
   if (column.keys && column.keys.length > 0) {
-    columnName = <strong>{column.name}</strong>;
+    columnDisplayName = <strong>{columnDisplayName}</strong>;
     icons = column.keys.map((key, i) => (
       <span key={i} className="ColumnElement">
         <StyledTooltip
@@ -106,7 +128,7 @@ const ColumnElement = ({ column }: ColumnElementProps) => {
   return (
     <div className="clearfix table-column">
       <div className="pull-left m-l-10 col-name">
-        {columnName}
+        {columnDisplayName}
         {icons}
       </div>
       <NowrapDiv className="pull-right text-muted">

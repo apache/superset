@@ -16,399 +16,377 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import type { Table } from 'src/SqlLab/types';
-import Collapse from 'src/components/Collapse';
-import Card from 'src/components/Card';
-import ButtonGroup from 'src/components/ButtonGroup';
-import { css, t, styled, useTheme } from '@superset-ui/core';
-import { debounce } from 'lodash';
-
+import { FC, useCallback, useMemo, useRef, useState } from 'react';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { nanoid } from 'nanoid';
 import {
-  removeDataPreview,
-  removeTables,
-  addDangerToast,
-  syncTable,
-} from 'src/SqlLab/actions/sqlLab';
+  ClientErrorObject,
+  css,
+  getExtensionsRegistry,
+  SafeMarkdown,
+  styled,
+  t,
+} from '@superset-ui/core';
+import AutoSizer from 'react-virtualized-auto-sizer';
+import Icons from 'src/components/Icons';
+import type { SqlLabRootState } from 'src/SqlLab/types';
+import {
+  Skeleton,
+  AntdBreadcrumb as Breadcrumb,
+  AntdDropdown,
+} from 'src/components';
+import FilterableTable from 'src/components/FilterableTable';
+import Tabs from 'src/components/Tabs';
 import {
   tableApiUtil,
+  TableMetaData,
   useTableExtendedMetadataQuery,
   useTableMetadataQuery,
 } from 'src/hooks/apiResources';
-import { Tooltip } from 'src/components/Tooltip';
+import { runTablePreviewQuery } from 'src/SqlLab/actions/sqlLab';
+import Alert from 'src/components/Alert';
+import { Menu } from 'src/components/Menu';
+import Card from 'src/components/Card';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { IconTooltip } from 'src/components/IconTooltip';
-import ModalTrigger from 'src/components/ModalTrigger';
-import Loading from 'src/components/Loading';
-import useEffectEvent from 'src/hooks/useEffectEvent';
-import { ActionType } from 'src/types/Action';
-import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
+import ResultSet from '../ResultSet';
 import ShowSQL from '../ShowSQL';
 
-export interface Column {
-  name: string;
-  keys?: { type: ColumnKeyTypeType }[];
-  type: string;
-}
+type Props = {
+  dbId: number | string;
+  schema?: string;
+  catalog?: string | null;
+  value: string;
+};
 
-export interface TableElementProps {
-  table: Table;
-}
+const extensionsRegistry = getExtensionsRegistry();
 
-const StyledSpan = styled.span`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-  &:hover {
-    color: ${({ theme }) => theme.colors.primary.dark2};
+const COLUMN_KEYS = ['column_name', 'column_type'];
+
+const TAB_HEADER_HEIGHT = 80;
+const PREVIEW_TOP_ACTION_HEIGHT = 30;
+const PREVIEW_QUERY_LIMIT = 100;
+
+const Title = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  column-gap: ${({ theme }) => theme.gridUnit}px;
+  font-size: ${({ theme }) => theme.typography.sizes.l}px;
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+`;
+
+const renderWell = (partitions: TableMetaData['partitions']) => {
+  if (!partitions) {
+    return null;
   }
-  cursor: pointer;
-`;
+  const { partitionQuery } = partitions;
+  let partitionClipBoard;
+  if (partitionQuery) {
+    const tt = t('Copy partition query to clipboard');
+    partitionClipBoard = (
+      <CopyToClipboard
+        text={partitionQuery}
+        shouldShowText={false}
+        tooltipText={tt}
+        copyNode={<i className="fa fa-clipboard" />}
+      />
+    );
+  }
+  const latest = Object.entries(partitions.latest || [])
+    .map(([key, value]) => `${key}=${value}`)
+    .join('/');
 
-const Fade = styled.div`
-  transition: all ${({ theme }) => theme.transitionTiming}s;
-  opacity: ${(props: { hovered: boolean }) => (props.hovered ? 1 : 0)};
-`;
+  return (
+    <Card size="small">
+      <div>
+        <small>
+          {t('latest partition:')} {latest}
+        </small>{' '}
+        {partitionClipBoard}
+      </div>
+    </Card>
+  );
+};
 
-const StyledCollapsePanel = styled(Collapse.Panel)`
-  ${({ theme }) => css`
-    & {
-      .ws-el-controls {
-        margin-right: ${-theme.gridUnit}px;
-        display: flex;
-      }
-
-      .header-container {
-        display: flex;
-        flex: 1;
-        align-items: center;
-        width: 100%;
-
-        .table-name {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          font-size: ${theme.typography.sizes.l}px;
-          flex: 1;
-        }
-
-        .header-right-side {
-          margin-left: auto;
-          display: flex;
-          align-items: center;
-          margin-right: ${theme.gridUnit * 8}px;
-        }
-      }
-    }
-  `}
-`;
-
-const TableElement = ({ table, ...props }: TableElementProps) => {
-  const { dbId, catalog, schema, name, expanded } = table;
-  const theme = useTheme();
+const TableElement: FC<Props> = ({ dbId, catalog, schema, value }) => {
   const dispatch = useDispatch();
+  const [databaseName, backend] = useSelector<SqlLabRootState, string[]>(
+    ({ sqlLab: { databases } }) => [
+      databases[dbId]?.database_name,
+      databases[dbId]?.backend,
+    ],
+    shallowEqual,
+  );
+  const copyStatementActionRef = useRef<HTMLButtonElement | null>(null);
+  const showViewStatementActionRef = useRef<HTMLButtonElement | null>(null);
+  const [previewQueryId, setPreviewQueryId] = useState<string>();
   const {
     currentData: tableMetadata,
-    isSuccess: isMetadataSuccess,
-    isFetching: isMetadataFetching,
+    isLoading: isMetadataLoading,
+    isFetching: isMetadataRefreshing,
     isError: hasMetadataError,
+    error: metadataError,
   } = useTableMetadataQuery(
     {
       dbId,
       catalog,
-      schema,
-      table: name,
+      schema: schema ?? '',
+      table: value ?? '',
     },
-    { skip: !expanded },
+    { skip: !dbId || !schema || !value },
   );
-  const {
-    currentData: tableExtendedMetadata,
-    isSuccess: isExtraMetadataSuccess,
-    isLoading: isExtraMetadataLoading,
-    isError: hasExtendedMetadataError,
-  } = useTableExtendedMetadataQuery(
-    {
-      dbId,
-      catalog,
-      schema,
-      table: name,
-    },
-    { skip: !expanded },
+  const { currentData: tableExtendedMetadata, error: metadataExtrError } =
+    useTableExtendedMetadataQuery(
+      {
+        dbId,
+        catalog,
+        schema: schema ?? '',
+        table: value ?? '',
+      },
+      { skip: !dbId || !schema || !value },
+    );
+  const data = useMemo(
+    () =>
+      (tableMetadata?.columns.length ?? 0) > 0
+        ? tableMetadata?.columns.map(({ name, type, keys, comment }) => ({
+            column_name: name,
+            column_type: type,
+            keys,
+            comment,
+          }))
+        : undefined,
+    [tableMetadata],
   );
-
-  useEffect(() => {
-    if (hasMetadataError || hasExtendedMetadataError) {
-      dispatch(
-        addDangerToast(t('An error occurred while fetching table metadata')),
-      );
-    }
-  }, [hasMetadataError, hasExtendedMetadataError, dispatch]);
-
+  const hasKeys = useMemo(
+    () => data?.some(({ keys }) => Boolean(keys?.length)),
+    [data],
+  );
   const tableData = {
+    dataPreviewQueryId: previewQueryId,
     ...tableMetadata,
     ...tableExtendedMetadata,
   };
-
-  // TODO: migrate syncTable logic by SIP-93
-  const syncTableMetadata = useEffectEvent(() => {
-    const { initialized } = table;
-    if (!initialized) {
-      dispatch(syncTable(table, tableData));
-    }
-  });
-
-  useEffect(() => {
-    if (isMetadataSuccess && isExtraMetadataSuccess) {
-      syncTableMetadata();
-    }
-  }, [isMetadataSuccess, isExtraMetadataSuccess, syncTableMetadata]);
-
-  const [sortColumns, setSortColumns] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const tableNameRef = useRef<HTMLInputElement>(null);
-
-  const setHover = (hovered: boolean) => {
-    debounce(() => setHovered(hovered), 100)();
-  };
-
-  const removeTable = () => {
-    dispatch(removeDataPreview(table));
-    dispatch(removeTables([table]));
-  };
-
-  const toggleSortColumns = () => {
-    setSortColumns(prevState => !prevState);
-  };
-
   const refreshTableMetadata = () => {
     dispatch(
-      tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
+      tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: value }]),
     );
-    dispatch(syncTable(table, tableData));
   };
-
-  const renderWell = () => {
-    let partitions;
-    let metadata;
-    if (tableData.partitions) {
-      let partitionQuery;
-      let partitionClipBoard;
-      if (tableData.partitions.partitionQuery) {
-        ({ partitionQuery } = tableData.partitions);
-        const tt = t('Copy partition query to clipboard');
-        partitionClipBoard = (
-          <CopyToClipboard
-            text={partitionQuery}
-            shouldShowText={false}
-            tooltipText={tt}
-            copyNode={<i className="fa fa-clipboard" />}
-          />
+  const ResultTable =
+    extensionsRegistry.get('sqleditor.extension.resultTable') ??
+    FilterableTable;
+  const onTabSwitch = useCallback(
+    (activeKey: string) => {
+      if (activeKey === 'sample' && !previewQueryId) {
+        const queryId = nanoid(11);
+        dispatch(
+          runTablePreviewQuery(
+            {
+              previewQueryId: queryId,
+              dbId,
+              catalog,
+              schema,
+              name: value,
+              selectStar: tableData.selectStar,
+            },
+            true,
+          ),
         );
+        setPreviewQueryId(queryId);
       }
-      const latest = Object.entries(tableData.partitions?.latest || [])
-        .map(([key, value]) => `${key}=${value}`)
-        .join('/');
+    },
+    [
+      previewQueryId,
+      dbId,
+      catalog,
+      schema,
+      value,
+      tableData.selectStar,
+      dispatch,
+    ],
+  );
 
-      partitions = (
-        <div>
-          <small>
-            {t('latest partition:')} {latest}
-          </small>{' '}
-          {partitionClipBoard}
-        </div>
-      );
-    }
+  if (isMetadataLoading) {
+    return <Skeleton active />;
+  }
 
-    if (tableData.metadata) {
-      metadata = Object.entries(tableData.metadata).map(([key, value]) => (
-        <div>
-          <small>
-            <strong>{key}:</strong> {value}
-          </small>
-        </div>
-      ));
-      if (!metadata?.length) {
-        // hide metadata card view
-        return null;
-      }
-    }
-
-    if (!partitions) {
-      // hide partition card view
-      return null;
-    }
-
+  if (hasMetadataError || metadataExtrError) {
     return (
-      <Card size="small">
-        {partitions}
-        {metadata}
-      </Card>
+      <Alert
+        type="warning"
+        message={
+          ((metadataError || metadataExtrError) as ClientErrorObject)?.error
+        }
+      />
     );
-  };
-
-  const renderControls = () => {
-    let keyLink;
-    const KEYS_FOR_TABLE_TEXT = t('Keys for table');
-    if (tableData?.indexes?.length) {
-      keyLink = (
-        <ModalTrigger
-          modalTitle={`${KEYS_FOR_TABLE_TEXT} ${name}`}
-          modalBody={tableData.indexes.map((ix, i) => (
-            <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
-          ))}
-          triggerNode={
-            <IconTooltip
-              className="fa fa-key pull-left m-l-2"
-              tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
-            />
-          }
-        />
-      );
-    }
+  }
+  if (!data) {
     return (
-      <ButtonGroup
-        css={css`
-          column-gap: ${theme.gridUnit * 1.5}px;
-          margin-right: ${theme.gridUnit}px;
-          & span {
-            display: flex;
-            justify-content: center;
-            width: ${theme.gridUnit * 4}px;
+      <Alert
+        type="warning"
+        message={t('Cannot find the table (%s) metadata.', value)}
+        closable={false}
+      />
+    );
+  }
+  return (
+    <div
+      css={css`
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      `}
+    >
+      <Breadcrumb separator=">">
+        <Breadcrumb.Item>{backend}</Breadcrumb.Item>
+        <Breadcrumb.Item>{databaseName}</Breadcrumb.Item>
+        {catalog && <Breadcrumb.Item>{catalog}</Breadcrumb.Item>}
+        {schema && <Breadcrumb.Item>{schema}</Breadcrumb.Item>}
+        <Breadcrumb.Item> </Breadcrumb.Item>
+      </Breadcrumb>
+      <div style={{ display: 'none' }}>
+        <CopyToClipboard
+          copyNode={
+            <button type="button" ref={copyStatementActionRef}>
+              invisible button
+            </button>
           }
-        `}
-      >
-        <IconTooltip
-          className="fa fa-refresh pull-left m-l-2 pointer"
-          onClick={refreshTableMetadata}
-          tooltip={t('Refresh table schema')}
+          text={tableData.selectStar}
+          shouldShowText={false}
         />
-        {keyLink}
-        <IconTooltip
-          className={
-            `fa fa-sort-${sortColumns ? 'numeric' : 'alpha'}-asc ` +
-            'pull-left sort-cols m-l-2 pointer'
-          }
-          onClick={toggleSortColumns}
-          tooltip={
-            sortColumns
-              ? t('Original table column order')
-              : t('Sort columns alphabetically')
-          }
-        />
-        {tableData.selectStar && (
-          <CopyToClipboard
-            copyNode={
-              <IconTooltip
-                aria-label="Copy"
-                tooltip={t('Copy SELECT statement to the clipboard')}
-              >
-                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
-              </IconTooltip>
-            }
-            text={tableData.selectStar}
-            shouldShowText={false}
-          />
-        )}
         {tableData.view && (
           <ShowSQL
             sql={tableData.view}
             tooltipText={t('Show CREATE VIEW statement')}
             title={t('CREATE VIEW statement')}
+            triggerNode={
+              <button type="button" ref={showViewStatementActionRef}>
+                invisible button
+              </button>
+            }
           />
         )}
-        <IconTooltip
-          className="fa fa-times table-remove pull-left m-l-2 pointer"
-          onClick={removeTable}
-          tooltip={t('Remove table preview')}
-        />
-      </ButtonGroup>
-    );
-  };
-
-  const renderHeader = () => {
-    const element: HTMLInputElement | null = tableNameRef.current;
-    let trigger = [] as ActionType[];
-    if (element && element.offsetWidth < element.scrollWidth) {
-      trigger = ['hover'];
-    }
-
-    return (
-      <div
-        data-test="table-element-header-container"
-        className="clearfix header-container"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-      >
-        <Tooltip
-          id="copy-to-clipboard-tooltip"
-          style={{ cursor: 'pointer' }}
-          title={name}
-          trigger={trigger}
+      </div>
+      <Title>
+        <Icons.Table iconSize="l" />
+        {value}
+        <AntdDropdown
+          overlay={
+            <Menu>
+              <Menu.Item onClick={refreshTableMetadata} key="menu1">
+                <i aria-hidden className="fa fa-refresh m-r-3" />{' '}
+                {t('Refresh table schema')}
+              </Menu.Item>
+              {tableData.selectStar && (
+                <Menu.Item
+                  key="menu2"
+                  onClick={() => copyStatementActionRef.current?.click()}
+                >
+                  <i aria-hidden className="fa fa-clipboard m-r-5 m-l-2" />{' '}
+                  {t('Copy SELECT statement')}
+                </Menu.Item>
+              )}
+              {tableData.view && (
+                <Menu.Item
+                  key="menu3"
+                  onClick={() => showViewStatementActionRef.current?.click()}
+                >
+                  <i aria-hidden className="fa fa-eye m-r-3" />{' '}
+                  {t('Show CREATE VIEW statement')}
+                </Menu.Item>
+              )}
+            </Menu>
+          }
+          trigger={['click']}
         >
-          <StyledSpan
-            data-test="collapse"
-            ref={tableNameRef}
-            className="table-name"
+          <Icons.DownSquareOutlined
+            iconSize="m"
+            style={{ marginTop: 2, marginLeft: 4 }}
+          />
+        </AntdDropdown>
+      </Title>
+      {isMetadataRefreshing ? (
+        <Skeleton active />
+      ) : (
+        <>
+          {tableData.comment && <SafeMarkdown source={tableData.comment} />}
+          {renderWell(tableData.partitions)}
+          <div
+            css={css`
+              flex: 1 1 auto;
+            `}
           >
-            <strong>{name}</strong>
-          </StyledSpan>
-        </Tooltip>
-
-        <div className="pull-right header-right-side">
-          {isMetadataFetching || isExtraMetadataLoading ? (
-            <Loading position="inline" />
-          ) : (
-            <Fade
-              data-test="fade"
-              hovered={hovered}
-              onClick={e => e.stopPropagation()}
-            >
-              {renderControls()}
-            </Fade>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderBody = () => {
-    let cols;
-    if (tableData.columns) {
-      cols = tableData.columns.slice();
-      if (sortColumns) {
-        cols.sort((a: Column, b: Column) => {
-          const colA = a.name.toUpperCase();
-          const colB = b.name.toUpperCase();
-          return colA < colB ? -1 : colA > colB ? 1 : 0;
-        });
-      }
-    }
-
-    const metadata = (
-      <div
-        data-test="table-element"
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        css={{ paddingTop: 6 }}
-      >
-        {renderWell()}
-        <div>
-          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
-        </div>
-      </div>
-    );
-    return metadata;
-  };
-
-  return (
-    <StyledCollapsePanel
-      {...props}
-      key={table.id}
-      header={renderHeader()}
-      className="TableElement"
-      forceRender
-    >
-      {renderBody()}
-    </StyledCollapsePanel>
+            <AutoSizer disableWidth>
+              {({ height }) => (
+                <Tabs
+                  fullWidth={false}
+                  onTabClick={onTabSwitch}
+                  css={css`
+                    height: ${height}px;
+                  `}
+                >
+                  <Tabs.TabPane
+                    tab={t('Columns (%s)', data.length)}
+                    key="columns"
+                  >
+                    <ResultTable
+                      queryId="table-columns"
+                      height={height - TAB_HEADER_HEIGHT}
+                      data={data}
+                      orderedColumnKeys={
+                        hasKeys ? COLUMN_KEYS.concat('keys') : COLUMN_KEYS
+                      }
+                    />
+                  </Tabs.TabPane>
+                  {tableData?.selectStar && (
+                    <Tabs.TabPane tab={t('Data preview')} key="sample">
+                      {previewQueryId && (
+                        <ResultSet
+                          queryId={previewQueryId}
+                          visualize={false}
+                          csv={false}
+                          cache
+                          height={
+                            height -
+                            TAB_HEADER_HEIGHT -
+                            PREVIEW_TOP_ACTION_HEIGHT
+                          }
+                          displayLimit={PREVIEW_QUERY_LIMIT}
+                          defaultQueryLimit={PREVIEW_QUERY_LIMIT}
+                        />
+                      )}
+                    </Tabs.TabPane>
+                  )}
+                  {tableData?.indexes && tableData.indexes.length > 0 && (
+                    <Tabs.TabPane
+                      tab={t('Indexes (%s)', tableData.indexes.length)}
+                      key="indexes"
+                    >
+                      {tableData.indexes.map((ix, i) => (
+                        <pre className="code" key={i}>
+                          {JSON.stringify(ix, null, '  ')}
+                        </pre>
+                      ))}
+                    </Tabs.TabPane>
+                  )}
+                  {tableData?.metadata && (
+                    <Tabs.TabPane tab={t('Metadata')} key="metadata">
+                      <ResultTable
+                        queryId="table-metadata"
+                        height={height - TAB_HEADER_HEIGHT}
+                        data={Object.entries(tableData.metadata).map(
+                          ([name, value]) => ({ name, value }),
+                        )}
+                        orderedColumnKeys={['name', 'value']}
+                      />
+                    </Tabs.TabPane>
+                  )}
+                </Tabs>
+              )}
+            </AutoSizer>
+          </div>
+        </>
+      )}
+    </div>
   );
 };
 

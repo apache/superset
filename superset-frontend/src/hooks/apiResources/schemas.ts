@@ -29,7 +29,7 @@ export type SchemaOption = {
 
 export type FetchSchemasQueryParams = {
   dbId?: string | number;
-  catalog?: string;
+  catalog?: string | null;
   forceRefresh: boolean;
   onSuccess?: (data: SchemaOption[], isRefetched: boolean) => void;
   onError?: (error: ClientErrorObject) => void;
@@ -46,7 +46,7 @@ const schemaApi = api.injectEndpoints({
         // TODO: Would be nice to add pagination in a follow-up. Needs endpoint changes.
         urlParams: {
           force: forceRefresh,
-          ...(catalog !== undefined && { catalog }),
+          ...(catalog && { catalog }),
         },
         transformResponse: ({ json }: JsonResponse) =>
           json.result.sort().map((value: string) => ({

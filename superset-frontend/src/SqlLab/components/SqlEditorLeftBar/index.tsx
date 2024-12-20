@@ -16,29 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useCallback, useMemo, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import querystring from 'query-string';
 
-import { SqlLabRootState, Table } from 'src/SqlLab/types';
+import { SqlLabRootState } from 'src/SqlLab/types';
 import {
   queryEditorSetDb,
-  addTable,
-  removeTables,
-  collapseTable,
-  expandTable,
   queryEditorSetCatalog,
-  queryEditorSetSchema,
   setDatabases,
   addDangerToast,
   resetState,
 } from 'src/SqlLab/actions/sqlLab';
 import Button from 'src/components/Button';
-import { t, styled, css, SupersetTheme } from '@superset-ui/core';
-import Collapse from 'src/components/Collapse';
-import Icons from 'src/components/Icons';
-import { TableSelectorMultiple } from 'src/components/TableSelector';
-import { IconTooltip } from 'src/components/IconTooltip';
+import { t, styled, css, useTheme } from '@superset-ui/core';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import type { DatabaseObject } from 'src/components/DatabaseSelector';
 import { emptyStateComponent } from 'src/components/EmptyState';
@@ -47,77 +38,54 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import TableElement from '../TableElement';
+import DatabaseSelector from 'src/components/DatabaseSelector';
+import TableExploreTree from '../TableExploreTree';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
-  height?: number;
-  database?: DatabaseObject;
 }
-
-const StyledScrollbarContainer = styled.div`
-  flex: 1 1 auto;
-  overflow: auto;
-`;
-
-const collapseStyles = (theme: SupersetTheme) => css`
-  .ant-collapse-item {
-    margin-bottom: ${theme.gridUnit * 3}px;
-  }
-  .ant-collapse-header {
-    padding: 0px !important;
-    display: flex;
-    align-items: center;
-  }
-  .ant-collapse-content-box {
-    padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
-  }
-  .ant-collapse-arrow {
-    padding: 0 !important;
-    bottom: ${theme.gridUnit}px !important;
-    right: ${theme.gridUnit * 4}px !important;
-    color: ${theme.colors.primary.dark1} !important;
-    &:hover {
-      color: ${theme.colors.primary.dark2} !important;
-    }
-  }
-`;
 
 const LeftBarStyles = styled.div`
   ${({ theme }) => css`
     height: 100%;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-
-    .divider {
-      border-bottom: 1px solid ${theme.colors.grayscale.light4};
-      margin: ${theme.gridUnit * 4}px 0;
+    & .ant-tree .ant-tree-node-content-wrapper {
+      word-break: break-all;
+    }
+    & .ant-tree .ant-tree-node {
+      position: relative;
+    }
+    & .highlighted {
+      background-color: ${theme.colors.alert.light1};
     }
   `}
 `;
 
-const SqlEditorLeftBar = ({
-  database,
-  queryEditorId,
-  height = 500,
-}: SqlEditorLeftBarProps) => {
-  const tables = useSelector<SqlLabRootState, Table[]>(
-    ({ sqlLab }) =>
-      sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
-    shallowEqual,
-  );
+const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'dbId',
     'catalog',
     'schema',
   ]);
+  const database = useSelector<SqlLabRootState, DatabaseObject>(
+    ({ sqlLab: { unsavedQueryEditor, databases } }) => {
+      let { dbId } = queryEditor;
+      if (unsavedQueryEditor?.id === queryEditor.id) {
+        dbId = unsavedQueryEditor.dbId || dbId;
+      }
+      return databases[dbId || ''];
+    },
+    shallowEqual,
+  );
 
   const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
-    null,
+    database,
   );
-  const { catalog, schema } = queryEditor;
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
@@ -142,86 +110,12 @@ const SqlEditorLeftBar = ({
     dispatch(queryEditorSetDb(queryEditor, dbId));
   };
 
-  const selectedTableNames = useMemo(
-    () => tables?.map(table => table.name) || [],
-    [tables],
-  );
-
-  const onTablesChange = (
-    tableNames: string[],
-    catalogName: string | null,
-    schemaName: string,
-  ) => {
-    if (!schemaName) {
-      return;
-    }
-
-    const currentTables = [...tables];
-    const tablesToAdd = tableNames.filter(name => {
-      const index = currentTables.findIndex(table => table.name === name);
-      if (index >= 0) {
-        currentTables.splice(index, 1);
-        return false;
-      }
-
-      return true;
-    });
-
-    tablesToAdd.forEach(tableName => {
-      dispatch(addTable(queryEditor, tableName, catalogName, schemaName));
-    });
-
-    dispatch(removeTables(currentTables));
-  };
-
-  const onToggleTable = (updatedTables: string[]) => {
-    tables.forEach(table => {
-      if (!updatedTables.includes(table.id.toString()) && table.expanded) {
-        dispatch(collapseTable(table));
-      } else if (
-        updatedTables.includes(table.id.toString()) &&
-        !table.expanded
-      ) {
-        dispatch(expandTable(table));
-      }
-    });
-  };
-
-  const renderExpandIconWithTooltip = ({ isActive }: { isActive: boolean }) => (
-    <IconTooltip
-      css={css`
-        transform: rotate(90deg);
-      `}
-      aria-label="Collapse"
-      tooltip={
-        isActive ? t('Collapse table preview') : t('Expand table preview')
-      }
-    >
-      <Icons.RightOutlined
-        iconSize="s"
-        css={css`
-          transform: ${isActive ? 'rotateY(180deg)' : ''};
-        `}
-      />
-    </IconTooltip>
-  );
-
   const shouldShowReset = window.location.search === '?reset=1';
-  const tableMetaDataHeight = height - 130; // 130 is the height of the selects above
 
   const handleCatalogChange = useCallback(
-    (catalog: string | null) => {
+    (catalog?: string | null) => {
       if (queryEditor) {
         dispatch(queryEditorSetCatalog(queryEditor, catalog));
-      }
-    },
-    [dispatch, queryEditor],
-  );
-
-  const handleSchemaChange = useCallback(
-    (schema: string) => {
-      if (queryEditor) {
-        dispatch(queryEditorSetSchema(queryEditor, schema));
       }
     },
     [dispatch, queryEditor],
@@ -247,44 +141,24 @@ const SqlEditorLeftBar = ({
 
   return (
     <LeftBarStyles data-test="sql-editor-left-bar">
-      <TableSelectorMultiple
+      <DatabaseSelector
+        db={userSelectedDb}
+        getDbList={handleDbList}
+        catalog={queryEditor?.catalog}
         onEmptyResults={onEmptyResults}
         emptyState={emptyStateComponent(emptyResultsWithSearch)}
-        database={userSelectedDb}
-        getDbList={handleDbList}
         handleError={handleError}
         onDbChange={onDbChange}
         onCatalogChange={handleCatalogChange}
-        catalog={catalog}
-        onSchemaChange={handleSchemaChange}
-        schema={schema}
-        onTableSelectChange={onTablesChange}
-        tableValue={selectedTableNames}
         sqlLabMode
       />
-      <div className="divider" />
-      <StyledScrollbarContainer>
-        <div
-          css={css`
-            height: ${tableMetaDataHeight}px;
-          `}
-        >
-          <Collapse
-            activeKey={tables
-              .filter(({ expanded }) => expanded)
-              .map(({ id }) => id)}
-            css={collapseStyles}
-            expandIconPosition="right"
-            ghost
-            onChange={onToggleTable}
-            expandIcon={renderExpandIconWithTooltip}
-          >
-            {tables.map(table => (
-              <TableElement table={table} key={table.id} />
-            ))}
-          </Collapse>
-        </div>
-      </StyledScrollbarContainer>
+      <hr
+        css={css`
+          margin-top: 0px;
+          border-bottom: 1px solid ${theme.colors.grayscale.light4};
+        `}
+      />
+      <TableExploreTree queryEditorId={queryEditorId} />
       {shouldShowReset && (
         <Button
           buttonSize="small"
