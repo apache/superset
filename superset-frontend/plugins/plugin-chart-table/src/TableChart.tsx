@@ -272,7 +272,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     { key: 'all', label: t('Display all') },
     { key: t('sv_previous'), label: t('sv_previous') },
     { key: t('sv_change') , label: t('sv_change') },
-    { key: t('sv_change_percentage')  label: t('sv_change_percentage') },
+    { key: t('sv_change_percentage'), label: t('sv_change_percentage') },
   ];
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
