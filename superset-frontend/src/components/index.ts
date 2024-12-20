@@ -74,3 +74,4 @@ export type { FormInstance } from 'antd/lib/form';
 export type { ModalProps as AntdModalProps } from 'antd/lib/modal';
 export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';
+export type { DataNode as AntdDataNode } from 'antd/lib/tree';

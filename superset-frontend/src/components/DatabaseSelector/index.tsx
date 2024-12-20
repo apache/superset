@@ -448,7 +448,7 @@ export default function DatabaseSelector({
       {renderDatabaseSelect()}
       {renderError()}
       {showCatalogSelector && renderCatalogSelect()}
-      {renderSchemaSelect()}
+      {!sqlLabMode && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }

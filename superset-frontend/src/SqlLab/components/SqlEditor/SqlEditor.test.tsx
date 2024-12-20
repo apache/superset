@@ -137,6 +137,11 @@ describe('SqlEditor', () => {
     displayLimit: 100,
     saveQueryWarning: '',
     scheduleQueryWarning: '',
+    sidebar: (
+      <SqlEditorLeftBar
+        queryEditorId={`${initialState.sqlLab.queryEditors[0]}`}
+      />
+    ),
   };
 
   beforeEach(() => {
