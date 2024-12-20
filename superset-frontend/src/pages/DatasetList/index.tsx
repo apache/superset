@@ -41,8 +41,7 @@ import ListView, {
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
-import Label, { DatasetTypeLabel } from 'src/components/Label';
-import Tag from 'src/components/Tags/Tag';
+import { DatasetTypeLabel } from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';

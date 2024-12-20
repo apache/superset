@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useMemo, useState, FC } from 'react';
 
 import { isEqual, isEmpty } from 'lodash';
-import { QueryFormData, styled, t } from '@superset-ui/core';
+import { QueryFormData, t } from '@superset-ui/core';
 import { sanitizeFormData } from 'src/explore/exploreUtils/formData';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import Label from 'src/components/Label';

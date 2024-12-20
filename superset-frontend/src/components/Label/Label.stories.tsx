@@ -11,20 +11,23 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { action } from '@storybook/addon-actions';
+import { ComponentStory, ComponentMeta } from '@storybook/react';
 import Label, { Type, DatasetTypeLabel, PublishedLabel } from './index';
 
+// Define the default export with Storybook configuration
 export default {
   title: 'Label',
   component: Label,
-  excludeStories: 'options',
-};
+  excludeStories: ['options'],
+} as ComponentMeta<typeof Label>;
 
+// Explicitly type the options array as an array of `Type`
 export const options: Type[] = [
   'default',
   'alert',
@@ -36,22 +39,26 @@ export const options: Type[] = [
   'secondary',
 ];
 
-export const LabelGallery = props => {
-  let onClick;
-  if (props.hasOnClick) {
-    onClick = action('clicked');
-  }
+// Define the props for the `LabelGallery` component
+interface LabelGalleryProps {
+  hasOnClick?: boolean;
+  monospace?: boolean;
+}
+
+const Template: ComponentStory<typeof Label> = (props: LabelGalleryProps) => {
+  const onClick = props.hasOnClick ? action('clicked') : undefined;
+
   return (
     <>
       <h4>Non-interactive</h4>
-      {Object.values(options).map((opt: Type) => (
+      {options.map((opt: Type) => (
         <Label key={opt} type={opt}>
           {`style: "${opt}"`}
         </Label>
       ))}
       <br />
       <h4>Interactive</h4>
-      {Object.values(options).map((opt: Type) => (
+      {options.map((opt: Type) => (
         <Label key={opt} type={opt} {...props} onClick={onClick}>
           {`style: "${opt}"`}
         </Label>
@@ -69,6 +76,8 @@ export const LabelGallery = props => {
   );
 };
 
+// Export the story for `LabelGallery`
+export const LabelGallery = Template.bind({});
 LabelGallery.args = {
   hasOnClick: true,
   monospace: false,

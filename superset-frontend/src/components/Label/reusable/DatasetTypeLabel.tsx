@@ -20,20 +20,25 @@ import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
 
-const SIZE = 's';
+// Define the prop types for DatasetTypeLabel
 interface DatasetTypeLabelProps {
-  datasetType: 'physical' | 'virtual';
+  datasetType: 'physical' | 'virtual'; // Accepts only 'physical' or 'virtual'
 }
 
-const DatasetTypeLabel = ({ datasetType }) => {
-  const label = datasetType === 'physical' ? t('Physical') : t('Virtual');
+const SIZE = 's'; // Define the size as a constant
+
+const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({ datasetType }) => {
+  const label: string =
+    datasetType === 'physical' ? t('Physical') : t('Virtual');
   const icon =
     datasetType === 'physical' ? (
       <Icons.Table iconSize={SIZE} />
     ) : (
       <Icons.ConsoleSqlOutlined iconSize={SIZE} />
     );
-  const labelType = datasetType === 'physical' ? 'primary' : 'success';
+  const labelType: 'primary' | 'success' =
+    datasetType === 'physical' ? 'primary' : 'success';
+
   return (
     <Label icon={icon} type={labelType}>
       {label}

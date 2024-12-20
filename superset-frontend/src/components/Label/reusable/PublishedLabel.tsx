@@ -20,7 +20,16 @@ import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { t } from '@superset-ui/core';
 
-const PublishedLabel = ({ isPublished, onClick }) => {
+// Define props for the PublishedLabel component
+interface PublishedLabelProps {
+  isPublished: boolean; // Whether the item is published
+  onClick?: () => void; // Optional click handler
+}
+
+const PublishedLabel: React.FC<PublishedLabelProps> = ({
+  isPublished,
+  onClick,
+}) => {
   const label = isPublished ? t('Published') : t('Draft');
   const icon = isPublished ? (
     <Icons.CircleCheck iconSize="s" />
@@ -35,4 +44,5 @@ const PublishedLabel = ({ isPublished, onClick }) => {
     </Label>
   );
 };
+
 export default PublishedLabel;
