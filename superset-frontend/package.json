@@ -195,7 +195,7 @@
     "react-table": "^7.8.0",
     "react-transition-group": "^2.5.3",
     "react-ultimate-pagination": "^1.3.2",
-    "react-virtualized-auto-sizer": "^1.0.24",
+    "react-virtualized-auto-sizer": "^1.0.25",
     "react-window": "^1.8.10",
     "redux": "^4.2.1",
     "redux-localstorage": "^0.4.1",
