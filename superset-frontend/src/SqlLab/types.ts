@@ -82,11 +82,11 @@ export type UnsavedQueryEditor = Partial<QueryEditor>;
 export interface Table {
   id: string;
   dbId: number;
-  catalog: string | null;
-  schema: string;
+  catalog?: string | null;
+  schema?: string;
   name: string;
   queryEditorId: QueryEditor['id'];
-  dataPreviewQueryId: string | null;
+  dataPreviewQueryId?: string | null;
   expanded: boolean;
   initialized?: boolean;
   inLocalStorage?: boolean;
