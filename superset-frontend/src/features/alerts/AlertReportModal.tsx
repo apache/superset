@@ -79,11 +79,7 @@ import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
-const TEXT_BASED_VISUALIZATION_TYPES = [
-  VizType.PivotTable,
-  'table',
-  VizType.PairedTTest,
-];
+const TEXT_BASED_VISUALIZATION_TYPES = [VizType.PivotTable, 'table'];
 
 export interface AlertReportModalProps {
   addSuccessToast: (msg: string) => void;
