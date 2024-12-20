@@ -155,7 +155,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
-    allowRenderHtml,
+    allowRenderHtml = isFeatureEnabled(FeatureFlag.AllowPivotTableHtml),
   } = props;
 
   const theme = useTheme();
