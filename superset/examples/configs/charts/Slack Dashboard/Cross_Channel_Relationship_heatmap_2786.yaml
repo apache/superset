@@ -14,14 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Cross Channel Relationship heatmap
-viz_type: heatmap
+slice_name: Cross Channel Relationship heatmap_v2
+viz_type: heatmap_v2
 params:
   adhoc_filters: []
-  all_columns_x: channel_1
-  all_columns_y: channel_2
+  x_axis: channel_1
+  groupby: channel_2
   bottom_margin: auto
-  canvas_image_rendering: pixelated
   datasource: 35__table
   left_margin: auto
   linear_color_scheme: schemeBlues
@@ -45,20 +44,20 @@ params:
     label: SUM(cnt)
     optionName: metric_i1djbl8i2y_2vdl690dkyu
     sqlExpression: null
-  normalize_across: heatmap
+  normalize_across: heatmap_v2
   row_limit: 1000
   show_legend: true
-  show_perc: false
+  show_percentage: false
   show_values: true
   sort_x_axis: alpha_asc
   sort_y_axis: alpha_asc
   time_range: No filter
   url_params: {}
-  viz_type: heatmap
+  viz_type: heatmap_v2
   xscale_interval: null
-  y_axis_bounds:
-  - null
-  - null
+  value_bounds:
+    - null
+    - null
   y_axis_format: SMART_NUMBER
   yscale_interval: null
 cache_timeout: null

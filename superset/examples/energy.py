@@ -29,6 +29,7 @@ from superset.utils.core import DatasourceType
 
 from .helpers import (
     get_example_url,
+    get_slice_json,
     get_table_connector_registry,
     merge_slice,
     misc_dash_slices,
@@ -81,21 +82,19 @@ def load_energy(
 
     slc = Slice(
         slice_name="Energy Sankey",
-        viz_type="sankey",
+        viz_type="sankey_v2",
         datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
         params=textwrap.dedent(
             """\
         {
             "collapsed_fieldsets": "",
-            "groupby": [
-                "source",
-                "target"
-            ],
+            "source": "source",
+            "target": "target",
             "metric": "sum__value",
             "row_limit": "5000",
             "slice_name": "Energy Sankey",
-            "viz_type": "sankey"
+            "viz_type": "sankey_v2"
         }
         """
         ),
@@ -129,25 +128,18 @@ def load_energy(
 
     slc = Slice(
         slice_name="Heatmap",
-        viz_type="heatmap",
+        viz_type="heatmap_v2",
         datasource_type=DatasourceType.TABLE,
         datasource_id=tbl.id,
-        params=textwrap.dedent(
-            """\
-        {
-            "all_columns_x": "source",
-            "all_columns_y": "target",
-            "canvas_image_rendering": "pixelated",
-            "collapsed_fieldsets": "",
-            "linear_color_scheme": "blue_white_yellow",
-            "metric": "sum__value",
-            "normalize_across": "heatmap",
-            "slice_name": "Heatmap",
-            "viz_type": "heatmap",
-            "xscale_interval": "1",
-            "yscale_interval": "1"
-        }
-        """
+        params=get_slice_json(
+            defaults={},
+            viz_type="heatmap_v2",
+            x_axis="source",
+            groupby="target",
+            legend_type="continuous",
+            metric="sum__value",
+            sort_x_axis="value_asc",
+            sort_y_axis="value_asc",
         ),
     )
     misc_dash_slices.add(slc.slice_name)
