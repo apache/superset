@@ -40,7 +40,7 @@ jobs:
       stack: ${{ needs.labels.outputs.feature_name }}
       service: superset
       component: service
-      repository: Webgbains/superset-service
+      repository: Webgains/superset-service
       override: |
         {
           "namespace": "${{ needs.labels.outputs.feature_name }}",
