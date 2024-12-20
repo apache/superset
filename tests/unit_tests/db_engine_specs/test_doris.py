@@ -16,6 +16,7 @@
 # under the License.
 
 from typing import Any, Optional
+from unittest.mock import Mock
 
 import pytest
 from sqlalchemy import JSON, types
@@ -85,25 +86,25 @@ def test_get_column_spec(
         (
             "doris://user:password@host/db1",
             {"param1": "some_value"},
-            "db1",
+            "internal.information_schema",
             {"param1": "some_value"},
         ),
         (
             "pydoris://user:password@host/db1",
             {"param1": "some_value"},
-            "db1",
+            "internal.information_schema",
             {"param1": "some_value"},
         ),
         (
             "doris://user:password@host/catalog1.db1",
             {"param1": "some_value"},
-            "catalog1.db1",
+            "catalog1.information_schema",
             {"param1": "some_value"},
         ),
         (
             "pydoris://user:password@host/catalog1.db1",
             {"param1": "some_value"},
-            "catalog1.db1",
+            "catalog1.information_schema",
             {"param1": "some_value"},
         ),
     ],
@@ -120,6 +121,11 @@ def test_adjust_engine_params(
     returned_url, returned_connect_args = DorisEngineSpec.adjust_engine_params(
         url, connect_args
     )
+    # # Update expected schema to include .information_schema
+    # if return_schema not in ".":
+    #     expected_schema = f"{return_schema}.information_schema"
+    # else:
+    #     expected_schema = return_schema
     assert returned_url.database == return_schema
     assert returned_connect_args == return_connect_args
 
@@ -145,3 +151,52 @@ def test_get_schema_from_engine_params() -> None:
         )
         is None
     )
+
+
+def test_get_default_catalog() -> None:
+    """
+    Test the ``get_default_catalog`` method.
+    """
+    from superset.db_engine_specs.doris import DorisEngineSpec
+    from superset.models.core import Database
+
+    database = Mock(spec=Database)
+
+    # Test with catalog.schema format
+    database.url_object.database = "catalog1.schema1"
+    assert DorisEngineSpec.get_default_catalog(database) == "catalog1"
+
+    # Test with only catalog format
+    database.url_object.database = "catalog1"
+    assert DorisEngineSpec.get_default_catalog(database) == "catalog1"
+
+    # Test with None
+    database.url_object.database = None
+    assert DorisEngineSpec.get_default_catalog(database) is None
+
+
+def test_get_catalog_names() -> None:
+    """
+    Test the ``get_catalog_names`` method.
+    """
+    from superset.db_engine_specs.doris import DorisEngineSpec
+    from superset.models.core import Database
+
+    database = Mock(spec=Database)
+    inspector = Mock()
+
+    # Mock the execute result
+    mock_result = [
+        Mock(CatalogName="catalog1"),
+        Mock(CatalogName="catalog2"),
+        Mock(CatalogName="catalog3"),
+    ]
+    inspector.bind.execute.return_value = mock_result
+
+    catalogs = DorisEngineSpec.get_catalog_names(database, inspector)
+
+    # Verify the SQL query
+    inspector.bind.execute.assert_called_once_with("SHOW CATALOGS")
+
+    # Verify the returned catalog names
+    assert catalogs == {"catalog1", "catalog2", "catalog3"}
