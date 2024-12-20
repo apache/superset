@@ -26,5 +26,7 @@ CHANGELOG/
 *-topo.json
 storybook-static/
 *.snap
+**/*.less
+**/*.less.hbs
 
 /.nx/workspace-data

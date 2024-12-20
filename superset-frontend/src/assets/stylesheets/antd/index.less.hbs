@@ -28,12 +28,12 @@
 /*
   Theme variables here: https://github.com/ant-design/ant-design/blob/master/components/style/themes/default.less
 */
-@primary-color: #20A7C9;
-@info-color: #66BCFE;
-@success-color: #5AC189;
-@processing-color: #66BCFE;
-@error-color: #E04355;
-@highlight-color: #E04355;
-@normal-color: #d9d9d9;
-@white: #fff;
-@black: #000;
+@primary-color: {{theme.colors.primary.base}};
+@info-color: {{theme.colors.info.base}};
+@success-color: {{theme.colors.success.base}};
+@processing-color: {{theme.colors.info.base}};
+@error-color: {{theme.colors.error.base}};
+@highlight-color: {{theme.colors.error.base}};
+@normal-color: {{theme.colors.grayscale.light3}};
+@white: {{theme.body.color}};
+@black: {{theme.body.background}};

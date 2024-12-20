@@ -40,118 +40,118 @@
 /* COLORS                                                               */
 /************************************************************************/
 
-@primary-color: #20A7C9;
+@primary-color: {{theme.colors.primary.base}};
 @indicator-color: @primary-color;
 
-@brand-primary-dark1: #1b8eab;
-@brand-primary-dark2: #16758d;
-@brand-primary-light1: #58bdd7;
-@brand-primary-light2: #90d3e4;
-@brand-primary-light3: #c7e9f2;
-@brand-primary-light4: #def2f7;
-@brand-primary-light5: #f4fbfc;
+@brand-primary-dark1: {{theme.colors.primary.dark1}};
+@brand-primary-dark2: {{theme.colors.primary.dark2}};
+@brand-primary-light1: {{theme.colors.primary.light1}};
+@brand-primary-light2: {{theme.colors.primary.light2}};
+@brand-primary-light3: {{theme.colors.primary.light3}};
+@brand-primary-light4: {{theme.colors.primary.light4}};
+@brand-primary-light5: {{theme.colors.primary.light5}};
 
-@brand-secondary: #444E7C;
-@brand-secondary-dark1: #3a4269;
-@brand-secondary-dark2: #303757;
-@brand-secondary-dark3: #252b44;
-@brand-secondary-light1: #737a9d;
-@brand-secondary-light2: #a2a7be;
-@brand-secondary-light3: #d0d3de;
-@brand-secondary-light4: #e3e4eb;
-@brand-secondary-light5: #f6f6f8;
+@brand-secondary: {{theme.colors.secondary.base}};
+@brand-secondary-dark1: {{theme.colors.secondary.dark1}};
+@brand-secondary-dark2: {{theme.colors.secondary.dark2}};
+@brand-secondary-dark3: {{theme.colors.secondary.dark3}};
+@brand-secondary-light1: {{theme.colors.secondary.light1}};
+@brand-secondary-light2: {{theme.colors.secondary.light2}};
+@brand-secondary-light3: {{theme.colors.secondary.light3}};
+@brand-secondary-light4: {{theme.colors.secondary.light4}};
+@brand-secondary-light5: {{theme.colors.secondary.light5}};
 
-@almost-black: #1a1a1a;
-@gray-dark: #383838;
-@gray-light: #d9d9d9;
-@gray-light5: #666666;
-@gray: #879399;
-@gray-bg: #000;
-@gray-heading: #737373;
-@menu-hover: #f7f7f7;
-@lightest: #fff;
-@darkest: #000;
+@almost-black: {{theme.colors.grayscale.dark5}};
+@gray-dark: {{theme.colors.grayscale.dark3}};
+@gray-light: {{theme.colors.grayscale.light3}};
+@gray-light5: {{theme.colors.grayscale.base}};
+@gray: {{theme.colors.text.label}};
+@gray-bg: {{theme.body.background}};
+@gray-heading: {{theme.colors.text.help}};
+@menu-hover: {{theme.colors.grayscale.light5}};
+@lightest: {{theme.body.color}};
+@darkest: {{theme.body.background}};
 
 /**************************** text-specific *****************************/
-@link: #66BCFE;
-@link-hover: #57a0d8;
+@link: {{theme.colors.info.base}};
+@link-hover: {{theme.colors.info.dark1}};
 
 /***************************** status colors ****************************/
-@info: #66BCFE;
-@info-dark1: #57a0d8;
-@info-dark2: #4784b2;
-@info-light1: #8ccdfe;
-@info-light2: #b3deff;
+@info: {{theme.colors.info.base}};
+@info-dark1: {{theme.colors.info.dark1}};
+@info-dark2: {{theme.colors.info.dark2}};
+@info-light1: {{theme.colors.info.light1}};
+@info-light2: {{theme.colors.info.light2}};
 
-@danger: #E04355;
-@danger-dark1: #be3948;
-@danger-dark2: #9d2f3c;
-@danger-light1: #e87280;
-@danger-light2: #f0a1aa;
+@danger: {{theme.colors.error.base}};
+@danger-dark1: {{theme.colors.error.dark1}};
+@danger-dark2: {{theme.colors.error.dark2}};
+@danger-light1: {{theme.colors.error.light1}};
+@danger-light2: {{theme.colors.error.light2}};
 
-@success: #5AC189;
-@success-dark1: #4da474;
-@success-dark2: #3f8760;
-@success-light1: #83d1a7;
-@success-light2: #ade0c4;
+@success: {{theme.colors.success.base}};
+@success-dark1: {{theme.colors.success.dark1}};
+@success-dark2: {{theme.colors.success.dark2}};
+@success-light1: {{theme.colors.success.light1}};
+@success-light2: {{theme.colors.success.light2}};
 
-@warning: #FF7F44;
-@warning-dark1: #d96c3a;
-@warning-dark2: #b35930;
-@warning-light1: #ff9f73;
-@warning-light2: #ffbfa2;
+@warning: {{theme.colors.warning.base}};
+@warning-dark1: {{theme.colors.warning.dark1}};
+@warning-dark2: {{theme.colors.warning.dark2}};
+@warning-light1: {{theme.colors.warning.light1}};
+@warning-light2: {{theme.colors.warning.light2}};
 
 /************************************************************************/
 /* OPACITIES                                                            */
 /************************************************************************/
-@opacity-light: 10%;
-@opacity-medium-light: 35%;
-@opacity-medium-heavy: 60%;
-@opacity-heavy: 80%;
+@opacity-light: {{theme.opacity.light}};
+@opacity-medium-light: {{theme.opacity.mediumLight}};
+@opacity-medium-heavy: {{theme.opacity.mediumHeavy}};
+@opacity-heavy: {{theme.opacity.heavy}};
 
 /************************************************************************/
 /* TYPOGRAPHY                                                           */
 /************************************************************************/
-@font-weight-light: 200;
-@font-weight-normal: 400;
-@font-weight-bold: 600;
+@font-weight-light: {{theme.typography.weights.light}};
+@font-weight-normal: {{theme.typography.weights.normal}};
+@font-weight-bold: {{theme.typography.weights.bold}};
 
-@font-size-xxs: 9px;
-@font-size-xs: 10px;
-@font-size-s: 12px;
-@font-size-m: 14px;
-@font-size-l: 16px;
-@font-size-xl: 21px;
-@font-size-xxl: 28px;
+@font-size-xxs: {{theme.typography.sizes.xxs}}px;
+@font-size-xs: {{theme.typography.sizes.xs}}px;
+@font-size-s: {{theme.typography.sizes.s}}px;
+@font-size-m: {{theme.typography.sizes.m}}px;
+@font-size-l: {{theme.typography.sizes.l}}px;
+@font-size-xl: {{theme.typography.sizes.xl}}px;
+@font-size-xxl: {{theme.typography.sizes.xxl}}px;
 
-@font-family-sans-serif: 'Inter', Helvetica, Arial;
-@font-family-serif: Georgia, 'Times New Roman', Times, serif;
-@font-family-monospace: 'Fira Code', 'Courier New', monospace;
+@font-family-sans-serif: {{theme.typography.families.sansSerif}};
+@font-family-serif: {{theme.typography.families.serif}};
+@font-family-monospace: {{theme.typography.families.monospace}};
 @font-family-base: @font-family-sans-serif;
 @line-height-tight: 1;
 
 /************************************************************************/
 /* TRANSITIONS                                                          */
 /************************************************************************/
-@timing-normal: 0.3s;
+@timing-normal: {{theme.transitionTiming}}s;
 
 /************************************************************************/
 /* BORDER RADII                                                         */
 /************************************************************************/
-@border-radius-normal: 4px;
-@border-radius-large: (4 * 2)px;
+@border-radius-normal: {{theme.borderRadius}}px;
+@border-radius-large: ({{theme.borderRadius}} * 2)px;
 
 /************************************************************************/
 /* GRID UNITS                                                           */
 /************************************************************************/
-@grid-unit: 4px;
+@grid-unit: {{theme.gridUnit}}px;
 
 /************************************************************************/
 /* Z-INDEX                                                              */
 /************************************************************************/
-@z-index-max: 3000;
-@z-index-dropdown: 11;
-@z-index-above-dashboard-charts: 10;
+@z-index-max: {{theme.zIndex.max}};
+@z-index-dropdown: {{theme.zIndex.dropdown}};
+@z-index-above-dashboard-charts: {{theme.zIndex.aboveDashboardCharts}};
 
 /************************************************************************/
 /* LEGACY IMPORTS                                                       */

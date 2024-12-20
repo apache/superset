@@ -52,13 +52,17 @@ export const emotionCache = createCache({
 
 export const styled = emotionStyled;
 
-
 import tinycolor from 'tinycolor2';
 
-function adjustColor(color, percentage, target = 'white') {
+function adjustColor(
+  color: string,
+  percentage: number,
+  target: string = 'white',
+): string {
   const hex = tinycolor.mix(color, target, percentage).toHexString();
   return hex;
 }
+
 const generateColorVariations = (color: string) => {
   return {
     base: color,
@@ -73,26 +77,37 @@ const generateColorVariations = (color: string) => {
     dark4: adjustColor(color, 60, 'black'),
     dark5: adjustColor(color, 75, 'black'),
   };
-}
-const makeThemeDark = (theme) => {
+};
+
+const makeThemeDark = (theme: typeof defaultTheme): typeof defaultTheme => {
   const darkTheme = { ...theme };
   darkTheme.colors = { ...theme.colors };
-  for (const [key, colorSet] of Object.entries(darkTheme.colors)) {
-    darkTheme.colors[key].dark1 = theme.colors[key].light1;
-    darkTheme.colors[key].dark2 = theme.colors[key].light2;
-    darkTheme.colors[key].dark3 = theme.colors[key].light3;
-    darkTheme.colors[key].dark4 = theme.colors[key].light4;
-    darkTheme.colors[key].dark5 = theme.colors[key].light5;
-    darkTheme.colors[key].light1 = theme.colors[key].dark1;
-    darkTheme.colors[key].light2 = theme.colors[key].dark2;
-    darkTheme.colors[key].light3 = theme.colors[key].dark3;
-    darkTheme.colors[key].light4 = theme.colors[key].dark4;
-    darkTheme.colors[key].light5 = theme.colors[key].dark5;
+
+  for (const [key] of Object.entries(darkTheme.colors)) {
+    if (key !== 'text') {
+      darkTheme.colors[key].dark1 = theme.colors[key].light1;
+      darkTheme.colors[key].dark2 = theme.colors[key].light2;
+      darkTheme.colors[key].dark3 = theme.colors[key].light3;
+      darkTheme.colors[key].dark4 = theme.colors[key].light4;
+      darkTheme.colors[key].dark5 = theme.colors[key].light5;
+      darkTheme.colors[key].light1 = theme.colors[key].dark1;
+      darkTheme.colors[key].light2 = theme.colors[key].dark2;
+      darkTheme.colors[key].light3 = theme.colors[key].dark3;
+      darkTheme.colors[key].light4 = theme.colors[key].dark4;
+      darkTheme.colors[key].light5 = theme.colors[key].dark5;
+    }
   }
-  darkTheme.colors.label = "#D3D3D3";
-  darkTheme.colors.help = "#D3D3D3";
+
+  // Update the text-specific colors
+  darkTheme.colors.text = {
+    ...darkTheme.colors.text,
+    label: '#D3D3D3',
+    help: '#D3D3D3',
+  };
+
   return darkTheme;
-}
+};
+
 const baseColors = {
   primary: '#20A7C9',
   secondary: '#444E7C',
@@ -109,11 +124,11 @@ const generateColors = (baseColors: Record<string, string>) => {
     colors[key] = generateColorVariations(value);
   }
   return colors;
-}
+};
 const colors = generateColors(baseColors);
 console.log(colors);
 
-const defaultTheme = {
+let defaultTheme = {
   borderRadius: 4,
   body: {
     background: '#000',
@@ -173,12 +188,11 @@ const defaultTheme = {
   gridUnit: 4,
   brandIconMaxWidth: 37,
 };
-console.log(defaultTheme);
 
-export type SupersetTheme = typeof makeThemeDark(defaultTheme);
+export type SupersetTheme = ReturnType<typeof makeThemeDark>;
 
 export interface SupersetThemeProps {
   theme: SupersetTheme;
 }
-
+defaultTheme = makeThemeDark(defaultTheme);
 export const supersetTheme = defaultTheme;
