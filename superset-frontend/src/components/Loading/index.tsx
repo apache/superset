@@ -62,15 +62,31 @@ export default function Loading({
 }: Props) {
   const [Loader, setLoader] = useState<string | undefined>(undefined);
   useEffect(() => {
-    fetch('/superset/loaders/')
-      .then(response => response.json())
+    console.log('Fetching loaders...');
+    fetch('/superset/loaders/', {
+      method: 'GET',
+      credentials: 'include',
+    })
+      .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          if (response.status === 401) {
+            console.error('User is not authenticated');
+          } else if (response.status === 403) {
+            console.error('User does not have permission to access this endpoint');
+          }
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
+        console.log('Received data:', data);
         if (data && Array.isArray(data) && data[0]?.src) {
           setLoader(data[0].src);
         }
       })
-      .catch(() => {
-        setLoader(undefined);
+      .catch(error => {
+        console.error('Error fetching loaders:', error);
       });
   }, []);
   return (
