@@ -159,10 +159,10 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Bar Chart",
-            viz_type="dist_bar",
+            viz_type="echarts_timeseries_bar",
             params=get_slice_json(
                 defaults,
-                viz_type="dist_bar",
+                viz_type="echarts_timeseries_bar",
                 metrics=["sum__num"],
                 groupby=["gender"],
             ),
