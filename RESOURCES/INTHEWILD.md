@@ -119,6 +119,7 @@ Join our growing community!
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com) [@srinisubramanian]
+- [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
