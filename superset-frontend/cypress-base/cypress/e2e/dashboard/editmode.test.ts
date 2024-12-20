@@ -272,7 +272,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       openExploreWithDashboardContext('Top 10 California Names Timeseries');
@@ -294,14 +294,14 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // open second top tab to catch shared labels
       openTab(0, 1);
       waitForChartLoad({
         name: 'Trends',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       openTab(0, 0);
@@ -330,7 +330,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -378,7 +378,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -427,7 +427,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -480,7 +480,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -492,7 +492,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Andrew
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -505,7 +505,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -517,7 +517,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Andrew
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -536,7 +536,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -548,7 +548,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Andrew
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -561,7 +561,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -573,7 +573,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Andrew
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -588,7 +588,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -610,7 +610,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -622,7 +622,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -634,7 +634,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -646,7 +646,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -661,7 +661,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -673,7 +673,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -686,7 +686,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -698,7 +698,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -721,7 +721,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
@@ -731,7 +731,7 @@ describe('Dashboard edit', () => {
 
       // open another nested tab
       openTab(2, 1);
-      waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
+      waitForChartLoad({ name: 'Growth Rate', viz: 'echarts_timeseries_line' });
       cy.get('[data-test-chart-name="Growth Rate"] .line .nv-legend-symbol')
         .first()
         .should('have.css', 'fill', 'rgb(255, 0, 0)');
@@ -743,7 +743,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // go to previous tab
@@ -815,7 +815,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
@@ -888,7 +888,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -917,7 +917,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // label Anthony
@@ -929,7 +929,7 @@ describe('Dashboard edit', () => {
 
       // open 2nd main tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       // label Anthony
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
@@ -968,7 +968,7 @@ describe('Dashboard edit', () => {
 
       // go to second tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
@@ -985,7 +985,7 @@ describe('Dashboard edit', () => {
 
       // go to second tab
       openTab(0, 1);
-      waitForChartLoad({ name: 'Trends', viz: 'line' });
+      waitForChartLoad({ name: 'Trends', viz: 'echarts_timeseries_line' });
 
       cy.get('[data-test-chart-name="Trends"] .line .nv-legend-symbol')
         .first()
@@ -1014,7 +1014,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
       cy.get(
         '[data-test-chart-name="Top 10 California Names Timeseries"] .line .nv-legend-symbol',
@@ -1024,7 +1024,7 @@ describe('Dashboard edit', () => {
 
       // open another nested tab
       openTab(2, 1);
-      waitForChartLoad({ name: 'Growth Rate', viz: 'line' });
+      waitForChartLoad({ name: 'Growth Rate', viz: 'echarts_timeseries_line' });
       cy.get('[data-test-chart-name="Growth Rate"] .line .nv-legend-symbol')
         .first()
         .should('have.css', 'fill', 'rgb(50, 0, 167)');
@@ -1036,7 +1036,7 @@ describe('Dashboard edit', () => {
       openTab(1, 1);
       waitForChartLoad({
         name: 'Top 10 California Names Timeseries',
-        viz: 'line',
+        viz: 'echarts_timeseries_line',
       });
 
       // go to previous tab

@@ -131,7 +131,7 @@ describe('No Results', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       adhoc_filters: [
         {
           expressionType: 'SIMPLE',
