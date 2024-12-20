@@ -121,6 +121,13 @@ Here various release tags, github SHA, and latest `master` can be referenced by 
 Refer to the docker-related documentation to learn more about existing tags you can point to
 from Docker Hub.
 
+:::note
+For option #2 and #3, we recommend checking out the release tag from the better repository
+(ie: `git checkout 4.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
+configurations and that the mounted `docker/` scripts are in sync with the image you are
+looking to fire up.
+:::
+
 ## `docker compose` tips & configuration
 
 :::caution

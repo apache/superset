@@ -18,6 +18,9 @@
 
 set -eo pipefail
 
+# UV may not be installed in older images
+pip install uv
+
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     echo "Reinstalling the app in editable mode"
