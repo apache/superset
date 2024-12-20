@@ -83,7 +83,7 @@ describe('FilterScope', () => {
     render(<MockModal />);
     fireEvent.click(screen.getByText('Scoping'));
     fireEvent.click(screen.getByLabelText('Apply to specific panels'));
-    expect(screen.getByRole('tree')).not.toBe(null);
+    expect(screen.getByRole('tree')).toBeInTheDocument();
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
     await waitFor(() =>
@@ -100,7 +100,7 @@ describe('FilterScope', () => {
     render(<MockModal />);
     fireEvent.click(screen.getByText('Scoping'));
     fireEvent.click(screen.getByLabelText('Apply to specific panels'));
-    expect(screen.getByRole('tree')).not.toBe(null);
+    expect(screen.getByRole('tree')).toBeInTheDocument();
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
     fireEvent.click(screen.getByText('tab1'));
