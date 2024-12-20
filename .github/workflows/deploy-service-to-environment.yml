@@ -89,8 +89,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          repository: ${{ inputs.repository || github.repository }}
+          repository: Webgains/superset-service
           ref: ${{ inputs.ref || github.ref }}
+          ssh-key: ${{ secrets.SSH_KEY }}
 
       - name: Assume AWS role
         id: assume_role
