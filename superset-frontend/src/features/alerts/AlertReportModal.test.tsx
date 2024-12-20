@@ -484,7 +484,7 @@ test('removes ignore cache checkbox when chart is selected', async () => {
     screen.queryByRole('checkbox', {
       name: /ignore cache when generating report/i,
     }),
-  ).toBe(null);
+  ).not.toBeInTheDocument();
 });
 
 test('does not show screenshot width when csv is selected', async () => {
