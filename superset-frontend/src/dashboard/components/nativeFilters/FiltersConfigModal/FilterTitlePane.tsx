@@ -42,7 +42,7 @@ const TabsContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: ${({ theme }) => theme.gridUnit * 3}px;
+  padding: ${({ theme }) => theme.sizeUnit * 3}px;
   padding-top: 2px;
 `;
 
@@ -103,7 +103,7 @@ const FilterTitlePane: FC<Props> = ({
           display: 'flex',
           justifyContent: 'space-around',
           alignItems: 'flex-start',
-          paddingTop: theme.gridUnit * 3,
+          paddingTop: theme.sizeUnit * 3,
         }}
       >
         <Button

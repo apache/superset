@@ -20,8 +20,6 @@ import { ReactNode, ComponentType, ReactElement, FC } from 'react';
 import { styled, useTheme } from '@superset-ui/core';
 import { Skeleton, Card } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { theme as supersetTheme } from 'src/preamble';
-import { ConfigProvider } from 'antd-v5';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';
 
@@ -30,15 +28,6 @@ const ActionsWrapper = styled.div`
   display: flex;
   justify-content: flex-end;
 `;
-
-// Styling part 1: Override Card tokens when possible
-const listViewCardTheme = {
-  components: {
-    Card: {
-      colorBgContainer: supersetTheme.colors.grayscale.light5,
-    },
-  },
-};
 
 // Styling part 2: Use CSS when necessary
 const StyledCard = styled(Card)`
@@ -51,7 +40,7 @@ const StyledCard = styled(Card)`
     }
     &:hover {
       box-shadow: 8px 8px 28px 0px ${theme.colors.grayscale.light1};
-      transition: box-shadow ${theme.transitionTiming}s ease-in-out;
+      transition: box-shadow ${theme.motionDurationMid} ease-in-out;
 
       .cover-footer {
         transform: translateY(0);
@@ -66,8 +55,8 @@ const Cover = styled.div`
   overflow: hidden;
 
   .cover-footer {
-    transform: translateY(${({ theme }) => theme.gridUnit * 9}px);
-    transition: ${({ theme }) => theme.transitionTiming}s ease-out;
+    transform: translateY(${({ theme }) => theme.sizeUnit * 9}px);
+    transition: ${({ theme }) => theme.motionDurationMid} ease-out;
   }
 `;
 
@@ -79,7 +68,7 @@ const TitleContainer = styled.div`
   .card-actions {
     margin-left: auto;
     align-self: flex-end;
-    padding-left: ${({ theme }) => theme.gridUnit}px;
+    padding-left: ${({ theme }) => theme.sizeUnit}px;
     span[role='img'] {
       display: flex;
       align-items: center;
@@ -97,7 +86,7 @@ const TitleLink = styled.span`
   overflow: hidden;
   text-overflow: ellipsis;
   & a {
-    color: ${({ theme }) => theme.colors.grayscale.dark1} !important;
+    color: ${({ theme }) => theme.colorText} !important;
   }
 `;
 
@@ -105,14 +94,14 @@ const TitleRight = styled.span`
   position: absolute;
   right: -1px;
   font-weight: 400;
-  bottom: ${({ theme }) => theme.gridUnit}px;
+  bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const CoverFooter = styled.div`
   display: flex;
   flex-wrap: nowrap;
   position: relative;
-  top: -${({ theme }) => theme.gridUnit * 9}px;
+  top: -${({ theme }) => theme.sizeUnit * 9}px;
   padding: 0 8px;
 `;
 
@@ -131,7 +120,7 @@ const CoverFooterRight = styled.div`
 
 const ThinSkeleton = styled(Skeleton)`
   h3 {
-    margin: ${({ theme }) => theme.gridUnit}px 0;
+    margin: ${({ theme }) => theme.sizeUnit}px 0;
   }
 
   ul {
@@ -192,101 +181,99 @@ function ListViewCard({
   const Link = url && linkComponent ? linkComponent : AnchorLink;
   const theme = useTheme();
   return (
-    <ConfigProvider theme={listViewCardTheme}>
-      <StyledCard
-        data-test="styled-card"
-        padded
-        cover={
-          cover || (
-            <Cover>
-              <Link to={url!}>
-                <div className="gradient-container">
-                  <ImageLoader
-                    src={imgURL || ''}
-                    fallback={imgFallbackURL || ''}
-                    isLoading={loading}
-                    position={imgPosition}
-                  />
-                </div>
-              </Link>
-              <CoverFooter className="cover-footer">
-                {!loading && coverLeft && (
-                  <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
-                )}
-                {!loading && coverRight && (
-                  <CoverFooterRight>{coverRight}</CoverFooterRight>
-                )}
-              </CoverFooter>
-            </Cover>
-          )
-        }
-      >
-        {loading && (
-          <Card.Meta
-            title={
-              <>
-                <TitleContainer>
-                  <Skeleton.Input
+    <StyledCard
+      data-test="styled-card"
+      padded
+      cover={
+        cover || (
+          <Cover>
+            <Link to={url!}>
+              <div className="gradient-container">
+                <ImageLoader
+                  src={imgURL || ''}
+                  fallback={imgFallbackURL || ''}
+                  isLoading={loading}
+                  position={imgPosition}
+                />
+              </div>
+            </Link>
+            <CoverFooter className="cover-footer">
+              {!loading && coverLeft && (
+                <CoverFooterLeft>{coverLeft}</CoverFooterLeft>
+              )}
+              {!loading && coverRight && (
+                <CoverFooterRight>{coverRight}</CoverFooterRight>
+              )}
+            </CoverFooter>
+          </Cover>
+        )
+      }
+    >
+      {loading && (
+        <Card.Meta
+          title={
+            <>
+              <TitleContainer>
+                <Skeleton.Input
+                  active
+                  size="small"
+                  css={{
+                    width: Math.trunc(theme.sizeUnit * 62.5),
+                  }}
+                />
+                <div className="card-actions">
+                  <Skeleton.Button active shape="circle" />{' '}
+                  <Skeleton.Button
                     active
-                    size="small"
                     css={{
-                      width: Math.trunc(theme.gridUnit * 62.5),
+                      width: theme.sizeUnit * 10,
                     }}
                   />
-                  <div className="card-actions">
-                    <Skeleton.Button active shape="circle" />{' '}
-                    <Skeleton.Button
-                      active
-                      css={{
-                        width: theme.gridUnit * 10,
-                      }}
-                    />
-                  </div>
-                </TitleContainer>
-              </>
-            }
-            description={
-              <ThinSkeleton
-                round
-                active
-                title={false}
-                paragraph={paragraphConfig}
-              />
-            }
-          />
-        )}
-        {!loading && (
-          <Card.Meta
-            title={
-              <TitleContainer>
-                {subtitle || null}
-                <div className="titleRow">
-                  <Tooltip title={title}>
-                    <TitleLink>
-                      {certifiedBy && (
-                        <>
-                          <CertifiedBadge
-                            certifiedBy={certifiedBy}
-                            details={certificationDetails}
-                          />{' '}
-                        </>
-                      )}
-                      {title}
-                    </TitleLink>
-                  </Tooltip>
-                  {titleRight && <TitleRight>{titleRight}</TitleRight>}
-                  <div className="card-actions" data-test="card-actions">
-                    {actions}
-                  </div>
                 </div>
               </TitleContainer>
-            }
-            description={description}
-            avatar={avatar || null}
-          />
-        )}
-      </StyledCard>
-    </ConfigProvider>
+            </>
+          }
+          description={
+            <ThinSkeleton
+              round
+              active
+              title={false}
+              paragraph={paragraphConfig}
+            />
+          }
+        />
+      )}
+      {!loading && (
+        <Card.Meta
+          title={
+            <TitleContainer>
+              {subtitle || null}
+              <div className="titleRow">
+                <Tooltip title={title}>
+                  <TitleLink>
+                    {certifiedBy && (
+                      <>
+                        <CertifiedBadge
+                          certifiedBy={certifiedBy}
+                          details={certificationDetails}
+                        />{' '}
+                      </>
+                    )}
+                    {title}
+                  </TitleLink>
+                </Tooltip>
+                {titleRight && <TitleRight>{titleRight}</TitleRight>}
+                <div className="card-actions" data-test="card-actions">
+                  {actions}
+                </div>
+              </div>
+            </TitleContainer>
+          }
+          description={description}
+          avatar={avatar || null}
+        />
+      )}
+    </StyledCard>
   );
 }
 

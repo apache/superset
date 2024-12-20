@@ -18,7 +18,6 @@
  */
 import { FC, ChangeEvent, useEffect, useState } from 'react';
 
-import FormItem from 'src/components/Form/FormItem';
 import { Select } from 'src/components';
 import {
   isFeatureEnabled,
@@ -26,7 +25,7 @@ import {
   isDefined,
   styled,
   SupersetClient,
-  SupersetTheme,
+  useTheme,
   t,
 } from '@superset-ui/core';
 import {
@@ -53,16 +52,6 @@ import useAdvancedDataTypes from './useAdvancedDataTypes';
 import { useDatePickerInAdhocFilter } from '../utils';
 import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../types';
-
-const StyledInput = styled(Input)`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-`;
-
-export const StyledFormItem = styled(FormItem)`
-  &.ant-row.ant-form-item {
-    margin: 0;
-  }
-`;
 
 const SelectWithLabel = styled(Select)<{ labelText: string }>`
   .ant-select-selector::after {
@@ -449,14 +438,15 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       setComparator(props.adhocFilter.comparator);
     }
   }, [props.adhocFilter.comparator]);
+  const theme = useTheme();
 
   // another name for columns, just for following previous naming.
   const subjectComponent = (
     <Select
-      css={(theme: SupersetTheme) => ({
-        marginTop: theme.gridUnit * 4,
-        marginBottom: theme.gridUnit * 4,
-      })}
+      css={{
+        marginTop: theme.sizeUnit * 4,
+        marginBottom: theme.sizeUnit * 4,
+      }}
       data-test="select-element"
       options={columns.map(column => ({
         value:
@@ -480,7 +470,6 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const operatorsAndOperandComponent = (
     <>
       <Select
-        css={(theme: SupersetTheme) => ({ marginBottom: theme.gridUnit * 4 })}
         options={(props.operators ?? OPERATORS_OPTIONS)
           .filter(op => isOperatorRelevantWrapper(op, subject))
           .map((option, index) => ({
@@ -511,7 +500,8 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             advancedDataTypesState.parsedAdvancedDataType
           }
         >
-          <StyledInput
+          <div style={{ marginTop: '16px' }} />
+          <Input
             data-test="adhoc-filter-simple-value"
             name="filter-value"
             ref={ref => {

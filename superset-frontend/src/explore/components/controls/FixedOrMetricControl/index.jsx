@@ -108,7 +108,7 @@ export default class FixedOrMetricControl extends Component {
               > .ant-collapse-item.ant-collapse-no-arrow
               > .ant-collapse-header {
               border: 0px;
-              padding: 0px 0px ${theme.gridUnit * 2}px 0px;
+              padding: 0px 0px ${theme.sizeUnit * 2}px 0px;
               display: inline-block;
             }
             &.ant-collapse-ghost
@@ -119,7 +119,7 @@ export default class FixedOrMetricControl extends Component {
 
               & .well {
                 margin-bottom: 0px;
-                padding: ${theme.gridUnit * 2}px;
+                padding: ${theme.sizeUnit * 2}px;
               }
             }
           `}

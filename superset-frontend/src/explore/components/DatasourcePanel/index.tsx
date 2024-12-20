@@ -79,7 +79,6 @@ export interface Props {
 
 const DatasourceContainer = styled.div`
   ${({ theme }) => css`
-    background-color: ${theme.colors.grayscale.light5};
     position: relative;
     height: 100%;
     display: flex;
@@ -89,23 +88,23 @@ const DatasourceContainer = styled.div`
       height: auto;
     }
     .field-selections {
-      padding: 0 0 ${theme.gridUnit}px;
+      padding: 0 0 ${theme.sizeUnit}px;
       overflow: auto;
       height: 100%;
     }
     .field-length {
-      margin-bottom: ${theme.gridUnit * 2}px;
-      font-size: ${theme.typography.sizes.s}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
+      font-size: ${theme.fontSizeSM}px;
       color: ${theme.colors.grayscale.light1};
     }
     .form-control.input-md {
       display: inline-flex;
-      width: calc(100% - ${theme.gridUnit * 8}px);
-      height: ${theme.gridUnit * 8}px;
-      margin: ${theme.gridUnit * 2}px auto;
+      width: calc(100% - ${theme.sizeUnit * 8}px);
+      height: ${theme.sizeUnit * 8}px;
+      margin: ${theme.sizeUnit * 2}px auto;
     }
     .type-label {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       color: ${theme.colors.grayscale.base};
     }
     .Control {
@@ -116,7 +115,7 @@ const DatasourceContainer = styled.div`
 
 const StyledInfoboxWrapper = styled.div`
   ${({ theme }) => css`
-    margin: 0 ${theme.gridUnit * 2.5}px;
+    margin: 0 ${theme.sizeUnit * 2.5}px;
 
     span {
       text-decoration: underline;

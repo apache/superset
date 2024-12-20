@@ -35,7 +35,7 @@ export default function RowCountLabel(props: RowCountLabelProps) {
   const { rowcount = 0, limit = null, loading } = props;
   const limitReached = limit && rowcount >= limit;
   const type =
-    limitReached || (rowcount === 0 && !loading) ? 'danger' : 'default';
+    limitReached || (rowcount === 0 && !loading) ? 'error' : 'default';
   const formattedRowCount = getNumberFormatter()(rowcount);
   const label = (
     <Label type={type}>

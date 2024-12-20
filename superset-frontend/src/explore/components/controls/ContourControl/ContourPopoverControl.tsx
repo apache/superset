@@ -37,12 +37,12 @@ enum ContourTypes {
 }
 
 const ContourActionsContainer = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const StyledRow = styled(Row)`
   width: 100%;
-  gap: ${({ theme }) => theme.gridUnit * 2}px;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const isIsoband = (contour: ContourType) => {

@@ -25,7 +25,7 @@ interface QueryStateLabelProps {
 }
 
 const StyledLabel = styled(Label)`
-  margin-right: ${({ theme }) => theme.gridUnit}px;
+  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export default function QueryStateLabel({ query }: QueryStateLabelProps) {

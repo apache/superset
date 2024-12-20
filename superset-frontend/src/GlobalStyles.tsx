@@ -18,7 +18,6 @@
  */
 import { css } from '@superset-ui/core';
 import { Global } from '@emotion/react';
-import { mix } from 'polished';
 import 'react-js-cron/dist/styles.css';
 
 export const GlobalStyles = () => (
@@ -32,7 +31,7 @@ export const GlobalStyles = () => (
       h6,
       strong,
       th {
-        font-weight: ${theme.typography.weights.bold};
+        font-weight: ${theme.fontWeightStrong};
       }
       // CSS hack to resolve the issue caused by the invisible echart tooltip on
       // https://github.com/apache/superset/issues/30058
@@ -51,38 +50,11 @@ export const GlobalStyles = () => (
       .antd5-picker-dropdown,
       .ant-popover,
       .antd5-popover {
-        z-index: ${theme.zIndex.max} !important;
+        z-index: ${theme.zIndexPopupBase} !important;
       }
 
       // TODO: Remove when buttons have been upgraded to Ant Design 5.
       // Check src/components/Modal for more info.
-      .ant-modal-confirm {
-        button {
-          border: none;
-          border-radius: ${theme.borderRadius}px;
-          line-height: 1.5715;
-          font-size: ${theme.typography.sizes.s}px;
-          font-weight: ${theme.typography.weights.bold};
-        }
-        .ant-btn-primary:not(.btn-danger) {
-          background: ${theme.colors.primary.base};
-          color: ${theme.colors.grayscale.light5};
-          &:hover {
-            background: ${theme.colors.primary.dark1};
-          }
-        }
-        .ant-btn-default:not(.btn-danger) {
-          background: ${theme.colors.primary.light4};
-          color: ${theme.colors.primary.dark1};
-          &:hover {
-            background: ${mix(
-              0.1,
-              theme.colors.primary.base,
-              theme.colors.primary.light4,
-            )};
-          }
-        }
-      }
       .column-config-popover {
         & .antd5-input-number {
           width: 100%;
@@ -95,12 +67,12 @@ export const GlobalStyles = () => (
           padding: 5px 10px 6px;
         }
         && .ant-tabs {
-          margin-top: ${theme.gridUnit * -3}px;
+          margin-top: ${theme.sizeUnit * -3}px;
         }
         & .ant-tabs-nav {
-          margin-left: ${theme.gridUnit * -4}px;
-          margin-right: ${theme.gridUnit * -4}px;
-          margin-bottom: ${theme.gridUnit * 2}px;
+          margin-left: ${theme.sizeUnit * -4}px;
+          margin-right: ${theme.sizeUnit * -4}px;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
         && .ant-tabs-tab {
           flex: 1;

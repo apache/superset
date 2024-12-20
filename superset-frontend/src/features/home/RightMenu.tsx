@@ -25,6 +25,7 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { get, isEmpty } from 'lodash';
+import { Switch } from 'antd-v5';
 
 import {
   t,
@@ -34,6 +35,9 @@ import {
   SupersetClient,
   getExtensionsRegistry,
   useTheme,
+  isFeatureEnabled,
+  FeatureFlag,
+  themeObject,
 } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
@@ -61,14 +65,14 @@ import {
 const extensionsRegistry = getExtensionsRegistry();
 
 const versionInfoStyles = (theme: SupersetTheme) => css`
-  padding: ${theme.gridUnit * 1.5}px ${theme.gridUnit * 4}px
-    ${theme.gridUnit * 4}px ${theme.gridUnit * 7}px;
+  padding: ${theme.sizeUnit * 1.5}px ${theme.sizeUnit * 4}px
+    ${theme.sizeUnit * 4}px ${theme.sizeUnit * 7}px;
   color: ${theme.colors.grayscale.base};
-  font-size: ${theme.typography.sizes.xs}px;
+  font-size: ${theme.fontSizeXS}px;
   white-space: nowrap;
 `;
 const StyledI = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colorPrimaryText};
 `;
 
 const styledDisabled = (theme: SupersetTheme) => css`
@@ -81,7 +85,7 @@ const StyledDiv = styled.div<{ align: string }>`
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
-  margin-right: ${({ theme }) => theme.gridUnit}px;
+  margin-right: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -92,8 +96,8 @@ const StyledMenuItemWithIcon = styled.div`
 `;
 
 const StyledAnchor = styled.a`
-  padding-right: ${({ theme }) => theme.gridUnit}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
+  padding-right: ${({ theme }) => theme.sizeUnit}px;
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const tagStyles = (theme: SupersetTheme) => css`
@@ -102,7 +106,7 @@ const tagStyles = (theme: SupersetTheme) => css`
 
 const styledChildMenu = (theme: SupersetTheme) => css`
   &:hover {
-    color: ${theme.colors.primary.base} !important;
+    color: ${theme.colorPrimary} !important;
     cursor: pointer !important;
   }
 `;
@@ -112,7 +116,7 @@ const { SubMenu } = Menu;
 const StyledSubMenu = styled(SubMenu)`
   &.antd5-menu-submenu-active {
     .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colors.primary.base};
+      color: ${({ theme }) => theme.colorPrimary};
     }
   }
 `;
@@ -391,7 +395,7 @@ const RightMenu = ({
       )}
       {environmentTag?.text && (
         <Label
-          css={{ borderRadius: `${theme.gridUnit * 125}px` }}
+          css={{ borderRadius: `${theme.sizeUnit * 125}px` }}
           color={
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
@@ -475,6 +479,15 @@ const RightMenu = ({
               );
             })}
           </StyledSubMenu>
+        )}
+        {(isFeatureEnabled(FeatureFlag.DarkThemeSwitch) || true) && (
+          <span>
+            <Switch
+              onChange={(checked: boolean) => {
+                themeObject.toggleDarkMode(checked);
+              }}
+            />
+          </span>
         )}
         <StyledSubMenu
           key="sub3_settings"

@@ -36,7 +36,7 @@ const STICKY_HEADER_HEIGHT = 32;
 
 const StyledTitle = styled.h2`
   ${({ theme }) => `
-     color:  ${theme.colors.grayscale.dark1}
+     color:  ${theme.colorText}
    `}
 `;
 
@@ -67,7 +67,7 @@ const StackableHeader = styled(Button)<{ top: number }>`
      border-radius: 0px;
      width: 100%;
      justify-content: flex-start;
-     border-bottom: 1px ${theme.colors.grayscale.light1} solid;
+     border-bottom: 1px ${theme.colorSplit} solid;
      &::before {
        display: inline-block;
        position: relative;
@@ -169,7 +169,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                   <div ref={anchors[index]} />
                   <StackableHeader
                     top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
-                    buttonStyle="tertiary"
+                    buttonStyle="secondary"
                     onClick={() => onAnchorClicked(index)}
                   >
                     {keyPath}

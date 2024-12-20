@@ -47,7 +47,7 @@ const CurrencyControlContainer = styled.div`
     align-items: center;
 
     & > :first-child {
-      margin-right: ${theme.gridUnit * 4}px;
+      margin-right: ${theme.sizeUnit * 4}px;
       min-width: 0;
       flex: 1;
     }

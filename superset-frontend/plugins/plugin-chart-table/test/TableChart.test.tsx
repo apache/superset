@@ -356,7 +356,9 @@ describe('plugin-chart-table', () => {
       expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
         'rgba(172, 225, 196, 1)',
       );
-      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+        'rgb(255, 255, 255)',
+      );
     });
 
     it('render cell without color', () => {
@@ -396,9 +398,11 @@ describe('plugin-chart-table', () => {
         'rgba(172, 225, 196, 0.812)',
       );
       expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-        '',
+        'rgb(255, 255, 255)',
       );
-      expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+      expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+        'rgb(255, 255, 255)',
+      );
     });
   });
 
@@ -442,7 +446,7 @@ describe('plugin-chart-table', () => {
     cells = document.querySelectorAll('td');
 
     cells.forEach(cell => {
-      expect(cell).toHaveClass('test-c7w8t3');
+      expect(cell).toHaveClass('test-70d2p3');
     });
 
     props.columns[0].isPercentMetric = false;
@@ -455,7 +459,7 @@ describe('plugin-chart-table', () => {
     );
     cells = document.querySelectorAll('td');
     cells.forEach(cell => {
-      expect(cell).toHaveClass('test-c7w8t3');
+      expect(cell).toHaveClass('test-70d2p3');
     });
   });
 });

@@ -40,7 +40,7 @@ const propTypes = {
 const DividerLine = styled.div`
   ${({ theme }) => css`
     width: 100%;
-    padding: ${theme.gridUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
+    padding: ${theme.sizeUnit * 2}px 0; /* this is padding not margin to enable a larger mouse target */
     background-color: transparent;
 
     &:after {
@@ -56,8 +56,8 @@ const DividerLine = styled.div`
     }
 
     .dashboard-component-tabs & {
-      padding-left: ${theme.gridUnit * 4}px;
-      padding-right: ${theme.gridUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
     }
   `}
 `;

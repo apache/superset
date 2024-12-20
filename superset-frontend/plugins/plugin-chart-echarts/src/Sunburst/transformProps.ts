@@ -220,10 +220,10 @@ export default function transformProps(
     });
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
   const padding = {
-    top: theme.gridUnit * 3,
-    right: theme.gridUnit,
-    bottom: theme.gridUnit * 3,
-    left: theme.gridUnit,
+    top: theme.sizeUnit * 3,
+    right: theme.sizeUnit,
+    bottom: theme.sizeUnit * 3,
+    left: theme.sizeUnit,
   };
   const containerWidth = width;
   const containerHeight = height;

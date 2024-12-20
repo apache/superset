@@ -35,16 +35,16 @@ import {
 
 const FormattersContainer = styled.div`
   ${({ theme }) => css`
-    padding: ${theme.gridUnit}px;
+    padding: ${theme.sizeUnit}px;
     border: solid 1px ${theme.colors.grayscale.light2};
-    border-radius: ${theme.gridUnit}px;
+    border-radius: ${theme.sizeUnit}px;
   `}
 `;
 
 export const FormatterContainer = styled(OptionControlContainer)`
   &,
   & > div {
-    margin-bottom: ${({ theme }) => theme.gridUnit}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit}px;
     :last-child {
       margin-bottom: 0;
     }
@@ -55,7 +55,7 @@ export const CloseButton = styled.button`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.light1};
     height: 100%;
-    width: ${theme.gridUnit * 6}px;
+    width: ${theme.sizeUnit * 6}px;
     border: none;
     border-right: solid 1px ${theme.colors.grayscale.dark2}0C;
     padding: 0;

@@ -265,7 +265,7 @@ const DropdownContainer = forwardRef(
             css={css`
               display: flex;
               flex-direction: column;
-              gap: ${theme.gridUnit * 4}px;
+              gap: ${theme.sizeUnit * 4}px;
             `}
             data-test="dropdown-content"
             style={dropdownStyle}
@@ -279,7 +279,7 @@ const DropdownContainer = forwardRef(
       [
         dropdownContent,
         overflowingCount,
-        theme.gridUnit,
+        theme.sizeUnit,
         dropdownStyle,
         overflowedItems,
       ],
@@ -329,8 +329,8 @@ const DropdownContainer = forwardRef(
           css={css`
             display: flex;
             align-items: center;
-            gap: ${theme.gridUnit * 4}px;
-            margin-right: ${theme.gridUnit * 4}px;
+            gap: ${theme.sizeUnit * 4}px;
+            margin-right: ${theme.sizeUnit * 4}px;
             min-width: 0px;
           `}
           data-test="container"
@@ -386,12 +386,12 @@ const DropdownContainer = forwardRef(
                     count={dropdownTriggerCount ?? overflowingCount}
                     color={
                       (dropdownTriggerCount ?? overflowingCount) > 0
-                        ? theme.colors.primary.base
+                        ? theme.colorPrimary
                         : theme.colors.grayscale.light1
                     }
                     showZero
                     css={css`
-                      margin-left: ${theme.gridUnit * 2}px;
+                      margin-left: ${theme.sizeUnit * 2}px;
                     `}
                   />
                   <Icons.DownOutlined

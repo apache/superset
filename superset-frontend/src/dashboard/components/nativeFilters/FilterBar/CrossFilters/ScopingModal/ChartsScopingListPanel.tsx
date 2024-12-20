@@ -34,10 +34,10 @@ import { NEW_CHART_SCOPING_ID } from './constants';
 
 const AddButtonContainer = styled.div`
   ${({ theme }) => css`
-    margin-top: ${theme.gridUnit * 2}px;
+    margin-top: ${theme.sizeUnit * 2}px;
 
     & button > [role='img']:first-of-type {
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
       line-height: 0;
     }
 
@@ -151,7 +151,7 @@ export const ChartsScopingListPanel = ({
           width: 100%;
           height: 1px;
           background-color: ${theme.colors.grayscale.light3};
-          margin: ${theme.gridUnit * 3}px 0;
+          margin: ${theme.sizeUnit * 3}px 0;
         `}
       />
       {customScopedCharts.map(chartInfo => (

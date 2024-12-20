@@ -27,14 +27,14 @@ import withToasts, {
 import useQueryPreviewState from 'src/features/queries/hooks/useQueryPreviewState';
 
 const QueryTitle = styled.div`
-  color: ${({ theme }) => theme.colors.secondary.light2};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  color: ${({ theme }) => theme.colors.primary.light2};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   margin-bottom: 0;
 `;
 
 const QueryLabel = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.dark2};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  font-size: ${({ theme }) => theme.fontSize}px;
   padding: 4px 0 16px 0;
 `;
 
@@ -44,9 +44,9 @@ const StyledModal = styled(Modal)`
   }
 
   pre {
-    font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-    font-weight: ${({ theme }) => theme.typography.weights.normal};
-    line-height: ${({ theme }) => theme.typography.sizes.l}px;
+    font-size: ${({ theme }) => theme.fontSizeXS}px;
+    font-weight: ${({ theme }) => theme.fontWeightNormal};
+    line-height: ${({ theme }) => theme.fontSizeLG}px;
     height: 375px;
     border: none;
   }

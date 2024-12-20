@@ -92,7 +92,7 @@ const MarkdownStyles = styled.div`
       h4,
       h5,
       h6 {
-        font-weight: ${theme.typography.weights.normal};
+        font-weight: ${theme.fontWeightNormal};
       }
 
       h5 {
@@ -100,7 +100,7 @@ const MarkdownStyles = styled.div`
       }
 
       h6 {
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.fontSizeSM}px;
       }
 
       .dashboard-component-chart-holder {

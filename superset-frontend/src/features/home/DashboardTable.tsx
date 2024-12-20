@@ -181,6 +181,7 @@ function DashboardTable({
     <>
       <SubMenu
         activeChild={activeTab}
+        backgroundColor="transparent"
         tabs={menuTabs}
         buttons={[
           {
@@ -192,7 +193,7 @@ function DashboardTable({
                 {t('Dashboard')}
               </>
             ),
-            buttonStyle: 'tertiary',
+            buttonStyle: 'secondary',
             onClick: () => {
               window.location.assign('/dashboard/new');
             },

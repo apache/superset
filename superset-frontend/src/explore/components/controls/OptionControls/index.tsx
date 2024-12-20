@@ -28,7 +28,7 @@ import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetr
 import { StyledMetricOption } from '../../optionRenderers';
 
 export const DragContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit}px;
   :last-child {
     margin-bottom: 0;
   }
@@ -40,11 +40,14 @@ export const OptionControlContainer = styled.div<{
   display: flex;
   align-items: center;
   width: 100%;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  height: ${({ theme }) => theme.gridUnit * 6}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light3};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  height: ${({ theme }) => theme.sizeUnit * 6}px;
+  background-color: ${({ theme }) => theme.colorBgLayout};
   border-radius: 3px;
   cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
+  :hover {
+    background-color: ${({ theme }) => theme.colorPrimaryBgHover};
+  }
 `;
 export const Label = styled.div`
   ${({ theme }) => `
@@ -54,14 +57,14 @@ export const Label = styled.div`
     text-overflow: ellipsis;
     align-items: center;
     white-space: nowrap;
-    padding-left: ${theme.gridUnit}px;
+    padding-left: ${theme.sizeUnit}px;
     svg {
-      margin-right: ${theme.gridUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
     .type-label {
-      margin-right: ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit}px;
-      font-weight: ${theme.typography.weights.normal};
+      margin-right: ${theme.sizeUnit * 2}px;
+      margin-left: ${theme.sizeUnit}px;
+      font-weight: ${theme.fontWeightNormal};
       width: auto;
     }
     .option-label {
@@ -83,13 +86,13 @@ export const CaretContainer = styled.div`
 
 export const CloseContainer = styled.div`
   height: 100%;
-  width: ${({ theme }) => theme.gridUnit * 6}px;
+  width: ${({ theme }) => theme.sizeUnit * 6}px;
   border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
   cursor: pointer;
 `;
 
 const StyledInfoTooltipWithTrigger = styled(InfoTooltipWithTrigger)`
-  margin: 0 ${({ theme }) => theme.gridUnit}px;
+  margin: 0 ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export const HeaderContainer = styled.div`
@@ -99,9 +102,9 @@ export const HeaderContainer = styled.div`
 `;
 
 export const LabelsContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit}px;
-  border: solid 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  padding: ${({ theme }) => theme.sizeUnit}px;
+  border: solid 1px ${({ theme }) => theme.colorSplit};
+  border-radius: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const borderPulse = keyframes`
@@ -127,32 +130,28 @@ export const DndLabelsContainer = styled.div<{
 }>`
   ${({ theme, isLoading, canDrop, isDragging, isOver }) => `
   position: relative;
-  padding: ${theme.gridUnit}px;
+  padding: ${theme.sizeUnit}px;
   border: ${
     !isLoading && isDragging
-      ? `dashed 1px ${
-          canDrop ? theme.colors.info.dark1 : theme.colors.error.dark1
-        }`
+      ? `dashed 1px ${canDrop ? theme.colorBorder : theme.colorErrorBgHover}`
       : `solid 1px ${
           isLoading && isDragging
-            ? theme.colors.warning.light1
-            : theme.colors.grayscale.light2
+            ? theme.colorWarningBgHover
+            : theme.colorBorder
         }`
   };
-  border-radius: ${theme.gridUnit}px;
+  border-radius: ${theme.sizeUnit}px;
   &:before,
   &:after {
     content: ' ';
     position: absolute;
-    border-radius: ${theme.gridUnit}px;
+    border-radius: ${theme.sizeUnit}px;
   }
   &:before {
     display: ${isDragging || isLoading ? 'block' : 'none'};
-    background-color: ${
-      canDrop ? theme.colors.primary.base : theme.colors.error.light1
-    };
-    z-index: ${theme.zIndex.aboveDashboardCharts};
-    opacity: ${theme.opacity.light};
+    background-color: ${canDrop ? theme.colorPrimary : theme.colorErrorBgHover};
+    z-index: 10;
+    opacity: 10%;
     top: 1px;
     right: 1px;
     bottom: 1px;
@@ -161,14 +160,14 @@ export const DndLabelsContainer = styled.div<{
   &:after {
     display: ${isLoading || (canDrop && isOver) ? 'block' : 'none'};
     background-color: ${
-      isLoading ? theme.colors.grayscale.light3 : theme.colors.primary.base
+      isLoading ? theme.colors.grayscale.light3 : theme.colorPrimary
     };
-    z-index: ${theme.zIndex.dropdown};
-    opacity: ${theme.opacity.mediumLight};
-    top: ${-theme.gridUnit}px;
-    right: ${-theme.gridUnit}px;
-    bottom: ${-theme.gridUnit}px;
-    left: ${-theme.gridUnit}px;
+    z-index: 11;
+    opacity: 35%;
+    top: ${-theme.sizeUnit}px;
+    right: ${-theme.sizeUnit}px;
+    bottom: ${-theme.sizeUnit}px;
+    left: ${-theme.sizeUnit}px;
     cursor: ${isLoading ? 'wait' : 'auto'};
   }
   `}
@@ -179,12 +178,12 @@ export const DndLabelsContainer = styled.div<{
       css`
         animation: ${borderPulse} 2s ease-in infinite;
         background: linear-gradient(currentColor 0 0) 0 100%/0% 3px no-repeat;
-        background-size: 100% ${theme.gridUnit / 2}px;
+        background-size: 100% ${theme.sizeUnit / 2}px;
         top: auto;
-        right: ${theme.gridUnit}px;
-        left: ${theme.gridUnit}px;
-        bottom: -${theme.gridUnit / 2}px;
-        height: ${theme.gridUnit / 2}px;
+        right: ${theme.sizeUnit}px;
+        left: ${theme.sizeUnit}px;
+        bottom: -${theme.sizeUnit / 2}px;
+        height: ${theme.sizeUnit / 2}px;
       `};
   }
 `;
@@ -195,12 +194,12 @@ export const AddControlLabel = styled.div<{
   display: flex;
   align-items: center;
   width: 100%;
-  height: ${({ theme }) => theme.gridUnit * 6}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  height: ${({ theme }) => theme.sizeUnit * 6}px;
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
   border: dashed 1px ${({ theme }) => theme.colors.grayscale.light2};
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  border-radius: ${({ theme }) => theme.sizeUnit}px;
   cursor: ${({ cancelHover }) => (cancelHover ? 'inherit' : 'pointer')};
 
   :hover {
@@ -218,10 +217,10 @@ export const AddIconButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  height: ${({ theme }) => theme.gridUnit * 4}px;
-  width: ${({ theme }) => theme.gridUnit * 4}px;
+  height: ${({ theme }) => theme.sizeUnit * 4}px;
+  width: ${({ theme }) => theme.sizeUnit * 4}px;
   padding: 0;
-  background-color: ${({ theme }) => theme.colors.primary.dark1};
+  background-color: ${({ theme }) => theme.colorPrimaryText};
   border: none;
   border-radius: 2px;
 

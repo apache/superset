@@ -40,7 +40,7 @@ const StyledLabel = styled.div`
   align-items: center;
 
   & i {
-    margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   & a {

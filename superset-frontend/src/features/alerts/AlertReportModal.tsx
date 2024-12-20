@@ -205,7 +205,7 @@ const StyledModal = styled(Modal)`
   }
 
   .control-label {
-    margin-top: ${({ theme }) => theme.gridUnit}px;
+    margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
 
   .ant-collapse > .ant-collapse-item {
@@ -244,7 +244,7 @@ export const StyledInputContainer = styled.div`
   ${({ theme }) => css`
     flex: 1;
     margin-top: 0px;
-    margin-bottom: ${theme.gridUnit * 4}px;
+    margin-bottom: ${theme.sizeUnit * 4}px;
 
     input::-webkit-outer-spin-button,
     input::-webkit-inner-spin-button {
@@ -257,15 +257,15 @@ export const StyledInputContainer = styled.div`
 
     .helper {
       display: block;
-      color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.s}px;
-      padding: ${theme.gridUnit}px 0;
+      color: ${theme.colorTextTertiary};
+      font-size: ${theme.fontSizeSM}px;
+      padding: ${theme.sizeUnit}px 0;
       text-align: left;
     }
 
     .required {
-      margin-left: ${theme.gridUnit / 2}px;
-      color: ${theme.colors.error.base};
+      margin-left: ${theme.sizeUnit / 2}px;
+      color: ${theme.colorError};
     }
 
     .input-container {
@@ -278,11 +278,11 @@ export const StyledInputContainer = styled.div`
 
       label {
         display: flex;
-        margin-right: ${theme.gridUnit * 2}px;
+        margin-right: ${theme.sizeUnit * 2}px;
       }
 
       i {
-        margin: 0 ${theme.gridUnit}px;
+        margin: 0 ${theme.sizeUnit}px;
       }
     }
 
@@ -292,7 +292,7 @@ export const StyledInputContainer = styled.div`
     }
 
     input[disabled] {
-      color: ${theme.colors.grayscale.base};
+      color: ${theme.colorTextDisabled};
     }
 
     textarea {
@@ -302,16 +302,16 @@ export const StyledInputContainer = styled.div`
 
     input::placeholder,
     textarea::placeholder {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextPlaceholder};
     }
 
     textarea,
     input[type='text'],
     input[type='number'] {
-      padding: ${theme.gridUnit}px ${theme.gridUnit * 2}px;
+      padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
       border-style: none;
-      border: 1px solid ${theme.colors.grayscale.light2};
-      border-radius: ${theme.gridUnit}px;
+      border: 1px solid ${theme.colorBorder};
+      border-radius: ${theme.sizeUnit}px;
 
       &[name='description'] {
         flex: 1 1 auto;
@@ -325,25 +325,25 @@ export const StyledInputContainer = styled.div`
 `;
 
 const StyledCheckbox = styled(AntdCheckbox)`
-  margin-top: ${({ theme }) => theme.gridUnit * 0}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 0}px;
 `;
 
 const StyledTooltip = styled(InfoTooltipWithTrigger)`
-  margin-left: ${({ theme }) => theme.gridUnit}px;
+  margin-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 // Notification Method components
 const StyledNotificationAddButton = styled.div`
   ${({ theme }) => css`
-    color: ${theme.colors.primary.dark1};
+    color: ${theme.colorPrimaryText};
     cursor: pointer;
 
     i {
-      margin-right: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
 
     &.disabled {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextDisabled};
       cursor: default;
     }
   `}
@@ -356,7 +356,7 @@ const StyledNotificationMethodWrapper = styled.div`
 `;
 
 const inputSpacer = (theme: SupersetTheme) => css`
-  margin-right: ${theme.gridUnit * 3}px;
+  margin-right: ${theme.sizeUnit * 3}px;
 `;
 
 type NotificationAddStatus = 'active' | 'disabled' | 'hidden';
@@ -1627,7 +1627,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     placeholder={t('Condition')}
                     value={currentAlert?.validator_config_json?.op || undefined}
                     options={CONDITIONS}
-                    css={inputSpacer}
                   />
                 </div>
               </StyledInputContainer>

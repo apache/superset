@@ -38,13 +38,13 @@ const TabTitleWrapper = styled.div`
   align-items: center;
 `;
 const TabTitle = styled.span`
-  margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   text-transform: none;
 `;
 
 const IconContainer = styled.div`
   display: inline-block;
-  width: ${({ theme }) => theme.gridUnit * 8}px;
+  width: ${({ theme }) => theme.sizeUnit * 8}px;
   text-align: center;
 `;
 

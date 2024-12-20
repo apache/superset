@@ -224,7 +224,7 @@ export default function EditableTitle({
         to={url}
         data-test="editable-title-input"
         css={(theme: SupersetTheme) => css`
-          color: ${theme.colors.grayscale.dark1};
+          color: ${theme.colorText};
           text-decoration: none;
           :hover {
             text-decoration: underline;

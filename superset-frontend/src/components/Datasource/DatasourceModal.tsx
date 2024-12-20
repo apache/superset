@@ -266,8 +266,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     <div>
       <Alert
         css={theme => ({
-          marginTop: theme.gridUnit * 4,
-          marginBottom: theme.gridUnit * 4,
+          marginTop: theme.sizeUnit * 4,
+          marginBottom: theme.sizeUnit * 4,
         })}
         type="warning"
         showIcon

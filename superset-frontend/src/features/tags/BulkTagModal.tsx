@@ -28,7 +28,7 @@ import { TaggableResourceOption } from 'src/features/tags/TagModal';
 
 const BulkTagModalContainer = styled.div`
   .bulk-tag-text {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2.5}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2.5}px;
   }
 `;
 

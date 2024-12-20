@@ -45,7 +45,7 @@ const RefreshLabel = ({
         css={(theme: SupersetTheme) => ({
           cursor: 'pointer',
           color: theme.colors.grayscale.base,
-          '&:hover': { color: theme.colors.primary.base },
+          '&:hover': { color: theme.colorPrimary },
         })}
       />
     </Tooltip>

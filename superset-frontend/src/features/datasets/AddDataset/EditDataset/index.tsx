@@ -24,12 +24,12 @@ import UsageTab from './UsageTab';
 
 const StyledTabs = styled(Tabs)`
   ${({ theme }) => `
-  margin-top: ${theme.gridUnit * 8.5}px;
-  padding-left: ${theme.gridUnit * 4}px;
-  padding-right: ${theme.gridUnit * 4}px;
+  margin-top: ${theme.sizeUnit * 8.5}px;
+  padding-left: ${theme.sizeUnit * 4}px;
+  padding-right: ${theme.sizeUnit * 4}px;
 
   .ant-tabs-top > .ant-tabs-nav::before {
-    width: ${theme.gridUnit * 50}px;
+    width: ${theme.sizeUnit * 50}px;
   }
   `}
 `;
@@ -37,8 +37,8 @@ const StyledTabs = styled(Tabs)`
 const TabStyles = styled.div`
   ${({ theme }) => `
   .ant-badge {
-    width: ${theme.gridUnit * 8}px;
-    margin-left: ${theme.gridUnit * 2.5}px;
+    width: ${theme.sizeUnit * 8}px;
+    margin-left: ${theme.sizeUnit * 2.5}px;
   }
   `}
 `;

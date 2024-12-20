@@ -33,15 +33,15 @@ import { ellipsisCss } from './styles';
 
 const StyledCrossFilterValue = styled.b`
   ${({ theme }) => `
-    max-width: ${theme.gridUnit * 25}px;
+    max-width: ${theme.sizeUnit * 25}px;
   `}
   ${ellipsisCss}
 `;
 
 const StyledCrossFilterColumn = styled('span')`
   ${({ theme }) => `
-    max-width: ${theme.gridUnit * 25}px;
-    padding-right: ${theme.gridUnit}px;
+    max-width: ${theme.sizeUnit * 25}px;
+    padding-right: ${theme.sizeUnit}px;
   `}
   ${ellipsisCss}
 `;
@@ -74,10 +74,10 @@ const CrossFilterTag = (props: {
       css={css`
         ${orientation === FilterBarOrientation.Vertical
           ? `
-            margin-top: ${theme.gridUnit * 2}px;
+            margin-top: ${theme.sizeUnit * 2}px;
           `
           : `
-            margin-left: ${theme.gridUnit * 2}px;
+            margin-left: ${theme.sizeUnit * 2}px;
           `}
       `}
       closable

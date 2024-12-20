@@ -55,7 +55,7 @@ const StyledModal = styled(Modal)`
 `;
 
 const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
+  margin: auto ${theme.sizeUnit * 2}px auto 0;
   color: ${theme.colors.grayscale.base};
 `;
 
@@ -63,27 +63,27 @@ const StyledSectionContainer = styled.div`
   display: flex;
   flex-direction: column;
   padding: ${({ theme }) =>
-    `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
+    `${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px ${theme.sizeUnit * 2}px`};
 
   label,
   .control-label {
     display: inline-block;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
+    font-size: ${({ theme }) => theme.fontSizeSM}px;
     color: ${({ theme }) => theme.colors.grayscale.base};
     vertical-align: middle;
   }
 
   .info-solid-small {
     vertical-align: middle;
-    padding-bottom: ${({ theme }) => theme.gridUnit / 2}px;
+    padding-bottom: ${({ theme }) => theme.sizeUnit / 2}px;
   }
 `;
 
 const StyledInputContainer = styled.div`
   display: flex;
   flex-direction: column;
-  margin: ${({ theme }) => theme.gridUnit}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  margin: ${({ theme }) => theme.sizeUnit}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
   .input-container {
     display: flex;
@@ -100,14 +100,14 @@ const StyledInputContainer = styled.div`
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
+    margin-left: ${({ theme }) => theme.sizeUnit / 2}px;
+    color: ${({ theme }) => theme.colorError};
   }
 `;
 
 const StyledTextArea = styled(TextArea)`
   resize: none;
-  margin-top: ${({ theme }) => theme.gridUnit}px;
+  margin-top: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export interface RowLevelSecurityModalProps {

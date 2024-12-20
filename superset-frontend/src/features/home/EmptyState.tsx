@@ -82,7 +82,7 @@ export default function EmptyState({
 
     return (
       <Button
-        buttonStyle="default"
+        buttonStyle="secondary"
         onClick={() => {
           window.location.href = url;
         }}
