@@ -14,9 +14,6 @@ Users can configure automated alerts and reports to send dashboards or charts to
 
 Alerts and reports are disabled by default. To turn them on, you need to do some setup, described here.
 
-In the reporting feature, users can customize the email subject and include (date formatting)[https://strftime.org/] placeholders.
-These placeholders will automatically be replaced with the corresponding UTC date when the email is sent.
-
 ## Requirements
 
 ### Commons
@@ -28,7 +25,9 @@ These placeholders will automatically be replaced with the corresponding UTC dat
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
-- `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/docs/configuration/configuring-superset#feature-flags) must be enabled to allow date formatting in email subjects (optional for reporting feature).
+- Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
+    - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
+    - If no date code is provided, the original string will be used as the email subject.
 
 ##### Disable dry-run mode
 
