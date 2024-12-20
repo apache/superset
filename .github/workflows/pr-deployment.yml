@@ -16,6 +16,7 @@ jobs:
       packages: read
       issues: read
       pull-requests: write
+      id-token: write
 
   labels:
     runs-on: ubuntu-latest
