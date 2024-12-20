@@ -20,11 +20,14 @@ import logging
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+
 from superset.charts.filters import ChartFilter
+from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.slice import Slice
+from superset.models.slice import id_or_uuid_filter, Slice
 from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
@@ -35,6 +38,16 @@ logger = logging.getLogger(__name__)
 
 class ChartDAO(BaseDAO[Slice]):
     base_filter = ChartFilter
+
+    @staticmethod
+    def get_by_id_or_uuid(id_or_uuid: str) -> Slice:
+        query = db.session.query(Slice).filter(id_or_uuid_filter(id_or_uuid))
+        # Apply chart base filters
+        query = ChartFilter("id", SQLAInterface(Slice, db.session)).apply(query, None)
+        chart = query.one_or_none()
+        if not chart:
+            raise ChartNotFoundError()
+        return chart
 
     @staticmethod
     def favorited_ids(charts: list[Slice]) -> list[FavStar]:
