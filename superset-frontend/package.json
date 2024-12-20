@@ -166,7 +166,7 @@
     "nanoid": "^5.0.7",
     "polished": "^4.3.1",
     "prop-types": "^15.8.1",
-    "query-string": "^6.13.7",
+    "query-string": "^9.1.1",
     "rc-trigger": "^5.3.4",
     "re-resizable": "^6.10.1",
     "react": "^16.13.1",
