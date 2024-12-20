@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePickerProps, RangePickerProps } from 'antd/lib/date-picker';
-import { DatePicker, RangePicker } from '.';
+import { DatePicker, RangePicker, RangePickerProps, DatePickerProps } from '.';
 
 export default {
   title: 'DatePicker',
@@ -29,10 +28,12 @@ const commonArgs = {
   autoFocus: true,
   bordered: true,
   disabled: false,
+  order: true,
   inputReadOnly: false,
   size: 'middle',
   format: 'YYYY-MM-DD hh:mm a',
   showTime: { format: 'hh:mm a' },
+  placement: 'bottomLeft',
 };
 
 const interactiveTypes = {
@@ -48,6 +49,25 @@ const interactiveTypes = {
       type: 'select',
     },
     options: ['large', 'middle', 'small'],
+  },
+  placement: {
+    control: {
+      type: 'select',
+    },
+    options: ['bottomLeft', 'bottomRight', 'topLeft', 'topRight'],
+  },
+  status: {
+    control: {
+      type: 'select',
+    },
+    options: ['error', 'warning'],
+  },
+
+  variant: {
+    control: {
+      type: 'select',
+    },
+    options: ['outlined', 'borderless', 'filled'],
   },
 };
 

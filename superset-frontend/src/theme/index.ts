@@ -77,6 +77,11 @@ const baseConfig: ThemeConfig = {
       fontWeightStrong: supersetTheme.typography.weights.medium,
       colorBgContainer: supersetTheme.colors.grayscale.light4,
     },
+    DatePicker: {
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+      borderRadiusSM: supersetTheme.gridUnit / 2,
+    },
     Input: {
       colorBorder: supersetTheme.colors.secondary.light3,
       colorBgContainer: supersetTheme.colors.grayscale.light5,
