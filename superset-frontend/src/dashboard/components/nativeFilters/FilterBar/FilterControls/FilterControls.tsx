@@ -231,7 +231,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     () => (
       <div
         css={(theme: SupersetTheme) => css`
-          padding: 0 ${theme.gridUnit * 4}px;
+          padding: 0 ${theme.sizeUnit * 4}px;
           min-width: 0;
           flex: 1;
         `}

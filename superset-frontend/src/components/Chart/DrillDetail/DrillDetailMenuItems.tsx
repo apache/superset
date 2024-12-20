@@ -96,8 +96,8 @@ const Filter = ({
 
 const StyledFilter = styled(Filter)`
   ${({ theme }) => `
-     font-weight: ${theme.typography.weights.bold};
-     color: ${theme.colors.primary.base};
+     font-weight: ${theme.fontWeightStrong};
+     color: ${theme.colorPrimary};
    `}
 `;
 

@@ -110,24 +110,24 @@ export interface ResultSetProps {
 const ResultContainer = styled.div`
   display: flex;
   flex-direction: column;
-  row-gap: ${({ theme }) => theme.gridUnit * 2}px;
+  row-gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const ResultlessStyles = styled.div`
   position: relative;
-  min-height: ${({ theme }) => theme.gridUnit * 25}px;
+  min-height: ${({ theme }) => theme.sizeUnit * 25}px;
   [role='alert'] {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
   .sql-result-track-job {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 // Making text render line breaks/tabs as is as monospace,
 // but wrapping text too so text doesn't overflow
 const MonospaceDiv = styled.div`
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.fontFamilyCode};
   white-space: pre;
   word-break: break-word;
   overflow-x: auto;
@@ -135,7 +135,7 @@ const MonospaceDiv = styled.div`
 `;
 
 const ReturnedRows = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   line-height: 1;
 `;
 
@@ -147,7 +147,7 @@ const ResultSetControls = styled.div`
 const ResultSetButtons = styled.div`
   display: grid;
   grid-auto-flow: column;
-  padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
+  padding-right: ${({ theme }) => 2 * theme.sizeUnit}px;
 `;
 
 const ROWS_CHIP_WIDTH = 100;
@@ -497,14 +497,14 @@ const ResultSet = ({
             >
               <Label
                 css={css`
-                  line-height: ${theme.typography.sizes.l}px;
+                  line-height: ${theme.fontSizeLG}px;
                 `}
               >
                 {limitMessage && (
                   <Icons.ExclamationCircleOutlined
                     css={css`
-                      font-size: ${theme.typography.sizes.m}px;
-                      margin-right: ${theme.gridUnit}px;
+                      font-size: ${theme.fontSize}px;
+                      margin-right: ${theme.sizeUnit}px;
                     `}
                   />
                 )}
@@ -611,7 +611,7 @@ const ResultSet = ({
               <ButtonGroup>
                 <Button
                   buttonSize="small"
-                  css={{ marginRight: theme.gridUnit }}
+                  css={{ marginRight: theme.sizeUnit }}
                   onClick={() => popSelectStar(tempSchema, tempTable)}
                 >
                   {t('Query in a new tab')}

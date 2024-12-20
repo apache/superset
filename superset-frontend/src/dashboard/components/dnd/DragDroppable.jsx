@@ -105,14 +105,14 @@ const DragDroppableStyles = styled.div`
     & {
       .drop-indicator {
         display: block;
-        background-color: ${theme.colors.primary.base};
+        background-color: ${theme.colorPrimary};
         position: absolute;
         z-index: 10;
         opacity: 0.3;
         width: 100%;
         height: 100%;
         &.drop-indicator--forbidden {
-          background-color: ${theme.colors.error.light1};
+          background-color: ${theme.colorErrorBg};
         }
       }
     }

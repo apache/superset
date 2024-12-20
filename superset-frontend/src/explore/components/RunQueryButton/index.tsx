@@ -41,7 +41,7 @@ export const RunQueryButton = ({
   chartIsStale,
 }: RunQueryButtonProps) =>
   loading ? (
-    <Button onClick={onStop} buttonStyle="warning" disabled={!canStopQuery}>
+    <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
       <i className="fa fa-stop" /> {t('Stop')}
     </Button>
   ) : (

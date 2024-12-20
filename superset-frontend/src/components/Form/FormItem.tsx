@@ -22,9 +22,9 @@ import { styled } from '@superset-ui/core';
 const StyledItem = styled(Form.Item)`
   ${({ theme }) => `
     .ant-form-item-label {
-      padding-bottom: ${theme.gridUnit}px;
+      padding-bottom: ${theme.sizeUnit}px;
       & > label {
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.fontSizeSM}px;
         color: ${theme.colors.grayscale.base};
 
         &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
@@ -33,8 +33,8 @@ const StyledItem = styled(Form.Item)`
           }
           &::after {
             display: inline-block;
-            color: ${theme.colors.error.base};
-            font-size: ${theme.typography.sizes.s}px;
+            color: ${theme.colorError};
+            font-size: ${theme.fontSizeSM}px;
             content: '*';
           }
         }

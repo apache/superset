@@ -34,12 +34,12 @@ const StyledModalTrigger = styled(ModalTrigger)`
 `;
 
 const RefreshWarningContainer = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 6}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 const StyledDiv = styled.div`
   display: flex;
-  margin-top: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 const InnerStyledDiv = styled.div`

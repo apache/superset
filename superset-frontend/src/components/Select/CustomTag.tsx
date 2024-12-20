@@ -29,7 +29,7 @@ const StyledTag = styled(AntdTag)`
   & .ant-tag-close-icon {
     display: inline-flex;
     align-items: center;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
   }
 
   & .tag-content {

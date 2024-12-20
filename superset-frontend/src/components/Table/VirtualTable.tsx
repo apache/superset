@@ -39,8 +39,8 @@ const StyledCell = styled('div')<{ height?: number }>(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding-left: ${theme.gridUnit * 2}px;
-  padding-right: ${theme.gridUnit}px;
+  padding-left: ${theme.sizeUnit * 2}px;
+  padding-right: ${theme.sizeUnit}px;
   border-bottom: 1px solid ${theme.colors.grayscale.light3};
   transition: background 0.3s;
   line-height: ${height}px;
@@ -50,20 +50,23 @@ const StyledCell = styled('div')<{ height?: number }>(
 
 const StyledTable = styled(AntTable)<{ height?: number }>(
   ({ theme }) => `
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgContainer};
     th.ant-table-cell {
-      font-weight: ${theme.typography.weights.bold};
-      color: ${theme.colors.grayscale.dark1};
+      font-weight: ${theme.fontWeightStrong};
+      color: ${theme.colorText};
+      user-select: none;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .ant-pagination-item-active {
-      border-color: ${theme.colors.primary.base};
+      border-color: ${theme.colorPrimary};
       }
     }
     .ant-table.ant-table-small {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
 `,
 );
@@ -91,7 +94,7 @@ const VirtualTable = <RecordType extends object>(
   const theme = useTheme();
 
   // If a column definition has no width, react-window will use this as the default column width
-  const DEFAULT_COL_WIDTH = theme?.gridUnit * 37 || 150;
+  const DEFAULT_COL_WIDTH = theme?.sizeUnit * 37 || 150;
   const widthColumnCount = columns!.filter(({ width }) => !width).length;
   let staticColWidthTotal = 0;
   columns?.forEach(column => {

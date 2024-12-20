@@ -29,22 +29,24 @@ import Button, { OnClickHandler } from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import { MenuObjectProps } from 'src/types/bootstrapTypes';
 
-const StyledHeader = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+const StyledHeader = styled.div<{ backgroundColor?: string }>`
+  background-color: ${({ theme, backgroundColor }) =>
+    backgroundColor || theme.colorBgContainer};
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   .header {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
+    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     text-align: left;
     font-size: 18px;
-    padding: ${({ theme }) => theme.gridUnit * 3}px;
+    padding: ${({ theme }) => theme.sizeUnit * 3}px;
     display: inline-block;
-    line-height: ${({ theme }) => theme.gridUnit * 9}px;
+    litne-height: ${({ theme }) => theme.sizeUnit * 9}px;
   }
   .nav-right {
     display: flex;
     align-items: center;
-    padding: ${({ theme }) => theme.gridUnit * 3.5}px 0;
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
+    padding: ${({ theme }) => theme.sizeUnit * 3.5}px 0;
+    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
     float: right;
     position: absolute;
     right: 0;
@@ -68,23 +70,25 @@ const StyledHeader = styled.div`
     padding-left: 10px;
   }
   .menu {
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    //background-color: ${({ theme }) => theme.colorBgBase};
   }
 
   .menu > .antd5-menu {
-    padding: ${({ theme }) => theme.gridUnit * 5}px
-      ${({ theme }) => theme.gridUnit * 8}px;
+    padding: ${({ theme }) => theme.sizeUnit * 5}px
+      ${({ theme }) => theme.sizeUnit * 8}px;
+    line-height: ${({ theme }) => theme.sizeUnit * 5}px;
 
     .antd5-menu-item {
       border-radius: ${({ theme }) => theme.borderRadius}px;
-      font-size: ${({ theme }) => theme.typography.sizes.s}px;
-      padding: ${({ theme }) => theme.gridUnit}px
-        ${({ theme }) => theme.gridUnit * 4}px;
-      margin-right: ${({ theme }) => theme.gridUnit}px;
+      font-size: ${({ theme }) => theme.fontSizeSM}px;
+      padding: ${({ theme }) => theme.sizeUnit}px
+        ${({ theme }) => theme.sizeUnit * 4}px;
+      margin-right: ${({ theme }) => theme.sizeUnit}px;
     }
     .antd5-menu-item:hover,
     .antd5-menu-item:has(> span > .active) {
-      background-color: ${({ theme }) => theme.colors.secondary.light4};
+      background-color: ${({ theme }) => theme.colorPrimaryBgHover};
+      color: ${({ theme }) => theme.colorPrimaryActive};
     }
   }
 
@@ -95,7 +99,7 @@ const StyledHeader = styled.div`
     .header,
     .nav-right {
       position: relative;
-      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;
@@ -126,14 +130,7 @@ export interface ButtonProps {
   name: ReactNode;
   onClick?: OnClickHandler;
   'data-test'?: string;
-  buttonStyle:
-    | 'primary'
-    | 'secondary'
-    | 'dashed'
-    | 'link'
-    | 'warning'
-    | 'success'
-    | 'tertiary';
+  buttonStyle: 'primary' | 'secondary' | 'dashed' | 'link';
 }
 
 export interface SubMenuProps {
@@ -147,6 +144,7 @@ export interface SubMenuProps {
   usesRouter?: boolean;
   color?: string;
   dropDownLinks?: Array<MenuObjectProps>;
+  backgroundColor?: string;
 }
 
 const { SubMenu } = MainNav;
@@ -191,7 +189,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   }, [props.buttons]);
 
   return (
-    <StyledHeader>
+    <StyledHeader backgroundColor={props.backgroundColor}>
       <Row className="menu" role="navigation">
         {props.name && <div className="header">{props.name}</div>}
         <Menu mode={showMenu} disabledOverflow>

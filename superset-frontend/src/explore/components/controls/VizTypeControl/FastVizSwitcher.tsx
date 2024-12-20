@@ -29,7 +29,7 @@ import { FEATURED_CHARTS } from './constants';
 export const antdIconProps = {
   iconSize: 'l' as const,
   css: (theme: SupersetTheme) => css`
-    padding: ${theme.gridUnit}px;
+    padding: ${theme.sizeUnit}px;
     & > * {
       line-height: 0;
     }
@@ -83,7 +83,7 @@ export const FastVizSwitcher = memo(
         css={(theme: SupersetTheme) => css`
           display: flex;
           justify-content: space-between;
-          column-gap: ${theme.gridUnit}px;
+          column-gap: ${theme.sizeUnit}px;
         `}
         data-test="fast-viz-switcher"
       >

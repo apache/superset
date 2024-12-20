@@ -78,15 +78,13 @@ interface LoadingProps {
 const DEFAULT_TAB_ARR = ['2', '3'];
 
 const WelcomeContainer = styled.div`
-  background-color: ${({ theme }) => theme.colors.grayscale.light4};
   .ant-row.menu {
     margin-top: -15px;
-    background-color: ${({ theme }) => theme.colors.grayscale.light4};
     &:after {
       content: '';
       display: block;
-      border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-      margin: 0px ${({ theme }) => theme.gridUnit * 6}px;
+      border: 1px solid ${({ theme }) => theme.colorSplit};
+      margin: 0px ${({ theme }) => theme.sizeUnit * 6}px;
       position: relative;
       width: 100%;
       ${mq[1]} {
@@ -99,23 +97,23 @@ const WelcomeContainer = styled.div`
     }
   }
   .antd5-card-meta-description {
-    margin-top: ${({ theme }) => theme.gridUnit}px;
+    margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
   .antd5-card.ant-card-bordered {
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
   }
   .ant-collapse-item .ant-collapse-content {
-    margin-bottom: ${({ theme }) => theme.gridUnit * -6}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * -6}px;
   }
   div.ant-collapse-item:last-child.ant-collapse-item-active
     .ant-collapse-header {
-    padding-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   }
   div.ant-collapse-item:last-child .ant-collapse-header {
-    padding-bottom: ${({ theme }) => theme.gridUnit * 9}px;
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 9}px;
   }
   .loading-cards {
-    margin-top: ${({ theme }) => theme.gridUnit * 8}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
     .antd5-card-cover > div {
       height: 168px;
     }
@@ -127,11 +125,11 @@ const WelcomeNav = styled.div`
     .switch {
       display: flex;
       flex-direction: row;
-      margin: ${theme.gridUnit * 4}px;
+      margin: ${theme.sizeUnit * 4}px;
       span {
         display: block;
-        margin: ${theme.gridUnit}px;
-        line-height: ${theme.gridUnit * 3.5}px;
+        margin: ${theme.sizeUnit}px;
+        line-height: ${theme.sizeUnit * 3.5}px;
       }
     }
   `}

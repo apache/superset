@@ -42,7 +42,7 @@ interface MenuProps {
 
 const StyledHeader = styled.header`
   ${({ theme }) => `
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgElevated};
       margin-bottom: 2px;
       z-index: 10;
 
@@ -58,11 +58,11 @@ const StyledHeader = styled.header`
         justify-content: center;
         /* must be exactly the height of the Antd navbar */
         min-height: 50px;
-        padding: ${theme.gridUnit}px
-          ${theme.gridUnit * 2}px
-          ${theme.gridUnit}px
-          ${theme.gridUnit * 4}px;
-        max-width: ${theme.gridUnit * theme.brandIconMaxWidth}px;
+        padding: ${theme.sizeUnit}px
+          ${theme.sizeUnit * 2}px
+          ${theme.sizeUnit}px
+          ${theme.sizeUnit * 4}px;
+        max-width: ${theme.sizeUnit * theme.brandIconMaxWidth}px;
         img {
           height: 100%;
           object-fit: contain;
@@ -71,25 +71,25 @@ const StyledHeader = styled.header`
           border-color: transparent;
         }
         &:focus-visible {
-          border-color: ${theme.colors.primary.dark1};
+          border-color: ${theme.colorPrimaryText};
         }
       }
       .navbar-brand-text {
         border-left: 1px solid ${theme.colors.grayscale.light2};
         border-right: 1px solid ${theme.colors.grayscale.light2};
         height: 100%;
-        color: ${theme.colors.grayscale.dark1};
-        padding-left: ${theme.gridUnit * 4}px;
-        padding-right: ${theme.gridUnit * 4}px;
-        margin-right: ${theme.gridUnit * 6}px;
-        font-size: ${theme.gridUnit * 4}px;
+        color: ${theme.colorText};
+        padding-left: ${theme.sizeUnit * 4}px;
+        padding-right: ${theme.sizeUnit * 4}px;
+        margin-right: ${theme.sizeUnit * 6}px;
+        font-size: ${theme.sizeUnit * 4}px;
         float: left;
         display: flex;
         flex-direction: column;
         justify-content: center;
 
         span {
-          max-width: ${theme.gridUnit * 58}px;
+          max-width: ${theme.sizeUnit * 58}px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -105,8 +105,8 @@ const StyledHeader = styled.header`
       }
       @media (max-width: 767px) {
         .antd5-menu-item {
-          padding: 0 ${theme.gridUnit * 6}px 0
-            ${theme.gridUnit * 3}px !important;
+          padding: 0 ${theme.sizeUnit * 6}px 0
+            ${theme.sizeUnit * 3}px !important;
         }
         .antd5-menu > .antd5-menu-item > span > a {
           padding: 0px;
@@ -122,7 +122,7 @@ const { SubMenu } = MainNav;
 const StyledSubMenu = styled(SubMenu)`
   &.antd5-menu-submenu-active {
     .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colors.primary.base};
+      color: ${({ theme }) => theme.colorPrimary};
     }
   }
 `;

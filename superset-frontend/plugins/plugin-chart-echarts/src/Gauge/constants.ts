@@ -24,7 +24,7 @@ export const defaultGaugeSeriesOption = (
 ): GaugeSeriesOption => ({
   splitLine: {
     lineStyle: {
-      color: theme.colors.primary.base,
+      color: theme.colorPrimary,
     },
   },
   axisLine: {
@@ -33,12 +33,12 @@ export const defaultGaugeSeriesOption = (
     },
   },
   axisLabel: {
-    color: theme.colors.grayscale.dark1,
+    color: theme.colorText,
   },
   axisTick: {
     lineStyle: {
       width: 2,
-      color: theme.colors.primary.base,
+      color: theme.colorPrimary,
     },
   },
   detail: {

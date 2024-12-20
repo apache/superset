@@ -41,12 +41,12 @@ const BreadcrumbItem = styled(AntdBreadcrumb.Item)<{
   ${({ theme, isClickable, isHidden }) => css`
     cursor: ${isClickable ? 'pointer' : 'auto'};
     color: ${theme.colors.grayscale.light1};
-    transition: color ease-in ${theme.transitionTiming}s;
+    transition: color ease-in ${theme.motionDurationMid};
     .ant-breadcrumb > span:last-child > & {
-      color: ${theme.colors.grayscale.dark1};
+      color: ${theme.colorText};
     }
     &:hover {
-      color: ${isClickable ? theme.colors.grayscale.dark1 : 'inherit'};
+      color: ${isClickable ? theme.colorText : 'inherit'};
     }
     visibility: ${isHidden ? 'hidden' : 'visible'};
   `}
@@ -78,7 +78,7 @@ export const useDrillByBreadcrumbs = (
     return (
       <AntdBreadcrumb
         css={(theme: SupersetTheme) => css`
-          margin: ${theme.gridUnit * 2}px 0 ${theme.gridUnit * 4}px;
+          margin: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
         `}
       >
         {breadcrumbsData

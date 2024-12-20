@@ -45,10 +45,10 @@ const StyledWrapper = styled.div`
       display: flex;
       flex-direction: row;
       justify-content: space-between;
-      margin-bottom: ${theme.gridUnit * 2}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
 
       h5 {
-        margin-top: ${theme.gridUnit}px;
+        margin-top: ${theme.sizeUnit}px;
       }
     }
     .css-editor {

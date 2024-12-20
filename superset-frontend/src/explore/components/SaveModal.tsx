@@ -78,8 +78,8 @@ export const StyledModal = styled(Modal)`
   }
   i {
     position: absolute;
-    top: -${({ theme }) => theme.gridUnit * 5.25}px;
-    left: ${({ theme }) => theme.gridUnit * 26.75}px;
+    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
+    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 

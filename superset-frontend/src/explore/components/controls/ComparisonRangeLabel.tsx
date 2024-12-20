@@ -182,8 +182,8 @@ export const ComparisonRangeLabel = ({
         <>
           <div
             css={theme => css`
-              font-size: ${theme.typography.sizes.m}px;
-              color: ${theme.colors.grayscale.dark1};
+              font-size: ${theme.fontSize}px;
+              color: ${theme.colorText};
             `}
             key={label}
           >

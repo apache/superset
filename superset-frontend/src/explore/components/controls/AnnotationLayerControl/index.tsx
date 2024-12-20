@@ -189,7 +189,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       return (
         <i
           className="fa fa-refresh"
-          style={{ color: theme.colors.primary.base }}
+          style={{ color: theme.colorPrimary }}
           aria-hidden
         />
       );
@@ -204,7 +204,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
       );
     }
     if (!anno.show) {
-      return <span style={{ color: theme.colors.error.base }}> Hidden </span>;
+      return <span style={{ color: theme.colorError }}> Hidden </span>;
     }
     return '';
   }
@@ -244,7 +244,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
 
     return (
       <div>
-        <List bordered css={theme => ({ borderRadius: theme.gridUnit })}>
+        <List bordered css={theme => ({ borderRadius: theme.sizeUnit })}>
           {annotations}
           <ControlPopover
             trigger="click"

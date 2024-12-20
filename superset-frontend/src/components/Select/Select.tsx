@@ -653,6 +653,7 @@ const Select = forwardRef(
           options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
+          css={props.css}
           {...props}
           ref={ref}
         >

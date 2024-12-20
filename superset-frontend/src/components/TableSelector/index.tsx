@@ -51,8 +51,8 @@ const TableSelectorWrapper = styled.div`
       display: flex;
       align-items: center;
       width: ${REFRESH_WIDTH}px;
-      margin-left: ${theme.gridUnit}px;
-      margin-top: ${theme.gridUnit * 5}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-top: ${theme.sizeUnit * 5}px;
     }
 
     .section {
@@ -62,7 +62,7 @@ const TableSelectorWrapper = styled.div`
     }
 
     .divider {
-      border-bottom: 1px solid ${theme.colors.secondary.light5};
+      border-bottom: 1px solid ${theme.colorSplit};
       margin: 15px 0;
     }
 
@@ -72,7 +72,7 @@ const TableSelectorWrapper = styled.div`
 
     .select {
       flex: 1;
-      max-width: calc(100% - ${theme.gridUnit + REFRESH_WIDTH}px)
+      max-width: calc(100% - ${theme.sizeUnit + REFRESH_WIDTH}px)
     }
   `}
 `;
@@ -84,7 +84,7 @@ const TableLabel = styled.span`
 
   svg,
   small {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 

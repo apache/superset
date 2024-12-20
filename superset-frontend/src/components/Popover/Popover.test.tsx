@@ -83,6 +83,6 @@ test('renders with theme', () => {
   render(<Popover content="Content sample" title="Popover title" open />);
   const title = screen.getByText('Popover title');
   expect(title).toHaveStyle({
-    fontSize: supersetTheme.gridUnit * 3.5,
+    fontSize: supersetTheme.sizeUnit * 3.5,
   });
 });

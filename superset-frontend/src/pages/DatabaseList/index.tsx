@@ -80,7 +80,7 @@ interface DatabaseListProps {
 }
 
 const IconCheck = styled(Icons.Check)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
+  color: ${({ theme }) => theme.colorText};
 `;
 
 const IconCancelX = styled(Icons.CancelX)`

@@ -28,9 +28,11 @@ import sqlSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import jsonSyntax from 'react-syntax-highlighter/dist/cjs/languages/hljs/json';
 
 const CopyButtonViewQuery = styled(CopyButton)`
-  && {
-    margin: 0 0 ${({ theme }) => theme.gridUnit}px;
-  }
+  ${({ theme }) => `
+		&& {
+			margin: 0 0 ${theme.sizeUnit}px;
+		}
+  `}
 `;
 
 SyntaxHighlighter.registerLanguage('markdown', markdownSyntax);

@@ -61,11 +61,11 @@ import { fetchSyncedColumns, updateColumns } from './utils';
 const DatasourceContainer = styled.div`
   .change-warning {
     margin: 16px 10px 0;
-    color: ${({ theme }) => theme.colors.warning.base};
+    color: ${({ theme }) => theme.colorWarning};
   }
 
   .change-warning .bold {
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
 
   .form-group.has-feedback > .help-block {
@@ -82,7 +82,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -95,14 +95,14 @@ const StyledTableTabs = styled(Tabs)`
 
 const StyledBadge = styled(Badge)`
   .antd5-badge-count {
-    line-height: ${({ theme }) => theme.gridUnit * 4}px;
-    height: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+    line-height: ${({ theme }) => theme.sizeUnit * 4}px;
+    height: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const EditLockContainer = styled.div`
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   display: flex;
   align-items: center;
   a {
@@ -112,14 +112,14 @@ const EditLockContainer = styled.div`
 
 const ColumnButtonWrapper = styled.div`
   text-align: right;
-  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+  ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
 `;
 
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
   span {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -129,14 +129,14 @@ const StyledColumnsTabWrapper = styled.div`
   }
 
   .ant-tag {
-    margin-top: ${({ theme }) => theme.gridUnit}px;
+    margin-top: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-left: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-left: ${theme.sizeUnit * 3}px;
   `}
 `;
 
@@ -1144,7 +1144,7 @@ class DatasourceEditor extends PureComponent {
     if (this.state.errors.length > 0) {
       return (
         <Alert
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="error"
           message={
             <>
@@ -1328,7 +1328,7 @@ class DatasourceEditor extends PureComponent {
       <DatasourceContainer data-test="datasource-editor">
         {this.renderErrors()}
         <Alert
-          css={theme => ({ marginBottom: theme.gridUnit * 4 })}
+          css={theme => ({ marginBottom: theme.sizeUnit * 4 })}
           type="warning"
           message={
             <>

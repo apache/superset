@@ -433,7 +433,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
-      const closeButton = await screen.findByRole('button', { name: 'Close' });
+      const closeButton = screen.getByRole('button', { name: 'close' });
 
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
@@ -1581,12 +1581,12 @@ describe('DatabaseModal', () => {
 
       const step2of3text = await screen.findByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
+      expect(errorTitleMessage).toBeInTheDocument();
       const button = screen.getByText('See more');
       userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
       expect(errorMessage).toBeInTheDocument();
       expect(step2of3text).toBeInTheDocument();
-      expect(errorTitleMessage).toBeInTheDocument();
     });
   });
 

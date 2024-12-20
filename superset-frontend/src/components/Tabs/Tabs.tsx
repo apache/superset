@@ -54,7 +54,7 @@ const StyledTabs = ({
           }
         }
         .short-link-trigger.btn {
-          padding: 0 ${theme.gridUnit}px;
+          padding: 0 ${theme.sizeUnit}px;
           & > .fa.fa-link {
             top: 0;
           }
@@ -72,16 +72,16 @@ const StyledTabs = ({
         flex: 1 1 auto;
         align-items: center;
         justify-content: center;
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.fontSizeSM}px;
         text-align: center;
         user-select: none;
         .required {
-          margin-left: ${theme.gridUnit / 2}px;
-          color: ${theme.colors.error.base};
+          margin-left: ${theme.sizeUnit / 2}px;
+          color: ${theme.colorError};
         }
       }
       .ant-tabs-ink-bar {
-        background: ${theme.colors.secondary.base};
+        background: ${theme.colorPrimary};
       }
     `}
   />
@@ -106,7 +106,7 @@ const StyledEditableTabs = styled(StyledTabs)`
     .ant-tabs-tab-remove {
       padding-top: 0;
       padding-bottom: 0;
-      height: ${theme.gridUnit * 6}px;
+      height: ${theme.sizeUnit * 6}px;
     }
 
     ${
@@ -140,8 +140,8 @@ EditableTabs.TabPane.defaultProps = {
 
 export const StyledLineEditableTabs = styled(EditableTabs)`
   &.ant-tabs-card > .ant-tabs-nav .ant-tabs-tab {
-    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
-    padding: ${({ theme }) => `${theme.gridUnit * 3}px ${theme.gridUnit}px`};
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
+    padding: ${({ theme }) => `${theme.sizeUnit * 3}px ${theme.sizeUnit}px`};
     background: transparent;
     border: none;
   }
@@ -151,7 +151,7 @@ export const StyledLineEditableTabs = styled(EditableTabs)`
   }
 
   .ant-tabs-tab-btn {
-    font-size: ${({ theme }) => theme.typography.sizes.m}px;
+    font-size: ${({ theme }) => theme.fontSize}px;
   }
 
   .ant-tabs-tab-remove {

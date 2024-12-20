@@ -57,7 +57,7 @@ const SortSeqLabel = styled.span`
 const HeaderAction = styled.div`
   display: none;
   position: absolute;
-  right: ${({ theme }) => theme.gridUnit * 3}px;
+  right: ${({ theme }) => theme.sizeUnit * 3}px;
   &.main {
     margin: 0 auto;
     left: 0;
@@ -66,7 +66,7 @@ const HeaderAction = styled.div`
   }
   & .ant-dropdown-trigger {
     cursor: context-menu;
-    padding: ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 2}px;
     background-color: var(--ag-background-color);
     box-shadow: 0 0 2px var(--ag-chip-border-color);
     border-radius: 50%;

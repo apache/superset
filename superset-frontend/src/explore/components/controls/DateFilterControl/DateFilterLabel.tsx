@@ -81,7 +81,7 @@ const ContentStyleWrapper = styled.div`
 
     .control-label {
       font-size: 11px;
-      font-weight: ${theme.typography.weights.medium};
+      font-weight: ${theme.fontWeightMedium};
       color: ${theme.colors.grayscale.light2};
       line-height: 16px;
       margin: 8px 0;
@@ -89,7 +89,7 @@ const ContentStyleWrapper = styled.div`
 
     .section-title {
       font-style: normal;
-      font-weight: ${theme.typography.weights.bold};
+      font-weight: ${theme.fontWeightStrong};
       font-size: 15px;
       line-height: 24px;
       margin-bottom: 8px;
@@ -111,14 +111,14 @@ const ContentStyleWrapper = styled.div`
 
 const IconWrapper = styled.span`
   span {
-    margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
+    margin-right: ${({ theme }) => 2 * theme.sizeUnit}px;
     vertical-align: middle;
   }
   .text {
     vertical-align: middle;
   }
   .error {
-    color: ${({ theme }) => theme.colors.error.base};
+    color: ${({ theme }) => theme.colorError};
   }
 `;
 
@@ -133,7 +133,7 @@ const getTooltipTitle = (
       {range && (
         <div
           css={(theme: SupersetTheme) => css`
-            margin-top: ${theme.gridUnit}px;
+            margin-top: ${theme.sizeUnit}px;
           `}
         >
           {range}
@@ -319,7 +319,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         )}
         {!validTimeRange && (
           <IconWrapper className="warning">
-            <Icons.ErrorSolidSmall iconColor={theme.colors.error.base} />
+            <Icons.ErrorSolidSmall iconColor={theme.colorError} />
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}

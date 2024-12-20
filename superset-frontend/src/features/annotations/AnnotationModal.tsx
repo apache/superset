@@ -42,40 +42,40 @@ interface AnnotationModalProps {
 }
 
 const StyledAnnotationTitle = styled.div`
-  margin: ${({ theme }) => theme.gridUnit * 2}px auto
-    ${({ theme }) => theme.gridUnit * 4}px auto;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px auto
+    ${({ theme }) => theme.sizeUnit * 4}px auto;
 `;
 
 const StyledJsonEditor = styled(JsonEditor)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
-  border: 1px solid ${({ theme }) => theme.colors.secondary.light2};
+  border: 1px solid ${({ theme }) => theme.colors.primary.light2};
 `;
 
 const AnnotationContainer = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 5}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 5}px;
 
   .control-label {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
+    margin-left: ${({ theme }) => theme.sizeUnit / 2}px;
+    color: ${({ theme }) => theme.colorError};
   }
 
   textarea {
     flex: 1 1 auto;
-    height: ${({ theme }) => theme.gridUnit * 17}px;
+    height: ${({ theme }) => theme.sizeUnit * 17}px;
     resize: none;
     width: 100%;
   }
 
   textarea,
   input[type='text'] {
-    padding: ${({ theme }) => theme.gridUnit * 1.5}px
-      ${({ theme }) => theme.gridUnit * 2}px;
+    padding: ${({ theme }) => theme.sizeUnit * 1.5}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
     border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    border-radius: ${({ theme }) => theme.gridUnit}px;
+    border-radius: ${({ theme }) => theme.sizeUnit}px;
   }
 
   input[type='text'] {

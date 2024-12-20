@@ -77,7 +77,7 @@ const FlexRowContainer = styled.div`
   display: flex;
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -89,16 +89,17 @@ const Actions = styled.div`
     i {
       &:hover {
         path {
-          fill: ${({ theme }) => theme.colors.grayscale.light1};
+          fill: ${({ theme }) => theme.colorText};
         }
       }
     }
-    color: ${({ theme }) => theme.colors.grayscale.light1};
-    .antd5-menu-item:hover {
+    color: ${({ theme }) => theme.colorText};
+    .ant-menu-item:hover {
+      color: ${({ theme }) => theme.colorText};
       cursor: default;
     }
     &::after {
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+      color: ${({ theme }) => theme.colorText};
     }
   }
 `;
