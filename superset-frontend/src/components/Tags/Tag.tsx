@@ -61,7 +61,6 @@ const Tag = ({
             closable={editable}
             onClose={handleClose}
             color="blue"
-            color="success"
             icon={icon}
             closeIcon={editable ? CustomCloseIcon : undefined}
           >

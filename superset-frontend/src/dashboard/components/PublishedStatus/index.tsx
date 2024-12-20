@@ -19,8 +19,7 @@
 import { Component } from 'react';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { PublishedLabel } from 'src/components/Label';
-import Label from 'src/components/Label';
+import Label, { PublishedLabel } from 'src/components/Label';
 import { HeaderProps, HeaderDropdownProps } from '../Header/types';
 
 export type DashboardPublishedStatusType = {

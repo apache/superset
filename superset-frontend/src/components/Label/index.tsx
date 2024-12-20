@@ -27,6 +27,7 @@ import { Tag } from 'src/components';
 import { useTheme } from '@superset-ui/core';
 import DatasetTypeLabel from 'src/components/Label/reusable/DatasetTypeLabel';
 import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
+
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type Type =
@@ -92,11 +93,11 @@ export default function Label(props: LabelProps) {
   } else {
     baseColor = primary;
   }
-  let color = baseColor.dark2;
+  const color = baseColor.dark2;
   let backgroundColor = baseColor.light2;
-  let backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
-  let borderColor = baseColor.light1;
-  let borderColorHover = onClick ? baseColor.base : borderColor;
+  const backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
+  const borderColor = baseColor.light1;
+  const borderColorHover = onClick ? baseColor.base : borderColor;
 
   if (type === 'default') {
     // Lighter for default
@@ -115,6 +116,9 @@ export default function Label(props: LabelProps) {
     padding: '0.35em 0.8em',
     lineHeight: 1,
     color,
+    display: 'inline-flex',
+    verticalAlign: 'middle',
+    alignItems: 'center',
     maxWidth: '100%',
     '&:hover': {
       backgroundColor: backgroundColorHover,

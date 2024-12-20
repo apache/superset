@@ -281,9 +281,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => {
-          return null;
-        },
+        }: any) => null,
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',

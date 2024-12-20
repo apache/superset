@@ -21,8 +21,8 @@ import { useState, MouseEventHandler, FC } from 'react';
 import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
-import { TooltipContent } from './TooltipContent';
 import Icons from 'src/components/Icons';
+import { TooltipContent } from './TooltipContent';
 
 export interface CacheLabelProps {
   onClick?: MouseEventHandler<HTMLElement>;

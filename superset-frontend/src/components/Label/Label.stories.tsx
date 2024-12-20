@@ -37,8 +37,9 @@ export const options: Type[] = [
 ];
 
 export const LabelGallery = props => {
+  let onClick;
   if (props.hasOnClick) {
-    props.onClick = action('clicked');
+    onClick = action('clicked');
   }
   return (
     <>
@@ -51,16 +52,18 @@ export const LabelGallery = props => {
       <br />
       <h4>Interactive</h4>
       {Object.values(options).map((opt: Type) => (
-        <Label key={opt} type={opt} {...props}>
+        <Label key={opt} type={opt} {...props} onClick={onClick}>
           {`style: "${opt}"`}
         </Label>
       ))}
       <h4>Reusable Labels</h4>
       <h5>DatasetType</h5>
-      <DatasetTypeLabel datasetType="physical" />
-      <DatasetTypeLabel datasetType="virtual" />
+      <div>
+        <DatasetTypeLabel datasetType="physical" />
+        <DatasetTypeLabel datasetType="virtual" />
+      </div>
       <h5>PublishedLabel</h5>
-      <PublishedLabel isPublished={true} />
+      <PublishedLabel isPublished />
       <PublishedLabel isPublished={false} />
     </>
   );

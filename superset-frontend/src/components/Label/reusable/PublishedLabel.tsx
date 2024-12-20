@@ -9,7 +9,7 @@ const PublishedLabel = ({ isPublished, onClick }) => {
   ) : (
     <Icons.Minus iconSize="s" />
   );
-  const labelType = isPublished ? 'success' : 'default';
+  const labelType = isPublished ? 'success' : 'alert';
 
   return (
     <Label type={labelType} icon={icon} onClick={onClick}>
