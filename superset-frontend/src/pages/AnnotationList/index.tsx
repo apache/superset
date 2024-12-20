@@ -26,7 +26,7 @@ import {
   SupersetClient,
   getClientErrorObject,
 } from '@superset-ui/core';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import rison from 'rison';
 
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
@@ -170,7 +170,7 @@ function AnnotationList({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => moment(new Date(startDttm)).format('ll'),
+        }: any) => dayjs(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
       },
@@ -179,7 +179,7 @@ function AnnotationList({
           row: {
             original: { end_dttm: endDttm },
           },
-        }: any) => moment(new Date(endDttm)).format('ll'),
+        }: any) => dayjs(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
       },

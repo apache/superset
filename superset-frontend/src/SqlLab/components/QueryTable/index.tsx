@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useMemo, ReactNode } from 'react';
-import moment from 'moment';
 import Card from 'src/components/Card';
 import ProgressBar from 'src/components/ProgressBar';
 import { t, useTheme, QueryResponse } from '@superset-ui/core';
@@ -32,7 +31,7 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import TableView from 'src/components/TableView';
 import Button from 'src/components/Button';
-import { fDuration } from 'src/utils/dates';
+import { fDuration, extendedDayjs } from 'src/utils/dates';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
@@ -255,7 +254,9 @@ const QueryTable = ({
           </Button>
         );
         q.started = (
-          <Label monospace>{moment(q.startDttm).format('L HH:mm:ss')}</Label>
+          <Label monospace>
+            {extendedDayjs(q.startDttm).format('L HH:mm:ss')}
+          </Label>
         );
         q.querylink = (
           <Button
