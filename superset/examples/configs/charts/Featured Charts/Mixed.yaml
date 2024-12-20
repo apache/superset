@@ -82,7 +82,7 @@ params:
   opacity: 0.2
   markerSize: 6
   yAxisIndex: 1
-  seriesTypeB: bar
+  seriesTypeB: echarts_timeseries_bar
   opacityB: 0.2
   markerSizeB: 6
   yAxisIndexB: 0
