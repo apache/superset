@@ -16,11 +16,6 @@ on:
         required: false
         default: helloworld
         type: string
-      ref:
-        description: The git tag/branch/hash to deploy, defaults to `github.ref`
-        required: false
-        type: string
-        default: ${{ github.ref }}
       stack:
         description: The CloudFormation stack name
         required: false
@@ -31,11 +26,6 @@ on:
         required: true
         default: dev
         type: string
-      repository:
-        description: The repository to deploy
-        required: false
-        type: string
-        default: ${{ github.repository }}
       cdk_working_directory:
         description: The directory the CDK application is in, can be omitted if it is the root directory
         required: false
@@ -90,7 +80,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Webgains/superset-service
-          ref: ${{ inputs.ref || github.ref }}
+          ref: main
           ssh-key: ${{ secrets.SSH_KEY }}
 
       - name: Assume AWS role
