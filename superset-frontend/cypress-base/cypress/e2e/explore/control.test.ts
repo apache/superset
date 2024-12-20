@@ -165,7 +165,7 @@ describe('Time range filter', () => {
   it('Advanced time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       time_range: '100 years ago : now',
       metrics: [NUM_METRIC],
     };
@@ -187,7 +187,7 @@ describe('Time range filter', () => {
   it('Common time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       metrics: [NUM_METRIC],
       time_range: 'Last year',
     };
@@ -204,7 +204,7 @@ describe('Time range filter', () => {
   it('Previous time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       metrics: [NUM_METRIC],
       time_range: 'previous calendar month',
     };
@@ -221,7 +221,7 @@ describe('Time range filter', () => {
   it('Custom time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       metrics: [NUM_METRIC],
       time_range: 'DATEADD(DATETIME("today"), -7, day) : today',
     };
@@ -241,7 +241,7 @@ describe('Time range filter', () => {
   it('No filter time_range params', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       metrics: [NUM_METRIC],
       time_range: 'No filter',
     };
