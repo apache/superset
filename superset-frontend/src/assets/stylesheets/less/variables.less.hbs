@@ -21,26 +21,26 @@
 /* COLORS                                                               */
 /************************************************************************/
 
-@primary-color: #20a7c9;
+@primary-color: {{theme.colors.primary.base}};
 @indicator-color: @primary-color;
 
-@brand-primary-dark1: #1a85a0;
-@brand-primary-dark2: #156378;
-@brand-primary-light1: #79cade;
-@brand-primary-light2: #a5dae9;
-@brand-primary-light3: #d2edf4;
-@brand-primary-light4: #e9f6f9;
-@brand-primary-light5: #f3f8fa;
+@brand-primary-dark1: {{theme.colors.primary.dark1}};
+@brand-primary-dark2: {{theme.colors.primary.dark2}};
+@brand-primary-light1: {{theme.colors.primary.light1}};
+@brand-primary-light2: {{theme.colors.primary.light2}};
+@brand-primary-light3: {{theme.colors.primary.light3}};
+@brand-primary-light4: {{theme.colors.primary.light4}};
+@brand-primary-light5: {{theme.colors.primary.light5}};
 
-@brand-secondary: #444e7c;
-@brand-secondary-dark1: #363e63;
-@brand-secondary-dark2: #282e4a;
-@brand-secondary-dark3: #1b1f31;
-@brand-secondary-light1: #8e94b0;
-@brand-secondary-light2: #b4b8ca;
-@brand-secondary-light3: #d9dbe4;
-@brand-secondary-light4: #eceef2;
-@brand-secondary-light5: #f5f5f8;
+@brand-secondary: {{theme.colors.secondary.base}};
+@brand-secondary-dark1: {{theme.colors.secondary.dark1}};
+@brand-secondary-dark2: {{theme.colors.secondary.dark2}};
+@brand-secondary-dark3: {{theme.colors.secondary.dark3}};
+@brand-secondary-light1: {{theme.colors.secondary.light1}};
+@brand-secondary-light2: {{theme.colors.secondary.light2}};
+@brand-secondary-light3: {{theme.colors.secondary.light3}};
+@brand-secondary-light4: {{theme.colors.secondary.light4}};
+@brand-secondary-light5: {{theme.colors.secondary.light5}};
 
 // TODO line up with theme
 @almost-black: #263238;
@@ -55,33 +55,33 @@
 @darkest: #000000;
 
 /**************************** text-specific *****************************/
-@link: #1a85a0;
-@link-hover: #156378;
+@link: {{theme.colors.primary.dark1}};
+@link-hover: {{theme.colors.primary.dark2}};
 
 /***************************** status colors ****************************/
-@info: #66bcfe;
-@info-dark1: #4d8cbe;
-@info-dark2: #315e7e;
-@info-light1: #b3defe;
-@info-light2: #eff8fe;
+@info: {{theme.colors.info.base}};
+@info-dark1: {{theme.colors.info.dark1}};
+@info-dark2: {{theme.colors.info.dark2}};
+@info-light1: {{theme.colors.info.light1}};
+@info-light2: {{theme.colors.info.light2}};
 
-@danger: #e04355;
-@danger-dark1: #a7323f;
-@danger-dark2: #6f212a;
-@danger-light1: #efa1aa;
-@danger-light2: #faedee;
+@danger: {{theme.colors.error.base}};
+@danger-dark1: {{theme.colors.error.dark1}};
+@danger-dark2: {{theme.colors.error.dark2}};
+@danger-light1: {{theme.colors.error.light1}};
+@danger-light2: {{theme.colors.error.light2}};
 
-@success: #5ac189;
-@success-dark1: #439066;
-@success-dark2: #2b6144;
-@success-light1: #ace1c4;
-@success-light2: #eef8f3;
+@success: {{theme.colors.success.base}};
+@success-dark1: {{theme.colors.success.dark1}};
+@success-dark2: {{theme.colors.success.dark2}};
+@success-light1: {{theme.colors.success.light1}};
+@success-light2: {{theme.colors.success.light2}};
 
-@warning: #ff7f44;
-@warning-dark1: #bf5e33;
-@warning-dark2: #7f3f21;
-@warning-light1: #fec0a1;
-@warning-light2: #fff2ec;
+@warning: {{theme.colors.warning.base}};
+@warning-dark1: {{theme.colors.warning.dark1}};
+@warning-dark2: {{theme.colors.warning.dark2}};
+@warning-light1: {{theme.colors.warning.light1}};
+@warning-light2: {{theme.colors.warning.light2}};
 
 /* general component effects */
 @shadow-highlight: @primary-color;
@@ -90,10 +90,10 @@
 /* OPACITIES                                                            */
 /* Used in LESS filters, e.g. fade(@someColorVar, @someOpacityBelow)    */
 /************************************************************************/
-@opacity-light: 10%;
-@opacity-medium-light: 35%;
-@opacity-medium-heavy: 60%;
-@opacity-heavy: 80%;
+@opacity-light: {{theme.opacity.light}};
+@opacity-medium-light: {{theme.opacity.mediumLight}};
+@opacity-medium-heavy: {{theme.opacity.mediumHeavy}};
+@opacity-heavy: {{theme.opacity.heavy}};
 
 /************************************************************************/
 /* SHADES & TINTS                                                       */
@@ -141,17 +141,17 @@
 /************************************************************************/
 @font-size-base: 14px; // Base `rem` units on this, as needed.
 
-@font-weight-light: 200;
-@font-weight-normal: 400;
-@font-weight-bold: 600;
+@font-weight-light: {{theme.typography.weights.light}};
+@font-weight-normal: {{theme.typography.weights.normal}};
+@font-weight-bold: {{theme.typography.weights.bold}};
 
-@font-size-xxs: 9px;
-@font-size-xs: 10px;
-@font-size-s: 12px;
-@font-size-m: 14px;
-@font-size-l: 16px;
-@font-size-xl: 21px;
-@font-size-xxl: 28px;
+@font-size-xxs: {{theme.typography.sizes.xxs}}px;
+@font-size-xs: {{theme.typography.sizes.xs}}px;
+@font-size-s: {{theme.typography.sizes.s}}px;
+@font-size-m: {{theme.typography.sizes.m}}px;
+@font-size-l: {{theme.typography.sizes.l}}px;
+@font-size-xl: {{theme.typography.sizes.xl}}px;
+@font-size-xxl: {{theme.typography.sizes.xxl}}px;
 
 // **************************** Line Heights ****************************
 @line-height-base: 1.4;
@@ -180,16 +180,16 @@
 
 // ****************************** Families ******************************
 
-@font-family-sans-serif: 'Inter', Helvetica, Arial;
-@font-family-serif: Georgia, 'Times New Roman', Times, serif;
-@font-family-monospace: 'Fira Code', 'Courier New', monospace;
+@font-family-sans-serif: {{theme.typography.families.sansSerif}};
+@font-family-serif: {{theme.typography.families.serif}};
+@font-family-monospace: {{theme.typography.families.monospace}};
 @font-family-base: @font-family-sans-serif;
 @line-height-tight: 1;
 
 /************************************************************************/
 /* TRANSITIONS                                                          */
 /************************************************************************/
-@timing-normal: 0.3s;
+@timing-normal: {{theme.transitionTiming}}s;
 
 /************************************************************************/
 /* BORDER RADII                                                         */
