@@ -38,6 +38,6 @@ test('works with an onClick handler', () => {
 test('renders all the storybook gallery variants', () => {
   const { container } = render(<LabelGallery />);
   expect(container.querySelectorAll('.ant-tag')).toHaveLength(
-    options.length * 2,
+    options.length * 2 + 4,
   );
 });
