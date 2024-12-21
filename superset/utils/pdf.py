@@ -16,7 +16,7 @@
 # under the License.
 
 import logging
-from io import BytesIO
+import img2pdf
 
 from superset.commands.report.exceptions import ReportSchedulePdfFailedError
 
@@ -28,21 +28,11 @@ except ModuleNotFoundError:
 
 
 def build_pdf_from_screenshots(snapshots: list[bytes]) -> bytes:
-    images = []
-
-    for snap in snapshots:
-        img = Image.open(BytesIO(snap))
-        if img.mode == "RGBA":
-            img = img.convert("RGB")
-        images.append(img)
     logger.info("building pdf")
     try:
-        new_pdf = BytesIO()
-        images[0].save(new_pdf, "PDF", save_all=True, append_images=images[1:])
-        new_pdf.seek(0)
+        pdf_bytes = img2pdf.convert(snapshots)
     except Exception as ex:
         raise ReportSchedulePdfFailedError(
             f"Failed converting screenshots to pdf {str(ex)}"
         ) from ex
-
-    return new_pdf.read()
+    return pdf_bytes
