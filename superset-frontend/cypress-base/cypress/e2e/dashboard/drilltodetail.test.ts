@@ -431,19 +431,6 @@ describe('Drill to detail modal', () => {
         });
       });
     });
-
-    describe('Bar Chart', () => {
-      it('opens the modal for unsupported chart without filters', () => {
-        interceptSamples();
-
-        cy.get("[data-test-viz-type='dist_bar'] svg").then($canvas => {
-          cy.wrap($canvas).scrollIntoView();
-          cy.wrap($canvas).rightclick(70, 150);
-          openModalFromChartContext('Drill to detail');
-          cy.getBySel('filter-val').should('not.exist');
-        });
-      });
-    });
   });
 
   describe('Tier 2 charts', () => {

@@ -25,7 +25,7 @@ import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
-const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
+const LINE_CHART = { name: 'Growth Rate', viz: 'echarts_timeseries_line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 const BIG_NUMBER = { name: 'Number of Girls', viz: 'big_number_total' };
 const TABLE = { name: 'Names Sorted by Num in California', viz: 'table' };

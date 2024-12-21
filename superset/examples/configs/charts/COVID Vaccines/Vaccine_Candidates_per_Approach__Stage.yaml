@@ -15,34 +15,33 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Vaccine Candidates per Approach & Stage
-viz_type: heatmap
+viz_type: heatmap_v2
 params:
   adhoc_filters: []
-  all_columns_x: clinical_stage
-  all_columns_y: product_category
+  x_axis: clinical_stage
+  groupby: product_category
   bottom_margin: auto
-  canvas_image_rendering: pixelated
   datasource: 69__table
   left_margin: auto
   linear_color_scheme: schemeYlOrBr
   metric: count
-  normalize_across: heatmap
+  normalize_across: heatmap_v2
   queryFields:
     metric: metrics
   row_limit: 10000
   show_legend: false
-  show_perc: true
+  show_percentage: true
   show_values: true
   slice_id: 3962
   sort_x_axis: alpha_asc
   sort_y_axis: alpha_asc
   time_range: No filter
   url_params: {}
-  viz_type: heatmap
+  viz_type: heatmap_v2
   xscale_interval: null
-  y_axis_bounds:
-  - null
-  - null
+  value_bounds:
+    - null
+    - null
   y_axis_format: SMART_NUMBER
   yscale_interval: null
 cache_timeout: null

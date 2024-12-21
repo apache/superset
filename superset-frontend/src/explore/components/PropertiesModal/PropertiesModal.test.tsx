@@ -79,7 +79,7 @@ fetchMock.get('glob:*/api/v1/chart/318', {
       params:
         '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
       slice_name: 'Age distribution of respondents',
-      viz_type: VizType.LegacyHistogram,
+      viz_type: VizType.Histogram,
     },
     show_columns: [
       'cache_timeout',
