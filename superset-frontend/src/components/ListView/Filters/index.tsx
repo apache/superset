@@ -60,7 +60,6 @@ function UIFilters(
       });
     },
   }));
-
   return (
     <>
       {filters.map(
@@ -75,6 +74,7 @@ function UIFilters(
             selects,
             toolTipDescription,
             onFilterUpdate,
+            width,
           },
           index,
         ) => {
@@ -103,6 +103,7 @@ function UIFilters(
                 }}
                 paginate={paginate}
                 selects={selects}
+                width={width}
               />
             );
           }

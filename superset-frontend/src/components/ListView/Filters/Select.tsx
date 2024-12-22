@@ -47,6 +47,7 @@ function SelectFilter(
     initialValue,
     onSelect,
     selects = [],
+    width,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -86,9 +87,9 @@ function SelectFilter(
     },
     [fetchSelects],
   );
-
+  const placeholder = t('Select...');
   return (
-    <FilterContainer>
+    <FilterContainer width={width}>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
@@ -98,7 +99,8 @@ function SelectFilter(
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
+          popupMatchSelectWidth={false}
           showSearch
           value={selectedOption}
         />
@@ -108,11 +110,12 @@ function SelectFilter(
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
           header={<FormLabel>{Header}</FormLabel>}
+          popupMatchSelectWidth={false}
           labelInValue
           onChange={onChange}
           onClear={onClear}
           options={selects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
           showSearch
           value={selectedOption}
         />

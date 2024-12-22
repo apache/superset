@@ -601,7 +601,6 @@ const Select = forwardRef(
       }
       fireOnChange();
     };
-
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
