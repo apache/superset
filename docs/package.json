@@ -17,9 +17,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@algolia/client-search": "^5.15.0",
+    "@algolia/client-search": "^5.18.0",
     "@ant-design/icons": "^5.5.2",
-    "@docsearch/react": "^3.6.3",
+    "@docsearch/react": "^3.8.2",
     "@docusaurus/core": "^3.5.2",
     "@docusaurus/plugin-client-redirects": "^3.5.2",
     "@docusaurus/preset-classic": "^3.5.2",
@@ -29,14 +29,14 @@
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
     "@svgr/webpack": "^8.1.0",
-    "antd": "^5.22.2",
+    "antd": "^5.22.5",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
     "docusaurus-plugin-less": "^2.0.2",
     "file-loader": "^6.2.0",
     "less": "^4.2.1",
     "less-loader": "^11.0.0",
-    "prism-react-renderer": "^2.4.0",
+    "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-github-btn": "^1.4.0",
@@ -50,7 +50,7 @@
     "@docusaurus/tsconfig": "^3.6.3",
     "@types/react": "^18.3.12",
     "typescript": "^5.7.2",
-    "webpack": "^5.96.1"
+    "webpack": "^5.97.1"
   },
   "browserslist": {
     "production": [

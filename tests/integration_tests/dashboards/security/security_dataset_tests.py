@@ -85,7 +85,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         }
 
         # assert
-        for dashboard_url, get_dashboard_response in responses_by_url.items():
+        for dashboard_url, get_dashboard_response in responses_by_url.items():  # noqa: B007
             self.assert200(get_dashboard_response)
 
     def test_get_dashboards__users_are_dashboards_owners(self):

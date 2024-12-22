@@ -143,7 +143,7 @@ class OwnersNotFoundValidationError(ValidationError):
         super().__init__([_("Owners are invalid")], field_name="owners")
 
 
-class DatasetDataAccessIsNotAllowed(ValidationError):
+class DatasetDataAccessIsNotAllowed(ValidationError):  # noqa: N818
     status = 422
 
     def __init__(self, message: str) -> None:
@@ -195,7 +195,7 @@ class DatasetDuplicateFailedError(CreateFailedError):
     message = _("Dataset could not be duplicated.")
 
 
-class DatasetForbiddenDataURI(ImportFailedError):
+class DatasetForbiddenDataURI(ImportFailedError):  # noqa: N818
     message = _("Data URI is not allowed.")
 
 

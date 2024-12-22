@@ -43,7 +43,7 @@ def histogram(
     Returns:
     DataFrame: A DataFrame where each row corresponds to a group (or the entire DataFrame if no grouping is performed),
                and each column corresponds to a histogram bin. The values are the counts in each bin.
-    """
+    """  # noqa: E501
 
     if groupby is None:
         groupby = []

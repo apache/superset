@@ -18,6 +18,9 @@
 
 set -eo pipefail
 
+# UV may not be installed in older images
+pip install uv
+
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     echo "Reinstalling the app in editable mode"
@@ -30,12 +33,16 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
     export SUPERSET_TESTENV=true
     export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset
 fi
+if [[ "$DATABASE_DIALECT" == postgres* ]] ; then
+    echo "Installing postgres requirements"
+    uv pip install -e .[postgres]
+fi
 #
 # Make sure we have dev requirements installed
 #
 if [ -f "${REQUIREMENTS_LOCAL}" ]; then
   echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
-  pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
+  uv pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
 else
   echo "Skipping local overrides"
 fi

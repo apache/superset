@@ -23,7 +23,7 @@ from typing import Callable, TYPE_CHECKING, TypeVar
 from uuid import UUID
 
 from flask_babel import lazy_gettext as _
-from sqlalchemy.engine.url import URL as SqlaURL
+from sqlalchemy.engine.url import URL as SqlaURL  # noqa: N811
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.ext.declarative import DeclarativeMeta
 from sqlalchemy.orm.exc import ObjectDeletedError
