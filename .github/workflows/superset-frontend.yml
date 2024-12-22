@@ -83,11 +83,12 @@ jobs:
       - name: npm run test with coverage
         run: |
           mkdir -p ${{ github.workspace }}/coverage
+          chmod -R 777 ${{ github.workspace }}/coverage
           docker run \
           --rm superset-node-${{ github.sha }} \
           -v ${{ github.workspace }}/coverage:/app/superset-frontend/coverage \
           bash -c \
-          'npm run test -- --coverage --silent --shard=${{ matrix.shard }}/8 --coverageReporters="json-summary" && find ./coverage'
+          'npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters="json-summary" && find ./coverage'
           find ${{ github.workspace }}/coverage
 
       - name: Upload coverage artifact
