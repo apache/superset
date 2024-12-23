@@ -24,7 +24,7 @@ name = "apache-superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
-requires-python = "~=3.9"
+requires-python = ">=3.9"
 license = { file="LICENSE.txt" }
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
@@ -53,7 +53,6 @@ dependencies = [
     "flask-migrate>=3.1.0, <4.0",
     "flask-session>=0.4.0, <1.0",
     "flask-wtf>=1.1.0, <2.0",
-    "func_timeout",
     "geopy",
     "greenlet>=3.0.3, <=3.1.1",
     "gunicorn>=22.0.0; sys_platform != 'win32'",
@@ -191,7 +190,6 @@ development = [
     "grpcio>=1.55.3",
     "openapi-spec-validator",
     "parameterized",
-    "pip-compile-multi",
     "pre-commit",
     "progress>=1.5,<2",
     "psutil",
@@ -216,7 +214,7 @@ combine_as_imports = true
 include_trailing_comma = true
 line_length = 88
 known_first_party = "superset"
-known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, pkg_resources, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, sqlparse, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, sqlparse, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
 multi_line_output = 3
 order_by_type = false
 
@@ -277,8 +275,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.8
-target-version = "py310"
+# Assume Python 3.9
+target-version = "py39"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
@@ -291,22 +289,24 @@ select = [
     "E9",
     "PT009",
     "TRY201",
-    # TODO add these rules in follow up PR
-    # "B",
-    # "C",
-    # "E",
-    # "F",
-    #"F",
-    # "I",
-    # "N",
-    # "PT",
-    # "Q",
-    # "S",
-    # "T",
-    #"W",
+    "B",
+    "C",
+    "E",
+    "F",
+    "F",
+    "I",
+    "N",
+    "PT",
+    "Q",
+    "S",
+    "T",
+    "W",
 ]
 ignore = [
     "S101",
+    "PT006",
+    "T201",
+    "N999",
 ]
 
 extend-select = ["I"]
@@ -360,3 +360,35 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.liccheck]
+requirement_txt_file = "requirements/base.txt"
+authorized_licenses = [
+    "academic free license (afl)",
+    "apache license 2.0",
+    "apache software",
+    "apache software, bsd",
+    "bsd",
+    "isc license (iscl)",
+    "isc license",
+    "mit",
+    "mozilla public license 2.0 (mpl 2.0)",
+    "osi approved",
+    "osi approved",
+    "python software foundation",
+    "the unlicense (unlicense)",
+    "the unlicense",
+]
+[tool.liccheck.authorized_packages]
+# --------------------------------------------------------------
+# These are ok, checked manually
+# Seems ok, might need legal review
+# https://github.com/urschrei/pypolyline/blob/master/LICENSE.md
+polyline = "2"
+# Apache 2.0 https://github.com/hkwi/python-geohash
+python-geohash = "0"
+# --------------------------------------------------------------
+
+# TODO REMOVE THESE DEPS FROM CODEBASE
+paramiko = "3"  # GPL
+pyxlsb = "1"  # GPL

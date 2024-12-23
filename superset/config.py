@@ -530,7 +530,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
     "HORIZONTAL_FILTER_BAR": False,
-    # The feature is off by default, and currently only supported in Presto and Postgres,
+    # The feature is off by default, and currently only supported in Presto and Postgres,  # noqa: E501
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
     # `cost_estimate_enabled: true` to the database `extra` attribute.
@@ -554,7 +554,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Set to True to enable experimental chart plugins
     "CHART_PLUGINS_EXPERIMENTAL": False,
-    # Regardless of database configuration settings, force SQLLAB to run async using Celery
+    # Regardless of database configuration settings, force SQLLAB to run async using Celery  # noqa: E501
     "SQLLAB_FORCE_RUN_ASYNC": False,
     # Set to True to to enable factory resent CLI command
     "ENABLE_FACTORY_RESET_COMMAND": False,
@@ -1076,7 +1076,7 @@ SQLLAB_QUERY_RESULT_TIMEOUT = 0
 # your specific infrastructure. For example, you could analyze queries a posteriori by
 # running EXPLAIN on them, and compute a histogram of relative costs to present the
 # cost as a percentile, this step is optional as every db engine spec has its own
-# query cost formatter, but it you wanna customize it you can define it inside the config:
+# query cost formatter, but it you wanna customize it you can define it inside the config:  # noqa: E501
 
 # def postgres_query_cost_formatter(
 #     result: List[Dict[str, Any]]
@@ -1147,7 +1147,7 @@ CSV_TO_HIVE_UPLOAD_DIRECTORY = "EXTERNAL_HIVE_TABLES/"
 
 # Function that creates upload directory dynamically based on the
 # database used, user and schema provided.
-def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name
+def CSV_TO_HIVE_UPLOAD_DIRECTORY_FUNC(  # pylint: disable=invalid-name  # noqa: N802
     database: Database,
     user: models.User,  # pylint: disable=unused-argument
     schema: str | None,
@@ -1214,7 +1214,7 @@ SMTP_STARTTLS = True
 SMTP_SSL = False
 SMTP_USER = "superset"
 SMTP_PORT = 25
-SMTP_PASSWORD = "superset"
+SMTP_PASSWORD = "superset"  # noqa: S105
 SMTP_MAIL_FROM = "superset@superset.com"
 # If True creates a default SSL context with ssl.Purpose.CLIENT_AUTH using the
 # default system root CA certificates.
@@ -1265,7 +1265,7 @@ TRACKING_URL_TRANSFORMER = lambda url: url  # noqa: E731
 DB_POLL_INTERVAL_SECONDS: dict[str, int] = {}
 
 # Interval between consecutive polls when using Presto Engine
-# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression
+# See here: https://github.com/dropbox/PyHive/blob/8eb0aeab8ca300f3024655419b93dad926c1a351/pyhive/presto.py#L93  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
 PRESTO_POLL_INTERVAL = int(timedelta(seconds=1).total_seconds())
 
 # Allow list of custom authentications for each DB engine.
@@ -1361,17 +1361,17 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
 # NOTE: For backward compatibility, you can unpack any of the above arguments in your
 # function definition, but keep the **kwargs as the last argument to allow new args
 # to be added later without any errors.
-# NOTE: whatever you in this function DOES NOT affect the cache key, so ideally this function
+# NOTE: whatever you in this function DOES NOT affect the cache key, so ideally this function  # noqa: E501
 # is "functional", as in deterministic from its input.
-def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: N802
     sql: str, **kwargs: Any
 ) -> str:
     return sql
 
 
-# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query
+# A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501
 # It allows for using the SQL_QUERY_MUTATOR function for more than comments
-# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True
+# Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True  # noqa: E501
 # An example use case is if data has role based access controls, and you want to apply
 # a SET ROLE statement alongside every user query. Changing this variable maintains
 # functionality for both the SQL_Lab and Charts.
@@ -1381,7 +1381,7 @@ MUTATE_AFTER_SPLIT = False
 # This allows for a user to add header data to any outgoing emails. For example,
 # if you need to include metadata in the header or you want to change the specifications
 # of the email title, header, or sender.
-def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument
+def EMAIL_HEADER_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: N802
     msg: MIMEMultipart, **kwargs: Any
 ) -> MIMEMultipart:
     return msg
@@ -1397,7 +1397,7 @@ EXCLUDE_USERS_FROM_LISTS: list[str] | None = None
 # list/dropdown if you do not want these dbs to show as available.
 # The available list is generated by driver installed, and some engines have multiple
 # drivers.
-# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}
+# e.g., DBS_AVAILABLE_DENYLIST: Dict[str, Set[str]] = {"databricks": {"pyhive", "pyodbc"}}  # noqa: E501
 DBS_AVAILABLE_DENYLIST: dict[str, set[str]] = {}
 
 # This auth provider is used by background (offline) tasks that need to access
@@ -1545,7 +1545,7 @@ TEST_DATABASE_CONNECTION_TIMEOUT = timedelta(seconds=30)
 # Details needed for databases that allows user to authenticate using personal OAuth2
 # tokens. See https://github.com/apache/superset/issues/20300 for more information. The
 # scope and URIs are usually optional.
-# NOTE that if you change the id, scope, or URIs in this file, you probably need to purge
+# NOTE that if you change the id, scope, or URIs in this file, you probably need to purge  # noqa: E501
 # the existing tokens from the database. This needs to be done by running a query to
 # delete the existing tokens.
 DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
@@ -1594,7 +1594,7 @@ TALISMAN_CONFIG = {
             "data:",
             "https://apachesuperset.gateway.scarf.sh",
             "https://static.scarf.sh/",
-            # "https://avatars.slack-edge.com", # Uncomment when SLACK_ENABLE_AVATARS is True
+            # "https://avatars.slack-edge.com", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
         ],
         "worker-src": ["'self'", "blob:"],
         "connect-src": [
@@ -1729,7 +1729,7 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict
     None
 )
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
@@ -1760,9 +1760,9 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
-GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"
-GUEST_TOKEN_JWT_ALGO = "HS256"
-GUEST_TOKEN_HEADER_NAME = "X-GuestToken"
+GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
+GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Guest token audience for the embedded superset, either string or callable
 GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
@@ -1829,7 +1829,7 @@ ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 # Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
 
-# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.
+# Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' can either be a hex color code, or a dot-indexed theme color (e.g. error.base)
 ENVIRONMENT_TAG_CONFIG = {
     "variable": "SUPERSET_ENV",

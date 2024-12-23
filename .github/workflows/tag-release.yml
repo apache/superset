@@ -23,7 +23,7 @@ on:
           - 'false'
 jobs:
   config:
-    runs-on: "ubuntu-22.04"
+    runs-on: ubuntu-24.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
     steps:
@@ -39,7 +39,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: docker-release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311"]
@@ -87,6 +87,7 @@ jobs:
           fi
 
           supersetbot docker \
+            --push \
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
@@ -99,7 +100,7 @@ jobs:
   update-prs-with-release-info:
     needs: config
     if: needs.config.outputs.has-secrets
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write

@@ -79,7 +79,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     # OAuth 2.0
     supports_oauth2 = True
     oauth2_exception = TrinoAuthError
-    oauth2_token_request_type = "data"
+    oauth2_token_request_type = "data"  # noqa: S105
 
     @classmethod
     def get_extra_table_metadata(
@@ -101,7 +101,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 latest_parts = tuple([None] * len(col_names))
 
             metadata["partitions"] = {
-                "cols": sorted(
+                "cols": sorted(  # noqa: C414
                     list(
                         {
                             column_name

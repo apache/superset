@@ -118,7 +118,7 @@ export default function DrillDetailModal({
       show={showModal}
       onHide={onHideModal ?? (() => null)}
       css={css`
-        .ant-modal-body {
+        .antd5-modal-body {
           display: flex;
           flex-direction: column;
         }

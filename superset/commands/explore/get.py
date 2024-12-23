@@ -59,7 +59,7 @@ class GetExploreCommand(BaseCommand, ABC):
         self._slice_id = params.slice_id
 
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    def run(self) -> Optional[dict[str, Any]]:
+    def run(self) -> Optional[dict[str, Any]]:  # noqa: C901
         initial_form_data = {}
         if self._permalink_key is not None:
             command = GetExplorePermalinkCommand(self._permalink_key)
