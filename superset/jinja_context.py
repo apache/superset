@@ -17,6 +17,7 @@
 """Defines the templating context for SQL Lab"""
 
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
@@ -31,16 +32,19 @@ from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.constants import LRU_CACHE_MAX_SIZE
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
 from superset.sql_parse import Table
 from superset.utils import json
 from superset.utils.core import (
+    AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
     get_user_email,
     get_user_id,
     get_username,
+    FilterOperator,
     merge_extra_filters,
 )
 
@@ -62,6 +66,7 @@ ALLOWED_TYPES = (
     "dict",
     "tuple",
     "set",
+    "TimeFilter",
 )
 COLLECTION_TYPES = ("list", "dict", "tuple", "set")
 
@@ -76,6 +81,15 @@ class Filter(TypedDict):
     col: str
     val: Union[None, Any, list[Any]]
 
+@dataclass
+class TimeFilter:
+    """
+    Container for temporal filter.
+    """
+
+    from_expr: str | None
+    to_expr: str | None
+    time_range: str | None
 
 class ExtraCache:
     """
@@ -355,7 +369,83 @@ class ExtraCache:
 
         return filters
 
+# pylint: disable=too-many-arguments
+def get_time_filter(
+    self,
+    column: str | None = None,
+    default: str | None = None,
+    target_type: str | None = None,
+    strftime: str | None = None,
+    remove_filter: bool = False,
+) -> TimeFilter:
+    """Get the time filter with appropriate formatting,
+    either for a specific column, or whichever time range is being emitted
+    from a dashboard.
 
+    :param column: Name of the temporal column. Leave undefined to reference the
+        time range from a Dashboard Native Time Range filter (when present).
+    :param default: The default value to fall back to if the time filter is
+        not present, or has the value `No filter`
+    :param target_type: The target temporal type as recognized by the target
+        database (e.g. `TIMESTAMP`, `DATE` or `DATETIME`). If `column` is defined,
+        the format will default to the type of the column. This is used to produce
+        the format of the `from_expr` and `to_expr` properties of the returned
+        `TimeFilter` object.
+    :param strftime: format using the `strftime` method of `datetime`. When defined
+        `target_type` will be ignored.
+    :param remove_filter: When set to true, mark the filter as processed,
+        removing it from the outer query. Useful when a filter should
+        only apply to the inner query.
+    :return: The corresponding time filter.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.views.utils import get_form_data
+
+    form_data, _ = get_form_data()
+    convert_legacy_filters_into_adhoc(form_data)
+    merge_extra_filters(form_data)
+    time_range = form_data.get("time_range")
+    if column:
+        flt: AdhocFilterClause | None = next(
+            (
+                flt
+                for flt in form_data.get("adhoc_filters", [])
+                if flt["operator"] == FilterOperator.TEMPORAL_RANGE
+                and flt["subject"] == column
+            ),
+            None,
+        )
+        if flt:
+            if remove_filter:
+                if column not in self.removed_filters:
+                    self.removed_filters.append(column)
+            if column not in self.applied_filters:
+                self.applied_filters.append(column)
+
+                time_range = cast(str, flt["comparator"])
+                if not target_type and self.table:
+                    target_type = self.table.columns_types.get(column)
+
+    time_range = time_range or NO_TIME_RANGE
+    if time_range == NO_TIME_RANGE and default:
+        time_range = default
+    from_expr, to_expr = get_since_until_from_time_range(time_range)
+
+    def _format_dttm(dttm: datetime | None) -> str | None:
+        if strftime and dttm:
+            return dttm.strftime(strftime)
+        return (
+            self.database.db_engine_spec.convert_dttm(target_type or "", dttm)
+            if self.database and dttm
+            else None
+        )
+
+    return TimeFilter(
+        from_expr=_format_dttm(from_expr),
+        to_expr=_format_dttm(to_expr),
+        time_range=time_range,
+    )
+    
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
     return_value = func(*args, **kwargs)
     value_type = type(return_value).__name__
@@ -558,6 +648,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
                 "metric": partial(safe_proxy, metric_macro),
+                "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
         )
 
