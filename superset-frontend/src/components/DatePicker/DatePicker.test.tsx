@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePicker as AntdDatePicker } from 'antd-v5';
 
-export const DatePicker = AntdDatePicker;
-export const { RangePicker } = AntdDatePicker;
+import { render } from 'spec/helpers/testing-library';
+import { DatePicker, RangePicker } from '.';
+
+test('should render date picker', () => {
+  const { container } = render(<DatePicker />);
+  expect(container).toBeInTheDocument();
+});
+
+test('should render range picker', () => {
+  const { container } = render(<RangePicker />);
+  expect(container).toBeInTheDocument();
+});

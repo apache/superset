@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: @msyavuz - Replace this with dayjs after datepicker migration
-import moment, { Moment } from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
+import { Dayjs } from 'dayjs';
 import { CustomRangeType } from 'src/explore/components/controls/DateFilterControl/types';
-import { MOMENT_FORMAT } from './constants';
+import { DAYJS_FORMAT } from './constants';
 
 /**
  * RegExp to test a string for a full ISO 8601 Date
@@ -39,18 +39,18 @@ export const ISO8601_AND_CONSTANT = RegExp(
 
 const SPECIFIC_MODE = ['specific', 'today', 'now'];
 
-export const dttmToMoment = (dttm: string): Moment => {
+export const dttmToDayjs = (dttm: string): Dayjs => {
   if (dttm === 'now') {
-    return moment().utc().startOf('second');
+    return extendedDayjs().utc().startOf('second');
   }
   if (dttm === 'today') {
-    return moment().utc().startOf('day');
+    return extendedDayjs().utc().startOf('day');
   }
-  return moment(dttm);
+  return extendedDayjs(dttm);
 };
 
 export const dttmToString = (dttm: string): string =>
-  dttmToMoment(dttm).format(MOMENT_FORMAT);
+  dttmToDayjs(dttm).format(DAYJS_FORMAT);
 
 export const customTimeRangeEncode = (customRange: CustomRangeType): string => {
   const {
