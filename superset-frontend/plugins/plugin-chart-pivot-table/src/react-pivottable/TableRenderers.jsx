@@ -509,8 +509,19 @@ export class TableRenderer extends React.Component {
           })}
         </th>
       ) : null;
+    const metricTotalsHeaders = attrIdx === 0 && rowTotals ? pivotData.getMetrics().map(metric => {
+        return <th
+            key={`${metric}_total`}
+            className="pvtTotalLabel"
+            rowSpan={colAttrs.length + Math.min(rowAttrs.length, 1)}
+          >
+            {t('%(aggregatorName)s', {
+              aggregatorName: t(metric),
+            })}
+          </th>
+      }) : []
 
-    const cells = [spaceCell, ...attrValueCells];
+    const cells = [spaceCell, ...attrValueCells,...metricTotalsHeaders,totalCell];
     return <tr key={`colAttr-${attrIdx}`}>{cells}</tr>;
   }
 
@@ -748,11 +759,26 @@ export class TableRenderer extends React.Component {
         </td>
       );
     }
+    //------ metric totals cells------------
+    const metricTotals = pivotData.getMetricTotals(rowKey);
+    const metricTotalsCells = rowTotals ?  Object.keys(metricTotals).map(metric => {
+      const metricValue = metricTotals[metric].value()
+      return (
+        <td
+          role="gridcell"
+          key={`${metric}_total_val`}
+          className="pvtTotal"
+        >
+          {metricTotals[metric].format(metricValue)}
+        </td>
+      );
+    })  : []
 
     const rowCells = [
       ...attrValueCells,
       attrValuePaddingCell,
       ...valueCells,
+      ...metricTotalsCells,
       totalCell,
     ];
 

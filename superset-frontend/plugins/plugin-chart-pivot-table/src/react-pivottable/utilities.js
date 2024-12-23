@@ -763,6 +763,19 @@ class PivotData {
       }
       this.rowTotals[flatRowKey].push(record);
       this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+
+      if(record['Metric']){
+        const metricName = record['Metric'];
+        this.metrics[record['Metric']] = 1;
+        if(!this.metricTotals[flatRowKey]){
+          this.metricTotals[flatRowKey] = {}
+        } 
+        if(!this.metricTotals[flatRowKey][metricName]) this.metricTotals[flatRowKey][metricName] =  this.getFormattedAggregator(
+          record,
+        )(this, flatRowKey, metricName)
+        this.metricTotals[flatRowKey][metricName].push(record);
+      }
+
     }
 
     for (let ci = colStart; ci <= colKey.length; ci += 1) {
@@ -830,6 +843,12 @@ class PivotData {
         },
       }
     );
+  }
+  getMetricTotals(rowKey){
+    return this.metricTotals?.[flatKey(rowKey)] || {}
+  }
+  getMetrics(){
+    return Object.keys(this.metrics || {})
   }
 }
 
