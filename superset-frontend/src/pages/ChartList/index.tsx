@@ -647,6 +647,7 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
+        width: 150,
       },
       {
         Header: t('Dashboard'),
