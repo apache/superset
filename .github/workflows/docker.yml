@@ -108,6 +108,10 @@ jobs:
   docker-compose-image-tag:
     runs-on: ubuntu-24.04
     steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Check for file changes
         id: check
         uses: ./.github/actions/change-detector/
