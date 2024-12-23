@@ -121,16 +121,21 @@ def test_adjust_engine_params(
     returned_url, returned_connect_args = DorisEngineSpec.adjust_engine_params(
         url, connect_args
     )
-    # # Update expected schema to include .information_schema
-    # if return_schema not in ".":
-    #     expected_schema = f"{return_schema}.information_schema"
-    # else:
-    #     expected_schema = return_schema
+
     assert returned_url.database == return_schema
     assert returned_connect_args == return_connect_args
 
 
-def test_get_schema_from_engine_params() -> None:
+@pytest.mark.parametrize(
+    "url,expected_schema",
+    [
+        ("doris://localhost:9030/hive.test", "test"),
+        ("doris://localhost:9030/hive", None),
+    ],
+)
+def test_get_schema_from_engine_params(
+    url: str, expected_schema: Optional[str]
+) -> None:
     """
     Test the ``get_schema_from_engine_params`` method.
     """
@@ -138,22 +143,24 @@ def test_get_schema_from_engine_params() -> None:
 
     assert (
         DorisEngineSpec.get_schema_from_engine_params(
-            make_url("doris://localhost:9030/hive.test"),
+            make_url(url),
             {},
         )
-        == "test"
-    )
-
-    assert (
-        DorisEngineSpec.get_schema_from_engine_params(
-            make_url("doris://localhost:9030/hive"),
-            {},
-        )
-        is None
+        == expected_schema
     )
 
 
-def test_get_default_catalog() -> None:
+@pytest.mark.parametrize(
+    "database_value,expected_catalog",
+    [
+        ("catalog1.schema1", "catalog1"),
+        ("catalog1", "catalog1"),
+        (None, None),
+    ],
+)
+def test_get_default_catalog(
+    database_value: Optional[str], expected_catalog: Optional[str]
+) -> None:
     """
     Test the ``get_default_catalog`` method.
     """
@@ -161,21 +168,35 @@ def test_get_default_catalog() -> None:
     from superset.models.core import Database
 
     database = Mock(spec=Database)
+    database.url_object.database = database_value
 
-    # Test with catalog.schema format
-    database.url_object.database = "catalog1.schema1"
-    assert DorisEngineSpec.get_default_catalog(database) == "catalog1"
-
-    # Test with only catalog format
-    database.url_object.database = "catalog1"
-    assert DorisEngineSpec.get_default_catalog(database) == "catalog1"
-
-    # Test with None
-    database.url_object.database = None
-    assert DorisEngineSpec.get_default_catalog(database) is None
+    assert DorisEngineSpec.get_default_catalog(database) == expected_catalog
 
 
-def test_get_catalog_names() -> None:
+@pytest.mark.parametrize(
+    "mock_catalogs,expected_result",
+    [
+        (
+            [
+                Mock(CatalogName="catalog1"),
+                Mock(CatalogName="catalog2"),
+                Mock(CatalogName="catalog3"),
+            ],
+            {"catalog1", "catalog2", "catalog3"},
+        ),
+        (
+            [Mock(CatalogName="single_catalog")],
+            {"single_catalog"},
+        ),
+        (
+            [],
+            set(),
+        ),
+    ],
+)
+def test_get_catalog_names(
+    mock_catalogs: list[Mock], expected_result: set[str]
+) -> None:
     """
     Test the ``get_catalog_names`` method.
     """
@@ -184,14 +205,7 @@ def test_get_catalog_names() -> None:
 
     database = Mock(spec=Database)
     inspector = Mock()
-
-    # Mock the execute result
-    mock_result = [
-        Mock(CatalogName="catalog1"),
-        Mock(CatalogName="catalog2"),
-        Mock(CatalogName="catalog3"),
-    ]
-    inspector.bind.execute.return_value = mock_result
+    inspector.bind.execute.return_value = mock_catalogs
 
     catalogs = DorisEngineSpec.get_catalog_names(database, inspector)
 
@@ -199,4 +213,4 @@ def test_get_catalog_names() -> None:
     inspector.bind.execute.assert_called_once_with("SHOW CATALOGS")
 
     # Verify the returned catalog names
-    assert catalogs == {"catalog1", "catalog2", "catalog3"}
+    assert catalogs == expected_result
