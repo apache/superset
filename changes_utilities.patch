@@ -1,0 +1,49 @@
+diff --git a/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.js b/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.js
+index 2a57af13d2..f2b6a5c79f 100644
+--- a/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.js
++++ b/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/utilities.js
+@@ -642,8 +642,6 @@ class PivotData {
+     this.allTotal = this.aggregator(this, [], []);
+     this.subtotals = subtotals;
+     this.sorted = false;
+-    this.metricTotals = {}
+-    this.metrics = {}
+ 
+     // iterate through input, accumulating data for cells
+     PivotData.forEachRecord(this.props.data, this.processRecord);
+@@ -765,19 +763,8 @@ class PivotData {
+       }
+       this.rowTotals[flatRowKey].push(record);
+       this.rowTotals[flatRowKey].isSubtotal = isRowSubtotal;
+-
+-      if(record['Metric']){
+-        const metricName = record['Metric'];
+-        this.metrics[record['Metric']] = 1;
+-        if(!this.metricTotals[flatRowKey]){
+-          this.metricTotals[flatRowKey] = {}
+-        } 
+-        if(!this.metricTotals[flatRowKey][metricName]) this.metricTotals[flatRowKey][metricName] =  this.getFormattedAggregator(
+-          record,
+-        )(this, flatRowKey, metricName)
+-        this.metricTotals[flatRowKey][metricName].push(record);
+-      }
+     }
++
+     for (let ci = colStart; ci <= colKey.length; ci += 1) {
+       isColSubtotal = ci < colKey.length;
+       const fColKey = colKey.slice(0, ci);
+@@ -844,14 +831,6 @@ class PivotData {
+       }
+     );
+   }
+-
+-  getMetricTotals(rowKey){
+-    return this.metricTotals?.[flatKey(rowKey)] || {}
+-  }
+-
+-  getMetrics(){
+-    return Object.keys(this.metrics || {})
+-  }
+ }
+ 
+ // can handle arrays or jQuery selections of tables

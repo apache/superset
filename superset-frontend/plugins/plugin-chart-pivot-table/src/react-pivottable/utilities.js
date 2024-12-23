@@ -642,6 +642,8 @@ class PivotData {
     this.allTotal = this.aggregator(this, [], []);
     this.subtotals = subtotals;
     this.sorted = false;
+    this.metricTotals = {}
+    this.metrics = {}
 
     // iterate through input, accumulating data for cells
     PivotData.forEachRecord(this.props.data, this.processRecord);

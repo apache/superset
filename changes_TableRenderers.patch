@@ -1,0 +1,89 @@
+diff --git a/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx b/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx
+index c720d77664..45a7d8d679 100644
+--- a/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx
++++ b/superset-frontend/plugins/plugin-chart-pivot-table/src/react-pivottable/TableRenderers.jsx
+@@ -22,7 +22,6 @@ import { t } from '@superset-ui/core';
+ import PropTypes from 'prop-types';
+ import { PivotData, flatKey } from './utilities';
+ import { Styles } from './Styles';
+-import { map } from 'lodash';
+ 
+ const parseLabel = value => {
+   if (typeof value === 'string') {
+@@ -87,6 +86,7 @@ export class TableRenderer extends React.Component {
+     };
+     const rowTotals = tableOptions.rowTotals || colAttrs.length === 0;
+     const colTotals = tableOptions.colTotals || rowAttrs.length === 0;
++
+     const namesMapping = props.namesMapping || {};
+     const subtotalOptions = {
+       arrowCollapsed: '\u25B2',
+@@ -113,8 +113,7 @@ export class TableRenderer extends React.Component {
+       colEnabled: colSubtotalDisplay.enabled,
+       rowPartialOnTop: rowSubtotalDisplay.displayOnTop,
+       colPartialOnTop: colSubtotalDisplay.displayOnTop,
+-      expandCollapse: tableOptions.expandCollapse,
+-      metricTotals: tableOptions.metricTotals
++      expandCollapse: tableOptions.expandCollapse
+     });
+     const rowKeys = pivotData.getRowKeys();
+     const colKeys = pivotData.getColKeys();
+@@ -510,21 +509,8 @@ export class TableRenderer extends React.Component {
+           })}
+         </th>
+       ) : null;
+-  
+-    const metricTotalsHeaders = attrIdx === 0 && rowTotals ? pivotData.getMetrics().map(metric => {
+-      return <th
+-          key={`${metric}_total`}
+-          className="pvtTotalLabel"
+-          rowSpan={colAttrs.length + Math.min(rowAttrs.length, 1)}
+-        >
+-          {t('%(aggregatorName)s', {
+-            aggregatorName: t(metric),
+-          })}
+-        </th>
+-    }) : []
+-    const cells = [spaceCell, ...attrValueCells,
+-      ...metricTotalsHeaders,
+-      totalCell];
++
++    const cells = [spaceCell, ...attrValueCells];
+     return <tr key={`colAttr-${attrIdx}`}>{cells}</tr>;
+   }
+ 
+@@ -762,25 +748,11 @@ export class TableRenderer extends React.Component {
+         </td>
+       );
+     }
+-    //------ metric totals cells------------
+-    const metricTotals = pivotData.getMetricTotals(rowKey);
+-    const metricTotalsCells = rowTotals ?  Object.keys(metricTotals).map(metric => {
+-      const metricValue = metricTotals[metric].value()
+-      return (
+-        <td
+-          role="gridcell"
+-          key={`${metric}_total_val`}
+-          className="pvtTotal"
+-        >
+-          {metricTotals[metric].format(metricValue)}
+-        </td>
+-      );
+-    })  : []
++
+     const rowCells = [
+       ...attrValueCells,
+       attrValuePaddingCell,
+       ...valueCells,
+-      ...metricTotalsCells,
+       totalCell,
+     ];
+ 
+@@ -941,6 +913,7 @@ export class TableRenderer extends React.Component {
+       colAttrSpans: this.calcAttrSpans(visibleColKeys, colAttrs.length),
+       ...this.cachedBasePivotSettings,
+     };
++
+     return (
+       <Styles isDashboardEditMode={this.isDashboardEditMode()}>
+         <table className="pvtTable" role="grid">
