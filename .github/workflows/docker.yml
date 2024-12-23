@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+
   setup_matrix:
     runs-on: ubuntu-24.04
     outputs:
@@ -24,29 +25,6 @@ jobs:
           MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev", "lean"]'; else echo '["dev", "lean", "py310", "websocket", "dockerize", "py311"]'; fi)
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
-
-  docker-compose-image-tag:
-    needs: setup_matrix
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Setup Docker Environment
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        uses: ./.github/actions/setup-docker
-        with:
-          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
-          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
-          build: "false"
-          install-docker-compose: "true"
-      - name: docker-compose sanity check
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        shell: bash
-        run: |
-          docker compose --exit-code-from superset-init -f docker-compose-image-tag.yml up
 
   docker-build:
     name: docker-build
@@ -126,3 +104,25 @@ jobs:
           export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
           docker compose build superset-init --build-arg DEV_MODE=false --build-arg INCLUDE_CHROMIUM=false
           docker compose up superset-init --exit-code-from superset-init
+
+  docker-compose-image-tag:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Docker Environment
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        uses: ./.github/actions/setup-docker
+        with:
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          build: "false"
+          install-docker-compose: "true"
+      - name: docker-compose sanity check
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        shell: bash
+        run: |
+          docker compose --exit-code-from superset-init -f docker-compose-image-tag.yml up
