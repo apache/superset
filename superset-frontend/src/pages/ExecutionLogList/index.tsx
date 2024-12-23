@@ -32,6 +32,7 @@ import {
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
 import { AlertObject, LogObject } from 'src/features/alerts/types';
+import { AnnotationObject } from 'src/features/annotations/types';
 
 const PAGE_SIZE = 25;
 
@@ -128,7 +129,9 @@ function ExecutionLog({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => dayjs(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(startDttm)).format('YYYY-MM-DD hh:mm:ss a'),
         Header: t('Start at (UTC)'),
         accessor: 'start_dttm',
       },
@@ -137,7 +140,9 @@ function ExecutionLog({
           row: {
             original: { start_dttm: startDttm, end_dttm: endDttm },
           },
-        }: any) =>
+        }: {
+          row: { original: AnnotationObject };
+        }) =>
           fDuration(new Date(startDttm).getTime(), new Date(endDttm).getTime()),
         Header: t('Duration'),
         disableSortBy: true,

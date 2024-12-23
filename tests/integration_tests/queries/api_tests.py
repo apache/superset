@@ -76,7 +76,7 @@ class TestQueryApi(SupersetTestCase):
         db.session.commit()
         return query
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_queries(self):
         with self.create_app().app_context():
             queries = []
@@ -90,7 +90,7 @@ class TestQueryApi(SupersetTestCase):
                         example_database_id,
                         admin_id,
                         self.get_random_string(),
-                        sql=f"SELECT col1, col2 from table{cx}",
+                        sql=f"SELECT col1, col2 from table{cx}",  # noqa: S608
                         rows=cx,
                         status=QueryStatus.SUCCESS
                         if (cx % 2) == 0
@@ -102,7 +102,7 @@ class TestQueryApi(SupersetTestCase):
                     main_database_id,
                     alpha_id,
                     self.get_random_string(),
-                    sql=f"SELECT col1, col2 from table{QUERIES_FIXTURE_COUNT}",
+                    sql=f"SELECT col1, col2 from table{QUERIES_FIXTURE_COUNT}",  # noqa: S608
                     rows=QUERIES_FIXTURE_COUNT,
                     status=QueryStatus.SUCCESS,
                 )
@@ -118,7 +118,7 @@ class TestQueryApi(SupersetTestCase):
     @staticmethod
     def get_random_string(length: int = 10):
         letters = string.ascii_letters
-        return "".join(random.choice(letters) for i in range(length))
+        return "".join(random.choice(letters) for i in range(length))  # noqa: S311
 
     def test_get_query(self):
         """
@@ -219,7 +219,7 @@ class TestQueryApi(SupersetTestCase):
         )
 
         # Gamma1 user, only sees their own queries
-        self.login(username="gamma_1", password="password")
+        self.login(username="gamma_1", password="password")  # noqa: S106
         uri = f"api/v1/query/{query_gamma2.id}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
@@ -229,7 +229,7 @@ class TestQueryApi(SupersetTestCase):
 
         # Gamma2 user, only sees their own queries
         self.logout()
-        self.login(username="gamma_2", password="password")
+        self.login(username="gamma_2", password="password")  # noqa: S106
         uri = f"api/v1/query/{query_gamma1.id}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
@@ -266,7 +266,7 @@ class TestQueryApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == QUERIES_FIXTURE_COUNT
         # check expected columns
-        assert sorted(list(data["result"][0].keys())) == [
+        assert sorted(list(data["result"][0].keys())) == [  # noqa: C414
             "changed_on",
             "database",
             "end_time",
@@ -283,7 +283,7 @@ class TestQueryApi(SupersetTestCase):
             "tracking_url",
             "user",
         ]
-        assert sorted(list(data["result"][0]["user"].keys())) == [
+        assert sorted(list(data["result"][0]["user"].keys())) == [  # noqa: C414
             "first_name",
             "id",
             "last_name",
@@ -431,7 +431,7 @@ class TestQueryApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         timestamp = datetime.timestamp(now - timedelta(days=2)) * 1000
-        uri = f"api/v1/query/updated_since?q={prison.dumps({'last_updated_ms': timestamp})}"
+        uri = f"api/v1/query/updated_since?q={prison.dumps({'last_updated_ms': timestamp})}"  # noqa: E501
         rv = self.client.get(uri)
         assert rv.status_code == 200
 

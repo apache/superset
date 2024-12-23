@@ -56,7 +56,7 @@ test('should render', async () => {
 
 test('should display a label', async () => {
   setup();
-  expect(await screen.findByText('Color scheme')).toBeTruthy();
+  expect(await screen.findByText('Color scheme')).toBeInTheDocument();
 });
 
 test('should not display an alert icon if hasCustomLabelsColor=false', async () => {

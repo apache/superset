@@ -300,7 +300,7 @@ class DatasetCacheWarmUpRequestSchema(Schema):
     )
     dashboard_id = fields.Integer(
         metadata={
-            "description": "The ID of the dashboard to get filters for when warming cache"
+            "description": "The ID of the dashboard to get filters for when warming cache"  # noqa: E501
         }
     )
     extra_filters = fields.String(

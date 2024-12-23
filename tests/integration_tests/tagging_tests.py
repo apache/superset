@@ -216,7 +216,7 @@ class TestTagging(SupersetTestCase):
         db.session.add(test_saved_query)
         db.session.commit()
 
-        # Test to make sure that a favorited object tag was added to the tagged_object table
+        # Test to make sure that a favorited object tag was added to the tagged_object table  # noqa: E501
         tags = self.query_tagged_object_table()
         assert 1 == len(tags)
         assert "ObjectType.chart" == str(tags[0].object_type)
@@ -292,5 +292,5 @@ class TestTagging(SupersetTestCase):
         db.session.delete(test_favorited_object)
         db.session.commit()
 
-        # Test to make sure all the tags are deleted when the associated objects are deleted
+        # Test to make sure all the tags are deleted when the associated objects are deleted  # noqa: E501
         assert [] == self.query_tagged_object_table()

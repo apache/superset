@@ -881,7 +881,7 @@ def form_data_to_adhoc(form_data: dict[str, Any], clause: str) -> AdhocFilterCla
     return result
 
 
-def merge_extra_form_data(form_data: dict[str, Any]) -> None:
+def merge_extra_form_data(form_data: dict[str, Any]) -> None:  # noqa: C901
     """
     Merge extra form data (appends and overrides) into the main payload
     and add applied time extras to the payload.
@@ -935,7 +935,7 @@ def merge_extra_form_data(form_data: dict[str, Any]) -> None:
                 adhoc_filter["comparator"] = form_data["time_range"]
 
 
-def merge_extra_filters(form_data: dict[str, Any]) -> None:
+def merge_extra_filters(form_data: dict[str, Any]) -> None:  # noqa: C901
     # extra_filters are temporary/contextual filters (using the legacy constructs)
     # that are external to the slice definition. We use those for dynamic
     # interactive filters.
@@ -1365,11 +1365,11 @@ def time_function(
     return (stop - start) * 1000.0, response
 
 
-def MediumText() -> Variant:  # pylint:disable=invalid-name
+def MediumText() -> Variant:  # pylint:disable=invalid-name  # noqa: N802
     return Text().with_variant(MEDIUMTEXT(), "mysql")
 
 
-def LongText() -> Variant:  # pylint:disable=invalid-name
+def LongText() -> Variant:  # pylint:disable=invalid-name  # noqa: N802
     return Text().with_variant(LONGTEXT(), "mysql")
 
 
@@ -1658,7 +1658,7 @@ class DateColumn:
 
 def normalize_dttm_col(
     df: pd.DataFrame,
-    dttm_cols: tuple[DateColumn, ...] = tuple(),
+    dttm_cols: tuple[DateColumn, ...] = tuple(),  # noqa: C408
 ) -> None:
     for _col in dttm_cols:
         if _col.col_label not in df.columns:

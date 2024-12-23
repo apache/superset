@@ -89,11 +89,11 @@ const SqlLabStyles = styled.div`
         }
       }
 
-      .ResultsModal .ant-modal-body {
+      .ResultsModal .antd5-modal-body {
         min-height: ${theme.gridUnit * 140}px;
       }
 
-      .ant-modal-body {
+      .antd5-modal-body {
         overflow: auto;
       }
     }

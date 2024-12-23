@@ -41,7 +41,7 @@ class TestBaseViz(SupersetTestCase):
     def test_constructor_exception_no_datasource(self):
         form_data = {}
         datasource = None
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             viz.BaseViz(datasource, form_data)
 
     def test_process_metrics(self):
@@ -362,7 +362,7 @@ class TestPairedTTest(SupersetTestCase):
         raw["metric2"] = [10, 20, 30, 40, 50, 60, 70, 80, 90]
         raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
         df = pd.DataFrame(raw)
-        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)
+        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)  # noqa: N806
         data = pairedTTestViz.get_data(df)
         # Check method correctly transforms data
         expected = {
@@ -457,7 +457,7 @@ class TestPairedTTest(SupersetTestCase):
         raw[None] = [10, 20, 30]
 
         df = pd.DataFrame(raw)
-        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)
+        pairedTTestViz = viz.viz_types["paired_ttest"](datasource, form_data)  # noqa: N806
         data = pairedTTestViz.get_data(df)
         # Check method correctly transforms data
         expected = {
@@ -475,7 +475,7 @@ class TestPairedTTest(SupersetTestCase):
         assert data == expected
 
         form_data = {"groupby": [], "metrics": [None]}
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # noqa: PT027
             viz.viz_types["paired_ttest"](datasource, form_data)
 
 
@@ -655,7 +655,7 @@ class TestPartitionViz(SupersetTestCase):
         raw["metric3"] = [100, 200, 300, 400, 500, 600, 700, 800, 900]
         df = pd.DataFrame(raw)
         test_viz = viz.PartitionViz(Mock(), {})
-        with self.assertRaises(ValueError):
+        with self.assertRaises(ValueError):  # noqa: PT027
             test_viz.get_data(df)
         test_viz.levels_for = Mock(return_value=1)
         test_viz.nest_values = Mock(return_value=1)
@@ -776,11 +776,11 @@ class TestTimeSeriesTableViz(SupersetTestCase):
         form_data = {"groupby": ["a"]}
         super_query_obj.return_value = {}
         test_viz = viz.TimeTableViz(datasource, form_data)
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             test_viz.query_obj()
         form_data["metrics"] = ["x", "y"]
         test_viz = viz.TimeTableViz(datasource, form_data)
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             test_viz.query_obj()
 
     def test_query_obj_order_by(self):
@@ -835,7 +835,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(NotImplementedError) as context:
+        with self.assertRaises(NotImplementedError) as context:  # noqa: PT027
             test_viz_deckgl.get_properties(mock_d)
 
         assert "" in str(context.exception)
@@ -847,7 +847,7 @@ class TestBaseDeckGLViz(SupersetTestCase):
         mock_gb = []
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(ValueError) as context:
+        with self.assertRaises(ValueError) as context:  # noqa: PT027
             test_viz_deckgl.process_spatial_query_obj(mock_key, mock_gb)
 
         assert "Bad spatial key" in str(context.exception)
@@ -900,10 +900,10 @@ class TestBaseDeckGLViz(SupersetTestCase):
         datasource = self.get_datasource_mock()
         test_viz_deckgl = viz.BaseDeckGLViz(datasource, form_data)
 
-        with self.assertRaises(SpatialException):
+        with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("NULL")
 
-        with self.assertRaises(SpatialException):
+        with self.assertRaises(SpatialException):  # noqa: PT027
             test_viz_deckgl.parse_coordinates("fldkjsalkj,fdlaskjfjadlksj")
 
     def test_filter_nulls(self):
