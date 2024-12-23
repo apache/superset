@@ -37,6 +37,7 @@ interface SelectFilterProps extends BaseFilter {
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
   paginate?: boolean;
   selects: Filter['selects'];
+  width?: number;
 }
 
 function SelectFilter(
@@ -100,7 +101,6 @@ function SelectFilter(
           onClear={onClear}
           options={fetchAndFormatSelects}
           placeholder={placeholder}
-          popupMatchSelectWidth={false}
           showSearch
           value={selectedOption}
         />
@@ -110,7 +110,6 @@ function SelectFilter(
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
           header={<FormLabel>{Header}</FormLabel>}
-          popupMatchSelectWidth={false}
           labelInValue
           onChange={onChange}
           onClear={onClear}
