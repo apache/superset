@@ -77,6 +77,9 @@ const baseConfig: ThemeConfig = {
       fontWeightStrong: supersetTheme.typography.weights.medium,
       colorBgContainer: supersetTheme.colors.grayscale.light4,
     },
+    Divider: {
+      colorSplit: supersetTheme.colors.grayscale.light3,
+    },
     Input: {
       colorBorder: supersetTheme.colors.secondary.light3,
       colorBgContainer: supersetTheme.colors.grayscale.light5,
