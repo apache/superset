@@ -29,6 +29,11 @@ jobs:
     needs: setup_matrix
     runs-on: ubuntu-24.04
     steps:
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Docker Environment
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: ./.github/actions/setup-docker
