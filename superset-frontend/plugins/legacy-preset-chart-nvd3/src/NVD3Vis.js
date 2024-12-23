@@ -19,7 +19,8 @@
  */
 import { kebabCase, throttle } from 'lodash';
 import d3 from 'd3';
-import moment from 'moment';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
 import nv from 'nvd3-fork';
 import PropTypes from 'prop-types';
 import {
@@ -82,6 +83,8 @@ const NO_DATA_RENDER_DATA = [
     class: 'body',
   },
 ];
+
+dayjs.extend(utc);
 
 const smartDateVerboseFormatter = getTimeFormatter(SMART_DATE_VERBOSE_ID);
 
@@ -1055,7 +1058,7 @@ function nvd3Vis(element, props) {
               });
               const records = (annotationData[e.name].records || [])
                 .map(r => {
-                  const timeValue = new Date(moment.utc(r[e.timeColumn]));
+                  const timeValue = new Date(dayjs.utc(r[e.timeColumn]));
 
                   return {
                     ...r,
@@ -1131,9 +1134,9 @@ function nvd3Vis(element, props) {
 
               const records = (annotationData[e.name].records || [])
                 .map(r => {
-                  const timeValue = new Date(moment.utc(r[e.timeColumn]));
+                  const timeValue = new Date(dayjs.utc(r[e.timeColumn]));
                   const intervalEndValue = new Date(
-                    moment.utc(r[e.intervalEndColumn]),
+                    dayjs.utc(r[e.intervalEndColumn]),
                   );
 
                   return {
