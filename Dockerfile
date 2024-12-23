@@ -24,9 +24,9 @@ ARG PY_VER=3.10-slim-bookworm
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 
 ######################################################################
-# superset-node used for building frontend assets
+# superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
+FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
@@ -53,6 +53,10 @@ RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
 
 # Mount package files and install dependencies if not in dev mode
+# NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
+# ideally we'd COPY only their package.json. Here npm ci will be cached as long
+# as the full content of these folders don't change, yielding a decent cache reuse rate.
+# Note that's it's not possible selectively COPY of mount using blobs.
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
@@ -65,6 +69,11 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
 
 # Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
+
+######################################################################
+# superset-node used for compile frontend assets
+######################################################################
+FROM superset-node-ci AS superset-node
 
 # Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/app/superset-frontend/.temp_cache \
