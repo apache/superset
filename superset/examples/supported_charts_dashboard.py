@@ -159,10 +159,10 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Bar Chart",
-            viz_type="dist_bar",
+            viz_type="echarts_timeseries_bar",
             params=get_slice_json(
                 defaults,
-                viz_type="dist_bar",
+                viz_type="echarts_timeseries_bar",
                 metrics=["sum__num"],
                 groupby=["gender"],
             ),
@@ -304,13 +304,15 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Heatmap Chart",
-            viz_type="heatmap",
+            viz_type="heatmap_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="funnel",
+                viz_type="heatmap_v2",
                 metric="sum__num",
-                all_columns_x="gender",
-                all_columns_y="state",
+                x_axis="gender",
+                groupby="state",
+                sort_x_axis="value_asc",
+                sort_y_axis="value_asc",
             ),
         ),
         Slice(
@@ -385,12 +387,13 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         Slice(
             **slice_kwargs,
             slice_name="Sankey Chart",
-            viz_type="sankey",
+            viz_type="sankey_v2",
             params=get_slice_json(
                 defaults,
-                viz_type="sankey",
+                viz_type="sankey_v2",
                 metric="sum__num",
-                groupby=["gender", "state"],
+                source="gender",
+                target="state",
             ),
         ),
         Slice(

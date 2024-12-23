@@ -15,61 +15,60 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: How do you prefer to work?
-viz_type: heatmap
+viz_type: heatmap_v2
 params:
   adhoc_filters:
-  - clause: WHERE
-    comparator: '0'
-    expressionType: SIMPLE
-    filterOptionName: filter_v65f0j14bk_35oi0g94srk
-    isExtra: false
-    isNew: false
-    operator: ==
-    sqlExpression: null
-    subject: is_software_dev
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_qb5ionb8wcq_ki4aimey4do
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: school_degree
-  - clause: WHERE
-    comparator: 'NULL'
-    expressionType: SIMPLE
-    filterOptionName: filter_3n0z71frg5c_xqnl179to7
-    isExtra: false
-    isNew: false
-    operator: '!='
-    sqlExpression: null
-    subject: job_pref
-  all_columns_x: job_pref
-  all_columns_y: school_degree
+    - clause: WHERE
+      comparator: "0"
+      expressionType: SIMPLE
+      filterOptionName: filter_v65f0j14bk_35oi0g94srk
+      isExtra: false
+      isNew: false
+      operator: ==
+      sqlExpression: null
+      subject: is_software_dev
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_qb5ionb8wcq_ki4aimey4do
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: school_degree
+    - clause: WHERE
+      comparator: "NULL"
+      expressionType: SIMPLE
+      filterOptionName: filter_3n0z71frg5c_xqnl179to7
+      isExtra: false
+      isNew: false
+      operator: "!="
+      sqlExpression: null
+      subject: job_pref
+  x_axis: job_pref
+  groupby: school_degree
   bottom_margin: auto
-  canvas_image_rendering: pixelated
   datasource: 42__table
   granularity_sqla: time_start
   left_margin: auto
   linear_color_scheme: blue_white_yellow
   metric: count
-  normalize_across: heatmap
+  normalize_across: heatmap_v2
   queryFields:
     metric: metrics
   row_limit: null
   show_legend: true
-  show_perc: true
+  show_percentage: true
   slice_id: 1367
   sort_x_axis: alpha_asc
   sort_y_axis: alpha_asc
   time_range: No filter
   url_params: {}
-  viz_type: heatmap
+  viz_type: heatmap_v2
   xscale_interval: null
-  y_axis_bounds:
-  - null
-  - null
+  value_bounds:
+    - null
+    - null
   y_axis_format: SMART_NUMBER
   yscale_interval: null
 cache_timeout: null
