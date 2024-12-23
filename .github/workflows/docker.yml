@@ -118,7 +118,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Docker Environment
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        if: steps.check.outputs.docker
         uses: ./.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
@@ -126,7 +126,7 @@ jobs:
           build: "false"
           install-docker-compose: "true"
       - name: docker-compose sanity check
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        if: steps.check.outputs.docker
         shell: bash
         run: |
-          docker compose --exit-code-from superset-init -f docker-compose-image-tag.yml up
+          docker compose -f docker-compose-image-tag.yml up --exit-code-from superset-init
