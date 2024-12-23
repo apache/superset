@@ -170,7 +170,9 @@ function AnnotationList({
           row: {
             original: { start_dttm: startDttm },
           },
-        }: any) => dayjs(new Date(startDttm)).format('ll'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(startDttm)).format('ll'),
         Header: t('Start'),
         accessor: 'start_dttm',
       },
@@ -179,12 +181,18 @@ function AnnotationList({
           row: {
             original: { end_dttm: endDttm },
           },
-        }: any) => dayjs(new Date(endDttm)).format('ll'),
+        }: {
+          row: { original: AnnotationObject };
+        }) => dayjs(new Date(endDttm)).format('ll'),
         Header: t('End'),
         accessor: 'end_dttm',
       },
       {
-        Cell: ({ row: { original } }: any) => {
+        Cell: ({
+          row: { original },
+        }: {
+          row: { original: AnnotationObject };
+        }) => {
           const handleEdit = () => handleAnnotationEdit(original);
           const handleDelete = () => setAnnotationCurrentlyDeleting(original);
           const actions = [
