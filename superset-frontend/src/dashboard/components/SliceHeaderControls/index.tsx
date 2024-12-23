@@ -19,7 +19,7 @@
 import { MouseEvent, Key, useState, useRef, RefObject } from 'react';
 
 import { useHistory } from 'react-router-dom';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import {
   Behavior,
   css,
@@ -257,9 +257,11 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
   const isTable = slice.viz_type === VizType.Table;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
-    moment.utc(itemCachedDttm).fromNow(),
+    extendedDayjs.utc(itemCachedDttm).fromNow(),
   );
-  const updatedWhen = updatedDttm ? moment.utc(updatedDttm).fromNow() : '';
+  const updatedWhen = updatedDttm
+    ? extendedDayjs.utc(updatedDttm).fromNow()
+    : '';
   const getCachedTitle = (itemCached: boolean) => {
     if (itemCached) {
       return t('Cached %s', cachedWhen);
