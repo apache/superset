@@ -22,6 +22,7 @@ import RowCountLabel from 'src/explore/components/RowCountLabel';
 import CachedLabel from 'src/components/CachedLabel';
 import Timer from 'src/components/Timer';
 import { Type } from 'src/components/Label';
+import { RedirectUrlRow } from './RedirectUriRow/RedirectUriRow';
 
 const CHART_STATUS_MAP = {
   failed: 'danger' as Type,
@@ -64,6 +65,7 @@ export const ChartPills = forwardRef(
             }
           `}
         >
+          <RedirectUrlRow></RedirectUrlRow>
           {!isLoading && firstQueryResponse && (
             <RowCountLabel
               rowcount={Number(firstQueryResponse.sql_rowcount) || 0}
