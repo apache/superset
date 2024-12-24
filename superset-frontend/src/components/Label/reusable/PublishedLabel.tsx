@@ -16,43 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, MouseEventHandler, FC } from 'react';
-
-import { t } from '@superset-ui/core';
-import Label from 'src/components/Label';
-import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { TooltipContent } from './TooltipContent';
+import Label from 'src/components/Label';
+import { t } from '@superset-ui/core';
 
-export interface CacheLabelProps {
-  onClick?: MouseEventHandler<HTMLElement>;
-  cachedTimestamp?: string;
-  className?: string;
+// Define props for the PublishedLabel component
+interface PublishedLabelProps {
+  isPublished: boolean; // Whether the item is published
+  onClick?: () => void; // Optional click handler
 }
 
-const CacheLabel: FC<CacheLabelProps> = ({
-  className,
+const PublishedLabel: React.FC<PublishedLabelProps> = ({
+  isPublished,
   onClick,
-  cachedTimestamp,
 }) => {
-  const [hovered] = useState(false);
+  const label = isPublished ? t('Published') : t('Draft');
+  const icon = isPublished ? (
+    <Icons.CircleCheck iconSize="s" />
+  ) : (
+    <Icons.Minus iconSize="s" />
+  );
+  const labelType = isPublished ? 'success' : 'alert';
 
-  const labelType = hovered ? 'primary' : 'default';
   return (
-    <Tooltip
-      title={<TooltipContent cachedTimestamp={cachedTimestamp} />}
-      id="cache-desc-tooltip"
-    >
-      <Label
-        className={`${className}`}
-        type={labelType}
-        onClick={onClick}
-        icon={<Icons.Refresh iconSize="m" />}
-      >
-        {t('Cached')}
-      </Label>
-    </Tooltip>
+    <Label type={labelType} icon={icon} onClick={onClick}>
+      {label}
+    </Label>
   );
 };
 
-export default CacheLabel;
+export default PublishedLabel;
