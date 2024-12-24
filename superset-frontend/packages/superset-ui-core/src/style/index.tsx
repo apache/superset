@@ -19,6 +19,7 @@
 import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
 import createCache from '@emotion/cache';
+import { theme as antdTheme } from 'antd-v5';
 
 export {
   css,
@@ -52,122 +53,174 @@ export const emotionCache = createCache({
 
 export const styled = emotionStyled;
 
-const defaultTheme = {
-  borderRadius: 4,
-  colors: {
-    text: {
-      label: '#879399',
-      help: '#737373',
-    },
-    primary: {
-      base: '#20A7C9',
-      dark1: '#1A85A0',
-      dark2: '#156378',
-      light1: '#79CADE',
-      light2: '#A5DAE9',
-      light3: '#D2EDF4',
-      light4: '#E9F6F9',
-      light5: '#F3F8FA',
-    },
-    secondary: {
-      base: '#444E7C',
-      dark1: '#363E63',
-      dark2: '#282E4A',
-      dark3: '#1B1F31',
-      light1: '#8E94B0',
-      light2: '#B4B8CA',
-      light3: '#D9DBE4',
-      light4: '#ECEEF2',
-      light5: '#F5F5F8',
-    },
-    grayscale: {
-      base: '#666666',
-      dark1: '#323232',
-      dark2: '#000000',
-      light1: '#B2B2B2',
-      light2: '#E0E0E0',
-      light3: '#F0F0F0',
-      light4: '#F7F7F7',
-      light5: '#FFFFFF',
-    },
-    error: {
-      base: '#E04355',
-      dark1: '#A7323F',
-      dark2: '#6F212A',
-      light1: '#EFA1AA',
-      light2: '#FAEDEE',
-    },
-    warning: {
-      base: '#FF7F44',
-      dark1: '#BF5E33',
-      dark2: '#7F3F21',
-      light1: '#FEC0A1',
-      light2: '#FFF2EC',
-    },
-    alert: {
-      base: '#FCC700',
-      dark1: '#BC9501',
-      dark2: '#7D6300',
-      light1: '#FDE380',
-      light2: '#FEF9E6',
-    },
-    success: {
-      base: '#5AC189',
-      dark1: '#439066',
-      dark2: '#2B6144',
-      light1: '#ACE1C4',
-      light2: '#EEF8F3',
-    },
-    info: {
-      base: '#66BCFE',
-      dark1: '#4D8CBE',
-      dark2: '#315E7E',
-      light1: '#B3DEFE',
-      light2: '#EFF8FE',
-    },
-  },
-  opacity: {
-    light: '10%',
-    mediumLight: '35%',
-    mediumHeavy: '60%',
-    heavy: '80%',
-  },
-  typography: {
-    families: {
-      sansSerif: `'Inter', Helvetica, Arial`,
-      serif: `Georgia, 'Times New Roman', Times, serif`,
-      monospace: `'Fira Code', 'Courier New', monospace`,
-    },
-    weights: {
-      light: 200,
-      normal: 400,
-      medium: 500,
-      bold: 600,
-    },
-    sizes: {
-      xxs: 9,
-      xs: 10,
-      s: 12,
-      m: 14,
-      l: 16,
-      xl: 21,
-      xxl: 28,
-    },
-  },
-  zIndex: {
-    aboveDashboardCharts: 10,
-    dropdown: 11,
-    max: 3000,
-  },
-  transitionTiming: 0.3,
-  gridUnit: 4,
-  brandIconMaxWidth: 37,
+import tinycolor from 'tinycolor2';
+
+function adjustColor(
+  color: string,
+  percentage: number,
+  target: string = 'white',
+): string {
+  const hex = tinycolor.mix(color, target, percentage).toHexString();
+  return hex;
+}
+
+const generateColorVariations = (color: string) => {
+  return {
+    base: color,
+    light1: adjustColor(color, 20, 'white'),
+    light2: adjustColor(color, 45, 'white'),
+    light3: adjustColor(color, 70, 'white'),
+    light4: adjustColor(color, 90, 'white'),
+    light5: adjustColor(color, 95, 'white'),
+    dark1: adjustColor(color, 10, 'black'),
+    dark2: adjustColor(color, 20, 'black'),
+    dark3: adjustColor(color, 40, 'black'),
+    dark4: adjustColor(color, 60, 'black'),
+    dark5: adjustColor(color, 80, 'black'),
+  };
 };
 
-export type SupersetTheme = typeof defaultTheme;
+const makeThemeDark = (theme: typeof defaultTheme): typeof defaultTheme => {
+  const darkTheme = { ...theme };
+  darkTheme.colors = { ...theme.colors };
+
+  for (const [key] of Object.entries(darkTheme.colors)) {
+    if (key !== 'text') {
+      darkTheme.colors[key] = {
+        base: theme.colors[key].base,
+        dark1: theme.colors[key].light1,
+        dark2: theme.colors[key].light2,
+        dark3: theme.colors[key].light3,
+        dark4: theme.colors[key].light4,
+        dark5: theme.colors[key].light5,
+        light1: theme.colors[key].dark1,
+        light2: theme.colors[key].dark2,
+        light3: theme.colors[key].dark3,
+        light4: theme.colors[key].dark4,
+        light5: theme.colors[key].dark5,
+      };
+    }
+  }
+
+  // Update the text-specific colors
+  darkTheme.colors.text = {
+    ...darkTheme.colors.text,
+    label: '#D3D3D3',
+    help: '#D3D3D3',
+  };
+  darkTheme.colors.darkest = '#FFF';
+  darkTheme.colors.lightest = '#000';
+  return darkTheme;
+};
+
+const generateColors = (baseColors: Record<string, string>) => {
+  const colors = {};
+  for (const [key, value] of Object.entries(baseColors)) {
+    colors[key] = generateColorVariations(value);
+  }
+  return colors;
+};
+
+const computeTheme = (colors, isDarkTheme = false) => {
+  let baseTheme = {
+    borderRadius: 4,
+    body: {
+      backgroundColor: '#FFF',
+      color: '#000',
+    },
+    colors: {
+      darkest: '#000',
+      lightest: '#FFF',
+      text: {
+        label: '#879399',
+        help: '#737373',
+      },
+      ...generateColors(colors),
+    },
+    opacity: {
+      light: '10%',
+      mediumLight: '35%',
+      mediumHeavy: '60%',
+      heavy: '80%',
+    },
+    typography: {
+      families: {
+        sansSerif: `'Inter', Helvetica, Arial`,
+        serif: `Georgia, 'Times New Roman', Times, serif`,
+        monospace: `'Fira Code', 'Courier New', monospace`,
+      },
+      weights: {
+        light: 200,
+        normal: 400,
+        medium: 500,
+        bold: 600,
+      },
+      sizes: {
+        xxs: 9,
+        xs: 10,
+        s: 12,
+        m: 14,
+        l: 16,
+        xl: 21,
+        xxl: 28,
+      },
+    },
+    zIndex: {
+      aboveDashboardCharts: 10,
+      dropdown: 11,
+      max: 3000,
+    },
+    transitionTiming: 0.3,
+    gridUnit: 4,
+    brandIconMaxWidth: 37,
+  };
+  if (isDarkTheme) {
+    baseTheme = makeThemeDark(baseTheme);
+  }
+
+  const antdThemeSeed = {
+    ...antdTheme.defaultSeed,
+    colorPrimary: baseTheme.colors.primary.base,
+    colorSuccess: baseTheme.colors.success.base,
+    colorWarning: baseTheme.colors.warning.base,
+    colorError: baseTheme.colors.error.base,
+    colorInfo: baseTheme.colors.info.base,
+
+    borderRadius: baseTheme.borderRadius,
+
+    fontSize: baseTheme.typography.sizes.m,
+    fontFamily: baseTheme.typography.families.sansSerif,
+  };
+
+  const computedAntdTheme = isDarkTheme
+    ? antdTheme.darkAlgorithm(antdThemeSeed)
+    : antdTheme.defaultAlgorithm(antdThemeSeed);
+  // Filter out duplicated keys for colors
+  const filteredAntdTheme = Object.fromEntries(
+    Object.entries(computedAntdTheme).filter(([key]) => !key.includes('-')),
+  );
+  return {
+    ...baseTheme,
+    antd: filteredAntdTheme,
+  };
+};
+
+const baseColors = {
+  primary: '#20A7C9',
+  secondary: '#444E7C',
+  error: '#E04355',
+  warning: '#FF7F44',
+  alert: '#FCC700',
+  success: '#5AC189',
+  info: '#66BCFE',
+  grayscale: '#666666',
+};
+const computedTheme = computeTheme(baseColors, false);
+
+export type SupersetTheme = ReturnType<typeof makeThemeDark>;
 
 export interface SupersetThemeProps {
   theme: SupersetTheme;
 }
-
-export const supersetTheme = defaultTheme;
+console.log('THEME', computedTheme);
+export const supersetTheme = computedTheme;

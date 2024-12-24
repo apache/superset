@@ -98,6 +98,11 @@ const MenuItem = styled(AntdMenu.Item)`
 const StyledNav = styled(AntdMenu)`
   line-height: 51px;
   border: none;
+  background-color: ${({ theme }) => theme.colors.grayscale.lightest};
+
+  .ant-col {
+    background-color: ${({ theme }) => theme.colors.grayscale.lightest};
+  }
 
   & > .ant-menu-item,
   & > .ant-menu-submenu {

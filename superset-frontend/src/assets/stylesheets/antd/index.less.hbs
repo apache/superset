@@ -28,19 +28,19 @@
 /*
   Theme variables here: https://github.com/ant-design/ant-design/blob/master/components/style/themes/default.less
 */
-@primary-color: #20A7C9;
-@info-color: #66BCFE;
-@success-color: #5AC189;
-@processing-color: #66BCFE;
-@error-color: #E04355;
-@highlight-color: #E04355;
-@normal-color: #f7f7f7;
+@primary-color: {{theme.colors.primary.base}};
+@info-color: {{theme.colors.info.base}};
+@success-color: {{theme.colors.success.base}};
+@processing-color: {{theme.colors.info.base}};
+@error-color: {{theme.colors.error.base}};
+@highlight-color: {{theme.colors.error.base}};
+@normal-color: {{theme.colors.grayscale.light5}};
 
-@menu-highlight-color: #136479;
-@menu-item-color: #1a86a1;
-@menu-bg: #FFF;
+@menu-highlight-color: {{theme.colors.primary.dark3}};
+@menu-item-color: {{theme.colors.primary.dark2}};
+@menu-bg: {{theme.colors.lightest}};
 
 @white: #FFF;
 @black: #000;
 
-@body-bg: #FFF;
+@body-bg: {{theme.colors.lightest}};
