@@ -248,17 +248,16 @@ class DorisEngineSpec(MySQLEngineSpec):
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
     ) -> tuple[URL, dict[str, Any]]:
-        if uri.database and "." in uri.database:
-            current_catalog, _ = uri.database.split(".", 1)
+        if catalog:
+            pass
+        elif uri.database and "." in uri.database:
+            catalog, _ = uri.database.split(".", 1)
         else:
-            current_catalog = "internal"
+            catalog = "internal"
 
         # In Apache Doris, each catalog has an information_schema for BI tool
         # compatibility. See: https://github.com/apache/doris/pull/28919
-        adjusted_database = ".".join(
-            [catalog or current_catalog or "", "information_schema"]
-        ).rstrip(".")
-
+        adjusted_database = ".".join([catalog or "", "information_schema"])
         uri = uri.set(database=adjusted_database)
         return uri, connect_args
 
