@@ -5,49 +5,29 @@ phases:
     commands:
       - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-      - echo Installing required tools...
-      - yum install -y docker jq
+
   pre_build:
     commands:
-      - echo Pre-build phase: Preparing for Docker image build...
       - echo Logging in to Docker Hub...
       - docker login -u sbpraonalla -p $DOCKER_HUB_TOKEN
-      - echo Checking if the ECR repository exists for customer ${CUSTOMER_NAME}...
-      - >
-        REPO_EXISTS=$(aws ecr describe-repositories --region ${AWS_REGION} --query "repositories[?contains(repositoryName, '${CUSTOMER_NAME}')].repositoryName" --output text || echo "not found");
-        if [[ $REPO_EXISTS == "not found" ]]; then
-          echo "ECR repository for ${CUSTOMER_NAME} not found. Creating a new repository.";
-          aws ecr create-repository --repository-name ${CUSTOMER_NAME}-db34320 --region ${AWS_REGION}
-          REPO_EXISTS="${CUSTOMER_NAME}-db34320"
-        else
-          echo "ECR repository found: $REPO_EXISTS";
-        fi
-      - echo Determining branch-specific tag...
-      - |
-        if [[ "${BRANCH_NAME}" == main-* ]]; then
-          BASE_TAG=$(echo "${BRANCH_NAME}" | sed 's/main-//')
-          EXISTING_TAGS=$(aws ecr list-images \
-            --repository-name ${REPO_EXISTS} \
-            --region ${AWS_REGION} \
-            --query "imageIds[?contains(imageTag, '${BASE_TAG}-v')].imageTag" \
-            --output text)
-          MAX_VERSION=$(echo "$EXISTING_TAGS" | grep -oP "${BASE_TAG}-v\K[0-9]+" | sort -nr | head -n 1 || echo 0)
-          NEW_VERSION=$((MAX_VERSION + 1))
-          TAG_NAME="${BASE_TAG}-v${NEW_VERSION}"
-        else
-          TAG_NAME="latest"
-        fi
-      - echo "Using tag: ${TAG_NAME}"
+      - echo "Customer Name: ${CUSTOMER_NAME}"
+      - echo "ECR Repository Name: ${ECR_REPO_NAME}"
+      - echo Checking if ECR repository exists...
   build:
     commands:
-      - echo Building the Apache Superset Docker image...
-      - docker build .
+      - echo Building the Docker image...
+      - docker build --no-cache -t ${CUSTOMER_NAME} .
+
   post_build:
     commands:
-      - echo Tagging and pushing the Docker image to ECR...
-      - docker tag ${REPO_EXISTS}:${TAG_NAME} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_EXISTS}:${TAG_NAME}
-      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_EXISTS}:${TAG_NAME}
+      - echo Tagging the Docker image...
+      - IMAGE_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${TAG_NAME}"
+      - docker tag ${CUSTOMER_NAME}:latest ${IMAGE_URL}
+      - echo Pushing the Docker image to ECR...
+      - docker push ${IMAGE_URL}
+      - echo "Image pushed successfully: ${IMAGE_URL}"
+
 artifacts:
   files:
     - '**/*'
-    - '**/**/**/*'
+  discard-paths: yes
