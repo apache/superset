@@ -13,14 +13,6 @@ phases:
       - echo "Customer Name: ${CUSTOMER_NAME}"
       - echo "ECR Repository Name: ${ECR_REPO_NAME}"
       - echo Checking if ECR repository exists...
-      - >
-        if aws ecr describe-repositories --repository-names ${ECR_REPO_NAME} --region ${AWS_REGION} >/dev/null 2>&1; then
-          echo "Repository ${ECR_REPO_NAME} exists.";
-        else
-          echo "Repository ${ECR_REPO_NAME} not found. Creating...";
-          aws ecr create-repository --repository-name ${ECR_REPO_NAME} --region ${AWS_REGION};
-        fi
-
   build:
     commands:
       - echo Building the Docker image...
