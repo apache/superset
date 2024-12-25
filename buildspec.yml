@@ -3,55 +3,25 @@ version: 0.2
 phases:
   install:
     commands:
-      - echo "Logging in to Amazon ECR..."
+      - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   pre_build:
     commands:
-      - echo "Pre-build phase: Preparing for Docker image build..."
-      - echo "Logging in to Docker Hub..."
+      - echo Building the Docker image...
+      - echo Logging in to Docker Hub
       - docker login -u sbpraonalla -p $DOCKER_HUB_TOKEN
-      - echo "Checking if the ECR repository exists for customer: ${CUSTOMER_NAME}..."
-      - |
-        # Find the repository dynamically if it already exists
-        REPO_EXISTS=$(aws ecr describe-repositories \
-          --region ${AWS_REGION} \
-          --query "repositories[?contains(repositoryName, '${CUSTOMER_NAME}')].repositoryName" \
-          --output text || echo "not found")
-
-        if [[ $REPO_EXISTS == "not found" ]]; then
-          # Repository doesn't exist, create a new one with a suffix
-          echo "Repository not found. Creating repository: ${CUSTOMER_NAME}-db34320"
-          aws ecr create-repository --repository-name ${CUSTOMER_NAME}-db34320 --region ${AWS_REGION}
-          REPO_NAME="${CUSTOMER_NAME}-db34320"
-        else
-          # Use the existing repository
-          echo "Repository found: $REPO_EXISTS"
-          REPO_NAME=$REPO_EXISTS
+      - echo ${CUSTOMER_NAME}
+      - echo ${ECR_REPO_NAME}
+      - >
+        REPO_EXISTS=$(aws ecr describe-repositories --repository-names ${ECR_REPO_NAME} --region ${AWS_REGION} 2>&1 || echo "not found");
+        if [[ $REPO_EXISTS == *"not found"* ]]; then
+          aws ecr create-repository --repository-name ${ECR_REPO_NAME} --region ${AWS_REGION}
         fi
-
-      - echo "Repository in use: ${REPO_NAME}"
-      - echo "Generating tag name for the Docker image..."
-      - |
-        if [[ "${BRANCH_NAME}" == main-* ]]; then
-          BASE_TAG=$(echo "${BRANCH_NAME}" | sed 's/main-//')
-          EXISTING_TAGS=$(aws ecr list-images \
-            --repository-name ${REPO_NAME} \
-            --region ${AWS_REGION} \
-            --query "imageIds[?contains(imageTag, '${BASE_TAG}-v')].imageTag" \
-            --output text)
-          MAX_VERSION=$(echo "$EXISTING_TAGS" | grep -oP "${BASE_TAG}-v\K[0-9]+" | sort -nr | head -n 1 || echo 0)
-          NEW_VERSION=$((MAX_VERSION + 1))
-          TAG_NAME="${BASE_TAG}-v${NEW_VERSION}"
-        else
-          TAG_NAME="latest"
-        fi
-      - echo "Using tag: ${TAG_NAME}"
   build:
     commands:
-      - echo "Building the Docker image..."
-      - docker build --no-cache -t ${REPO_NAME}:${TAG_NAME} .
+      - docker build  --no-cache .
   post_build:
     commands:
-      - echo "Tagging and pushing the Docker image to ECR..."
-      - docker tag ${REPO_NAME}:${TAG_NAME} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}:${TAG_NAME}
-      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${REPO_NAME}:${TAG_NAME}
+      - echo Pushing the Docker image to ECR...
+      - docker tag ${CUSTOMER_NAME}:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${TAG_NAME}
+      - docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${TAG_NAME} 
