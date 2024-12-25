@@ -13,6 +13,7 @@ phases:
       - echo "Customer Name: ${CUSTOMER_NAME}"
       - echo "ECR Repository Name: ${ECR_REPO_NAME}"
       - echo Checking if ECR repository exists.
+
   build:
     commands:
       - echo Building the Docker image...
@@ -21,7 +22,7 @@ phases:
   post_build:
     commands:
       - echo Tagging the Docker image...
-      - IMAGE_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${TAG_NAME}"
+      - export IMAGE_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}:${TAG_NAME}"
       - docker tag ${CUSTOMER_NAME}:latest ${IMAGE_URL}
       - echo Pushing the Docker image to ECR...
       - docker push ${IMAGE_URL}
