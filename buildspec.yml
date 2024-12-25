@@ -1,0 +1,49 @@
+version: 0.2
+
+phases:
+  install:
+    commands:
+      - echo Logging in to Amazon S3...
+      - echo ${AWS_REGION} ${S3_BUCKET} ${SCRIPT_APP_NAME} ${COMPANY_ID}
+
+  pre_build:
+    commands:
+      - echo Preparing to zip the build contents...
+      - mkdir -p output
+
+  build:
+    commands:
+      - echo Copying build contents to output directory, excluding the output and .git directories...
+      - rsync -av --progress ./ ./output --exclude output --exclude .git
+      - echo Zipping the build contents as code.zip, excluding the .git directory...
+      - cd output
+      - zip -r code.zip . --exclude .git/\*
+
+  post_build:
+    commands:
+      - echo Constructing S3 path...
+      - |
+        if [ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main" ]; then
+          S3_BUCKET_PATH=${S3_BUCKET}
+          echo "Branch is main, using bucket ${S3_BUCKET_PATH}"
+        elif [ "$CODEBUILD_WEBHOOK_HEAD_REF" == "refs/heads/main-itest" ]; then
+          S3_BUCKET_PATH=${S3_BUCKET_ITEST}
+          echo "Branch is integration-mainline, using bucket ${S3_BUCKET_PATH}"
+        else
+          echo "Branch not recognized, exiting..."
+          exit 0
+        fi
+      - S3_PATH="app=${SCRIPT_APP_NAME}/company=${COMPANY_ID}/code.zip"
+      - echo Uploading code.zip to S3 at path ${S3_PATH}...
+      - aws s3 cp code.zip s3://${S3_BUCKET_PATH}/${S3_PATH}
+      - echo Build and upload to S3 completed successfully.
+
+artifacts:
+  files:
+    - code.zip
+  discard-paths: yes
+  base-directory: output
+
+cache:
+  paths:
+    - '**/*'
