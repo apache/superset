@@ -22,7 +22,26 @@ import {
   epochTimeXHoursAgo,
   epochTimeXDaysAgo,
   epochTimeXYearsAgo,
+  extendedDayjs,
 } from 'src/utils/dates';
+
+describe('extendedDayjs', () => {
+  it('returns dayjs object with extended methods', () => {
+    const dayjs = extendedDayjs();
+    expect(dayjs).toHaveProperty('utc');
+    expect(dayjs).toHaveProperty('calendar');
+    expect(dayjs).toHaveProperty('tz');
+    expect(dayjs).toHaveProperty('fromNow');
+    expect(
+      extendedDayjs(
+        '05/02/69 1:02:03 PM -05:00',
+        'MM/DD/YY H:mm:ss A Z',
+      ).toISOString(),
+    ).toEqual('1969-05-02T18:02:03.000Z');
+    expect(extendedDayjs).toHaveProperty('duration');
+    expect(extendedDayjs).toHaveProperty('updateLocale');
+  });
+});
 
 describe('fDuration', () => {
   it('is a function', () => {
@@ -30,12 +49,14 @@ describe('fDuration', () => {
   });
 
   it('returns a string', () => {
-    expect(typeof fDuration(new Date(), new Date())).toBe('string');
+    expect(typeof fDuration(new Date().getTime(), new Date().getTime())).toBe(
+      'string',
+    );
   });
 
   it('returns the expected output', () => {
-    const output = fDuration('1496293608897', '1496293623406');
-    expect(output).toBe('00:00:14.50');
+    const output = fDuration(1496293608897, 1496293623406);
+    expect(output).toBe('00:00:14.509');
   });
 });
 

@@ -18,6 +18,7 @@
  */
 import { ReactNode, useCallback, useEffect, useState } from 'react';
 import { isEmpty, isEqual } from 'lodash';
+// TODO: @msyavuz - Replace with dayjs when migrating datpicker to antd5
 import moment, { Moment } from 'moment';
 import {
   parseDttmToDate,
