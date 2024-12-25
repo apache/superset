@@ -93,6 +93,7 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
+    rollingType
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -142,9 +143,17 @@ export default function transformProps(
         const compareValue = sortedData[compareIndex][1];
         // compare values must both be non-nulls
         if (bigNumber !== null && compareValue !== null) {
-          percentChange = compareValue
+          const currentValue = bigNumber - (sortedData[1][1] || 0);
+          const prevValue = compareValue - (compareIndex < sortedData.length-1 ? (sortedData[compareIndex+1][1] || 0) : 0);
+          if(rollingType === 'cumsum'){
+            percentChange = prevValue
+            ? (currentValue - prevValue) / Math.abs(prevValue)
+            : 0;
+          } else {
+            percentChange = compareValue
             ? (bigNumber - compareValue) / Math.abs(compareValue)
             : 0;
+          }
           formattedSubheader = `${formatPercentChange(
             percentChange,
           )} ${compareSuffix}`;
