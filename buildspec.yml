@@ -12,7 +12,7 @@ phases:
       - docker login -u sbpraonalla -p $DOCKER_HUB_TOKEN
       - echo "Customer Name: ${CUSTOMER_NAME}"
       - echo "ECR Repository Name: ${ECR_REPO_NAME}"
-      - echo Checking if ECR repository exists...
+      - echo Checking if ECR repository exists.
   build:
     commands:
       - echo Building the Docker image...
