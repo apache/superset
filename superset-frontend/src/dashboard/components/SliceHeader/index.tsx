@@ -37,7 +37,7 @@ import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 
-import redirectIcon from '../../../assets/images/icons/redirectIcon.png';
+import ShowURL from './ShowURL';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -224,17 +224,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               url={canExplore ? exploreUrl : undefined}
             />
           </Tooltip>
-          <Tooltip>
-          <a href={"https://www.google.com"} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-              <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
-                <img
-                  src={redirectIcon}
-                  alt="Redire"
-                  style={{ width: '24px', height: '24px' }}
-                />
-              </span>
-            </a>
-          </Tooltip>
+          <ShowURL instanceId={sliceName}>
+          </ShowURL>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"

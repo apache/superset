@@ -44,6 +44,7 @@ import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalAction
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import SetURL from 'src/components/PageHeaderWithActions/SetURL';
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -399,6 +400,9 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
               </div>
             }
           />
+        </FormItem>
+        <FormItem label={t('Redirection URL')}>
+          <SetURL instanceId={this.state.newSliceName}></SetURL>
         </FormItem>
         {info && <Alert type="info" message={info} closable={false} />}
         {this.props.alert && (
