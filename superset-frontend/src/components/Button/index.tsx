@@ -229,7 +229,7 @@ export default function Button(props: ButtonProps) {
         '& + .superset-button': {
           marginLeft: theme.gridUnit * 2,
         },
-        '& > :first-of-type': {
+        '& > span > :first-of-type': {
           marginRight: firstChildMargin,
         },
       }}
