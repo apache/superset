@@ -7,6 +7,7 @@ on:
           - completed    
         branches:
           - dev
+          - demo
     workflow_dispatch:
       inputs:
         environment:
@@ -43,6 +44,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set Environment Variables for Demo
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'demo'
+        run: |
+          echo "Setting environment for Demo"
+          echo "GCE_VM_NAME=demo" >> $GITHUB_ENV
+          echo "GCE_PROJECT=reference-fact-431711-t6" >> $GITHUB_ENV
+          echo "DIRECTORY_PATH=/home/demo/superset" >> $GITHUB_ENV
+          echo "INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
+          echo "TAG=demo" >> $GITHUB_ENV
+          echo "GIT_BRANCH=demo" >> $GITHUB_ENV
 
       - name: Set Environment Variables
         if: github.event_name == 'workflow_dispatch'

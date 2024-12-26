@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - dev
+      - demo
   # Optionally allow manual triggers
   workflow_dispatch:
 
@@ -52,6 +53,8 @@ jobs:
             echo "IMAGE_PERMANENT_TAG=latest" >> $GITHUB_ENV
           elif [[ "${GITHUB_REF##*/}" == "dev" ]]; then
             echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "demo" ]]; then
+            echo "IMAGE_PERMANENT_TAG=demo" >> $GITHUB_ENV            
           fi
 
       - name: Build Superset images
