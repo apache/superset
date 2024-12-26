@@ -206,7 +206,7 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
 
     # reuse session when loading data if possible, to make import atomic
     if database.sqlalchemy_uri == current_app.config.get("SQLALCHEMY_DATABASE_URI"):
-        logger.info("Loading data inside the import transaction")
+        logger.debug("Loading data inside the import transaction")
         connection = db.session.connection()
         df.to_sql(
             dataset.table_name,
@@ -219,7 +219,7 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
             method="multi",
         )
     else:
-        logger.warning("Loading data outside the import transaction")
+        logger.debug("Loading data outside the import transaction")
         with database.get_sqla_engine(
             catalog=dataset.catalog,
             schema=dataset.schema,

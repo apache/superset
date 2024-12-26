@@ -20,7 +20,8 @@ set -eo pipefail
 
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
-    echo "Reinstalling the app in editable mode"
+    echo "[DEV_MODE detected] Setting the superset package to be in editable mode"
+    echo "RUN: uv pip install -e ."
     uv pip install -e .
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
@@ -39,7 +40,7 @@ fi
 #
 if [ -f "${REQUIREMENTS_LOCAL}" ]; then
   echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
-  uv pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
+  pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
 else
   echo "Skipping local overrides"
 fi
