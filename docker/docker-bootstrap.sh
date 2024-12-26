@@ -21,8 +21,8 @@ set -eo pipefail
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     echo "[DEV_MODE detected] Setting the superset package to be in editable mode"
-    echo "RUN: uv pip install -e ."
-    uv pip install -e .
+    echo "RUN: pip install -e ."
+    pip install -e .
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
 # If Cypress run – overwrite the password for admin and export env variables
@@ -33,7 +33,7 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
 fi
 if [[ "$DATABASE_DIALECT" == postgres* ]] ; then
     echo "Installing postgres requirements"
-    uv pip install -e .[postgres]
+    pip install -e .[postgres]
 fi
 #
 # Make sure we have dev requirements installed
