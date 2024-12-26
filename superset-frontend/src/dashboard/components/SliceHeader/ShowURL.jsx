@@ -1,5 +1,5 @@
 import React, { useContext } from 'react';
-import URLContext from '../../../contexts/URLContext.js';
+import URLContext from '../../../contexts/URLContext.jsx';
 import redirectIcon from '../../../assets/images/icons/redirectIcon.png';
 
 const ShowURL = ({ instanceId }) => {

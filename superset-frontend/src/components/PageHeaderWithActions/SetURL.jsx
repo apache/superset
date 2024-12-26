@@ -1,7 +1,6 @@
 import React, { useContext, useState } from 'react';
-import URLContext from '../../contexts/URLContext.js';
+import URLContext from '../../contexts/URLContext.jsx';
 import { css, useTheme } from '@superset-ui/core';
-import { set } from 'lodash';
 
 const SetURL = ({ instanceId }) => {
   const theme = useTheme();
