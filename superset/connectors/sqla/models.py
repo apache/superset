@@ -404,7 +404,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             "select_star": self.select_star,
         }
 
-    def data_for_slices(  # pylint: disable=too-many-locals
+    def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
     ) -> dict[str, Any]:
         """
@@ -507,7 +507,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
         return data
 
     @staticmethod
-    def filter_values_handler(  # pylint: disable=too-many-arguments
+    def filter_values_handler(  # pylint: disable=too-many-arguments  # noqa: C901
         values: FilterValues | None,
         operator: str,
         target_generic_type: utils.GenericDataType,
@@ -727,7 +727,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
 
         :param template_processor: The template processor to apply to the filters.
         :returns: A list of SQL clauses to be ANDed together.
-        """
+        """  # noqa: E501
         template_processor = template_processor or self.get_template_processor()
 
         all_filters: list[TextClause] = []
@@ -1062,7 +1062,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(s for s in export_fields if s != "table_id")
+    update_from_object_fields = list(s for s in export_fields if s != "table_id")  # noqa: C400
     export_parent = "table"
 
     def __repr__(self) -> str:
@@ -1749,7 +1749,7 @@ class SqlaTable(
             # errors. This is particularly important for database OAuth2, see SIP-85.
             raise
         except Exception as ex:  # pylint: disable=broad-except
-            # TODO (betodealmeida): review exception handling while querying the external
+            # TODO (betodealmeida): review exception handling while querying the external  # noqa: E501
             # database. Ideally we'd expect and handle external database error, but
             # everything else / the default should be to let things bubble up.
             df = pd.DataFrame()
@@ -1937,7 +1937,7 @@ class SqlaTable(
     def default_query(qry: Query) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_key_calls(self, query_obj: QueryObjectDict) -> bool:
+    def has_extra_cache_key_calls(self, query_obj: QueryObjectDict) -> bool:  # noqa: C901
         """
         Detects the presence of calls to `ExtraCache` methods in items in query_obj that
         can be templated. If any are present, the query must be evaluated to extract
@@ -2033,7 +2033,7 @@ class SqlaTable(
         """
         session = inspect(target).session  # pylint: disable=disallowed-name
 
-        # Forces an update to the table's changed_on value when a metric or column on the
+        # Forces an update to the table's changed_on value when a metric or column on the  # noqa: E501
         # table is updated. This busts the cache key for all charts that use the table.
         session.execute(update(SqlaTable).where(SqlaTable.id == target.table.id))
 

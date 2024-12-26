@@ -76,11 +76,16 @@ jobs:
           fi
 
           supersetbot docker \
+            --push \
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
             --extra-flags "--build-arg INCLUDE_CHROMIUM=false" \
             $PLATFORM_ARG
+
+      - name: Docker pull
+        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+        run:  docker pull apache/superset:GHA-${GITHUB_RUN_ID}
 
       - name: Print docker stats
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker

@@ -70,7 +70,7 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
 }
 
 const UnpaddedModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0;
   }
 `;

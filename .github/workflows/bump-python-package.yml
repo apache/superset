@@ -23,7 +23,7 @@ on:
 
 jobs:
   bump-python-package:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
       contents: write
@@ -45,8 +45,8 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install pip-compile-multi
-        run: pip install pip-compile-multi
+      - name: Install uv
+        run: pip install uv
 
       - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
         env:

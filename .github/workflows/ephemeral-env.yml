@@ -21,7 +21,7 @@ jobs:
       group: ${{ github.workflow }}-${{ github.event.inputs.issue_number || github.event.issue.number || github.run_id }}-comment
       cancel-in-progress: true
     name: Evaluate ephemeral env comment trigger (/testenv)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       pull-requests: write
     outputs:
@@ -115,7 +115,7 @@ jobs:
     needs: ephemeral-env-comment
     if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: ephemeral-docker-build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Get Info from comment
         uses: actions/github-script@v7
@@ -158,6 +158,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           supersetbot docker \
+            --push \
+            --load \
             --preset ci \
             --platform  linux/amd64 \
             --context-ref "$RELEASE" \
@@ -188,7 +190,7 @@ jobs:
     needs: [ephemeral-env-comment, ephemeral-docker-build]
     if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
       pull-requests: write

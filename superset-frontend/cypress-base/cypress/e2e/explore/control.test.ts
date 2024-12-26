@@ -56,7 +56,7 @@ describe('Datasource control', () => {
     cy.focused().type(`${newMetricName}{enter}`);
 
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
+    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .contains('Drop columns/metrics here or click')
@@ -68,7 +68,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
-    cy.get('.ant-modal-content').within(() => {
+    cy.get('.antd5-modal-content').within(() => {
       cy.get('[data-test="collection-tab-Metrics"]')
         .contains('Metrics')
         .click();
@@ -78,7 +78,7 @@ describe('Datasource control', () => {
       .find('[data-test="crud-delete-icon"]')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
+    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
     cy.get('[data-test="metrics"]').contains(newMetricName).should('not.exist');
   });
 });
@@ -121,7 +121,7 @@ describe('VizType control', () => {
 
     cy.contains('View all charts').click();
 
-    cy.get('.ant-modal-content').within(() => {
+    cy.get('.antd5-modal-content').within(() => {
       cy.get('button').contains('KPI').click(); // change categories
       cy.get('[role="button"]').contains('Big Number').click();
       cy.get('button').contains('Select').click();

@@ -72,7 +72,7 @@ type SaveModalState = {
 };
 
 export const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     overflow: visible;
   }
   i {

@@ -58,7 +58,6 @@ const getAvailableTranslationCodes = () => {
       .map(dirName => dirName.replace('_', '-'))
       .map(dirName => LOCALE_CODE_MAPPING[dirName] || dirName);
   }
-  // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
   return [];
 };
 

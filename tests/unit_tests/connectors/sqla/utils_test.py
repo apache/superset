@@ -33,7 +33,7 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     result_set = mocker.MagicMock()
     db_engine_spec = mocker.MagicMock()
 
-    CURSOR_DESCR = (
+    CURSOR_DESCR = (  # noqa: N806
         ("foo", "string"),
         ("bar", "string"),
         ("baz", "string"),
@@ -42,7 +42,7 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
     )
     cursor.description = CURSOR_DESCR
 
-    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
     database.db_engine_spec = db_engine_spec
     database.apply_limit_to_sql.return_value = "SELECT * FROM table LIMIT 1"
     database.mutate_sql_based_on_config.return_value = "SELECT * FROM table LIMIT 1"

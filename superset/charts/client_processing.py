@@ -15,15 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Functions to reproduce the post-processing of data on text charts.
+Functions to reproduce the client post-processing of data on charts.
 
-Some text-based charts (pivot tables and t-test table) perform
-post-processing of the data in JavaScript. When sending the data
-to users in reports we want to show the same data they would see
-on Explore.
+Some text-based charts (pivot tables and t-test table) perform post-processing of the
+data in JavaScript. When sending the data to users in reports we want to show the same
+data they would see on Explore.
 
-In order to do that, we reproduce the post-processing in Python
-for these chart types.
+In order to do that, we reproduce the post-processing in Python for these chart types.
 """
 
 from io import StringIO
@@ -59,7 +57,7 @@ def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...
     return tuple(parts)
 
 
-def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches
+def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-statements, too-many-branches  # noqa: C901
     df: pd.DataFrame,
     rows: list[str],
     columns: list[str],
@@ -173,7 +171,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 subtotal = pivot_v2_aggfunc_map[aggfunc](df.iloc[:, slice_], axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
-                subtotal_name = tuple([*subgroup, total, *([""] * depth)])
+                subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
 
@@ -190,7 +188,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 )
                 depth = df.index.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
-                subtotal.name = tuple([*subgroup, total, *([""] * depth)])
+                subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert row after subgroup
                 df = pd.concat(
                     [df[: slice_.stop], subtotal.to_frame().T, df[slice_.stop :]]
@@ -284,7 +282,7 @@ def table(
             format_ = "{:" + config["d3NumberFormat"] + "}"
             try:
                 df[column] = df[column].apply(format_.format)
-            except Exception:  # pylint: disable=broad-except
+            except Exception:  # pylint: disable=broad-except  # noqa: S110
                 # if we can't format the column for any reason, send as is
                 pass
 
@@ -298,7 +296,7 @@ post_processors = {
 
 
 @event_logger.log_this
-def apply_post_process(
+def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,

@@ -97,13 +97,13 @@ def run_sql(
     db_id = get_example_database().id
     return test_client.post(
         "/api/v1/sqllab/execute/",
-        json=dict(
+        json=dict(  # noqa: C408
             database_id=db_id,
             sql=sql,
             runAsync=async_,
             select_as_cta=cta,
             tmp_table_name=tmp_table,
-            client_id="".join(random.choice(string.ascii_lowercase) for i in range(5)),
+            client_id="".join(random.choice(string.ascii_lowercase) for i in range(5)),  # noqa: S311
             ctas_method=ctas_method,
         ),
     ).json
@@ -162,11 +162,11 @@ def test_run_sync_query_dont_exist(test_client, ctas_method):
             "issue_codes": [
                 {
                     "code": 1003,
-                    "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                    "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                 },
                 {
                     "code": 1005,
-                    "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                    "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                 },
             ],
         }
@@ -180,7 +180,7 @@ def test_run_sync_query_dont_exist(test_client, ctas_method):
             "issue_codes": [
                 {
                     "code": 1002,
-                    "message": "Issue 1002 - The database returned an unexpected error.",
+                    "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                 }
             ],
             "engine_name": engine_name,
@@ -219,7 +219,7 @@ def test_run_sync_query_cta_no_data(test_client):
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-@mock.patch(
+@mock.patch(  # noqa: PT008
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
@@ -250,7 +250,7 @@ def test_run_sync_query_cta_config(test_client, ctas_method):
 
 @pytest.mark.usefixtures("load_birth_names_data", "login_as_admin")
 @pytest.mark.parametrize("ctas_method", [CtasMethod.TABLE, CtasMethod.VIEW])
-@mock.patch(
+@mock.patch(  # noqa: PT008
     "superset.sqllab.sqllab_execution_context.get_cta_schema_name",
     lambda d, u, s, sql: CTAS_SCHEMA_NAME,
 )
