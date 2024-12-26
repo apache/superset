@@ -36,8 +36,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
-
-import ShowURL from './ShowURL';
+import redirectIcon from '../../../assets/images/icons/redirectIcon.png';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -213,7 +212,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
           <Tooltip title={headerTooltip}>
             <EditableTitle
               title={
-                sliceName ||
+                sliceName.split(",")[0] ||
                 (editMode
                   ? '---' // this makes an empty title clickable
                   : '')
@@ -224,8 +223,17 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               url={canExplore ? exploreUrl : undefined}
             />
           </Tooltip>
-          <ShowURL instanceId={sliceName}>
-          </ShowURL>
+          {sliceName?.split(",").length > 1 && (
+            <a href={sliceName.split(",")[1]} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                <img
+                  src={redirectIcon}
+                  alt="Redirect"
+                  style={{ width: '24px', height: '24px' }}
+                />
+              </span>
+            </a>
+          )}
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"
