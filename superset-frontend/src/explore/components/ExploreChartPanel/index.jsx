@@ -47,7 +47,7 @@ import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
-
+import { RedirectUrlRow } from '../RedirectUriRow/RedirectUriRow';
 const propTypes = {
   actions: PropTypes.object.isRequired,
   onQuery: PropTypes.func,

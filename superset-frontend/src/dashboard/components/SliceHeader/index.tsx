@@ -37,6 +37,8 @@ import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 
+import ShowURL from './ShowURL';
+
 const extensionsRegistry = getExtensionsRegistry();
 
 type SliceHeaderProps = SliceHeaderControlsProps & {
@@ -124,6 +126,12 @@ const ChartHeaderStyles = styled.div`
       margin: ${theme.gridUnit}px 0;
       color: ${theme.colors.text.label};
     }
+
+    .chart-title-row{
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
   `}
 `;
 
@@ -201,7 +209,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
-        <div className="header-title" ref={headerRef}>
+        <div className="header-title chart-title-row" ref={headerRef}>
           <Tooltip title={headerTooltip}>
             <EditableTitle
               title={
@@ -216,6 +224,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               url={canExplore ? exploreUrl : undefined}
             />
           </Tooltip>
+          <ShowURL instanceId={sliceName}>
+          </ShowURL>
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"
