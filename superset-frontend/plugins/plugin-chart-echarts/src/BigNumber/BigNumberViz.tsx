@@ -206,7 +206,7 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       document.body.append(container);
       fontSize = computeMaxFontSize({
         text,
-        maxWidth: width * 0.9, // max with reduced
+        maxWidth: width * 0.9, // max width reduced
         maxHeight,
         className: 'subheader-line',
         container,
