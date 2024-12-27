@@ -34,7 +34,6 @@ export { default as Card } from './Card';
 export {
   AutoComplete,
   Col,
-  Divider,
   Empty,
   Grid,
   Row,
