@@ -91,20 +91,15 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
         for obj_type, obj_id in objects_to_tag:
             object_type = to_object_type(obj_type)
 
-            # Validate object type
-            for obj_type, obj_id in objects_to_tag:
-                object_type = to_object_type(obj_type)
+            if not object_type:
+                exceptions.append(TagInvalidError(f"invalid object type {object_type}"))
+                continue
 
-                if not object_type:
-                    exceptions.append(
-                        TagInvalidError(f"invalid object type {object_type}")
-                    )
-                try:
-                    if model := to_object_model(object_type, obj_id):  # type: ignore
-                        security_manager.raise_for_ownership(model)
-                except SupersetSecurityException:
-                    # skip the object if the user doesn't have access
-                    self._skipped_tagged_objects.add((obj_type, obj_id))
+            try:
+                if model := to_object_model(object_type, obj_id):
+                    security_manager.raise_for_ownership(model)
+            except SupersetSecurityException:
+                self._skipped_tagged_objects.add((obj_type, obj_id))
 
             self._properties["objects_to_tag"] = (
                 set(objects_to_tag) - self._skipped_tagged_objects

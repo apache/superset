@@ -59,7 +59,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
       endpoint: `/api/v1/tag/bulk_create`,
       jsonPayload: {
         tags: tags.map(tag => ({
-          name: tag.value,
+          name: tag.value.toString(),
           objects_to_tag: selected.map(item => [
             resourceName,
             +item.original.id,
@@ -68,10 +68,13 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
       },
     })
       .then(({ json = {} }) => {
-        const skipped = json.result.objects_skipped;
-        const tagged = json.result.objects_tagged;
-        if (skipped.length > 0) {
-          addSuccessToast(
+        const skipped = json.result.objects_skipped || [];
+        const tagged = json.result.objects_tagged || [];
+        if (tagged.length > 0) {
+          addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
+        }
+        if (skipped.length > 0 && tagged.length === 0) {
+          addDangerToast(
             t(
               '%s items could not be tagged because you don’t have edit permissions to all selected objects.',
               skipped.length,
@@ -79,12 +82,10 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
             ),
           );
         }
-        addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
       })
       .catch(err => {
         addDangerToast(t('Failed to tag items'));
       });
-
     refreshData();
     onHide();
     setTags([]);
