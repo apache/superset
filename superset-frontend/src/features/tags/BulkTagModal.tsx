@@ -68,13 +68,10 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
       },
     })
       .then(({ json = {} }) => {
-        const skipped = json.result.objects_skipped || [];
-        const tagged = json.result.objects_tagged || [];
-        if (tagged.length > 0) {
-          addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
-        }
-        if (skipped.length > 0 && tagged.length === 0) {
-          addDangerToast(
+        const skipped = json.result.objects_skipped;
+        const tagged = json.result.objects_tagged;
+        if (skipped.length > 0) {
+          addSuccessToast(
             t(
               '%s items could not be tagged because you don’t have edit permissions to all selected objects.',
               skipped.length,
@@ -82,10 +79,12 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
             ),
           );
         }
+        addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
       })
       .catch(err => {
         addDangerToast(t('Failed to tag items'));
       });
+
     refreshData();
     onHide();
     setTags([]);
