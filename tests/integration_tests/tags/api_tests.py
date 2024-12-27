@@ -664,7 +664,6 @@ class TestTagApi(SupersetTestCase):
             .first()
         )
         chart = db.session.query(Slice).first()
-        chart.owners = []
         rv = self.client.post(
             uri,
             json={
