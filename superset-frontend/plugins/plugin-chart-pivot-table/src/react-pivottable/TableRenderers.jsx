@@ -922,6 +922,7 @@ export class TableRenderer extends React.Component {
       rowSubtotalDisplay,
       'row'
     );
+    visibleRowKeys.sort();
     const visibleColKeys = this.visibleKeys(
       colKeys,
       this.state.collapsedCols,
