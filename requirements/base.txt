@@ -171,7 +171,7 @@ itsdangerous==2.2.0
     # via
     #   flask
     #   flask-wtf
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   flask
     #   flask-babel
