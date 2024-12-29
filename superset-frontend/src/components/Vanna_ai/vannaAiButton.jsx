@@ -9,12 +9,12 @@ const VannaAiButton = () => {
   const history = useHistory();
 
   const handleButtonClick = () => {
-    history.push('/vanna/home'); // Replace '/target-route' with your desired route
+    history.push('/vanna/home');
   };
   return (
         <span
           role="presentation" 
-          // class="ant-menu-item ant-menu-item-only-child css-wke4wm" 
+          class="ant-menu-item ant-menu-item-only-child css-wke4wm" 
           style={{
             ...styles.button,
             width: '100px',
