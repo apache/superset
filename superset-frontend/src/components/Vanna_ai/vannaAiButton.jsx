@@ -2,24 +2,16 @@ import React, { useState } from 'react';
 import EmbeddedPage from './vannaAiPage';
 import { border, borderColor, borderRadius } from 'polished';
 import SouthPane from 'src/SqlLab/components/SouthPane';
+import { useHistory } from 'react-router-dom';
 
 const VannaAiButton = () => {
-  const [showIframe, setShowIframe] = useState(false);
 
-  const handleOpen = () => {
-    setShowIframe(true);
+  const history = useHistory();
+
+  const handleButtonClick = () => {
+    history.push('/vanna/home'); // Replace '/target-route' with your desired route
   };
-
-  const handleClose = () => {
-    setShowIframe(false);
-  };
-
   return (
-    <span>
-      {!showIframe ? (
-        // <button style={styles.button} onClick={handleOpen}>
-        //   Vanna.ai
-        // </button>
         <span
           role="presentation" 
           // class="ant-menu-item ant-menu-item-only-child css-wke4wm" 
@@ -28,22 +20,8 @@ const VannaAiButton = () => {
             width: '100px',
             textAlign: 'center',}
             }>
-          <a role="button" onClick={handleOpen}>Vanna.ai</a>
+          <a role="button" onClick={handleButtonClick}>Vanna.ai</a>
         </span>
-      ) : (
-        <span>
-          <button style={{
-            ...styles.button,
-            width: '100px',
-            textAlign: 'center',}
-            } 
-            onClick={handleClose}>
-            Close
-          </button>
-          <EmbeddedPage />
-        </span>
-      )}
-    </span>
   );
 };
 

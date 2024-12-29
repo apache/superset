@@ -40,8 +40,8 @@ const styles = {
     backgroundColor: '#f5f5f5',
   },
   iframe: {
-    width: '80%',
-    height: '80%',
+    width: '90%',
+    height: '90%',
     border: '1px solid #ccc',
     borderRadius: '8px',
   },
