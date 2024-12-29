@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "echarts": "^5.5.1"
+    "echarts": "^5.5.1",
+    "react-router-dom": "^7.1.1"
   }
 }
