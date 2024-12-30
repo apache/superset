@@ -36,6 +36,7 @@ import Icons from 'src/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { getSliceHeaderTooltip } from 'src/dashboard/util/getSliceHeaderTooltip';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import redirectIcon from '../../../assets/images/icons/redirectIcon.png';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -124,6 +125,12 @@ const ChartHeaderStyles = styled.div`
       margin: ${theme.gridUnit}px 0;
       color: ${theme.colors.text.label};
     }
+
+    .chart-title-row{
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
   `}
 `;
 
@@ -201,11 +208,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
 
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}>
-        <div className="header-title" ref={headerRef}>
+        <div className="header-title chart-title-row" ref={headerRef}>
           <Tooltip title={headerTooltip}>
             <EditableTitle
               title={
-                sliceName ||
+                sliceName.split(",")[0] ||
                 (editMode
                   ? '---' // this makes an empty title clickable
                   : '')
@@ -216,6 +223,17 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               url={canExplore ? exploreUrl : undefined}
             />
           </Tooltip>
+          {sliceName?.split(",").length > 1 && (
+            <a href={sliceName.split(",")[1]} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+              <span style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}>
+                <img
+                  src={redirectIcon}
+                  alt="Redirect"
+                  style={{ width: '24px', height: '24px' }}
+                />
+              </span>
+            </a>
+          )}
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"

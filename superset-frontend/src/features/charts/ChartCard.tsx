@@ -141,7 +141,7 @@ export default function ChartCard({
     >
       <ListViewCard
         loading={loading}
-        title={chart.slice_name}
+        title={chart.slice_name.split(",").length > 1 ? chart.slice_name.split(",")[0] : chart.slice_name}
         certifiedBy={chart.certified_by}
         certificationDetails={chart.certification_details}
         cover={

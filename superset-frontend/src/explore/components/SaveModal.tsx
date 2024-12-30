@@ -44,6 +44,8 @@ import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalAction
 import { SaveActionType } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Dashboard } from 'src/types/Dashboard';
+import SetURL from 'src/components/PageHeaderWithActions/SetURL';
+
 
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
@@ -98,6 +100,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.saveOrOverwrite = this.saveOrOverwrite.bind(this);
     this.isNewDashboard = this.isNewDashboard.bind(this);
     this.onHide = this.onHide.bind(this);
+    this.handleChartNameChange = this.handleChartNameChange.bind(this);
+    this.handleRedirectionUrlChange = this.handleRedirectionUrlChange.bind(this);
   }
 
   isNewDashboard(): boolean {
@@ -170,6 +174,18 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     searchParams.set('slice_id', chart.id.toString());
     return searchParams;
   };
+
+  handleChartNameChange(event: ChangeEvent<HTMLInputElement>) {
+    const newChartName = event.target.value;
+    const [, redirectionUrl = ''] = this.state.newSliceName?.split(',') || ['default_chart_name','default_url'];
+    this.setState({ newSliceName: `${newChartName.trim()}, ${redirectionUrl.trim()}` });
+  }
+
+  handleRedirectionUrlChange(event: ChangeEvent<HTMLInputElement>) {
+    const newRedirectionUrl = event.target.value;
+    const [chartName = ''] = this.state.newSliceName?.split(',') || ['default_chart_name','default_url'];
+    this.setState({ newSliceName: `${chartName.trim()}, ${newRedirectionUrl.trim()}` });
+  }
 
   async saveOrOverwrite(gotodash: boolean) {
     this.setState({ isLoading: true });
@@ -331,6 +347,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
+    const [chartName = '', redirectionUrl = ''] = this.state.newSliceName?.split(',') || ['default_chart_name','default_url'];
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
@@ -358,8 +375,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
             name="new_slice_name"
             type="text"
             placeholder="Name"
-            value={this.state.newSliceName}
-            onChange={this.onSliceNameChange}
+            value={chartName}
+            onChange={this.handleChartNameChange}
             data-test="new-chart-name"
           />
         </FormItem>
@@ -398,6 +415,16 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
                 {t(' a new one')}
               </div>
             }
+          />
+        </FormItem>
+        <FormItem label={t('Redirection URL')}>
+          <Input
+            name="new_slice_name"
+            type="url"
+            placeholder="Redirection URL"
+            value={redirectionUrl}
+            onChange={this.handleRedirectionUrlChange}
+            data-test="new-chart-name"
           />
         </FormItem>
         {info && <Alert type="info" message={info} closable={false} />}

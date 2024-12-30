@@ -343,7 +343,7 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link to={url} data-test={`${sliceName.split(",").length > 1 ? sliceName.split(",")[0] : sliceName}-list-chart-title`}>
               {certifiedBy && (
                 <>
                   <CertifiedBadge

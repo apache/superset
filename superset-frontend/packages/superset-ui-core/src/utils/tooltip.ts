@@ -29,7 +29,8 @@ export function tooltipHtml(
   title?: string,
   focusedRow?: number,
 ) {
-  const titleRow = title
+  const chartTitle = (title)? title.split(",").length > 1 ? title.split(",")[0] : title : title;
+  const titleRow = chartTitle
     ? `<span style="font-weight: 700;${TRUNCATION_STYLE}">${title}</span>`
     : '';
   return `
