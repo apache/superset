@@ -257,11 +257,9 @@ class DorisEngineSpec(MySQLEngineSpec):
 
         # In Apache Doris, each catalog has an information_schema for BI tool
         # compatibility. See: https://github.com/apache/doris/pull/28919
-        if schema:
-            adjusted_database = ".".join([catalog or "", schema])
-        else:
-            adjusted_database = ".".join([catalog or "", "information_schema"])
-        uri = uri.set(database=adjusted_database)
+        schema = schema or "information_schema"
+        database = ".".join([catalog or "", schema])
+        uri = uri.set(database=database)
         return uri, connect_args
 
     @classmethod
