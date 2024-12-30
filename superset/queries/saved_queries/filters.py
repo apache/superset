@@ -16,15 +16,14 @@
 # under the License.
 from typing import Any
 
+from flask import g
 from flask_babel import lazy_gettext as _
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
-from superset import security_manager
 from superset.models.sql_lab import SavedQuery
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
 
@@ -83,13 +82,10 @@ class SavedQueryTagIdFilter(BaseTagIdFilter):  # pylint: disable=too-few-public-
 class SavedQueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: BaseQuery, value: Any) -> BaseQuery:
         """
-        Filters saved queries to include:
-        - Queries owned by the current user
-        - Queries accessible by users with 'can read' permission on SavedQuery
+        Filter saved queries to only those created by current user.
+
+        :returns: flask-sqlalchemy query
         """
-        user_id = get_user_id()
-
-        if security_manager.can_access("can_read", "SavedQuery"):
-            return query
-
-        return query.filter(SavedQuery.user_id == user_id)
+        return query.filter(
+            SavedQuery.created_by == g.user  # pylint: disable=comparison-with-callable
+        )

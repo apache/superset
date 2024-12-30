@@ -20,11 +20,13 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-from flask import g, request, Response, send_file
+from flask import g, jsonify, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
+from sqlalchemy.exc import SQLAlchemyError
 
+from superset import db, security_manager
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
@@ -195,6 +197,85 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
+
+    class SavedQueryRestApi(BaseSupersetModelRestApi):
+        datamodel = SQLAInterface(SavedQuery)
+
+    @expose("/<int:pk>", methods=["GET"])
+    def get(self, pk: int, **kwargs: Any) -> Response:
+        """Retrieve a specific saved query.
+        ---
+        get:
+          summary: Retrieve a specific saved query
+          description: >
+            Fetches the details of a saved query based on its primary key (ID).
+            The endpoint ensures that only the query owner or users with the
+            appropriate permissions ('can_read') can access the saved query.
+          parameters:
+          - in: path
+            name: pk
+            required: true
+            schema:
+              type: integer
+            description: The primary key (ID) of the saved query to retrieve.
+          responses:
+            200:
+              description: Details of the saved query
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        description: The ID of the saved query.
+                      result:
+                        type: object
+                        description: The saved query details.
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            saved_query = db.session.query(SavedQuery).get(pk)
+            if not saved_query:
+                return jsonify({"message": "Saved query not found"}), 404
+
+            is_owner = saved_query.user_id == g.user.id
+            has_access = security_manager.can_access("can_read", "SavedQuery")
+            if not is_owner and not has_access:
+                return jsonify({"message": "Access denied"}), 403
+
+            response_data = {
+                "id": saved_query.id,
+                "result": {
+                    "changed_on": saved_query.changed_on.isoformat()
+                    if saved_query.changed_on
+                    else None,
+                    "database": {"id": saved_query.db_id},
+                    "sql": saved_query.sql,
+                    "label": saved_query.label,
+                    "schema": saved_query.schema,
+                    "description": saved_query.description,
+                    **({"rows": saved_query.rows} if saved_query.rows else {}),
+                    **(
+                        {"last_run": saved_query.last_run.isoformat()}
+                        if saved_query.last_run
+                        else {}
+                    ),
+                },
+            }
+
+            return jsonify(response_data), 200
+
+        except SQLAlchemyError as ex:
+            logger.error("Error fetching saved query %s: %s", pk, ex)
+            return self.response_500(message="An error occurred")
 
     @expose("/", methods=("DELETE",))
     @protect()
