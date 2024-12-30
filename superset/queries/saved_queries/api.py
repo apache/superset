@@ -23,6 +23,7 @@ from zipfile import is_zipfile, ZipFile
 from flask import g, jsonify, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import ngettext
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -201,6 +202,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     class SavedQueryRestApi(BaseSupersetModelRestApi):
         datamodel = SQLAInterface(SavedQuery)
 
+    @has_access_api
     @expose("/<int:pk>", methods=["GET"])
     def get(self, pk: int, **kwargs: Any) -> Response:
         """Retrieve a specific saved query.
