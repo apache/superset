@@ -20,7 +20,7 @@ from io import BytesIO
 from typing import Any
 from zipfile import is_zipfile, ZipFile
 
-from flask import g, jsonify, request, Response, send_file
+from flask import g, request, Response, send_file
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
@@ -204,8 +204,13 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     @has_access_api
     @expose("/<int:pk>", methods=["GET"])
+    @protect()
+    @safe
+    @statsd_metrics
     def get(self, pk: int, **kwargs: Any) -> Response:
-        """Retrieve a specific saved query.
+        """
+        Retrieve a specific saved query.
+
         ---
         get:
           summary: Retrieve a specific saved query
@@ -228,12 +233,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                   schema:
                     type: object
                     properties:
-                      id:
-                        type: integer
-                        description: The ID of the saved query.
+                      database:
+                        type: object
+                        description: The database associated with the query.
                       result:
                         type: object
-                        description: The saved query details.
+                        description: Details of the saved query.
             401:
               $ref: '#/components/responses/401'
             403:
@@ -246,20 +251,31 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
         try:
             saved_query = db.session.query(SavedQuery).get(pk)
             if not saved_query:
-                return jsonify({"message": "Saved query not found"}), 404
+                return self.response_404()
 
             is_owner = saved_query.user_id == g.user.id
             has_access = security_manager.can_access("can_read", "SavedQuery")
             if not is_owner and not has_access:
-                return jsonify({"message": "Access denied"}), 403
+                return self.response_403()
 
             response_data = {
-                "id": saved_query.id,
+                "database": {
+                    "id": saved_query.db_id,
+                    "database_name": saved_query.database.database_name
+                    if saved_query.database
+                    else None,
+                },
                 "result": {
+                    "id": saved_query.id,
                     "changed_on": saved_query.changed_on.isoformat()
                     if saved_query.changed_on
                     else None,
-                    "database": {"id": saved_query.db_id},
+                    "database": {
+                        "id": saved_query.db_id,
+                        "database_name": saved_query.database.database_name
+                        if saved_query.database
+                        else None,
+                    },
                     "sql": saved_query.sql,
                     "label": saved_query.label,
                     "schema": saved_query.schema,
@@ -273,11 +289,11 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
                 },
             }
 
-            return jsonify(response_data), 200
+            return self.response(200, **response_data)
 
         except SQLAlchemyError as ex:
             logger.error("Error fetching saved query %s: %s", pk, ex)
-            return self.response_500(message="An error occurred")
+            return self.response_500()
 
     @expose("/", methods=("DELETE",))
     @protect()
