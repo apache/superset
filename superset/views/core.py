@@ -23,7 +23,7 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response
+from flask import abort, flash, g, redirect, request, Response, jsonify
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,
@@ -926,11 +926,12 @@ class Superset(BaseSupersetView):
     def sqllab_history(self) -> FlaskResponse:
         return redirect("/sqllab/history")
 
+    @has_access
     @api
-    @expose("/loaders/", methods=("GET",))
-    def get_loaders(self) -> FlaskResponse:
+    @expose("/loader/", methods=("GET",))
+    def get_loader(self) -> FlaskResponse:
         """
         Expose the custom LOADERS configuration via an API endpoint.
         """
-        loaders = app.config.get("LOADERS", [])
-        return loaders
+        loader = app.config.get("LOADER", {})
+        return jsonify(loader)
