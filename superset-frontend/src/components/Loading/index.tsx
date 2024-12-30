@@ -62,8 +62,8 @@ export default function Loading({
 }: Props) {
   const [Loader, setLoader] = useState<string | undefined>(undefined);
   useEffect(() => {
-    console.log('Fetching loaders...');
-    fetch('/superset/loaders/', {
+    console.log('Fetching loader...');
+    fetch('/superset/loader/', {
       method: 'GET',
       credentials: 'include',
     })
@@ -81,12 +81,15 @@ export default function Loading({
       })
       .then(data => {
         console.log('Received data:', data);
-        if (data && Array.isArray(data) && data[0]?.src) {
-          setLoader(data[0].src);
+        // Vérifie si l'objet a une clé "src" et l'assigne
+        if (data?.src) {
+          setLoader(data.src);
+        } else {
+          console.warn('No "src" found in loader data');
         }
       })
       .catch(error => {
-        console.error('Error fetching loaders:', error);
+        console.error('Error fetching loader:', error);
       });
   }, []);
   return (

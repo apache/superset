@@ -100,18 +100,7 @@ VERSION_INFO_FILE = str(files("superset") / "static/version_info.json")
 PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 
 
-# Multiple favicons can be specified here. The "href" property
-# is mandatory, but "sizes," "type," and "rel" are optional.
-# For example:
-# {
-#     "href":path/to/image.png",
-#     "sizes": "16x16",
-#     "type": "image/png"
-#     "rel": "icon"
-# },
-FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
 
-LOADERS = [{"src": "/static/assets/images/loading.gif"}]
 
 def _try_json_readversion(filepath: str) -> str | None:
     try:
@@ -313,6 +302,22 @@ APP_NAME = "Superset"
 
 # Specify the App icon
 APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+
+# Multiple favicons can be specified here. The "href" property
+# is mandatory, but "sizes," "type," and "rel" are optional.
+# For example:
+# {
+#     "href":path/to/image.png",
+#     "sizes": "16x16",
+#     "type": "image/png"
+#     "rel": "icon"
+# },
+FAVICONS = [{"href": "/static/assets/images/favicon.png"}]
+
+# Specify the gif file path to setup your custom loader.
+# In config.py this is the default superset loader.
+# You can setup your own in superset_config.py
+LOADER = {"src": "/static/assets/images/loading.gif"}
 
 # Specify where clicking the logo would take the user'
 # Default value of None will take you to '/superset/welcome'
