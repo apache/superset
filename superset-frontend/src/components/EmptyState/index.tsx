@@ -23,8 +23,8 @@ import {
   MouseEventHandler as ReactMouseEventHandler,
 } from 'react';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
-import { Empty } from 'src/components';
 import Button from 'src/components/Button';
+import { Empty } from './Empty';
 
 export enum EmptyStateSize {
   Small,
@@ -60,7 +60,7 @@ const EmptyStateContainer = styled.div`
     padding: ${theme.gridUnit * 4}px;
     text-align: center;
 
-    & .ant-empty-image svg {
+    & .antd5-empty-image svg {
       width: auto;
     }
 
