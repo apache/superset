@@ -27,6 +27,7 @@ import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
 import Select from 'src/components/Select/Select';
+import locale from 'antd-v5/locale/es_ES';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -44,12 +45,14 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
 import Loading from 'src/components/Loading';
-import { Dayjs } from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
+import { Locale } from 'antd-v5/es/locale';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
   const [datePickerLocale, setDatePickerLocale] = useState<
-    PickerLocale | undefined | null
+    Locale | undefined | null
   >(null);
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
@@ -124,9 +127,12 @@ export function CustomFrame(props: FrameComponentProps) {
     if (datePickerLocale === null) {
       if (localFromFlaskBabel && LOCALE_MAPPING[localFromFlaskBabel]) {
         LOCALE_MAPPING[localFromFlaskBabel]()
-          .then((locale: { default: PickerLocale }) =>
-            setDatePickerLocale(locale.default),
-          )
+          .then((locale: { default: Locale }) => {
+            setDatePickerLocale(locale.default);
+            import(`dayjs/locale/${localFromFlaskBabel}`).then(() => {
+              dayjs.locale(localFromFlaskBabel);
+            });
+          })
           .catch(() => setDatePickerLocale(undefined));
       } else {
         setDatePickerLocale(undefined);
@@ -139,153 +145,33 @@ export function CustomFrame(props: FrameComponentProps) {
   }
 
   return (
-    <div data-test="custom-frame">
-      <div className="section-title">{t('Configure custom time range')}</div>
-      <Row gutter={24}>
-        <Col span={12}>
-          <div className="control-label">
-            {t('START (INCLUSIVE)')}{' '}
-            <InfoTooltipWithTrigger
-              tooltip={t('Start date included in time range')}
-              placement="right"
-            />
-          </div>
-          <Select
-            ariaLabel={t('START (INCLUSIVE)')}
-            options={SINCE_MODE_OPTIONS}
-            value={sinceMode}
-            onChange={(value: string) => onChange('sinceMode', value)}
-          />
-          {sinceMode === 'specific' && (
-            <Row>
-              <DatePicker
-                showTime
-                defaultValue={dttmToDayjs(sinceDatetime)}
-                onChange={(datetime: Dayjs) =>
-                  onChange('sinceDatetime', datetime.format(DAYJS_FORMAT))
-                }
-                allowClear={false}
-                locale={datePickerLocale}
-                getPopupContainer={(triggerNode: HTMLElement) =>
-                  props.isOverflowingFilterBar
-                    ? (triggerNode.parentNode as HTMLElement)
-                    : document.body
-                }
+    <AntdThemeProvider locale={datePickerLocale}>
+      <div data-test="custom-frame">
+        <div className="section-title">{t('Configure custom time range')}</div>
+        <Row gutter={24}>
+          <Col span={12}>
+            <div className="control-label">
+              {t('START (INCLUSIVE)')}{' '}
+              <InfoTooltipWithTrigger
+                tooltip={t('Start date included in time range')}
+                placement="right"
               />
-            </Row>
-          )}
-          {sinceMode === 'relative' && (
-            <Row gutter={8}>
-              <Col span={11}>
-                {/* Make sure sinceGrainValue looks like a positive integer */}
-                <InputNumber
-                  placeholder={t('Relative quantity')}
-                  value={Math.abs(sinceGrainValue)}
-                  min={1}
-                  defaultValue={1}
-                  onChange={value =>
-                    onGrainValue('sinceGrainValue', value || 1)
-                  }
-                  onStep={value => onGrainValue('sinceGrainValue', value || 1)}
-                />
-              </Col>
-              <Col span={13}>
-                <Select
-                  ariaLabel={t('Relative period')}
-                  options={SINCE_GRAIN_OPTIONS}
-                  value={sinceGrain}
-                  onChange={(value: string) => onChange('sinceGrain', value)}
-                />
-              </Col>
-            </Row>
-          )}
-        </Col>
-        <Col span={12}>
-          <div className="control-label">
-            {t('END (EXCLUSIVE)')}{' '}
-            <InfoTooltipWithTrigger
-              tooltip={t('End date excluded from time range')}
-              placement="right"
+            </div>
+            <Select
+              ariaLabel={t('START (INCLUSIVE)')}
+              options={SINCE_MODE_OPTIONS}
+              value={sinceMode}
+              onChange={(value: string) => onChange('sinceMode', value)}
             />
-          </div>
-          <Select
-            ariaLabel={t('END (EXCLUSIVE)')}
-            options={UNTIL_MODE_OPTIONS}
-            value={untilMode}
-            onChange={(value: string) => onChange('untilMode', value)}
-          />
-          {untilMode === 'specific' && (
-            <Row>
-              <DatePicker
-                showTime
-                defaultValue={dttmToDayjs(untilDatetime)}
-                onChange={(datetime: Dayjs) =>
-                  onChange('untilDatetime', datetime.format(DAYJS_FORMAT))
-                }
-                allowClear={false}
-                locale={datePickerLocale}
-                getPopupContainer={(triggerNode: HTMLElement) =>
-                  props.isOverflowingFilterBar
-                    ? (triggerNode.parentNode as HTMLElement)
-                    : document.body
-                }
-              />
-            </Row>
-          )}
-          {untilMode === 'relative' && (
-            <Row gutter={8}>
-              <Col span={11}>
-                <InputNumber
-                  placeholder={t('Relative quantity')}
-                  value={untilGrainValue}
-                  min={1}
-                  defaultValue={1}
-                  onChange={value =>
-                    onGrainValue('untilGrainValue', value || 1)
-                  }
-                  onStep={value => onGrainValue('untilGrainValue', value || 1)}
-                />
-              </Col>
-              <Col span={13}>
-                <Select
-                  ariaLabel={t('Relative period')}
-                  options={UNTIL_GRAIN_OPTIONS}
-                  value={untilGrain}
-                  onChange={(value: string) => onChange('untilGrain', value)}
-                />
-              </Col>
-            </Row>
-          )}
-        </Col>
-      </Row>
-      {sinceMode === 'relative' && untilMode === 'relative' && (
-        <div className="control-anchor-to">
-          <div className="control-label">{t('Anchor to')}</div>
-          <Row align="middle">
-            <Col>
-              <Radio.Group
-                onChange={onAnchorMode}
-                defaultValue="now"
-                value={anchorMode}
-              >
-                <Radio key="now" value="now">
-                  {t('NOW')}
-                </Radio>
-                <Radio key="specific" value="specific">
-                  {t('Date/Time')}
-                </Radio>
-              </Radio.Group>
-            </Col>
-            {anchorMode !== 'now' && (
-              <Col>
+            {sinceMode === 'specific' && (
+              <Row>
                 <DatePicker
                   showTime
-                  defaultValue={dttmToDayjs(anchorValue)}
+                  defaultValue={dttmToDayjs(sinceDatetime)}
                   onChange={(datetime: Dayjs) =>
-                    onChange('anchorValue', datetime.format(DAYJS_FORMAT))
+                    onChange('sinceDatetime', datetime.format(DAYJS_FORMAT))
                   }
                   allowClear={false}
-                  className="control-anchor-to-datetime"
                   locale={datePickerLocale}
                   getPopupContainer={(triggerNode: HTMLElement) =>
                     props.isOverflowingFilterBar
@@ -293,11 +179,136 @@ export function CustomFrame(props: FrameComponentProps) {
                       : document.body
                   }
                 />
-              </Col>
+              </Row>
             )}
-          </Row>
-        </div>
-      )}
-    </div>
+            {sinceMode === 'relative' && (
+              <Row gutter={8}>
+                <Col span={11}>
+                  {/* Make sure sinceGrainValue looks like a positive integer */}
+                  <InputNumber
+                    placeholder={t('Relative quantity')}
+                    value={Math.abs(sinceGrainValue)}
+                    min={1}
+                    defaultValue={1}
+                    onChange={value =>
+                      onGrainValue('sinceGrainValue', value || 1)
+                    }
+                    onStep={value =>
+                      onGrainValue('sinceGrainValue', value || 1)
+                    }
+                  />
+                </Col>
+                <Col span={13}>
+                  <Select
+                    ariaLabel={t('Relative period')}
+                    options={SINCE_GRAIN_OPTIONS}
+                    value={sinceGrain}
+                    onChange={(value: string) => onChange('sinceGrain', value)}
+                  />
+                </Col>
+              </Row>
+            )}
+          </Col>
+          <Col span={12}>
+            <div className="control-label">
+              {t('END (EXCLUSIVE)')}{' '}
+              <InfoTooltipWithTrigger
+                tooltip={t('End date excluded from time range')}
+                placement="right"
+              />
+            </div>
+            <Select
+              ariaLabel={t('END (EXCLUSIVE)')}
+              options={UNTIL_MODE_OPTIONS}
+              value={untilMode}
+              onChange={(value: string) => onChange('untilMode', value)}
+            />
+            {untilMode === 'specific' && (
+              <Row>
+                <DatePicker
+                  showTime
+                  defaultValue={dttmToDayjs(untilDatetime)}
+                  onChange={(datetime: Dayjs) =>
+                    onChange('untilDatetime', datetime.format(DAYJS_FORMAT))
+                  }
+                  allowClear={false}
+                  locale={datePickerLocale}
+                  getPopupContainer={(triggerNode: HTMLElement) =>
+                    props.isOverflowingFilterBar
+                      ? (triggerNode.parentNode as HTMLElement)
+                      : document.body
+                  }
+                />
+              </Row>
+            )}
+            {untilMode === 'relative' && (
+              <Row gutter={8}>
+                <Col span={11}>
+                  <InputNumber
+                    placeholder={t('Relative quantity')}
+                    value={untilGrainValue}
+                    min={1}
+                    defaultValue={1}
+                    onChange={value =>
+                      onGrainValue('untilGrainValue', value || 1)
+                    }
+                    onStep={value =>
+                      onGrainValue('untilGrainValue', value || 1)
+                    }
+                  />
+                </Col>
+                <Col span={13}>
+                  <Select
+                    ariaLabel={t('Relative period')}
+                    options={UNTIL_GRAIN_OPTIONS}
+                    value={untilGrain}
+                    onChange={(value: string) => onChange('untilGrain', value)}
+                  />
+                </Col>
+              </Row>
+            )}
+          </Col>
+        </Row>
+        {sinceMode === 'relative' && untilMode === 'relative' && (
+          <div className="control-anchor-to">
+            <div className="control-label">{t('Anchor to')}</div>
+            <Row align="middle">
+              <Col>
+                <Radio.Group
+                  onChange={onAnchorMode}
+                  defaultValue="now"
+                  value={anchorMode}
+                >
+                  <Radio key="now" value="now">
+                    {t('NOW')}
+                  </Radio>
+                  <Radio key="specific" value="specific">
+                    {t('Date/Time')}
+                  </Radio>
+                </Radio.Group>
+              </Col>
+              {anchorMode !== 'now' && (
+                <Col>
+                  <DatePicker
+                    showTime
+                    defaultValue={dttmToDayjs(anchorValue)}
+                    onChange={(datetime: Dayjs) =>
+                      onChange('anchorValue', datetime.format(DAYJS_FORMAT))
+                    }
+                    allowClear={false}
+                    className="control-anchor-to-datetime"
+                    getPopupContainer={(triggerNode: HTMLElement) =>
+                      props.isOverflowingFilterBar
+                        ? (triggerNode.parentNode as HTMLElement)
+                        : document.body
+                    }
+                  />
+                </Col>
+              )}
+            </Row>
+          </div>
+        )}
+      </div>
+    </AntdThemeProvider>
   );
 }

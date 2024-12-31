@@ -274,6 +274,7 @@ test('should translate Date Picker', async () => {
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   userEvent.click(screen.getAllByRole('img', { name: 'calendar' })[0]);
   expect(screen.getByText('2021')).toBeInTheDocument();
+
   expect(screen.getByText('lu')).toBeInTheDocument();
   expect(screen.getByText('ma')).toBeInTheDocument();
   expect(screen.getByText('me')).toBeInTheDocument();
@@ -306,7 +307,7 @@ test('calls onChange when START Specific Date/Time is selected', async () => {
   const randomDate = screen.getByTitle('2021-03-11');
   userEvent.click(randomDate);
 
-  const okButton = screen.getByText('Ok');
+  const okButton = screen.getByText('OK');
   userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
@@ -335,7 +336,7 @@ test('calls onChange when END Specific Date/Time is selected', async () => {
   const randomDate = screen.getByTitle('2021-03-28');
   userEvent.click(randomDate);
 
-  const okButton = screen.getByText('Ok');
+  const okButton = screen.getByText('OK');
   userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
@@ -372,7 +373,7 @@ test('calls onChange when a date is picked from anchor mode date picker', async 
   const randomDate = screen.getByTitle('2024-06-05');
   userEvent.click(randomDate);
 
-  const okButton = screen.getByText('Ok');
+  const okButton = screen.getByText('OK');
   userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();

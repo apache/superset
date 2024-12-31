@@ -17,17 +17,6 @@
  * under the License.
  */
 
-import 'dayjs/locale/de';
-import 'dayjs/locale/es';
-import 'dayjs/locale/fr';
-import 'dayjs/locale/it';
-import 'dayjs/locale/ja';
-import 'dayjs/locale/ko';
-import 'dayjs/locale/pt';
-import 'dayjs/locale/pt-br';
-import 'dayjs/locale/ru';
-import 'dayjs/locale/zh';
-
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';

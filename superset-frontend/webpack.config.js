@@ -48,6 +48,8 @@ const getAvailableTranslationCodes = () => {
   if (process.env.BUILD_TRANSLATIONS === 'true') {
     const LOCALE_CODE_MAPPING = {
       zh: 'zh-cn',
+      zh_TW: 'zh-tw',
+      pt_BR: 'pt-br',
     };
     const files = fs.readdirSync(TRANSLATIONS_DIR);
     return files
@@ -162,6 +164,11 @@ const plugins = [
   new MomentLocalesPlugin({
     localesToKeep: getAvailableTranslationCodes(),
   }),
+  // Dayjs locales to keep
+  new webpack.ContextReplacementPlugin(
+    /dayjs[\\/]locale$/,
+    new RegExp(getAvailableTranslationCodes().join('|')),
+  ),
 ];
 
 if (!process.env.CI) {
