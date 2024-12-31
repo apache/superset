@@ -82,6 +82,9 @@ const baseConfig: ThemeConfig = {
       colorBgElevated: supersetTheme.colors.grayscale.light5,
       borderRadiusSM: supersetTheme.gridUnit / 2,
     },
+    Divider: {
+      colorSplit: supersetTheme.colors.grayscale.light3,
+    },
     Input: {
       colorBorder: supersetTheme.colors.secondary.light3,
       colorBgContainer: supersetTheme.colors.grayscale.light5,
