@@ -18,7 +18,6 @@
  */
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import type { PickerLocale } from 'antd-v5/lib/date-picker/generatePicker';
 import { isInteger } from 'lodash';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -27,7 +26,6 @@ import { InputNumber } from 'src/components/Input';
 import { DatePicker } from 'src/components/DatePicker';
 import { Radio } from 'src/components/Radio';
 import Select from 'src/components/Select/Select';
-import locale from 'antd-v5/locale/es_ES';
 import {
   SINCE_GRAIN_OPTIONS,
   SINCE_MODE_OPTIONS,
@@ -172,7 +170,6 @@ export function CustomFrame(props: FrameComponentProps) {
                     onChange('sinceDatetime', datetime.format(DAYJS_FORMAT))
                   }
                   allowClear={false}
-                  locale={datePickerLocale}
                   getPopupContainer={(triggerNode: HTMLElement) =>
                     props.isOverflowingFilterBar
                       ? (triggerNode.parentNode as HTMLElement)
@@ -232,7 +229,6 @@ export function CustomFrame(props: FrameComponentProps) {
                     onChange('untilDatetime', datetime.format(DAYJS_FORMAT))
                   }
                   allowClear={false}
-                  locale={datePickerLocale}
                   getPopupContainer={(triggerNode: HTMLElement) =>
                     props.isOverflowingFilterBar
                       ? (triggerNode.parentNode as HTMLElement)
