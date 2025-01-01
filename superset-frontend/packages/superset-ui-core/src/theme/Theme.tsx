@@ -17,9 +17,14 @@
  * under the License.
  */
 
-import { theme as antdThemeImport } from 'antd-v5';
+import { theme as antdThemeImport, ThemeConfig, ConfigProvider } from 'antd-v5';
 import tinycolor from 'tinycolor2';
-import type { ThemeConfig } from 'antd-v5';
+
+import {
+  ThemeProvider as EmotionThemeProvider,
+  CacheProvider as EmotionCacheProvider,
+} from '@emotion/react';
+import createCache from '@emotion/cache';
 
 /* eslint-disable theme-colors/no-literal-colors */
 
@@ -208,6 +213,9 @@ export class Theme {
 
     this.setThemeWithSystemColors(this.systemColors, this.isDarkMode);
     this.setAntdThemeFromTheme();
+
+    this.getTheme = this.getTheme.bind(this);
+    this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
   }
 
   getTheme(): SupersetTheme {
@@ -316,7 +324,7 @@ export class Theme {
     return theme;
   }
 
-  private getAntdSeed(): Record<string, any> {
+  private getAntdSeedFromLegacyTheme(): Record<string, any> {
     const theme = this.theme!;
     return {
       ...antdThemeImport.defaultSeed,
@@ -366,7 +374,7 @@ export class Theme {
   }
 
   private setAntdThemeFromTheme(): void {
-    const seed = this.getAntdSeed();
+    const seed = this.getAntdSeedFromLegacyTheme();
     const algorithm = this.isDarkMode
       ? antdThemeImport.darkAlgorithm
       : antdThemeImport.defaultAlgorithm;
@@ -377,5 +385,20 @@ export class Theme {
     };
 
     this.antdTheme = algorithm(seed as any);
+  }
+
+  SupersetThemeProvider({ children }: { children: React.ReactNode }) {
+    const emotionCache = createCache({
+      key: 'superset',
+    });
+    return (
+      <EmotionCacheProvider value={emotionCache}>
+        <EmotionThemeProvider theme={this.getTheme()}>
+          <ConfigProvider theme={this.antdConfig} prefixCls="antd5">
+            {children}
+          </ConfigProvider>
+        </EmotionThemeProvider>
+      </EmotionCacheProvider>
+    );
   }
 }

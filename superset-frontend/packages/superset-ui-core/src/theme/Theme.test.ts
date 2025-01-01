@@ -1,5 +1,5 @@
-import { Theme } from './Theme';
 import tinycolor from 'tinycolor2';
+import { Theme } from './Theme';
 
 describe('Theme', () => {
   it('initializes with default system colors and light mode', () => {
@@ -25,14 +25,14 @@ describe('Theme', () => {
 
   it('throws an error if getTheme is called before initialization', () => {
     const theme = new Theme();
-    theme['theme'] = null; // Simulating uninitialized theme
+    theme.theme = null; // Simulating uninitialized theme
     expect(() => theme.getTheme()).toThrow('Theme is not initialized.');
   });
 
   it('adjusts colors correctly', () => {
     const theme = new Theme();
     const adjustColorSpy = jest.spyOn(theme as any, 'adjustColor');
-    const lighterColor = theme['adjustColor']('#123456', 20, 'white');
+    const lighterColor = theme.adjustColor('#123456', 20, 'white');
     expect(adjustColorSpy).toHaveBeenCalledWith('#123456', 20, 'white');
     expect(tinycolor(lighterColor).isValid()).toBe(true);
   });
@@ -52,15 +52,15 @@ describe('Theme', () => {
       dark4: '#3210fe',
       dark5: '#210fed',
     };
-    const swappedColors = theme['swapLightAndDark'](colors);
+    const swappedColors = theme.swapLightAndDark(colors);
     expect(swappedColors.light1).toBe('#654321');
     expect(swappedColors.dark1).toBe('#abcdef');
   });
 
   it('filters out deny-listed colors from the AntD theme', () => {
     const theme = new Theme();
-    const filteredTheme = theme['getFilteredAntdTheme']();
-    Theme['denyList'].forEach(denyRegex => {
+    const filteredTheme = theme.getFilteredAntdTheme();
+    Theme.denyList.forEach(denyRegex => {
       Object.keys(filteredTheme).forEach(key => {
         expect(denyRegex.test(key)).toBe(false);
       });
@@ -69,14 +69,14 @@ describe('Theme', () => {
 
   it('handles empty AntD theme gracefully', () => {
     const theme = new Theme();
-    theme['antdTheme'] = {};
-    const filteredTheme = theme['getFilteredAntdTheme']();
+    theme.antdTheme = {};
+    const filteredTheme = theme.getFilteredAntdTheme();
     expect(Object.keys(filteredTheme).length).toBe(0);
   });
 
   it('generates AntD seed correctly', () => {
     const theme = new Theme();
-    const antdSeed = theme['getAntdSeed']();
+    const antdSeed = theme.getAntdSeed();
     expect(antdSeed.borderRadius).toBe(4);
     expect(antdSeed.colorPrimary).toBe('#20a7c9');
   });
@@ -112,19 +112,19 @@ describe('Theme', () => {
   });
 
   it('ensures all denyList patterns are tested', () => {
-    Theme['denyList'].forEach(pattern => {
+    Theme.denyList.forEach(pattern => {
       expect(pattern).toBeInstanceOf(RegExp);
     });
   });
   test('getLegacySupersetTheme handles dark theme', () => {
     const theme = new Theme();
-    const result = theme['getLegacySupersetTheme'](theme['systemColors'], true);
+    const result = theme.getLegacySupersetTheme(theme.systemColors, true);
     expect(result.colors.darkest).toBe('#FFF');
     expect(result.colors.lightest).toBe('#000');
   });
   test('getLegacySupersetTheme handles light theme by default', () => {
     const theme = new Theme();
-    const result = theme['getLegacySupersetTheme'](theme['systemColors']);
+    const result = theme.getLegacySupersetTheme(theme.systemColors);
     expect(result.colors.darkest).toBe('#000');
     expect(result.colors.lightest).toBe('#FFF');
   });

@@ -19,9 +19,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import Handlebars from 'handlebars';
-import { theme } from 'packages/superset-ui-core/src/theme'; // Adjust the path as needed
+import { themeObject } from 'packages/superset-ui-core/src/theme'; // Adjust the path as needed
 
+// eslint-disable @no-console
 Handlebars.escapeExpression = (value: string) => value;
+const theme = themeObject.getTheme();
 
 // Function to apply a template and generate the output
 function applyTemplate(filePath: string): void {
@@ -38,7 +40,6 @@ function applyTemplate(filePath: string): void {
     // Write the output to a .less file
     const outputFilePath = filePath.replace('.hbs', ''); // Remove .hbs for output
     fs.writeFileSync(outputFilePath, result, 'utf-8');
-
     console.log(`Themed .less file generated: ${outputFilePath}`);
   } catch (error) {
     console.error(`Failed to process template: ${filePath}`, error);
