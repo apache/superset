@@ -223,7 +223,7 @@ export class Theme {
   private adjustColor(
     color: string,
     percentage: number,
-    target = 'white',
+    target: string,
   ): string {
     return tinycolor.mix(color, target, percentage).toHexString();
   }

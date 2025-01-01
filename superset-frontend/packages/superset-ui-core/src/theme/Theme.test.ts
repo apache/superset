@@ -67,6 +67,13 @@ describe('Theme', () => {
     });
   });
 
+  it('handles empty AntD theme gracefully', () => {
+    const theme = new Theme();
+    theme['antdTheme'] = {};
+    const filteredTheme = theme['getFilteredAntdTheme']();
+    expect(Object.keys(filteredTheme).length).toBe(0);
+  });
+
   it('generates AntD seed correctly', () => {
     const theme = new Theme();
     const antdSeed = theme['getAntdSeed']();
@@ -80,5 +87,45 @@ describe('Theme', () => {
 
     const darkTheme = new Theme(undefined, true);
     expect(darkTheme.antdConfig?.algorithm).toBeDefined();
+  });
+
+  it('sets theme with custom colors and updates systemColors', () => {
+    const customColors = {
+      primary: '#123456',
+      success: '#00ff00',
+    };
+    const theme = new Theme(customColors, false);
+    expect(theme.getTheme().colors.primary.base).toBe('#123456');
+    expect(theme.getTheme().colors.success.base).toBe('#00ff00');
+    expect(theme.getTheme().colors.darkest).toBe('#000');
+    expect(theme.getTheme().colors.lightest).toBe('#FFF');
+  });
+
+  it('sets theme in dark mode', () => {
+    const customColors = {
+      primary: '#123456',
+      success: '#00ff00',
+    };
+    const theme = new Theme(customColors, true);
+    expect(theme.getTheme().colors.darkest).toBe('#FFF');
+    expect(theme.getTheme().colors.lightest).toBe('#000');
+  });
+
+  it('ensures all denyList patterns are tested', () => {
+    Theme['denyList'].forEach(pattern => {
+      expect(pattern).toBeInstanceOf(RegExp);
+    });
+  });
+  test('getLegacySupersetTheme handles dark theme', () => {
+    const theme = new Theme();
+    const result = theme['getLegacySupersetTheme'](theme['systemColors'], true);
+    expect(result.colors.darkest).toBe('#FFF');
+    expect(result.colors.lightest).toBe('#000');
+  });
+  test('getLegacySupersetTheme handles light theme by default', () => {
+    const theme = new Theme();
+    const result = theme['getLegacySupersetTheme'](theme['systemColors']);
+    expect(result.colors.darkest).toBe('#000');
+    expect(result.colors.lightest).toBe('#FFF');
   });
 });
