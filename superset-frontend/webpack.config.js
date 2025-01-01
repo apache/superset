@@ -166,8 +166,8 @@ const plugins = [
   }),
   // Dayjs locales to keep
   new webpack.ContextReplacementPlugin(
-    /dayjs[\\/]locale$/,
-    new RegExp(getAvailableTranslationCodes().join('|')),
+    /dayjs[/\\]locale$/,
+    new RegExp(`^./(${getAvailableTranslationCodes().join('|')})$`),
   ),
 ];
 
