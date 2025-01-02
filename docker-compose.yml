@@ -42,7 +42,6 @@ x-common-build: &common-build
 services:
   nginx:
     logging:
-      driver: gcplogs  
       options:
         labels: "superset_nginx"      
     image: nginx:latest
@@ -56,7 +55,6 @@ services:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
   redis:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_cache"        
     image: redis:7
@@ -69,7 +67,7 @@ services:
 
   db:
     logging:
-      driver: gcplogs    
+
       options:
         labels: "superset_db"         
     env_file:
@@ -88,7 +86,6 @@ services:
 
   superset:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_app"        
     env_file:
@@ -113,7 +110,6 @@ services:
 
   superset-websocket:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_websocket"        
     container_name: superset_websocket
@@ -150,7 +146,6 @@ services:
 
   superset-init:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_init"        
     build:
@@ -172,7 +167,6 @@ services:
 
   superset-node:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_node"          
     image: node:18
@@ -192,7 +186,6 @@ services:
 
   superset-worker:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_worker"        
     build:
@@ -220,7 +213,6 @@ services:
 
   superset-worker-beat:
     logging:
-      driver: gcplogs   
       options:
         labels: "superset_worker_beat"         
     build:
@@ -241,7 +233,6 @@ services:
 
   superset-tests-worker:
     logging:
-      driver: gcplogs    
       options:
         labels: "superset_tests_worker"        
     build:
