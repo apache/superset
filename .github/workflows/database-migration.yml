@@ -101,7 +101,7 @@ jobs:
             echo "Setting environment for Client-X"
             echo "GCE_DESTINY_VM_NAME=cliente-x" >> $GITHUB_ENV
             echo "GCE_DESTINY_PROJECT=client-x-429512" >> $GITHUB_ENV
-            echo "DESTINY_DIRECTORY_PATH=home/clientx/superset" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=/home/clientx/superset" >> $GITHUB_ENV
             echo "DESTINY_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=dev" >> $GITHUB_ENV
             echo "DESTINY_GIT_BRANCH=dev" >> $GITHUB_ENV
