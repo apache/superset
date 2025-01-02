@@ -60,18 +60,18 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | affinity | object | `{}` |  |
 | bootstrapScript | string | see `values.yaml` | Install additional packages and do any other bootstrap configuration in this script For production clusters it's recommended to build own image with this step done in CI |
 | configFromSecret | string | `"{{ template \"superset.fullname\" . }}-config"` | The name of the secret which we will use to generate a superset_config.py file Note: this secret must have the key superset_config.py in it and can include other files as well |
-| configMountPath | string | `"/app/pythonpath"` |  |
+| configMountPath | string | `"/app/pythonpath"` | Define where configOverrides and extraSecrets are going to be mounted |
 | configOverrides | object | `{}` | A dictionary of overrides to append at the end of superset_config.py - the name does not matter WARNING: the order is not guaranteed Files can be passed as helm --set-file configOverrides.my-override=my-file.py |
 | configOverridesFiles | object | `{}` | Same as above but the values are files |
 | envFromSecret | string | `"{{ template \"superset.fullname\" . }}-env"` | The name of the secret which we will use to populate env vars in deployed pods This can be useful for secret keys, etc. |
 | envFromSecrets | list | `[]` | This can be a list of templated strings |
-| extraConfigMountPath | string | `"/app/configs"` |  |
-| extraConfigs | object | `{}` | Extra files to mount on `/app/configs` |
+| extraConfigMountPath | string | `"/app/configs"` | Define where extraConfigs is going to be mounted |
+| extraConfigs | object | `{}` | Extra files to be mount as ConfigMap on the path specified in `extraConfigMountPath` |
 | extraEnv | object | `{}` | Extra environment variables that will be passed into pods |
 | extraEnvRaw | list | `[]` | Extra environment variables in RAW format that will be passed into pods |
 | extraLabels | object | `{}` | Labels to be added to all resources |
 | extraSecretEnv | object | `{}` | Extra environment variables to pass as secrets |
-| extraSecrets | object | `{}` | Extra files to mount on `/app/pythonpath` as secrets |
+| extraSecrets | object | `{}` | Extra files to be mount as Secrets on the path specified in `configMountPath` |
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `nil` | Provide a name to override the full names of resources |
