@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import React from 'react';
 import { theme as antdThemeImport, ThemeConfig, ConfigProvider } from 'antd-v5';
 import tinycolor from 'tinycolor2';
 import { merge } from 'lodash';
@@ -129,6 +129,7 @@ interface LegacySupersetTheme {
 export interface SupersetTheme extends LegacySupersetTheme {
   antd: Record<string, any>;
 }
+
 export class Theme {
   private readonly isDarkMode: boolean;
 
@@ -363,36 +364,45 @@ export class Theme {
     this.antdTheme = algorithm(seed as any);
   }
 
-  private updateLegacyTheme(legacyTheme: LegacySupersetTheme): void {
+  private updateTheme(legacyTheme: LegacySupersetTheme): void {
     this.legacyTheme = legacyTheme;
     this.setAntdThemeFromLegacyTheme(legacyTheme);
     this.theme = this.getTheme();
+    this.updateProviders({ theme: this.theme, antdConfig: this.antdConfig });
   }
 
   setThemeWithSystemColors(
     systemColors: Partial<SystemColors>,
     isDarkMode: boolean,
   ): void {
-    this.updateLegacyTheme(
-      this.getLegacySupersetTheme(systemColors, isDarkMode),
-    );
+    this.updateTheme(this.getLegacySupersetTheme(systemColors, isDarkMode));
   }
 
   mergeTheme(partialTheme: Partial<LegacySupersetTheme>): void {
-    this.updateLegacyTheme(merge({}, this.legacyTheme, partialTheme));
+    this.updateTheme(merge({}, this.legacyTheme, partialTheme));
   }
+
+  private updateProviders(theme: SupersetTheme, antdConfig): void {}
 
   SupersetThemeProvider({ children }: { children: React.ReactNode }) {
     if (!this.theme || !this.antdConfig) {
       throw new Error('Theme is not initialized.');
     }
+
+    const [themeState, setThemeState] = React.useState({
+      theme: this.theme,
+      antdConfig: this.antdConfig,
+    });
+
+    this.updateProviders = setThemeState;
+
     const emotionCache = createCache({
       key: 'superset',
     });
     return (
       <EmotionCacheProvider value={emotionCache}>
-        <EmotionThemeProvider theme={this.theme}>
-          <ConfigProvider theme={this.antdConfig} prefixCls="antd5">
+        <EmotionThemeProvider theme={themeState.theme}>
+          <ConfigProvider theme={themeState.antdConfig} prefixCls="antd5">
             {children}
           </ConfigProvider>
         </EmotionThemeProvider>
