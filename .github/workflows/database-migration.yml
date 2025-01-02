@@ -25,6 +25,9 @@ on:
 jobs:
   migrate-database:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       
 
     steps:
     - name: Checkout repository
@@ -36,7 +39,11 @@ jobs:
       with:
         workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}      
-      
+              
+    - name: Install Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        export_default_credentials: true     
 
     - name: Set Environment Variables for Demo
       if: github.event_name == 'workflow_dispatch'
@@ -102,13 +109,6 @@ jobs:
             exit 1
             ;;
         esac
-        
-        
-    - name: Install Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        export_default_credentials: true        
-
 
     - name: Generate dump file on origin VM
       run: |
