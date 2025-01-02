@@ -45,59 +45,29 @@ jobs:
       with:
         export_default_credentials: true     
 
-    - name: Set Environment Variables for Demo
-      if: github.event_name == 'workflow_dispatch'
-      run: |
-        case "${{ github.event.inputs.destiny_environment }}" in
-          Demo)        
-            echo "Setting environment for Demo"
-            echo "GCE_ORIGIN_VM_NAME=demo" >> $GITHUB_ENV
-            echo "GCE_ORIGIN_PROJECT=reference-fact-431711-t6" >> $GITHUB_ENV
-            echo "ORIGIN_DIRECTORY_PATH=/home/demo/superset" >> $GITHUB_ENV
-            echo "ORIGIN_INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
-            echo "ORIGIN_TAG=demo" >> $GITHUB_ENV
-            echo "ORIGIN_GIT_BRANCH=demo" >> $GITHUB_ENV
-            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV   
-            ;;
-          Client-X)        
-            echo "Setting environment for Client-X"
-            echo "GCE_ORIGIN_VM_NAME=cliente-x" >> $GITHUB_ENV
-            echo "GCE_ORIGIN_PROJECT=client-x-429512" >> $GITHUB_ENV
-            echo "ORIGIN_DIRECTORY_PATH=home/clientx/superset" >> $GITHUB_ENV
-            echo "ORIGIN_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
-            echo "ORIGIN_TAG=dev" >> $GITHUB_ENV
-            echo "ORIGIN_GIT_BRANCH=dev" >> $GITHUB_ENV
-            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                
-            ;;            
-          *)
-            echo "Unknown environment"
-            exit 1
-            ;;          
-        esac
-
-    - name: Set Environment Variables
+    - name: Set Environment Variables for Origin
       if: github.event_name == 'workflow_dispatch'
       run: |
         case "${{ github.event.inputs.origin_environment }}" in
           January)
             echo "Setting environment for January"
-            echo "GCE_DESTINY_VM_NAME=january"  >> $GITHUB_ENV 
-            echo "GCE_DESTINY_PROJECT=january-spring-433119"  >> $GITHUB_ENV              
-            echo "DESTINY_DIRECTORY_PATH=/home/january/superset" >> $GITHUB_ENV
-            echo "DESTINY_INFISICAL_PATH=/January-Spring/BI-Tool" >> $GITHUB_ENV
-            echo "DESTINY_TAG=latest" >> $GITHUB_ENV    
-            echo "DESTINY_GIT_BRANCH=master" >> $GITHUB_ENV    
-            echo "GCE_DESTINY_ZONE=us-central1-a" >> $GITHUB_ENV                    
+            echo "GCE_ORIGIN_VM_NAME=january"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=january-spring-433119"  >> $GITHUB_ENV              
+            echo "ORIGIN_DIRECTORY_PATH=/home/january/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/January-Spring/BI-Tool" >> $GITHUB_ENV
+            echo "ORIGIN_TAG=latest" >> $GITHUB_ENV    
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV    
+            echo "GCE_ORIGIN_ZONE=us-central1-a" >> $GITHUB_ENV                    
             ;;
           Travcoding)
             echo "Setting environment for Travcoding"
-            echo "GCE_DESTINY_VM_NAME=travcoding"  >> $GITHUB_ENV 
-            echo "GCE_DESTINY_PROJECT=travcoding-430213"  >> $GITHUB_ENV
-            echo "DESTINY_DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
-            echo "DESTINY_INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
+            echo "GCE_ORIGIN_VM_NAME=travcoding"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=travcoding-430213"  >> $GITHUB_ENV
+            echo "ORIGIN_DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=latest" >> $GITHUB_ENV     
-            echo "DESTINY_GIT_BRANCH=master" >> $GITHUB_ENV   
-            echo "GCE_DESTINY_ZONE=us-central1-c" >> $GITHUB_ENV                                            
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV   
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                                            
             ;;
           Caliza)
             echo "Setting environment for Caliza"
@@ -115,18 +85,48 @@ jobs:
             ;;
         esac
 
+    - name: Set Environment Variables for Destiny
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        case "${{ github.event.inputs.destiny_environment }}" in
+          Demo)        
+            echo "Setting environment for Demo"
+            echo "GCE_DESTINY_VM_NAME=demo" >> $GITHUB_ENV
+            echo "GCE_DESTINY_PROJECT=reference-fact-431711-t6" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=/home/demo/superset" >> $GITHUB_ENV
+            echo "DESTINY_INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
+            echo "DESTINY_TAG=demo" >> $GITHUB_ENV
+            echo "DESTINY_GIT_BRANCH=demo" >> $GITHUB_ENV
+            echo "GCE_DESTINY_ZONE=us-central1-c" >> $GITHUB_ENV   
+            ;;
+          Client-X)        
+            echo "Setting environment for Client-X"
+            echo "GCE_DESTINY_VM_NAME=cliente-x" >> $GITHUB_ENV
+            echo "GCE_DESTINY_PROJECT=client-x-429512" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=home/clientx/superset" >> $GITHUB_ENV
+            echo "DESTINY_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
+            echo "DESTINY_TAG=dev" >> $GITHUB_ENV
+            echo "DESTINY_GIT_BRANCH=dev" >> $GITHUB_ENV
+            echo "GCE_DESTINY_ZONE=us-central1-c" >> $GITHUB_ENV                
+            ;;            
+          *)
+            echo "Unknown environment"
+            exit 1
+            ;;          
+        esac        
+
     - name: Generate dump file on origin VM
       run: |
-        gcloud compute ssh ${{env.GCE_ORIGIN_VM_NAME}} --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} --command "cd $DIRECTORY_PATH/docker && source .env && export PGPASSWORD=$DATABASE_PASSWORD && pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB  > database.dump"
+        gcloud compute ssh ${{env.GCE_ORIGIN_VM_NAME}} --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} --command "cd $ORIGIN_DIRECTORY_PATH/docker && source .env && export PGPASSWORD=$DATABASE_PASSWORD && pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB  > database.dump"
 
     - name: Download dump file from origin VM
       run: |
-        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:$DIRECTORY_PATH/docker/database.dump .
+        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:$ORIGIN_DIRECTORY_PATH/docker/database.dump .
 
     - name: Upload dump file to destiny VM
       run: |
-        gcloud compute scp database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:$DIRECTORY_PATH/docker/docker-entrypoint-initdb.d/remote_database.dump
+        gcloud compute scp database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:$DESTINY_DIRECTORY_PATH/docker/docker-entrypoint-initdb.d/remote_database.dump
 
     - name: Restart Docker Compose on destiny VM
       run: |
-        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd $DIRECTORY_PATH && docker-compose -f docker-compose-image-tag.yml down && docker-compose -f docker-compose-image-tag.yml up -d"
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd $DESTINY_DIRECTORY_PATH && docker-compose -f docker-compose-image-tag.yml down && docker-compose -f docker-compose-image-tag.yml up -d"
