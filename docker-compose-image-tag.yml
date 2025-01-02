@@ -56,6 +56,8 @@ services:
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
+    ports:
+      - 5432:5432    
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
