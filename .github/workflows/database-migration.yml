@@ -66,6 +66,7 @@ jobs:
             echo "ORIGIN_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
             echo "ORIGIN_TAG=dev" >> $GITHUB_ENV
             echo "ORIGIN_GIT_BRANCH=dev" >> $GITHUB_ENV
+            ;;            
           *)
             echo "Unknown environment"
             exit 1
