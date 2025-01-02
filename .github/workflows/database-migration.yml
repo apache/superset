@@ -3,7 +3,7 @@ name: GCP Database Migration
 on:
   workflow_dispatch:
     inputs:
-      origin_environment:
+      destiny_environment:
         description: 'Origin environment'
         required: true
         default: 'Client-X'      
@@ -11,7 +11,7 @@ on:
         options:
           - Client-X
           - Demo   
-      destiny_environment:
+      origin_environment:
         description: 'Destiny environment'
         required: true
         default: 'Travcoding'
@@ -76,7 +76,7 @@ jobs:
     - name: Set Environment Variables
       if: github.event_name == 'workflow_dispatch'
       run: |
-        case "${{ github.event.inputs.destiny_environment }}" in
+        case "${{ github.event.inputs.origin_environment }}" in
           January)
             echo "Setting environment for January"
             echo "GCE_DESTINY_VM_NAME=january"  >> $GITHUB_ENV 
