@@ -106,7 +106,7 @@ extraSecretEnv: {}
   #   # Generate your own secret key for encryption. Use openssl rand -base64 42 to generate a good key
   #  SUPERSET_SECRET_KEY: 'CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET'
 
-# -- Extra files to mount on `/app/pythonpath`
+# -- Extra files to mount on `/app/configs`
 extraConfigs: {}
   # import_datasources.yaml: |
   #     databases:
