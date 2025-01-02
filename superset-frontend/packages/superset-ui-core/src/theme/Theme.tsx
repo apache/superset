@@ -131,15 +131,9 @@ export interface SupersetTheme extends LegacySupersetTheme {
 }
 
 export class Theme {
-  private readonly isDarkMode: boolean;
+  private legacyTheme: LegacySupersetTheme;
 
-  private legacyTheme: LegacySupersetTheme | null = null;
-
-  private theme: SupersetTheme | null = null;
-
-  private antdTheme: Record<string, any> | null = null;
-
-  public antdConfig: ThemeConfig | undefined = undefined;
+  private antdTheme: Record<string, any>;
 
   private static readonly denyList: RegExp[] = [
     /purple.*/,
@@ -158,16 +152,20 @@ export class Theme {
     /orange.*/,
   ];
 
+  public antdConfig: ThemeConfig;
+
+  public theme: SupersetTheme;
+
   constructor(systemColors?: Partial<SystemColors>, isDarkMode = false) {
-    this.isDarkMode = isDarkMode;
     this.setThemeWithSystemColors(systemColors || {}, isDarkMode);
 
     this.getTheme = this.getTheme.bind(this);
+    this.updateTheme = this.updateTheme.bind(this);
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
   }
 
   getTheme(): SupersetTheme {
-    if (!this.legacyTheme) {
+    if (!this.legacyTheme || !this.antdTheme) {
       throw new Error('Legacy theme is not initialized.');
     }
     return {
@@ -225,47 +223,47 @@ export class Theme {
 
   private generateColors(
     systemColors: SystemColors,
-    isDarkTheme = false,
+    isDarkMode = false,
   ): ThemeColors {
     return {
-      darkest: isDarkTheme ? '#FFF' : '#000',
-      lightest: isDarkTheme ? '#000' : '#FFF',
+      darkest: isDarkMode ? '#FFF' : '#000',
+      lightest: isDarkMode ? '#000' : '#FFF',
       text: {
         label: '#879399',
         help: '#737373',
       },
-      primary: this.generateColorVariations(systemColors.primary, isDarkTheme),
+      primary: this.generateColorVariations(systemColors.primary, isDarkMode),
       secondary: this.generateColorVariations(
         systemColors.secondary,
-        isDarkTheme,
+        isDarkMode,
       ),
-      error: this.generateColorVariations(systemColors.error, isDarkTheme),
-      warning: this.generateColorVariations(systemColors.warning, isDarkTheme),
-      alert: this.generateColorVariations(systemColors.alert, isDarkTheme),
-      success: this.generateColorVariations(systemColors.success, isDarkTheme),
-      info: this.generateColorVariations(systemColors.info, isDarkTheme),
+      error: this.generateColorVariations(systemColors.error, isDarkMode),
+      warning: this.generateColorVariations(systemColors.warning, isDarkMode),
+      alert: this.generateColorVariations(systemColors.alert, isDarkMode),
+      success: this.generateColorVariations(systemColors.success, isDarkMode),
+      info: this.generateColorVariations(systemColors.info, isDarkMode),
       grayscale: this.generateColorVariations(
         systemColors.grayscale,
-        isDarkTheme,
+        isDarkMode,
       ),
     };
   }
 
   private getLegacySupersetTheme(
     systemColors: Partial<SystemColors>,
-    isDarkTheme = false,
+    isDarkMode = false,
   ): LegacySupersetTheme {
     const allSystemColors: SystemColors = {
       ...DEFAULT_SYSTEM_COLORS,
       ...systemColors,
     };
-    const colors = this.generateColors(allSystemColors, isDarkTheme);
-    let theme: LegacySupersetTheme = {
+    const colors = this.generateColors(allSystemColors, isDarkMode);
+    const theme: LegacySupersetTheme = {
       colors,
       borderRadius: 4,
       body: {
-        backgroundColor: '#FFF',
-        color: '#000',
+        backgroundColor: isDarkMode ? '#000' : '#FFF',
+        color: isDarkMode ? '#FFF' : '#000',
       },
       opacity: {
         light: '10%',
@@ -350,9 +348,12 @@ export class Theme {
     return filteredTheme;
   }
 
-  private setAntdThemeFromLegacyTheme(legacyTheme: LegacySupersetTheme): void {
+  private setAntdThemeFromLegacyTheme(
+    legacyTheme: LegacySupersetTheme,
+    isDarkMode: boolean,
+  ): void {
     const seed = this.getAntdSeedFromLegacyTheme(legacyTheme);
-    const algorithm = this.isDarkMode
+    const algorithm = isDarkMode
       ? antdThemeImport.darkAlgorithm
       : antdThemeImport.defaultAlgorithm;
 
@@ -364,43 +365,57 @@ export class Theme {
     this.antdTheme = algorithm(seed as any);
   }
 
-  private updateTheme(legacyTheme: LegacySupersetTheme): void {
+  private updateTheme(
+    legacyTheme: LegacySupersetTheme,
+    isDarkMode: boolean,
+  ): void {
     this.legacyTheme = legacyTheme;
-    this.setAntdThemeFromLegacyTheme(legacyTheme);
+    this.setAntdThemeFromLegacyTheme(legacyTheme, isDarkMode);
     this.theme = this.getTheme();
-    this.updateProviders({ theme: this.theme, antdConfig: this.antdConfig });
+    this.updateProviders(
+      this.theme,
+      this.antdConfig,
+      createCache({ key: 'superset' }),
+    );
   }
 
   setThemeWithSystemColors(
     systemColors: Partial<SystemColors>,
     isDarkMode: boolean,
   ): void {
-    this.updateTheme(this.getLegacySupersetTheme(systemColors, isDarkMode));
+    const legacyTheme = this.getLegacySupersetTheme(systemColors, isDarkMode);
+    this.updateTheme(legacyTheme, isDarkMode);
   }
 
   mergeTheme(partialTheme: Partial<LegacySupersetTheme>): void {
-    this.updateTheme(merge({}, this.legacyTheme, partialTheme));
+    const mergedTheme = merge({}, this.legacyTheme, partialTheme);
+    this.updateTheme(mergedTheme, false); // Assuming isDarkMode = false for mergeTheme
   }
 
-  private updateProviders(theme: SupersetTheme, antdConfig): void {}
+  private updateProviders(
+    theme: SupersetTheme,
+    antdConfig: ThemeConfig,
+    emotionCache: any,
+  ): void {}
 
   SupersetThemeProvider({ children }: { children: React.ReactNode }) {
     if (!this.theme || !this.antdConfig) {
       throw new Error('Theme is not initialized.');
     }
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     const [themeState, setThemeState] = React.useState({
       theme: this.theme,
       antdConfig: this.antdConfig,
+      emotionCache: createCache({ key: 'superset' }),
     });
 
-    this.updateProviders = setThemeState;
+    this.updateProviders = (theme, antdConfig, emotionCache) => {
+      setThemeState({ theme, antdConfig, emotionCache });
+    };
 
-    const emotionCache = createCache({
-      key: 'superset',
-    });
     return (
-      <EmotionCacheProvider value={emotionCache}>
+      <EmotionCacheProvider value={themeState.emotionCache}>
         <EmotionThemeProvider theme={themeState.theme}>
           <ConfigProvider theme={themeState.antdConfig} prefixCls="antd5">
             {children}

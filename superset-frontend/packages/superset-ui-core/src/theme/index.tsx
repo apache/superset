@@ -18,7 +18,8 @@
  */
 import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
-import { Theme as SupersetThemeClass, SupersetTheme } from './Theme';
+import { Theme as SupersetThemeClass } from './Theme';
+import type { SupersetTheme } from './Theme';
 
 export {
   css,
@@ -47,10 +48,11 @@ export function useTheme() {
 }
 
 const styled = emotionStyled;
-const themeObject = new SupersetThemeClass({}, true);
-themeObject;
 
-const theme: SupersetTheme = themeObject.getTheme();
+const themeObject = new SupersetThemeClass({}, false);
+themeObject.setThemeWithSystemColors({}, true);
+
+const { theme } = themeObject;
 const supersetTheme = theme;
 
 export {

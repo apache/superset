@@ -67,7 +67,9 @@ setupFormatters(
 
 setupDashboardComponents();
 
-themeObject.mergeTheme(bootstrapData.common.theme_overrides);
+if (bootstrapData?.common?.theme_overrides) {
+  themeObject.mergeTheme(bootstrapData.common.theme_overrides);
+}
 
 const getMe = makeApi<void, User>({
   method: 'GET',

@@ -21,9 +21,9 @@ import * as path from 'path';
 import Handlebars from 'handlebars';
 import { themeObject } from 'packages/superset-ui-core/src/theme'; // Adjust the path as needed
 
-// eslint-disable @no-console
+// eslint-disable no-console
 Handlebars.escapeExpression = (value: string) => value;
-const theme = themeObject.getTheme();
+const { theme } = themeObject;
 
 // Function to apply a template and generate the output
 function applyTemplate(filePath: string): void {
