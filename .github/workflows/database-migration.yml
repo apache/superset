@@ -57,7 +57,7 @@ jobs:
             echo "ORIGIN_INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
             echo "ORIGIN_TAG=demo" >> $GITHUB_ENV
             echo "ORIGIN_GIT_BRANCH=demo" >> $GITHUB_ENV
-            echo "ORIGIN_GCE_ZONE=us-central1-c" >> $GITHUB_ENV   
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV   
             ;;
           Client-X)        
             echo "Setting environment for Client-X"
@@ -67,7 +67,7 @@ jobs:
             echo "ORIGIN_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
             echo "ORIGIN_TAG=dev" >> $GITHUB_ENV
             echo "ORIGIN_GIT_BRANCH=dev" >> $GITHUB_ENV
-            echo "ORIGIN_GCE_ZONE=us-central1-c" >> $GITHUB_ENV                
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                
             ;;            
           *)
             echo "Unknown environment"
@@ -87,7 +87,7 @@ jobs:
             echo "DESTINY_INFISICAL_PATH=/January-Spring/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=latest" >> $GITHUB_ENV    
             echo "DESTINY_GIT_BRANCH=master" >> $GITHUB_ENV    
-            echo "DESTINY_GCE_ZONE=us-central1-a" >> $GITHUB_ENV                    
+            echo "GCE_DESTINY_ZONE=us-central1-a" >> $GITHUB_ENV                    
             ;;
           Travcoding)
             echo "Setting environment for Travcoding"
@@ -97,7 +97,7 @@ jobs:
             echo "DESTINY_INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=latest" >> $GITHUB_ENV     
             echo "DESTINY_GIT_BRANCH=master" >> $GITHUB_ENV   
-            echo "DESTINY_GCE_ZONE=us-central1-c" >> $GITHUB_ENV                                            
+            echo "GCE_DESTINY_ZONE=us-central1-c" >> $GITHUB_ENV                                            
             ;;
           Caliza)
             echo "Setting environment for Caliza"
@@ -107,7 +107,7 @@ jobs:
             echo "DESTINY_INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=latest" >> $GITHUB_ENV     
             echo "DESTINY_GIT_BRANCH=master" >> $GITHUB_ENV                    
-            echo "DESTINY_GCE_ZONE=us-central1-c" >> $GITHUB_ENV                           
+            echo "_GCEDESTINY_ZONE=us-central1-c" >> $GITHUB_ENV                           
             ;;
           *)
             echo "Unknown environment"
