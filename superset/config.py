@@ -562,6 +562,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
+    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled.
+    "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
 }
 
 # ------------------------------
