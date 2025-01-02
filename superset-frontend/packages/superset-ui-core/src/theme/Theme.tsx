@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable-next-line no-restricted-syntax
 import React from 'react';
 import { theme as antdThemeImport, ThemeConfig, ConfigProvider } from 'antd-v5';
 import tinycolor from 'tinycolor2';
