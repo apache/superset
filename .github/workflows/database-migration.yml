@@ -122,16 +122,16 @@ jobs:
           if [ \"\$DATABASE_HOST\" = \"db\" ]; then
             DATABASE_HOST=localhost
           fi &&
-          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > database.dump
+          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > remote_database.dump
         "
 
     - name: Download dump file from origin VM
       run: |
-        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/database.dump .
+        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/remote_database.dump .
 
     - name: Upload dump file to destiny VM
       run: |
-        gcloud compute scp database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/docker/docker-entrypoint-initdb.d/remote_database.dump
+        gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/docker/docker-entrypoint-initdb.d/
 
     - name: Restart Docker Compose on destiny VM
       run: |
