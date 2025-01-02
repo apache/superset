@@ -71,13 +71,11 @@ jobs:
             ;;
           Caliza)
             echo "Setting environment for Caliza"
-            echo "GCE_DESTINY_VM_NAME=caliza"  >> $GITHUB_ENV 
-            echo "GCE_DESTINY_PROJECT=caliza-435211"  >> $GITHUB_ENV              
-            echo "DESTINY_DIRECTORY_PATH=/home/caliza/superset" >> $GITHUB_ENV
-            echo "DESTINY_INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
-            echo "DESTINY_TAG=latest" >> $GITHUB_ENV     
-            echo "DESTINY_GIT_BRANCH=master" >> $GITHUB_ENV                    
-            echo "_GCEDESTINY_ZONE=us-central1-c" >> $GITHUB_ENV                           
+            echo "ORIGIN_DIRECTORY_PATH=/home/caliza/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
+            echo "ORIGIN_TAG=latest" >> $GITHUB_ENV     
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV                    
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                           
             ;;
           *)
             echo "Unknown environment"
@@ -118,7 +116,7 @@ jobs:
     - name: Generate dump file on origin VM
       run: |
         gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "
-          cd \$ORIGIN_DIRECTORY_PATH/docker &&
+          cd \${{ env.ORIGIN_DIRECTORY_PATH}}/docker &&
           source .env &&
           export PGPASSWORD=\$DATABASE_PASSWORD &&
           if [ \"\$DATABASE_HOST\" = \"db\" ]; then
@@ -129,12 +127,12 @@ jobs:
 
     - name: Download dump file from origin VM
       run: |
-        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:$ORIGIN_DIRECTORY_PATH/docker/database.dump .
+        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/database.dump .
 
     - name: Upload dump file to destiny VM
       run: |
-        gcloud compute scp database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:$DESTINY_DIRECTORY_PATH/docker/docker-entrypoint-initdb.d/remote_database.dump
+        gcloud compute scp database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/docker/docker-entrypoint-initdb.d/remote_database.dump
 
     - name: Restart Docker Compose on destiny VM
       run: |
-        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd $DESTINY_DIRECTORY_PATH && docker-compose -f docker-compose-image-tag.yml down && docker-compose -f docker-compose-image-tag.yml up -d"
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd ${{ env.DESTINY_DIRECTORY_PATH}} && docker-compose -f docker-compose-image-tag.yml down && docker-compose -f docker-compose-image-tag.yml up -d"
