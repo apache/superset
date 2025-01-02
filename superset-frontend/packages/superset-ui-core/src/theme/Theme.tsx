@@ -183,8 +183,11 @@ export class Theme {
     return tinycolor.mix(color, target, percentage).toHexString();
   }
 
-  private generateColorVariations(color: string): ColorVariations {
-    return {
+  private generateColorVariations(
+    color: string,
+    isDarkMode: boolean,
+  ): ColorVariations {
+    const colors = {
       base: color,
       light1: this.adjustColor(color, 20, 'white'),
       light2: this.adjustColor(color, 45, 'white'),
@@ -197,27 +200,10 @@ export class Theme {
       dark4: this.adjustColor(color, 60, 'black'),
       dark5: this.adjustColor(color, 80, 'black'),
     };
-  }
-
-  private makeThemeDark(theme: LegacySupersetTheme): LegacySupersetTheme {
-    const darkTheme = { ...theme };
-    darkTheme.colors = { ...theme.colors };
-
-    Object.keys(darkTheme.colors).forEach(key => {
-      if (key !== 'text') {
-        darkTheme.colors[key] = this.swapLightAndDark(theme.colors[key]);
-      }
-    });
-
-    // Update text-specific colors
-    darkTheme.colors.text = {
-      ...darkTheme.colors.text,
-      label: '#D3D3D3',
-      help: '#D3D3D3',
-    };
-    darkTheme.colors.darkest = '#FFF';
-    darkTheme.colors.lightest = '#000';
-    return darkTheme;
+    if (isDarkMode) {
+      return this.swapLightAndDark(colors);
+    }
+    return colors;
   }
 
   private swapLightAndDark(colorVariations: ColorVariations): ColorVariations {
@@ -238,12 +224,30 @@ export class Theme {
 
   private generateColors(
     systemColors: SystemColors,
-  ): Record<string, ColorVariations> {
-    const colors: Record<string, ColorVariations> = {};
-    Object.entries(systemColors).forEach(([key, value]) => {
-      colors[key] = this.generateColorVariations(value);
-    });
-    return colors;
+    isDarkTheme = false,
+  ): ThemeColors {
+    return {
+      darkest: isDarkTheme ? '#FFF' : '#000',
+      lightest: isDarkTheme ? '#000' : '#FFF',
+      text: {
+        label: '#879399',
+        help: '#737373',
+      },
+      primary: this.generateColorVariations(systemColors.primary, isDarkTheme),
+      secondary: this.generateColorVariations(
+        systemColors.secondary,
+        isDarkTheme,
+      ),
+      error: this.generateColorVariations(systemColors.error, isDarkTheme),
+      warning: this.generateColorVariations(systemColors.warning, isDarkTheme),
+      alert: this.generateColorVariations(systemColors.alert, isDarkTheme),
+      success: this.generateColorVariations(systemColors.success, isDarkTheme),
+      info: this.generateColorVariations(systemColors.info, isDarkTheme),
+      grayscale: this.generateColorVariations(
+        systemColors.grayscale,
+        isDarkTheme,
+      ),
+    };
   }
 
   private getLegacySupersetTheme(
@@ -254,66 +258,51 @@ export class Theme {
       ...DEFAULT_SYSTEM_COLORS,
       ...systemColors,
     };
-    const colors = this.generateColors(allSystemColors);
+    const colors = this.generateColors(allSystemColors, isDarkTheme);
     let theme: LegacySupersetTheme = {
-      colors: {
-        borderRadius: 4,
-        body: {
-          backgroundColor: '#FFF',
-          color: '#000',
-        },
-        colors: {
-          darkest: '#000',
-          lightest: '#FFF',
-          text: {
-            label: '#879399',
-            help: '#737373',
-          },
-        },
-        opacity: {
-          light: '10%',
-          mediumLight: '35%',
-          mediumHeavy: '60%',
-          heavy: '80%',
-        },
-        typography: {
-          families: {
-            sansSerif: `'Inter', Helvetica, Arial`,
-            serif: `Georgia, 'Times New Roman', Times, serif`,
-            monospace: `'Fira Code', 'Courier New', monospace`,
-          },
-          weights: {
-            light: 200,
-            normal: 400,
-            medium: 500,
-            bold: 600,
-          },
-          sizes: {
-            xxs: 9,
-            xs: 10,
-            s: 12,
-            m: 14,
-            l: 16,
-            xl: 21,
-            xxl: 28,
-          },
-        },
-        zIndex: {
-          aboveDashboardCharts: 10,
-          dropdown: 11,
-          max: 3000,
-        },
-        transitionTiming: 0.3,
-        gridUnit: 4,
-        brandIconMaxWidth: 37,
-        ...colors,
+      colors,
+      borderRadius: 4,
+      body: {
+        backgroundColor: '#FFF',
+        color: '#000',
       },
+      opacity: {
+        light: '10%',
+        mediumLight: '35%',
+        mediumHeavy: '60%',
+        heavy: '80%',
+      },
+      typography: {
+        families: {
+          sansSerif: `'Inter', Helvetica, Arial`,
+          serif: `Georgia, 'Times New Roman', Times, serif`,
+          monospace: `'Fira Code', 'Courier New', monospace`,
+        },
+        weights: {
+          light: 200,
+          normal: 400,
+          medium: 500,
+          bold: 600,
+        },
+        sizes: {
+          xxs: 9,
+          xs: 10,
+          s: 12,
+          m: 14,
+          l: 16,
+          xl: 21,
+          xxl: 28,
+        },
+      },
+      zIndex: {
+        aboveDashboardCharts: 10,
+        dropdown: 11,
+        max: 3000,
+      },
+      transitionTiming: 0.3,
+      gridUnit: 4,
+      brandIconMaxWidth: 37,
     };
-
-    if (isDarkTheme) {
-      theme = this.makeThemeDark(theme);
-    }
-
     return theme;
   }
 
