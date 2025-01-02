@@ -92,6 +92,8 @@ class Slice(  # pylint: disable=too-many-public-methods
     certification_details = Column(Text)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
+    workspace_id = Column(Integer, ForeignKey('workspace.id'))
+
     last_saved_by = relationship(
         security_manager.user_model, foreign_keys=[last_saved_by_fk]
     )
@@ -107,7 +109,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         primaryjoin="and_(Slice.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'chart')",
         secondaryjoin="TaggedObject.tag_id == Tag.id",
-        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     table = relationship(
         "SqlaTable",

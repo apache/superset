@@ -35,6 +35,7 @@ from sqlalchemy import (
     Table,
     Text,
     UniqueConstraint,
+    DateTime,
 )
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, subqueryload
@@ -51,7 +52,7 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
-
+from datetime import datetime
 metadata = Model.metadata  # pylint: disable=no-member
 config = app.config
 logger = logging.getLogger(__name__)
@@ -127,6 +128,55 @@ DashboardRoles = Table(
 )
 
 
+workspace_owner = Table('workspace_owner',
+                                metadata,
+                           Column(
+                                   'workspace_id',
+                                   Integer,
+                                   #ForeignKey(f'{db_schema}.workspace.id')
+                                ),
+                           Column(
+                                   'owner_id',
+                                   Integer,
+                                   #ForeignKey(f'{db_schema}.owner.id')
+                                )
+                           )
+
+
+class Workspace(Model):
+    __tablename__ = 'workspace'
+
+#     __table_args__ = (
+#         {'schema': db_schema}
+#     )
+
+    id = Column(Integer, primary_key=True)
+    title = Column(String(260), nullable=False)
+    color = Column(String(10), nullable=False)
+    created_by = Column(String(260), nullable=False)
+    description = Column(String(260), nullable=False)
+    created_on = Column(
+            DateTime,
+            nullable=False,
+            default=datetime.utcnow)
+    ws_charts = relationship(
+            'Slice',
+            cascade="all,delete",
+            backref='slice_workspace',
+            lazy=True)
+    ws_dashboards = relationship(
+            "Dashboard",
+            cascade="all,delete-orphan",
+            backref="db_workspace")
+#     owners = relationship(
+#             'Owner',
+#             secondary=workspace_owner,
+#             backref='workspaces')
+
+    def __repr__(self):
+        return f"Workspace - Title[{self.title}] - " \
+               f"Desc[{self.description}] - Owners[{self.owners}]"
+
 class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
     """The dashboard object!"""
 
@@ -155,12 +205,16 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         primaryjoin="and_(Dashboard.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'dashboard')",
         secondaryjoin="TaggedObject.tag_id == Tag.id",
-        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete
     )
     published = Column(Boolean, default=False)
     is_managed_externally = Column(Boolean, nullable=False, default=False)
     external_url = Column(Text, nullable=True)
     roles = relationship(security_manager.role_model, secondary=DashboardRoles)
+    workspace_id = Column(Integer, ForeignKey('workspace.id'))
+    # db_workspace = relationship(
+    #         "Workspace",
+    #         back_populates="ws_dashboards")
     embedded = relationship(
         "EmbeddedDashboard",
         back_populates="dashboard",
@@ -426,7 +480,13 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
 
     @classmethod
     def get(cls, id_or_slug: str | int) -> Dashboard:
-        qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))
+        qry = db.session.query(Dashboard).filter(id_or_slug_filter(id_or_slug))#.filter(Dashboard.workspace_id == ws_id)
+        return qry.one_or_none()
+
+    @classmethod
+    def get_ws_db(cls, ws_id) -> Dashboard:
+        print("FINALLY HERE")
+        qry = db.session.query(Dashboard).filter(Dashboard.workspace_id == ws_id)
         return qry.one_or_none()
 
     def raise_for_access(self) -> None:

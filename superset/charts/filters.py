@@ -27,7 +27,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user_id, get_workspace
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -102,6 +102,8 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
+            query = query.filter(Slice.workspace_id == get_workspace())
+
             return query
 
         table_alias = aliased(SqlaTable)
@@ -109,6 +111,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         query = query.join(
             models.Database, table_alias.database_id == models.Database.id
         )
+        query = query.filter(Slice.workspace_id == get_workspace())
         return query.filter(get_dataset_access_filters(self.model))
 
 

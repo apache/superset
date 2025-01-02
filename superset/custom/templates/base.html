@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Superset Extention App">
+    <meta name="author" content="Rework-space">
+
+
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='img/favicon.ico') }}">
+
+    <title>SupersetExtender</title>
+
+    <!-- Preloader styles-->
+    <link href="{{ url_for('static', filename='css/preloader.css') }}" rel="stylesheet">
+    <!--preloader javaScript-->
+    <script src="{{ url_for('static', filename='js/preloader.js') }}"></script>
+
+    <!-- Custom fonts for this template-->
+    <link href="{{ url_for('static', filename='vendor/fontawesome-free/css/all.min.css') }}" rel="stylesheet" type="text/css">
+
+
+    <!-- Custom styles -->
+    <link href="{{ url_for('static', filename='css/sb-admin-2.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/extra.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/tagsinput.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/datatables/dataTables.bootstrap4.min.css') }}" rel="stylesheet">
+
+</head>
+
+<!--preloader-->
+<div id="loader-wrapper">
+    <div id="loader"></div>
+    <div class="loader-section section-left"></div>
+    <div class="loader-section section-right"></div>
+    <div class="d-none loader-msg"></div>
+</div>
+<!--end of preloader-->
+
+
+<body id="page-top">
+
+<!-- Page Wrapper -->
+<div id="wrapper">
+
+    <!-- Content Wrapper -->
+    <div id="content-wrapper" class="d-flex flex-column min-vh-100 bg-superset">
+
+        <!-- Main Content -->
+        <div id="content">
+
+            <nav class="navbar navbar-expand navbar-light bg-white topbar static-top border-bottom">
+
+                <!-- Brand -->
+                <a class="sidebar-brand d-flex align-items-center justify-content-center" href="https://bi-s.frontviewer.com">
+                    <div class="sidebar-brand-icon">
+                        <img src="{{ url_for('static', filename='img/superset_logo.png') }}" alt="Superset logo" width="130" height="35">
+                    </div>
+                </a>
+
+                {% if workspace_title %}
+                <!--Divider for the workspace-->
+                <div class="topbar-divider"></div>
+
+                <div class="d-md-flex align-items-center justify-content-center text-dark">
+                    <p class="pt-3" style="font-size: 17px">{{ workspace_title }}</p>
+                </div>
+
+                <!--End divider for the workspace-->
+                <div class="topbar-divider d-none d-lg-block"></div>
+                {% endif %}
+
+
+
+                <!--Main navbar-->
+                <div class="navbar-container d-none d-lg-block">
+                    <ul>
+                        {% if workspace_id %}
+                        <li class="nav-link">
+                            <a class="text-capitalize link_list" href="{{url_for('workspaces.home')}}">Home</a>
+                            <div class="underline"></div>
+                        </li>
+<!--                        <li class="nav-link">-->
+<!--                            <a class="text-capitalize link_list" href="{{url_for('superset.custom.views.workspaces.list_dashboard_workspace', workspace_id=workspace_id)}}">Dashboards</a>-->
+<!--                            <div class="underline"></div>-->
+<!--                        </li>-->
+<!--                        <li class="nav-link">-->
+<!--                            <a class="text-capitalize link_list" href="{{url_for('superset.custom.views.workspaces.list_dashboard_workspace', workspace_id=workspace_id)}}">Charts</a>-->
+<!--                            <div class="underline"></div>-->
+<!--                        </li>-->
+                        {% endif %}
+                    </ul>
+                </div>
+
+
+                <!-- Topbar Navbar -->
+                <ul class="navbar-nav ml-auto">
+                    {% if workspace_id %}
+                    <!--Show this on small screens only for navbar-->
+                    <li class="nav-item dropdown d-lg-none">
+                        <a class="nav-link dropdown-toggle text-cyan" href="#" id="menuDropdown" role="button"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-folder-open fa-fw"></i>
+                        </a>
+                        <!-- Dropdown - User Information -->
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                             aria-labelledby="userDropdown">
+                            <a class="dropdown-item link_list" href="{{url_for('workspaces.list_dashboard_workspace', workspace_id=workspace_id)}}">
+                                <i class="fas fa-tachometer-alt fa-sm fa-fw mr-2 text-gray-900"></i>
+                                Dashboards
+                            </a>
+                            <a class="dropdown-item link_list" href="{{url_for('workspaces.list_chart_workspace', workspace_id=workspace_id)}}">
+                                <i class="fas fa-chart-bar fa-sm fa-fw mr-2 text-gray-900"></i>
+                                Charts
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item link_list" href="{{url_for('workspaces.home')}}" data-toggle="modal" data-target="#logoutModal">
+                                <i class="fas fa-home fa-sm fa-fw mr-2 text-gray-900"></i>
+                                Home
+                            </a>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if current_user.is_authenticated %}
+                    <!-- Nav Item - Workspace create -->
+
+                    <li class="nav-item dropdown no-arrow">
+                        <a class="nav-link dropdown-toggle text-cyan" href="#" id="menuDropdown" role="button"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-plus fa-fw"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                             aria-labelledby="menuDropdown">
+                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#workspaceCreateModal">
+                                <i class="fas fa-folder fa-sm fa-fw mr-2 text-gray-900"></i>
+                                Workspace
+                            </a>
+                        </div>
+                    </li>
+
+                    <li class="nav-item dropdown no-arrow">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="mr-2 d-none d-lg-inline text-gray-900 small">{{ current_user.username }}</span>
+                            <button type="button" class="btn btn-circle btn-sm text-uppercase text-light" style="background-color: {{current_user.color}}">{{current_user.first_name[:1]}}{{current_user.last_name[:1]}}</button>
+                        </a>
+                        <!-- Dropdown - header -->
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                             aria-labelledby="logoutDropdown">
+                            <a class="dropdown-item disabled" href="#">
+                                Supextend v{{ g.supextend_version }}
+                            </a>
+                            <a class="dropdown-item disabled" href="#">
+                                Superset {{ g.superset_version }}
+                            </a>
+                            <div class="dropdown-divider"></div>
+                        </div>
+                    </li>
+                    {% elif g.user %}
+                    <!-- Nav Item - Workspace create -->
+
+                    <li class="nav-item dropdown no-arrow">
+
+                        <a class="nav-link dropdown-toggle text-cyan" href="#" id="menuDropdown" role="button"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-plus fa-fw"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                             aria-labelledby="menuDropdown">
+                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#workspaceCreateModal">
+                                <i class="fas fa-folder fa-sm fa-fw mr-2 text-gray-900"></i>
+                                Workspace
+                            </a>
+                        </div>
+                    </li>
+
+                    <li class="nav-item dropdown no-arrow">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                           data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <span class="mr-2 d-none d-lg-inline text-gray-900 small">{{g.user.preferred_username}}</span>
+                            <button type="button" class="btn btn-circle btn-sm text-uppercase text-light" style="background-color: {{g.user.color}}">{{g.user.given_name[:1]}}{{g.user.family_name[:1]}}</button>
+                        </a>
+                        <!-- Dropdown - header -->
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                             aria-labelledby="logoutDropdown">
+                            <a class="dropdown-item disabled" href="#">
+                                Supextend v{{ g.supextend_version }}
+                            </a>
+                            <a class="dropdown-item" href="#">
+                                Superset {{ g.superset_version }}
+                            </a>
+                            <div class="dropdown-divider disabled"></div>
+                            <a class="dropdown-item" href="{{url_for('auth.logout')}}">
+                                <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </li>
+                    {% endif %}
+                </ul>
+
+            </nav>
+            <!-- End of Topbar -->
+
+            <!-- Page Sub-Heading -->
+            {% block subheading %}{% endblock subheading %}
+
+            <!-- Begin Page Content -->
+            <div class="container-fluid bg-superset">
+
+
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show mt-2" role="alert">
+                    {{ message }}.
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+                <!-- Content Row -->
+                {% block mainContent %}{% endblock mainContent %}
+
+            </div>
+            <!-- /.container-fluid -->
+
+        </div>
+        <!-- End of Main Content -->
+
+        <!-- Footer -->
+        <footer class="sticky-footer bg-white">
+            <div class="container my-auto">
+                <div class="copyright text-center my-auto">
+                    <span>Copyright &copy; Rework-space 2023</span>
+                </div>
+            </div>
+        </footer>
+        <!-- End of Footer -->
+
+    </div>
+    <!-- End of Content Wrapper -->
+
+</div>
+<!-- End of Page Wrapper -->
+
+<!-- Scroll to Top Button-->
+<a class="scroll-to-top rounded" href="#page-top">
+    <i class="fas fa-angle-up"></i>
+</a>
+
+<!-- edit modal -->
+{% block editModal %}{% endblock editModal %}
+
+<!-- create workspace modal -->
+<div class="modal fade" id="workspaceCreateModal" tabindex="-1" role="dialog" aria-labelledby="workspaceModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title h6 text-dark" id="workspaceModalLabel">Create workspace</h5>
+                <button class="close" type="button" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">×</span>
+                </button>
+            </div>
+            <form method="POST" action="{{url_for('workspaces.create_workspace')}}">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="col-md-6 mb-3">
+                            <label for="workspaceTitleLabel">Workspace name</label>
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="text" class="form-control" id="workspaceTitleLabel" name="title" value="" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+
+                            <div class="form-group">
+                                <label for="colorPicker" class="form-label">Color</label>
+                                <input type="color"
+                                       class="form-control form-control-color"
+                                       id="colorPicker"
+                                       name="color"
+                                       value="#5957df"
+                                       title="color">
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="form-row">
+                        <div class="col-12 mb-3">
+                            <label for="formControlDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="formControlDescription" name="description" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-light text-uppercase" type="button" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info text-uppercase">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<!-- edit modal -->
+{% block editModal %}{% endblock editModal %}
+
+</div>
+
+
+<!-- dashboard/chart image preview modal-->
+{% block imgPreviewModal %}{% endblock imgPreviewModal %}
+
+<!-- delete workspace modal-->
+{% block deleteModal %}{% endblock deleteModal %}
+
+<!--append dashboard to workspace modal-->
+{% block appendWorkspaceDashboardModal %}{% endblock appendWorkspaceDashboardModal %}
+<script>
+    let elementsArray = document.querySelectorAll("form");
+    elementsArray.forEach(function(elem) {
+        elem.addEventListener('submit', function() {
+            document.querySelector('body').classList.remove("loaded")
+        });
+    });
+
+    let linksArray = document.querySelectorAll(".link_list");
+    linksArray.forEach(function(elem) {
+        elem.addEventListener('click', function() {
+            document.querySelector('body').classList.remove("loaded")
+        });
+    });
+</script>
+<!-- Bootstrap core JavaScript-->
+<script src="{{ url_for('static', filename='vendor/jquery/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+
+<!-- Core plugin JavaScript-->
+<script src="{{ url_for('static', filename='vendor/jquery-easing/jquery.easing.min.js') }}"></script>
+
+<!-- Page level plugins -->
+<script src="{{ url_for('static', filename='vendor/datatables/jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/datatables/dataTables.bootstrap4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sb-admin-2.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/main/datatables-main.js') }}"></script>
+<script src="{{ url_for('static', filename='js/tagsinput.js') }}"></script>
+
+</body>
+
+</html>

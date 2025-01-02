@@ -30,7 +30,7 @@ from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user_id, get_workspace
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -114,8 +114,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
     """
 
     def apply(self, query: Query, value: Any) -> Query:
-        if security_manager.is_admin():
-            return query
+        # if security_manager.is_admin():
+        #     return query
 
         is_rbac_disabled_filter = []
         dashboard_has_roles = Dashboard.roles.any()
@@ -189,7 +189,9 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 *feature_flagged_filters,
             )
         )
-
+        query = query.filter(
+            Dashboard.workspace_id == get_workspace()
+        )
         return query
 
 

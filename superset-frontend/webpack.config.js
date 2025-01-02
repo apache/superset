@@ -58,6 +58,7 @@ const getAvailableTranslationCodes = () => {
       .map(dirName => dirName.replace('_', '-'))
       .map(dirName => LOCALE_CODE_MAPPING[dirName] || dirName);
   }
+  // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
   return [];
 };
 
@@ -229,6 +230,7 @@ const config = {
     preamble: PREAMBLE,
     theme: path.join(APP_DIR, '/src/theme.ts'),
     menu: addPreamble('src/views/menu.tsx'),
+    main_menu: addPreamble('src/views/main_menu.tsx'),
     spa: addPreamble('/src/views/index.tsx'),
     embedded: addPreamble('/src/embedded/index.tsx'),
   },
@@ -525,7 +527,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
+  devtool: 'source-map',
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -543,6 +545,7 @@ console.log(''); // pure cosmetic new line
 let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
+  config.devtool = 'eval-cheap-module-source-map';
   config.devServer = {
     onBeforeSetupMiddleware(devServer) {
       // load proxy config when manifest updates

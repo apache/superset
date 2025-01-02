@@ -35,6 +35,7 @@ from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.models.dashboard import Dashboard as DashboardModel
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.core import get_workspace
 from superset.views.base import (
     BaseSupersetView,
     common_bootstrap_payload,
@@ -117,9 +118,11 @@ class Dashboard(BaseSupersetView):
     @expose("/new/")
     def new(self) -> FlaskResponse:
         """Creates a new, blank dashboard and redirects to it in edit mode"""
+        workspace_id = get_workspace()
         new_dashboard = DashboardModel(
             dashboard_title="[ untitled dashboard ]",
             owners=[g.user],
+            workspace_id=workspace_id
         )
         db.session.add(new_dashboard)
         db.session.commit()  # pylint: disable=consider-using-transaction
