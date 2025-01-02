@@ -71,6 +71,8 @@ jobs:
             ;;
           Caliza)
             echo "Setting environment for Caliza"
+            echo "GCE_ORIGIN_VM_NAME=caliza"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=caliza-435211"  >> $GITHUB_ENV            
             echo "ORIGIN_DIRECTORY_PATH=/home/caliza/superset" >> $GITHUB_ENV
             echo "ORIGIN_INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
             echo "ORIGIN_TAG=latest" >> $GITHUB_ENV     
