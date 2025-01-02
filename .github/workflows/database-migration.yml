@@ -135,4 +135,4 @@ jobs:
 
     - name: Restart Docker Compose on destiny VM
       run: |
-        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd ${{ env.DESTINY_DIRECTORY_PATH}} && docker -v && TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml down && docker-compose -f docker-compose-image-tag.yml up -d"
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd ${{ env.DESTINY_DIRECTORY_PATH}} && docker -v && TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml down && docker compose -f docker-compose-image-tag.yml up -d"
