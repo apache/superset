@@ -40,58 +40,6 @@ const DEFAULT_SYSTEM_COLORS = {
   grayscale: '#666666',
 };
 
-const DEFAULT_THEME_CONFIG = {
-  borderRadius: 4,
-  body: {
-    backgroundColor: '#FFF',
-    color: '#000',
-  },
-  colors: {
-    darkest: '#000',
-    lightest: '#FFF',
-    text: {
-      label: '#879399',
-      help: '#737373',
-    },
-  },
-  opacity: {
-    light: '10%',
-    mediumLight: '35%',
-    mediumHeavy: '60%',
-    heavy: '80%',
-  },
-  typography: {
-    families: {
-      sansSerif: `'Inter', Helvetica, Arial`,
-      serif: `Georgia, 'Times New Roman', Times, serif`,
-      monospace: `'Fira Code', 'Courier New', monospace`,
-    },
-    weights: {
-      light: 200,
-      normal: 400,
-      medium: 500,
-      bold: 600,
-    },
-    sizes: {
-      xxs: 9,
-      xs: 10,
-      s: 12,
-      m: 14,
-      l: 16,
-      xl: 21,
-      xxl: 28,
-    },
-  },
-  zIndex: {
-    aboveDashboardCharts: 10,
-    dropdown: 11,
-    max: 3000,
-  },
-  transitionTiming: 0.3,
-  gridUnit: 4,
-  brandIconMaxWidth: 37,
-};
-
 interface SystemColors {
   primary: string;
   secondary: string;
@@ -103,7 +51,7 @@ interface SystemColors {
   grayscale: string;
 }
 
-interface ThemeColors {
+interface ColorVariations {
   base: string;
   light1: string;
   light2: string;
@@ -116,6 +64,22 @@ interface ThemeColors {
   dark4: string;
   dark5: string;
 }
+interface ThemeColors {
+  darkest: string;
+  lightest: string;
+  text: {
+    label: string;
+    help: string;
+  };
+  primary: ColorVariations;
+  secondary: ColorVariations;
+  error: ColorVariations;
+  warning: ColorVariations;
+  alert: ColorVariations;
+  success: ColorVariations;
+  info: ColorVariations;
+  grayscale: ColorVariations;
+}
 
 interface LegacySupersetTheme {
   borderRadius: number;
@@ -123,22 +87,7 @@ interface LegacySupersetTheme {
     backgroundColor: string;
     color: string;
   };
-  colors: {
-    darkest: string;
-    lightest: string;
-    text: {
-      label: string;
-      help: string;
-    };
-    primary: ThemeColors;
-    secondary: ThemeColors;
-    error: ThemeColors;
-    warning: ThemeColors;
-    alert: ThemeColors;
-    success: ThemeColors;
-    info: ThemeColors;
-    grayscale: ThemeColors;
-  };
+  colors: ThemeColors;
   opacity: {
     light: string;
     mediumLight: string;
@@ -181,11 +130,11 @@ export interface SupersetTheme extends LegacySupersetTheme {
   antd: Record<string, any>;
 }
 export class Theme {
-  private readonly systemColors: SystemColors;
-
   private readonly isDarkMode: boolean;
 
-  private theme: LegacySupersetTheme | null = null;
+  private legacyTheme: LegacySupersetTheme | null = null;
+
+  private theme: SupersetTheme | null = null;
 
   private antdTheme: Record<string, any> | null = null;
 
@@ -210,21 +159,18 @@ export class Theme {
 
   constructor(systemColors?: Partial<SystemColors>, isDarkMode = false) {
     this.isDarkMode = isDarkMode;
-    this.systemColors = { ...DEFAULT_SYSTEM_COLORS, ...systemColors };
-
-    this.setThemeWithSystemColors(this.systemColors, this.isDarkMode);
-    this.setAntdThemeFromTheme();
+    this.setThemeWithSystemColors(systemColors || {}, isDarkMode);
 
     this.getTheme = this.getTheme.bind(this);
     this.SupersetThemeProvider = this.SupersetThemeProvider.bind(this);
   }
 
   getTheme(): SupersetTheme {
-    if (!this.theme) {
-      throw new Error('Theme is not initialized.');
+    if (!this.legacyTheme) {
+      throw new Error('Legacy theme is not initialized.');
     }
     return {
-      ...this.theme,
+      ...this.legacyTheme,
       antd: this.getFilteredAntdTheme(),
     };
   }
@@ -237,7 +183,7 @@ export class Theme {
     return tinycolor.mix(color, target, percentage).toHexString();
   }
 
-  private generateColorVariations(color: string): ThemeColors {
+  private generateColorVariations(color: string): ColorVariations {
     return {
       base: color,
       light1: this.adjustColor(color, 20, 'white'),
@@ -274,7 +220,7 @@ export class Theme {
     return darkTheme;
   }
 
-  private swapLightAndDark(colorVariations: ThemeColors): ThemeColors {
+  private swapLightAndDark(colorVariations: ColorVariations): ColorVariations {
     return {
       ...colorVariations,
       light1: colorVariations.dark1,
@@ -290,31 +236,77 @@ export class Theme {
     };
   }
 
-  private generateColors(): Record<string, ThemeColors> {
-    const colors: Record<string, ThemeColors> = {};
-    Object.entries(this.systemColors).forEach(([key, value]) => {
+  private generateColors(
+    systemColors: SystemColors,
+  ): Record<string, ColorVariations> {
+    const colors: Record<string, ColorVariations> = {};
+    Object.entries(systemColors).forEach(([key, value]) => {
       colors[key] = this.generateColorVariations(value);
     });
     return colors;
   }
 
   private getLegacySupersetTheme(
-    systemColors: SystemColors,
+    systemColors: Partial<SystemColors>,
     isDarkTheme = false,
   ): LegacySupersetTheme {
-    const colors = this.generateColors();
+    const allSystemColors: SystemColors = {
+      ...DEFAULT_SYSTEM_COLORS,
+      ...systemColors,
+    };
+    const colors = this.generateColors(allSystemColors);
     let theme: LegacySupersetTheme = {
-      ...DEFAULT_THEME_CONFIG,
       colors: {
-        ...DEFAULT_THEME_CONFIG.colors,
-        primary: colors.primary,
-        secondary: colors.secondary,
-        error: colors.error,
-        warning: colors.warning,
-        alert: colors.alert,
-        success: colors.success,
-        info: colors.info,
-        grayscale: colors.grayscale,
+        borderRadius: 4,
+        body: {
+          backgroundColor: '#FFF',
+          color: '#000',
+        },
+        colors: {
+          darkest: '#000',
+          lightest: '#FFF',
+          text: {
+            label: '#879399',
+            help: '#737373',
+          },
+        },
+        opacity: {
+          light: '10%',
+          mediumLight: '35%',
+          mediumHeavy: '60%',
+          heavy: '80%',
+        },
+        typography: {
+          families: {
+            sansSerif: `'Inter', Helvetica, Arial`,
+            serif: `Georgia, 'Times New Roman', Times, serif`,
+            monospace: `'Fira Code', 'Courier New', monospace`,
+          },
+          weights: {
+            light: 200,
+            normal: 400,
+            medium: 500,
+            bold: 600,
+          },
+          sizes: {
+            xxs: 9,
+            xs: 10,
+            s: 12,
+            m: 14,
+            l: 16,
+            xl: 21,
+            xxl: 28,
+          },
+        },
+        zIndex: {
+          aboveDashboardCharts: 10,
+          dropdown: 11,
+          max: 3000,
+        },
+        transitionTiming: 0.3,
+        gridUnit: 4,
+        brandIconMaxWidth: 37,
+        ...colors,
       },
     };
 
@@ -325,8 +317,9 @@ export class Theme {
     return theme;
   }
 
-  private getAntdSeedFromLegacyTheme(): Record<string, any> {
-    const theme = this.theme!;
+  private getAntdSeedFromLegacyTheme(
+    theme: LegacySupersetTheme,
+  ): Record<string, any> {
     return {
       ...antdThemeImport.defaultSeed,
 
@@ -367,15 +360,8 @@ export class Theme {
     return filteredTheme;
   }
 
-  private setThemeWithSystemColors(
-    systemColors: SystemColors,
-    isDarkMode: boolean,
-  ): void {
-    this.theme = this.getLegacySupersetTheme(systemColors, isDarkMode);
-  }
-
-  private setAntdThemeFromTheme(): void {
-    const seed = this.getAntdSeedFromLegacyTheme();
+  private setAntdThemeFromLegacyTheme(legacyTheme: LegacySupersetTheme): void {
+    const seed = this.getAntdSeedFromLegacyTheme(legacyTheme);
     const algorithm = this.isDarkMode
       ? antdThemeImport.darkAlgorithm
       : antdThemeImport.defaultAlgorithm;
@@ -388,22 +374,35 @@ export class Theme {
     this.antdTheme = algorithm(seed as any);
   }
 
+  private updateLegacyTheme(legacyTheme: LegacySupersetTheme): void {
+    this.legacyTheme = legacyTheme;
+    this.setAntdThemeFromLegacyTheme(legacyTheme);
+    this.theme = this.getTheme();
+  }
+
+  setThemeWithSystemColors(
+    systemColors: Partial<SystemColors>,
+    isDarkMode: boolean,
+  ): void {
+    this.updateLegacyTheme(
+      this.getLegacySupersetTheme(systemColors, isDarkMode),
+    );
+  }
+
   mergeTheme(partialTheme: Partial<LegacySupersetTheme>): void {
-    if (!this.theme) {
-      throw new Error('Theme is not initialized.');
-    }
-    this.theme = merge({}, this.theme, partialTheme);
-    // Update the Antd theme configuration to reflect the changes
-    this.setAntdThemeFromTheme();
+    this.updateLegacyTheme(merge({}, this.legacyTheme, partialTheme));
   }
 
   SupersetThemeProvider({ children }: { children: React.ReactNode }) {
+    if (!this.theme || !this.antdConfig) {
+      throw new Error('Theme is not initialized.');
+    }
     const emotionCache = createCache({
       key: 'superset',
     });
     return (
       <EmotionCacheProvider value={emotionCache}>
-        <EmotionThemeProvider theme={this.getTheme()}>
+        <EmotionThemeProvider theme={this.theme}>
           <ConfigProvider theme={this.antdConfig} prefixCls="antd5">
             {children}
           </ConfigProvider>
