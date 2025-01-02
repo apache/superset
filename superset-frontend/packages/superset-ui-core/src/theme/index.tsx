@@ -18,7 +18,6 @@
  */
 import emotionStyled from '@emotion/styled';
 import { useTheme as useThemeBasic } from '@emotion/react';
-import createCache from '@emotion/cache';
 import { Theme as SupersetThemeClass, SupersetTheme } from './Theme';
 
 export {
