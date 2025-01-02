@@ -66,12 +66,12 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | envFromSecret | string | `"{{ template \"superset.fullname\" . }}-env"` | The name of the secret which we will use to populate env vars in deployed pods This can be useful for secret keys, etc. |
 | envFromSecrets | list | `[]` | This can be a list of templated strings |
 | extraConfigMountPath | string | `"/app/configs"` | Define where extraConfigs is going to be mounted |
-| extraConfigs | object | `{}` | Extra files to be mount as ConfigMap on the path specified in `extraConfigMountPath` |
+| extraConfigs | object | `{}` | Extra files to be mounted as ConfigMap on the path specified in `extraConfigMountPath` |
 | extraEnv | object | `{}` | Extra environment variables that will be passed into pods |
 | extraEnvRaw | list | `[]` | Extra environment variables in RAW format that will be passed into pods |
 | extraLabels | object | `{}` | Labels to be added to all resources |
 | extraSecretEnv | object | `{}` | Extra environment variables to pass as secrets |
-| extraSecrets | object | `{}` | Extra files to be mount as Secrets on the path specified in `configMountPath` |
+| extraSecrets | object | `{}` | Extra files to be mounted as Secrets on the path specified in `configMountPath` |
 | extraVolumeMounts | list | `[]` |  |
 | extraVolumes | list | `[]` |  |
 | fullnameOverride | string | `nil` | Provide a name to override the full names of resources |
