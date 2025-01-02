@@ -1,0 +1,157 @@
+version: '2.1'
+
+defaults: &defaults
+  working_directory: ~/app
+  docker:
+    - image: fiverr/circleci_ruby_2_7_2:latest
+      auth:
+        username: $DOCKER_USER
+        password: $DOCKER_PASS
+
+jobs:
+
+  build:
+    docker:
+      - image: cimg/python:3.8
+    steps:
+      - checkout
+      - run:
+          name: configure fiverr artifactory
+          command: make create_pypirc
+
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install --upgrade pip
+            make env
+
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            export PYTHONPATH=.
+            make unit_tests
+
+
+  release:
+    <<: *defaults
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: prepare docker version
+          command: /var/tmp/kubernetes/scripts/ci/create_version_name.sh
+
+      - run:
+          name: docker build
+          command: /var/tmp/kubernetes/scripts/ci/build_version.sh
+
+      - run:
+          name: docker push (create tag if master)
+          command: /var/tmp/kubernetes/scripts/ci/push_version.sh
+
+
+  prefect_image_release:
+    working_directory: ~/app
+    docker:
+      - image: ${DOCKER_SOURCE}fiverr/circleci_node_12:latest
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PASS
+        environment:
+          FIVERRCI_APP_NAME: data_eng_job_scheduler
+          FIVERRCI_DOCKERFILE: /home/circleci/app/docker/images/general_python3_8/Dockerfile
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: docker24
+      - run:
+          name: Docker Login
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+
+      - run:
+          name: Create version
+          command: |
+            /var/tmp/kubernetes/scripts/ci/create_version_name.sh
+
+      - run:
+          name: Build Docker Image
+          command: |
+            /var/tmp/kubernetes/scripts/ci/build_version.sh
+
+      - run:
+          name: Push Cron jobs image
+          command: |
+            /var/tmp/kubernetes/scripts/ci/push_version.sh
+
+
+  init_image_release:
+    working_directory: ~/app
+    docker:
+      - image: ${DOCKER_SOURCE}fiverr/circleci_node_12:latest
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PASS
+        environment:
+          FIVERRCI_APP_NAME: data-eng-job-scheduler-fctl
+          FIVERRCI_DOCKERFILE: /home/circleci/app/docker/images/init_python3_8/Dockerfile
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: docker24
+      - run:
+          name: Docker Login
+          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
+
+      - run:
+          name: Create version
+          command: |
+            /var/tmp/kubernetes/scripts/ci/create_version_name.sh
+
+      - run:
+          name: Build Docker Image
+          command: |
+            /var/tmp/kubernetes/scripts/ci/build_version.sh
+
+      - run:
+          name: Push Cron jobs image
+          command: |
+            /var/tmp/kubernetes/scripts/ci/push_version.sh
+
+workflows:
+  ci-cd:
+    jobs:
+
+      - build:
+          context: org-global
+          pre-steps:
+            - aws-configure-with-oidc/assume-role:
+                role-arn: IAM_ROLE_PROD
+
+      - release:
+          context: org-global
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
+                - /.*_rc/
+                - master-dev
+
+          pre-steps:
+            - aws-configure-with-oidc/assume-role:
+                role-arn: IAM_ROLE_PROD
+
+  build_prefect_image:
+    jobs:
+      - init_image_release:
+          context: org-global
+          pre-steps:
+            - aws-configure-with-oidc/assume-role:
+                role-arn: IAM_ROLE_PROD
+
+orbs:
+  aws-configure-with-oidc: l060ki/aws-configure-with-oidc@0.1.2
