@@ -53,40 +53,6 @@ jobs:
           command: /var/tmp/kubernetes/scripts/ci/push_version.sh
 
 
-  prefect_image_release:
-    working_directory: ~/app
-    docker:
-      - image: ${DOCKER_SOURCE}fiverr/circleci_node_12:latest
-        auth:
-          username: $DOCKER_USER
-          password: $DOCKER_PASS
-        environment:
-          FIVERRCI_APP_NAME: data_eng_job_scheduler
-          FIVERRCI_DOCKERFILE: /home/circleci/app/docker/images/general_python3_8/Dockerfile
-    steps:
-      - checkout
-      - setup_remote_docker:
-          version: docker24
-      - run:
-          name: Docker Login
-          command: docker login -u $DOCKER_USER -p $DOCKER_PASS
-
-      - run:
-          name: Create version
-          command: |
-            /var/tmp/kubernetes/scripts/ci/create_version_name.sh
-
-      - run:
-          name: Build Docker Image
-          command: |
-            /var/tmp/kubernetes/scripts/ci/build_version.sh
-
-      - run:
-          name: Push Cron jobs image
-          command: |
-            /var/tmp/kubernetes/scripts/ci/push_version.sh
-
-
   init_image_release:
     working_directory: ~/app
     docker:
@@ -95,8 +61,8 @@ jobs:
           username: $DOCKER_USER
           password: $DOCKER_PASS
         environment:
-          FIVERRCI_APP_NAME: data-eng-job-scheduler-fctl
-          FIVERRCI_DOCKERFILE: /home/circleci/app/docker/images/init_python3_8/Dockerfile
+          FIVERRCI_APP_NAME: superset
+          FIVERRCI_DOCKERFILE: /home/circleci/app/docker/Dockerfile
     steps:
       - checkout
       - setup_remote_docker:
