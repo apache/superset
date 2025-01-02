@@ -117,7 +117,7 @@ jobs:
 
     - name: Generate dump file on origin VM
       run: |
-        gcloud compute ssh ${{env.GCE_ORIGIN_VM_NAME}} --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} --command "cd $ORIGIN_DIRECTORY_PATH/docker && source .env && export PGPASSWORD=$DATABASE_PASSWORD && pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB  > database.dump"
+        gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "cd $ORIGIN_DIRECTORY_PATH/docker && source .env && export PGPASSWORD=$DATABASE_PASSWORD && if [ \"\$DATABASE_HOST\" = \"db\" ]; then DATABASE_HOST=localhost fi && pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > database.dump"
 
     - name: Download dump file from origin VM
       run: |
