@@ -19,6 +19,7 @@
 
 import { theme as antdThemeImport, ThemeConfig, ConfigProvider } from 'antd-v5';
 import tinycolor from 'tinycolor2';
+import { merge } from 'lodash';
 
 import {
   ThemeProvider as EmotionThemeProvider,
@@ -385,6 +386,15 @@ export class Theme {
     };
 
     this.antdTheme = algorithm(seed as any);
+  }
+
+  mergeTheme(partialTheme: Partial<LegacySupersetTheme>): void {
+    if (!this.theme) {
+      throw new Error('Theme is not initialized.');
+    }
+    this.theme = merge({}, this.theme, partialTheme);
+    // Update the Antd theme configuration to reflect the changes
+    this.setAntdThemeFromTheme();
   }
 
   SupersetThemeProvider({ children }: { children: React.ReactNode }) {

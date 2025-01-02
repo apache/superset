@@ -26,7 +26,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { store } from './store';
 import FlashProvider from '../components/FlashProvider';
-import { theme } from '../preamble'; // eslint-disable-line @typescript-eslint/no-unused-vars
+import '../preamble';
 import { EmbeddedUiConfigProvider } from '../components/UiConfigContext';
 import { DynamicPluginProvider } from '../components/DynamicPlugins';
 
