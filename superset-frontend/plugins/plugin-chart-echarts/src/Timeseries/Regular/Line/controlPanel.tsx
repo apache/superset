@@ -246,6 +246,26 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'labelFontSize',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              clearable: false,
+              label: t('Axes label font size'),
+              choices: [
+                [12, '12px'],
+                [14, '14px'],
+                [16, '16px'],
+                [18, '18px'],
+              ],
+              default: 12,
+              renderTrigger: true,
+              description: t('Font size of labels on both axes'),
+            },
+          },
+        ],
       ],
     },
   ],
