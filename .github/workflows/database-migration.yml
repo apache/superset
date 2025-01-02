@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       destiny_environment:
-        description: 'Origin environment'
+        description: 'Destiny environment'
         required: true
         default: 'Client-X'      
         type: choice
@@ -12,7 +12,7 @@ on:
           - Client-X
           - Demo   
       origin_environment:
-        description: 'Destiny environment'
+        description: 'Origin environment'
         required: true
         default: 'Travcoding'
         type: choice
