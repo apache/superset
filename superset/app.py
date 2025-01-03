@@ -19,12 +19,14 @@ import logging
 import os
 from typing import Optional
 
-from flask import Flask
+from flask import Flask, request, session
+from flask_babel import Babel
 
 from superset.initialization import SupersetAppInitializer
 
 logger = logging.getLogger(__name__)
 
+babel = Babel()
 
 def create_app(superset_config_module: Optional[str] = None) -> Flask:
     app = SupersetApp(__name__)
@@ -46,6 +48,9 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
         logger.exception("Failed to create app")
         raise
 
+@babel.localeselector
+def get_locale():
+   return session.get('locale') or request.accept_languages.best_match(['en', 'fr'])  # add here supported languages
 
 class SupersetApp(Flask):
     pass
