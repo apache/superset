@@ -280,7 +280,6 @@ export function dbReducer(
         }),
       };
     case ActionType.ExtraInputChange:
-      // "extra" payload in state is a string
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'
@@ -291,7 +290,7 @@ export function dbReducer(
             ...extraJson,
             metadata_cache_timeout: {
               ...extraJson?.metadata_cache_timeout,
-              [action.payload.name]: action.payload.value,
+              [action.payload.name]: Number(action.payload.value),
             },
           }),
         };
