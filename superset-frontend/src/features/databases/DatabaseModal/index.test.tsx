@@ -383,7 +383,7 @@ describe('DatabaseModal', () => {
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
-      const alertIcon = screen.getByRole('img', { name: /info icon/i });
+      const alertIcon = screen.getByRole('img', { ariaLabel: 'info-circle' });
       const alertMessage = screen.getByText(/want to add a new database\?/i);
       const alertDescription = screen.getByText(
         /any databases that allow connections via sql alchemy uris can be added\. learn about how to connect a database driver \./i,

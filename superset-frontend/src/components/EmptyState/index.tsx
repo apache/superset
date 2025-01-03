@@ -180,7 +180,11 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       `}
     >
       {title && <Title size={size}>{title}</Title>}
-      {description && <Description size={size}>{description}</Description>}
+      {description && (
+        <Description size={size} className="ant-empty-description">
+          {description}
+        </Description>
+      )}
       {buttonText && buttonAction && (
         <ActionButton
           buttonStyle="primary"

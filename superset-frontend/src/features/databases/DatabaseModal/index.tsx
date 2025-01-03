@@ -1580,11 +1580,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ErrorAlertContainer>
           <ErrorMessageWithStackTrace
             title={t('Database Creation Error')}
-            description={t(
-              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
-            )}
             subtitle={alertErrors?.[0] || validationErrors?.description}
-            copyText={validationErrors?.description}
+            description={t(
+              'We are unable to connect to your database. Click "See more" for ' +
+                'database-provided information that may help troubleshoot the issue.',
+            )}
+            descriptionDetails={validationErrors?.description}
           />
         </ErrorAlertContainer>
       );

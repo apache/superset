@@ -40,14 +40,18 @@ function InvalidSQLErrorMessage({
 
   const { sql, line, column } = extra;
   const lines = sql.split('\n');
-  const errorLine = line !== null ? lines[line - 1] : null;
+  let errorLine;
+  if (line !== null) errorLine = lines[line - 1];
+  else if (lines.length > 0) {
+    errorLine = lines[0];
+  }
   const body = errorLine && (
     <>
       <pre>{errorLine}</pre>
       {column !== null && <pre>{' '.repeat(column - 1)}^</pre>}
     </>
   );
-
+  console.log('YOYO', errorLine, column, line);
   return (
     <ErrorAlert
       errorType={t('Unable to parse SQL')}

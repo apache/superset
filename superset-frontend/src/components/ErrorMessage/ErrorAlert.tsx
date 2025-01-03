@@ -76,7 +76,9 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   const renderDescription = () => (
     <div>
       {description && (
-        <p style={descriptionPre ? preStyle : {}}>{description}</p>
+        <p style={descriptionPre ? preStyle : {}} data-testid="description">
+          {description}
+        </p>
       )}
       {descriptionDetails && (
         <div>
