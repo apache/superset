@@ -21,7 +21,7 @@ import { ReactNode, CSSProperties } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import type { MenuProps } from 'antd/lib/menu';
+import type { MenuProps } from 'src/components/Menu';
 
 export type MenuItemWithTruncationProps = {
   tooltipText: ReactNode;
@@ -41,6 +41,7 @@ export const MenuItemWithTruncation = ({
     <Menu.Item
       css={css`
         display: flex;
+        line-height: 1.5em;
       `}
       {...props}
     >

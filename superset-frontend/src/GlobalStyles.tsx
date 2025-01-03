@@ -96,6 +96,10 @@ export const GlobalStyles = () => (
           margin-right: 0;
         }
       }
+      .ant-dropdown-menu-submenu-title,
+      .ant-dropdown-menu-item {
+        line-height: 1.5em !important;
+      }
     `}
   />
 );

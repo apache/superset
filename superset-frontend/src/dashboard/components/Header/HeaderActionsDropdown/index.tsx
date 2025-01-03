@@ -242,24 +242,20 @@ export class HeaderActionsDropdown extends PureComponent<
           />
         </Menu.SubMenu>
         {userCanShare && (
-          <Menu.SubMenu
+          <ShareMenuItems
             key={MenuKeys.Share}
             data-test="share-dashboard-menu-item"
-            disabled={isLoading}
             title={t('Share')}
-          >
-            <ShareMenuItems
-              url={url}
-              copyMenuItemTitle={t('Copy permalink to clipboard')}
-              emailMenuItemTitle={t('Share permalink by email')}
-              emailSubject={emailSubject}
-              emailBody={emailBody}
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
-              dashboardId={dashboardId}
-              dashboardComponentId={dashboardComponentId}
-            />
-          </Menu.SubMenu>
+            url={url}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
+            emailSubject={emailSubject}
+            emailBody={emailBody}
+            addSuccessToast={addSuccessToast}
+            addDangerToast={addDangerToast}
+            dashboardId={dashboardId}
+            dashboardComponentId={dashboardComponentId}
+          />
         )}
         {!editMode && userCanCurate && (
           <Menu.Item
