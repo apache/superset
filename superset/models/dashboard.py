@@ -338,12 +338,16 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         root = get_node("ROOT_ID")
         tab_tree: list[dict[str, Any]] = []
         all_tabs: dict[str, str] = {}
+        tabs_order: list[str] = []
         queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
         queue.append((root, tab_tree))
         while queue:
             node, children = queue.popleft()
             build_tab_tree(node, children)
-
+            if (childs := node.get("children")) and node["type"] == "TABS":
+                tabs_order.extend(childs)
+        if tabs_order:
+            all_tabs = {str(t): all_tabs[str(t)] for t in tabs_order}
         return {"all_tabs": all_tabs, "tab_tree": tab_tree}
 
     def update_thumbnail(self) -> None:

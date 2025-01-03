@@ -1146,15 +1146,15 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         expected_response = {
             "result": {
                 "all_tabs": {
-                    "TAB-0TkqQRxzg7": "P2 - T1",
+                    "TAB-qL7fSzr3jl": "Parent Tab 1",
+                    "TAB-CjZlNL5Uz": "Parent Tab 2",
                     "TAB-1iG_yOlKA2": "P1 - T1",
                     "TAB-2dgADEurF": "P1 - T2",
-                    "TAB-BJIt5SdCx3": "P1 - T2 - T1",
-                    "TAB-CjZlNL5Uz": "Parent Tab 2",
-                    "TAB-Nct5fiHtn": "P1 - T2 - T3",
+                    "TAB-0TkqQRxzg7": "P2 - T1",
                     "TAB-PumuDkWKq": "P2 - T2",
+                    "TAB-BJIt5SdCx3": "P1 - T2 - T1",
                     "TAB-hyTv5L7zz": "P1 - T2 - T2",
-                    "TAB-qL7fSzr3jl": "Parent Tab 1",
+                    "TAB-Nct5fiHtn": "P1 - T2 - T3",
                 },
                 "tab_tree": [
                     {
@@ -1210,6 +1210,223 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         }
         assert rv.status_code == 200
         assert response == expected_response
+        assert list(response["result"]["all_tabs"].keys()) == list(
+            expected_response["result"]["all_tabs"].keys()
+        )
+        db.session.delete(dashboard)
+        db.session.commit()
+
+    def test_get_dashboard_tabs_with_order_preserved(self):
+        """
+        Dashboard API: Test get dashboard tabs with order preserved
+        """
+        position_data = {
+            "CHART-FQquhD1W9Vw_Ixyp8Hk42": {
+                "children": [],
+                "id": "CHART-FQquhD1W9Vw_Ixyp8Hk42",
+                "meta": {
+                    "chartId": 45,
+                    "height": 50,
+                    "sliceName": "Weekly Messages",
+                    "uuid": "abe2c022-ceee-a60a-e601-ab93f7ee52b1",
+                    "width": 4,
+                },
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                    "TAB-EbAyCcXvBhVSJD81V0ulw",
+                    "ROW-u86BqqtdahHfn81osTU-Q",
+                ],
+                "type": "CHART",
+            },
+            "CHART-MRUFS_CzRF8ARWdI2PiDC": {
+                "children": [],
+                "id": "CHART-MRUFS_CzRF8ARWdI2PiDC",
+                "meta": {
+                    "chartId": 135,
+                    "height": 50,
+                    "sliceName": "asd",
+                    "uuid": "2804064d-ac6c-41fe-8c98-df30c5e4e89d",
+                    "width": 4,
+                },
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                    "TAB-ZhI42SppeSxyG388lWnqJ",
+                    "ROW-ncflkEzOgjQjE9WAQ7F10",
+                ],
+                "type": "CHART",
+            },
+            "CHART-_xlwygYgI84B2xZeLhDkU": {
+                "children": [],
+                "id": "CHART-_xlwygYgI84B2xZeLhDkU",
+                "meta": {
+                    "chartId": 63,
+                    "height": 50,
+                    "sliceName": "Members per Channel",
+                    "uuid": "d44e416d-1647-44e4-b442-6da34b44adc4",
+                    "width": 4,
+                },
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                    "TAB-6164r4k_xPgOOM-SzGCF8",
+                    "ROW-T8t-uUfq-ogn0fpcgTnt6",
+                ],
+                "type": "CHART",
+            },
+            "CHART-mLUhTmUZXjJ4daksMj1TU": {
+                "children": [],
+                "id": "CHART-mLUhTmUZXjJ4daksMj1TU",
+                "meta": {
+                    "chartId": 5853,
+                    "height": 50,
+                    "sliceName": "Breakdown of Developer Type",
+                    "uuid": "e99f2e60-dec5-4192-b5cc-9b4670705c8f",
+                    "width": 4,
+                },
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TAB-cToDj4UPcHg4W-GoAZa0U",
+                    "ROW-2V4pbfhg8eBqVz0797kcR",
+                ],
+                "type": "CHART",
+            },
+            "DASHBOARD_VERSION_KEY": "v2",
+            "GRID_ID": {
+                "children": ["TABS-Bn5ZJIOkCxFOFQSjluT8Q"],
+                "id": "GRID_ID",
+                "parents": ["ROOT_ID"],
+                "type": "GRID",
+            },
+            "HEADER_ID": {
+                "id": "HEADER_ID",
+                "meta": {"text": "test title"},
+                "type": "HEADER",
+            },
+            "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+            "ROW-2V4pbfhg8eBqVz0797kcR": {
+                "children": ["CHART-mLUhTmUZXjJ4daksMj1TU"],
+                "id": "ROW-2V4pbfhg8eBqVz0797kcR",
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID", "TAB-cToDj4UPcHg4W-GoAZa0U"],
+                "type": "ROW",
+            },
+            "ROW-T8t-uUfq-ogn0fpcgTnt6": {
+                "children": ["CHART-_xlwygYgI84B2xZeLhDkU"],
+                "id": "ROW-T8t-uUfq-ogn0fpcgTnt6",
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                    "TAB-6164r4k_xPgOOM-SzGCF8",
+                ],
+                "type": "ROW",
+            },
+            "ROW-ncflkEzOgjQjE9WAQ7F10": {
+                "children": ["CHART-MRUFS_CzRF8ARWdI2PiDC"],
+                "id": "ROW-ncflkEzOgjQjE9WAQ7F10",
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                    "TAB-ZhI42SppeSxyG388lWnqJ",
+                ],
+                "type": "ROW",
+            },
+            "ROW-u86BqqtdahHfn81osTU-Q": {
+                "children": ["CHART-FQquhD1W9Vw_Ixyp8Hk42"],
+                "id": "ROW-u86BqqtdahHfn81osTU-Q",
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": [
+                    "ROOT_ID",
+                    "GRID_ID",
+                    "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                    "TAB-EbAyCcXvBhVSJD81V0ulw",
+                ],
+                "type": "ROW",
+            },
+            "TAB-6164r4k_xPgOOM-SzGCF8": {
+                "children": ["ROW-T8t-uUfq-ogn0fpcgTnt6"],
+                "id": "TAB-6164r4k_xPgOOM-SzGCF8",
+                "meta": {
+                    "defaultText": "Tab title",
+                    "placeholder": "Tab title",
+                    "text": "3",
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "TABS-Bn5ZJIOkCxFOFQSjluT8Q"],
+                "type": "TAB",
+            },
+            "TAB-EbAyCcXvBhVSJD81V0ulw": {
+                "children": ["ROW-u86BqqtdahHfn81osTU-Q"],
+                "id": "TAB-EbAyCcXvBhVSJD81V0ulw",
+                "meta": {
+                    "defaultText": "Tab title",
+                    "placeholder": "Tab title",
+                    "text": "2",
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "TABS-Bn5ZJIOkCxFOFQSjluT8Q"],
+                "type": "TAB",
+            },
+            "TAB-ZhI42SppeSxyG388lWnqJ": {
+                "children": ["ROW-ncflkEzOgjQjE9WAQ7F10"],
+                "id": "TAB-ZhI42SppeSxyG388lWnqJ",
+                "meta": {
+                    "defaultText": "Tab title",
+                    "placeholder": "Tab title",
+                    "text": "4",
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "TABS-Bn5ZJIOkCxFOFQSjluT8Q"],
+                "type": "TAB",
+            },
+            "TAB-cToDj4UPcHg4W-GoAZa0U": {
+                "children": ["ROW-2V4pbfhg8eBqVz0797kcR"],
+                "id": "TAB-cToDj4UPcHg4W-GoAZa0U",
+                "meta": {
+                    "defaultText": "Tab title",
+                    "placeholder": "Tab title",
+                    "text": "1",
+                },
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "type": "TAB",
+            },
+            "TABS-Bn5ZJIOkCxFOFQSjluT8Q": {
+                "children": [
+                    "TAB-cToDj4UPcHg4W-GoAZa0U",
+                    "TAB-EbAyCcXvBhVSJD81V0ulw",
+                    "TAB-6164r4k_xPgOOM-SzGCF8",
+                    "TAB-ZhI42SppeSxyG388lWnqJ",
+                ],
+                "id": "TABS-Bn5ZJIOkCxFOFQSjluT8Q",
+                "meta": {},
+                "parents": ["ROOT_ID", "GRID_ID"],
+                "type": "TABS",
+            },
+        }
+        admin_id = self.get_user("admin").id
+        dashboard = self.insert_dashboard(
+            "title", "slug", [admin_id], position_json=json.dumps(position_data)
+        )
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dashboard/{dashboard.id}/tabs"
+        rv = self.get_assert_metric(uri, "get_tabs")
+        response = json.loads(rv.data.decode("utf-8"))
+        expected_response = {
+            "TAB-cToDj4UPcHg4W-GoAZa0U": "1",
+            "TAB-EbAyCcXvBhVSJD81V0ulw": "2",
+            "TAB-6164r4k_xPgOOM-SzGCF8": "3",
+            "TAB-ZhI42SppeSxyG388lWnqJ": "4",
+        }
+        assert rv.status_code == 200
+        assert list(response["result"]["all_tabs"].keys()) == list(
+            expected_response.keys()
+        )
         db.session.delete(dashboard)
         db.session.commit()
 
