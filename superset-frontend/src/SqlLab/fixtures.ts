@@ -41,6 +41,7 @@ export const table = {
   schema: 'superset',
   name: 'ab_user',
   id: 'r11Vgt60',
+  view: 'SELECT * FROM ab_user',
   dataPreviewQueryId: null,
   partitions: {
     cols: ['username'],
