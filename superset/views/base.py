@@ -33,6 +33,7 @@ from flask import (
     redirect,
     Response,
     session,
+    request
 )
 from flask_appbuilder import BaseView, expose, Model, ModelView
 from flask_appbuilder.actions import action
@@ -348,8 +349,11 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
 
 def common_bootstrap_payload() -> dict[str, Any]:
+    locale = get_locale()
+    if request.args.get('lang'):
+        locale = Locale.parse(request.args.get('lang'))
     return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
+        **cached_common_bootstrap_data(utils.get_user_id(), locale),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 
