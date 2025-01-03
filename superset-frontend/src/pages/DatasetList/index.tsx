@@ -532,6 +532,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           { label: t('Virtual'), value: false },
           { label: t('Physical'), value: true },
         ],
+        width: 100,
       },
       {
         Header: t('Database'),
@@ -597,6 +598,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+        width: 100,
       },
       {
         Header: t('Modified by'),
