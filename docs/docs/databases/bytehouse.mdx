@@ -1,0 +1,21 @@
+---
+title: ByteHouse
+hide_title: true
+sidebar_position: 17
+version: 1
+---
+
+## ByteHouse
+
+The connector library for ByteHouse is
+[bytehouse-sqlalchemy](https://pypi.org/project/bytehouse-sqlalchemy/).
+
+The expected connection string using API Key Authentication is formatted as follows:
+```
+bytehouse://{host}:{port}/?user=bytehouse&password={api_key}&database={database}
+```
+
+The expected connection string using Password Authentication is formatted as follows:
+```
+bytehouse://{host}:{port}/?account={account}&user={user}&password={password}&database={database}
+```
