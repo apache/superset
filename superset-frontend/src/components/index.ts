@@ -37,7 +37,6 @@ export {
   Grid,
   Row,
   Skeleton,
-  Space,
   Steps,
   Tag,
   Tree,
