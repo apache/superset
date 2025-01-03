@@ -97,12 +97,19 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
-ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl should be http://superset_app:8088/  # noqa: E501
-# The base URL for the email report hyperlinks.
-WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
-SQLLAB_CTAS_NO_LIMIT = True
+FEATURE_FLAGS = {
+    "DASHBOARD_RBAC": True,
+    "ENABLE_TEMPLATE_PROCESSING": True,
+    "DASHBOARD_NATIVE_FILTERS": True,
+    "DASHBOARD_CROSS_FILTERS": True,
+}
+OVERRIDE_HTTP_HEADERS = {'X-Frame-Options': 'ALLOWALL'}
+TALISMAN_ENABLED = False
+ENABLE_CORS = True
+HTTP_HEADERS={"X-Frame-Options":"ALLOWALL"}
+
+# Allow embedding of dashboards in iframes
+X_FRAME_OPTIONS = 'ALLOWALL'  # ALLOWALL allows embedding from any origin, use SAMEORIGIN for same domain
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
@@ -117,3 +124,36 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+
+AUTH_ROLE_PUBLIC = 'Public'
+PUBLIC_ROLE_LIKE = "Public"  # i created guest role for anonymous view dashboards
+
+from flask_appbuilder.security.manager import AUTH_OAUTH
+ 
+from custom_sso_security_manager import CustomSsoSecurityManager
+CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
+ 
+AUTH_TYPE = AUTH_OAUTH
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = 'Gamma'
+OAUTH_PROVIDERS = [
+  {
+    'name': 'keycloak',
+    'token_key': 'access_token',
+    'icon': 'fa-key',
+    'remote_app': {
+      'client_id': 'superset',
+      'client_secret': 'x0CT3VtUgPxVMRoCNl4zsrkvrhJqoifA',
+      'api_base_url': 'http://10.47.188.15:8080/realms/edge/protocol/',
+      'jwks_uri':'http://10.47.188.15:8080/realms/edge/protocol/openid-connect/certs',
+      #'server_metadata_url': 'http://10.47.188.15:8080/realms/edge/.well-known/openid-configuration',
+      'client_kwargs': {
+          'scope': 'openid email'
+      },
+      'access_token_url': 'http://10.47.188.15:8080/realms/edge/protocol/openid-connect/token',
+      'authorize_url': 'http://10.47.188.15:8080/realms/edge/protocol/openid-connect/auth',
+      'userinfo_uri': 'http://10.47.188.15:8080/realms/edge/protocol/openid-connect/userinfo',
+    }
+  }
+]
