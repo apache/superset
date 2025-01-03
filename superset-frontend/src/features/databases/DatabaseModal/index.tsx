@@ -1584,7 +1584,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             descriptionDetails={
               alertErrors?.[0] || validationErrors?.description
             }
-            closable={false}
           />
         </ErrorAlertContainer>
       );
