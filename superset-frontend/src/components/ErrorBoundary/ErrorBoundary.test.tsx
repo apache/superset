@@ -58,5 +58,5 @@ test('should render an error message', () => {
       <Child />
     </ErrorBoundary>,
   );
-  expect(screen.getAllByText('Unexpected error')).toBeGreaterThan(0);
+  expect(screen.getAllByText('Unexpected error').length).toBeGreaterThan(0);
 });
