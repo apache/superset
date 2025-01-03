@@ -18,7 +18,7 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen, waitFor } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import userEvent from '@testing-library/user-event';
 import { getExtensionsRegistry } from '@superset-ui/core';
