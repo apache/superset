@@ -156,7 +156,7 @@
     "lodash": "^4.17.21",
     "luxon": "^3.5.0",
     "mapbox-gl": "^2.10.0",
-    "markdown-to-jsx": "^7.4.7",
+    "markdown-to-jsx": "^7.7.2",
     "match-sorter": "^6.3.4",
     "memoize-one": "^5.2.1",
     "moment": "^2.30.1",
