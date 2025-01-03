@@ -41,7 +41,7 @@ export const InteractiveSpace = (args: SpaceProps) => (
 InteractiveSpace.args = {
   direction: 'horizontal',
   size: 'small',
-  wrap: 'false',
+  wrap: false,
 };
 
 InteractiveSpace.argTypes = {
