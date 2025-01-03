@@ -21,12 +21,12 @@
 ARG PY_VER=3.10-slim-bookworm
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
-ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
+ARG TARGET_BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 
 ######################################################################
 # superset-node used for building frontend assets
 ######################################################################
-FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node
+FROM --platform=${TARGET_BUILDPLATFORM} node:20-bullseye-slim AS superset-node
 ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
