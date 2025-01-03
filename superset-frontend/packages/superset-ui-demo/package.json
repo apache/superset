@@ -33,7 +33,7 @@
   "dependencies": {
     "@data-ui/event-flow": "^0.0.84",
     "@emotion/cache": "^11.4.0",
-    "@emotion/react": "^11.13.3",
+    "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mihkeleidast/storybook-addon-source": "^1.0.1",
     "@react-icons/all-files": "^4.1.0",
@@ -44,7 +44,7 @@
     "@storybook/types": "8.4.7",
     "@types/react-loadable": "^5.5.11",
     "antd": "4.10.3",
-    "core-js": "3.38.1",
+    "core-js": "3.39.0",
     "gh-pages": "^6.2.0",
     "jquery": "^3.7.1",
     "memoize-one": "^5.2.1",
@@ -54,7 +54,7 @@
     "react-resizable": "^3.0.5"
   },
   "devDependencies": {
-    "@babel/core": "^7.23.9",
+    "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.23.9",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.23.3",

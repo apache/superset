@@ -30,7 +30,7 @@ import {
 import Button from 'src/components/Button';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import Modal from 'src/components/Modal';
-import { Divider } from 'src/components';
+import { Divider } from 'src/components/Divider';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
 import { Tooltip } from 'src/components/Tooltip';
@@ -75,7 +75,7 @@ const ContentStyleWrapper = styled.div`
       width: 100%;
     }
 
-    .ant-divider-horizontal {
+    .antd5-divider-horizontal {
       margin: 16px 0;
     }
 
