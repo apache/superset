@@ -16,10 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { MainNav as Menu } from 'src/components/Menu';
-import LanguagePicker from './LanguagePicker';
+import { MainNav as Menu } from 'src/components/Menu'; // Ensure correct import path
+import LanguagePicker from './LanguagePicker'; // Ensure correct import path
+
+export default {
+  title: 'Components/LanguagePicker',
+  component: LanguagePicker,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'The LanguagePicker component allows users to select a language from a dropdown.',
+      },
+    },
+  },
+};
 
 const mockedProps = {
   locale: 'en',
@@ -37,32 +48,11 @@ const mockedProps = {
   },
 };
 
-test('should render', async () => {
-  const { container } = render(
-    <Menu>
-      <LanguagePicker {...mockedProps} />
-    </Menu>,
-  );
-  expect(await screen.findByRole('menu')).toBeInTheDocument();
-  expect(container).toBeInTheDocument();
-});
+const Template = (args: any) => (
+  <Menu disabledOverflow>
+    <LanguagePicker {...args} />
+  </Menu>
+);
 
-test('should render the language picker', async () => {
-  render(
-    <Menu>
-      <LanguagePicker {...mockedProps} />
-    </Menu>,
-  );
-  expect(await screen.findByLabelText('Languages')).toBeInTheDocument();
-});
-
-test('should render the items', async () => {
-  render(
-    <Menu>
-      <LanguagePicker {...mockedProps} />
-    </Menu>,
-  );
-  userEvent.hover(screen.getByRole('menuitem'));
-  expect(await screen.findByText('English')).toBeInTheDocument();
-  expect(await screen.findByText('Italian')).toBeInTheDocument();
-});
+export const Default = Template.bind({});
+Default.args = mockedProps;

@@ -93,8 +93,7 @@ const Actions = styled.div`
       }
     }
     color: ${({ theme }) => theme.colors.grayscale.light1};
-    .ant-menu-item:hover {
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+    .antd5-menu-item:hover {
       cursor: default;
     }
     &::after {
