@@ -21,6 +21,7 @@ import logging
 import os
 import sys
 from typing import Any, Callable, TYPE_CHECKING
+from urllib.parse import urlparse
 
 import wtforms_json
 from deprecation import deprecated
@@ -702,8 +703,18 @@ class SupersetIndexView(IndexView):
     def index(self) -> FlaskResponse:
         return redirect("/superset/welcome/")
 
+    @staticmethod
+    def is_safe_url(target) -> bool:
+        """
+        Is target is a safe URL to redirect to?
+        """
+        ref_url = urlparse(target)
+        host_url = urlparse(request.host_url)
+        return ref_url.scheme in ('http', 'https') and \
+               ref_url.netloc == host_url.netloc
+
     @expose("/lang/<string:locale>")
-    def patch_flask_locale(self, locale):
+    def patch_flask_locale(self, locale) ->  FlaskResponse:
         """
         Change user's locale and redirect back to the previous page.
 
@@ -717,5 +728,8 @@ class SupersetIndexView(IndexView):
         session["locale"] = locale
         refresh()
         self.update_redirect()
-        redirect_to = request.headers.get("Referer") or self.get_redirect()
+
+        redirect_to = request.headers.get("Referer")
+        if not redirect_to or not self.is_safe_url(redirect_to):
+            redirect_to = self.get_redirect()
         return redirect(redirect_to)
