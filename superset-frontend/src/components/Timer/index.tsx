@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import Label, { Type } from 'src/components/Label';
+import Icons from 'src/components/Icons';
 
 import { now, fDuration } from 'src/utils/dates';
 
@@ -68,7 +69,7 @@ export default function Timer({
   }, [endTime, isRunning, startTime]);
 
   return (
-    <TimerLabel type={status} role="timer">
+    <TimerLabel icon={<Icons.Clock iconSize="m" />} type={status} role="timer">
       {clockStr}
     </TimerLabel>
   );
