@@ -21,12 +21,13 @@ import logging
 import os
 import sys
 from typing import Any, Callable, TYPE_CHECKING
+from urllib.parse import urlparse
 
 import wtforms_json
 from deprecation import deprecated
-from flask import Flask, redirect
+from flask import abort, Flask, redirect, request, session
 from flask_appbuilder import expose, IndexView
-from flask_babel import gettext as __
+from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -701,3 +702,34 @@ class SupersetIndexView(IndexView):
     @expose("/")
     def index(self) -> FlaskResponse:
         return redirect("/superset/welcome/")
+
+    @staticmethod
+    def is_safe_url(target) -> bool:
+        """
+        Is target is a safe URL to redirect to?
+        """
+        ref_url = urlparse(target)
+        host_url = urlparse(request.host_url)
+        return ref_url.scheme in ('http', 'https') and \
+               ref_url.netloc == host_url.netloc
+
+    @expose("/lang/<string:locale>")
+    def patch_flask_locale(self, locale) ->  FlaskResponse:
+        """
+        Change user's locale and redirect back to the previous page.
+
+        Overrides FAB's babel.views.LocaleView so we can use the request
+        Referrer as the redirect target, in case our previous page was actually
+        served by the frontend (and thus not added to the session's page_history
+        stack).
+        """
+        if locale not in self.appbuilder.bm.languages:
+            abort(404, description="Locale not supported.")
+        session["locale"] = locale
+        refresh()
+        self.update_redirect()
+
+        redirect_to = request.headers.get("Referer")
+        if not redirect_to or not self.is_safe_url(redirect_to):
+            redirect_to = self.get_redirect()
+        return redirect(redirect_to)
