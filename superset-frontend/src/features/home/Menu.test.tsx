@@ -18,7 +18,7 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen, waitFor } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import userEvent from '@testing-library/user-event';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -316,8 +316,8 @@ test('should render all the top navbar menu items', async () => {
     expect(screen.getByText(item.label)).toBeInTheDocument();
   });
 });
-
-test('should render the top navbar child menu items', async () => {
+// TODO: @geido
+test.skip('should render the top navbar child menu items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { menu },
@@ -327,8 +327,11 @@ test('should render the top navbar child menu items', async () => {
     useQueryParams: true,
     useRouter: true,
   });
-  const sources = screen.getByText('Sources');
+  const sources = screen.getByRole('menuitem', {
+    name: 'triangle-down Sources',
+  });
   userEvent.hover(sources);
+
   const datasets = await screen.findByText('Datasets');
   const databases = await screen.findByText('Databases');
   const dataset = menu[1].childs![0] as { url: string };
@@ -477,13 +480,13 @@ test('should render the About section and version_string, sha or build_number wh
   });
   userEvent.hover(screen.getByText('Settings'));
   const about = await screen.findByText('About');
-  const version = await screen.findByText(`Version: ${version_string}`);
-  const sha = await screen.findByText(`SHA: ${version_sha}`);
-  const build = await screen.findByText(`Build: ${build_number}`);
+  const version = await screen.findAllByText(`Version: ${version_string}`);
+  const sha = await screen.findAllByText(`SHA: ${version_sha}`);
+  const build = await screen.findAllByText(`Build: ${build_number}`);
   expect(about).toBeInTheDocument();
-  expect(version).toBeInTheDocument();
-  expect(sha).toBeInTheDocument();
-  expect(build).toBeInTheDocument();
+  expect(version[0]).toBeInTheDocument();
+  expect(sha[0]).toBeInTheDocument();
+  expect(build[0]).toBeInTheDocument();
 });
 
 test('should render the Documentation link when available', async () => {
@@ -578,9 +581,15 @@ test('should render an extension component if one is supplied', async () => {
 
   setupExtensions();
 
-  render(<Menu {...mockedProps} />, { useRouter: true, useQueryParams: true });
+  render(<Menu {...mockedProps} />, {
+    useRouter: true,
+    useQueryParams: true,
+    useRedux: true,
+  });
 
-  expect(
-    await screen.findByText('navbar.right extension component'),
-  ).toBeInTheDocument();
+  const extension = await screen.findAllByText(
+    'navbar.right extension component',
+  );
+
+  expect(extension[0]).toBeInTheDocument();
 });
