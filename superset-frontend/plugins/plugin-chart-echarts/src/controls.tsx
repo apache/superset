@@ -306,7 +306,7 @@ export const truncateXAxis: ControlSetItem = {
     default: DEFAULT_FORM_DATA.truncateXAxis,
     renderTrigger: true,
     description: t(
-      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applicable for numercal X axis.',
+      'Truncate X Axis. Can be overridden by specifying a min or max bound. Only applicable for numerical X axis.',
     ),
   },
 };
