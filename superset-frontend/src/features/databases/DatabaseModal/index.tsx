@@ -46,7 +46,7 @@ import IconButton from 'src/components/IconButton';
 import InfoTooltip from 'src/components/InfoTooltip';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 import ImportErrorAlert from 'src/components/ImportModal/ImportErrorAlert';
 import {
   testDatabaseConnection,
@@ -1578,14 +1578,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (alertErrors.length) {
       return (
         <ErrorAlertContainer>
-          <ErrorMessageWithStackTrace
-            title={t('Database Creation Error')}
-            subtitle={alertErrors?.[0] || validationErrors?.description}
-            description={t(
-              'We are unable to connect to your database. Click "See more" for ' +
-                'database-provided information that may help troubleshoot the issue.',
-            )}
-            descriptionDetails={validationErrors?.description}
+          <ErrorAlert
+            errorType={t('Database Creation Error')}
+            message={t('We are unable to connect to your database')}
+            descriptionDetails={
+              alertErrors?.[0] || validationErrors?.description
+            }
+            closable={false}
           />
         </ErrorAlertContainer>
       );

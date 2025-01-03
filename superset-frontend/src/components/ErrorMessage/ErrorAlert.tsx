@@ -32,6 +32,8 @@ export interface ErrorAlertProps {
   descriptionPre?: boolean; // Uses pre-style to break lines, default true
   compact?: boolean; // Shows the error icon with tooltip and modal, default false
   children?: React.ReactNode; // Additional content to show in the modal
+  closable?: boolean; // Show close button, default true
+  showIcon?: boolean; // Show icon, default true
 }
 
 const ErrorAlert: React.FC<ErrorAlertProps> = ({
@@ -44,6 +46,8 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   descriptionPre = true,
   compact = false,
   children,
+  closable = true,
+  showIcon = true,
 }) => {
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(
     !descriptionDetailsCollapsed,
@@ -99,7 +103,12 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   );
 
   const renderAlert = () => (
-    <Alert description={renderDescription()} type={type}>
+    <Alert
+      description={renderDescription()}
+      type={type}
+      showIcon
+      closable={closable}
+    >
       <strong>{errorType}</strong>
       {message && (
         <>
