@@ -1276,7 +1276,7 @@ class ChartDataQueryObjectSchema(Schema):
         ],
     )
     order_desc = fields.Boolean(
-        metadata={"description": "Reverse order. Default: `false`"},
+        metadata={"description": "Reverse sort order. Default: `false`"},
         allow_none=True,
     )
     extras = fields.Nested(
