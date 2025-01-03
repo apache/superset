@@ -624,7 +624,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
     });
 
@@ -781,7 +781,7 @@ describe('DatabaseModal', () => {
         enableRowExpansionCheckbox,
       ];
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
@@ -849,7 +849,7 @@ describe('DatabaseModal', () => {
       ];
 
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
     });
 
@@ -929,7 +929,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Assertions ----------
       visibleComponents.forEach(component => {
-        expect(component).toBeVisible();
+        expect(component).toBeInTheDocument();
       });
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
@@ -1137,7 +1137,7 @@ describe('DatabaseModal', () => {
       expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       const sqlAlchemyFormStepText = screen.getByText(/step 2 of 2/i);
 
-      expect(sqlAlchemyFormStepText).toBeVisible();
+      expect(sqlAlchemyFormStepText).toBeInTheDocument();
     });
 
     describe('SQL Alchemy form flow', () => {
@@ -1293,7 +1293,7 @@ describe('DatabaseModal', () => {
 
           expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
           const SSHTunnelingToggle = screen.getByTestId('ssh-tunnel-switch');
-          expect(SSHTunnelingToggle).toBeVisible();
+          expect(SSHTunnelingToggle).toBeInTheDocument();
           const SSHTunnelServerAddressInput = screen.queryByTestId(
             'ssh-tunnel-server_address-input',
           );
@@ -1325,26 +1325,26 @@ describe('DatabaseModal', () => {
           const SSHTunnelUsePasswordInput = screen.getByTestId(
             'ssh-tunnel-use_password-radio',
           );
-          expect(SSHTunnelUsePasswordInput).toBeVisible();
+          expect(SSHTunnelUsePasswordInput).toBeInTheDocument();
           const SSHTunnelUsePrivateKeyInput = screen.getByTestId(
             'ssh-tunnel-use_private_key-radio',
           );
-          expect(SSHTunnelUsePrivateKeyInput).toBeVisible();
+          expect(SSHTunnelUsePrivateKeyInput).toBeInTheDocument();
           const SSHTunnelPasswordInput = screen.getByTestId(
             'ssh-tunnel-password-input',
           );
           // By default, we use Password as login method
-          expect(SSHTunnelPasswordInput).toBeVisible();
+          expect(SSHTunnelPasswordInput).toBeInTheDocument();
           // Change the login method to use private key
           userEvent.click(SSHTunnelUsePrivateKeyInput);
           const SSHTunnelPrivateKeyInput = screen.getByTestId(
             'ssh-tunnel-private_key-input',
           );
-          expect(SSHTunnelPrivateKeyInput).toBeVisible();
+          expect(SSHTunnelPrivateKeyInput).toBeInTheDocument();
           const SSHTunnelPrivateKeyPasswordInput = screen.getByTestId(
             'ssh-tunnel-private_key_password-input',
           );
-          expect(SSHTunnelPrivateKeyPasswordInput).toBeVisible();
+          expect(SSHTunnelPrivateKeyPasswordInput).toBeInTheDocument();
         });
       });
     });

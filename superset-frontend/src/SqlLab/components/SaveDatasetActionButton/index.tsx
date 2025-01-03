@@ -37,7 +37,7 @@ const SaveDatasetActionButton = ({
   const StyledDropdownButton = styled(
     DropdownButton as FC<DropdownButtonProps>,
   )`
-    &.ant-dropdown-button button.ant-btn.ant-btn-default {
+    &.ant-dropdown-button button.antd5-btn.antd5-btn-default {
       font-weight: ${theme.gridUnit * 150};
       background-color: ${theme.colors.primary.light4};
       color: ${theme.colors.primary.dark1};
