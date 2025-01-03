@@ -82,6 +82,7 @@ from superset.constants import (
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import (
     CertificateException,
+    SupersetDatetimeParseError,
     SupersetException,
     SupersetTimeoutException,
 )
@@ -1666,20 +1667,23 @@ def normalize_dttm_col(
 
         if _col.timestamp_format in ("epoch_s", "epoch_ms"):
             dttm_series = df[_col.col_label]
-            if is_numeric_dtype(dttm_series):
-                # Column is formatted as a numeric value
-                unit = _col.timestamp_format.replace("epoch_", "")
-                df[_col.col_label] = pd.to_datetime(
-                    dttm_series,
-                    utc=False,
-                    unit=unit,
-                    origin="unix",
-                    errors="raise",
-                    exact=False,
-                )
-            else:
-                # Column has already been formatted as a timestamp.
-                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
+            try:
+                if is_numeric_dtype(dttm_series):
+                    # Column is formatted as a numeric value
+                    unit = _col.timestamp_format.replace("epoch_", "")
+                    df[_col.col_label] = pd.to_datetime(
+                        dttm_series,
+                        utc=False,
+                        unit=unit,
+                        origin="unix",
+                        errors="raise",
+                        exact=False,
+                    )
+                else:
+                    # Column has already been formatted as a timestamp.
+                    df[_col.col_label] = dttm_series.apply(pd.Timestamp)
+            except UserWarning as ex:
+                raise SupersetDatetimeParseError() from ex
         else:
             df[_col.col_label] = pd.to_datetime(
                 df[_col.col_label],
