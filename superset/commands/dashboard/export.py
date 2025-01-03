@@ -159,7 +159,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         payload["version"] = EXPORT_VERSION
 
-        file_content = yaml.safe_dump(payload, sort_keys=False)
+        file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
