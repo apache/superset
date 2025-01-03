@@ -18,7 +18,7 @@
  */
 import { Link } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { Empty } from 'src/components/EmptyState/Empty';
+import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';
@@ -57,6 +57,7 @@ export interface EmptyStateProps {
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
+  color: ${({ theme }) => theme.antd.textColorTiertiary};
   flex-direction: column;
   justify-content: space-around;
 `;
@@ -130,8 +131,9 @@ export default function EmptyState({
   ) {
     return (
       <EmptyContainer>
-        <Empty
-          image={`/static/assets/images/${tableIcon[tableName]}`}
+        <EmptyStateComponent
+          image={tableIcon[tableName]}
+          size="large"
           description={
             tableName === WelcomeTable.Recents || tab === TableTab.Other
               ? recent
@@ -153,15 +155,15 @@ export default function EmptyState({
               </Link>
             </ButtonContainer>
           )}
-        </Empty>
+        </EmptyStateComponent>
       </EmptyContainer>
     );
   }
   // Favorite tab empty state
   return (
     <EmptyContainer>
-      <Empty
-        image="/static/assets/images/star-circle.svg"
+      <EmptyStateComponent
+        image="star-circle.svg"
         description={
           <span className="no-favorites">
             {t("You don't have any favorites yet!")}
@@ -181,7 +183,7 @@ export default function EmptyState({
                 : welcomeTableLabels[tableName],
           })}
         </Button>
-      </Empty>
+      </EmptyStateComponent>
     </EmptyContainer>
   );
 }

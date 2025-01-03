@@ -63,6 +63,8 @@ const titleStyles = (theme: SupersetTheme) => css`
     border: none;
     padding: 0;
     outline: none;
+    color: ${theme.antd.colortTextBase};
+    background-color: ${theme.antd.colorBgBase};
 
     &::placeholder {
       color: ${theme.colors.grayscale.light1};
@@ -77,7 +79,7 @@ const titleStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-export const DynamicEditableTitle = memo(
+const DynamicEditableTitle = memo(
   ({
     title,
     placeholder,
@@ -224,3 +226,4 @@ export const DynamicEditableTitle = memo(
     );
   },
 );
+export default DynamicEditableTitle;

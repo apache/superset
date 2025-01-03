@@ -26,7 +26,7 @@ import Modal from 'src/components/Modal';
 import { Upload } from 'src/components';
 import { useImportResource } from 'src/views/CRUD/hooks';
 import { ImportResourceName } from 'src/views/CRUD/types';
-import ErrorAlert from './ErrorAlert';
+import ImportErrorAlert from './ImportErrorAlert';
 
 const HelperMessage = styled.div`
   display: block;
@@ -447,7 +447,7 @@ const ImportModelsModal: FunctionComponent<ImportModelsModalProps> = ({
         </Upload>
       </StyledInputContainer>
       {errorMessage && (
-        <ErrorAlert
+        <ImportErrorAlert
           errorMessage={errorMessage}
           showDbInstallInstructions={
             passwordFields.length > 0 ||

@@ -95,10 +95,6 @@ const Tabs = Object.assign(StyledTabs, {
 
 const StyledEditableTabs = styled(StyledTabs)`
   ${({ theme, fullWidth }) => `
-    .ant-tabs-content-holder {
-      background: ${theme.colors.grayscale.light5};
-    }
-
     & > .ant-tabs-nav {
       margin-bottom: 0;
     }

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { styled, css, GenericDataType } from '@superset-ui/core';
 import { useMemo } from 'react';
 import { zip } from 'lodash';
-import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
   CopyToClipboardButton,
   FilterInput,

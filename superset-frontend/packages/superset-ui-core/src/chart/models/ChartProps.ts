@@ -37,7 +37,7 @@ import {
   SetDataMaskHook,
 } from '../types/Base';
 import { QueryData, DataRecordFilters } from '..';
-import { SupersetTheme } from '../../style';
+import { SupersetTheme } from '../../theme';
 
 // TODO: more specific typing for these fields of ChartProps
 type AnnotationData = PlainObject;

@@ -306,8 +306,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
           placeholder={[t('Start date'), t('End date')]}
           format="YYYY-MM-DD HH:mm"
           onChange={onDateChange}
-          showTime={{ format: 'hh:mm a' }}
-          use12Hours
+          showTime={{ format: 'hh:mm a', use12Hours: true }}
           value={
             currentAnnotation?.start_dttm?.length ||
             currentAnnotation?.end_dttm?.length

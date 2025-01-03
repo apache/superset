@@ -20,7 +20,7 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FallbackProps } from 'react-error-boundary';
-import { ThemeProvider, supersetTheme } from '../../../src/style';
+import { ThemeProvider, supersetTheme } from '../../../src/theme';
 
 import FallbackComponent from '../../../src/chart/components/FallbackComponent';
 

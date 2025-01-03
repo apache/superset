@@ -17,8 +17,8 @@
  * under the License.
  */
 import { withJsx } from '@mihkeleidast/storybook-addon-source';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { AntdThemeProvider } from '../src/components/AntdThemeProvider';
+import { themeObject } from '@superset-ui/core';
+import { theme } from 'src/preamble';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
@@ -34,14 +34,14 @@ const store = createStore(
   compose(applyMiddleware(thunk)),
 );
 
-const themeDecorator = Story => (
-  <ThemeProvider theme={supersetTheme}>
-    <AntdThemeProvider>
+const themeDecorator = Story => {
+  return (
+    <themeObject.SupersetThemeProvider>
       <GlobalStyles />
       <Story />
-    </AntdThemeProvider>
-  </ThemeProvider>
-);
+    </themeObject.SupersetThemeProvider>
+  );
+};
 
 const providerDecorator = Story => (
   <Provider store={store}>

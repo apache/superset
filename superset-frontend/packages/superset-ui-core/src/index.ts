@@ -28,7 +28,7 @@ export * from './number-format';
 export * from './time-format';
 export * from './dimension';
 export * from './color';
-export * from './style';
+export * from './theme';
 export * from './validator';
 export * from './chart';
 export * from './chart-composition';

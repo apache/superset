@@ -100,7 +100,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import Alert from 'src/components/Alert';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
@@ -137,7 +137,7 @@ const StyledToolbar = styled.div`
   background: ${({ theme }) => theme.colors.grayscale.light5};
   display: flex;
   justify-content: space-between;
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  border: 1px solid ${({ theme }) => theme.antd.colorBorder};
   border-top: 0;
   column-gap: ${({ theme }) => theme.gridUnit}px;
 
@@ -967,8 +967,9 @@ const SqlEditor: FC<Props> = ({
           <Skeleton active />
         </div>
       ) : showEmptyState && !hasSqlStatement ? (
-        <EmptyStateBig
+        <EmptyState
           image="vector.svg"
+          size="large"
           title={t('Select a database to write a query')}
           description={t(
             'Choose one of the available databases from the panel on the left.',

@@ -17,10 +17,9 @@
  * under the License.
  */
 import { ReactNode, ComponentType, ReactElement, FC } from 'react';
-import { styled, useTheme } from '@superset-ui/core';
+import { styled, useTheme, supersetTheme } from '@superset-ui/core';
 import { Skeleton, Card } from 'src/components';
 import { Tooltip } from 'src/components/Tooltip';
-import { theme as supersetTheme } from 'src/preamble';
 import { ConfigProvider } from 'antd-v5';
 import ImageLoader, { BackgroundPosition } from './ImageLoader';
 import CertifiedBadge from '../CertifiedBadge';

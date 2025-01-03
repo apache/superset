@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from '@superset-ui/core';
+import { ThemeProvider, supersetTheme, JsonObject } from '@superset-ui/core';
+import { render } from '@testing-library/react';
+import '@testing-library/jest-dom';
 
 type TestWithIdType<T> = T extends string ? string : { 'data-test': string };
 
-// Using bem standard
+export const renderWithTheme = (component: JSX.Element) =>
+  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+
+// using bem standard
 export const testWithId =
   <T extends string | JsonObject = JsonObject>(
     prefix?: string,
@@ -37,6 +42,7 @@ export const testWithId =
       return (resultIdOnly ? id : { 'data-test': id }) as TestWithIdType<T>;
     }
     if (!id && !prefix) {
+      // eslint-disable-next-line no-console
       console.warn('testWithId function has missed "prefix" and "id" params');
       return (resultIdOnly ? '' : { 'data-test': '' }) as TestWithIdType<T>;
     }
