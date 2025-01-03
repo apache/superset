@@ -16,9 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default as AdhocFilterPlugin } from './Adhoc';
-export { default as SelectFilterPlugin } from './Select';
-export { default as RangeFilterPlugin } from './Range';
-export { default as TimeFilterPlugin } from './Time';
-export { default as TimeColumnFilterPlugin } from './TimeColumn';
-export { default as TimeGrainFilterPlugin } from './TimeGrain';
+import { t } from '@superset-ui/core';
+import { ControlPanelConfig } from '@superset-ui/chart-controls';
+import { DEFAULT_FORM_DATA } from './types';
+
+const { enableEmptyFilter } = DEFAULT_FORM_DATA;
+
+const config: ControlPanelConfig = {
+  controlPanelSections: [
+    {
+      label: t('UI Configuration'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'enableEmptyFilter',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Filter value is required'),
+              default: enableEmptyFilter,
+              renderTrigger: true,
+              description: t(
+                'User must select a value before applying the filter',
+              ),
+            },
+          },
+        ],
+      ],
+    },
+  ],
+};
+
+export default config;
