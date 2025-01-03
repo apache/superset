@@ -19,6 +19,7 @@ on:
             - January
             - Travcoding
             - Caliza
+            - PayFacto
 
 jobs:
   execute:
@@ -87,6 +88,15 @@ jobs:
               echo "TAG=latest" >> $GITHUB_ENV     
               echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
               ;;
+            PayFacto)
+              echo "Setting environment for PayFacto"
+              echo "GCE_VM_NAME=payfacto"  >> $GITHUB_ENV 
+              echo "GCE_PROJECT=payfacto-445115"  >> $GITHUB_ENV              
+              echo "DIRECTORY_PATH=/home/payfacto/superset" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/PayFacto/BI-Tool" >> $GITHUB_ENV
+              echo "TAG=latest" >> $GITHUB_ENV     
+              echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
+              ;;              
             *)
               echo "Unknown environment"
               exit 1
