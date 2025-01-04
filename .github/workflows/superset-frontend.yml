@@ -90,9 +90,9 @@ jobs:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@v4
         with:
-          name: coverage-artifacts
+          pattern: coverage-artifacts-*
           merge-multiple: true
-          pattern: superset-frontend/coverage/*
+          path: coverage/
 
       - name: Show files
         run: find .
