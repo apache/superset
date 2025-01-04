@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 from datetime import datetime
-import importlib.util
+from importlib.util import find_spec
 from contextlib import contextmanager
 from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
@@ -258,7 +258,7 @@ class SupersetTestCase(TestCase):
     @staticmethod
     def is_module_installed(module_name: str) -> bool:
         try:
-            spec = importlib.util.find_spec(module_name)
+            spec = find_spec(module_name)
             return spec is not None
         except ImportError:
             return False
