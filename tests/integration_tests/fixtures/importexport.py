@@ -689,7 +689,7 @@ chart_config_2: dict[str, Any] = {
         "color_picker": {"a": 1, "b": 135, "g": 122, "r": 0},
         "datasource": "12__table",
         "js_columns": ["color"],
-        "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",
+        "js_data_mutator": r"data => data.map(d => ({\n    ...d,\n    color: colors.hexToRGB(d.extraProps.color)\n}));",  # noqa: E501
         "js_onclick_href": "",
         "js_tooltip": "",
         "line_column": "path_json",
@@ -719,7 +719,7 @@ chart_config_2: dict[str, Any] = {
         },
         "viz_type": "deck_path",
     },
-    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',
+    "query_context": '{"datasource":{"id":12,"type":"table"},"force":false,"queries":[{"time_range":" : ","filters":[],"extras":{"time_grain_sqla":null,"having":"","where":""},"applied_time_extras":{},"columns":[],"metrics":[],"annotation_layers":[],"row_limit":5000,"timeseries_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{}}],"result_format":"json","result_type":"full"}',  # noqa: E501
     "cache_timeout": None,
     "uuid": "82bb160d-a859-44ce-86cc-9a92de113514",
     "version": "1.0.0",
