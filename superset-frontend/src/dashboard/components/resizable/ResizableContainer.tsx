@@ -174,18 +174,18 @@ export default function ResizableContainer({
 }: ResizableContainerProps) {
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
-  const handleResizeStart: ResizeStartCallback = (e, dir, elementRef) => {
-    if (onResizeStart) onResizeStart(e, dir, elementRef);
-    setIsResizing(true);
-  };
-
   const handleResize: ResizeCallback = (
-    e,
-    dir,
+    event,
+    direction,
     elementRef,
     delta: { width: number; height: number },
   ) => {
-    if (onResize) onResize(e, dir, elementRef, delta);
+    if (onResize) onResize(event, direction, elementRef, delta);
+  };
+
+  const handleResizeStart: ResizeStartCallback = (e, dir, elementRef) => {
+    if (onResizeStart) onResizeStart(e, dir, elementRef);
+    setIsResizing(true);
   };
 
   const handleResizeStop: ResizeCallback = (
@@ -200,10 +200,17 @@ export default function ResizableContainer({
       const nextHeightMultiple =
         heightMultiple + Math.round(delta.height / heightStep);
 
-      onResizeStop(event, direction, elementRef, {
-        width: adjustableWidth ? nextWidthMultiple : 0,
-        height: adjustableHeight ? nextHeightMultiple : 0,
-      });
+      onResizeStop(
+        event,
+        direction,
+        elementRef,
+        {
+          width: adjustableWidth ? nextWidthMultiple : 0,
+          height: adjustableHeight ? nextHeightMultiple : 0,
+        },
+        // @ts-ignore
+        id,
+      );
     }
     setIsResizing(false);
   };
