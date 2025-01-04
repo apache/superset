@@ -35,6 +35,7 @@ jobs:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           build: "true"
+          install-docker-compose: "false"
 
       - name: Setup supersetbot
         if: steps.check.outputs.frontend
@@ -59,7 +60,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-22.04
     env:
-      TAG: apache/superset:GHA-${{ GITHUB_RUN_ID }}
+      TAG: apache/superset:GHA-${{ vars.GITHUB_RUN_ID }}
     steps:
       - name: Load Docker Image
         run: |
