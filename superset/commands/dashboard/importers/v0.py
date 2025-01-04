@@ -81,7 +81,7 @@ def import_chart(
     return slc_to_import.id
 
 
-def import_dashboard(
+def import_dashboard(  # noqa: C901
     # pylint: disable=too-many-locals,too-many-statements
     dashboard_to_import: Dashboard,
     dataset_id_mapping: Optional[dict[int, int]] = None,

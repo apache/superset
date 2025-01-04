@@ -269,7 +269,7 @@ class TestSupersetResultSet(SupersetTestCase):
         df = results.to_pandas_df()
         assert df_to_records(df) == [
             {
-                "metadata": '["test", [["foo", 123456, [[["test"], 3432546, 7657658766], [["fake"], 656756765, 324324324324]]]], ["test2", 43, 765765765], null, null]'
+                "metadata": '["test", [["foo", 123456, [[["test"], 3432546, 7657658766], [["fake"], 656756765, 324324324324]]]], ["test2", 43, 765765765], null, null]'  # noqa: E501
             }
         ]
 

@@ -21,6 +21,7 @@ import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
+// TODO: @msyavuz - Remove this after datepicker
 import moment from 'moment';
 import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';

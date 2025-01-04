@@ -35,7 +35,7 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     echo "Running `npm install`"
     npm install
 
-    echo "Running frontend"
+    echo "Start webpack dev server"
     npm run dev
 
 else

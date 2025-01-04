@@ -553,7 +553,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
             | join (PopulationData) on State
             | project State, Population, TotalInjuries = InjuriesDirect + InjuriesIndirect
 
-        """
+        """  # noqa: E501
         logger.warning(
             "Kusto KQL doesn't support table extraction. This means that data access "
             "roles will not be enforced by Superset in the database."

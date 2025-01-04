@@ -53,15 +53,15 @@ class YDBEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT1S')))",
-        TimeGrain.THIRTY_SECONDS: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT30S')))",
-        TimeGrain.MINUTE: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT1M')))",
-        TimeGrain.FIVE_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT5M')))",
-        TimeGrain.TEN_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT10M')))",
-        TimeGrain.FIFTEEN_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT15M')))",
-        TimeGrain.THIRTY_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT30M')))",
-        TimeGrain.HOUR: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT1H')))",
-        TimeGrain.DAY: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('P1D')))",
+        TimeGrain.SECOND: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT1S')))",  # noqa: E501
+        TimeGrain.THIRTY_SECONDS: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT30S')))",  # noqa: E501
+        TimeGrain.MINUTE: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT1M')))",  # noqa: E501
+        TimeGrain.FIVE_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT5M')))",  # noqa: E501
+        TimeGrain.TEN_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT10M')))",  # noqa: E501
+        TimeGrain.FIFTEEN_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT15M')))",  # noqa: E501
+        TimeGrain.THIRTY_MINUTES: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT30M')))",  # noqa: E501
+        TimeGrain.HOUR: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('PT1H')))",  # noqa: E501
+        TimeGrain.DAY: "DateTime::MakeDatetime(DateTime::StartOf({col}, Interval('P1D')))",  # noqa: E501
         TimeGrain.WEEK: "DateTime::MakeDatetime(DateTime::StartOfWeek({col}))",
         TimeGrain.MONTH: "DateTime::MakeDatetime(DateTime::StartOfMonth({col}))",
         TimeGrain.QUARTER: "DateTime::MakeDatetime(DateTime::StartOfQuarter({col}))",
@@ -79,9 +79,9 @@ class YDBEngineSpec(BaseEngineSpec):
         sqla_type = cls.get_sqla_column_type(target_type)
 
         if isinstance(sqla_type, types.Date):
-            return f"DateTime::MakeDate(DateTime::ParseIso8601('{dttm.date().isoformat()}'))"
+            return f"DateTime::MakeDate(DateTime::ParseIso8601('{dttm.date().isoformat()}'))"  # noqa: E501
         if isinstance(sqla_type, types.DateTime):
-            return f"""DateTime::MakeDatetime(DateTime::ParseIso8601('{dttm.isoformat(sep="T", timespec="seconds")}'))"""
+            return f"""DateTime::MakeDatetime(DateTime::ParseIso8601('{dttm.isoformat(sep="T", timespec="seconds")}'))"""  # noqa: E501
         return None
 
     @staticmethod

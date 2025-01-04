@@ -91,7 +91,7 @@ class ImportModelsCommand(BaseCommand):
         if self.dao.model_cls:
             validate_metadata_type(metadata, self.dao.model_cls.__name__, exceptions)
 
-        # load the configs and make sure we have confirmation to overwrite existing models
+        # load the configs and make sure we have confirmation to overwrite existing models  # noqa: E501
         self._configs = load_configs(
             self.contents,
             self.schemas,

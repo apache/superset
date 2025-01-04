@@ -16,27 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
 
-export const fDuration = function (t1, t2, format = 'HH:mm:ss.SS') {
-  const diffSec = t2 - t1;
-  const duration = moment(new Date(diffSec));
-  return duration.utc().format(format);
-};
+/*
+ * Re-exporting of components in src/components to facilitate
+ * their imports by other components.
+ * E.g. import { Select } from 'src/components'
+ */
 
-export const now = function () {
-  // seconds from EPOCH as a float
-  return moment().utc().valueOf();
-};
+import { Space as AntdSpace } from 'antd-v5';
+import type { SpaceProps } from 'antd-v5/es/space';
 
-export const epochTimeXHoursAgo = function (h) {
-  return moment().subtract(h, 'hours').utc().valueOf();
-};
+export function Space(props: SpaceProps) {
+  return <AntdSpace {...props} />;
+}
 
-export const epochTimeXDaysAgo = function (d) {
-  return moment().subtract(d, 'days').utc().valueOf();
-};
-
-export const epochTimeXYearsAgo = function (y) {
-  return moment().subtract(y, 'years').utc().valueOf();
-};
+export { SpaceProps };

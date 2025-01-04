@@ -97,7 +97,7 @@ class UIManifestProcessor:
                 # templates
                 full_manifest = json.load(f)
                 self.manifest = full_manifest.get("entrypoints", {})
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
 
     def get_manifest_files(self, bundle: str, asset_type: str) -> list[str]:

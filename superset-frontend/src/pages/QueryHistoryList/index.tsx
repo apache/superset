@@ -25,7 +25,6 @@ import {
   t,
   useTheme,
 } from '@superset-ui/core';
-import moment from 'moment';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -54,6 +53,7 @@ import Icons from 'src/components/Icons';
 import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
 import getOwnerName from 'src/utils/getOwnerName';
+import { extendedDayjs } from 'src/utils/dates';
 
 const PAGE_SIZE = 25;
 const SQL_PREVIEW_MAX_LINES = 4;
@@ -214,7 +214,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const startMoment = moment.utc(start_time).local();
+          const startMoment = extendedDayjs.utc(start_time).local();
           const formattedStartTimeData = startMoment
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
@@ -238,7 +238,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => {
           const timerType = status === QueryState.Failed ? 'danger' : status;
           const timerTime = end_time
-            ? moment(moment.utc(end_time - start_time)).format(TIME_WITH_MS)
+            ? extendedDayjs(extendedDayjs.utc(end_time - start_time)).format(
+                TIME_WITH_MS,
+              )
             : '00:00:00.000';
           return (
             <TimerLabel type={timerType} role="timer">
