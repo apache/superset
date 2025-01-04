@@ -13,6 +13,8 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+env:
+  TAG: apache/superset:GHA-${{ github.run_id }}
 jobs:
   frontend-build:
     runs-on: ubuntu-24.04
@@ -59,8 +61,6 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-22.04
-    env:
-      TAG: apache/superset:GHA-${{ github.run_id }}
     steps:
       - name: Load Docker Image
         run: |
@@ -71,8 +71,8 @@ jobs:
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
           --rm $TAG \
-          -v ${{ github.workspace }}/superset-frontend/coverage \
-          -w /app/superset-frontend/coverage \
+           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
+          -w /app/superset-frontend \
           bash -c \
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
 
@@ -112,18 +112,13 @@ jobs:
     if: needs.frontend-build.result == 'success'
     runs-on: ubuntu-22.04
     steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
       - name: Load Docker Image
         run: |
-          docker load -i superset-node.tar.gz
+          docker pull $TAG
 
       - name: superset-ui/core coverage
         run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
+          docker run --rm $TAG bash -c \
           "npm run core:cover"
 
   lint-frontend:
@@ -131,18 +126,13 @@ jobs:
     if: needs.frontend-build.result == 'success'
     runs-on: ubuntu-22.04
     steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
       - name: Load Docker Image
         run: |
-          docker load -i superset-node.tar.gz
+          docker pull $TAG
 
       - name: eslint
         run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
+          docker run --rm $TAG bash -c \
           "npm i && npm run eslint -- . --quiet"
       - name: tsc
         run: |
@@ -154,14 +144,9 @@ jobs:
     if: needs.frontend-build.result == 'success'
     runs-on: ubuntu-22.04
     steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
       - name: Load Docker Image
         run: |
-          docker load -i superset-node.tar.gz
+          docker pull $TAG
 
       - name: Build plugins packages
         run: |
