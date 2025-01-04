@@ -82,9 +82,11 @@ jobs:
 
       - name: npm run test with coverage
         run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
           --rm superset-node-${{ github.sha }} \
-          -v ${{ github.workspace }}/superset-frontend:/app/superset-frontend \
+          -v ${{ github.workspace }}/superset-frontend/coverage \
+          -w /app/superset-frontend/coverage \
           bash -c \
           'npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary'
           find ${{ github.workspace }}/superset-frontend/coverage
