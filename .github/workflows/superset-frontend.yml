@@ -60,6 +60,7 @@ jobs:
     strategy:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
+      fail-fast: false
     runs-on: ubuntu-22.04
     steps:
       - name: Load Docker Image
@@ -135,7 +136,7 @@ jobs:
           "npm i && npm run eslint -- . --quiet"
       - name: tsc
         run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
+          docker run --rm $TAG bash -c \
           "npm run type"
 
   validate-frontend:
@@ -149,9 +150,9 @@ jobs:
 
       - name: Build plugins packages
         run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
+          docker run --rm $TAG bash -c \
           "npm run plugins:build"
       - name: Build plugins Storybook
         run: |
-          docker run --rm superset-node-${{ github.sha }} bash -c \
+          docker run --rm $TAG bash -c \
           "npm run plugins:build-storybook"
