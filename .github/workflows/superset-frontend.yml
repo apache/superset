@@ -46,22 +46,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          TAG="superset-node-${{ github.sha }}"
-
           supersetbot docker \
-            --load \
+            --push \
             --preset superset-node-ci \
             --platform "linux/amd64" \
-            --extra-flags "--tag $TAG"
-
-          docker save $TAG | gzip > superset-node.tar.gz
-
-      - name: Upload Docker Image Artifact
-        if: steps.check.outputs.frontend
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: superset-node.tar.gz
 
   sharded-jest-tests:
     needs: frontend-build
@@ -70,26 +58,22 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-22.04
+    env:
+      TAG: apache/superset:GHA-${GITHUB_RUN_ID}
     steps:
-      - name: Download Docker Image Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: docker-image
-
       - name: Load Docker Image
         run: |
-          docker load -i superset-node.tar.gz
+          docker pull $TAG
 
       - name: npm run test with coverage
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
-          --rm superset-node-${{ github.sha }} \
+          --rm $TAG \
           -v ${{ github.workspace }}/superset-frontend/coverage \
           -w /app/superset-frontend/coverage \
           bash -c \
-          'npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary'
-          find ${{ github.workspace }}/superset-frontend/coverage
+          "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json-summary"
 
       - name: Upload coverage artifact
         uses: actions/upload-artifact@v4
