@@ -80,7 +80,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-artifacts-${{ matrix.shard }}
-          path: coverage/
+          path: superset-frontend/coverage
 
   report-coverage:
     needs: [sharded-jest-tests]
@@ -92,7 +92,7 @@ jobs:
         with:
           name: coverage-artifacts
           merge-multiple: true
-          pattern: coverage/*
+          pattern: superset-frontend/coverage/*
 
       - name: Show files
         run: find .
