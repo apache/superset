@@ -147,13 +147,13 @@ class DashboardGrid extends PureComponent {
     this.grid = ref;
   }
 
-  handleResizeStart(event, direction, elementRef, delta) {
+  handleResizeStart() {
     this.setState(() => ({
       isResizing: true,
     }));
   }
 
-  handleResizeStop(event, direction, elementRef, delta, id) {
+  handleResizeStop(_event, _direction, _elementRef, delta, id) {
     this.props.resizeComponent({
       id,
       width: delta.width,
