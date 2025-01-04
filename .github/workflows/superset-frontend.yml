@@ -60,7 +60,7 @@ jobs:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
     runs-on: ubuntu-22.04
     env:
-      TAG: apache/superset:GHA-${{ vars.GITHUB_RUN_ID }}
+      TAG: apache/superset:GHA-${{ github.run_id }}
     steps:
       - name: Load Docker Image
         run: |
