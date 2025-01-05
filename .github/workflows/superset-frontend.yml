@@ -91,14 +91,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: coverage-artifacts-*
-          merge-multiple: true
+          merge-multiple: false
           path: coverage/
 
       - name: Show files
         run: find .
 
       - name: Merge Code Coverage
-        run: npx nyc merge coverage/ merged-output/merged-coverage.json
+        run: npx nyc merge coverage/ merged-output/coverage-summary.json
 
       - name: Upload code coverage
         uses: codecov/codecov-action@v5
@@ -106,6 +106,7 @@ jobs:
           flags: javascript
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+          directory: ./merged-output
 
   core-cover:
     needs: frontend-build
