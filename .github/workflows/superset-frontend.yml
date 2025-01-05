@@ -106,7 +106,7 @@ jobs:
           flags: javascript
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
-          directory: ./merged-output
+          files: merged-output/coverage-summary.json
 
   core-cover:
     needs: frontend-build
