@@ -260,7 +260,7 @@ class SupersetTestCase(TestCase):
         try:
             spec = find_spec(module_name)
             return spec is not None
-        except ImportError:
+        except (ModuleNotFoundError, ValueError, TypeError, ImportError):
             return False
 
     def get_or_create(self, cls, criteria, **kwargs):
