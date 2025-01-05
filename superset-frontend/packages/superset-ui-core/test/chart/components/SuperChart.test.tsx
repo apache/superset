@@ -20,7 +20,7 @@
 import { ReactElement } from 'react';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { triggerResizeObserver } from 'resize-observer-polyfill';
-import ErrorBoundary from 'react-error-boundary';
+import { ErrorBoundary } from 'react-error-boundary';
 
 import {
   promiseTimeout,
@@ -165,7 +165,7 @@ describe('SuperChart', () => {
       const inactiveErrorHandler = jest.fn();
       const activeErrorHandler = jest.fn();
       mount(
-        <ErrorBoundary onError={activeErrorHandler}>
+        <ErrorBoundary onError={activeErrorHandler} fallbackRender={() => null}>
           <SuperChart
             disableErrorBoundary
             chartType={ChartKeys.BUGGY}
