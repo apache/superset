@@ -107,6 +107,7 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
           files: merged-output/coverage-summary.json
+          slug: apache/superset
 
   core-cover:
     needs: frontend-build
