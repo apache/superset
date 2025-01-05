@@ -139,6 +139,7 @@ Join our growing community!
 ### Education
 - [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
+- [Open edX](https://openedx.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
 - [The GRAPH Network](https://thegraphnetwork.org/) [@fccoelho]
