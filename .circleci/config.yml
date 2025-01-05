@@ -16,8 +16,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: configure fiverr artifactory
-          command: make create_pypirc
+          name: superset pre-commit
+          command: make install
 
       - run:
           name: install python dependencies
@@ -25,14 +25,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install --upgrade pip
-            make env
-
-      - run:
-          name: run tests
-          command: |
-            . venv/bin/activate
-            export PYTHONPATH=.
-            make unit_tests
+            make superset
 
 
   release:
@@ -111,13 +104,6 @@ workflows:
             - aws-configure-with-oidc/assume-role:
                 role-arn: IAM_ROLE_PROD
 
-  build_prefect_image:
-    jobs:
-      - init_image_release:
-          context: org-global
-          pre-steps:
-            - aws-configure-with-oidc/assume-role:
-                role-arn: IAM_ROLE_PROD
 
 orbs:
   aws-configure-with-oidc: l060ki/aws-configure-with-oidc@0.1.2
