@@ -26,4 +26,3 @@ jobs:
 
       - name: Delete Stack
         run: aws cloudformation delete-stack --stack-name superset-pr-${{ github.event.pull_request.number }}SupersetService
-
