@@ -17,16 +17,44 @@
  * under the License.
  */
 
-import { type ThemeConfig } from 'antd-v5';
+import { MappingAlgorithm, type ThemeConfig } from 'antd-v5';
 import { theme as supersetTheme } from 'src/preamble';
-import { lightAlgorithm } from './light';
+import { lightAlgorithm, lightConfig } from './light';
 
 export enum ThemeType {
   LIGHT = 'light',
 }
 
-const themes = {
-  [ThemeType.LIGHT]: lightAlgorithm,
+type Theme = {
+  [key in ThemeType]: {
+    algorithm: MappingAlgorithm;
+    config: ThemeConfig;
+  };
+};
+
+const themes: Theme = {
+  [ThemeType.LIGHT]: {
+    algorithm: lightAlgorithm,
+    config: lightConfig,
+  },
+};
+
+const deepMerge = (base: any, override: any): any => {
+  const merged = { ...base };
+
+  Object.keys(override).forEach(key => {
+    if (
+      override[key] &&
+      typeof override[key] === 'object' &&
+      !Array.isArray(override[key])
+    ) {
+      merged[key] = deepMerge(merged[key] || {}, override[key]);
+    } else {
+      merged[key] = override[key];
+    }
+  });
+
+  return merged;
 };
 
 // Want to figure out which tokens look like what? Try this!
@@ -35,14 +63,6 @@ const themes = {
 const baseConfig: ThemeConfig = {
   token: {
     borderRadius: supersetTheme.borderRadius,
-    colorBgBase: supersetTheme.colors.primary.light4,
-    colorError: supersetTheme.colors.error.base,
-    colorInfo: supersetTheme.colors.info.base,
-    colorLink: supersetTheme.colors.grayscale.dark1,
-    colorPrimary: supersetTheme.colors.primary.base,
-    colorSuccess: supersetTheme.colors.success.base,
-    colorTextBase: supersetTheme.colors.grayscale.dark2,
-    colorWarning: supersetTheme.colors.warning.base,
     controlHeight: 32,
     fontFamily: supersetTheme.typography.families.sansSerif,
     fontFamilyCode: supersetTheme.typography.families.monospace,
@@ -57,12 +77,9 @@ const baseConfig: ThemeConfig = {
   components: {
     Alert: {
       borderRadius: supersetTheme.borderRadius,
-      colorBgContainer: supersetTheme.colors.grayscale.light5,
-      colorBorder: supersetTheme.colors.grayscale.light3,
       fontSize: supersetTheme.typography.sizes.m,
       fontSizeLG: supersetTheme.typography.sizes.m,
       fontSizeIcon: supersetTheme.typography.sizes.l,
-      colorText: supersetTheme.colors.grayscale.dark1,
     },
     Avatar: {
       containerSize: 32,
@@ -75,59 +92,23 @@ const baseConfig: ThemeConfig = {
     Card: {
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
-      colorBgContainer: supersetTheme.colors.grayscale.light4,
-    },
-    Divider: {
-      colorSplit: supersetTheme.colors.grayscale.light3,
-    },
-    Input: {
-      colorBorder: supersetTheme.colors.secondary.light3,
-      colorBgContainer: supersetTheme.colors.grayscale.light5,
-      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
-        supersetTheme.colors.primary.light3
-      }`,
-    },
-    InputNumber: {
-      colorBorder: supersetTheme.colors.secondary.light3,
-      colorBgContainer: supersetTheme.colors.grayscale.light5,
-      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
-        supersetTheme.colors.primary.light3
-      }`,
     },
     List: {
       itemPadding: `${supersetTheme.gridUnit + 2}px ${supersetTheme.gridUnit * 3}px`,
       paddingLG: supersetTheme.gridUnit * 3,
-      colorSplit: supersetTheme.colors.grayscale.light3,
-      colorText: supersetTheme.colors.grayscale.dark1,
     },
     Modal: {
-      colorBgMask: `${supersetTheme.colors.grayscale.dark2}73`,
-      contentBg: supersetTheme.colors.grayscale.light5,
       titleFontSize: supersetTheme.gridUnit * 4,
-      titleColor: `${supersetTheme.colors.grayscale.dark2}D9`,
-      headerBg: supersetTheme.colors.grayscale.light4,
     },
     Tag: {
       borderRadiusSM: 2,
-      defaultBg: supersetTheme.colors.grayscale.light4,
     },
     Progress: {
       fontSize: supersetTheme.typography.sizes.s,
-      colorText: supersetTheme.colors.text.label,
-      remainingColor: supersetTheme.colors.grayscale.light4,
-    },
-    Popover: {
-      colorBgElevated: supersetTheme.colors.grayscale.light5,
     },
     Slider: {
-      trackBgDisabled: supersetTheme.colors.grayscale.light1,
-      colorBgElevated: supersetTheme.colors.grayscale.light5,
       handleSizeHover: 10,
       handleLineWidthHover: 2,
-    },
-    Switch: {
-      colorPrimaryHover: supersetTheme.colors.primary.base,
-      colorTextTertiary: supersetTheme.colors.grayscale.light1,
     },
     Tooltip: {
       fontSize: supersetTheme.typography.sizes.s,
@@ -136,7 +117,12 @@ const baseConfig: ThemeConfig = {
   },
 };
 
-export const getTheme = (themeType?: ThemeType) => ({
-  ...baseConfig,
-  algorithm: themes[themeType || ThemeType.LIGHT],
-});
+export const getTheme = (themeType?: ThemeType) => {
+  const selectedTheme = themes[themeType || ThemeType.LIGHT];
+
+  const mergedConfig = deepMerge(baseConfig, selectedTheme.config);
+  return {
+    ...mergedConfig,
+    algorithm: selectedTheme.algorithm,
+  };
+};
