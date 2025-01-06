@@ -67,7 +67,7 @@ function t(input: string, ...args: unknown[]) {
   try {
     return getInstance().translate(input, ...args);
   } catch (e) {
-    return `${input}`
+    return `${input}`;
   }
 }
 

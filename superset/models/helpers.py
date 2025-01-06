@@ -579,7 +579,9 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         to_dttm: Optional[datetime] = None,
     ) -> None:
         self.df = df
-        self.query = query if security_manager.can_access('can_view_query', 'Dashboard') else ''
+        self.query = (
+            query if security_manager.can_access("can_view_query", "Dashboard") else ""
+        )
         self.duration = duration
         self.applied_template_filters = applied_template_filters or []
         self.applied_filter_columns = applied_filter_columns or []

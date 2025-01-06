@@ -252,7 +252,10 @@ const FilterControl = ({
   const label = useMemo(
     () => (
       <FilterControlTitleBox>
-        <FilterControlTitle id={`filter-name-${filter.id}`} data-test="filter-control-name">
+        <FilterControlTitle
+          id={`filter-name-${filter.id}`}
+          data-test="filter-control-name"
+        >
           {t(name)}
         </FilterControlTitle>
         {isRequired && <RequiredFieldIndicator />}
