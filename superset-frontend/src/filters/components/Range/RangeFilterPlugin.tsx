@@ -75,6 +75,12 @@ const StyledDivider = styled.span`
   align-content: center;
 `;
 
+const InputNumberWrapper = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+`;
+
 const Wrapper = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
   orientation?: FilterBarOrientation;
@@ -242,6 +248,16 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     [col, getBounds, setDataMask],
   );
 
+  const handleRangeChange = (newValue: number, index: 0 | 1) => {
+    if (index === 0) {
+      setValue([Math.min(newValue, minMax[1]), minMax[1]]);
+      handleAfterChange([Math.min(newValue, minMax[1]), minMax[1]]);
+    } else if (index === 1) {
+      setValue([minMax[0], Math.max(newValue, minMax[0])]);
+      handleAfterChange([minMax[0], Math.max(newValue, minMax[0])]);
+    }
+  };
+
   const handleChange = useCallback((value: [number, number]) => {
     setValue(value);
   }, []);
@@ -392,35 +408,25 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 marks={marks}
               />
             )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-          <InputNumber
-            min={min}
-            max={max}
-            step={step}
-            onChange={(value) => {
-              console.log(minMax)
-              const newValue = [Number(value), minMax[1]];
-              setValue(newValue[0]);
-              handleAfterChange(newValue);
-            }}
-            placeholder="From"
-          />
-          <StyledDivider>
-            -
-          </StyledDivider>
-          <InputNumber
-            min={min}
-            max={max}
-            step={step}
-            onChange={(value) => {
-              console.log(minMax)
-              const newValue = [minMax[0], Number(value)];
-              setValue(newValue[1]);
-              handleAfterChange(newValue);
-            }}
-            placeholder="To"
-          />
-        </div>
+            <InputNumberWrapper>
+              <InputNumber
+                value={minMax[0]}
+                min={min}
+                max={max}
+                step={step}
+                onChange={value => handleRangeChange(Number(value), 0)}
+                placeholder="From"
+              />
+              <StyledDivider>-</StyledDivider>
+              <InputNumber
+                value={minMax[1]}
+                min={min}
+                max={max}
+                step={step}
+                onChange={value => handleRangeChange(Number(value), 1)}
+                placeholder="To"
+              />
+            </InputNumberWrapper>
           </Wrapper>
         </StyledFormItem>
       )}
