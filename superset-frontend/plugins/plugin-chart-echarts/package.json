@@ -25,13 +25,13 @@
   ],
   "dependencies": {
     "d3-array": "^1.2.0",
-    "echarts": "^5.6.0",
     "lodash": "^4.17.21",
     "dayjs": "^1.11.13"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "echarts": "*",
     "memoize-one": "*",
     "react": "^16.13.1"
   },

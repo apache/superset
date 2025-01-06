@@ -16,25 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
+/**
+ * This component is needed to be able to style GeoStyler
+ * via emotion. Emotion can only be used on a component that
+ * accepts a className property.
+ */
+import CardStyle from 'geostyler/dist/Component/CardStyle/CardStyle';
+import { FC } from 'react';
+import { GeoStylerWrapperProps } from './types';
 
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
+export const GeoStylerWrapper: FC<GeoStylerWrapperProps> = ({
+  className,
+  ...passThroughProps
+}) => (
+  <div className={className}>
+    <CardStyle {...passThroughProps} />
+  </div>
+);
 
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+export default GeoStylerWrapper;

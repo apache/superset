@@ -16,25 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import { CartodiagramPlugin } from '../src';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
-
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
-
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
-
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+/**
+ * The example tests in this file act as a starting point, and
+ * we encourage you to build more. These tests check that the
+ * plugin loads properly, and focus on `transformProps`
+ * to ake sure that data, controls, and props are all
+ * treated correctly (e.g. formData from plugin controls
+ * properly transform the data and/or any resulting props).
+ */
+describe('CartodiagramPlugin', () => {
+  it('exists', () => {
+    expect(CartodiagramPlugin).toBeDefined();
+  });
+});
