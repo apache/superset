@@ -26,6 +26,7 @@ import logging
 
 from alembic import op
 from migration_utils import create_unique_constraint, drop_unique_constraint
+from sqlalchemy.engine.reflection import Inspector
 
 from superset.utils.core import generic_find_uq_constraint_name
 
@@ -37,12 +38,13 @@ logger = logging.getLogger(__name__)
 
 
 def upgrade():
-    inspector = op.get_bind().inspector()
+    bind = op.get_bind()
+    inspector = Inspector.from_engine(bind)
 
     # Unfortunately the DB migration that creates this constraint has a
     # try/except block, so that we can't know for sure if the constraint exists.
     if constraint_name := generic_find_uq_constraint_name(
-        "table",
+        "tables",
         ["database_id", "schema", "table_name"],
         inspector,
     ):
