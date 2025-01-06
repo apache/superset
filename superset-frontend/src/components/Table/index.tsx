@@ -174,14 +174,12 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     th.ant-table-cell {
       font-weight: ${theme.typography.weights.bold};
       color: ${theme.colors.grayscale.dark1};
-      user-select: text;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .ant-table-tbody > tr > td {
-      user-select: text;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
