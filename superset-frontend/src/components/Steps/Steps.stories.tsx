@@ -32,7 +32,20 @@ InteractiveSteps.args = {
   size: 'default',
   status: 'process',
   type: 'default',
-  items: [],
+  items: [
+    {
+      title: 'Step 1',
+      description: 'Description 1',
+    },
+    {
+      title: 'Step 2',
+      description: 'Description 2',
+    },
+    {
+      title: 'Step 3',
+      description: 'Description 3',
+    },
+  ],
 };
 
 InteractiveSteps.argTypes = {
