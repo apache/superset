@@ -581,9 +581,7 @@ export default function transformProps(
       show: !inContextMenu,
       trigger: richTooltip ? 'axis' : 'item',
       formatter: (params: any) => {
-        let xValue: number = richTooltip
-          ? params[0].value[0]
-          : params.value[0];
+        let xValue: number = richTooltip ? params[0].value[0] : params.value[0];
         const forecastValue: any[] = richTooltip ? params : [params];
 
         const sortedKeys = extractTooltipKeys(
@@ -640,13 +638,16 @@ export default function transformProps(
               focusedRow = rows.length - 1;
             }
           });
-        const { seriesName } = params
+        const { seriesName } = params;
         if (seriesName) {
-          const regex = new RegExp(".*(\\d+) (\\w+) ago")
-          const result = seriesName.match(regex)
+          const regex = new RegExp('.*(\\d+) (\\w+) ago');
+          const result = seriesName.match(regex);
           if (result && result.length == 3) {
-            const [_, diff, diffType] = result
-            xValue = moment.utc(xValue).subtract(Number(diff), diffType).valueOf()
+            const [_, diff, diffType] = result;
+            xValue = moment
+              .utc(xValue)
+              .subtract(Number(diff), diffType)
+              .valueOf();
           }
         }
         return tooltipHtml(rows, tooltipFormatter(xValue), focusedRow);

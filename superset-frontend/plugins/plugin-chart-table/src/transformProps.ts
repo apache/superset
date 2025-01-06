@@ -119,10 +119,15 @@ const processComparisonTotals = (
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
         transformedTotals[`${t('sv_current')} ${key}`] =
-          parseInt(transformedTotals[`${t('sv_current')} ${key}`]?.toString() || '0', 10) +
-          parseInt(totalRecord[key]?.toString() || '0', 10);
+          parseInt(
+            transformedTotals[`${t('sv_current')} ${key}`]?.toString() || '0',
+            10,
+          ) + parseInt(totalRecord[key]?.toString() || '0', 10);
         transformedTotals[`${t('sv_previous')} ${key}`] =
-          parseInt(transformedTotals[`${t('sv_previous')} ${key}`]?.toString() || '0', 10) +
+          parseInt(
+            transformedTotals[`${t('sv_previous')} ${key}`]?.toString() || '0',
+            10,
+          ) +
           parseInt(
             totalRecord[`${key}__${comparisonSuffix}`]?.toString() || '0',
             10,
@@ -132,7 +137,8 @@ const processComparisonTotals = (
           transformedTotals[`${t('sv_previous')} ${key}`] as number,
         );
         transformedTotals[`${t('sv_change')} ${key}`] = valueDifference;
-        transformedTotals[`${t('sv_change_percentage')} ${key}`] = percentDifferenceNum;
+        transformedTotals[`${t('sv_change_percentage')} ${key}`] =
+          percentDifferenceNum;
       }
     }),
   );
@@ -167,9 +173,11 @@ const processComparisonDataRecords = memoizeOne(
             );
 
           transformedItem[`${t('sv_current')} ${origCol.key}`] = originalValue;
-          transformedItem[`${t('sv_previous')} ${origCol.key}`] = comparisonValue;
+          transformedItem[`${t('sv_previous')} ${origCol.key}`] =
+            comparisonValue;
           transformedItem[`${t('sv_change')} ${origCol.key}`] = valueDifference;
-          transformedItem[`${t('sv_change_percentage')} ${origCol.key}`] = percentDifferenceNum;
+          transformedItem[`${t('sv_change_percentage')} ${origCol.key}`] =
+            percentDifferenceNum;
         }
       });
 
@@ -357,7 +365,11 @@ const processComparisonColumns = (
             ...col,
             label: t('sv_current'),
             key: `${t('sv_current')} ${col.key}`,
-            config: getComparisonColConfig(t('sv_current'), col.key, columnConfig),
+            config: getComparisonColConfig(
+              t('sv_current'),
+              col.key,
+              columnConfig,
+            ),
             formatter: getComparisonColFormatter(
               t('sv_current'),
               col,
@@ -370,7 +382,11 @@ const processComparisonColumns = (
             ...col,
             label: t('sv_previous'),
             key: `${t('sv_previous')} ${col.key}`,
-            config: getComparisonColConfig(t('sv_previous'), col.key, columnConfig),
+            config: getComparisonColConfig(
+              t('sv_previous'),
+              col.key,
+              columnConfig,
+            ),
             formatter: getComparisonColFormatter(
               t('sv_previous'),
               col,
@@ -383,7 +399,11 @@ const processComparisonColumns = (
             ...col,
             label: t('sv_change'),
             key: `${t('sv_change')} ${col.key}`,
-            config: getComparisonColConfig(t('sv_change'), col.key, columnConfig),
+            config: getComparisonColConfig(
+              t('sv_change'),
+              col.key,
+              columnConfig,
+            ),
             formatter: getComparisonColFormatter(
               t('sv_change'),
               col,
@@ -396,7 +416,11 @@ const processComparisonColumns = (
             ...col,
             label: t('sv_change_percentage'),
             key: `${t('sv_change_percentage')} ${col.key}`,
-            config: getComparisonColConfig(t('sv_change_percentage'), col.key, columnConfig),
+            config: getComparisonColConfig(
+              t('sv_change_percentage'),
+              col.key,
+              columnConfig,
+            ),
             formatter: getComparisonColFormatter(
               t('sv_change_percentage'),
               col,

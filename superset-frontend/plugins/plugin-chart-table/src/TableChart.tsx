@@ -271,7 +271,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
     { key: t('sv_previous'), label: t('sv_previous') },
-    { key: t('sv_change') , label: t('sv_change') },
+    { key: t('sv_change'), label: t('sv_change') },
     { key: t('sv_change_percentage'), label: t('sv_change_percentage') },
   ];
   const timestampFormatter = useCallback(
@@ -407,7 +407,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     };
   };
 
-  const comparisonLabels = [t('sv_current'), t('sv_previous'), t('sv_change'), t('sv_change_percentage')];
+  const comparisonLabels = [
+    t('sv_current'),
+    t('sv_previous'),
+    t('sv_change'),
+    t('sv_change_percentage'),
+  ];
   const filteredColumnsMeta = useMemo(() => {
     if (!isUsingTimeComparison) {
       return columnsMeta;

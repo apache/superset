@@ -50,5 +50,5 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
             logger.error(
                 "Error loading language pack for, falling back on en %s", locale
             )
-            pack = get_language_pack('')
+            pack = get_language_pack("")
     return pack
