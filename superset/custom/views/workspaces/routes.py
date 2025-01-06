@@ -4,7 +4,20 @@ from flask import (render_template, url_for, flash,
 from flask import (render_template,Blueprint)
 from flask_login import logout_user
 
+#from supextend.initialization import oidc
+#from flask_login import login_required, current_user
+#from supextend.config import Config
+#from supextend.resources.common.workspace_extension \
+#    .workspace import WorkspaceResourceManager
+#from supextend.resources.common.superset_batch_cleaner \
+#    .dashboard import DashboardResourceManager
+#from supextend.models.owners import Owner
+#from supextend.utils.superset import check_auth
+# from superset.custom import workspaces
+
 import logging
+from superset import event_logger
+#from flask_appbuilder import expose
 from superset.extensions import appbuilder
 from superset.utils.core import get_user_id
 
@@ -56,11 +69,50 @@ def create_workspace():
 def list_dashboard_workspace(workspace_id):
     from superset.custom.resource_manager import workspace
     wp_resource_manager = workspace.WorkspaceResourceManager()
-    wp, dashboards = wp_resource_manager.get_intern_resource(workspace_id)
+    wp, _ = wp_resource_manager.get_intern_resource(workspace_id)
+    # print(wp.id, wp.title)
+    # print([dashboard.id for dashboard in dashboards])
+    # resp_template= render_template(
+    #         "superset/export_dashboards.html", dashboards_url="/dashboard/list"
+    #     )
+    # resp_template= render_template(
+    #         "superset/spa.html", entry="embedded", appbuilder=appbuilder)#, dashboards_url="/dashboard/list"
+    #     #)
+    #
+    # resp_template= render_template(
+    #         "superset/spa.html"
+    #     )
+    # resp_template= redirect("/superset/welcome")
+    # resp_template = render_template(
+    #         # 'superset/export_dashboards.html',
+    #         # 'superset/welcome',
+    #         # 'superset-frontend/src/views/workspaces/show_dashboards.tsx',
+    #         'superset-frontend/src/pages/DashboardList/index.tsx',
+    #         workspace_id=wp.id,
+    #         # workspace_title=wp.title,
+    #         dashboards=dashboards
+    #         )
     resp_template = redirect(url_for('DashboardModelView.list'))
     resp = make_response(resp_template)
     resp.set_cookie('workspaceID', str(wp.id))
+    # return redirect(url_for('DashboardModelView.list'))
+    # url_for('dfs')
     return resp
+
+
+
+
+# @workspaces.route("/workspace/<int:workspace_id>/charts",
+#                   methods=['GET', 'POST'])
+# #@check_auth(login_required, oidc.require_login)
+# def list_chart_workspace(workspace_id):
+#     wp = wp_resource_manager.get_intern_resource(workspace_id)
+#     return render_template(
+#             'superset/charts/index.html',
+#             workspace_title=wp.title,
+#             workspace_id=workspace_id,
+#             charts=wp.charts
+#             )
 
 
 @workspaces.route("/workspace/<int:workspace_id>/update",
@@ -78,6 +130,7 @@ def update_workspace(workspace_id):
                 title=request.form['title'],
                 color=request.form['color'],
                 description=request.form['description'],
+                tags=request.form['tags'],
                 created_by=username,
                 )
         flash('Workspace successfully updated', 'success')
@@ -94,6 +147,22 @@ def delete_workspace(workspace_id):
         wp_resource_manager.delete_intern_resource(workspace_id)
         flash('Workspace was removed', 'success')
     return redirect(url_for('workspaces.home'))
+
+
+# @workspaces.route("/workspace/<int:workspace_id>/add_dashboard",
+#                   methods=['POST', 'GET'])
+# #@check_auth(login_required, oidc.require_login)
+# def add_dashboards(workspace_id):
+#     """ Adds dashboards to a workspace """
+#     wp = wp_resource_manager.get_intern_resource(workspace_id)
+#     if request.method == 'POST':
+#         ids = request.form.getlist('dashboards')
+#         dashboards = [DashboardResourceManager
+#                       .get_intern_resource(id_) for id_ in ids]
+#         wp_resource_manager.add_dashboards(wp, dashboards)
+#         return redirect(url_for('workspaces.list_dashboard_workspace',
+#                                 workspace_id=workspace_id))
+#     return redirect(url_for('workspaces.home'))
 
 
 @workspaces.route("/superset/workspaces/")

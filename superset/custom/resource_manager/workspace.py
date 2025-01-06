@@ -5,7 +5,7 @@ from superset import db
 from sqlalchemy import func
 from flask import session
 from superset.tags.models import Tag, TaggedObject, ObjectType
-# import jwt
+import jwt
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,8 +20,8 @@ class WorkspaceResourceManager():
 
         ### NEW ###
         token = session['oauth'][0]
-        # decoded = jwt.decode(token, options={"verify_signature": False})
-        # roles = decoded['groups']
+        decoded = jwt.decode(token, options={"verify_signature": False})
+        roles = decoded['groups']
         logger.info("THESE ARE THE ROLES: {}".format(roles))
         return db.session.query(Workspace).filter((Workspace.tags == None) | (
             Workspace.tags.any(Tag.name.in_(r for r in roles)))).all()

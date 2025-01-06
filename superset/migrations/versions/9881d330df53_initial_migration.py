@@ -34,8 +34,8 @@ def upgrade():
     sa.Column('password', sa.String(length=60), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username'),
-    # schema='public'
-    schema='superset_db'
+    schema='public'
+    # schema='superset_db'
     )
     op.add_column("dashboards", sa.Column("workspace_id", sa.Integer(), nullable=True))
     op.add_column("slices", sa.Column("workspace_id", sa.Integer(), nullable=True))
@@ -47,18 +47,18 @@ def upgrade():
     sa.Column('description', sa.String(length=260), nullable=False),
     sa.Column('created_on', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
-    # schema='public'
-    schema='superset_db'
+    schema='public'
+    # schema='superset_db'
     )
     op.create_table('workspace_owner',
     sa.Column('workspace_id', sa.Integer(), nullable=True),
     sa.Column('owner_id', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['owner_id'], ['public.owner.id'], ),
-    # sa.ForeignKeyConstraint(['workspace_id'], ['public.workspace.id'], ),
-    sa.ForeignKeyConstraint(['owner_id'], ['superset_db.owner.id'], ),
-    sa.ForeignKeyConstraint(['workspace_id'], ['superset_db.workspace.id'], ),
-    # schema='public'
-    schema='superset_db'
+    sa.ForeignKeyConstraint(['owner_id'], ['public.owner.id'], ),
+    sa.ForeignKeyConstraint(['workspace_id'], ['public.workspace.id'], ),
+    # sa.ForeignKeyConstraint(['owner_id'], ['superset_db.owner.id'], ),
+    # sa.ForeignKeyConstraint(['workspace_id'], ['superset_db.workspace.id'], ),
+    schema='public'
+    # schema='superset_db'
     )
     # op.create_foreign_key(
     #     constraint_name='fk_dashboard_workspace_id',

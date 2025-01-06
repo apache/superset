@@ -168,6 +168,25 @@ class Workspace(Model):
             "Dashboard",
             cascade="all,delete-orphan",
             backref="db_workspace")
+    #
+    # tags = relationship(
+    #         "Tag",
+    #         cascade="all,delete-orphan",
+    #         backref="tag_workspace")
+    tags = relationship(
+        "Tag",
+        # primaryjoin="Workspace.id == TaggedObject.object_id",
+        # secondaryjoin="TaggedObject.tag_id == Tag.id",
+        secondary="tagged_object",  # Association Table
+        backref="workspaces",
+        cascade="all"
+    )
+    # tags = relationship(
+    #     "Tag",
+    #     secondary="TaggedObject",
+    #     backref="workspaces",
+    #     cascade="all, delete-orphan"
+    # )
 #     owners = relationship(
 #             'Owner',
 #             secondary=workspace_owner,
