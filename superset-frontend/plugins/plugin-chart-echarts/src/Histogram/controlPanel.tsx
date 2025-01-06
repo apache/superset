@@ -133,6 +133,30 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'min_value',
+            config: {
+              type: 'TextControl',
+              label: t('Minimum Acceptable Value'),
+              renderTrigger: true,
+              default: 0,
+              description: t('Enter the minimum acceptable value'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'max_value',
+            config: {
+              type: 'TextControl',
+              label: t('Maximum Acceptable Value'),
+              renderTrigger: true,
+              default: 0,
+              description: t('Enter the maximum acceptable value'),
+            },
+          },
+        ],
       ],
     },
   ],

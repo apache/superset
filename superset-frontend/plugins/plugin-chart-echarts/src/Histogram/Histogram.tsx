@@ -30,6 +30,64 @@ export default function Histogram(props: HistogramTransformedProps) {
     refs,
   } = props;
 
+  // Log the echartOptions to the console
+  console.log('Current echartOptions:', echartOptions);
+
+  // Modify echartOptions to add annotations
+  // const updatedEchartOptions = {
+  //   ...echartOptions,
+  //   series: (echartOptions.series as any[]).map((seriesItem: any) => ({
+  //     ...seriesItem,
+  //     markLine: {
+  //       data: [
+  //         // { type: 'average', name: 'Average' },
+  //         // { yAxis: 4200, name: 'horizontal Line at 4200' },
+  //         { xAxis: "1488 - 2975", name: 'title' },
+  //       //   [
+  //       //     {
+  //       //         name: 'Mark line between two points',
+  //       //         x: 500,
+  //       //         y: 250
+  //       //     },
+  //       //     {
+  //       //         x: 500,
+  //       //         y: 100
+  //       //     }
+  //       // ],
+  //     //   [{
+  //     //     // Mark line with a fixed X position in starting point. This is used to generate an arrow pointing to maximum line.
+  //     //     yAxis: 'max',
+  //     //     x: '90%'
+  //     // }, {
+  //     //     type: 'max'
+  //     // }],
+  //     // { xAxis: 560 },
+  //       ],
+  //       label: {
+  //         show: true,
+  //         position: 'end',
+  //         formatter: '{b}',
+  //         color: 'red',
+  //         fontSize: 12,
+  //       },
+  //     },
+  //     // markPoint: {
+  //     //   data: [
+  //     //     { type: 'max', name: 'Max' },
+  //     //     { type: 'min', name: 'Min' },
+  //     //   ],
+  //     // },
+  //     // markArea: {
+  //     //   data: [
+  //     //     [
+  //     //       { name: 'Area 1', xAxis: 'A' },
+  //     //       { xAxis: 'B' },
+  //     //     ],
+  //     //   ],
+  //     // },
+  //   })),
+  // };
+
   const eventHandlers: EventHandlers = {
     legendselectchanged: payload => {
       onLegendStateChanged?.(payload.selected);
@@ -53,7 +111,7 @@ export default function Histogram(props: HistogramTransformedProps) {
       refs={refs}
       height={height}
       width={width}
-      echartOptions={echartOptions}
+      echartOptions={echartOptions} // Pass the updated echartOptions here
       eventHandlers={eventHandlers}
     />
   );
