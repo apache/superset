@@ -24,6 +24,7 @@ import {
   isSavedMetric,
   QueryFormMetric,
   ValueFormatter,
+  NumberFormatter,
 } from '@superset-ui/core';
 import localeCurrency from 'locale-currency';
 
@@ -48,16 +49,16 @@ export const buildCustomFormatters = (
         : savedCurrencyFormats[metric];
       return actualCurrencyFormat
         ? {
-          ...acc,
-          [metric]: new CurrencyFormatter({
-            d3Format: actualD3Format,
-            currency: actualCurrencyFormat,
-          }),
-        }
+            ...acc,
+            [metric]: new CurrencyFormatter({
+              d3Format: actualD3Format,
+              currency: actualCurrencyFormat,
+            }),
+          }
         : {
-          ...acc,
-          [metric]: getNumberFormatter(actualD3Format),
-        };
+            ...acc,
+            [metric]: getNumberFormatter(actualD3Format),
+          };
     }
     return acc;
   }, {});
@@ -88,6 +89,7 @@ export const getValueFormatter = (
   const urlLocale = urlParams.get('locale');
 
   if (!urlLocale) {
+    console.log('Cas par défaut : pas de locale spécifiée');
     if (currencyFormat?.symbol) {
       return new CurrencyFormatter({ currency: currencyFormat, d3Format });
     }
@@ -95,20 +97,22 @@ export const getValueFormatter = (
   } else {
     try {
       const currency = getCurrencyForLocale(urlLocale);
-      console.log('Devise déterminée:', currency);
 
-      return (value: number) => {
-        const formatter = new Intl.NumberFormat(urlLocale, {
-          style: 'currency',
-          currency: currency,
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
+      const formatter = new Intl.NumberFormat(urlLocale, {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
 
-        return formatter.format(value);
-      };
+      return new NumberFormatter({
+        id: `currency-${currency}`,
+        formatFunc: (value: number) => formatter.format(value),
+        label: `Currency (${currency})`,
+        description: `Formats numbers as currency in ${currency}`,
+      });
     } catch (error) {
-      console.error('Error during number formating:', error);
+      console.error('Erreur lors de la création du formateur de nombre:', error);
       return getNumberFormatter(d3Format);
     }
   }
