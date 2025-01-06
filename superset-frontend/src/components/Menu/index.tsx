@@ -45,6 +45,11 @@ const StyledMenuItem = styled(AntdMenu.Item)`
     text-decoration: none;
   }
   &.antd5-menu-item {
+    div {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
     a {
       transition: background-color ${({ theme }) => theme.transitionTiming}s;
       &:after {
@@ -74,6 +79,14 @@ const StyledMenu = styled(AntdMenu)`
     &.antd5-menu-horizontal {
       background-color: inherit;
       border-bottom: 1px solid transparent;
+    }
+    &.antd5-menu-vertical {
+      box-shadow:
+        0 3px 6px -4px ${addAlpha(theme.colors.grayscale.dark2, 0.12)},
+        0 6px 16px 0
+      ${addAlpha(theme.colors.grayscale.dark2, 0.08)},
+        0 9px 28px 8px
+      ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
     }
     &.ant-dropdown-menu {
       box-shadow:

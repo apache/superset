@@ -17,7 +17,7 @@
  * under the License.
  */
 import { addAlpha, styled, useTheme } from '@superset-ui/core';
-import { FC, RefObject, useMemo, ReactNode } from 'react';
+import { FC, RefObject, useMemo, ReactNode, useState } from 'react';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import { DropdownButtonProps } from 'antd/lib/dropdown';
@@ -104,7 +104,19 @@ const StyleSubmenuItem = styled.div`
 
 export default (props: DropDownSelectableProps) => {
   const theme = useTheme();
+  const [visible, setVisible] = useState(false);
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
+
+  const handleVisibleChange = (flag: boolean) => {
+    setVisible(flag);
+  };
+
+  const handleMenuSelect: MenuProps['onSelect'] = info => {
+    if (onSelect) {
+      onSelect(info);
+    }
+    setVisible(false);
+  };
   const menuItem = useMemo(
     () => (label: string | ReactNode, key: string, divider?: boolean) => (
       <StyleMenuItem key={key} divider={divider}>
@@ -131,7 +143,11 @@ export default (props: DropDownSelectableProps) => {
             {info}
           </div>
         )}
-        <StyledMenu selectedKeys={selectedKeys} onSelect={onSelect} selectable>
+        <StyledMenu
+          selectedKeys={selectedKeys}
+          onSelect={handleMenuSelect}
+          selectable
+        >
           {menuItems.map(m =>
             m.children?.length ? (
               <SubMenu
@@ -148,7 +164,7 @@ export default (props: DropDownSelectableProps) => {
         </StyledMenu>
       </>
     ),
-    [selectedKeys, onSelect, info, menuItems, menuItem],
+    [selectedKeys, onSelect, info, menuItems, menuItem, handleMenuSelect],
   );
 
   return (
@@ -156,6 +172,8 @@ export default (props: DropDownSelectableProps) => {
       overlay={overlayMenu}
       trigger={['click']}
       icon={icon}
+      visible={visible}
+      onVisibleChange={handleVisibleChange}
     />
   );
 };

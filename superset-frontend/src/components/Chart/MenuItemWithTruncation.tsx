@@ -21,12 +21,12 @@ import { ReactNode, CSSProperties } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
-import type { MenuProps } from 'src/components/Menu';
+import { MenuItemProps } from 'antd-v5';
 
 export type MenuItemWithTruncationProps = {
   tooltipText: ReactNode;
   children: ReactNode;
-  onClick?: MenuProps['onClick'];
+  onClick?: MenuItemProps['onClick'];
   style?: CSSProperties;
 };
 

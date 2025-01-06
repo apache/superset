@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  SAMPLE_DASHBOARD_1,
-  SUPPORTED_CHARTS_DASHBOARD,
-  TABBED_DASHBOARD,
-} from 'cypress/utils/urls';
+import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
 import * as ace from 'brace';
 import {
@@ -53,14 +49,6 @@ function openProperties() {
       .click({ force: true });
     cy.get('.antd5-modal-body').should('be.visible');
   });
-}
-
-function openExploreProperties() {
-  cy.getBySel('actions-trigger').click({ force: true });
-  cy.get('.ant-dropdown-menu')
-    .contains('Edit chart properties')
-    .click({ force: true });
-  cy.get('.antd5-modal-body').should('be.visible');
 }
 
 function assertMetadata(text: string) {
@@ -231,12 +219,13 @@ function openExploreWithDashboardContext(chartName: string) {
   cy.get(
     `[data-test-chart-name='${chartName}'] [aria-label='More Options']`,
   ).click();
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
-    .find("[role='menu'] [role='menuitem']")
-    .eq(2)
-    .should('contain', 'Edit chart')
-    .click();
+  cy.get(`[data-test-edit-chart-name='${chartName}']`)
+    .should('be.visible')
+    .trigger('keydown', {
+      keyCode: 13,
+      which: 13,
+      force: true,
+    });
   cy.wait('@getJson');
   cy.get('.chart-container').should('exist');
 }

@@ -490,7 +490,10 @@ const SliceHeaderControls = (
       )}
 
       {canExplore && (
-        <Menu.Item key={MenuKeys.ExploreChart}>
+        <Menu.Item
+          key={MenuKeys.ExploreChart}
+          data-test-edit-chart-name={slice.slice_name}
+        >
           <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
             {t('Edit chart')}
           </Tooltip>
@@ -509,7 +512,7 @@ const SliceHeaderControls = (
         <Menu.Item key={MenuKeys.ViewQuery}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View query')}</span>
+              <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
             modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
@@ -527,7 +530,7 @@ const SliceHeaderControls = (
             canExplore={props.supersetCanExplore}
             exploreUrl={props.exploreUrl}
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View as table')}</span>
+              <div data-test="view-query-menu-item">{t('View as table')}</div>
             }
             setShowModal={setTableModalIsOpen}
             showModal={tableModalIsOpen}

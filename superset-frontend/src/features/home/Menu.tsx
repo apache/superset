@@ -270,6 +270,7 @@ export function Menu({
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
+            disabledOverflow
           >
             {menu.map((item, index) => {
               const props = {

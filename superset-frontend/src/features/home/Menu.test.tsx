@@ -18,7 +18,7 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { fireEvent, render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import setupExtensions from 'src/setup/setupExtensions';
 import userEvent from '@testing-library/user-event';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -316,8 +316,8 @@ test('should render all the top navbar menu items', async () => {
     expect(screen.getByText(item.label)).toBeInTheDocument();
   });
 });
-// TODO: @geido
-test.skip('should render the top navbar child menu items', async () => {
+
+test('should render the top navbar child menu items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
     data: { menu },
@@ -327,9 +327,7 @@ test.skip('should render the top navbar child menu items', async () => {
     useQueryParams: true,
     useRouter: true,
   });
-  const sources = screen.getByRole('menuitem', {
-    name: 'triangle-down Sources',
-  });
+  const sources = await screen.findByText('Sources');
   userEvent.hover(sources);
 
   const datasets = await screen.findByText('Datasets');

@@ -289,25 +289,21 @@ const ChartContextMenu = (
     <>
       <Dropdown
         overlay={
-          visible ? (
-            <Menu
-              className="chart-context-menu"
-              data-test="chart-context-menu"
-              onOpenChange={setOpenKeys}
-              onClick={() => {
-                setVisible(false);
-                onClose();
-              }}
-            >
-              {menuItems.length ? (
-                menuItems
-              ) : (
-                <Menu.Item disabled>{t('No actions')}</Menu.Item>
-              )}
-            </Menu>
-          ) : (
-            <></>
-          )
+          <Menu
+            className="chart-context-menu"
+            data-test="chart-context-menu"
+            onOpenChange={setOpenKeys}
+            onClick={() => {
+              setVisible(false);
+              onClose();
+            }}
+          >
+            {menuItems.length ? (
+              menuItems
+            ) : (
+              <Menu.Item disabled>{t('No actions')}</Menu.Item>
+            )}
+          </Menu>
         }
         trigger={['click']}
         onVisibleChange={value => {
@@ -330,15 +326,17 @@ const ChartContextMenu = (
           }}
         />
       </Dropdown>
-      <DrillDetailModal
-        initialFilters={modalFilters}
-        chartId={id}
-        formData={formData}
-        showModal={drillModalIsOpen}
-        onHideModal={() => {
-          setDrillModalIsOpen(false);
-        }}
-      />
+      {showDrillToDetail && (
+        <DrillDetailModal
+          initialFilters={modalFilters}
+          chartId={id}
+          formData={formData}
+          showModal={drillModalIsOpen}
+          onHideModal={() => {
+            setDrillModalIsOpen(false);
+          }}
+        />
+      )}
     </>,
     document.body,
   );
