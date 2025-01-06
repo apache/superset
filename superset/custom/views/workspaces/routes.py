@@ -6,6 +6,7 @@ from flask_login import logout_user
 
 import logging
 from superset.extensions import appbuilder
+from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
 workspaces = Blueprint('workspaces', __name__, template_folder='/app/superset/custom/templates/workspaces')
@@ -16,7 +17,8 @@ workspaces = Blueprint('workspaces', __name__, template_folder='/app/superset/cu
 def home():
     from superset.custom.resource_manager import workspace
     wp_resource_manager = workspace.WorkspaceResourceManager()
-    print(f"USER {g.user}")
+    if not g.user or not get_user_id():
+        return redirect(appbuilder.get_url_for_login)
     wp =wp_resource_manager.list_intern_resource(g.user)
     return render_template(
             'index.html',

@@ -85,6 +85,7 @@ class ObjectType(enum.Enum):
     chart = 2
     dashboard = 3
     dataset = 4
+    workspace = 5
 
 
 class Tag(Model, AuditMixinNullable):
@@ -116,6 +117,7 @@ class TaggedObject(Model, AuditMixinNullable):
         ForeignKey("dashboards.id"),
         ForeignKey("slices.id"),
         ForeignKey("saved_query.id"),
+        ForeignKey("workspace.id"),
     )
     object_type = Column(Enum(ObjectType))
 

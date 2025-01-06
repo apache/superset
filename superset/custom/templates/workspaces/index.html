@@ -6,97 +6,147 @@ Workspaces
 
 {% block content %}
 <div class="container">
-    <div class="mb-4">
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createWorkspaceModal">
-            Create Workspace
-        </button>
+    <div class="workspace-header">
+        <h4></h4>
+        <div>
+            <button type="button" class="btn btn-transparent" data-toggle="modal" data-target="#createWorkspaceModal" style="">
+                Create Workspace
+            </button>    
+            <button class="btn btn-transparent">Manage Team</button>
+            <button class="btn btn-transparent">Invite Users</button>
+        </div>
     </div>
-
     <div class="row">
         {% for workspace in workspaces %}
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body" style="background-color: {{ workspace.color }};">
-                    <h5 class="card-title">{{ workspace.title }}</h5>
-                    <p class="card-text">{{ workspace.description }}</p>
-                    <a href="{{ url_for('workspaces.list_dashboard_workspace', workspace_id=workspace.id) }}" class="btn btn-primary">List Dashboards</a>
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ workspace.id }}" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            More Options
+
+        <div class="col-xs-24 col-md-12 col-xl-8" style="flex: 0 0 50%;max-width: 50%;min-height: 168px;margin-bottom: 1em;padding-left: 8px;padding-right: 8px;">
+            
+
+            <div class="card" style="padding: 16px;border-left-color:{{workspace.color}};border-left-width: 8px;">
+                <div class="card-header d-flex justify-content-end bg-transparent border-0">
+                    <!-- <div class="workspace-icon" >
+                            <span>🎧</span> 
+                          </div> -->
+                    <div class="dropdown" style="z-index:100;">
+                        <button style="padding: 0;" class="btn btn-transparent" type="button"
+                            id="dropdownMenuButton{{ workspace.id }}" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            <svg viewBox="64 64 896 896" focusable="false" data-icon="more" width="1em" height="1em"
+                                fill="currentColor" aria-hidden="true">
+                                <path
+                                    d="M456 231a56 56 0 10112 0 56 56 0 10-112 0zm0 280a56 56 0 10112 0 56 56 0 10-112 0zm0 280a56 56 0 10112 0 56 56 0 10-112 0z">
+                                </path>
+                            </svg>
                         </button>
                         <div class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ workspace.id }}">
-                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#editWorkspaceModal{{ workspace.id }}">Edit Settings</a>
-                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#deleteWorkspaceModal{{ workspace.id }}">Delete Workspace</a>
+                            <button class="dropdown-item" data-toggle="modal"
+                                data-target="#editWorkspaceModal{{ workspace.id }}">Edit Settings</button>
+                            <button class="dropdown-item bg-danger text-white" data-toggle="modal"
+                                data-target="#deleteWorkspaceModal{{ workspace.id }}">Delete Workspace</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center mb-3" style="display: flex;
+                    -webkit-box-align: center;
+                    align-items: center;">
+                    <h2 class="workspace-card-title">{{ workspace.title }}</h2>
+                </div>
+                <p class="workspace-card-description">{{ workspace.description }}</p>
+                <div class="card-footer bg-transparent border-0 workspace-card-footer">
+                    <div class="workspace-card-status-container">
+                        <div class="css-13m0a1n exwvk0v2" style="display: flex;-webkit-box-align: center;align-items: center;color: rgb(176, 180, 195);">
+                            <div class="statusText">Created {{ workspace.created_on }}</div>
+                        </div>
+                    </div>
+                </div>
+                <a href="{{ url_for('workspaces.list_dashboard_workspace', workspace_id=workspace.id) }}"
+                    class="stretched-link" target="_blank" rel="noopener noreferrer"></a>
+
+            </div>
+
+            <!-- Edit Workspace Modal -->
+            <div class="modal fade" id="editWorkspaceModal{{ workspace.id }}" tabindex="-1" role="dialog"
+                aria-labelledby="editWorkspaceModalLabel{{ workspace.id }}" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="editWorkspaceModalLabel{{ workspace.id }}">Edit Workspace</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <form action="{{ url_for('workspaces.update_workspace', workspace_id=workspace.id) }}"
+                                method="POST">
+                                <div class="form-group">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="title{{ workspace.id }}">Title</label>
+                                    <input type="text" class="form-control" id="title{{ workspace.id }}" name="title"
+                                        value="{{ workspace.title }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="color{{ workspace.id }}">Color</label>
+                                    <input type="color" class="form-control" id="color{{ workspace.id }}" name="color"
+                                        value="{{ workspace.color }}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="description{{ workspace.id }}">Description</label>
+                                    <textarea class="form-control" id="description{{ workspace.id }}" name="description"
+                                        rows="3" required>{{ workspace.description }}</textarea>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="tags {{ name }}" >Tag</label>
+                                  <textarea class="form-control" id="tag{{ id }}" name="tags"
+                                        rows="3" required>{% for tag in workspace.tags %}{{ tag.name }} {% if not loop.last %},{% endif %}{% endfor %}</textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Update Workspace</button>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Edit Workspace Modal -->
-        <div class="modal fade" id="editWorkspaceModal{{ workspace.id }}" tabindex="-1" role="dialog" aria-labelledby="editWorkspaceModalLabel{{ workspace.id }}" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="editWorkspaceModalLabel{{ workspace.id }}">Edit Workspace</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <form action="{{ url_for('workspaces.update_workspace', workspace_id=workspace.id) }}" method="POST">
-                          <div class="form-group">
-                              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                          </div>
-                            <div class="form-group">
-                                <label for="title{{ workspace.id }}">Title</label>
-                                <input type="text" class="form-control" id="title{{ workspace.id }}" name="title" value="{{ workspace.title }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="color{{ workspace.id }}">Color</label>
-                                <input type="color" class="form-control" id="color{{ workspace.id }}" name="color" value="{{ workspace.color }}" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="description{{ workspace.id }}">Description</label>
-                                <textarea class="form-control" id="description{{ workspace.id }}" name="description" rows="3" required>{{ workspace.description }}</textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Update Workspace</button>
-                        </form>
+            <!-- Delete Workspace Modal -->
+            <div class="modal fade" id="deleteWorkspaceModal{{ workspace.id }}" tabindex="-1" role="dialog"
+                aria-labelledby="deleteWorkspaceModalLabel{{ workspace.id }}" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="deleteWorkspaceModalLabel{{ workspace.id }}">Delete Workspace
+                            </h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Are you sure you want to delete this workspace?</p>
+                            <form action="{{ url_for('workspaces.delete_workspace', workspace_id=workspace.id) }}"
+                                method="POST">
+                                <div class="form-group">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                </div>
+                                <input type="hidden" name="confirm" value="DELETE">
+                                <button type="submit" class="btn btn-danger">Delete Workspace</button>
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- Delete Workspace Modal -->
-        <div class="modal fade" id="deleteWorkspaceModal{{ workspace.id }}" tabindex="-1" role="dialog" aria-labelledby="deleteWorkspaceModalLabel{{ workspace.id }}" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="deleteWorkspaceModalLabel{{ workspace.id }}">Delete Workspace</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Are you sure you want to delete this workspace?</p>
-                        <form action="{{ url_for('workspaces.delete_workspace', workspace_id=workspace.id) }}" method="POST">
-                            <div class="form-group">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            </div>
-                            <input type="hidden" name="confirm" value="DELETE">
-                            <button type="submit" class="btn btn-danger">Delete Workspace</button>
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
 
+
+        </div>
         {% endfor %}
+
     </div>
 </div>
 
 <!-- Create Workspace Modal -->
-<div class="modal fade" id="createWorkspaceModal" tabindex="-1" role="dialog" aria-labelledby="createWorkspaceModalLabel" aria-hidden="true">
+<div class="modal fade" id="createWorkspaceModal" tabindex="-1" role="dialog"
+    aria-labelledby="createWorkspaceModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
@@ -108,7 +158,7 @@ Workspaces
             <div class="modal-body">
                 <form action="{{ url_for('workspaces.create_workspace') }}" method="POST">
                     <div class="form-group">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                     </div>
                     <div class="form-group">
                         <label for="title">Title</label>

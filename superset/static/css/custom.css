@@ -1,0 +1,123 @@
+
+
+.workspace-card-footer {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  -webkit-box-align: end;
+  align-items: end;
+}
+
+.workspace-card-status-container {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: flex-end;
+}
+
+.workspace-card-description {
+  flex: 0 0 auto;
+  color: rgb(119, 123, 134);
+  font-size: 11px;
+}
+
+.workspace-card-title {
+  font-weight: 500;
+                  margin-top: 0;
+                  margin-bottom: 0.2em;
+                  color: rgba(0, 0, 0, 0.85);
+                  white-space: nowrap;
+                  text-overflow: ellipsis;
+                  /* overflow: hidden; */
+                  font-size: 19px;
+                  flex: 0 1 auto;
+}
+
+.workspace-header {
+    display: flex;
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    -webkit-box-pack: justify;
+    justify-content: space-between;
+  }
+
+  .workspace-header h4 {
+    font-weight: bold;
+  }
+
+  .workspace-header button {
+    margin-left: 0.5rem;
+  }
+  
+  .workspace-card {
+    flex: 0 0 250px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: left;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .workspace-card h5 {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+  }
+
+  .workspace-card p {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .card-header {
+    display: flex;
+    flex: 0 0 auto;
+    margin-bottom: 8px;
+    -webkit-box-pack: justify;
+    justify-content: space-between;
+  }
+  
+  .add-workspace {
+    flex: 0 0 250px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    background-color: #f9f9f9;
+    color: #6c757d;
+  }
+
+  .add-workspace p {
+    margin: 0;
+    font-weight: bold;
+  }
+
+  .workspace-icon {
+    --antd-wave-shadow-color: #2fc096;
+    --scroll-bar: 0;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    font-family: Barlow,Helvetica Neue,Arial,Helvetica,sans-serif;
+    font-feature-settings: "tnum";
+    color: rgba(0,0,0,.85);
+    font-size: 14px;
+    font-variant: tabular-nums;
+    line-height: 1.5715;
+    list-style: none;
+    box-sizing: border-box;
+    width: 32px;
+    height: 32px;
+    cursor: auto;
+    border-radius: 100px;
+    background-color: rgb(245, 246, 251);
+    display: flex;
+    -webkit-box-pack: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    align-items: center;
+  }
