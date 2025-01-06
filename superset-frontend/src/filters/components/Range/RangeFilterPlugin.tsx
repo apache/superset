@@ -27,6 +27,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { rgba } from 'emotion-rgba';
 import { AntdSlider } from 'src/components';
+import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
@@ -64,6 +65,14 @@ const StyledMinSlider = styled(AntdSlider)<{
     }
   }
   `}
+`;
+
+const StyledDivider = styled.span`
+  margin: 0 10px;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  align-content: center;
 `;
 
 const Wrapper = styled.div<{
@@ -383,6 +392,35 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 marks={marks}
               />
             )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+          <InputNumber
+            min={min}
+            max={max}
+            step={step}
+            onChange={(value) => {
+              console.log(minMax)
+              const newValue = [Number(value), minMax[1]];
+              setValue(newValue[0]);
+              handleAfterChange(newValue);
+            }}
+            placeholder="From"
+          />
+          <StyledDivider>
+            -
+          </StyledDivider>
+          <InputNumber
+            min={min}
+            max={max}
+            step={step}
+            onChange={(value) => {
+              console.log(minMax)
+              const newValue = [minMax[0], Number(value)];
+              setValue(newValue[1]);
+              handleAfterChange(newValue);
+            }}
+            placeholder="To"
+          />
+        </div>
           </Wrapper>
         </StyledFormItem>
       )}
