@@ -18,6 +18,7 @@
  */
 
 import { type MappingAlgorithm, theme } from 'antd-v5';
+import { ThemeConfig } from 'antd-v5/lib';
 import { theme as supersetTheme } from 'src/preamble';
 
 export const lightAlgorithm: MappingAlgorithm = seedToken => {
@@ -116,4 +117,71 @@ export const lightAlgorithm: MappingAlgorithm = seedToken => {
 
     lineWidthBold: supersetTheme.gridUnit / 2,
   };
+};
+
+export const lightConfig: ThemeConfig = {
+  token: {
+    colorBgBase: supersetTheme.colors.primary.light4,
+    colorError: supersetTheme.colors.error.base,
+    colorInfo: supersetTheme.colors.info.base,
+    colorLink: supersetTheme.colors.grayscale.dark1,
+    colorPrimary: supersetTheme.colors.primary.base,
+    colorSuccess: supersetTheme.colors.success.base,
+    colorTextBase: supersetTheme.colors.grayscale.dark2,
+    colorWarning: supersetTheme.colors.warning.base,
+  },
+  components: {
+    Alert: {
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      colorBorder: supersetTheme.colors.grayscale.light3,
+      colorText: supersetTheme.colors.grayscale.dark1,
+    },
+    Card: {
+      colorBgContainer: supersetTheme.colors.grayscale.light4,
+    },
+    Divider: {
+      colorSplit: supersetTheme.colors.grayscale.light3,
+    },
+    Input: {
+      colorBorder: supersetTheme.colors.secondary.light3,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
+        supersetTheme.colors.primary.light3
+      }`,
+    },
+    InputNumber: {
+      colorBorder: supersetTheme.colors.secondary.light3,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      activeShadow: `0 0 0 ${supersetTheme.gridUnit / 2}px ${
+        supersetTheme.colors.primary.light3
+      }`,
+    },
+    List: {
+      colorSplit: supersetTheme.colors.grayscale.light3,
+      colorText: supersetTheme.colors.grayscale.dark1,
+    },
+    Modal: {
+      colorBgMask: `${supersetTheme.colors.grayscale.dark2}73`,
+      contentBg: supersetTheme.colors.grayscale.light5,
+      titleColor: `${supersetTheme.colors.grayscale.dark2}D9`,
+      headerBg: supersetTheme.colors.grayscale.light4,
+    },
+    Tag: {
+      defaultBg: supersetTheme.colors.grayscale.light4,
+    },
+    Progress: {
+      fontSize: supersetTheme.typography.sizes.s,
+    },
+    Popover: {
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+    },
+    Slider: {
+      trackBgDisabled: supersetTheme.colors.grayscale.light1,
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+    },
+    Switch: {
+      colorPrimaryHover: supersetTheme.colors.primary.base,
+      colorTextTertiary: supersetTheme.colors.grayscale.light1,
+    },
+  },
 };
