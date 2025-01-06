@@ -2,12 +2,12 @@
 name: Python Presto/Hive
 
 on:
-  push:
-    branches:
-      - "master"
-      - "[0-9].[0-9]*"
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+  # push:
+  #   branches:
+  #     - "master"
+  #     - "[0-9].[0-9]*"
+  # pull_request:
+  #   types: [synchronize, opened, reopened, ready_for_review]
 
 # cancel previous workflow jobs for PRs
 concurrency:
