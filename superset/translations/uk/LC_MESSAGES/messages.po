@@ -12299,7 +12299,7 @@ msgstr "Укорочення y вісь"
 #, fuzzy
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "Укоротився вісь. Можна перекрити, вказавши мінімальну або максимальну "
 "межу."
