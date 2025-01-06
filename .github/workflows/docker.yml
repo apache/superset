@@ -37,7 +37,7 @@ jobs:
     env:
       DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      IMAGE_TAG: apache/superset:GHA-${{ github.run_id }}
+      IMAGE_TAG: apache/superset:GHA-${{ matrix.build_preset }}-${{ github.run_id }}
 
     steps:
 
@@ -85,7 +85,7 @@ jobs:
             --preset ${{ matrix.build_preset }} \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
-            --extra-flags "--build-arg INCLUDE_CHROMIUM=false" \
+            --extra-flags "--build-arg INCLUDE_CHROMIUM=false --tag $IMAGE_TAG" \
             $PLATFORM_ARG
 
       # in the context of push (using multi-platform build), we need to pull the image locally
@@ -106,6 +106,7 @@ jobs:
         shell: bash
         run: |
           export SUPERSET_BUILD_TARGET=${{ matrix.build_preset }}
+          # This should reuse the CACHED image built in the previous steps
           docker compose build superset-init --build-arg DEV_MODE=false --build-arg INCLUDE_CHROMIUM=false
           docker compose up superset-init --exit-code-from superset-init
 
