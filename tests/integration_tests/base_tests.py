@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 from datetime import datetime
-import imp
+from importlib.util import find_spec
 from contextlib import contextmanager
 from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
@@ -256,11 +256,11 @@ class SupersetTestCase(TestCase):
         return db.session.query(SqlaTable).filter_by(id=table_id).one()
 
     @staticmethod
-    def is_module_installed(module_name):
+    def is_module_installed(module_name: str) -> bool:
         try:
-            imp.find_module(module_name)
-            return True
-        except ImportError:
+            spec = find_spec(module_name)
+            return spec is not None
+        except (ModuleNotFoundError, ValueError, TypeError, ImportError):
             return False
 
     def get_or_create(self, cls, criteria, **kwargs):
