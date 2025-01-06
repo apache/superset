@@ -16,25 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as sectionsModule from './sections';
+import { ControlComponentProps } from '@superset-ui/chart-controls';
 
-export * from './utils';
-export * from './constants';
-export * from './operators';
+export type MapViewConfigs = {
+  mode: 'FIT_DATA' | 'CUSTOM';
+  zoom: number;
+  latitude: number;
+  longitude: number;
+  fixedZoom: number;
+  fixedLatitude: number;
+  fixedLongitude: number;
+};
 
-// can't do `export * as sections from './sections'`, babel-transformer will fail
-export const sections = sectionsModule;
+export type MapViewConfigsControlProps = ControlComponentProps<MapViewConfigs>;
 
-export * from './components/InfoTooltipWithTrigger';
-export * from './components/ColumnOption';
-export * from './components/ColumnTypeLabel/ColumnTypeLabel';
-export * from './components/ControlSubSectionHeader';
-export * from './components/Dropdown';
-export * from './components/Menu';
-export * from './components/MetricOption';
-export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
+export interface MapViewPopoverContentProps {
+  onClose: () => void;
+  onSave: (currentMapViewConf: MapViewConfigs) => void;
+  mapViewConf: MapViewConfigs;
+}
 
-export * from './shared-controls';
-export * from './types';
-export * from './fixtures';
+export interface ExtentTagProps {
+  value: MapViewConfigs;
+  onClick: () => void;
+  className?: string;
+}
