@@ -24,9 +24,9 @@
  */
 
 import { Steps as AntdSteps } from 'antd-v5';
-import { StepsProps as AntdStepsProps } from 'antd-v5/lib/steps';
+import { StepsProps as AntdStepsProps } from 'antd-v5/es/steps';
 
-export type StepProps = AntdStepsProps;
+export type StepsProps = AntdStepsProps;
 
 export const Steps: typeof AntdSteps = Object.assign(AntdSteps, {
   Step: AntdSteps.Step,
