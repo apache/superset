@@ -37,6 +37,7 @@ import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -461,7 +462,7 @@ const RightMenu = ({
                         {menu.label}
                       </Link>
                     ) : (
-                      <a href={menu.url}>
+                      <a href={ensureBasePath(menu.url || '')}>
                         <i
                           data-test={`menu-item-${menu.label}`}
                           className={`fa ${menu.icon}`}
@@ -496,7 +497,7 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={child.url}>{menuItemDisplay}</a>
+                        <a href={ensureBasePath(child.url || '')}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );

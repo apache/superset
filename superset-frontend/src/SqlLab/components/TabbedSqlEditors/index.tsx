@@ -26,6 +26,7 @@ import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 import { Logger } from 'src/logger/LogUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
+import { ensureBasePath } from 'src/utils/pathUtils';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -141,7 +142,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       this.newQueryEditor();
 
       if (isNewQuery) {
-        window.history.replaceState({}, document.title, SQL_LAB_URL);
+        window.history.replaceState({}, document.title, ensureBasePath(SQL_LAB_URL));
       }
     } else {
       const qe = this.activeQueryEditor();
