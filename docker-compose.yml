@@ -32,8 +32,8 @@ x-superset-volumes: &superset-volumes
 x-environ-base-path: &superset-base-path
 # Set the following variables if you are running superset under a prefixed path.
 # Also set the value in the nginx.conf file
-  ASSET_BASE_URL: ''
-  BASE_PATH: ''
+  ASSET_BASE_URL: ${ASSET_BASE_URL:-}
+  BASE_PATH: ${BASE_PATH:-}
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
@@ -48,6 +48,9 @@ x-common-build: &common-build
 
 services:
   nginx:
+    environment:
+      <<: *superset-base-path
+      SUPERSET_LOCATION: ${BASE_PATH:-/}
     image: nginx:latest
     container_name: superset_nginx
     restart: unless-stopped
@@ -57,6 +60,7 @@ services:
       - "host.docker.internal:host-gateway"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/templates:/etc/nginx/templates:ro
 
   redis:
     image: redis:7
