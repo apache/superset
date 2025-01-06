@@ -41,7 +41,7 @@ export const SUPPORTED_TIER1_CHARTS = [
   { name: 'Line Chart', viz: 'echarts_timeseries_line' },
   { name: 'Area Chart', viz: 'echarts_area' },
   { name: 'Scatter Chart', viz: 'echarts_timeseries_scatter' },
-  { name: 'Bar Chart V2', viz: 'echarts_timeseries_bar' },
+  { name: 'Bar Chart', viz: 'echarts_timeseries_bar' },
 ] as ChartSpec[];
 
 export const SUPPORTED_TIER2_CHARTS = [

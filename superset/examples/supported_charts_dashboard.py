@@ -124,7 +124,7 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
         ),
         Slice(
             **slice_kwargs,
-            slice_name="Bar Chart V2",
+            slice_name="Bar Chart",
             viz_type="echarts_timeseries_bar",
             params=get_slice_json(
                 defaults,
@@ -154,17 +154,6 @@ def create_slices(tbl: SqlaTable) -> list[Slice]:
                 metric="sum__num",
                 groupby=["gender"],
                 adhoc_filters=[],
-            ),
-        ),
-        Slice(
-            **slice_kwargs,
-            slice_name="Bar Chart",
-            viz_type="echarts_timeseries_bar",
-            params=get_slice_json(
-                defaults,
-                viz_type="echarts_timeseries_bar",
-                metrics=["sum__num"],
-                groupby=["gender"],
             ),
         ),
         # ---------------------
@@ -564,7 +553,7 @@ def load_supported_charts_dashboard() -> None:
     "meta": {
       "chartId": 6,
       "height": 50,
-      "sliceName": "Bar Chart V2",
+      "sliceName": "Bar Chart",
       "width": 4
     },
     "type": "CHART"
@@ -616,23 +605,6 @@ def load_supported_charts_dashboard() -> None:
       "chartId": 9,
       "height": 50,
       "sliceName": "Pie Chart",
-      "width": 4
-    },
-    "type": "CHART"
-  },
-  "CHART-10": {
-    "children": [],
-    "parents": [
-      "ROOT_ID",
-      "TABS-TOP",
-      "TAB-TOP-1",
-      "ROW-4"
-    ],
-    "id": "CHART-10",
-    "meta": {
-      "chartId": 10,
-      "height": 50,
-      "sliceName": "Bar Chart",
       "width": 4
     },
     "type": "CHART"
