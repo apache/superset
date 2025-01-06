@@ -101,10 +101,6 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
-      - name: Docker push
-        if: secrets.DOCKERHUB_TOKEN && steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        run:  docker push apache/superset:GHA-${GITHUB_RUN_ID}
-
       - name: docker-compose sanity check
         if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
         shell: bash
