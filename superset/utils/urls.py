@@ -32,8 +32,7 @@ def headless_url(path: str, user_friendly: bool = False) -> str:
 
 
 def get_url_path(view: str, user_friendly: bool = False, **kwargs: Any) -> str:
-    with current_app.test_request_context():
-        return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
+    return headless_url(url_for(view, **kwargs), user_friendly=user_friendly)
 
 
 def modify_url_query(url: str, **kwargs: Any) -> str:
