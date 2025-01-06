@@ -12325,7 +12325,7 @@ msgstr "X-as Afkappen"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "X-as afkappen. Kan worden overschreven door het specificeren van een min "
 "of max grens. Alleen van toepassing op numerieke X assen."
