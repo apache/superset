@@ -25,6 +25,12 @@ import {
   QueryFormMetric,
   ValueFormatter,
 } from '@superset-ui/core';
+import localeCurrency from 'locale-currency';
+
+const getCurrencyForLocale = (locale: string): string => {
+  const currency = localeCurrency.getCurrency(locale);
+  return currency || 'USD'; // default value
+};
 
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
@@ -42,16 +48,16 @@ export const buildCustomFormatters = (
         : savedCurrencyFormats[metric];
       return actualCurrencyFormat
         ? {
-            ...acc,
-            [metric]: new CurrencyFormatter({
-              d3Format: actualD3Format,
-              currency: actualCurrencyFormat,
-            }),
-          }
+          ...acc,
+          [metric]: new CurrencyFormatter({
+            d3Format: actualD3Format,
+            currency: actualCurrencyFormat,
+          }),
+        }
         : {
-            ...acc,
-            [metric]: getNumberFormatter(actualD3Format),
-          };
+          ...acc,
+          [metric]: getNumberFormatter(actualD3Format),
+        };
     }
     return acc;
   }, {});
@@ -76,24 +82,34 @@ export const getValueFormatter = (
   d3Format: string | undefined,
   currencyFormat: Currency | undefined,
   key?: string,
-) => {
-  const customFormatter = getCustomFormatter(
-    buildCustomFormatters(
-      metrics,
-      savedCurrencyFormats,
-      savedColumnFormats,
-      d3Format,
-      currencyFormat,
-    ),
-    metrics,
-    key,
-  );
+): ValueFormatter => {
+  const urlParams = new URLSearchParams(window.location.search);
+  // get urlParam locale
+  const urlLocale = urlParams.get('locale');
 
-  if (customFormatter) {
-    return customFormatter;
+  if (!urlLocale) {
+    if (currencyFormat?.symbol) {
+      return new CurrencyFormatter({ currency: currencyFormat, d3Format });
+    }
+    return getNumberFormatter(d3Format);
+  } else {
+    try {
+      const currency = getCurrencyForLocale(urlLocale);
+      console.log('Devise déterminée:', currency);
+
+      return (value: number) => {
+        const formatter = new Intl.NumberFormat(urlLocale, {
+          style: 'currency',
+          currency: currency,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        });
+
+        return formatter.format(value);
+      };
+    } catch (error) {
+      console.error('Error during number formating:', error);
+      return getNumberFormatter(d3Format);
+    }
   }
-  if (currencyFormat?.symbol) {
-    return new CurrencyFormatter({ currency: currencyFormat, d3Format });
-  }
-  return getNumberFormatter(d3Format);
 };

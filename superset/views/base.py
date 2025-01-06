@@ -358,7 +358,6 @@ def common_bootstrap_payload() -> dict[str, Any]:
         except Exception as e:
             # Manage invalid locale : keep default locale
             app.logger.warning(f"Invalid locale '{request.args.get('locale')}': {e}")
-
     return {
         **cached_common_bootstrap_data(utils.get_user_id(), locale),
         "flash_messages": get_flashed_messages(with_categories=True),

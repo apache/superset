@@ -79,7 +79,7 @@ def create_app(
 
 @babel.localeselector
 def get_locale():
-   return session.get('locale') or request.accept_languages.best_match(['en', 'fr'])  # add here supported languages
+   return session.get('locale')
 
 class SupersetApp(Flask):
     pass
