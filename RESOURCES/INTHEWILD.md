@@ -59,18 +59,21 @@ Join our growing community!
 - [Fanatics](https://www.fanatics.com/) [@coderfender]
 - [Fordeal](https://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
+- [GoTo/Gojek](https://www.gojek.io/) [@gwthm-in]
 - [HuiShouBao](https://www.huishoubao.com/) [@Yukinoshita-Yukino]
 - [Now](https://www.now.vn/) [@davidkohcw]
 - [Qunar](https://www.qunar.com/) [@flametest]
 - [Rakuten Viki](https://www.viki.com)
 - [Shopee](https://shopee.sg) [@xiaohanyu]
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
+- [ShopUp](https://www.shopup.org/) [@gwthm-in]
 - [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
 - [THE ICONIC](https://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
 - [VkusVill](https://vkusvill.ru/) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
+- [Zepto](https://www.zeptonow.com/) [@gwthm-in]
 
 ### Enterprise Technology
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
