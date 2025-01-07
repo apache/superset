@@ -27,6 +27,7 @@ import wtforms_json
 from deprecation import deprecated
 from flask import abort, Flask, redirect, request, session
 from flask_appbuilder import expose, IndexView
+from flask_appbuilder.api import safe
 from flask_babel import gettext as __, refresh
 from flask_compress import Compress
 from flask_session import Session
@@ -713,6 +714,7 @@ class SupersetIndexView(IndexView):
         return ref_url.scheme in ("http", "https") and ref_url.netloc == host_url.netloc
 
     @expose("/lang/<string:locale>")
+    @safe
     def patch_flask_locale(self, locale: str) -> FlaskResponse:
         """
         Change user's locale and redirect back to the previous page.
