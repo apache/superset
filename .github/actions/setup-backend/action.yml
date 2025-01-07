@@ -28,8 +28,7 @@ runs:
         if [ "${{ inputs.python-version }}" = "current" ]; then
           echo "PYTHON_VERSION=3.11.11" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "next" ]; then
-          # TODO: set to 3.12 when libs are ready - seemed hard on 12/17/24
-          echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=3.12" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "previous" ]; then
           echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
         else
