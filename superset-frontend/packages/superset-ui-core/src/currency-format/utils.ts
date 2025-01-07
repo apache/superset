@@ -89,7 +89,6 @@ export const getValueFormatter = (
   const urlLocale = urlParams.get('locale');
 
   if (!urlLocale) {
-    console.log('Cas par défaut : pas de locale spécifiée');
     if (currencyFormat?.symbol) {
       return new CurrencyFormatter({ currency: currencyFormat, d3Format });
     }
@@ -112,7 +111,7 @@ export const getValueFormatter = (
         description: `Formats numbers as currency in ${currency}`,
       });
     } catch (error) {
-      console.error('Erreur lors de la création du formateur de nombre:', error);
+      console.error('Error during number formater creation:', error);
       return getNumberFormatter(d3Format);
     }
   }
