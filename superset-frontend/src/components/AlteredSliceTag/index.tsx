@@ -215,11 +215,15 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
     );
   }, [rows]);
 
-  const icon = <Icons.Warning iconSize="m" />;
   const triggerNode = useMemo(
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
-        <Label icon={icon} className="label" type="alert" onClick={() => {}}>
+        <Label
+          icon={<Icons.Warning iconSize="m" />}
+          className="label"
+          type="alert"
+          onClick={() => {}}
+        >
           {t('Altered')}
         </Label>
       </Tooltip>

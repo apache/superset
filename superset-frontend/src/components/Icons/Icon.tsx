@@ -37,8 +37,8 @@ const AntdIconComponent = ({
 export const StyledIcon = styled(AntdIconComponent)<IconType>`
   ${({ iconColor }) => iconColor && `color: ${iconColor};`};
   span {
-    // Hack to fix issues with some icons
-    line-height: 0px !important;
+    // Fixing alignement on some of the icons
+    line-height: 0px;
   }
   font-size: ${({ iconSize, theme }) =>
     iconSize
