@@ -42,7 +42,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           supersetbot docker \
-            --push \
+            --load \
             --preset superset-node-ci \
             --platform "linux/amd64"
 
