@@ -249,8 +249,16 @@ CMD ["/app/docker/entrypoints/docker-ci.sh"]
 ######################################################################
 FROM lean AS webgains
 
+USER root
+
+RUN /app/docker/apt-install.sh \
+    pkg-config \
+    default-libmysqlclient-dev
+
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install \
     psycopg2-binary==2.9.6 \
     flask-cors==4.0.0 \
     mysqlclient==2.2.4
+
+USER superset
