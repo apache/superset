@@ -63,5 +63,6 @@ jobs:
             ${{ env.SUPERSET_REPOSITORY_URI }}:${{ env.TAG_HASH }}
             ${{ env.SUPERSET_REPOSITORY_URI }}:${{ env.TAG_NAME }}
             ${{ env.LATEST_TAG }}
+          target: webgains
     outputs:
       tag_hash: ${{ steps.compute_labels.outputs.tag_hash }}
