@@ -64,9 +64,8 @@ describe('Dashboard tabs', () => {
     cy.get('@top-level-tabs')
       .last()
       .should('not.have.class', 'ant-tabs-tab-active');
-
-    cy.getBySel('grid-container').find('.box_plot').should('not.exist');
-    cy.getBySel('grid-container').find('.line').should('not.exist');
+    cy.get('[data-test-chart-name="Box plot"]').should('not.exist');
+    cy.get('[data-test-chart-name="Trends"]').should('not.exist');
 
     cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
@@ -76,7 +75,8 @@ describe('Dashboard tabs', () => {
       .first()
       .should('not.have.class', 'ant-tabs-tab-active');
     waitForChartLoad(BOX_PLOT);
-    cy.getBySel('grid-container').find('.box_plot').should('be.visible');
+
+    cy.get('[data-test-chart-name="Box plot"]').should('exist');
 
     resetTabs();
 
@@ -88,7 +88,7 @@ describe('Dashboard tabs', () => {
 
     cy.get('@row-level-tabs').last().click();
     waitForChartLoad(LINE_CHART);
-    cy.getBySel('grid-container').find('.line').should('be.visible');
+    cy.get('[data-test-chart-name="Trends"]').should('exist');
     cy.get('@row-level-tabs').first().click();
   });
 
