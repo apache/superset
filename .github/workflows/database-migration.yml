@@ -1,5 +1,6 @@
 name: GCP Database Migration
 
+# Trigger the workflow manually with input parameters
 on:
   workflow_dispatch:
     inputs:
@@ -20,32 +21,35 @@ on:
         options:
           - Client-X
           - Demo   
-              
- 
 
 jobs:
   migrate-database:
+    # Run the job on the latest Ubuntu environment
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write       
 
     steps:
+    # Step to checkout the repository code
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    # Step to authenticate with Google Cloud using a service account
     - name: Google Auth
       id: auth
       uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
         service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}      
-              
+
+    # Step to install the Google Cloud SDK
     - name: Install Google Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
       with:
         export_default_credentials: true     
 
+    # Step to set environment variables based on the selected origin environment
     - name: Set Environment Variables for Origin
       if: github.event_name == 'workflow_dispatch'
       run: |
@@ -86,6 +90,7 @@ jobs:
             ;;
         esac
 
+    # Step to set environment variables based on the selected destiny environment
     - name: Set Environment Variables for Destiny
       if: github.event_name == 'workflow_dispatch'
       run: |
@@ -116,6 +121,7 @@ jobs:
             ;;          
         esac        
 
+    # Step to generate a database dump file on the origin VM
     - name: Generate dump file on origin VM
       run: |
         gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "
@@ -128,14 +134,17 @@ jobs:
           pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > remote_database.dump
         "
 
+    # Step to download the dump file from the origin VM
     - name: Download dump file from origin VM
       run: |
         gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/remote_database.dump .
 
+    # Step to upload the dump file to the destiny VM
     - name: Upload dump file to destiny VM
       run: |
         gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/docker-entrypoint-initdb.d/
 
+    # Step to update the Superset Secret Key in both Superset and the Backend
     - name: Update Superset Secret Key in both Superset and the Backend
       run: |
         gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
@@ -143,14 +152,15 @@ jobs:
           export INFISICAL_VARIABLES=$(infisical export --format=dotenv --projectId="$INFISICAL_PROJECT_ID" --env=prod --path="$INFISICAL_PATH")
           export SUPERSET_SECRET_KEY=$(echo $INFISICAL_VARIABLES | awk -F"SUPERSET_SECRET_KEY='" '{print $2}' | awk -F"'" '{print $1}')
           sed -i "s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='$SUPERSET_SECRET_KEY'/" ${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/.env
-          sed -i "s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='$SUPERSET_SECRET_KEY'/" ${{ env.DESTINY_DIRECTORY_PATH}}/product-portal-be/.env
+          sed -i "s/^SUPERSET_JWT_SECRET_KEY=.*/SUPERSET_JWT_SECRET_KEY='$SUPERSET_SECRET_KEY'/" ${{ env.DESTINY_DIRECTORY_PATH}}/product-portal-be/.env
         "
 
+    # Step to restart Docker Compose on the destiny VM
     - name: Restart Docker Compose on destiny VM
       run: |
         gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
           cd ${{ env.DESTINY_DIRECTORY_PATH}}/superset && 
           docker compose -f docker-compose-image-tag.yml down && 
           docker volume rm superset_db_home && 
-          TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d
+          TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up
         "
