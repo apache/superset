@@ -94,7 +94,7 @@ jobs:
             echo "Setting environment for Demo"
             echo "GCE_DESTINY_VM_NAME=demo" >> $GITHUB_ENV
             echo "GCE_DESTINY_PROJECT=reference-fact-431711-t6" >> $GITHUB_ENV
-            echo "DESTINY_DIRECTORY_PATH=/home/demo/superset" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=/home/demo" >> $GITHUB_ENV
             echo "DESTINY_INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=demo" >> $GITHUB_ENV
             echo "DESTINY_GIT_BRANCH=demo" >> $GITHUB_ENV
@@ -104,7 +104,7 @@ jobs:
             echo "Setting environment for Client-X"
             echo "GCE_DESTINY_VM_NAME=cliente-x" >> $GITHUB_ENV
             echo "GCE_DESTINY_PROJECT=client-x-429512" >> $GITHUB_ENV
-            echo "DESTINY_DIRECTORY_PATH=/home/clientx/superset" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=/home/clientx" >> $GITHUB_ENV
             echo "DESTINY_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
             echo "DESTINY_TAG=dev" >> $GITHUB_ENV
             echo "DESTINY_GIT_BRANCH=dev" >> $GITHUB_ENV
@@ -134,10 +134,23 @@ jobs:
 
     - name: Upload dump file to destiny VM
       run: |
-        gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/docker/docker-entrypoint-initdb.d/
+        gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/docker-entrypoint-initdb.d/
+
+    - name: Update Superset Secret Key in both Superset and the Backend
+      run: |
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
+          export INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_CLIENT_ID" --client-secret="$INFISICAL_CLIENT_SECRET" --silent --plain)
+          export INFISICAL_VARIABLES=$(infisical export --format=dotenv --projectId="$INFISICAL_PROJECT_ID" --env=prod --path="$INFISICAL_PATH")
+          export SUPERSET_SECRET_KEY=$(echo $INFISICAL_VARIABLES | awk -F"SUPERSET_SECRET_KEY='" '{print $2}' | awk -F"'" '{print $1}')
+          sed -i "s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='$SUPERSET_SECRET_KEY'/" ${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/.env
+          sed -i "s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='$SUPERSET_SECRET_KEY'/" ${{ env.DESTINY_DIRECTORY_PATH}}/product-portal-be/.env
+        "
 
     - name: Restart Docker Compose on destiny VM
       run: |
-        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "cd ${{ env.DESTINY_DIRECTORY_PATH}} && docker compose -f docker-compose-image-tag.yml down && docker volume rm superset_db_home && TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d"
-
-# TODO update Superset and Backend secret key
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
+          cd ${{ env.DESTINY_DIRECTORY_PATH}}/superset && 
+          docker compose -f docker-compose-image-tag.yml down && 
+          docker volume rm superset_db_home && 
+          TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d
+        "
