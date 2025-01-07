@@ -96,16 +96,14 @@ export default function Label(props: LabelProps) {
   let color = baseColor.dark2;
   let borderColor = baseColor.light1;
   let backgroundColor = baseColor.light2;
-  let borderColorHover = onClick ? baseColor.base : borderColor;
   let backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
+  let borderColorHover = onClick ? baseColor.base : borderColor;
 
-  //TODO - REMOVE LOGIC WHEN shades become aligned
-  if (['primary', 'default', 'secondary'].includes(type)) {
-    color = baseColor.dark2;
+  // TODO - REMOVE IF BLOCK LOGIC WHEN shades are fixed to be aligned in terms of brightness
+  // currently shades for >=light2 are not aligned for primary, default and secondary
+  if (['default', 'primary', 'secondary'].includes(type)) {
     backgroundColor = baseColor.light4;
     borderColor = baseColor.light2;
-    backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
-    borderColorHover = onClick ? baseColor.base : borderColor;
   }
 
   if (type === 'default') {
