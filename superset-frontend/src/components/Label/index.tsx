@@ -76,8 +76,10 @@ export default function Label(props: LabelProps) {
   } = colors;
 
   let baseColor;
-  if (type === 'default') {
-    baseColor = grayscale;
+  if (type === 'primary') {
+    baseColor = primary;
+  } else if (type === 'secondary') {
+    baseColor = secondary;
   } else if (type === 'success') {
     baseColor = success;
   } else if (type === 'alert') {
@@ -88,10 +90,8 @@ export default function Label(props: LabelProps) {
     baseColor = error;
   } else if (type === 'info') {
     baseColor = info;
-  } else if (type === 'secondary') {
-    baseColor = secondary;
   } else {
-    baseColor = primary;
+    baseColor = grayscale;
   }
   const color = baseColor.dark2;
   let borderColor = baseColor.light1;
@@ -102,6 +102,7 @@ export default function Label(props: LabelProps) {
   // TODO - REMOVE IF BLOCK LOGIC WHEN shades are fixed to be aligned in terms of brightness
   // currently shades for >=light2 are not aligned for primary, default and secondary
   if (['default', 'primary', 'secondary'].includes(type)) {
+    // @ts-ignore
     backgroundColor = baseColor.light4;
     borderColor = baseColor.light2;
   }
