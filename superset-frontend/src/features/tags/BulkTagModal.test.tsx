@@ -71,7 +71,6 @@ describe('BulkTagModal', () => {
   });
 
   test('submits the selected tags and shows success toast', async () => {
-    // Mock API response
     fetchMock.post('glob:*/api/v1/tag/bulk_create', {
       result: {
         objects_tagged: [1, 2],
