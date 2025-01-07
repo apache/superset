@@ -30,7 +30,8 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { AsyncSelect, Steps } from 'src/components';
+import { AsyncSelect } from 'src/components';
+import { Steps } from 'src/components/Steps';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
 import VizTypeGallery, {
@@ -125,25 +126,25 @@ const StyledContainer = styled.div`
 
     /* The following extra ampersands (&&&&) are used to boost selector specificity */
 
-    &&&& .ant-steps-item-tail {
+    &&&& .antd5-steps-item-tail {
       display: none;
     }
 
-    &&&& .ant-steps-item-icon {
+    &&&& .antd5-steps-item-icon {
       margin-right: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 5}px;
       height: ${theme.gridUnit * 5}px;
       line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-title {
+    &&&& .antd5-steps-item-title {
       line-height: ${theme.gridUnit * 5}px;
     }
 
-    &&&& .ant-steps-item-content {
+    &&&& .antd5-steps-item-content {
       overflow: unset;
 
-      .ant-steps-item-description {
+      .antd5-steps-item-description {
         margin-top: ${theme.gridUnit}px;
         padding-bottom: ${theme.gridUnit}px;
       }
