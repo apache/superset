@@ -95,7 +95,7 @@ jobs:
       - name: Download Coverage Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: coverage-artifacts-*
+          pattern: coverage-artifacts-*
           path: coverage/
 
       - name: Show Files
