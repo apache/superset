@@ -704,17 +704,16 @@ class SupersetIndexView(IndexView):
         return redirect("/superset/welcome/")
 
     @staticmethod
-    def is_safe_url(target) -> bool:
+    def is_safe_url(target: str) -> bool:
         """
         Is target is a safe URL to redirect to?
         """
         ref_url = urlparse(target)
         host_url = urlparse(request.host_url)
-        return ref_url.scheme in ('http', 'https') and \
-               ref_url.netloc == host_url.netloc
+        return ref_url.scheme in ("http", "https") and ref_url.netloc == host_url.netloc
 
     @expose("/lang/<string:locale>")
-    def patch_flask_locale(self, locale) ->  FlaskResponse:
+    def patch_flask_locale(self, locale: str) -> FlaskResponse:
         """
         Change user's locale and redirect back to the previous page.
 
