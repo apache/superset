@@ -256,7 +256,7 @@ RUN /app/docker/apt-install.sh \
     default-libmysqlclient-dev
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install \
+    /app/docker/pip-install.sh --requires-build-essential \
     psycopg2-binary==2.9.6 \
     flask-cors==4.0.0 \
     mysqlclient==2.2.4
