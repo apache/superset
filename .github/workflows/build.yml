@@ -17,6 +17,15 @@ jobs:
   build-image:
     name: Build, Tag and Upload
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      actions: write
+      contents: write
+      packages: read
+      issues: read
+      pull-requests: write
+      id-token: write
+
     env:
       SUPERSET_REPOSITORY_URI: "289222877357.dkr.ecr.eu-west-1.amazonaws.com/webgains/superset"
       BUILD_ROLE_ARN: arn:aws:iam::289222877357:role/github-superset-access
