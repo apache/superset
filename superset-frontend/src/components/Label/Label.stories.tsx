@@ -17,7 +17,7 @@
  * under the License.
  */
 import { action } from '@storybook/addon-actions';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { Meta, StoryFn } from '@storybook/react';
 import Label, { Type, DatasetTypeLabel, PublishedLabel } from './index';
 
 // Define the default export with Storybook configuration
@@ -25,7 +25,7 @@ export default {
   title: 'Label',
   component: Label,
   excludeStories: ['options'],
-} as ComponentMeta<typeof Label>;
+} as Meta<typeof Label>;
 
 // Explicitly type the options array as an array of `Type`
 export const options: Type[] = [
@@ -45,7 +45,10 @@ interface LabelGalleryProps {
   monospace?: boolean;
 }
 
-const Template: ComponentStory<typeof Label> = (props: LabelGalleryProps) => {
+// Use the `StoryFn` type for LabelGallery
+export const LabelGallery: StoryFn<LabelGalleryProps> = (
+  props: LabelGalleryProps,
+) => {
   const onClick = props.hasOnClick ? action('clicked') : undefined;
 
   return (
@@ -76,12 +79,13 @@ const Template: ComponentStory<typeof Label> = (props: LabelGalleryProps) => {
   );
 };
 
-// Export the story for `LabelGallery`
-export const LabelGallery = Template.bind({});
+// Define default arguments for Storybook
 LabelGallery.args = {
   hasOnClick: true,
   monospace: false,
 };
+
+// Define argument types for Storybook controls
 LabelGallery.argTypes = {
   monospace: {
     name: 'monospace',
