@@ -31,20 +31,17 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup supersetbot
-        if: steps.check.outputs.frontend
-        uses: ./.github/actions/setup-supersetbot/
-
       - name: Build Docker Image
         if: steps.check.outputs.frontend
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          supersetbot docker \
-            --load \
-            --preset superset-node-ci \
-            --platform "linux/amd64"
+          docker buildx build \
+            -t $TAG \
+            --cache-from=type=registry,ref=apache/superset-cache:3.10-slim-bookworm \
+            --target superset-node-ci \
+            .
 
       - name: Save Docker Image as Artifact
         if: steps.check.outputs.frontend
