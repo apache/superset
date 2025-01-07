@@ -93,11 +93,11 @@ export default function Label(props: LabelProps) {
   } else {
     baseColor = primary;
   }
-  let color = baseColor.dark2;
+  const color = baseColor.dark2;
   let borderColor = baseColor.light1;
   let backgroundColor = baseColor.light2;
-  let backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
-  let borderColorHover = onClick ? baseColor.base : borderColor;
+  const backgroundColorHover = onClick ? baseColor.light1 : backgroundColor;
+  const borderColorHover = onClick ? baseColor.base : borderColor;
 
   // TODO - REMOVE IF BLOCK LOGIC WHEN shades are fixed to be aligned in terms of brightness
   // currently shades for >=light2 are not aligned for primary, default and secondary
