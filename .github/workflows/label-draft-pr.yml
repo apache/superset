@@ -16,7 +16,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const { context, github } = require('@actions/github');
             if (context.payload.pull_request.draft) {
               await github.issues.addLabels({
                 owner: context.repo.owner,
