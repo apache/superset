@@ -388,9 +388,6 @@ export const nativeFilters = {
     endHandle: '[class="ant-slider-handle ant-slider-handle-2"]',
     sliderText: '[class="ant-slider-mark-text ant-slider-mark-text-active"]',
   },
-  inputNumber: {
-    input: '[class="]',
-  },
 };
 export const dashboardListView = {
   dashboardListView: dataTestLocator('dashboard-list-view'),
