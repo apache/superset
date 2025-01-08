@@ -193,21 +193,17 @@ export default function Button(props: ButtonProps) {
         borderRadius,
         color,
         background: backgroundColor,
-        ...(colorHover && {
-          '&&:hover': {
-            color: `${colorHover} !important`,
-          },
-        }),
-        ...(backgroundColorHover && {
-          '&&:hover': {
-            backgroundColor: `${backgroundColorHover} !important`,
-          },
-        }),
-        ...(borderColorHover && {
-          '&&:hover': {
-            borderColor: `${borderColorHover} !important`,
-          },
-        }),
+        ...(colorHover || backgroundColorHover || borderColorHover
+          ? {
+              [`&.superset-button.superset-button-${buttonStyle}:hover`]: {
+                ...(colorHover && { color: colorHover }),
+                ...(backgroundColorHover && {
+                  background: backgroundColorHover,
+                }),
+                ...(borderColorHover && { borderColor: borderColorHover }),
+              },
+            }
+          : {}),
         '&:active': {
           color,
           backgroundColor: backgroundColorActive,
