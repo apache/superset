@@ -151,7 +151,7 @@ jobs:
 
 
     # Step to restart Docker Compose on the destiny VM
-    - name: Restart Docker Compose on destiny VM
+    - name: Restart Superset Docker Compose on destiny VM
       run: |
         gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
           cd ${{ env.DESTINY_DIRECTORY_PATH}}/superset && 
@@ -159,3 +159,12 @@ jobs:
           docker volume rm superset_db_home && 
           TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d --force-recreate
         "
+
+    # Step to restart Docker Compose on the destiny VM
+    - name: Restart Backend Docker Compose on destiny VM
+      run: |
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
+          cd ${{ env.DESTINY_DIRECTORY_PATH}}/product-portal-be && 
+          docker compose  down && 
+          TAG=${{ env.DESTINY_TAG}} docker compose up -d --force-recreate
+        "        
