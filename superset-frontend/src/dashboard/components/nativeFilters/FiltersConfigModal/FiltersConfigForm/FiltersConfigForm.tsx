@@ -1353,7 +1353,6 @@ const FiltersConfigForm = (
           forceUpdate={forceUpdate}
           filterScope={filterToEdit?.scope}
           formFilterScope={formFilter?.scope}
-          formScopingType={formFilter?.scoping}
           initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>
