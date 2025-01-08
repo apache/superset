@@ -19,6 +19,8 @@ env:
 jobs:
   frontend-build:
     runs-on: ubuntu-24.04
+    outputs:
+      should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -57,7 +59,7 @@ jobs:
 
   sharded-jest-tests:
     needs: frontend-build
-    if: needs.frontend-build.result == 'success'
+    if: needs.frontend-build.outputs.should-run == 'true'
     strategy:
       matrix:
         shard: [1, 2, 3, 4, 5, 6, 7, 8]
@@ -89,7 +91,7 @@ jobs:
 
   report-coverage:
     needs: [sharded-jest-tests]
-    if: needs.frontend-build.result == 'success'
+    if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download Coverage Artifacts
@@ -115,7 +117,7 @@ jobs:
 
   core-cover:
     needs: frontend-build
-    if: needs.frontend-build.result == 'success'
+    if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download Docker Image Artifact
@@ -133,7 +135,7 @@ jobs:
 
   lint-frontend:
     needs: frontend-build
-    if: needs.frontend-build.result == 'success'
+    if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download Docker Image Artifact
@@ -156,7 +158,7 @@ jobs:
 
   validate-frontend:
     needs: frontend-build
-    if: needs.frontend-build.result == 'success'
+    if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-24.04
     steps:
       - name: Download Docker Image Artifact
