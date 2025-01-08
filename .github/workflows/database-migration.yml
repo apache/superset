@@ -147,17 +147,8 @@ jobs:
     # Step to update the Superset Secret Key in both Superset and the Backend
     - name: Update Superset Secret Key in both Superset and the Backend
       run: |
-        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command '
-          if ! command -v infisical &> /dev/null; then
-            echo "infisical could not be found"
-            exit 1
-          fi
-          INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="${INFISICAL_CLIENT_ID}" --client-secret="${INFISICAL_CLIENT_SECRET}" --silent --plain)
-          INFISICAL_VARIABLES=$(infisical export --format=dotenv --projectId="${INFISICAL_PROJECT_ID}" --env=prod --path="${INFISICAL_PATH}")
-          SUPERSET_SECRET_KEY=$(echo "${INFISICAL_VARIABLES}" | awk -F"SUPERSET_SECRET_KEY='"'" '{print $2}' | awk -F"'"'" '{print $1}')
-          sed -i '"'"'s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='"'"'"${SUPERSET_SECRET_KEY}"'"'"'/'"'"' ${DESTINY_DIRECTORY_PATH}/superset/docker/.env
-          sed -i '"'"'s/^SUPERSET_JWT_SECRET_KEY=.*/SUPERSET_JWT_SECRET_KEY='"'"'"${SUPERSET_SECRET_KEY}"'"'"'/'"'"' ${DESTINY_DIRECTORY_PATH}/product-portal-be/.env
-        '
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}}  --command "INFISICAL_CLIENT_ID=$INFISICAL_CLIENT_ID INFISICAL_CLIENT_SECRET=$INFISICAL_CLIENT_SECRET INFISICAL_PROJECT_ID=$INFISICAL_PROJECT_ID INFISICAL_PATH=$INFISICAL_PATH DESTINY_DIRECTORY_PATH=$DESTINY_DIRECTORY_PATH bash $DESTINY_DIRECTORY_PATH/superset/update_secrets.sh" -- -v
+
 
     # Step to restart Docker Compose on the destiny VM
 #    - name: Restart Docker Compose on destiny VM
