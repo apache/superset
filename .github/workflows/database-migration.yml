@@ -147,7 +147,7 @@ jobs:
     # Step to update the Superset Secret Key in both Superset and the Backend
     - name: Update Superset Secret Key in both Superset and the Backend
       run: |
-        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}}  --command "INFISICAL_CLIENT_ID='$INFISICAL_CLIENT_ID' INFISICAL_CLIENT_SECRET='$INFISICAL_CLIENT_SECRET' INFISICAL_PROJECT_ID='$INFISICAL_PROJECT_ID' INFISICAL_PATH='$INFISICAL_PATH' DESTINY_DIRECTORY_PATH='$DESTINY_DIRECTORY_PATH' bash $DESTINY_DIRECTORY_PATH/superset/update_secrets.sh" -- -v
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}}  --command "INFISICAL_CLIENT_ID='${{env.INFISICAL_CLIENT_ID}}' INFISICAL_CLIENT_SECRET='${{env.INFISICAL_CLIENT_SECRET}}' INFISICAL_PROJECT_ID='${{env.INFISICAL_PROJECT_ID}}' INFISICAL_PATH='${{env.INFISICAL_PATH}}' DESTINY_DIRECTORY_PATH='${{env.DESTINY_DIRECTORY_PATH}}' bash ${{env.DESTINY_DIRECTORY_PATH}}/superset/update_secrets.sh" -- -v
 
 
     # Step to restart Docker Compose on the destiny VM
