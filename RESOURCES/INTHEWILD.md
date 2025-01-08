@@ -47,6 +47,7 @@ Join our growing community!
 - [Unit](https://www.unit.co/about-us) [@amitmiran137]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](https://xendit.co/) [@LieAlbertTriAdrian]
+- [Cover Genius](https://covergenius.com/)
 
 ### Gaming
 - [Popoko VM Games Studio](https://popoko.live)
