@@ -26,7 +26,7 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.python-version }}" = "current" ]; then
-          echo "PYTHON_VERSION=3.11.11" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "next" ]; then
           echo "PYTHON_VERSION=3.12" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "previous" ]; then
