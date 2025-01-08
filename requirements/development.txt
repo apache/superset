@@ -797,7 +797,7 @@ sshtunnel==0.4.0
     #   apache-superset
 statsd==4.0.1
     # via apache-superset
-tabulate==0.8.10
+tabulate==0.9.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
