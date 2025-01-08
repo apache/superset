@@ -492,9 +492,10 @@ packaging==24.2
     #   marshmallow-sqlalchemy
     #   matplotlib
     #   pytest
+    #   python-calamine
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.0.3
+pandas==2.2.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -632,6 +633,10 @@ pytest-cov==6.0.0
     # via apache-superset
 pytest-mock==3.10.0
     # via apache-superset
+python-calamine==0.3.1
+    # via
+    #   -c requirements/base.txt
+    #   pandas
 python-dateutil==2.9.0.post0
     # via
     #   -c requirements/base.txt

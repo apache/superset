@@ -241,8 +241,9 @@ packaging==24.2
     #   limits
     #   marshmallow
     #   marshmallow-sqlalchemy
+    #   python-calamine
     #   shillelagh
-pandas==2.0.3
+pandas==2.2.3
     # via apache-superset (pyproject.toml)
 paramiko==3.5.0
     # via
@@ -285,6 +286,8 @@ pyopenssl==24.2.1
     # via shillelagh
 pyparsing==3.2.0
     # via apache-superset (pyproject.toml)
+python-calamine==0.3.1
+    # via pandas
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset (pyproject.toml)
