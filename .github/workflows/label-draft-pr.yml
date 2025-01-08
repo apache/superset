@@ -1,5 +1,4 @@
 name: Label Draft PRs
-
 on:
   pull_request:
     types:
@@ -13,16 +12,16 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-24.04
     steps:
-      - name: Check if the PR is a draft
-        id: check-draft
+      - name: Check and Label Draft PR
         uses: actions/github-script@v6
         with:
           script: |
-            const isDraft = context.payload.pull_request.draft;
-            core.setOutput('isDraft', isDraft ? 'true' : 'false');
-      - name: Add `review:draft` Label
-        if: steps.check-draft.outputs.isDraft == 'true'
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: "review:draft"
+            const { context, github } = require('@actions/github');
+            if (context.payload.pull_request.draft) {
+              await github.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                labels: ['review:draft']
+              });
+            }
