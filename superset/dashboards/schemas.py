@@ -180,7 +180,7 @@ class DashboardJSONMetadataSchema(Schema):
 
         This field was removed in https://github.com/apache/superset/pull/23228, but might
         be present in old exports.
-        """
+        """  # noqa: E501
         if "show_native_filters" in data:
             del data["show_native_filters"]
 
@@ -428,19 +428,28 @@ class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
     reordered = fields.List(fields.String(), allow_none=False)
 
 
+class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
+    color_namespace = fields.String(allow_none=True)
+    color_scheme = fields.String(allow_none=True)
+    map_label_colors = fields.Dict(allow_none=False)
+    shared_label_colors = SharedLabelsColorsField()
+    label_colors = fields.Dict(allow_none=False)
+    color_scheme_domain = fields.List(fields.String(), allow_none=False)
+
+
 class DashboardScreenshotPostSchema(Schema):
-    dataMask = fields.Dict(
+    dataMask = fields.Dict(  # noqa: N815
         keys=fields.Str(),
         values=fields.Raw(),
         metadata={"description": "An object representing the data mask."},
     )
-    activeTabs = fields.List(
+    activeTabs = fields.List(  # noqa: N815
         fields.Str(), metadata={"description": "A list representing active tabs."}
     )
     anchor = fields.String(
         metadata={"description": "A string representing the anchor."}
     )
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.Tuple(
             (fields.Str(), fields.Str()),
         ),
@@ -457,7 +466,7 @@ class GetFavStarIdsSchema(Schema):
     result = fields.List(
         fields.Nested(ChartFavStarResponseResult),
         metadata={
-            "description": "A list of results for each corresponding chart in the request"
+            "description": "A list of results for each corresponding chart in the request"  # noqa: E501
         },
     )
 
@@ -501,9 +510,9 @@ class DashboardCacheScreenshotResponseSchema(Schema):
 
 
 class CacheScreenshotSchema(Schema):
-    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)
-    activeTabs = fields.List(fields.Str(), required=False)
+    dataMask = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)  # noqa: N815
+    activeTabs = fields.List(fields.Str(), required=False)  # noqa: N815
     anchor = fields.Str(required=False)
-    urlParams = fields.List(
+    urlParams = fields.List(  # noqa: N815
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )

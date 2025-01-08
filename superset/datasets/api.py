@@ -1052,7 +1052,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         try:
             body = DatasetCacheWarmUpRequestSchema().load(request.json)
         except ValidationError as error:

@@ -165,10 +165,10 @@ def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
             since, until = get_since_until(temporal_range_filter["comparator"])
             delta_days = (until - since).days
             new_until_date = start_date_offset + timedelta(days=delta_days - 1)
-            comparator_str = f"{start_date_offset.strftime('%Y-%m-%d')} : {new_until_date.strftime('%Y-%m-%d')}"
+            comparator_str = f"{start_date_offset.strftime('%Y-%m-%d')} : {new_until_date.strftime('%Y-%m-%d')}"  # noqa: E501
 
             # Generate filterOptionName
-            random_string = md5(comparator_str.encode("utf-8")).hexdigest()
+            random_string = md5(comparator_str.encode("utf-8")).hexdigest()  # noqa: S324
             filter_option_name = f"filter_{random_string}"
 
             adhoc_custom[0] = {

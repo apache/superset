@@ -44,10 +44,19 @@ const IconBlock = styled.div`
   flex-direction: column;
   align-items: center;
   padding: ${({ theme }) => theme.gridUnit * 2}px;
+
+  span {
+    margin-top: ${({ theme }) =>
+      2 * theme.gridUnit}px; // Add spacing between icon and name
+    font-size: ${({ theme }) =>
+      theme.typography.sizes.m}; // Optional: adjust font size for elegance
+    color: ${({ theme }) =>
+      theme.colors.grayscale.base}; // Optional: subtle color for the name
+  }
 `;
 
 export const InteractiveIcons = ({
-  showNames,
+  showNames = true,
   ...rest
 }: IconType & { showNames: boolean }) => (
   <IconSet>
@@ -56,7 +65,7 @@ export const InteractiveIcons = ({
       return (
         <IconBlock key={k}>
           <IconComponent {...rest} />
-          {showNames && k}
+          {showNames && <span>{k}</span>}
         </IconBlock>
       );
     })}

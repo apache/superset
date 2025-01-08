@@ -69,7 +69,7 @@ def format_timedelta(time_delta: timedelta) -> str:
     return str(time_delta)
 
 
-def base_json_conv(obj: Any) -> Any:
+def base_json_conv(obj: Any) -> Any:  # noqa: C901
     """
     Tries to convert additional types to JSON compatible forms.
 

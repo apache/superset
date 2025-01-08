@@ -40,7 +40,7 @@ def test_command(mocker: MockerFixture) -> None:
     with database.get_sqla_engine() as engine:
         engine.dialect.do_ping.return_value = True
 
-    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")  # noqa: N806
     DatabaseDAO.build_db_for_connection_test.return_value = database
 
     properties = {
@@ -65,7 +65,7 @@ def test_command_invalid(mocker: MockerFixture) -> None:
     with database.get_sqla_engine() as engine:
         engine.dialect.do_ping.return_value = True
 
-    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")  # noqa: N806
     DatabaseDAO.build_db_for_connection_test.return_value = database
 
     properties = {
@@ -109,7 +109,7 @@ def test_command_no_ping(mocker: MockerFixture) -> None:
     with database.get_sqla_engine() as engine:
         engine.dialect.do_ping.return_value = False
 
-    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")  # noqa: N806
     DatabaseDAO.build_db_for_connection_test.return_value = database
 
     properties = {
@@ -128,7 +128,7 @@ def test_command_no_ping(mocker: MockerFixture) -> None:
             "issue_codes": [
                 {
                     "code": 1002,
-                    "message": "Issue 1002 - The database returned an unexpected error.",
+                    "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                 }
             ]
         },
@@ -150,7 +150,7 @@ def test_command_with_oauth2(mocker: MockerFixture) -> None:
     with database.get_sqla_engine() as engine:
         engine.dialect.do_ping.side_effect = Exception("OAuth2 needed")
 
-    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")  # noqa: N806
     DatabaseDAO.build_db_for_connection_test.return_value = database
 
     properties = {
@@ -185,7 +185,7 @@ def test_command_with_oauth2_not_configured(mocker: MockerFixture) -> None:
     with database.get_sqla_engine() as engine:
         engine.dialect.do_ping.side_effect = Exception("OAuth2 needed")
 
-    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.validate.DatabaseDAO")  # noqa: N806
     DatabaseDAO.build_db_for_connection_test.return_value = database
 
     properties = {

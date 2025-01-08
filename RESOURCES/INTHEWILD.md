@@ -79,7 +79,7 @@ Join our growing community!
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Caizin](https://caizin.com/) [@tejaskatariya]
-- [Careem](https://www.careem.com/) [@SamraHanifCareem]
+- [Careem](https://www.careem.com/) [@samraHanif0340]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
@@ -119,6 +119,7 @@ Join our growing community!
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com) [@srinisubramanian]
+- [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]

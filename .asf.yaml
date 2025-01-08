@@ -72,6 +72,7 @@ github:
           - cypress-matrix (3, chrome)
           - cypress-matrix (4, chrome)
           - cypress-matrix (5, chrome)
+          - dependency-review
           - frontend-build
           - pre-commit (current)
           - pre-commit (next)

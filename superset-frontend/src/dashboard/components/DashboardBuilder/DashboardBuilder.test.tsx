@@ -128,7 +128,7 @@ describe('DashboardBuilder', () => {
   it('should render a DragDroppable DashboardHeader', () => {
     const { queryByTestId } = setup();
     const header = queryByTestId('dashboard-header-container');
-    expect(header).toBeTruthy();
+    expect(header).toBeInTheDocument();
   });
 
   it('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {

@@ -191,23 +191,23 @@ test('Should render all elements inside modal', async () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Basic information' }),
-    ).toBeVisible();
-    expect(screen.getByText('Name')).toBeVisible();
-    expect(screen.getByText('Description')).toBeVisible();
+    ).toBeInTheDocument();
+    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: 'Configuration' }),
-    ).toBeVisible();
-    expect(screen.getByText('Cache timeout')).toBeVisible();
+    ).toBeInTheDocument();
+    expect(screen.getByText('Cache timeout')).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', { name: 'Access' })).toBeVisible();
-    expect(screen.getByText('Owners')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: 'Configuration' }),
-    ).toBeVisible();
-    expect(screen.getByText('Certified by')).toBeVisible();
-    expect(screen.getByText('Certification details')).toBeVisible();
+    ).toBeInTheDocument();
+    expect(screen.getByText('Certified by')).toBeInTheDocument();
+    expect(screen.getByText('Certification details')).toBeInTheDocument();
   });
 });
 

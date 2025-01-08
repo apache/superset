@@ -27,6 +27,7 @@ import {
   formatSelectOptionsForRange,
   dndGroupByControl,
   columnsByType,
+  sections,
 } from '@superset-ui/chart-controls';
 import { showLegendControl, showValueControl } from '../controls';
 
@@ -104,6 +105,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    sections.titleControls,
     {
       label: t('Chart Options'),
       expanded: true,

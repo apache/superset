@@ -18,13 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-  waitForElementToBeRemoved,
-} from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
@@ -193,10 +187,8 @@ const comboboxSelect = async (
 ) => {
   expect(element).toBeInTheDocument();
   userEvent.type(element, `${value}{enter}`);
-  await waitFor(() => {
-    const element = newElementQuery();
-    expect(element).toBeInTheDocument();
-  });
+  const newElement = newElementQuery();
+  expect(newElement).toBeInTheDocument();
 };
 
 // --------------- TEST SECTION ------------------
@@ -484,7 +476,7 @@ test('removes ignore cache checkbox when chart is selected', async () => {
     screen.queryByRole('checkbox', {
       name: /ignore cache when generating report/i,
     }),
-  ).toBe(null);
+  ).not.toBeInTheDocument();
 });
 
 test('does not show screenshot width when csv is selected', async () => {
@@ -526,7 +518,6 @@ test('renders default Schedule fields', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   const scheduleType = screen.getByRole('combobox', {
     name: /schedule type/i,
   });
@@ -561,11 +552,12 @@ test('shows CRON Expression when CRON is selected', async () => {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('schedule-panel'));
-  await comboboxSelect(
+  userEvent.click(screen.getByRole('combobox', { name: /schedule type/i }));
+  userEvent.type(
     screen.getByRole('combobox', { name: /schedule type/i }),
-    'cron schedule',
-    () => screen.getByPlaceholderText(/cron expression/i),
+    'cron schedule{enter}',
   );
+  expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
   expect(screen.getByPlaceholderText(/cron expression/i)).toBeInTheDocument();
 });
 test('defaults to day when CRON is not selected', async () => {

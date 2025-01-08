@@ -51,12 +51,12 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 def fetch_files_github_api(url: str):  # type: ignore
     """Fetches data using GitHub API."""
-    req = Request(url)
+    req = Request(url)  # noqa: S310
     req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:
+    with urlopen(req) as response:  # noqa: S310
         body = response.read()
         return json.loads(body)
 
@@ -130,7 +130,7 @@ def main(event_type: str, sha: str, repo: str) -> None:
         )
 
     # Output results
-    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"
+    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
             if changed:
@@ -139,8 +139,8 @@ def main(event_type: str, sha: str, repo: str) -> None:
 
 
 def get_git_sha() -> str:
-    return os.getenv("GITHUB_SHA") or subprocess.check_output(
-        ["git", "rev-parse", "HEAD"]
+    return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
+        ["git", "rev-parse", "HEAD"]  # noqa: S607
     ).strip().decode("utf-8")
 
 

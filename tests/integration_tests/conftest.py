@@ -59,22 +59,22 @@ def test_client(app_context: AppContext):
 def login_as(test_client: FlaskClient[Any]):
     """Fixture with app context and logged in admin user."""
 
-    def _login_as(username: str, password: str = "general"):
+    def _login_as(username: str, password: str = "general"):  # noqa: S107
         login(test_client, username=username, password=password)
 
-    yield _login_as
+    return _login_as
     # no need to log out as both app_context and test_client are
     # function level fixtures anyway
 
 
 @pytest.fixture
 def login_as_admin(login_as: Callable[..., None]):
-    yield login_as("admin")  # type: ignore
+    return login_as("admin")
 
 
 @pytest.fixture
 def create_user(app_context: AppContext):
-    def _create_user(username: str, role: str = "Admin", password: str = "general"):
+    def _create_user(username: str, role: str = "Admin", password: str = "general"):  # noqa: S107
         security_manager.add_user(
             username,
             "firstname",
@@ -124,7 +124,7 @@ def setup_sample_data() -> Any:
     with app.app_context():
         try:
             setup_presto_if_needed()
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
         from superset.examples.css_templates import load_css_templates
@@ -139,7 +139,7 @@ def setup_sample_data() -> Any:
         from sqlalchemy.ext import declarative
 
         sqla_base = declarative.declarative_base()
-        # uses sorted_tables to drop in proper order without violating foreign constrains
+        # uses sorted_tables to drop in proper order without violating foreign constrains  # noqa: E501
         for table in sqla_base.metadata.sorted_tables:
             table.__table__.drop()
         db.session.commit()
@@ -157,8 +157,8 @@ def drop_from_schema(engine: Engine, schema_name: str):
 
 
 @pytest.fixture(scope="session")
-def example_db_provider() -> Callable[[], Database]:  # type: ignore
-    class _example_db_provider:
+def example_db_provider() -> Callable[[], Database]:
+    class _example_db_provider:  # noqa: N801
         _db: Database | None = None
 
         def __call__(self) -> Database:
@@ -171,7 +171,7 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
         def _load_lazy_data_to_decouple_from_session(self) -> None:
             self._db._get_sqla_engine()  # type: ignore
-            self._db.backend  # type: ignore
+            self._db.backend  # type: ignore  # noqa: B018
 
         def remove(self) -> None:
             if self._db:
@@ -180,7 +180,7 @@ def example_db_provider() -> Callable[[], Database]:  # type: ignore
 
     _instance = _example_db_provider()
 
-    yield _instance
+    return _instance
 
     # TODO - can not use it until referenced objects will be deleted.
     # _instance.remove()
@@ -315,7 +315,7 @@ def virtual_dataset():
             SELECT 8 as col1, 'i' as col2, 1.8, NULL, '2000-01-09 00:00:00', 9
             UNION ALL
             SELECT 9 as col1, 'j' as col2, 1.9, NULL, '2000-01-10 00:00:00', 10
-        """)
+        """)  # noqa: E501
         ),
         database=get_example_database(),
     )
@@ -323,7 +323,7 @@ def virtual_dataset():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    # Different database dialect datetime type is not consistent, so temporarily use varchar
+    # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col6", type="INTEGER", table=dataset)
 
@@ -355,7 +355,7 @@ def virtual_dataset_with_comments():
             UNION ALL/*COMMENT*/
             SELECT 1 as col1, 'f' as col2, 1.5, NULL, '2000-01-06 00:00:00', 6 --COMMENT
             UNION ALL--COMMENT
-            SELECT * FROM cte --COMMENT""")
+            SELECT * FROM cte --COMMENT""")  # noqa: E501
         ),
         database=get_example_database(),
     )
@@ -363,7 +363,7 @@ def virtual_dataset_with_comments():
     TableColumn(column_name="col2", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col3", type="DECIMAL(4,2)", table=dataset)
     TableColumn(column_name="col4", type="VARCHAR(255)", table=dataset)
-    # Different database dialect datetime type is not consistent, so temporarily use varchar
+    # Different database dialect datetime type is not consistent, so temporarily use varchar  # noqa: E501
     TableColumn(column_name="col5", type="VARCHAR(255)", table=dataset)
     TableColumn(column_name="col6", type="INTEGER", table=dataset)
 
@@ -413,7 +413,7 @@ def physical_dataset():
             (7, 'h', 1.7, NULL, '2000-01-08 00:00:00', '2002-08-18 00:00:00', '2002-08-18 00:00:00'),
             (8, 'i', 1.8, NULL, '2000-01-09 00:00:00', '2002-09-20 00:00:00', '2002-09-20 00:00:00'),
             (9, 'j', 1.9, NULL, '2000-01-10 00:00:00', '2002-10-22 00:00:00', '2002-10-22 00:00:00');
-        """
+        """  # noqa: E501
         )
 
     dataset = SqlaTable(
