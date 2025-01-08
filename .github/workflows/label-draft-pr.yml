@@ -1,12 +1,17 @@
 name: Label Draft PRs
+
 on:
   pull_request:
     types:
       - opened
       - converted_to_draft
+
 jobs:
   label-draft:
-    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-24.04
     steps:
       - name: Check if the PR is a draft
         id: check-draft
@@ -14,7 +19,7 @@ jobs:
         with:
           script: |
             const isDraft = context.payload.pull_request.draft;
-            core.setOutput('isDraft', isDraft);
+            core.setOutput('isDraft', isDraft ? 'true' : 'false');
       - name: Add `review:draft` Label
         if: steps.check-draft.outputs.isDraft == 'true'
         uses: actions-ecosystem/action-add-labels@v1
