@@ -133,7 +133,7 @@ class SecretsMigrator:
     def _select_columns_from_table(
         conn: Connection, column_names: list[str], table_name: str
     ) -> Row:
-        return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")
+        return conn.execute(f"SELECT id, {','.join(column_names)} FROM {table_name}")  # noqa: S608
 
     def _re_encrypt_row(
         self,
@@ -183,7 +183,7 @@ class SecretsMigrator:
         )
         logger.info("Processing table: %s", table_name)
         conn.execute(
-            text(f"UPDATE {table_name} SET {set_cols} WHERE id = :id"),
+            text(f"UPDATE {table_name} SET {set_cols} WHERE id = :id"),  # noqa: S608
             id=row["id"],
             **re_encrypted_columns,
         )

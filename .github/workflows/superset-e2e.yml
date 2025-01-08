@@ -28,6 +28,7 @@ concurrency:
 
 jobs:
   cypress-matrix:
+    # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
     permissions:
       contents: read

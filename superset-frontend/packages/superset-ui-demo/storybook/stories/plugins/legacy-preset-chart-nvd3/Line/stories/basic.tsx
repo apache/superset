@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const basic = () => (
   <SuperChart
-    chartType="line"
+    chartType={VizType.LegacyLine}
     width={400}
     height={400}
     datasource={dummyDatasource}
@@ -37,7 +37,7 @@ export const basic = () => (
       showBrush: 'auto',
       showLegend: true,
       showMarkers: false,
-      vizType: 'line',
+      vizType: VizType.LegacyLine,
       xAxisFormat: 'smart_date',
       xAxisLabel: '',
       xAxisShowminmax: false,

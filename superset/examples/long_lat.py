@@ -54,8 +54,8 @@ def load_long_lat_data(only_metadata: bool = False, force: bool = False) -> None
                 start + datetime.timedelta(hours=i * 24 / (len(pdf) - 1))
                 for i in range(len(pdf))
             ]
-            pdf["occupancy"] = [random.randint(1, 6) for _ in range(len(pdf))]
-            pdf["radius_miles"] = [random.uniform(1, 3) for _ in range(len(pdf))]
+            pdf["occupancy"] = [random.randint(1, 6) for _ in range(len(pdf))]  # noqa: S311
+            pdf["radius_miles"] = [random.uniform(1, 3) for _ in range(len(pdf))]  # noqa: S311
             pdf["geohash"] = pdf[["LAT", "LON"]].apply(
                 lambda x: geohash.encode(*x), axis=1
             )

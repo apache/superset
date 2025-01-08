@@ -56,7 +56,7 @@ describe('Datasource control', () => {
     cy.focused().type(`${newMetricName}{enter}`);
 
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
+    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
     // select new metric
     cy.get('[data-test=metrics]')
       .contains('Drop columns/metrics here or click')
@@ -68,7 +68,7 @@ describe('Datasource control', () => {
     // delete metric
     cy.get('[data-test="datasource-menu-trigger"]').click();
     cy.get('[data-test="edit-dataset"]').click();
-    cy.get('.ant-modal-content').within(() => {
+    cy.get('.antd5-modal-content').within(() => {
       cy.get('[data-test="collection-tab-Metrics"]')
         .contains('Metrics')
         .click();
@@ -78,7 +78,7 @@ describe('Datasource control', () => {
       .find('[data-test="crud-delete-icon"]')
       .click();
     cy.get('[data-test="datasource-modal-save"]').click();
-    cy.get('.ant-modal-confirm-btns button').contains('OK').click();
+    cy.get('.antd5-modal-confirm-btns button').contains('OK').click();
     cy.get('[data-test="metrics"]').contains(newMetricName).should('not.exist');
   });
 });
@@ -99,16 +99,13 @@ describe('Color scheme control', () => {
     cy.get('.ant-select-selection-item .color-scheme-label').trigger(
       'mouseover',
     );
+    cy.get('.color-scheme-tooltip').should('be.visible');
     cy.get('.color-scheme-tooltip').contains('Superset Colors');
     cy.get('.Control[data-test="color_scheme"]').scrollIntoView();
     cy.get('.Control[data-test="color_scheme"] input[type="search"]').focus();
-    cy.focused().type('lyftColors{enter}');
-    cy.get(
-      '.Control[data-test="color_scheme"] .ant-select-selection-item [data-test="lyftColors"]',
-    ).should('exist');
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
-      'mouseover',
-    );
+    cy.focused().type('lyftColors');
+    cy.getBySel('lyftColors').should('exist');
+    cy.getBySel('lyftColors').trigger('mouseover');
     cy.get('.color-scheme-tooltip').should('not.exist');
   });
 });
@@ -124,7 +121,7 @@ describe('VizType control', () => {
 
     cy.contains('View all charts').click();
 
-    cy.get('.ant-modal-content').within(() => {
+    cy.get('.antd5-modal-content').within(() => {
       cy.get('button').contains('KPI').click(); // change categories
       cy.get('[role="button"]').contains('Big Number').click();
       cy.get('button').contains('Select').click();
@@ -234,7 +231,7 @@ describe('Time range filter', () => {
 
     cy.get('[data-test=time-range-trigger]').click();
     cy.get('[data-test=custom-frame]').then(() => {
-      cy.get('.ant-input-number-input-wrap > input')
+      cy.get('.antd5-input-number-input-wrap > input')
         .invoke('attr', 'value')
         .should('eq', '7');
     });

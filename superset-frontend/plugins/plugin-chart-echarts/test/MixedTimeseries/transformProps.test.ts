@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, supersetTheme } from '@superset-ui/core';
+import { ChartProps, supersetTheme, VizType } from '@superset-ui/core';
 import {
   LegendOrientation,
   LegendType,
@@ -76,7 +76,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   groupbyB: ['gender'],
   seriesType: EchartsTimeseriesSeriesType.Line,
   seriesTypeB: EchartsTimeseriesSeriesType.Bar,
-  viz_type: 'mixed_timeseries',
+  viz_type: VizType.MixedTimeseries,
   forecastEnabled: false,
   forecastPeriods: [],
   forecastInterval: 0,

@@ -90,8 +90,9 @@ const StyleMenuItem = styled(Menu.Item)<{ divider?: boolean }>`
 const StyleSubmenuItem = styled.div`
   display: flex;
   justify-content: space-between;
-  > span {
-    width: 100%;
+  width: 100%;
+  > div {
+    flex-grow: 1;
   }
 `;
 
@@ -102,7 +103,7 @@ export default (props: DropDownSelectableProps) => {
     () => (label: string | ReactNode, key: string, divider?: boolean) => (
       <StyleMenuItem key={key} divider={divider}>
         <StyleSubmenuItem>
-          <span>{label}</span>
+          {label}
           {selectedKeys?.includes(key) && (
             <Icons.Check
               iconColor={theme.colors.primary.base}

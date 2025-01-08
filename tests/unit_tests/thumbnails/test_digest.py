@@ -47,7 +47,7 @@ _DEFAULT_CHART_KWARGS = {
 }
 
 
-def CUSTOM_DASHBOARD_FUNC(
+def CUSTOM_DASHBOARD_FUNC(  # noqa: N802
     dashboard: Dashboard,
     executor_type: ExecutorType,
     executor: str,
@@ -55,7 +55,7 @@ def CUSTOM_DASHBOARD_FUNC(
     return f"{dashboard.id}.{executor_type.value}.{executor}"
 
 
-def CUSTOM_CHART_FUNC(
+def CUSTOM_CHART_FUNC(  # noqa: N802
     chart: Slice,
     executor_type: ExecutorType,
     executor: str,

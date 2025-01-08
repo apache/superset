@@ -12187,7 +12187,7 @@ msgstr "Ограничить ось X"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr "Ограничивает ось X. Применимо только к числовой оси."
 
 msgid "Truncate Y Axis"

@@ -191,7 +191,7 @@ def test_extract_errors() -> None:
                 "issue_codes": [
                     {
                         "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                     }
                 ],
             },
@@ -218,7 +218,7 @@ def test_extract_errors_with_context() -> None:
                 "issue_codes": [
                     {
                         "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                     }
                 ],
             },
@@ -242,7 +242,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -257,14 +259,28 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
 
     assert DatabricksNativeEngineSpec.get_prequeries(database) == []
     assert DatabricksNativeEngineSpec.get_prequeries(database, schema="test") == [
-        "USE SCHEMA test",
+        "USE SCHEMA `test`",
     ]
     assert DatabricksNativeEngineSpec.get_prequeries(database, catalog="test") == [
-        "USE CATALOG test",
+        "USE CATALOG `test`",
     ]
     assert DatabricksNativeEngineSpec.get_prequeries(
         database, catalog="foo", schema="bar"
     ) == [
-        "USE CATALOG foo",
-        "USE SCHEMA bar",
+        "USE CATALOG `foo`",
+        "USE SCHEMA `bar`",
+    ]
+
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        database, catalog="with-hyphen", schema="hyphen-again"
+    ) == [
+        "USE CATALOG `with-hyphen`",
+        "USE SCHEMA `hyphen-again`",
+    ]
+
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        database, catalog="`escaped-hyphen`", schema="`hyphen-escaped`"
+    ) == [
+        "USE CATALOG `escaped-hyphen`",
+        "USE SCHEMA `hyphen-escaped`",
     ]

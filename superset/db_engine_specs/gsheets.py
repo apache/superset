@@ -114,7 +114,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     oauth2_authorization_request_uri = (  # pylint: disable=invalid-name
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
-    oauth2_token_request_uri = "https://oauth2.googleapis.com/token"
+    oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
     oauth2_exception = UnauthenticatedError
 
     @classmethod
@@ -271,7 +271,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 return errors
 
             try:
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')
+                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(

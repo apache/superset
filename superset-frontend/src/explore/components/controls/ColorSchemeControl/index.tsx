@@ -26,6 +26,8 @@ import {
   styled,
   t,
   useTheme,
+  getLabelsColorMap,
+  CategoricalColorNamespace,
 } from '@superset-ui/core';
 import AntdSelect from 'antd/lib/select';
 import { isFunction, sortBy } from 'lodash';
@@ -35,6 +37,7 @@ import Icons from 'src/components/Icons';
 import { SelectOptionsType } from 'src/components/Select/types';
 import { StyledSelect } from 'src/components/Select/styles';
 import { handleFilterOptionHelper } from 'src/components/Select/utils';
+import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
 const { Option, OptGroup } = AntdSelect;
@@ -47,6 +50,12 @@ export interface ColorSchemes {
 
 export interface ColorSchemeControlProps {
   hasCustomLabelsColor: boolean;
+  hasDashboardColorScheme?: boolean;
+  hasSharedLabelsColor?: boolean;
+  sharedLabelsColors?: string[];
+  mapLabelsColors?: Record<string, any>;
+  colorNamespace?: string;
+  chartId?: number;
   dashboardId?: number;
   label: string;
   name: string;
@@ -64,8 +73,8 @@ const StyledAlert = styled(Icons.AlertSolid)`
 `;
 
 const CUSTOM_LABEL_ALERT = t(
-  `This color scheme is being overridden by custom label colors.
-    Check the JSON metadata in the Advanced settings`,
+  `The colors of this chart might be overridden by custom label colors of the related dashboard.
+    Check the JSON metadata in the Advanced settings.`,
 );
 
 const DASHBOARD_ALERT = t(
@@ -73,18 +82,38 @@ const DASHBOARD_ALERT = t(
         Edit the color scheme in the dashboard properties.`,
 );
 
+const DASHBOARD_CONTEXT_ALERT = t(
+  `You are viewing this chart in a dashboard context with labels shared across multiple charts.
+        The color scheme selection is disabled.`,
+);
+
+const DASHBOARD_CONTEXT_TOOLTIP = t(
+  `You are viewing this chart in the context of a dashboard that is directly affecting its colors.
+        To edit the color scheme, open this chart outside of the dashboard.`,
+);
+
 const Label = ({
   label,
-  hasCustomLabelsColor,
   dashboardId,
+  hasSharedLabelsColor,
+  hasCustomLabelsColor,
+  hasDashboardColorScheme,
 }: Pick<
   ColorSchemeControlProps,
-  'label' | 'hasCustomLabelsColor' | 'dashboardId'
+  | 'label'
+  | 'dashboardId'
+  | 'hasCustomLabelsColor'
+  | 'hasSharedLabelsColor'
+  | 'hasDashboardColorScheme'
 >) => {
-  if (hasCustomLabelsColor || dashboardId) {
-    const alertTitle = hasCustomLabelsColor
-      ? CUSTOM_LABEL_ALERT
-      : DASHBOARD_ALERT;
+  if (hasSharedLabelsColor || hasCustomLabelsColor || hasDashboardColorScheme) {
+    const alertTitle =
+      hasCustomLabelsColor && !hasSharedLabelsColor
+        ? CUSTOM_LABEL_ALERT
+        : dashboardId && hasDashboardColorScheme
+          ? DASHBOARD_ALERT
+          : DASHBOARD_CONTEXT_ALERT;
+
     return (
       <>
         {label}{' '}
@@ -99,7 +128,12 @@ const Label = ({
 
 const ColorSchemeControl = ({
   hasCustomLabelsColor = false,
+  hasDashboardColorScheme = false,
+  mapLabelsColors = {},
+  sharedLabelsColors = [],
   dashboardId,
+  colorNamespace,
+  chartId,
   label = t('Color scheme'),
   onChange = () => {},
   value,
@@ -110,9 +144,21 @@ const ColorSchemeControl = ({
   isLinear,
   ...rest
 }: ColorSchemeControlProps) => {
+  const countSharedLabelsColor = sharedLabelsColors.length;
+  const colorMapInstance = getLabelsColorMap();
+  const chartLabels = chartId
+    ? colorMapInstance.chartsLabelsMap.get(chartId)?.labels || []
+    : [];
+  const hasSharedLabelsColor = !!(
+    dashboardId &&
+    countSharedLabelsColor > 0 &&
+    chartLabels.some(label => sharedLabelsColors.includes(label))
+  );
+  const hasDashboardScheme = dashboardId && hasDashboardColorScheme;
+  const showDashboardLockedOption = hasDashboardScheme || hasSharedLabelsColor;
   const theme = useTheme();
   const currentScheme = useMemo(() => {
-    if (dashboardId) {
+    if (showDashboardLockedOption) {
       return 'dashboard';
     }
     let result = value || defaultScheme;
@@ -121,13 +167,15 @@ const ColorSchemeControl = ({
       result = schemesObject?.SUPERSET_DEFAULT?.id;
     }
     return result;
-  }, [dashboardId, defaultScheme, schemes, value]);
+  }, [defaultScheme, schemes, showDashboardLockedOption, value]);
 
   const options = useMemo(() => {
-    if (dashboardId) {
+    if (showDashboardLockedOption) {
       return [
-        <Option value="dashboard" label={t('dashboard')} key="dashboard">
-          <Tooltip title={DASHBOARD_ALERT}>{t('Dashboard scheme')}</Tooltip>
+        <Option value="dashboard" label={t('Dashboard')} key="dashboard">
+          <Tooltip title={DASHBOARD_CONTEXT_TOOLTIP}>
+            {t('Dashboard scheme')}
+          </Tooltip>
         </Option>,
       ];
     }
@@ -218,11 +266,29 @@ const ColorSchemeControl = ({
         ))}
       </OptGroup>
     ));
-  }, [choices, dashboardId, isLinear, schemes]);
+  }, [choices, hasDashboardScheme, hasSharedLabelsColor, isLinear, schemes]);
 
   // We can't pass on change directly because it receives a second
   // parameter and it would be interpreted as the error parameter
-  const handleOnChange = (value: string) => onChange(value);
+  const handleOnChange = (value: string) => {
+    if (chartId) {
+      colorMapInstance.setOwnColorScheme(chartId, value);
+      if (dashboardId) {
+        const colorNameSpace = getColorNamespace(colorNamespace);
+        const categoricalNamespace =
+          CategoricalColorNamespace.getNamespace(colorNameSpace);
+
+        const sharedLabelsSet = new Set(sharedLabelsColors);
+        // reset colors except shared and custom labels to keep dashboard consistency
+        const resettableLabels = Object.keys(mapLabelsColors).filter(
+          l => !sharedLabelsSet.has(l),
+        );
+        categoricalNamespace.resetColorsForLabels(resettableLabels);
+      }
+    }
+
+    onChange(value);
+  };
 
   return (
     <>
@@ -231,8 +297,10 @@ const ColorSchemeControl = ({
         label={
           <Label
             label={label}
-            hasCustomLabelsColor={hasCustomLabelsColor}
             dashboardId={dashboardId}
+            hasCustomLabelsColor={hasCustomLabelsColor}
+            hasDashboardColorScheme={hasDashboardColorScheme}
+            hasSharedLabelsColor={hasSharedLabelsColor}
           />
         }
       />
@@ -249,7 +317,7 @@ const ColorSchemeControl = ({
         `}
         aria-label={t('Select color scheme')}
         allowClear={clearable}
-        disabled={!!dashboardId}
+        disabled={hasDashboardScheme || hasSharedLabelsColor}
         onChange={handleOnChange}
         placeholder={t('Select scheme')}
         value={currentScheme}

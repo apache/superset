@@ -263,8 +263,10 @@ describe('Native filters', () => {
     });
 
     it('User can expand / retract native filter sidebar on a dashboard', () => {
-      cy.get(nativeFilters.addFilterButton.button).should('not.exist');
       expandFilterOnLeftPanel();
+      cy.get(nativeFilters.filtersPanel.filterGear).click({
+        force: true,
+      });
       cy.get(nativeFilters.filterFromDashboardView.createFilterButton).should(
         'be.visible',
       );

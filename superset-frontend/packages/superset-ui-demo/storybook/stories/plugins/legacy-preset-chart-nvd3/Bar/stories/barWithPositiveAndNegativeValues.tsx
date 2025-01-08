@@ -17,13 +17,13 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
 export const barWithPositiveAndNegativeValues = () => (
   <SuperChart
-    chartType="bar"
+    chartType={VizType.LegacyBar}
     width={400}
     height={400}
     datasource={dummyDatasource}
@@ -51,7 +51,7 @@ export const barWithPositiveAndNegativeValues = () => (
       showControls: false,
       showLegend: true,
       stackedStyle: 'stack',
-      vizType: 'bar',
+      vizType: VizType.LegacyBar,
       xAxisFormat: '%Y',
       xAxisLabel: '',
       xAxisShowminmax: false,

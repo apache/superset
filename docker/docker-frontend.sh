@@ -27,10 +27,15 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     echo "Building Superset frontend in dev mode inside docker container"
     cd /app/superset-frontend
 
+    if [ "$NPM_RUN_PRUNE" = "true" ]; then
+        echo "Running `npm run prune`"
+        npm run prune
+    fi
+
     echo "Running `npm install`"
     npm install
 
-    echo "Running frontend"
+    echo "Start webpack dev server"
     npm run dev
 
 else

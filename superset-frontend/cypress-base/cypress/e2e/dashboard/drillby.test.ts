@@ -57,7 +57,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
   cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
     .first()
     .find("[role='menu'] [role='menuitem'] [title='Drill by']")
-    .trigger('mouseover');
+    .trigger('mouseover', { force: true });
   cy.get(
     '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-hidden) [data-test="drill-by-submenu"]',
   )

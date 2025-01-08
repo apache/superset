@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import PartitionChartPlugin from '@superset-ui/legacy-plugin-chart-partition';
 import data from './data';
 import dummyDatasource from '../../../shared/dummyDatasource';
 
-new PartitionChartPlugin().configure({ key: 'partition' }).register();
+new PartitionChartPlugin().configure({ key: VizType.Partition }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-partition',
@@ -30,7 +30,7 @@ export default {
 
 export const basic = () => (
   <SuperChart
-    chartType="partition"
+    chartType={VizType.Partition}
     width={400}
     height={400}
     datasource={dummyDatasource}

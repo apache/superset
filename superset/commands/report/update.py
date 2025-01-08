@@ -53,14 +53,14 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
         self.validate()
         return ReportScheduleDAO.update(self._model, self._properties)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         """
         Validates the properties of a report schedule configuration, including uniqueness
         of name and type, relations based on the report type, frequency, etc. Populates
         a list of `ValidationErrors` to be returned in the API response if any.
 
         Fields were loaded according to the `ReportSchedulePutSchema` schema.
-        """
+        """  # noqa: E501
         # Load existing report schedule config
         self._model = ReportScheduleDAO.find_by_id(self._model_id)
         if not self._model:

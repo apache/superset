@@ -27,6 +27,11 @@ using your app's authentication.
 
 Embedding is done by inserting an iframe, containing a Superset page, into the host application.
 
+## Prerequisites
+
+* Activate the feature flag `EMBEDDED_SUPERSET`
+* Set a strong password in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py). Be aware that its default value must be changed in production.
+
 ## Embedding a Dashboard
 
 Using npm:
@@ -108,6 +113,30 @@ Example `POST /security/guest_token` payload:
   ]
 }
 ```
+
+Alternatively, a guest token can be created directly in your app with a json like the following, and then signed
+with the secret set in configuration variable `GUEST_TOKEN_JWT_SECRET` (see configuration file config.py)
+```
+{
+  "user": {
+    "username": "embedded@embedded.fr",
+    "first_name": "embedded",
+    "last_name": "embedded"
+  },
+  "resources": [
+    {
+      "type": "dashboard",
+      "id": "d73e7841-9342-4afd-8e29-b4a416a2498c"
+    }
+  ],
+  "rls_rules": [],
+  "iat": 1730883214,
+  "exp": 1732956814,
+  "aud": "superset",
+  "type": "guest"
+}
+```
+
 ### Sandbox iframe
 
 The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default

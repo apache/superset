@@ -34,6 +34,7 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
+  VizType,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -79,9 +80,9 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 export interface AlertReportModalProps {
@@ -197,7 +198,7 @@ const noMarginBottom = css`
 Height of modal body defined here, total width defined at component invocation as antd prop.
  */
 const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     height: 720px;
   }
 
@@ -1004,8 +1005,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
+  const onCustomWidthChange = (value: number | string | null | undefined) => {
+    const numValue =
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && Number.isNaN(Number(value)))
+        ? null
+        : Number(value);
+    updateAlertState('custom_width', numValue);
   };
 
   const onTimeoutVerifyChange = (

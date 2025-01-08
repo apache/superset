@@ -61,7 +61,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
         Get the recipient's channel(s).
         :returns: A list of channel ids: "EID676L"
         :raises NotificationParamException or SlackApiError: If the recipient is not found
-        """
+        """  # noqa: E501
         recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
 
         return get_email_address_list(recipient_str)

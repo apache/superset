@@ -40,7 +40,7 @@ PATTERNS = {
     ],
     "docker": [
         r"^Dockerfile$",
-        r"^docker/",
+        r"^docker.*",
     ],
     "docs": [
         r"^docs/",
@@ -51,12 +51,12 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
 
 def fetch_files_github_api(url: str):  # type: ignore
     """Fetches data using GitHub API."""
-    req = Request(url)
+    req = Request(url)  # noqa: S310
     req.add_header("Authorization", f"Bearer {GITHUB_TOKEN}")
     req.add_header("Accept", "application/vnd.github.v3+json")
 
     print(f"Fetching from {url}")
-    with urlopen(req) as response:
+    with urlopen(req) as response:  # noqa: S310
         body = response.read()
         return json.loads(body)
 
@@ -95,15 +95,21 @@ def print_files(files: List[str]) -> None:
     print("\n".join([f"- {s}" for s in files]))
 
 
+def is_int(s: str) -> bool:
+    return bool(re.match(r"^-?\d+$", s))
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
     print("EVENT_TYPE", event_type)
+    files = None
     if event_type == "pull_request":
         pr_number = os.getenv("GITHUB_REF", "").split("/")[-2]
-        files = fetch_changed_files_pr(repo, pr_number)
-        print("PR files:")
-        print_files(files)
+        if is_int(pr_number):
+            files = fetch_changed_files_pr(repo, pr_number)
+            print("PR files:")
+            print_files(files)
 
     elif event_type == "push":
         files = fetch_changed_files_push(repo, sha)
@@ -119,12 +125,12 @@ def main(event_type: str, sha: str, repo: str) -> None:
     changes_detected = {}
     for group, regex_patterns in PATTERNS.items():
         patterns_compiled = [re.compile(p) for p in regex_patterns]
-        changes_detected[group] = event_type == "workflow_dispatch" or detect_changes(
+        changes_detected[group] = files is None or detect_changes(
             files, patterns_compiled
         )
 
     # Output results
-    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"
+    output_path = os.getenv("GITHUB_OUTPUT") or "/tmp/GITHUB_OUTPUT.txt"  # noqa: S108
     with open(output_path, "a") as f:
         for check, changed in changes_detected.items():
             if changed:
@@ -133,8 +139,8 @@ def main(event_type: str, sha: str, repo: str) -> None:
 
 
 def get_git_sha() -> str:
-    return os.getenv("GITHUB_SHA") or subprocess.check_output(
-        ["git", "rev-parse", "HEAD"]
+    return os.getenv("GITHUB_SHA") or subprocess.check_output(  # noqa: S603
+        ["git", "rev-parse", "HEAD"]  # noqa: S607
     ).strip().decode("utf-8")
 
 

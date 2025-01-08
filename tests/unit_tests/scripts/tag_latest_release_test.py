@@ -38,7 +38,7 @@ def wrapped(*args, **kwargs):
         ("2.1.0rc1", "This tag 2.1.0rc1 is not a valid release version. Not tagging."),
         (
             "",
-            "Missing tag parameter, usage: ./scripts/tag_latest_release.sh <GITHUB_TAG_NAME>",
+            "Missing tag parameter, usage: ./scripts/tag_latest_release.sh <GITHUB_TAG_NAME>",  # noqa: E501
         ),
         ("2.1", "This tag 2.1 is not a valid release version. Not tagging."),
         (
@@ -53,7 +53,7 @@ def test_tag_latest_release(tag, expected_output):
     ) as subprocess_mock:
         result = BashMock.tag_latest_release(tag)
 
-        subprocess_mock.assert_called_once_with(
+        subprocess_mock.assert_called_once_with(  # noqa: S604
             f"./scripts/tag_latest_release.sh {tag} --dry-run",
             shell=True,
             capture_output=True,

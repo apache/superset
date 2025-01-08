@@ -39,6 +39,9 @@ const INITIAL_STATE = {
     3: { id: 3 },
     4: { id: 4 },
   },
+  dashboardState: {
+    sliceIds: [1, 2, 3, 4],
+  },
   dashboardInfo: {
     id: 1,
     metadata: {
@@ -157,7 +160,7 @@ afterEach(() => {
 
 it('renders modal', () => {
   setup();
-  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-tree-panel')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-list-panel')).toBeInTheDocument();
 });

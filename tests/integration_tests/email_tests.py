@@ -141,7 +141,11 @@ class TestEmailSmtp(SupersetTestCase):
     def test_send_smtp_inline_images(self, mock_send_mime):
         image = read_fixture("sample.png")
         utils.send_email_smtp(
-            "to", "subject", "content", app.config, images=dict(blah=image)
+            "to",
+            "subject",
+            "content",
+            app.config,
+            images=dict(blah=image),  # noqa: C408
         )
         assert mock_send_mime.called
         call_args = mock_send_mime.call_args[0]

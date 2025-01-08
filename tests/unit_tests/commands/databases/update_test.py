@@ -24,8 +24,18 @@ from superset.commands.database.update import UpdateDatabaseCommand
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 
+oauth2_client_info = {
+    "id": "client_id",
+    "secret": "client_secret",
+    "scope": "scope-a",
+    "redirect_uri": "redirect_uri",
+    "authorization_request_uri": "auth_uri",
+    "token_request_uri": "token_uri",
+    "request_content_type": "json",
+}
 
-@pytest.fixture()
+
+@pytest.fixture
 def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database with catalogs and schemas.
@@ -44,7 +54,7 @@ def database_with_catalog(mocker: MockerFixture) -> MagicMock:
     return database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs.
@@ -58,7 +68,7 @@ def database_without_catalog(mocker: MockerFixture) -> MagicMock:
     return database
 
 
-@pytest.fixture()
+@pytest.fixture
 def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
     """
     Mock a database without catalogs that needs OAuth2.
@@ -72,6 +82,7 @@ def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
         "tab_id",
         "redirect_uri",
     )
+    database.get_oauth2_config.return_value = oauth2_client_info
 
     return database
 
@@ -95,7 +106,7 @@ def test_update_with_catalog(
     When update is called, only `catalog2.schema3` has permissions associated with it,
     so `catalog1.*` and `catalog2.schema4` are added.
     """
-    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database_with_catalog
     DatabaseDAO.update.return_value = database_with_catalog
 
@@ -145,8 +156,8 @@ def test_update_without_catalog(
 
     When update is called, only `schema2` has permissions associated with it, so `schema1`
     is added.
-    """
-    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    """  # noqa: E501
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database_without_catalog
     DatabaseDAO.update.return_value = database_without_catalog
 
@@ -191,7 +202,7 @@ def test_rename_with_catalog(
     so `catalog1.*` and `catalog2.schema4` are added. Additionally, the database has
     been renamed from `my_db` to `my_other_db`.
     """
-    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
     original_database = mocker.MagicMock()
     original_database.database_name = "my_db"
     DatabaseDAO.find_by_id.return_value = original_database
@@ -201,7 +212,7 @@ def test_rename_with_catalog(
     dataset = mocker.MagicMock()
     chart = mocker.MagicMock()
     DatabaseDAO.get_datasets.return_value = [dataset]
-    DatasetDAO = mocker.patch("superset.commands.database.update.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.commands.database.update.DatasetDAO")  # noqa: N806
     DatasetDAO.get_related_objects.return_value = {"charts": [chart]}
 
     find_permission_view_menu = mocker.patch.object(
@@ -262,8 +273,8 @@ def test_rename_without_catalog(
 
     When update is called, only `schema2` has permissions associated with it, so `schema1`
     is added. Additionally, the database has been renamed from `my_db` to `my_other_db`.
-    """
-    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    """  # noqa: E501
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
     original_database = mocker.MagicMock()
     original_database.database_name = "my_db"
     DatabaseDAO.find_by_id.return_value = original_database
@@ -304,7 +315,7 @@ def test_update_with_oauth2(
     """
     Test that the database can be updated even if OAuth2 is needed to connect.
     """
-    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database_needs_oauth2
     DatabaseDAO.update.return_value = database_needs_oauth2
 
@@ -321,6 +332,47 @@ def test_update_with_oauth2(
         "add_permission_view_menu",
     )
 
+    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = {
+        "oauth2_client_info": oauth2_client_info,
+    }
+
     UpdateDatabaseCommand(1, {}).run()
 
     add_permission_view_menu.assert_not_called()
+    database_needs_oauth2.purge_oauth2_tokens.assert_not_called()
+
+
+def test_update_with_oauth2_changed(
+    mocker: MockerFixture,
+    database_needs_oauth2: MockerFixture,
+) -> None:
+    """
+    Test that the database can be updated even if OAuth2 is needed to connect.
+    """
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database_needs_oauth2
+    DatabaseDAO.update.return_value = database_needs_oauth2
+
+    find_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "find_permission_view_menu",
+    )
+    find_permission_view_menu.side_effect = [
+        None,  # schema1 has no permissions
+        "[my_db].[schema2]",  # second schema already exists
+    ]
+    add_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "add_permission_view_menu",
+    )
+
+    modified_oauth2_client_info = oauth2_client_info.copy()
+    modified_oauth2_client_info["scope"] = "scope-b"
+    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = {
+        "oauth2_client_info": modified_oauth2_client_info,
+    }
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    add_permission_view_menu.assert_not_called()
+    database_needs_oauth2.purge_oauth2_tokens.assert_called()

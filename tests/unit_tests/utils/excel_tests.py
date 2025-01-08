@@ -34,6 +34,19 @@ def test_timezone_conversion() -> None:
     assert pd.read_excel(contents)["dt"][0] == "2023-01-01 00:00:00+00:00"
 
 
+def test_quote_formulas() -> None:
+    """
+    Test that formulas are quoted in Excel.
+    """
+    df = pd.DataFrame({"formula": ["=SUM(A1:A2)", "normal", "@SUM(A1:A2)"]})
+    contents = df_to_excel(df)
+    assert pd.read_excel(contents)["formula"].tolist() == [
+        "'=SUM(A1:A2)",
+        "normal",
+        "'@SUM(A1:A2)",
+    ]
+
+
 def test_column_data_types_with_one_numeric_column():
     df = pd.DataFrame(
         {

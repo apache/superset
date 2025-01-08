@@ -50,8 +50,8 @@ describe('FilterableTable', () => {
     };
     const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText(props.filterText)).toBeInTheDocument();
-    expect(queryByText('b2')).toBeFalsy();
-    expect(queryByText('b3')).toBeFalsy();
+    expect(queryByText('b2')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
   });
   it('filters on a number', () => {
     const props = {
@@ -60,8 +60,8 @@ describe('FilterableTable', () => {
     };
     const { getByText, queryByText } = render(<FilterableTable {...props} />);
     expect(getByText('b2')).toBeInTheDocument();
-    expect(queryByText('b1')).toBeFalsy();
-    expect(queryByText('b3')).toBeFalsy();
+    expect(queryByText('b1')).not.toBeInTheDocument();
+    expect(queryByText('b3')).not.toBeInTheDocument();
   });
 });
 

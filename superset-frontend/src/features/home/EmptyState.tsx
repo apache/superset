@@ -18,7 +18,7 @@
  */
 import { Link } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { Empty } from 'src/components';
+import { Empty } from 'src/components/EmptyState/Empty';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';

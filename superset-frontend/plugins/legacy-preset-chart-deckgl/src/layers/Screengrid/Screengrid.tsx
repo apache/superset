@@ -21,7 +21,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { ScreenGridLayer } from 'deck.gl/typed';
+import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
 import { noop } from 'lodash';
 import sandboxedEval from '../../utils/sandbox';
@@ -84,7 +84,7 @@ export function getLayer(
     minColor: [c.r, c.g, c.b, 0],
     maxColor: [c.r, c.g, c.b, 255 * c.a],
     outline: false,
-    getWeight: d => d.weight || 0,
+    getWeight: (d: any) => d.weight || 0,
     ...commonLayerProps(fd, setTooltip, setTooltipContent),
   });
 }

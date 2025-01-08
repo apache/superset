@@ -28,7 +28,7 @@ const StyledTooltip = (props: any) => {
       {({ css }) => (
         <Tooltip
           overlayClassName={css`
-            .ant-tooltip-inner {
+            .antd5-tooltip-inner {
               max-width: ${theme.gridUnit * 125}px;
               word-wrap: break-word;
               text-align: center;

@@ -71,5 +71,5 @@ def load_big_data() -> None:
         add_data(columns=columns, num_rows=10, table_name=f"small_table_{i}")
 
     print("Creating table with long name")
-    name = "".join(random.choices(string.ascii_letters + string.digits, k=60))
+    name = "".join(random.choices(string.ascii_letters + string.digits, k=60))  # noqa: S311
     add_data(columns=columns, num_rows=10, table_name=name)

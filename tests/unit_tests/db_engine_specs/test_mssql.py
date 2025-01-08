@@ -57,7 +57,7 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -128,7 +128,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -307,7 +307,7 @@ Unable to connect: Adaptive Server is unavailable or does not exist (localhost_)
                 "issue_codes": [
                     {
                         "code": 1007,
-                        "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        "message": "Issue 1007 - The hostname provided can't be resolved.",  # noqa: E501
                     }
                 ],
             },
@@ -367,7 +367,7 @@ Net-Lib error during Operation timed out (60)
                 "issue_codes": [
                     {
                         "code": 1009,
-                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",  # noqa: E501
                     }
                 ],
             },
@@ -400,7 +400,7 @@ Net-Lib error during Operation timed out (60)
                 "issue_codes": [
                     {
                         "code": 1009,
-                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",
+                        "message": "Issue 1009 - The host might be down, and can't be reached on the provided port.",  # noqa: E501
                     }
                 ],
             },
@@ -420,28 +420,31 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     result = MssqlEngineSpec.extract_errors(
         Exception(msg), context={"username": "testuser", "database": "testdb"}
     )
-    assert result == [
-        SupersetError(
-            message='Either the username "testuser", password, or database name "testdb" is incorrect.',
-            error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "engine_name": "Microsoft SQL Server",
-                "issue_codes": [
-                    {
-                        "code": 1014,
-                        "message": "Issue 1014 - Either the username or "
-                        "the password is wrong.",
-                    },
-                    {
-                        "code": 1015,
-                        "message": "Issue 1015 - Either the database is "
-                        "spelled incorrectly or does not exist.",
-                    },
-                ],
-            },
-        )
-    ]
+    assert (
+        result
+        == [
+            SupersetError(
+                message='Either the username "testuser", password, or database name "testdb" is incorrect.',  # noqa: E501
+                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={
+                    "engine_name": "Microsoft SQL Server",
+                    "issue_codes": [
+                        {
+                            "code": 1014,
+                            "message": "Issue 1014 - Either the username or "
+                            "the password is wrong.",
+                        },
+                        {
+                            "code": 1015,
+                            "message": "Issue 1015 - Either the database is "
+                            "spelled incorrectly or does not exist.",
+                        },
+                    ],
+                },
+            )
+        ]
+    )
 
 
 @pytest.mark.parametrize(
@@ -453,6 +456,6 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     ],
 )
 def test_denormalize_name(name: str, expected_result: str):
-    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(mssql.dialect(), name) == expected_result

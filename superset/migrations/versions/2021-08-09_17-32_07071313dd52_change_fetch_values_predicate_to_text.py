@@ -50,7 +50,7 @@ def remove_value_if_too_long():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # it will be easier for users to notice that their field has been deleted rather than truncated
+    # it will be easier for users to notice that their field has been deleted rather than truncated  # noqa: E501
     # so just remove it if it won't fit back into the 1000 string length column
     try:
         rows = (

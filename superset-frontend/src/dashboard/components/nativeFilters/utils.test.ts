@@ -19,6 +19,7 @@
 import { Behavior, FeatureFlag } from '@superset-ui/core';
 import * as uiCore from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
+import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
 let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
@@ -119,7 +120,10 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
     },
   } as any as DashboardLayout;
 
-  expect(Array.from(findTabsWithChartsInScope(dashboardLayout, []))).toEqual(
+  const chartLayoutItems = Object.values(dashboardLayout).filter(
+    item => item.type === CHART_TYPE,
+  );
+  expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
 });

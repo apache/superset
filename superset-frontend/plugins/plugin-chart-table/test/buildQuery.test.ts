@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryMode, TimeGranularity } from '@superset-ui/core';
+import { QueryMode, TimeGranularity, VizType } from '@superset-ui/core';
 import buildQuery from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
-  viz_type: 'table',
+  viz_type: VizType.Table,
   datasource: '11__table',
 };
 

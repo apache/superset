@@ -181,6 +181,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ("metrics", ["metrics"]),
         ("columns", ["columns", "groupby"]),
         ("groupby", ["columns", "groupby"]),
+        ("orderby", ["orderby"]),
     ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
@@ -477,7 +478,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
-            or self.can_access("database_access", database.perm)  # type: ignore
+            or self.can_access("database_access", database.perm)
         )
 
     def can_access_catalog(self, database: "Database", catalog: str) -> bool:
@@ -1409,7 +1410,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param old_database_name: the old database name
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
-        """
+        """  # noqa: E501
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         old_view_menu_name = self.get_database_perm(target.id, old_database_name)
@@ -1465,7 +1466,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param old_database_name: the old database name
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
-        """
+        """  # noqa: E501
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -2143,7 +2144,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         return []
 
-    def raise_for_access(
+    def raise_for_access(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
         dashboard: Optional["Dashboard"] = None,
@@ -2172,7 +2173,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
@@ -2353,7 +2353,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if dashboard:
             if self.is_guest_user():
-                # Guest user is currently used for embedded dashboards only. If the guest
+                # Guest user is currently used for embedded dashboards only. If the guest  # noqa: E501
                 # user doesn't have access to the dashboard, ignore all other checks.
                 if self.has_guest_access(dashboard):
                     return

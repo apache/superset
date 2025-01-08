@@ -90,7 +90,7 @@ def test_validate_db_uri(mocker: MockerFixture) -> None:
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         BaseEngineSpec.validate_database_uri(URL.create("sqlite"))
 
 
@@ -164,7 +164,9 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec as spec
+    from superset.db_engine_specs.databricks import (
+        DatabricksNativeEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 

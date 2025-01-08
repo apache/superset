@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HexagonLayer, Color } from 'deck.gl/typed';
+import { Color } from '@deck.gl/core';
+import { HexagonLayer } from '@deck.gl/aggregation-layers';
 import {
   t,
   CategoricalColorNamespace,
@@ -54,7 +55,8 @@ export function getLayer(
   setTooltip: (tooltip: TooltipProps['tooltip']) => void,
 ) {
   const fd = formData;
-  const colorScale = CategoricalColorNamespace.getScale(fd.color_scheme);
+  const appliedScheme = fd.color_scheme;
+  const colorScale = CategoricalColorNamespace.getScale(appliedScheme);
   const colorRange = colorScale
     .range()
     .map(color => hexToRGB(color)) as Color[];

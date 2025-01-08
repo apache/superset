@@ -16,6 +16,7 @@
 # under the License.
 import urllib
 from typing import Any
+from urllib.parse import urlparse
 
 from flask import current_app, url_for
 
@@ -50,3 +51,14 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
         f"{k}={urllib.parse.quote(str(v[0]))}" for k, v in params.items()
     )
     return urllib.parse.urlunsplit(parts)
+
+
+def is_secure_url(url: str) -> bool:
+    """
+    Validates if a URL is secure (uses HTTPS).
+
+    :param url: The URL to validate.
+    :return: True if the URL uses HTTPS (secure), False if it uses HTTP (non-secure).
+    """
+    parsed_url = urlparse(url)
+    return parsed_url.scheme == "https"

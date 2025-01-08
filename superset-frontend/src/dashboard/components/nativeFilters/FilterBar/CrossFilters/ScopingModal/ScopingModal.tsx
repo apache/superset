@@ -22,7 +22,6 @@ import { isDefined, NativeFilterScope, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import {
   ChartConfiguration,
-  Layout,
   RootState,
   isCrossFilterScopeGlobal,
   GlobalChartCrossFilterConfig,
@@ -32,6 +31,7 @@ import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilter
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { saveChartConfiguration } from 'src/dashboard/actions/dashboardInfo';
 import { DEFAULT_CROSS_FILTER_SCOPING } from 'src/dashboard/constants';
+import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { ScopingModalContent } from './ScopingModalContent';
 import { NEW_CHART_SCOPING_ID } from './constants';
 
@@ -76,9 +76,7 @@ export const ScopingModal = ({
   closeModal,
 }: ScopingModalProps) => {
   const dispatch = useDispatch();
-  const layout = useSelector<RootState, Layout>(
-    state => state.dashboardLayout.present,
-  );
+  const chartLayoutItems = useChartLayoutItems();
   const chartIds = useChartIds();
   const [currentChartId, setCurrentChartId] = useState(initialChartId);
   const initialChartConfig = useSelector<RootState, ChartConfiguration>(
@@ -154,7 +152,11 @@ export const ScopingModal = ({
             id: currentChartId,
             crossFilters: {
               scope,
-              chartsInScope: getChartIdsInFilterScope(scope, chartIds, layout),
+              chartsInScope: getChartIdsInFilterScope(
+                scope,
+                chartIds,
+                chartLayoutItems,
+              ),
             },
           },
         }));
@@ -162,7 +164,7 @@ export const ScopingModal = ({
         const globalChartsInScope = getChartIdsInFilterScope(
           scope,
           chartIds,
-          layout,
+          chartLayoutItems,
         );
         setGlobalChartConfig({
           scope,
@@ -176,7 +178,7 @@ export const ScopingModal = ({
         );
       }
     },
-    [currentChartId, chartIds, layout],
+    [currentChartId, chartIds, chartLayoutItems],
   );
 
   const removeCustomScope = useCallback(
@@ -241,7 +243,11 @@ export const ScopingModal = ({
           id: newChartId,
           crossFilters: {
             scope: newScope,
-            chartsInScope: getChartIdsInFilterScope(newScope, chartIds, layout),
+            chartsInScope: getChartIdsInFilterScope(
+              newScope,
+              chartIds,
+              chartLayoutItems,
+            ),
           },
         };
 
@@ -275,7 +281,7 @@ export const ScopingModal = ({
       currentChartId,
       globalChartConfig.chartsInScope,
       globalChartConfig.scope,
-      layout,
+      chartLayoutItems,
     ],
   );
 

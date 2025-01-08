@@ -18,12 +18,12 @@
  */
 
 /* eslint-disable no-magic-numbers */
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import SankeyChartPlugin from '@superset-ui/legacy-plugin-chart-sankey';
 import ResizableChartDemo from '../../../shared/components/ResizableChartDemo';
 import data from './data';
 
-new SankeyChartPlugin().configure({ key: 'sankey' }).register();
+new SankeyChartPlugin().configure({ key: VizType.LegacySankey }).register();
 
 export default {
   title: 'Legacy Chart Plugins/legacy-plugin-chart-sankey',
@@ -31,7 +31,7 @@ export default {
 
 export const basic = () => (
   <SuperChart
-    chartType="sankey"
+    chartType={VizType.LegacySankey}
     width={400}
     height={400}
     queriesData={[{ data }]}
@@ -45,7 +45,7 @@ export const resizable = () => (
   <ResizableChartDemo>
     {({ width, height }) => (
       <SuperChart
-        chartType="sankey"
+        chartType={VizType.LegacySankey}
         width={width}
         height={height}
         queriesData={[{ data }]}

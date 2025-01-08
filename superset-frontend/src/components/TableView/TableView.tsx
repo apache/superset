@@ -20,7 +20,7 @@ import { memo, useEffect, useRef } from 'react';
 import { isEqual } from 'lodash';
 import { styled, t } from '@superset-ui/core';
 import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
-import { Empty } from 'src/components';
+import { Empty } from 'src/components/EmptyState/Empty';
 import Pagination from 'src/components/Pagination';
 import TableCollection from 'src/components/TableCollection';
 import { SortByType, ServerPagination } from './types';

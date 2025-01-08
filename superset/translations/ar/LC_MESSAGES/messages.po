@@ -12140,7 +12140,7 @@ msgstr "اقتطاع المحور X"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "قم باقتطاع المحور X. يمكن تجاوزه عن طريق تحديد حد أدنى أو حد أقصى. ينطبق "
 "فقط على المحور X الرقمي."

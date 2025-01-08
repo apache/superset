@@ -30,7 +30,7 @@ import {
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { Space } from 'src/components';
+import { Space } from 'src/components/Space';
 import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,

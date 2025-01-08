@@ -115,7 +115,7 @@ def test_import_dashboard_without_permission(
         import_dashboard(dashboard_config)
     assert (
         str(excinfo.value)
-        == "Dashboard doesn't exist and user doesn't have permission to create dashboards"
+        == "Dashboard doesn't exist and user doesn't have permission to create dashboards"  # noqa: E501
     )
 
     # Assert that the can write to dashboard was checked
@@ -147,7 +147,7 @@ def test_import_existing_dashboard_without_permission(
             import_dashboard(dashboard_config, overwrite=True)
         assert (
             str(excinfo.value)
-            == "A dashboard already exists and user doesn't have permissions to overwrite it"
+            == "A dashboard already exists and user doesn't have permissions to overwrite it"  # noqa: E501
         )
 
     # Assert that the can write to dashboard was checked
@@ -161,7 +161,7 @@ def test_import_existing_dashboard_with_permission(
 ) -> None:
     """
     Test importing a dashboard that exists when a user has access permission to that dashboard.
-    """
+    """  # noqa: E501
     mock_can_access = mocker.patch.object(
         security_manager, "can_access", return_value=True
     )

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import dummyDatasource from '../../../../../shared/dummyDatasource';
 import data from '../data';
 
@@ -26,7 +26,7 @@ export const yAxisBounds = () => (
     <h2>yAxisBounds</h2>
     <pre>yAxisBounds=undefined</pre>
     <SuperChart
-      chartType="line"
+      chartType={VizType.LegacyLine}
       width={400}
       height={200}
       datasource={dummyDatasource}
@@ -34,12 +34,12 @@ export const yAxisBounds = () => (
       formData={{
         richTooltip: true,
         showLegend: false,
-        vizType: 'line',
+        vizType: VizType.LegacyLine,
       }}
     />
     <pre>yAxisBounds=[0, 60000]</pre>
     <SuperChart
-      chartType="line"
+      chartType={VizType.LegacyLine}
       width={400}
       height={200}
       datasource={dummyDatasource}
@@ -47,13 +47,13 @@ export const yAxisBounds = () => (
       formData={{
         richTooltip: true,
         showLegend: false,
-        vizType: 'line',
+        vizType: VizType.LegacyLine,
         yAxisBounds: [0, 60000],
       }}
     />
     <pre>yAxisBounds=[null, 60000]</pre>
     <SuperChart
-      chartType="line"
+      chartType={VizType.LegacyLine}
       width={400}
       height={200}
       datasource={dummyDatasource}
@@ -61,13 +61,13 @@ export const yAxisBounds = () => (
       formData={{
         richTooltip: true,
         showLegend: false,
-        vizType: 'line',
+        vizType: VizType.LegacyLine,
         yAxisBounds: [null, 60000],
       }}
     />
     <pre>yAxisBounds=[40000, null]</pre>
     <SuperChart
-      chartType="line"
+      chartType={VizType.LegacyLine}
       width={400}
       height={200}
       datasource={dummyDatasource}
@@ -75,13 +75,13 @@ export const yAxisBounds = () => (
       formData={{
         richTooltip: true,
         showLegend: false,
-        vizType: 'line',
+        vizType: VizType.LegacyLine,
         yAxisBounds: [40000, null],
       }}
     />
     <pre>yAxisBounds=[40000, null] with Legend</pre>
     <SuperChart
-      chartType="line"
+      chartType={VizType.LegacyLine}
       width={400}
       height={200}
       datasource={dummyDatasource}
@@ -89,7 +89,7 @@ export const yAxisBounds = () => (
       formData={{
         richTooltip: true,
         showLegend: true,
-        vizType: 'line',
+        vizType: VizType.LegacyLine,
         yAxisBounds: [40000, null],
       }}
     />

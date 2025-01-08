@@ -124,7 +124,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
             while status in unfinished_states:
                 db.session.refresh(query)
                 query = db.session.query(Query).filter_by(id=query_id).one()
-                # if query cancelation was requested prior to the handle_cursor call, but
+                # if query cancelation was requested prior to the handle_cursor call, but  # noqa: E501
                 # the query was still executed
                 # modified in stop_query in views / core.py is reflected  here.
                 # stop query

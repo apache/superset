@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import { styled, t } from '@superset-ui/core';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { Link } from 'react-router-dom';
@@ -112,13 +112,16 @@ const getEntityUrl = (entity: ActivityObject) => {
 
 const getEntityLastActionOn = (entity: ActivityObject) => {
   if ('time' in entity) {
-    return t('Viewed %s', moment(entity.time).fromNow());
+    return t('Viewed %s', extendedDayjs(entity.time).fromNow());
   }
 
   let time: number | string | undefined | null;
   if ('changed_on' in entity) time = entity.changed_on;
   if ('changed_on_utc' in entity) time = entity.changed_on_utc;
-  return t('Modified %s', time == null ? UNKNOWN_TIME : moment(time).fromNow());
+  return t(
+    'Modified %s',
+    time == null ? UNKNOWN_TIME : extendedDayjs(time).fromNow(),
+  );
 };
 
 export default function ActivityTable({

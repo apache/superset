@@ -71,7 +71,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
         return ChartDAO.update(self._model, self._properties)
 
-    def validate(self) -> None:
+    def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
         owner_ids: Optional[list[int]] = self._properties.get("owners")

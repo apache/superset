@@ -29,7 +29,7 @@ def test_upgrade_slice():
     slc = Slice(
         slice_name="FOO",
         viz_type="filter_box",
-        params=json.dumps(dict(metric="foo", groupby=["bar"])),
+        params=json.dumps(dict(metric="foo", groupby=["bar"])),  # noqa: C408
     )
     upgrade_slice(slc)
     params = json.loads(slc.params)

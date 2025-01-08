@@ -102,7 +102,7 @@ def validate_data_uri(data_uri: str) -> None:
     raise DatasetForbiddenDataURI()
 
 
-def import_dataset(
+def import_dataset(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     force_data: bool = False,
@@ -151,7 +151,7 @@ def import_dataset(
     try:
         dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
     except MultipleResultsFound:
-        # Finding multiple results when importing a dataset only happens because initially
+        # Finding multiple results when importing a dataset only happens because initially  # noqa: E501
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later
         # they were fixed to have the default schema (eg, `examples.public.users`). If a
         # user created `examples.public.users` during that time the second import will
@@ -193,7 +193,7 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     """
     validate_data_uri(data_uri)
     logger.info("Downloading data from %s", data_uri)
-    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with
+    data = request.urlopen(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
     if data_uri.endswith(".gz"):
         data = gzip.open(data)
     df = pd.read_csv(data, encoding="utf-8")

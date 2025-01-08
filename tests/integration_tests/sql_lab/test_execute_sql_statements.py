@@ -31,7 +31,7 @@ def test_non_async_execute(non_async_example_db: Database, example_query: Query)
         return_results=True,
         start_time=now_as_float(),
         expand_data=True,
-        log_params=dict(),
+        log_params=dict(),  # noqa: C408
     )
     assert result
     assert result["query_id"] == example_query.id

@@ -21,7 +21,6 @@ from typing import Any, Optional
 
 from flask import current_app as app
 from flask_babel import gettext as _
-from func_timeout import func_timeout, FunctionTimedOut
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
@@ -48,6 +47,7 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger
 from superset.models.core import Database
+from superset.utils import core as utils
 from superset.utils.ssh_tunnel import unmask_password_info
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
         self._context = context
         self._uri = uri
 
-    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches
+    def run(self) -> None:  # pylint: disable=too-many-statements,too-many-branches  # noqa: C901
         self.validate()
         ex_str = ""
         ssh_tunnel = self._properties.get("ssh_tunnel")
@@ -142,20 +142,18 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
             with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
                 try:
-                    alive = func_timeout(
-                        app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
-                        ping,
-                        args=(engine,),
-                    )
+                    time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
+                    with utils.timeout(int(time_delta.total_seconds())):
+                        alive = ping(engine)
                 except (sqlite3.ProgrammingError, RuntimeError):
-                    # SQLite can't run on a separate thread, so ``func_timeout`` fails
+                    # SQLite can't run on a separate thread, so ``utils.timeout`` fails
                     # RuntimeError catches the equivalent error from duckdb.
                     alive = engine.dialect.do_ping(engine)
-                except FunctionTimedOut as ex:
+                except SupersetTimeoutException as ex:
                     raise SupersetTimeoutException(
                         error_type=SupersetErrorType.CONNECTION_DATABASE_TIMEOUT,
                         message=(
-                            "Please check your connection details and database settings, "
+                            "Please check your connection details and database settings, "  # noqa: E501
                             "and ensure that your database is accepting connections, "
                             "then try connecting again."
                         ),

@@ -67,7 +67,7 @@ def session_with_data(session: Session) -> Iterator[Session]:
     session.add(database)
     session.add(sqla_table)
     session.flush()
-    yield session
+    return session
 
 
 def test_get_datasource_sqlatable(session_with_data: Session) -> None:

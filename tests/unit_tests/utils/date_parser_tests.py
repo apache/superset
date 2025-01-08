@@ -38,7 +38,7 @@ from superset.utils.date_parser import (
 from tests.unit_tests.conftest import with_feature_flags
 
 
-def mock_parse_human_datetime(s: str) -> Optional[datetime]:
+def mock_parse_human_datetime(s: str) -> Optional[datetime]:  # noqa: C901
     if s == "now":
         return datetime(2016, 11, 7, 9, 30, 10)
     elif s == "2018":
@@ -230,7 +230,7 @@ def test_get_since_until() -> None:
     expected = datetime(1999, 12, 25), datetime(2017, 12, 25)
     assert result == expected
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         get_since_until(time_range="tomorrow : yesterday")
 
 
@@ -420,12 +420,12 @@ def test_datetime_eval() -> None:
     assert result == -9
 
     result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), day)"  # pylint: disable=line-too-long,useless-suppression
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), day)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
     )
     assert result == 9
 
     result = datetime_eval(
-        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), year)"  # pylint: disable=line-too-long,useless-suppression
+        "datediff(datetime('2018-01-01T00:00:00'), datetime('2018-01-10T00:00:00'), year)"  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
     )
     assert result == 0
 

@@ -176,7 +176,7 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         try:
             logger.info("Killing Redshift PID:%s", str(cancel_query_id))
             cursor.execute(
-                "SELECT pg_cancel_backend(procpid) "
+                "SELECT pg_cancel_backend(procpid) "  # noqa: S608
                 "FROM pg_stat_activity "
                 f"WHERE procpid='{cancel_query_id}'"
             )

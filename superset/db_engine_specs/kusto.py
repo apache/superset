@@ -46,7 +46,7 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
         TimeGrain.SECOND: "DATEADD(second, \
             'DATEDIFF(second, 2000-01-01', {col}), '2000-01-01')",
         TimeGrain.MINUTE: "DATEADD(minute, DATEDIFF(minute, 0, {col}), 0)",
-        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",
+        TimeGrain.FIVE_MINUTES: "DATEADD(minute, DATEDIFF(minute, 0, {col}) / 5 * 5, 0)",  # noqa: E501
         TimeGrain.TEN_MINUTES: "DATEADD(minute, \
             DATEDIFF(minute, 0, {col}) / 10 * 10, 0)",
         TimeGrain.FIFTEEN_MINUTES: "DATEADD(minute, \
@@ -104,11 +104,6 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""CONVERT(DATETIME, '{datetime_formatted}', 126)"""
         return None
 
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """Pessimistic readonly, 100% sure statement won't mutate anything"""
-        return parsed_query.sql.lower().startswith("select")
-
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     limit_method = LimitMethod.WRAP_SQL
@@ -157,15 +152,6 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             return f"""datetime({dttm.isoformat(timespec="microseconds")})"""
 
         return None
-
-    @classmethod
-    def is_readonly_query(cls, parsed_query: ParsedQuery) -> bool:
-        """
-        Pessimistic readonly, 100% sure statement won't mutate anything.
-        """
-        return KustoKqlEngineSpec.is_select_query(
-            parsed_query
-        ) or parsed_query.sql.startswith(".show")
 
     @classmethod
     def is_select_query(cls, parsed_query: ParsedQuery) -> bool:

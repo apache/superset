@@ -64,8 +64,8 @@ class TestDashboard(SupersetTestCase):
 
         self.grant_public_access_to_table(table)
 
-        pytest.hidden_dash_slug = f"hidden_dash_{random()}"
-        pytest.published_dash_slug = f"published_dash_{random()}"
+        pytest.hidden_dash_slug = f"hidden_dash_{random()}"  # noqa: S311
+        pytest.published_dash_slug = f"published_dash_{random()}"  # noqa: S311
 
         # Create a published and hidden dashboard and add them to the database
         published_dash = Dashboard()
@@ -199,8 +199,8 @@ class TestDashboard(SupersetTestCase):
 
     def test_users_can_view_own_dashboard(self):
         user = security_manager.find_user("gamma")
-        my_dash_slug = f"my_dash_{random()}"
-        not_my_dash_slug = f"not_my_dash_{random()}"
+        my_dash_slug = f"my_dash_{random()}"  # noqa: S311
+        not_my_dash_slug = f"not_my_dash_{random()}"  # noqa: S311
 
         # Create one dashboard I own and another that I don't
         dash = Dashboard()
@@ -229,7 +229,7 @@ class TestDashboard(SupersetTestCase):
 
     def test_user_can_not_view_unpublished_dash(self):
         admin_user = security_manager.find_user("admin")
-        slug = f"admin_owned_unpublished_dash_{random()}"
+        slug = f"admin_owned_unpublished_dash_{random()}"  # noqa: S311
 
         # Create a dashboard owned by admin and unpublished
         dash = Dashboard()

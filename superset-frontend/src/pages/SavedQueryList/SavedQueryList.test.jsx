@@ -340,18 +340,21 @@ describe('RTL', () => {
   it('renders an "Import Saved Query" tooltip under import button', async () => {
     const importButton = await screen.findByTestId('import-button');
     userEvent.hover(importButton);
+
     waitFor(() => {
-      expect(importButton).toHaveClass('ant-tooltip-open');
       screen.findByTestId('import-tooltip-test');
       const importTooltip = screen.getByRole('tooltip', {
         name: 'Import queries',
       });
-      expect(importTooltip).toBeInTheDocument();
+      expect(importTooltip).toBeVisible();
     });
   });
 
   it('renders an import modal when import button is clicked', async () => {
     // Grab and click import saved query button to reveal modal
+    expect(
+      screen.queryByRole('heading', { name: 'Import queries' }),
+    ).not.toBeInTheDocument();
     const importButton = await screen.findByTestId('import-button');
     userEvent.click(importButton);
 
@@ -359,7 +362,7 @@ describe('RTL', () => {
     const importSavedQueryModalHeading = screen.getByRole('heading', {
       name: 'Import queries',
     });
-    expect(importSavedQueryModalHeading).toBeVisible();
+    expect(importSavedQueryModalHeading).toBeInTheDocument();
   });
 
   it('imports a saved query', async () => {

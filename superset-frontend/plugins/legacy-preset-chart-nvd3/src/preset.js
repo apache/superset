@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
+import { Preset, VizType } from '@superset-ui/core';
 import AreaChartPlugin from './Area';
 import BarChartPlugin from './Bar';
 import BoxPlotChartPlugin from './BoxPlot';
@@ -33,16 +33,16 @@ export default class NVD3ChartPreset extends Preset {
     super({
       name: 'NVD3 charts',
       plugins: [
-        new AreaChartPlugin().configure({ key: 'area' }),
-        new BarChartPlugin().configure({ key: 'bar' }),
-        new BoxPlotChartPlugin().configure({ key: 'box_plot' }),
-        new BubbleChartPlugin().configure({ key: 'bubble' }),
-        new BulletChartPlugin().configure({ key: 'bullet' }),
-        new CompareChartPlugin().configure({ key: 'compare' }),
-        new DistBarChartPlugin().configure({ key: 'dist_bar' }),
-        new LineChartPlugin().configure({ key: 'line' }),
-        new PieChartPlugin().configure({ key: 'pie' }),
-        new TimePivotChartPlugin().configure({ key: 'time_pivot' }),
+        new AreaChartPlugin().configure({ key: VizType.LegacyArea }),
+        new BarChartPlugin().configure({ key: VizType.LegacyBar }),
+        new BoxPlotChartPlugin().configure({ key: VizType.BoxPlot }),
+        new BubbleChartPlugin().configure({ key: VizType.LegacyBubble }),
+        new BulletChartPlugin().configure({ key: VizType.Bullet }),
+        new CompareChartPlugin().configure({ key: VizType.Compare }),
+        new DistBarChartPlugin().configure({ key: VizType.DistBar }),
+        new LineChartPlugin().configure({ key: VizType.LegacyLine }),
+        new PieChartPlugin().configure({ key: VizType.Pie }),
+        new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
       ],
     });
   }

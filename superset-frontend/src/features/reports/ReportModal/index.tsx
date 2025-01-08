@@ -25,7 +25,12 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  getClientErrorObject,
+  VizType,
+} from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
@@ -84,9 +89,9 @@ interface ReportProps {
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 const INITIAL_STATE = {

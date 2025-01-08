@@ -63,7 +63,7 @@ def test_get_channel_with_multi_recipients(mock_header_data) -> None:
     slack_notification = SlackNotification(
         recipient=ReportRecipients(
             type=ReportRecipientType.SLACK,
-            recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',
+            recipient_config_json='{"target": "some_channel; second_channel, third_channel"}',  # noqa: E501
         ),
         content=content,
     )
@@ -72,13 +72,13 @@ def test_get_channel_with_multi_recipients(mock_header_data) -> None:
 
     assert result == "some_channel,second_channel,third_channel"
 
-    # Test if the recipient configuration JSON is valid when using a SlackV2 recipient type
+    # Test if the recipient configuration JSON is valid when using a SlackV2 recipient type  # noqa: E501
 
 
 def test_valid_recipient_config_json_slackv2(mock_header_data) -> None:
     """
     Test if the recipient configuration JSON is valid when using a SlackV2 recipient type
-    """
+    """  # noqa: E501
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.slack import SlackNotification
@@ -107,7 +107,7 @@ def test_valid_recipient_config_json_slackv2(mock_header_data) -> None:
 
     assert result == '{"target": "some_channel"}'
 
-    # Ensure _get_inline_files function returns the correct tuple when content has screenshots
+    # Ensure _get_inline_files function returns the correct tuple when content has screenshots  # noqa: E501
 
 
 def test_get_inline_files_with_screenshots(mock_header_data) -> None:
@@ -144,7 +144,7 @@ def test_get_inline_files_with_screenshots(mock_header_data) -> None:
 
     assert result == ("png", [b"screenshot1", b"screenshot2"])
 
-    # Ensure _get_inline_files function returns None when content has no screenshots or csv
+    # Ensure _get_inline_files function returns None when content has no screenshots or csv  # noqa: E501
 
 
 def test_get_inline_files_with_no_screenshots_or_csv(mock_header_data) -> None:

@@ -91,7 +91,7 @@ class TestUtils(SupersetTestCase):
         assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
         assert json.json_int_dttm_ser(np.int64(1)) == 1
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError):  # noqa: PT027
             json.json_int_dttm_ser(np.datetime64())
 
     def test_json_iso_dttm_ser(self):
@@ -108,7 +108,7 @@ class TestUtils(SupersetTestCase):
             == "Unserializable [<class 'numpy.datetime64'>]"
         )
 
-        with self.assertRaises(TypeError):
+        with self.assertRaises(TypeError):  # noqa: PT027
             json.json_iso_dttm_ser(np.datetime64())
 
     def test_base_json_conv(self):
@@ -578,7 +578,7 @@ class TestUtils(SupersetTestCase):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
         assert json.validate_json(valid) is None
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        with self.assertRaises(json.JSONDecodeError):
+        with self.assertRaises(json.JSONDecodeError):  # noqa: PT027
             json.validate_json(invalid)
 
     def test_convert_legacy_filters_into_adhoc_where(self):
@@ -720,7 +720,7 @@ class TestUtils(SupersetTestCase):
         db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
-        with self.assertRaises(DatabaseInvalidError):
+        with self.assertRaises(DatabaseInvalidError):  # noqa: PT027
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
     def test_get_or_create_db_existing_invalid_uri(self):
@@ -913,7 +913,7 @@ class TestUtils(SupersetTestCase):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
         assert schema.validate_json(valid) is None
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        self.assertRaises(marshmallow.ValidationError, schema.validate_json, invalid)
+        self.assertRaises(marshmallow.ValidationError, schema.validate_json, invalid)  # noqa: PT027
 
     def test_schema_one_of_case_insensitive(self):
         validator = schema.OneOfCaseInsensitive(choices=[1, 2, 3, "FoO", "BAR", "baz"])
@@ -923,8 +923,8 @@ class TestUtils(SupersetTestCase):
         assert "FOO" == validator("FOO")
         assert "bar" == validator("bar")
         assert "BaZ" == validator("BaZ")
-        self.assertRaises(marshmallow.ValidationError, validator, "qwerty")
-        self.assertRaises(marshmallow.ValidationError, validator, 4)
+        self.assertRaises(marshmallow.ValidationError, validator, "qwerty")  # noqa: PT027
+        self.assertRaises(marshmallow.ValidationError, validator, 4)  # noqa: PT027
 
     def test_cast_to_num(self) -> None:
         assert cast_to_num("5") == 5
@@ -985,7 +985,7 @@ class TestUtils(SupersetTestCase):
             df = df.copy()
             normalize_dttm_col(
                 df,
-                tuple(
+                tuple(  # noqa: C409
                     [
                         DateColumn.get_legacy_time_column(
                             timestamp_format=timestamp_format,
