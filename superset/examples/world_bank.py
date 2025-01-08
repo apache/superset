@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import os
 
 import pandas as pd
@@ -37,6 +38,8 @@ from superset.models.slice import Slice
 from superset.sql_parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import DatasourceType
+
+logger = logging.getLogger(__name__)
 
 
 def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
@@ -79,7 +82,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
                 index=False,
             )
 
-    print("Creating table [wb_health_population] reference")
+    logger.debug("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
@@ -115,7 +118,7 @@ def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals
     for slc in slices:
         merge_slice(slc)
 
-    print("Creating a World's Health Bank dashboard")
+    logger.debug("Creating a World's Health Bank dashboard")
     dash_name = "World Bank's Data"
     slug = "world_health"
     dash = db.session.query(Dashboard).filter_by(slug=slug).first()

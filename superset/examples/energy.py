@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import textwrap
 
 import pandas as pd
@@ -33,6 +34,8 @@ from .helpers import (
     merge_slice,
     misc_dash_slices,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_energy(
@@ -61,7 +64,7 @@ def load_energy(
                 method="multi",
             )
 
-    print("Creating table [wb_health_population] reference")
+    logger.debug("Creating table [wb_health_population] reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
