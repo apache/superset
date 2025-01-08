@@ -71,7 +71,8 @@ dependencies = [
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
-    "pandas[excel]>=2.0.3, <3",
+    # upper bounding at 2.2 as df.to_sql changes sqlalchemy type compatibility
+    "pandas[excel]>=2.0.3, <2.2",
     "bottleneck",
     # --------------------------
     "parsedatetime",
