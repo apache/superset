@@ -122,27 +122,27 @@ jobs:
         esac        
 
     # Step to generate a database dump file on the origin VM
-#    - name: Generate dump file on origin VM
-#      run: |
-#        gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "
-#          cd \${{ env.ORIGIN_DIRECTORY_PATH}}/docker &&
-#          source .env &&
-#          export PGPASSWORD=\$DATABASE_PASSWORD &&
-#          if [ \"\$DATABASE_HOST\" = \"db\" ]; then
-#            DATABASE_HOST=localhost
-#          fi &&
-#          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > remote_database.dump
-#        "
+    - name: Generate dump file on origin VM
+      run: |
+        gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "
+          cd \${{ env.ORIGIN_DIRECTORY_PATH}}/docker &&
+          source .env &&
+          export PGPASSWORD=\$DATABASE_PASSWORD &&
+          if [ \"\$DATABASE_HOST\" = \"db\" ]; then
+            DATABASE_HOST=localhost
+          fi &&
+          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > remote_database.dump
+        "
 
     # Step to download the dump file from the origin VM
-#    - name: Download dump file from origin VM
-#      run: |
-#        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/remote_database.dump .
+    - name: Download dump file from origin VM
+      run: |
+        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/remote_database.dump .
 
     # Step to upload the dump file to the destiny VM
-#    - name: Upload dump file to destiny VM
-#      run: |
-#        gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/docker-entrypoint-initdb.d/
+    - name: Upload dump file to destiny VM
+      run: |
+        gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/docker-entrypoint-initdb.d/
 
     # Step to update the Superset Secret Key in both Superset and the Backend
     - name: Update Superset Secret Key in both Superset and the Backend
@@ -151,11 +151,11 @@ jobs:
 
 
     # Step to restart Docker Compose on the destiny VM
-#    - name: Restart Docker Compose on destiny VM
-#      run: |
-#        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
-#          cd ${{ env.DESTINY_DIRECTORY_PATH}}/superset && 
-#          docker compose -f docker-compose-image-tag.yml down && 
-#          docker volume rm superset_db_home && 
-#          TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d --force-recreate
-#        "
+    - name: Restart Docker Compose on destiny VM
+      run: |
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
+          cd ${{ env.DESTINY_DIRECTORY_PATH}}/superset && 
+          docker compose -f docker-compose-image-tag.yml down && 
+          docker volume rm superset_db_home && 
+          TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d --force-recreate
+        "
