@@ -57,7 +57,7 @@ runs:
           elif [ "${{ inputs.requirements-type }}" = "base" ]; then
             REQS=requirements/base.txt
           fi
-          uv pip install --only-binary :all: --verbose --system -r $REQS
+          uv pip install --verbose --system -r $REQS
           echo "Done with uv pip install"
 
           uv pip install --system -e .
