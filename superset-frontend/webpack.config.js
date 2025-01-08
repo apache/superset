@@ -24,7 +24,6 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
@@ -160,9 +159,6 @@ const plugins = [
     inject: true,
     chunks: [],
     filename: '500.html',
-  }),
-  new MomentLocalesPlugin({
-    localesToKeep: getAvailableTranslationCodes(),
   }),
   // Dayjs locales to keep
   new webpack.ContextReplacementPlugin(
