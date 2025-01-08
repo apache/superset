@@ -152,11 +152,11 @@ jobs:
             echo "infisical could not be found"
             exit 1
           fi
-          INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="$INFISICAL_CLIENT_ID" --client-secret="$INFISICAL_CLIENT_SECRET" --silent --plain)
-          INFISICAL_VARIABLES=$(infisical export --format=dotenv --projectId="$INFISICAL_PROJECT_ID" --env=prod --path="$INFISICAL_PATH")
-          SUPERSET_SECRET_KEY=$(echo $INFISICAL_VARIABLES | awk -F"SUPERSET_SECRET_KEY='" '"{print $2}"' | awk -F"'" '"{print $1}"')
-          sed -i "s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='$SUPERSET_SECRET_KEY'" ${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/.env
-          sed -i "s/^SUPERSET_JWT_SECRET_KEY=.*/SUPERSET_JWT_SECRET_KEY='$SUPERSET_SECRET_KEY'" ${{ env.DESTINY_DIRECTORY_PATH}}/product-portal-be/.env
+          INFISICAL_TOKEN=$(infisical login --method=universal-auth --client-id="${INFISICAL_CLIENT_ID}" --client-secret="${INFISICAL_CLIENT_SECRET}" --silent --plain)
+          INFISICAL_VARIABLES=$(infisical export --format=dotenv --projectId="${INFISICAL_PROJECT_ID}" --env=prod --path="${INFISICAL_PATH}")
+          SUPERSET_SECRET_KEY=$(echo "${INFISICAL_VARIABLES}" | awk -F"SUPERSET_SECRET_KEY='"'" '{print $2}' | awk -F"'"'" '{print $1}')
+          sed -i '"'"'s/^SUPERSET_SECRET_KEY=.*/SUPERSET_SECRET_KEY='"'"'"${SUPERSET_SECRET_KEY}"'"'"'/'"'"' ${DESTINY_DIRECTORY_PATH}/superset/docker/.env
+          sed -i '"'"'s/^SUPERSET_JWT_SECRET_KEY=.*/SUPERSET_JWT_SECRET_KEY='"'"'"${SUPERSET_SECRET_KEY}"'"'"'/'"'"' ${DESTINY_DIRECTORY_PATH}/product-portal-be/.env
         '
 
     # Step to restart Docker Compose on the destiny VM
