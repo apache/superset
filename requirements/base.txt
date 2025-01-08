@@ -14,6 +14,7 @@ attrs==24.2.0
     # via
     #   cattrs
     #   jsonschema
+    #   referencing
     #   requests-cache
 babel==2.16.0
     # via flask-babel
@@ -172,8 +173,10 @@ jinja2==3.1.4
     #   flask-babel
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
-jsonschema==4.17.3
+jsonschema==4.23.0
     # via flask-appbuilder
+jsonschema-specifications==2024.10.1
+    # via jsonschema
 kombu==5.4.2
     # via celery
 korean-lunar-calendar==0.3.1
@@ -276,8 +279,6 @@ pyopenssl==24.2.1
     # via shillelagh
 pyparsing==3.2.0
     # via apache-superset (pyproject.toml)
-pyrsistent==0.20.0
-    # via jsonschema
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset (pyproject.toml)
@@ -304,6 +305,10 @@ pyyaml==6.0.2
     #   apispec
 redis==4.6.0
     # via apache-superset (pyproject.toml)
+referencing==0.35.1
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.32.2
     # via
     #   requests-cache
@@ -312,6 +317,10 @@ requests-cache==1.2.0
     # via shillelagh
 rich==13.9.4
     # via flask-limiter
+rpds-py==0.22.3
+    # via
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via google-auth
 selenium==3.141.0
