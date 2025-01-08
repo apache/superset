@@ -36,6 +36,10 @@ dayjs.extend(duration);
 dayjs.extend(updateLocale);
 dayjs.extend(isSameOrBefore);
 
+dayjs.updateLocale('en', {
+  invalidDate: 'Invalid date',
+});
+
 export const extendedDayjs = dayjs;
 
 export const fDuration = function (

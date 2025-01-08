@@ -82,4 +82,4 @@ export const DEFAULT_XAXIS_SORT_SERIES_DATA: SortSeriesData = {
 export const DEFAULT_DATE_PATTERN = /\d{4}-\d{2}-\d{2}/g;
 
 // When it fails to parse a date
-export const INVALID_DATE = 'Invalid Date';
+export const INVALID_DATE = 'Invalid date';

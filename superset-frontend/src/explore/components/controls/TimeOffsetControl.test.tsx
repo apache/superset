@@ -73,7 +73,7 @@ describe('TimeOffsetControls', () => {
 
   // Our Time comparison control depends on this string for supporting date deletion on date picker
   // That's why this test is linked to the TimeOffsetControl component
-  it('Dayjs should return "Invalid Date" when parsing an invalid date string', () => {
+  it('Dayjs should return "Invalid date" when parsing an invalid date string', () => {
     const invalidDate = extendedDayjs('not-a-date');
     expect(invalidDate.format()).toBe(INVALID_DATE);
   });
