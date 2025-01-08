@@ -103,6 +103,7 @@ WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 SQLLAB_CTAS_NO_LIMIT = True
+LOG_LEVEL = logging.INFO
 
 #
 # Optionally import superset_config_docker.py (which will have been included on
