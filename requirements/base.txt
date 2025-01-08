@@ -174,9 +174,13 @@ jinja2==3.1.4
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
-    # via flask-appbuilder
-jsonschema-specifications==2024.10.1
-    # via jsonschema
+    # via
+    #   flask-appbuilder
+    #   openapi-schema-validator
+jsonschema-specifications==2023.12.1
+    # via
+    #   jsonschema
+    #   openapi-schema-validator
 kombu==5.4.2
     # via celery
 korean-lunar-calendar==0.3.1
@@ -222,6 +226,8 @@ numpy==1.26.4
     #   pyarrow
 odfpy==1.4.1
     # via pandas
+openapi-schema-validator==0.6.2
+    # via -r requirements/base.in
 openpyxl==3.1.5
     # via pandas
 ordered-set==4.1.0
@@ -315,6 +321,8 @@ requests==2.32.2
     #   shillelagh
 requests-cache==1.2.0
     # via shillelagh
+rfc3339-validator==0.1.4
+    # via openapi-schema-validator
 rich==13.9.4
     # via flask-limiter
 rpds-py==0.22.3
@@ -335,6 +343,7 @@ six==1.16.0
     # via
     #   prison
     #   python-dateutil
+    #   rfc3339-validator
     #   url-normalize
     #   wtforms-json
 slack-sdk==3.33.4

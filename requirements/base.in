@@ -23,3 +23,6 @@ numexpr>=2.9.0
 # 5.0.0 has a sensitive deprecation used in other libs
 # -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31
 async_timeout>=4.0.0,<5.0.0
+
+# needed for python 3.12 support
+openapi-schema-validator>=0.6.2
