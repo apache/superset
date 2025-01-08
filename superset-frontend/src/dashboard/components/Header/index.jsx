@@ -558,12 +558,6 @@ class Header extends PureComponent {
                 visible={!editMode}
               />
             ),
-            !editMode && (
-              <MetadataBar
-                items={this.getMetadataItems()}
-                tooltipPlacement="bottom"
-              />
-            ),
           ]}
           rightPanelAdditionalItems={
             <div className="button-container">
