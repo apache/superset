@@ -18,10 +18,6 @@ apsw==3.46.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-async-timeout==4.0.3
-    # via
-    #   -c requirements/base.txt
-    #   redis
 attrs==24.2.0
     # via
     #   -c requirements/base.txt
@@ -172,11 +168,6 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
-exceptiongroup==1.2.2
-    # via
-    #   -c requirements/base.txt
-    #   cattrs
-    #   pytest
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -789,10 +780,6 @@ tabulate==0.8.10
     # via
     #   -c requirements/base.txt
     #   apache-superset
-tomli==2.2.1
-    # via
-    #   coverage
-    #   pytest
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -804,10 +791,8 @@ typing-extensions==4.12.2
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
-    #   cattrs
     #   flask-limiter
     #   limits
-    #   rich
     #   shillelagh
 tzdata==2024.2
     # via

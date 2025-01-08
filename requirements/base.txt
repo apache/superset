@@ -9,9 +9,7 @@ apispec==6.3.0
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
-    # via
-    #   -r requirements/base.in
-    #   redis
+    # via -r requirements/base.in
 attrs==24.2.0
     # via
     #   cattrs
@@ -92,8 +90,6 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
-exceptiongroup==1.2.2
-    # via cattrs
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -359,10 +355,8 @@ typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-    #   cattrs
     #   flask-limiter
     #   limits
-    #   rich
     #   shillelagh
 tzdata==2024.2
     # via
