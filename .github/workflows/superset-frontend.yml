@@ -19,7 +19,8 @@ env:
 jobs:
   frontend-build:
     runs-on: ubuntu-24.04
-    should-run: ${{ steps.check.outputs.frontend }}
+    outputs:
+      should-run: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
