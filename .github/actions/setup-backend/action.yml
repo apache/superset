@@ -44,7 +44,7 @@ runs:
         if [ "${{ inputs.install-superset }}" = "true" ]; then
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
 
-          if [ "${{ env.PYTHON_VERSION }}" = "next" ]; then
+          if [ "${{ env.PYTHON_VERSION }}" = "nextooooooo" ]; then
             # No wheel in 3.11 for numpy
             sudo apt-get -y install build-essential
           fi
