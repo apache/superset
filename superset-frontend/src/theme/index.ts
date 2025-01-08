@@ -130,6 +130,10 @@ const baseConfig: ThemeConfig = {
       handleSizeHover: 10,
       handleLineWidthHover: 2,
     },
+    Steps: {
+      margin: supersetTheme.gridUnit * 2,
+      iconSizeSM: 20,
+    },
     Switch: {
       colorPrimaryHover: supersetTheme.colors.primary.base,
       colorTextTertiary: supersetTheme.colors.grayscale.light1,
