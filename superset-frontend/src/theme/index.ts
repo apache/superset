@@ -77,6 +77,9 @@ const baseConfig: ThemeConfig = {
       fontWeightStrong: supersetTheme.typography.weights.medium,
       colorBgContainer: supersetTheme.colors.grayscale.light4,
     },
+    Divider: {
+      colorSplit: supersetTheme.colors.grayscale.light3,
+    },
     Input: {
       colorBorder: supersetTheme.colors.secondary.light3,
       colorBgContainer: supersetTheme.colors.grayscale.light5,
@@ -121,6 +124,10 @@ const baseConfig: ThemeConfig = {
       colorBgElevated: supersetTheme.colors.grayscale.light5,
       handleSizeHover: 10,
       handleLineWidthHover: 2,
+    },
+    Steps: {
+      margin: supersetTheme.gridUnit * 2,
+      iconSizeSM: 20,
     },
     Switch: {
       colorPrimaryHover: supersetTheme.colors.primary.base,

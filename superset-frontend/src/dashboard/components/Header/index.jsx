@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   styled,
@@ -258,7 +258,9 @@ const Header = () => {
         if (predefinedValue) {
           intervalMessage = t(predefinedValue[1]);
         } else {
-          intervalMessage = moment.duration(interval, 'millisecond').humanize();
+          intervalMessage = extendedDayjs
+            .duration(interval, 'millisecond')
+            .humanize();
         }
       }
 

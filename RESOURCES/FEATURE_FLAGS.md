@@ -44,7 +44,6 @@ These features are **finished** but currently being tested. They are usable, but
 - ALLOW_FULL_CSV_EXPORT
 - CACHE_IMPERSONATION
 - CONFIRM_DASHBOARD_DIFF
-- DRILL_TO_DETAIL
 - DYNAMIC_PLUGINS
 - DATE_FORMAT_IN_EMAIL_SUBJECT: [(docs)](https://superset.apache.org/docs/configuration/alerts-reports#commons)
 - ENABLE_SUPERSET_META_DB: [(docs)](https://superset.apache.org/docs/configuration/databases/#querying-across-databases)
@@ -100,5 +99,6 @@ These features flags currently default to True and **will be removed in a future
 
 - AVOID_COLORS_COLLISION
 - DASHBOARD_CROSS_FILTERS
+- DRILL_TO_DETAIL
 - ENABLE_JAVASCRIPT_CONTROLS
 - KV_STORE
