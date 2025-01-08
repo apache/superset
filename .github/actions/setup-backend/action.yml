@@ -44,21 +44,14 @@ runs:
         if [ "${{ inputs.install-superset }}" = "true" ]; then
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
 
-          if [ "${{ env.PYTHON_VERSION }}" = "nextooooooo" ]; then
-            # No wheel in 3.11 for numpy
-            sudo apt-get -y install build-essential
-          fi
-
           pip install --upgrade pip setuptools wheel uv
-          echo "Done with pip install"
 
           if [ "${{ inputs.requirements-type }}" = "dev" ]; then
             REQS=requirements/development.txt
           elif [ "${{ inputs.requirements-type }}" = "base" ]; then
             REQS=requirements/base.txt
           fi
-          uv pip install --verbose --system -r $REQS
-          echo "Done with uv pip install"
+          uv pip install --system -r $REQS
 
           uv pip install --system -e .
         fi
