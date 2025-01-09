@@ -97,6 +97,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, enableSingleExactValue ? min : max],
   );
+
   const minIndex = 0;
   const maxIndex = 1;
   const minMax = value ?? [min, max];
@@ -121,8 +122,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
-      setValue(value);
       const { lower, upper } = getBounds(value);
+      setValue(value);
 
       setDataMask({
         extraFormData: getRangeExtraFormData(col, lower, upper),
@@ -135,20 +136,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     [col, getBounds, setDataMask],
   );
 
-  const handleRangeChange = (newValue: number, index: 0 | 1) => {
-    if (index === minIndex) {
-      setValue([Math.min(newValue, minMax[maxIndex]), minMax[maxIndex]]);
-      handleAfterChange([
-        Math.min(newValue, minMax[maxIndex]),
-        minMax[maxIndex],
-      ]);
-    } else if (index === maxIndex) {
-      setValue([minMax[minIndex], Math.max(newValue, minMax[minIndex])]);
-      handleAfterChange([
-        minMax[minIndex],
-        Math.max(newValue, minMax[minIndex]),
-      ]);
-    }
+  const handleChange = (newValue: number, index: 0 | 1) => {
+    const updatedValue: [number, number] = [...value];
+    updatedValue[index] = newValue;
+    handleAfterChange(updatedValue);
   };
 
   useEffect(() => {
@@ -240,7 +231,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               value={minMax[minIndex]}
               min={min}
               max={max}
-              onChange={value => handleRangeChange(Number(value), minIndex)}
+              onChange={value => handleChange(Number(value), minIndex)}
               placeholder="From"
               data-test="native-filter-from-input"
             />
@@ -249,7 +240,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               value={minMax[maxIndex]}
               min={min}
               max={max}
-              onChange={value => handleRangeChange(Number(value), maxIndex)}
+              onChange={value => handleChange(Number(value), maxIndex)}
               placeholder="To"
               data-test="native-filter-to-input"
             />

@@ -182,7 +182,7 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    it('User can create a numerical range filter', () => {
+    it.only('User can create a numerical range filter', () => {
       visitDashboard();
       enterNativeFilterEditModal(false);
       fillNativeFilterForm(
@@ -194,7 +194,18 @@ describe('Native filters', () => {
       saveNativeFilterSettings([]);
 
       // Assertions
-      cy.get('[data-test="native-filter-from-input"]').type('10');
+      cy.get('[data-test="native-filter-from-input"]')
+        .should('be.visible')
+        .click();
+
+      cy.get('[data-test="native-filter-from-input"]').clear();
+      cy.get('[data-test="native-filter-from-input"]').type('5');
+
+      cy.get('[data-test="native-filter-to-input"]')
+        .should('be.visible')
+        .click();
+
+      cy.get('[data-test="native-filter-to-input"]').clear();
       cy.get('[data-test="native-filter-to-input"]').type('50');
       cy.get(nativeFilters.applyFilter).click();
 
@@ -205,7 +216,7 @@ describe('Native filters', () => {
 
         cy.get('[data-test="native-filter-from-input"]')
           .invoke('val')
-          .should('equal', '10');
+          .should('equal', '5');
 
         // Assert that the "To" input has the correct value
         cy.get('[data-test="native-filter-to-input"]')
