@@ -46,7 +46,7 @@ const { id: defaultChartId, form_data: defaultFormData } =
 const { slice_name: chartName } = defaultFormData;
 const unsupportedChartFormData = {
   ...defaultFormData,
-  viz_type: VizType.DistBar,
+  viz_type: VizType.Sankey,
 };
 
 const noDimensionsFormData = {

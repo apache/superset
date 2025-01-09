@@ -21,6 +21,7 @@ import { interceptGet as interceptDashboardGet } from 'cypress/e2e/dashboard/uti
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 import {
   interceptFiltering,
+  interceptV1ChartData,
   saveChartToDashboard,
   visitSampleChartFromList,
 } from './utils';
@@ -124,14 +125,14 @@ describe('Cross-referenced dashboards', () => {
 
 describe('No Results', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    interceptV1ChartData();
   });
 
   it('No results message shows up', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       adhoc_filters: [
         {
           expressionType: 'SIMPLE',
@@ -145,7 +146,7 @@ describe('No Results', () => {
     };
 
     cy.visitChartByParams(formData);
-    cy.wait('@getJson').its('response.statusCode').should('eq', 200);
+    cy.wait('@v1Data').its('response.statusCode').should('eq', 200);
     cy.get('div.chart-container').contains(
       'No results were returned for this query',
     );

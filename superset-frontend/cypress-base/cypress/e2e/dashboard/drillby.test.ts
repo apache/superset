@@ -524,8 +524,8 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it('Bar Chart V2', () => {
-      testEchart('echarts_timeseries_bar', 'Bar Chart V2', [
+    it('Bar Chart', () => {
+      testEchart('echarts_timeseries_bar', 'Bar Chart', [
         [70, 94],
         [362, 68],
       ]);

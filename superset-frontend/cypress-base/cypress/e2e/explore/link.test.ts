@@ -30,7 +30,7 @@ const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
 
 describe('Test explore links', () => {
   beforeEach(() => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Open and close view query modal', () => {
