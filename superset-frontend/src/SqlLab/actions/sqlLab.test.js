@@ -30,6 +30,9 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { SupersetClient } from '@superset-ui/core';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ToastType } from '../../components/MessageToasts/types';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
@@ -450,6 +453,112 @@ describe('async actions', () => {
       request(store.dispatch, store.getState);
 
       expect(store.getActions()).toEqual(expectedActions);
+    });
+  });
+
+  describe('popSavedQuery', () => {
+    const supersetClientGetSpy = jest.spyOn(SupersetClient, 'get');
+    const store = mockStore({});
+
+    const mockSavedQueryApiResponse = {
+      catalog: null,
+      changed_by: {
+        first_name: 'Superset',
+        id: 1,
+        last_name: 'Admin',
+      },
+      changed_on: '2024-12-28T20:06:14.246743',
+      changed_on_delta_humanized: '8 days ago',
+      created_by: {
+        first_name: 'Superset',
+        id: 1,
+        last_name: 'Admin',
+      },
+      database: {
+        database_name: 'examples',
+        id: 2,
+      },
+      description: '',
+      id: 1,
+      label: 'Query 1',
+      schema: 'public',
+      sql: 'SELECT * FROM channels',
+      sql_tables: [
+        {
+          catalog: null,
+          schema: null,
+          table: 'channels',
+        },
+      ],
+      template_parameters: null,
+    };
+
+    const makeRequest = id => {
+      const request = actions.popSavedQuery(id);
+      const { dispatch } = store;
+
+      return request(dispatch, () => initialState);
+    };
+
+    beforeEach(() => {
+      supersetClientGetSpy.mockClear();
+      store.clearActions();
+    });
+
+    afterAll(() => {
+      supersetClientGetSpy.mockRestore();
+    });
+
+    it('calls API endpint with correct params', async () => {
+      supersetClientGetSpy.mockResolvedValue({
+        json: { result: mockSavedQueryApiResponse },
+      });
+
+      await makeRequest(123);
+
+      expect(supersetClientGetSpy).toHaveBeenCalledWith({
+        endpoint: '/api/v1/saved_query/123',
+      });
+    });
+
+    it('dispatches addQueryEditor with correct params on successful API call', async () => {
+      supersetClientGetSpy.mockResolvedValue({
+        json: { result: mockSavedQueryApiResponse },
+      });
+
+      const expectedParams = {
+        name: 'Query 1',
+        dbId: 2,
+        catalog: null,
+        schema: 'public',
+        sql: 'SELECT * FROM channels',
+        templateParams: null,
+        remoteId: 1,
+      };
+
+      await makeRequest(1);
+
+      const addQueryEditorAction = store
+        .getActions()
+        .find(action => action.type === actions.ADD_QUERY_EDITOR);
+
+      expect(addQueryEditorAction).toBeTruthy();
+      expect(addQueryEditorAction?.queryEditor).toEqual(
+        expect.objectContaining(expectedParams),
+      );
+    });
+
+    it('should dispatch addDangerToast on API error', async () => {
+      supersetClientGetSpy.mockResolvedValue(new Error());
+
+      await makeRequest(1);
+
+      const addToastAction = store
+        .getActions()
+        .find(action => action.type === ADD_TOAST);
+
+      expect(addToastAction).toBeTruthy();
+      expect(addToastAction?.payload?.toastType).toBe(ToastType.Danger);
     });
   });
 
