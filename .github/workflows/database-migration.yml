@@ -125,12 +125,13 @@ jobs:
     - name: Generate backup dump file on destiny VM
       run: |
         gcloud compute ssh ${{ env.GCE_DESTINY_VM_NAME }} --zone ${{ env.GCE_DESTINY_ZONE }} --project ${{ env.GCE_DESTINY_PROJECT }} --command "
-          cd \${{ env.DESTINY_DIRECTORY_PATH}}/docker &&
+          cd \${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker &&
           source .env &&
           export PGPASSWORD=\$DATABASE_PASSWORD &&
           if [ \"\$DATABASE_HOST\" = \"db\" ]; then
             DATABASE_HOST=localhost
           fi &&
+          cd docker-entrypoint-initdb.d &&
           pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > backup_database.dump
         "
 
