@@ -195,7 +195,7 @@ function Echart(
             },
             dataView: {
               title: t('Data View'),
-              lang: [t('Data View'), t('Close'), 'Refresh'],
+              lang: [t('Data View'), t('Close'), t('Refresh')],
             },
             dataZoom: {
               title: {
@@ -216,7 +216,7 @@ function Echart(
             },
             saveAsImage: {
               title: t('Save as Image'),
-              lang: ['Right Click to Save Image'],
+              lang: [t('Right Click to Save Image')],
             },
           },
           series: {
