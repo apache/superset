@@ -675,8 +675,6 @@ export default function transformProps(
     focusedSeries = seriesName;
   };
 
-  console.log(echartOptions)
-  
   return {
     echartOptions,
     emitCrossFilters,
