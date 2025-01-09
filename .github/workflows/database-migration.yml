@@ -131,7 +131,7 @@ jobs:
           if [ \"\$DATABASE_HOST\" = \"db\" ]; then
             DATABASE_HOST=localhost
           fi &&
-          cd docker-entrypoint-initdb.d &&
+          cd backups &&
           pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > backup_database.dump
         "
 
