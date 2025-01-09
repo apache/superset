@@ -1070,3 +1070,46 @@ def test_is_mutating(engine: str) -> None:
         "with source as ( select 1 as one ) select * from source",
         engine=engine,
     ).is_mutating()
+
+
+def test_optimize() -> None:
+    """
+    Test that the `optimize` method works as expected.
+
+    The SQL optimization only works with engines that have a corresponding dialect.
+    """
+    sql = """
+SELECT anon_1.a, anon_1.b
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c
+FROM some_table) AS anon_1
+WHERE anon_1.a > 1 AND anon_1.b = 2
+    """
+
+    optimized = """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+
+    not_optimized = """
+SELECT anon_1.a,
+       anon_1.b
+FROM
+  (SELECT some_table.a AS a,
+          some_table.b AS b,
+          some_table.c AS c
+   FROM some_table) AS anon_1
+WHERE anon_1.a > 1
+  AND anon_1.b = 2"""
+
+    assert SQLStatement(sql, "sqlite").optimize().format() == optimized
+    assert SQLStatement(sql, "firebolt").optimize().format() == not_optimized
