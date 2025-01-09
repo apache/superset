@@ -19,6 +19,7 @@
 
 import { type ThemeConfig } from 'antd-v5';
 import { theme as supersetTheme } from 'src/preamble';
+import { mix } from 'polished';
 import { lightAlgorithm } from './light';
 
 export enum ThemeType {
@@ -71,6 +72,45 @@ const baseConfig: ThemeConfig = {
     },
     Badge: {
       paddingXS: supersetTheme.gridUnit * 2,
+    },
+    Button: {
+      defaultBg: supersetTheme.colors.primary.light4,
+      defaultHoverBg: mix(
+        0.1,
+        supersetTheme.colors.primary.base,
+        supersetTheme.colors.primary.light4,
+      ),
+      defaultActiveBg: mix(
+        0.25,
+        supersetTheme.colors.primary.base,
+        supersetTheme.colors.primary.light4,
+      ),
+      defaultColor: supersetTheme.colors.primary.dark1,
+      defaultHoverColor: supersetTheme.colors.primary.dark1,
+      defaultBorderColor: 'transparent',
+      defaultHoverBorderColor: 'transparent',
+      colorPrimaryHover: supersetTheme.colors.primary.dark1,
+      colorPrimaryActive: mix(
+        0.2,
+        supersetTheme.colors.grayscale.dark2,
+        supersetTheme.colors.primary.dark1,
+      ),
+      primaryColor: supersetTheme.colors.grayscale.light5,
+      colorPrimaryTextHover: supersetTheme.colors.grayscale.light5,
+      colorError: supersetTheme.colors.error.base,
+      colorErrorHover: mix(
+        0.1,
+        supersetTheme.colors.grayscale.light5,
+        supersetTheme.colors.error.base,
+      ),
+      colorErrorBg: mix(
+        0.2,
+        supersetTheme.colors.grayscale.dark2,
+        supersetTheme.colors.error.base,
+      ),
+      dangerColor: supersetTheme.colors.grayscale.light5,
+      colorLinkHover: supersetTheme.colors.primary.base,
+      linkHoverBg: 'transparent',
     },
     Card: {
       paddingLG: supersetTheme.gridUnit * 6,
