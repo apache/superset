@@ -19,6 +19,7 @@
 // A safe alternative to JS's eval
 import vm, { Context, RunningScriptOptions } from 'vm';
 import _ from 'underscore';
+/* eslint-ignore-next-line no-restricted-syntax*/
 import * as d3array from 'd3-array';
 import * as colors from './colors';
 
