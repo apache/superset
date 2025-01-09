@@ -70,6 +70,7 @@
     "timezone-mock": "1.3.6"
   },
   "peerDependencies": {
+    "antd-v5": "npm:antd@^5.18.0",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",

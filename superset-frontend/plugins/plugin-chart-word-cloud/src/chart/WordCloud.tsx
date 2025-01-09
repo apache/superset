@@ -26,7 +26,7 @@ import {
   Encoder,
 } from 'encodable';
 import {
-  SupersetThemeProps,
+  SupersetTheme,
   withTheme,
   seed,
   CategoricalColorNamespace,
@@ -80,8 +80,7 @@ const defaultProps: Required<WordCloudVisualProps> = {
 };
 
 type FullWordCloudProps = WordCloudProps &
-  typeof defaultProps &
-  SupersetThemeProps;
+  typeof defaultProps & { theme: SupersetTheme };
 
 const SCALE_FACTOR_STEP = 0.5;
 const MAX_SCALE_FACTOR = 3;
@@ -196,7 +195,7 @@ class WordCloud extends PureComponent<FullWordCloudProps, WordCloudState> {
     cloudLayout()
       .size([width * scaleFactor, height * scaleFactor])
       // clone the data because cloudLayout mutates input
-      .words(data.map(d => ({ ...d })))
+      .words(data.map((d: Word) => ({ ...d })))
       .padding(5)
       .rotate(ROTATION[rotation] || ROTATION.flat)
       .text((d: PlainObject) => encoder.channels.text.getValueFromDatum(d))

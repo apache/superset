@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,31 +17,17 @@
  * under the License.
  */
 
-import { supersetTheme } from '@superset-ui/core';
+/*************************************************************************/
+/* USAGE NOTES : Add font all licenses to LICENSE.text                   */
+/*************************************************************************/
 
-export default {
-  title: 'Core Packages/@superset-ui-style',
-};
+/******************************* Inter UI ********************************/
+@import '~@fontsource/inter/200.css';
+@import '~@fontsource/inter/400.css';
+@import '~@fontsource/inter/500.css';
+@import '~@fontsource/inter/600.css';
 
-export const ThemeColors = () => {
-  const { colors } = supersetTheme;
-  return Object.keys(colors).map(collection => (
-    <div>
-      <h2>{collection}</h2>
-      <table style={{ width: '300px' }}>
-        {Object.keys(colors[collection]).map(k => {
-          const hex = colors[collection][k];
-          return (
-            <tr>
-              <td>{k}</td>
-              <td>
-                <code>{hex}</code>
-              </td>
-              <td style={{ width: '150px', backgroundColor: hex }} />
-            </tr>
-          );
-        })}
-      </table>
-    </div>
-  ));
-};
+/******************************* Fira Code ********************************/
+@import '~@fontsource/fira-code/400.css';
+@import '~@fontsource/fira-code/500.css';
+@import '~@fontsource/fira-code/600.css';

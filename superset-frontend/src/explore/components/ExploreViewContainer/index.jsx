@@ -97,7 +97,7 @@ const propTypes = {
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
-    background: ${theme.colors.grayscale.light5};
+    background: ${theme.colors.lightest};
     text-align: left;
     position: relative;
     width: 100%;
@@ -114,7 +114,6 @@ const ExplorePanelContainer = styled.div`
       max-height: 100%;
     }
     .data-source-selection {
-      background-color: ${theme.colors.grayscale.light5};
       padding: ${theme.gridUnit * 2}px 0;
       border-right: 1px solid ${theme.colors.grayscale.light2};
     }
@@ -150,7 +149,7 @@ const ExplorePanelContainer = styled.div`
     }
     .sidebar {
       height: 100%;
-      background-color: ${theme.colors.grayscale.light4};
+      background-color: ${theme.colors.lightest};
       padding: ${theme.gridUnit * 2}px;
       width: ${theme.gridUnit * 8}px;
     }

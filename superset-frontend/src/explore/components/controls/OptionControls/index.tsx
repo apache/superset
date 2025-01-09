@@ -42,9 +42,12 @@ export const OptionControlContainer = styled.div<{
   width: 100%;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   height: ${({ theme }) => theme.gridUnit * 6}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light3};
+  background-color: ${({ theme }) => theme.colors.grayscale.light4};
   border-radius: 3px;
   cursor: ${({ withCaret }) => (withCaret ? 'pointer' : 'default')};
+  :hover {
+    background-color: ${({ theme }) => theme.colors.grayscale.light3};
+  }
 `;
 export const Label = styled.div`
   ${({ theme }) => `

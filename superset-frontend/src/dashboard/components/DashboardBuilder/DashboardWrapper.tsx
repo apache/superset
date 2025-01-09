@@ -59,7 +59,7 @@ const StyledDiv = styled.div`
     /* A row within a column has inset hover menu */
     .dragdroppable-column .dragdroppable-row .hover-menu--left {
       left: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
+      background-color: ${theme.antd.colorBgBase};
       border: 1px solid ${theme.colors.grayscale.light2};
     }
 
@@ -71,7 +71,7 @@ const StyledDiv = styled.div`
     .dragdroppable-column .dragdroppable-column .hover-menu--top,
     .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
       top: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
+      background-color: ${theme.antd.colorBgBase};
       border: 1px solid ${theme.colors.grayscale.light2};
     }
 

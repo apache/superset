@@ -1,0 +1,41 @@
+0 silly argv {
+0 silly argv   _: [ 'exec' ],
+0 silly argv   stream: true,
+0 silly argv   concurrency: 10,
+0 silly argv   scope: '@superset-ui/!(demo|generator-superset)\n',
+0 silly argv   args: [
+0 silly argv     '', '', '', '',
+0 silly argv     '', '', ''
+0 silly argv   ],
+0 silly argv   '--': [
+0 silly argv     'babel',
+0 silly argv     '--config-file=../../babel.config.js',
+0 silly argv     'src',
+0 silly argv     '--extensions',
+0 silly argv     '".ts,.tsx,.js,.jsx"',
+0 silly argv     '--copy-files',
+0 silly argv     '--out-dir',
+0 silly argv     'lib'
+0 silly argv   ],
+0 silly argv   lernaVersion: '8.1.8',
+0 silly argv   '$0': 'node_modules/.bin/lerna',
+0 silly argv   cmd: ''
+0 silly argv }
+1 notice cli v8.1.8
+2 verbose packageConfigs Explicit "packages" configuration found in lerna.json. Resolving packages using the configured glob(s): ["packages/*","plugins/*","src/setup/*"]
+3 verbose rootPath /Users/max/code/superset/superset-frontend
+4 error Failed to process project graph. Run "nx reset" to fix this. Please report the issue if you keep seeing it.
+4 error   MultipleProjectsWithSameNameError: The following projects are defined in multiple locations:
+4 error   - storybook-static:
+4 error     - packages/superset-ui-demo/storybook-static
+4 error     - storybook-static
+4 error
+4 error   To fix this, set a unique name for each project in a project.json inside the project's root. If the project does not currently have a project.json, you can create one that contains only a name.
+4 error       at validateAndNormalizeProjectRootMap (/Users/max/code/superset/superset-frontend/node_modules/nx/src/project-graph/utils/project-configuration-utils.js:436:15)
+4 error       at mergeCreateNodesResults (/Users/max/code/superset/superset-frontend/node_modules/nx/src/project-graph/utils/project-configuration-utils.js:322:9)
+4 error       at /Users/max/code/superset/superset-frontend/node_modules/nx/src/project-graph/utils/project-configuration-utils.js:267:85
+4 error       at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+4 error       at async buildProjectGraphAndSourceMapsWithoutDaemon (/Users/max/code/superset/superset-frontend/node_modules/nx/src/project-graph/project-graph.js:80:31)
+4 error       at async createProjectGraphAndSourceMapsAsync (/Users/max/code/superset/superset-frontend/node_modules/nx/src/project-graph/project-graph.js:208:25)
+4 error       at async createProjectGraphAsync (/Users/max/code/superset/superset-frontend/node_modules/nx/src/project-graph/project-graph.js:198:39)
+4 error       at async detectProjects (/Users/max/code/superset/superset-frontend/node_modules/lerna/dist/index.js:2999:25)

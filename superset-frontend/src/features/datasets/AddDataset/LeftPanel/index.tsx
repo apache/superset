@@ -20,7 +20,7 @@ import { useEffect, SetStateAction, Dispatch, useCallback } from 'react';
 import { styled, t } from '@superset-ui/core';
 import TableSelector, { TableOption } from 'src/components/TableSelector';
 import { DatabaseObject } from 'src/components/DatabaseSelector';
-import { emptyStateComponent } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { LocalStorageKeys, getItem } from 'src/utils/localStorageHelpers';
 import {
@@ -184,7 +184,7 @@ export default function LeftPanel({
       <TableSelector
         database={dataset?.db}
         handleError={addDangerToast}
-        emptyState={emptyStateComponent(false)}
+        emptyState={<EmptyState />}
         onDbChange={setDatabase}
         onCatalogChange={setCatalog}
         onSchemaChange={setSchema}

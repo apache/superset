@@ -564,6 +564,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
+    # Adds a switch to the navbar to enable/disable the dark theme
+    # This is used for development to expose what is dynamic (css-in-js) vs
+    # what is managed by `.less` files.
+    "DARK_THEME_SWITCH": True,
 }
 
 # ------------------------------

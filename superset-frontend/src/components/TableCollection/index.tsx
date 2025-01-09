@@ -36,9 +36,10 @@ interface TableCollectionProps {
 
 export const Table = styled.table`
   ${({ theme }) => `
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.antd.colorBgBase};
     border-collapse: separate;
     border-radius: ${theme.borderRadius}px;
+    color: ${theme.antd.colorTextBase};
 
     thead > tr > th {
       border: 0;
@@ -50,7 +51,7 @@ export const Table = styled.table`
       }
     }
     th {
-      background: ${theme.colors.grayscale.light5};
+      background-color: ${theme.antd.colorBgBase};
       position: sticky;
       top: 0;
 

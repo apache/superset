@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ConfigProvider } from 'antd';
 import { styled, t } from '@superset-ui/core';
 import ReactCronPicker, { Locale, CronProps } from 'react-js-cron';
 
@@ -103,11 +102,7 @@ export const LOCALE: Locale = {
 };
 
 export const CronPicker = styled((props: CronProps) => (
-  <ConfigProvider
-    getPopupContainer={trigger => trigger.parentElement as HTMLElement}
-  >
-    <ReactCronPicker locale={LOCALE} {...props} />
-  </ConfigProvider>
+  <ReactCronPicker locale={LOCALE} {...props} />
 ))`
   ${({ theme }) => `
 

@@ -78,7 +78,6 @@ const defaultProps = {
 
 const StyledTabsContainer = styled.div`
   width: 100%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
 
   .dashboard-component-tabs-content {
     min-height: ${({ theme }) => theme.gridUnit * 12}px;
@@ -91,6 +90,7 @@ const StyledTabsContainer = styled.div`
 
     .ant-tabs-nav-wrap {
       min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+      background-color: ${({ theme }) => theme.antd.colorBgBase};
     }
 
     .ant-tabs-content-holder {

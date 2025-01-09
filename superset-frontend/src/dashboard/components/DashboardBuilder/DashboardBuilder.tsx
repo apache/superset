@@ -64,7 +64,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
@@ -153,7 +153,7 @@ const DashboardContentWrapper = styled.div`
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
-        color: ${theme.colors.grayscale.light5};
+        color: ${theme.antd.colorBgBase};
       }
 
       .background--transparent {
@@ -161,7 +161,7 @@ const DashboardContentWrapper = styled.div`
       }
 
       .background--white {
-        background-color: ${theme.colors.grayscale.light5};
+        background-color: ${theme.antd.colorBgBase};
       }
     }
     &.dashboard--editing {
@@ -324,7 +324,7 @@ const StyledDashboardContent = styled.div<{
     .dashboard-component-chart-holder {
       width: 100%;
       height: 100%;
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.antd.colorBgBase};
       position: relative;
       padding: ${theme.gridUnit * 4}px;
       overflow-y: visible;
@@ -666,7 +666,7 @@ const DashboardBuilder = () => {
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
-            <EmptyStateBig
+            <EmptyState
               title={t('There are no charts added to this dashboard')}
               description={
                 canEdit &&
@@ -674,6 +674,7 @@ const DashboardBuilder = () => {
                   'Go to the edit mode to configure the dashboard and add charts',
                 )
               }
+              size="large"
               buttonText={canEdit && t('Edit the dashboard')}
               buttonAction={() => dispatch(setEditMode(true))}
               image="dashboard.svg"
