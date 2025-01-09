@@ -73,6 +73,6 @@ def downgrade():
         session.commit()
     except Exception as e:
         session.rollback()
-        raise Exception(f"Error upgrading legacy viz types: {e}") from e
+        raise Exception(f"Error downgrading legacy viz types: {e}") from e
     finally:
         session.close()
