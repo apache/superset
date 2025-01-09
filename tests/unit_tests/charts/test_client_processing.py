@@ -407,6 +407,107 @@ def test_pivot_df_single_row_two_metrics():
     )
 
 
+def test_pivot_df_single_row_two_metrics_multiindex():
+    """
+    Pivot table when a single column and 2 metrics are selected with multi-index.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "gender": {0: "girl", 1: "boy"},
+            "age": {0: 10, 1: 12},
+            "SUM(num)": {0: 118065, 1: 47123},
+            "MAX(num)": {0: 2588, 1: 1280},
+        }
+    )
+    df.set_index(["gender", "age"], inplace=True)
+
+    assert (
+        df.to_markdown()
+        == """
+|              |   SUM(num) |   MAX(num) |
+|:-------------|-----------:|-----------:|
+| ('girl', 10) |     118065 |       2588 |
+| ('boy', 12)  |      47123 |       1280 |
+        """.strip()
+    )
+
+    pivoted = pivot_df(
+        df,
+        rows=["gender", "age"],
+        columns=[],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=False,
+        show_columns_total=False,
+        apply_metrics_on_rows=False,
+    )
+
+    assert (
+        pivoted.to_markdown()
+        == """
+|              |   ('SUM(num)',) |   ('MAX(num)',) |
+|:-------------|----------------:|----------------:|
+| ('boy', 12)  |           47123 |            1280 |
+| ('girl', 10) |          118065 |            2588 |
+        """.strip()
+    )
+
+
+def test_pivot_df_single_row_two_metrics_multiindex_error():
+    """
+    Pivot table when a single column and 2 metrics are selected with multi-index,
+    designed to trigger a KeyError.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "gender": {0: "girl", 1: "boy", 2: "girl"},
+            "age": {0: 10, 1: 12, 2: 11},
+            "SUM(num)": {0: 118065, 1: 47123, 2: 59000},
+            "MAX(num)": {0: 2588, 1: 1280, 2: 1500},
+        }
+    )
+    df.set_index(["gender", "age"], inplace=True)
+
+    df = df.drop(index="gender")
+
+    assert (
+        df.to_markdown()
+        == """
+|              |   SUM(num) |   MAX(num) |
+|:-------------|-----------:|-----------:|
+| ('girl', 10) |     118065 |       2588 |
+| ('boy', 12)  |      47123 |       1280 |
+| ('girl', 11) |      59000 |       1500 |
+        """.strip()
+    )
+
+    pivoted = pivot_df(
+        df,
+        rows=["gender", "age"],
+        columns=[],
+        metrics=["SUM(num)", "MAX(num)"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=True,
+        show_columns_total=False,
+        apply_metrics_on_rows=False,
+    )
+
+    assert (
+        pivoted.to_markdown()
+        == """
+|              |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+|:-------------|----------------:|----------------:|-------------------:|
+| ('boy', 12)  |           47123 |            1280 |              48403 |
+| ('girl', 10) |          118065 |            2588 |             120653 |
+| ('girl', 11) |           59000 |            1500 |              60500 |
+        """.strip()
+    )
+
+
 def test_pivot_df_single_row_null_values():
     """
     Pivot table when a single column and 2 metrics are selected.
