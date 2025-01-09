@@ -33,7 +33,7 @@ export default eyesPlugin(
     video: false,
     viewportWidth: 1280,
     viewportHeight: 1024,
-    projectId: 'ud5x2f',
+    projectId: 'j7nqyu',
     retries: {
       runMode: 2,
       openMode: 0,
@@ -68,7 +68,7 @@ export default eyesPlugin(
         // eslint-disable-next-line global-require,import/extensions
         return config;
       },
-      baseUrl: 'http://localhost:8088',
+      baseUrl: 'http://localhost:8089',
       excludeSpecPattern: [],
       specPattern: [
         'cypress/e2e/**/*.{js,jsx,ts,tsx}',

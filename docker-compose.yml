@@ -50,7 +50,7 @@ services:
     container_name: superset_nginx
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "8081:80"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
@@ -91,7 +91,7 @@ services:
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
     ports:
-      - 8088:8088
+      - 8089:8088
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
