@@ -36,7 +36,7 @@ const PublishedLabel: React.FC<PublishedLabelProps> = ({
   ) : (
     <Icons.Minus iconSize="s" />
   );
-  const labelType = isPublished ? 'success' : 'alert';
+  const labelType = isPublished ? 'primary' : 'secondary';
 
   return (
     <Label type={labelType} icon={icon} onClick={onClick}>
