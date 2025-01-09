@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Proportion of Revenue by Product Line
-viz_type: area
+viz_type: echarts_area
 params:
   adhoc_filters: []
   annotation_layers: []
@@ -26,29 +26,29 @@ params:
   datasource: 23__table
   granularity_sqla: order_date
   groupby:
-  - product_line
+    - product_line
   label_colors: {}
   line_interpolation: linear
   metrics:
-  - aggregate: SUM
-    column:
-      column_name: sales
-      description: null
-      expression: null
-      filterable: true
-      groupby: true
-      id: 917
-      is_dttm: false
-      optionName: _col_Sales
-      python_date_format: null
-      type: DOUBLE PRECISION
-      verbose_name: null
-    expressionType: SIMPLE
-    hasCustomLabel: false
-    isNew: false
-    label: (Sales)
-    optionName: metric_3is69ofceho_6d0ezok7ry6
-    sqlExpression: null
+    - aggregate: SUM
+      column:
+        column_name: sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 917
+        is_dttm: false
+        optionName: _col_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: false
+      isNew: false
+      label: (Sales)
+      optionName: metric_3is69ofceho_6d0ezok7ry6
+      sqlExpression: null
   order_desc: true
   queryFields:
     groupby: groupby
@@ -60,14 +60,14 @@ params:
   show_legend: true
   stacked_style: stack
   time_grain_sqla: P1M
-  time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
+  time_range: "2003-01-01T00:00:00 : 2005-06-01T00:00:00"
   url_params: {}
-  viz_type: area
+  viz_type: echarts_area
   x_axis_format: smart_date
   x_ticks_layout: auto
   y_axis_bounds:
-  - null
-  - null
+    - null
+    - null
   y_axis_format: SMART_NUMBER
 cache_timeout: null
 uuid: 08aff161-f60c-4cb3-a225-dc9b1140d2e3

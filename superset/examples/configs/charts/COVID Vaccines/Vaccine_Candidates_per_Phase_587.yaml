@@ -15,23 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Vaccine Candidates per Phase
-viz_type: dist_bar
+viz_type: echarts_timeseries_bar
 params:
+  x_axis: clinical_stage
   adhoc_filters: []
   bottom_margin: auto
   color_scheme: SUPERSET_DEFAULT
   columns: []
   datasource: 14__table
-  groupby:
-  - clinical_stage
   label_colors: {}
   metrics:
-  - count
+    - count
   row_limit: 10000
   show_legend: false
   time_range: No filter
   url_params: {}
-  viz_type: dist_bar
+  viz_type: echarts_timeseries_bar
   x_ticks_layout: auto
   y_axis_format: SMART_NUMBER
 cache_timeout: null
