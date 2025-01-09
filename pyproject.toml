@@ -61,6 +61,8 @@ dependencies = [
     "holidays>=0.25, <0.26",
     "humanize",
     "importlib_metadata",
+    # 3.1.4 has a known security vulnerability
+    "jinja2>=3.1.5",
     "isodate",
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
