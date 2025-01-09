@@ -27,7 +27,7 @@ import {
   Ref,
 } from 'react';
 
-import { styled } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import { use, init, EChartsType } from 'echarts/core';
 import {
   SankeyChart,
@@ -126,7 +126,163 @@ function Echart(
   useEffect(() => {
     if (!divRef.current) return;
     if (!chartRef.current) {
-      chartRef.current = init(divRef.current);
+      chartRef.current = init(divRef.current, null, {
+        locale: {
+          time: {
+            month: [
+              t('January'),
+              t('February'),
+              t('March'),
+              t('April'),
+              t('May'),
+              t('June'),
+              t('July'),
+              t('August'),
+              t('September'),
+              t('October'),
+              t('November'),
+              t('December'),
+            ],
+            monthAbbr: [
+              t('Jan'),
+              t('Feb'),
+              t('Mar'),
+              t('Apr'),
+              t('May'),
+              t('Jun'),
+              t('Jul'),
+              t('Aug'),
+              t('Sep'),
+              t('Oct'),
+              t('Nov'),
+              t('Dec'),
+            ],
+            dayOfWeek: [
+              t('Sunday'),
+              t('Monday'),
+              t('Tuesday'),
+              t('Wednesday'),
+              t('Thursday'),
+              t('Friday'),
+              t('Saturday'),
+            ],
+            dayOfWeekAbbr: [
+              t('Sun'),
+              t('Mon'),
+              t('Tue'),
+              t('Wed'),
+              t('Thu'),
+              t('Fri'),
+              t('Sat'),
+            ],
+          },
+          legend: {
+            selector: {
+              all: t('All'),
+              inverse: t('Inv'),
+            },
+          },
+          toolbox: {
+            brush: {
+              title: {
+                rect: t('Box Select'),
+                polygon: t('Lasso Select'),
+                lineX: t('Horizontally Select'),
+                lineY: t('Vertically Select'),
+                keep: t('Keep Selections'),
+                clear: t('Clear Selections'),
+              },
+            },
+            dataView: {
+              title: t('Data View'),
+              lang: [t('Data View'), t('Close'), 'Refresh'],
+            },
+            dataZoom: {
+              title: {
+                zoom: t('Zoom'),
+                back: t('Zoom Reset'),
+              },
+            },
+            magicType: {
+              title: {
+                line: t('Switch to Line Chart'),
+                bar: t('Switch to Bar Chart'),
+                stack: t('Stack'),
+                tiled: t('Tile'),
+              },
+            },
+            restore: {
+              title: t('Restore'),
+            },
+            saveAsImage: {
+              title: t('Save as Image'),
+              lang: ['Right Click to Save Image'],
+            },
+          },
+          series: {
+            typeNames: {
+              pie: t('Pie chart'),
+              bar: t('Bar chart'),
+              line: t('Line chart'),
+              scatter: t('Scatter plot'),
+              effectScatter: t('Ripple scatter plot'),
+              radar: t('Radar chart'),
+              tree: t('Tree'),
+              treemap: t('Treemap'),
+              boxplot: t('Boxplot'),
+              candlestick: t('Candlestick'),
+              k: t('K line chart'),
+              heatmap: t('Heat map'),
+              map: t('Map'),
+              parallel: t('Parallel coordinate map'),
+              lines: t('Line graph'),
+              graph: t('Relationship graph'),
+              sankey: t('Sankey diagram'),
+              funnel: t('Funnel chart'),
+              gauge: t('Gauge'),
+              pictorialBar: t('Pictorial bar'),
+              themeRiver: t('Theme River Map'),
+              sunburst: t('Sunburst'),
+              custom: t('Custom chart'),
+              chart: t('Chart'),
+            },
+          },
+          aria: {
+            general: {
+              withTitle: t('This is a chart about "{title}"'),
+              withoutTitle: t('This is a chart'),
+            },
+            series: {
+              single: {
+                prefix: '',
+                withName: t(' with type {seriesType} named {seriesName}.'),
+                withoutName: t(' with type {seriesType}.'),
+              },
+              multiple: {
+                prefix: t('. It consists of {seriesCount} series count.'),
+                withName: t(
+                  ' The {seriesId} series is a {seriesType} representing {seriesName}.',
+                ),
+                withoutName: t(' The {seriesId} series is a {seriesType}.'),
+                separator: {
+                  middle: '',
+                  end: '',
+                },
+              },
+            },
+            data: {
+              allData: t('The data is as follows: '),
+              partialData: t('The first {displayCnt} items are: '),
+              withName: t('the data for {name} is {value}'),
+              withoutName: '{value}',
+              separator: {
+                middle: ', ',
+                end: '. ',
+              },
+            },
+          },
+        },
+      });
     }
 
     Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
