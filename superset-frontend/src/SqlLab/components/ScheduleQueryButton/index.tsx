@@ -47,11 +47,10 @@ const getJSONSchema = () => {
     Object.entries(jsonSchema.properties).forEach(
       ([key, value]: [string, any]) => {
         if (value.default && value.format === 'date-time') {
+          const parsedDate = parseDate(value.default);
           jsonSchema.properties[key] = {
             ...value,
-            default: value.default
-              ? parseDate(value.default)?.toISOString()
-              : null,
+            default: parsedDate ? parsedDate.toISOString() : null,
           };
         }
       },
