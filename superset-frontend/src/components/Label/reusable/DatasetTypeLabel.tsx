@@ -36,7 +36,7 @@ const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({ datasetType }) => {
     ) : (
       <Icons.ConsoleSqlOutlined iconSize={SIZE} />
     );
-  const labelType: 'primary' | 'success' =
+  const labelType: 'primary' | 'secondary' =
     datasetType === 'physical' ? 'primary' : 'secondary';
 
   return (
