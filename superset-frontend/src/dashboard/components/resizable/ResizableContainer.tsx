@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -174,69 +174,105 @@ export default function ResizableContainer({
 }: ResizableContainerProps) {
   const [isResizing, setIsResizing] = useState<boolean>(false);
 
-  const handleResize: ResizeCallback = (
-    event,
-    direction,
-    elementRef,
-    delta: { width: number; height: number },
-  ) => {
-    if (onResize) onResize(event, direction, elementRef, delta);
-  };
+  const handleResize = useCallback<ResizeCallback>(
+    (event, direction, elementRef, delta) => {
+      if (onResize) onResize(event, direction, elementRef, delta);
+    },
+    [onResize],
+  );
 
-  const handleResizeStart: ResizeStartCallback = (e, dir, elementRef) => {
-    if (onResizeStart) onResizeStart(e, dir, elementRef);
-    setIsResizing(true);
-  };
+  const handleResizeStart = useCallback<ResizeStartCallback>(
+    (e, dir, elementRef) => {
+      if (onResizeStart) onResizeStart(e, dir, elementRef);
+      setIsResizing(true);
+    },
+    [onResizeStart],
+  );
 
-  const handleResizeStop: ResizeCallback = (
-    event,
-    direction,
-    elementRef,
-    delta: { width: number; height: number },
-  ) => {
-    if (onResizeStop) {
-      const nextWidthMultiple =
-        widthMultiple + Math.round(delta.width / (widthStep + gutterWidth));
-      const nextHeightMultiple =
-        heightMultiple + Math.round(delta.height / heightStep);
+  const handleResizeStop = useCallback<ResizeCallback>(
+    (event, direction, elementRef, delta) => {
+      if (onResizeStop) {
+        const nextWidthMultiple =
+          widthMultiple + Math.round(delta.width / (widthStep + gutterWidth));
+        const nextHeightMultiple =
+          heightMultiple + Math.round(delta.height / heightStep);
 
-      onResizeStop(
-        event,
-        direction,
-        elementRef,
-        {
-          width: adjustableWidth ? nextWidthMultiple : 0,
-          height: adjustableHeight ? nextHeightMultiple : 0,
-        },
-        // @ts-ignore
-        id,
-      );
+        onResizeStop(
+          event,
+          direction,
+          elementRef,
+          {
+            width: adjustableWidth ? nextWidthMultiple : 0,
+            height: adjustableHeight ? nextHeightMultiple : 0,
+          },
+          // @ts-ignore
+          id,
+        );
+      }
+      setIsResizing(false);
+    },
+    [
+      onResizeStop,
+      widthMultiple,
+      heightMultiple,
+      widthStep,
+      heightStep,
+      gutterWidth,
+      adjustableWidth,
+      adjustableHeight,
+      id,
+    ],
+  );
+
+  const size = useMemo(
+    () => ({
+      width: adjustableWidth
+        ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
+        : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
+          staticWidth ||
+          undefined,
+      height: adjustableHeight
+        ? heightStep * heightMultiple
+        : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
+          staticHeight ||
+          undefined,
+    }),
+    [
+      adjustableWidth,
+      widthStep,
+      gutterWidth,
+      widthMultiple,
+      staticWidthMultiple,
+      staticWidth,
+      adjustableHeight,
+      heightStep,
+      heightMultiple,
+      staticHeightMultiple,
+      staticHeight,
+    ],
+  );
+
+  const handleComponent = useMemo(
+    () => ({
+      right: <RightResizeHandle />,
+      bottom: <BottomResizeHandle />,
+      bottomRight: <BottomRightResizeHandle />,
+    }),
+    [],
+  );
+
+  const enableConfig = useMemo(() => {
+    if (editMode && adjustableWidth && adjustableHeight) {
+      return resizableConfig.widthAndHeight;
     }
-    setIsResizing(false);
-  };
-
-  const size = {
-    width: adjustableWidth
-      ? (widthStep + gutterWidth) * widthMultiple - gutterWidth
-      : (staticWidthMultiple && staticWidthMultiple * widthStep) ||
-        staticWidth ||
-        undefined,
-    height: adjustableHeight
-      ? heightStep * heightMultiple
-      : (staticHeightMultiple && staticHeightMultiple * heightStep) ||
-        staticHeight ||
-        undefined,
-  };
-
-  let enableConfig = resizableConfig.notAdjustable;
-
-  if (editMode && adjustableWidth && adjustableHeight) {
-    enableConfig = resizableConfig.widthAndHeight;
-  } else if (editMode && adjustableWidth) {
-    enableConfig = resizableConfig.widthOnly;
-  } else if (editMode && adjustableHeight) {
-    enableConfig = resizableConfig.heightOnly;
-  }
+    if (editMode && adjustableWidth) {
+      return resizableConfig.widthOnly;
+    }
+    if (editMode && adjustableHeight) {
+      return resizableConfig.heightOnly;
+    }
+    return resizableConfig.notAdjustable;
+  }, [editMode, adjustableWidth, adjustableHeight]);
 
   return (
     <StyledResizable
@@ -272,11 +308,7 @@ export default function ResizableContainer({
       onResizeStart={handleResizeStart}
       onResize={handleResize}
       onResizeStop={handleResizeStop}
-      handleComponent={{
-        right: <RightResizeHandle />,
-        bottom: <BottomResizeHandle />,
-        bottomRight: <BottomRightResizeHandle />,
-      }}
+      handleComponent={handleComponent}
       className={cx(
         'resizable-container',
         isResizing && 'resizable-container--resizing',
