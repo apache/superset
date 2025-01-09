@@ -133,7 +133,7 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           });
         }
       } catch (error) {
-        logging.error(error);
+        logging.warn(error);
         this.props.addDangerToast(
           t('An error occurred while loading dashboard information.'),
         );
