@@ -26,10 +26,10 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.python-version }}" = "current" ]; then
-          echo "PYTHON_VERSION=3.11.11" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "next" ]; then
           # TODO: set to 3.12 when libs are ready - seemed hard on 12/17/24
-          echo "PYTHON_VERSION=3.11" >> $GITHUB_ENV
+          echo "PYTHON_VERSION=3.12" >> $GITHUB_ENV
         elif [ "${{ inputs.python-version }}" = "previous" ]; then
           echo "PYTHON_VERSION=3.10" >> $GITHUB_ENV
         else
@@ -44,11 +44,6 @@ runs:
       run: |
         if [ "${{ inputs.install-superset }}" = "true" ]; then
           sudo apt-get update && sudo apt-get -y install libldap2-dev libsasl2-dev
-
-          if [ "${{ env.PYTHON_VERSION }}" = "next" ]; then
-            # No wheel in 3.11 for numpy
-            sudo apt-get -y install build-essential
-          fi
 
           pip install --upgrade pip setuptools wheel uv
 
