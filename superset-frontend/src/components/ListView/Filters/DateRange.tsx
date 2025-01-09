@@ -29,6 +29,9 @@ import { RangePicker } from 'src/components/DatePicker';
 import { FormLabel } from 'src/components/Form';
 import { extendedDayjs } from 'src/utils/dates';
 import { Dayjs } from 'dayjs';
+import Loading from 'src/components/Loading';
+import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
+import { useLocale } from 'src/hooks/useLocale';
 import { BaseFilter, FilterHandler } from './Base';
 
 interface DateRangeFilterProps extends BaseFilter {
@@ -56,6 +59,8 @@ function DateRangeFilter(
     return [extendedDayjs(value[0]), extendedDayjs(value[1])];
   }, [value]);
 
+  const locale = useLocale();
+
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
       setValue(null);
@@ -63,28 +68,33 @@ function DateRangeFilter(
     },
   }));
 
+  if (locale === null) {
+    return <Loading position="inline-centered" />;
+  }
   return (
-    <RangeFilterContainer>
-      <FormLabel>{Header}</FormLabel>
-      <RangePicker
-        placeholder={[t('Start date'), t('End date')]}
-        showTime
-        value={dayjsValue}
-        onCalendarChange={(dayjsRange: [Dayjs, Dayjs]) => {
-          if (!dayjsRange?.[0]?.valueOf() || !dayjsRange?.[1]?.valueOf()) {
-            setValue(null);
-            onSubmit([]);
-            return;
-          }
-          const changeValue = [
-            dayjsRange[0]?.valueOf() ?? 0,
-            dayjsRange[1]?.valueOf() ?? 0,
-          ] as ValueState;
-          setValue(changeValue);
-          onSubmit(changeValue);
-        }}
-      />
-    </RangeFilterContainer>
+    <AntdThemeProvider locale={locale}>
+      <RangeFilterContainer>
+        <FormLabel>{Header}</FormLabel>
+        <RangePicker
+          placeholder={[t('Start date'), t('End date')]}
+          showTime
+          value={dayjsValue}
+          onCalendarChange={(dayjsRange: [Dayjs, Dayjs]) => {
+            if (!dayjsRange?.[0]?.valueOf() || !dayjsRange?.[1]?.valueOf()) {
+              setValue(null);
+              onSubmit([]);
+              return;
+            }
+            const changeValue = [
+              dayjsRange[0]?.valueOf() ?? 0,
+              dayjsRange[1]?.valueOf() ?? 0,
+            ] as ValueState;
+            setValue(changeValue);
+            onSubmit(changeValue);
+          }}
+        />
+      </RangeFilterContainer>
+    </AntdThemeProvider>
   );
 }
 

@@ -160,11 +160,6 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
-  // Dayjs locales to keep
-  new webpack.ContextReplacementPlugin(
-    /dayjs[/\\]locale$/,
-    new RegExp(`^./(${getAvailableTranslationCodes().join('|')})$`),
-  ),
 ];
 
 if (!process.env.CI) {

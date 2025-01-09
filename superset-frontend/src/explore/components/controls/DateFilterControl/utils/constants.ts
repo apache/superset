@@ -141,23 +141,6 @@ export const MIDNIGHT = extendedDayjs()
   .startOf('day')
   .format(DAYJS_FORMAT);
 
-export const LOCALE_MAPPING = {
-  en: () => import('antd-v5/locale/en_US'),
-  fr: () => import('antd-v5/locale/fr_FR'),
-  es: () => import('antd-v5/locale/es_ES'),
-  it: () => import('antd-v5/locale/it_IT'),
-  zh: () => import('antd-v5/locale/zh_CN'),
-  ja: () => import('antd-v5/locale/ja_JP'),
-  de: () => import('antd-v5/locale/de_DE'),
-  pt: () => import('antd-v5/locale/pt_PT'),
-  pt_BR: () => import('antd-v5/locale/pt_BR'),
-  ru: () => import('antd-v5/locale/ru_RU'),
-  ko: () => import('antd-v5/locale/ko_KR'),
-  sk: () => import('antd-v5/locale/sk_SK'),
-  sl: () => import('antd-v5/locale/sl_SI'),
-  nl: () => import('antd-v5/locale/nl_NL'),
-};
-
 export enum DateFilterTestKey {
   CommonFrame = 'common-frame',
   ModalOverlay = 'modal-overlay',

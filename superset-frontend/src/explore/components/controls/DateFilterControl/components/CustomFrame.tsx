@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
 import { isInteger } from 'lodash';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -35,23 +33,19 @@ import {
   MIDNIGHT,
   customTimeRangeEncode,
   dttmToDayjs,
-  LOCALE_MAPPING,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
   CustomRangeKey,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
-import { ExplorePageState } from 'src/explore/types';
 import Loading from 'src/components/Loading';
-import dayjs, { Dayjs } from 'dayjs';
+import { Dayjs } from 'dayjs';
 import { AntdThemeProvider } from 'src/components/AntdThemeProvider';
-import { Locale } from 'antd-v5/es/locale';
+import { useLocale } from 'src/hooks/useLocale';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
-  const [datePickerLocale, setDatePickerLocale] = useState<
-    Locale | undefined | null
-  >(null);
+  const datePickerLocale = useLocale();
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
   }
@@ -112,31 +106,6 @@ export function CustomFrame(props: FrameComponentProps) {
       );
     }
   }
-
-  // check if there is a locale defined for explore
-  const localFromFlaskBabel = useSelector(
-    (state: ExplorePageState) => state?.common?.locale,
-  );
-
-  // An undefined datePickerLocale is acceptable if no match is found in the LOCALE_MAPPING[localFromFlaskBabel] lookup
-  // and will fall back to antd's default locale when the antd DataPicker's prop locale === undefined
-  // This also protects us from the case where state is populated with a locale that antd locales does not recognize
-  useEffect(() => {
-    if (datePickerLocale === null) {
-      if (localFromFlaskBabel && LOCALE_MAPPING[localFromFlaskBabel]) {
-        LOCALE_MAPPING[localFromFlaskBabel]()
-          .then((locale: { default: Locale }) => {
-            setDatePickerLocale(locale.default);
-            import(`dayjs/locale/${localFromFlaskBabel}`).then(() => {
-              dayjs.locale(localFromFlaskBabel);
-            });
-          })
-          .catch(() => setDatePickerLocale(undefined));
-      } else {
-        setDatePickerLocale(undefined);
-      }
-    }
-  }, [datePickerLocale, localFromFlaskBabel]);
 
   if (datePickerLocale === null) {
     return <Loading position="inline-centered" />;
