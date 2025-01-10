@@ -40,6 +40,7 @@ import {
   t,
   TimeseriesChartDataResponseResult,
   NumberFormats,
+  AdhocMetric,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -215,14 +216,22 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
+  const metricsLabels = metrics
+    .map(metric => {
+      if (metric.hasOwnProperty('label')) {
+        return (metric as AdhocMetric).label;
+      }
+      return verboseMap[metric as string] || metric;
+    })
+    .filter((label): label is string => label !== undefined);
   const isHorizontal = orientation === OrientationType.Horizontal;
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
       stack,
       percentageThreshold,
-      xAxisCol: xAxisLabel,
       legendState,
+      metricsLabels,
     },
   );
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
