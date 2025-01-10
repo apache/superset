@@ -40,7 +40,8 @@ export const GlobalStyles = () => (
         display: none !important;
       }
       .antd5-dropdown,
-      .ant-dropdown {
+      .ant-dropdown,
+      .ant-select-dropdown {
         z-index: ${theme.zIndex.max};
       }
       // TODO: Remove when buttons have been upgraded to Ant Design 5.
