@@ -89,6 +89,8 @@ services:
     restart: unless-stopped
     ports:
       - 8088:8088
+      # When in cypress-mode ->
+      - 8081:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user
