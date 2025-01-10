@@ -182,7 +182,7 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    it.only('User can create a numerical range filter', () => {
+    it('User can create a numerical range filter', () => {
       visitDashboard();
       enterNativeFilterEditModal(false);
       fillNativeFilterForm(
