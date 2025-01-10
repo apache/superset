@@ -25,23 +25,96 @@ export default {
 
 export const ThemeColors = () => {
   const { colors } = supersetTheme;
-  return Object.keys(colors).map(collection => (
+
+  // Define tones to be displayed in columns
+  const tones = [
+    'dark2',
+    'dark1',
+    'base',
+    'light1',
+    'light2',
+    'light3',
+    'light4',
+    'light5',
+  ];
+  const colorTypes = [
+    'primary',
+    'secondary',
+    'grayscale',
+    'error',
+    'warning',
+    'alert',
+    'success',
+    'info',
+  ];
+  return (
     <div>
-      <h2>{collection}</h2>
-      <table style={{ width: '300px' }}>
-        {Object.keys(colors[collection]).map(k => {
-          const hex = colors[collection][k];
-          return (
-            <tr>
-              <td>{k}</td>
-              <td>
-                <code>{hex}</code>
+      <h1>Theme Colors</h1>
+      <table
+        style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}
+      >
+        <thead>
+          <tr>
+            <th style={{ border: '1px solid #ddd', padding: '8px' }}>
+              Category
+            </th>
+            {tones.map(tone => (
+              <th
+                key={tone}
+                style={{ border: '1px solid #ddd', padding: '8px' }}
+              >
+                {tone}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {colorTypes.map(category => (
+            <tr key={category}>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                <strong>{category}</strong>
               </td>
-              <td style={{ width: '150px', backgroundColor: hex }} />
+              {tones.map(tone => {
+                const color = colors[category][tone];
+                return (
+                  <td
+                    key={tone}
+                    style={{
+                      border: '1px solid #ddd',
+                      padding: '8px',
+                      backgroundColor: color || '#fff',
+                    }}
+                  >
+                    {color ? <code>{color}</code> : '-'}
+                  </td>
+                );
+              })}
             </tr>
-          );
-        })}
+          ))}
+        </tbody>
       </table>
+      <h3>
+        text.label: <code>{colors.text.label}</code>
+      </h3>
+      <div style={{ color: `#${colors.text.label}` }}>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+        commodo consequat.
+      </div>
+      <h3>
+        text.help: <code>{colors.text.help}</code>
+      </h3>
+      <div style={{ color: `#${colors.text.help}` }}>
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod
+        tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
+        veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
+        commodo consequat.
+      </div>
+      <h3>The supersetTheme object</h3>
+      <code>
+        <pre>{JSON.stringify(supersetTheme, null, 2)}</pre>
+      </code>
     </div>
-  ));
+  );
 };
