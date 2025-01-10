@@ -32,6 +32,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
+import SqlEditorLeftBar from '../SqlEditorLeftBar';
 
 const DEFAULT_PROPS = {
   queryEditors: [],
@@ -227,6 +228,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
           displayLimit={this.props.displayLimit}
           saveQueryWarning={this.props.saveQueryWarning}
           scheduleQueryWarning={this.props.scheduleQueryWarning}
+          sidebar={<SqlEditorLeftBar queryEditorId={qe.id} />}
         />
       </EditableTabs.TabPane>
     ));

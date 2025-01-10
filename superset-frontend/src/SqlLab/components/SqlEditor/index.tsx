@@ -120,7 +120,6 @@ import SaveQuery, { QueryPayload } from '../SaveQuery';
 import ScheduleQueryButton from '../ScheduleQueryButton';
 import EstimateQueryCostButton from '../EstimateQueryCostButton';
 import ShareSqlLabQuery from '../ShareSqlLabQuery';
-import SqlEditorLeftBar from '../SqlEditorLeftBar';
 import AceEditorWrapper from '../AceEditorWrapper';
 import RunQueryActionButton from '../RunQueryActionButton';
 import QueryLimitSelect from '../QueryLimitSelect';
@@ -238,6 +237,7 @@ export type Props = {
   displayLimit: number;
   saveQueryWarning: string | null;
   scheduleQueryWarning: string | null;
+  sidebar: React.ReactNode;
 };
 
 const elementStyle = (
@@ -257,6 +257,7 @@ const SqlEditor: FC<Props> = ({
   displayLimit,
   saveQueryWarning,
   scheduleQueryWarning,
+  sidebar,
 }) => {
   const theme = useTheme();
   const dispatch = useDispatch();
@@ -948,10 +949,7 @@ const SqlEditor: FC<Props> = ({
               width={adjustedWidth}
               hide={hideLeftBar}
             >
-              <SqlEditorLeftBar
-                database={database}
-                queryEditorId={queryEditor.id}
-              />
+              {sidebar}
             </StyledSidebar>
           )}
         </ResizableSidebar>
