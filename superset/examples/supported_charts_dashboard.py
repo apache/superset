@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=too-many-lines
+import logging
 import textwrap
 
 from sqlalchemy import inspect
@@ -36,6 +37,7 @@ from .helpers import (
 )
 
 DASH_SLUG = "supported_charts_dash"
+logger = logging.getLogger(__name__)
 
 
 def create_slices(tbl: SqlaTable) -> list[Slice]:
@@ -445,7 +447,7 @@ def load_supported_charts_dashboard() -> None:
         )
         create_slices(obj)
 
-    print("Creating the dashboard")
+    logger.debug("Creating the dashboard")
 
     db.session.expunge_all()
     dash = db.session.query(Dashboard).filter_by(slug=DASH_SLUG).first()

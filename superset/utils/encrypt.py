@@ -22,7 +22,12 @@ from flask import Flask
 from flask_babel import lazy_gettext as _
 from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
-from sqlalchemy_utils import EncryptedType
+from sqlalchemy_utils import EncryptedType as SqlaEncryptedType
+
+
+class EncryptedType(SqlaEncryptedType):
+    cache_ok = True
+
 
 ENC_ADAPTER_TAG_ATTR_NAME = "__created_by_enc_field_adapter__"
 logger = logging.getLogger(__name__)
