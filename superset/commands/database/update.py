@@ -44,6 +44,7 @@ from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -66,21 +67,22 @@ class UpdateDatabaseCommand(BaseCommand):
 
         self.validate()
 
-        # unmask ``encrypted_extra``
-        self._properties["encrypted_extra"] = (
-            self._model.db_engine_spec.unmask_encrypted_extra(
-                self._model.encrypted_extra,
-                self._properties.pop("masked_encrypted_extra", "{}"),
+        if "masked_encrypted_extra" in self._properties:
+            # unmask ``encrypted_extra``
+            self._properties["encrypted_extra"] = (
+                self._model.db_engine_spec.unmask_encrypted_extra(
+                    self._model.encrypted_extra,
+                    self._properties["masked_encrypted_extra"],
+                )
             )
-        )
+
+            # Depending on the changes to the OAuth2 configuration we may need to purge
+            # existing personal tokens.
+            self._handle_oauth2()
 
         # if the database name changed we need to update any existing permissions,
         # since they're name based
         original_database_name = self._model.database_name
-
-        # Depending on the changes to the OAuth2 configuration we may need to purge
-        # existing personal tokens.
-        self._handle_oauth2()
 
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
@@ -99,11 +101,16 @@ class UpdateDatabaseCommand(BaseCommand):
         if not self._model:
             return
 
+        if self._properties["encrypted_extra"] is None:
+            self._model.purge_oauth2_tokens()
+            return
+
         current_config = self._model.get_oauth2_config()
         if not current_config:
             return
 
-        new_config = self._properties["encrypted_extra"].get("oauth2_client_info", {})
+        encrypted_extra = json.loads(self._properties["encrypted_extra"])
+        new_config = encrypted_extra.get("oauth2_client_info", {})
 
         # Keys that require purging personal tokens because they probably are no longer
         # valid. For example, if the scope has changed the existing tokens are still
