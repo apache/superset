@@ -31,7 +31,10 @@ interface SelectAsyncControlProps extends SelectAsyncProps {
   ariaLabel?: string;
   dataEndpoint: string;
   default?: SelectValue;
-  mutator?: (response: Record<string, any>) => SelectOptionsType;
+  mutator?: (
+    response: Record<string, any>,
+    value: SelectValue | undefined,
+  ) => SelectOptionsType;
   multi?: boolean;
   onChange: (val: SelectValue) => void;
   // ControlHeader related props
@@ -57,6 +60,7 @@ const SelectAsyncControl = ({
   ...props
 }: SelectAsyncControlProps) => {
   const [options, setOptions] = useState<SelectOptionsType>([]);
+  const [loaded, setLoaded] = useState<Boolean>(false);
 
   const handleOnChange = (val: SelectValue) => {
     let onChangeVal = val;
@@ -92,12 +96,20 @@ const SelectAsyncControl = ({
         endpoint: dataEndpoint,
       })
         .then(response => {
-          const data = mutator ? mutator(response.json) : response.json.result;
+          const data = mutator
+            ? mutator(response.json, value)
+            : response.json.result;
           setOptions(data);
         })
-        .catch(onError);
-    loadOptions();
-  }, [addDangerToast, dataEndpoint, mutator]);
+        .catch(onError)
+        .finally(() => {
+          setLoaded(true);
+        });
+
+    if (!loaded) {
+      loadOptions();
+    }
+  }, [addDangerToast, dataEndpoint, mutator, value, loaded]);
 
   return (
     <Select

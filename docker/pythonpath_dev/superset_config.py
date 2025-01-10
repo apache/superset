@@ -104,6 +104,9 @@ WEBDRIVER_BASEURL = "http://superset:8088/"  # When using docker compose baseurl
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 SQLLAB_CTAS_NO_LIMIT = True
 
+log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")
+LOG_LEVEL = getattr(logging, log_level_text.upper(), logging.INFO)
+
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden

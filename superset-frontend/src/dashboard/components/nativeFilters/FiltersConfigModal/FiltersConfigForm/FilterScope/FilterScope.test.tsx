@@ -82,7 +82,6 @@ describe('FilterScope', () => {
   it('select tree values with 1 excluded', async () => {
     render(<MockModal />);
     fireEvent.click(screen.getByText('Scoping'));
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
     expect(screen.getByRole('tree')).toBeInTheDocument();
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
@@ -99,7 +98,6 @@ describe('FilterScope', () => {
   it('select 1 value only', async () => {
     render(<MockModal />);
     fireEvent.click(screen.getByText('Scoping'));
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
     expect(screen.getByRole('tree')).toBeInTheDocument();
     fireEvent.click(getTreeSwitcher(2));
     fireEvent.click(screen.getByText('CHART_ID2'));
@@ -124,7 +122,6 @@ describe('FilterScope', () => {
       />,
     );
     fireEvent.click(screen.getByText('Scoping'));
-    fireEvent.click(screen.getByLabelText('Apply to specific panels'));
 
     await waitFor(() => {
       expect(screen.getByRole('tree')).toBeInTheDocument();
