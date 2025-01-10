@@ -198,15 +198,13 @@ describe('Native filters', () => {
         .should('be.visible')
         .click();
 
-      cy.get('[data-test="native-filter-from-input"]').clear();
-      cy.get('[data-test="native-filter-from-input"]').type('5');
+      cy.get('[data-test="native-filter-from-input"]').type('{selectall}5');
 
       cy.get('[data-test="native-filter-to-input"]')
         .should('be.visible')
         .click();
 
-      cy.get('[data-test="native-filter-to-input"]').clear();
-      cy.get('[data-test="native-filter-to-input"]').type('50');
+      cy.get('[data-test="native-filter-to-input"]').type('{selectall}50');
       cy.get(nativeFilters.applyFilter).click();
 
       // Assert that the URL contains 'native_filters'

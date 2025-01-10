@@ -138,7 +138,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleChange = (newValue: number, index: 0 | 1) => {
     const updatedValue: [number, number] = [...value];
-    updatedValue[index] = newValue;
+    if (index === minIndex && newValue > updatedValue[maxIndex]) {
+      updatedValue[minIndex] = updatedValue[maxIndex];
+    } else if (index === maxIndex && newValue < updatedValue[minIndex]) {
+      updatedValue[maxIndex] = updatedValue[minIndex];
+    } else {
+      updatedValue[index] = newValue;
+    }
     handleAfterChange(updatedValue);
   };
 
