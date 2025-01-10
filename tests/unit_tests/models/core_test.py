@@ -21,9 +21,17 @@ from datetime import datetime
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy import (
+    Column,
+    Integer,
+    MetaData,
+    select,
+    Table as SqlalchemyTable,
+)
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
@@ -43,6 +51,29 @@ oauth2_client_info = {
         "scope": "refresh_token session:role:USERADMIN",
     }
 }
+
+
+@pytest.fixture
+def query() -> Select:
+    """
+    A nested query fixture used to test query optimization.
+    """
+    metadata = MetaData()
+    some_table = SqlalchemyTable(
+        "some_table",
+        metadata,
+        Column("a", Integer),
+        Column("b", Integer),
+        Column("c", Integer),
+    )
+
+    inner_select = select(some_table.c.a, some_table.c.b, some_table.c.c)
+    outer_select = select(inner_select.c.a, inner_select.c.b).where(
+        inner_select.c.a > 1,
+        inner_select.c.b == 2,
+    )
+
+    return outer_select
 
 
 def test_get_metrics(mocker: MockerFixture) -> None:
@@ -683,3 +714,56 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     # make sure database was not deleted... just in case
     database = session.query(Database).filter_by(id=database1.id).one()
     assert database.name == "my_oauth2_db"
+
+
+def test_compile_sqla_query_no_optimization(query: Select) -> None:
+    """
+    Test the `compile_sqla_query` method.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+    )
+
+    space = " "
+    #
+    assert (
+        database.compile_sqla_query(query, is_virtual=True)
+        == f"""SELECT anon_1.a, anon_1.b{space}
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c{space}
+FROM some_table) AS anon_1{space}
+WHERE anon_1.a > 1 AND anon_1.b = 2"""  # noqa: S608
+    )
+
+
+@with_feature_flags(OPTIMIZE_SQL=True)
+def test_compile_sqla_query(query: Select) -> None:
+    """
+    Test the `compile_sqla_query` method.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+    )
+
+    assert (
+        database.compile_sqla_query(query, is_virtual=True)
+        == """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+    )

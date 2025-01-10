@@ -14,15 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import textwrap
 
 from superset import db
 from superset.models.core import CssTemplate
 
+logger = logging.getLogger(__name__)
+
 
 def load_css_templates() -> None:
     """Loads 2 css templates to demonstrate the feature"""
-    print("Creating default CSS templates")
+    logger.debug("Creating default CSS templates")
 
     obj = db.session.query(CssTemplate).filter_by(template_name="Flat").first()
     if not obj:

@@ -1204,6 +1204,7 @@ export function popSavedQuery(saveQueryId) {
           schema: queryEditorProps.schema,
           sql: queryEditorProps.sql,
           templateParams: queryEditorProps.templateParams,
+          remoteId: queryEditorProps.remoteId,
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })

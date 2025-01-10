@@ -45,7 +45,7 @@ const AddButtonContainer = styled.div`
       padding-bottom: 1px;
     }
 
-    .ant-btn > .anticon + span {
+    .antd5-btn > .anticon + span {
       margin-left: 0;
     }
   `}

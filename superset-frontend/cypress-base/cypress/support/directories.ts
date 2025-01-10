@@ -106,7 +106,7 @@ export const databasesPage = {
       alertMessage: '.antd5-alert-message',
       errorField: '[role="alert"]',
       uploadJson: '[title="Upload JSON file"]',
-      chooseFile: '[class="ant-btn input-upload-btn"]',
+      chooseFile: '[class="antd5-btn input-upload-btn"]',
       additionalParameters: '[name="query_input"]',
       sqlAlchemyUriInput: dataTestLocator('sqlalchemy-uri-input'),
       advancedTab: '#rc-tabs-0-tab-2',
@@ -148,7 +148,7 @@ export const sqlLabView = {
   examplesMenuItem: '[title="examples"]',
   tableInput: ':nth-child(4) > .select > :nth-child(1)',
   sqlEditor: '#brace-editor textarea',
-  saveAsButton: '.SaveQuery > .ant-btn',
+  saveAsButton: '.SaveQuery > .antd5-btn',
   saveAsModal: {
     footer: '.antd5-modal-footer',
     queryNameInput: 'input[class^="ant-input"]',
@@ -195,7 +195,7 @@ export const savedQuery = {
 export const annotationLayersView = {
   emptyDescription: {
     description: '.ant-empty-description',
-    addAnnotationLayerButton: '.ant-empty-footer > .ant-btn',
+    addAnnotationLayerButton: '.ant-empty-footer > .antd5-btn',
   },
   modal: {
     content: {
@@ -434,7 +434,7 @@ export const dashboardListView = {
     newDashboardButton: '.css-yff34v',
   },
   importModal: {
-    selectFileButton: '.ant-upload > .ant-btn > span',
+    selectFileButton: '.ant-upload > .antd5-btn > span',
     importButton: dataTestLocator('modal-confirm-button'),
   },
   header: {
@@ -588,7 +588,7 @@ export const exploreView = {
       rowsContainer: dataTestLocator('table-content-rows'),
     },
     confirmModal: {
-      okButton: '.antd5-modal-confirm-btns .ant-btn-primary',
+      okButton: '.antd5-modal-confirm-btns .antd5-btn-primary',
     },
   },
   visualizationTypeModal: {

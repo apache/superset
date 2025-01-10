@@ -40,7 +40,7 @@ PATTERNS = {
     ],
     "docker": [
         r"^Dockerfile$",
-        r"^docker/",
+        r"^docker.*",
     ],
     "docs": [
         r"^docs/",
