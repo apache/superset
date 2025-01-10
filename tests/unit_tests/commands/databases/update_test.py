@@ -21,6 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.update import UpdateDatabaseCommand
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 from superset.utils import json
@@ -83,7 +84,10 @@ def database_needs_oauth2(mocker: MockerFixture) -> MagicMock:
         "tab_id",
         "redirect_uri",
     )
-    database.get_oauth2_config.return_value = oauth2_client_info
+    database.encrypted_extra = json.dumps({"oauth2_client_info": oauth2_client_info})
+    database.db_engine_spec.unmask_encrypted_extra = (
+        BaseEngineSpec.unmask_encrypted_extra
+    )
 
     return database
 
@@ -333,14 +337,6 @@ def test_update_with_oauth2(
         "add_permission_view_menu",
     )
 
-    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = (
-        json.dumps(
-            {
-                "oauth2_client_info": oauth2_client_info,
-            }
-        )
-    )
-
     UpdateDatabaseCommand(1, {}).run()
 
     add_permission_view_menu.assert_not_called()
@@ -373,16 +369,14 @@ def test_update_with_oauth2_changed(
 
     modified_oauth2_client_info = oauth2_client_info.copy()
     modified_oauth2_client_info["scope"] = "scope-b"
-    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = (
-        json.dumps(
-            {
-                "oauth2_client_info": modified_oauth2_client_info,
-            }
-        )
-    )
 
     UpdateDatabaseCommand(
-        1, {"masked_encrypted_extra": json.dumps(modified_oauth2_client_info)}
+        1,
+        {
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": modified_oauth2_client_info}
+            )
+        },
     ).run()
 
     add_permission_view_menu.assert_not_called()
@@ -411,10 +405,6 @@ def test_remove_oauth_config_purges_tokens(
     add_permission_view_menu = mocker.patch.object(
         security_manager,
         "add_permission_view_menu",
-    )
-
-    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = (
-        json.dumps({})
     )
 
     UpdateDatabaseCommand(1, {"masked_encrypted_extra": None}).run()
@@ -453,11 +443,7 @@ def test_update_other_fields_dont_affect_oauth(
         "add_permission_view_menu",
     )
 
-    database_needs_oauth2.db_engine_spec.unmask_encrypted_extra.return_value = (
-        json.dumps({})
-    )
-
     UpdateDatabaseCommand(1, {"database_name": "New DB name"}).run()
 
     add_permission_view_menu.assert_not_called()
-    database_needs_oauth2.purge_oauth2_tokens.assert_called()
+    database_needs_oauth2.purge_oauth2_tokens.assert_not_called()
