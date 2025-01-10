@@ -18,14 +18,11 @@ import logging
 from functools import partial
 from typing import Any
 
-from flask_babel import gettext as _
-
 from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
 from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.tag import TagDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType, TagType
 from superset.utils.decorators import on_error, transaction
@@ -91,37 +88,29 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
     def validate(self) -> None:
         exceptions = []
         objects_to_tag = set(self._properties.get("objects_to_tag", []))
-
         for obj_type, obj_id in objects_to_tag:
             object_type = to_object_type(obj_type)
 
-            if not object_type:
-                exceptions.append(TagInvalidError(f"invalid object type {object_type}"))
-                continue
+            # Validate object type
+            for obj_type, obj_id in objects_to_tag:
+                object_type = to_object_type(obj_type)
 
-            try:
-                if model := to_object_model(object_type, obj_id):
-                    if (
-                        model.created_by
-                        and model.created_by.id != security_manager.current_user.id
-                    ):
-                        raise SupersetSecurityException(
-                            SupersetError(
-                                error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
-                                message=_(
-                                    "You don't have the rights to alter %(resource)s",
-                                    resource=model,
-                                ),
-                                level=ErrorLevel.ERROR,
-                            )
-                        )
+                if not object_type:
+                    exceptions.append(
+                        TagInvalidError(f"invalid object type {object_type}")
+                    )
+                try:
+                    if model := to_object_model(object_type, obj_id):  # type: ignore
+                        if not security_manager.is_owner(model):
+                            # Skip the object if the user doesn't own it
+                            self._skipped_tagged_objects.add((obj_type, obj_id))
+                except Exception as exc:
+                    logger.error(f"Error validating object {obj_id}: {exc}")
+                    self._skipped_tagged_objects.add((obj_type, obj_id))
 
-            except SupersetSecurityException:
-                self._skipped_tagged_objects.add((obj_type, obj_id))
-
-        self._properties["objects_to_tag"] = (
-            set(objects_to_tag) - self._skipped_tagged_objects
-        )
+            self._properties["objects_to_tag"] = (
+                set(objects_to_tag) - self._skipped_tagged_objects
+            )
 
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)

@@ -100,7 +100,7 @@ class TestTagApi(SupersetTestCase):
         db.session.commit()
         return tagged_object
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
@@ -688,5 +688,5 @@ class TestTagApi(SupersetTestCase):
 
         assert rv.status_code == 200
         result = rv.json["result"]
-        assert len(result["objects_tagged"]) == 3
-        assert len(result["objects_skipped"]) == 0
+        assert len(result["objects_tagged"]) == 2
+        assert len(result["objects_skipped"]) == 1
