@@ -37,7 +37,9 @@ test('works with an onClick handler', () => {
 // test stories from the storybook!
 test('renders all the storybook gallery variants', () => {
   const { container } = render(<LabelGallery />);
+  const nonInteractiveLabelCount = 4;
+  const renderedLabelCount = options.length * 2 + nonInteractiveLabelCount;
   expect(container.querySelectorAll('.ant-tag')).toHaveLength(
-    options.length * 2,
+    renderedLabelCount,
   );
 });
