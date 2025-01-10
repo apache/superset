@@ -41,10 +41,10 @@ export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
 }
 
 const StyledDropdownButton = styled(DropdownButton as FC<DropdownButtonProps>)`
-  button.antd5-btn:first-of-type {
+  button.ant-btn:first-of-type {
     display: none;
   }
-  > button.antd5-btn:nth-of-type(2) {
+  > button.ant-btn:nth-of-type(2) {
     display: inline-flex;
     background-color: transparent !important;
     height: unset;
