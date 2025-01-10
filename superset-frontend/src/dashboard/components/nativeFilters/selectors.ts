@@ -21,11 +21,9 @@ import {
   DataMaskStateWithId,
   DataMaskType,
   ensureIsArray,
-  FeatureFlag,
   Filters,
   FilterState,
   getColumnLabel,
-  isFeatureEnabled,
   NativeFilterType,
   NO_TIME_RANGE,
   QueryFormColumn,
@@ -289,39 +287,37 @@ export const selectChartCrossFilters = (
   filterEmitter = false,
 ): Indicator[] | CrossFilterIndicator[] => {
   let crossFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-    crossFilterIndicators = Object.values(chartConfiguration)
-      .filter(chartConfig => {
-        const inScope =
-          chartConfig.crossFilters?.chartsInScope?.includes(chartId);
-        if (!filterEmitter && inScope) {
-          return true;
-        }
-        if (filterEmitter && !inScope) {
-          return true;
-        }
-        return false;
-      })
-      .map(chartConfig => {
-        const filterIndicator = getCrossFilterIndicator(
-          Number(chartConfig.id),
-          dataMask[chartConfig.id],
-          chartLayoutItems,
-        );
-        const filterStatus = getStatus({
-          label: filterIndicator.value,
-          column: filterIndicator.column
-            ? getColumnLabel(filterIndicator.column)
-            : undefined,
-          type: DataMaskType.CrossFilters,
-          appliedColumns,
-          rejectedColumns,
-        });
+  crossFilterIndicators = Object.values(chartConfiguration)
+    .filter(chartConfig => {
+      const inScope =
+        chartConfig.crossFilters?.chartsInScope?.includes(chartId);
+      if (!filterEmitter && inScope) {
+        return true;
+      }
+      if (filterEmitter && !inScope) {
+        return true;
+      }
+      return false;
+    })
+    .map(chartConfig => {
+      const filterIndicator = getCrossFilterIndicator(
+        Number(chartConfig.id),
+        dataMask[chartConfig.id],
+        chartLayoutItems,
+      );
+      const filterStatus = getStatus({
+        label: filterIndicator.value,
+        column: filterIndicator.column
+          ? getColumnLabel(filterIndicator.column)
+          : undefined,
+        type: DataMaskType.CrossFilters,
+        appliedColumns,
+        rejectedColumns,
+      });
 
-        return { ...filterIndicator, status: filterStatus };
-      })
-      .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
-  }
+      return { ...filterIndicator, status: filterStatus };
+    })
+    .filter(filter => filter.status === IndicatorStatus.CrossFilterApplied);
 
   return crossFilterIndicators;
 };
@@ -379,16 +375,14 @@ export const selectNativeIndicatorsForChart = (
       });
 
   let crossFilterIndicators: any = [];
-  if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-    crossFilterIndicators = selectChartCrossFilters(
-      dataMask,
-      chartId,
-      chartLayoutItems,
-      chartConfiguration,
-      appliedColumns,
-      rejectedColumns,
-    );
-  }
+  crossFilterIndicators = selectChartCrossFilters(
+    dataMask,
+    chartId,
+    chartLayoutItems,
+    chartConfiguration,
+    appliedColumns,
+    rejectedColumns,
+  );
   const indicators = crossFilterIndicators.concat(nativeFilterIndicators);
   cachedNativeIndicatorsForChart[chartId] = indicators;
   cachedNativeFilterDataForChart[chartId] = {

@@ -56,18 +56,6 @@ describe('nativeFilterGate', () => {
   });
 
   describe('with cross filters and experimental feature flag enabled', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation((featureFlag: FeatureFlag) =>
-          [FeatureFlag.DashboardCrossFilters].includes(featureFlag),
-        );
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
-    });
-
     it('should return true for regular chart', () => {
       expect(nativeFilterGate([])).toEqual(true);
     });

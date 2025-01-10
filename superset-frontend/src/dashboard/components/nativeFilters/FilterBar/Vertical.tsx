@@ -30,7 +30,7 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyStateSmall } from 'src/components/EmptyState';
@@ -190,14 +190,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
   );
 
-  const crossFilters = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
-        <CrossFiltersVertical />
-      ) : null,
-    [],
-  );
-
   return (
     <FilterBarScrollContext.Provider value={isScrolling}>
       <BarWrapper
@@ -230,7 +222,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
-                {crossFilters}
+                <CrossFiltersVertical />
                 {filterControls}
               </>
             </div>
