@@ -399,8 +399,8 @@ def test_remove_oauth_config_purges_tokens(
         "find_permission_view_menu",
     )
     find_permission_view_menu.side_effect = [
-        None,  # schema1 has no permissions
-        "[my_db].[schema2]",  # second schema already exists
+        None,
+        "[my_db].[schema2]",
     ]
     add_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -435,8 +435,8 @@ def test_update_other_fields_dont_affect_oauth(
         "find_permission_view_menu",
     )
     find_permission_view_menu.side_effect = [
-        None,  # schema1 has no permissions
-        "[my_db].[schema2]",  # second schema already exists
+        None,
+        "[my_db].[schema2]",
     ]
     add_permission_view_menu = mocker.patch.object(
         security_manager,
