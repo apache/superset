@@ -22,6 +22,20 @@ import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { ExplorePageState } from 'src/explore/types';
+import 'dayjs/locale/en';
+import 'dayjs/locale/fr';
+import 'dayjs/locale/es';
+import 'dayjs/locale/it';
+import 'dayjs/locale/zh-cn';
+import 'dayjs/locale/ja';
+import 'dayjs/locale/de';
+import 'dayjs/locale/pt';
+import 'dayjs/locale/pt-br';
+import 'dayjs/locale/ru';
+import 'dayjs/locale/ko';
+import 'dayjs/locale/sk';
+import 'dayjs/locale/sl';
+import 'dayjs/locale/nl';
 
 export const LOCALE_MAPPING = {
   en: () => import('antd-v5/locale/en_US'),
@@ -56,9 +70,7 @@ export const useLocale = (): Locale | undefined | null => {
         LOCALE_MAPPING[localFromFlaskBabel]()
           .then((locale: { default: Locale }) => {
             setDatePickerLocale(locale.default);
-            import(`dayjs/locale/${localFromFlaskBabel}.js`).then(() => {
-              dayjs.locale(localFromFlaskBabel);
-            });
+            dayjs.locale(localFromFlaskBabel);
           })
           .catch(() => setDatePickerLocale(undefined));
       } else {
