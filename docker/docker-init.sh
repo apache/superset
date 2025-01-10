@@ -76,7 +76,7 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
         superset load_test_users
         superset load_examples --load-test-data
     else
-        superset load_examples --force
+        superset load_examples
     fi
     echo_step "4" "Complete" "Loading examples"
 fi
