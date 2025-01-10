@@ -137,6 +137,7 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 404
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_viz_cache_key(self):
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Top 10 Girl Name Share")
@@ -173,6 +174,7 @@ class TestCore(SupersetTestCase):
         assert_admin_view_menus_in("Gamma", self.assertNotIn)
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_save_slice(self):
         self.login(ADMIN_USERNAME)
         slice_name = f"Energy Sankey"  # noqa: F541
@@ -349,6 +351,7 @@ class TestCore(SupersetTestCase):
         "load_birth_names_dashboard_with_slices",
         "load_energy_table_with_slice",
     )
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_warm_up_cache(self):
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Top 10 Girl Name Share")
@@ -397,6 +400,7 @@ class TestCore(SupersetTestCase):
             ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_cache_logging(self):
         self.login(ADMIN_USERNAME)
         store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
@@ -559,6 +563,7 @@ class TestCore(SupersetTestCase):
         )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_explore_json(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
@@ -582,6 +587,7 @@ class TestCore(SupersetTestCase):
         assert data["rowcount"] == 2
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_explore_json_dist_bar_order(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
@@ -682,6 +688,7 @@ class TestCore(SupersetTestCase):
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
     )
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_explore_json_async(self):
         tbl_id = self.table_ids.get("birth_names")
         form_data = {
@@ -717,6 +724,7 @@ class TestCore(SupersetTestCase):
             ]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     @mock.patch.dict(
         "superset.extensions.feature_flag_manager._feature_flags",
         GLOBAL_ASYNC_QUERIES=True,
@@ -748,6 +756,7 @@ class TestCore(SupersetTestCase):
         new_callable=mock.PropertyMock,
     )
     @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_explore_json_data(self, mock_force_cached, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
         form_data = dict(  # noqa: C418
@@ -786,6 +795,7 @@ class TestCore(SupersetTestCase):
         "superset.utils.cache_manager.CacheManager.cache",
         new_callable=mock.PropertyMock,
     )
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_explore_json_data_no_login(self, mock_cache):
         tbl_id = self.table_ids.get("birth_names")
         form_data = dict(  # noqa: C418

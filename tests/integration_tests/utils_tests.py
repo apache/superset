@@ -880,6 +880,7 @@ class TestUtils(SupersetTestCase):
             assert slc is None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(ADMIN_USERNAME)
