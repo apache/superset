@@ -56,7 +56,6 @@ const GridContent = styled.div`
   ${({ theme, editMode }) => css`
     display: flex;
     flex-direction: column;
-
     /* gutters between rows */
     & > div:not(:last-child):not(.empty-droptarget) {
       ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px`};
@@ -154,8 +153,12 @@ class DashboardGrid extends PureComponent {
     }));
   }
 
-  handleResizeStop({ id, widthMultiple: width, heightMultiple: height }) {
-    this.props.resizeComponent({ id, width, height });
+  handleResizeStop(_event, _direction, _elementRef, delta, id) {
+    this.props.resizeComponent({
+      id,
+      width: delta.width,
+      height: delta.height,
+    });
 
     this.setState(() => ({
       isResizing: false,
