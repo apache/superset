@@ -18,15 +18,12 @@ apsw==3.46.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-async-timeout==4.0.3
-    # via
-    #   -c requirements/base.txt
-    #   redis
 attrs==24.2.0
     # via
     #   -c requirements/base.txt
     #   cattrs
     #   jsonschema
+    #   referencing
     #   requests-cache
 babel==2.16.0
     # via
@@ -172,11 +169,6 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
-exceptiongroup==1.2.2
-    # via
-    #   -c requirements/base.txt
-    #   cattrs
-    #   pytest
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -372,15 +364,19 @@ jsonpath-ng==1.7.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-jsonschema==4.17.3
+jsonschema==4.23.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
-    #   jsonschema-spec
     #   openapi-schema-validator
     #   openapi-spec-validator
-jsonschema-spec==0.1.6
+jsonschema-path==0.3.3
     # via openapi-spec-validator
+jsonschema-specifications==2023.12.1
+    # via
+    #   -c requirements/base.txt
+    #   jsonschema
+    #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
 kombu==5.4.2
@@ -448,7 +444,7 @@ nh3==0.2.19
     #   apache-superset
 nodeenv==1.8.0
     # via pre-commit
-numpy==1.23.5
+numpy==1.26.4
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -467,9 +463,11 @@ odfpy==1.4.1
     # via
     #   -c requirements/base.txt
     #   pandas
-openapi-schema-validator==0.4.4
-    # via openapi-spec-validator
-openapi-spec-validator==0.5.6
+openapi-schema-validator==0.6.2
+    # via
+    #   -c requirements/base.txt
+    #   openapi-spec-validator
+openapi-spec-validator==0.7.1
     # via apache-superset
 openpyxl==3.1.5
     # via
@@ -496,7 +494,7 @@ packaging==24.2
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.0.3
+pandas==2.1.4
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -518,7 +516,7 @@ parsedatetime==2.6
     #   -c requirements/base.txt
     #   apache-superset
 pathable==0.4.3
-    # via jsonschema-spec
+    # via jsonschema-path
 pgsanity==0.2.9
     # via
     #   -c requirements/base.txt
@@ -625,10 +623,6 @@ pyparsing==3.2.0
     #   -c requirements/base.txt
     #   apache-superset
     #   matplotlib
-pyrsistent==0.20.0
-    # via
-    #   -c requirements/base.txt
-    #   jsonschema
 pytest==7.4.4
     # via
     #   apache-superset
@@ -679,19 +673,25 @@ pyyaml==6.0.2
     #   -c requirements/base.txt
     #   apache-superset
     #   apispec
-    #   jsonschema-spec
+    #   jsonschema-path
     #   pre-commit
 redis==4.6.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+referencing==0.35.1
+    # via
+    #   -c requirements/base.txt
+    #   jsonschema
+    #   jsonschema-path
+    #   jsonschema-specifications
 requests==2.32.2
     # via
     #   -c requirements/base.txt
     #   docker
     #   google-api-core
     #   google-cloud-bigquery
-    #   jsonschema-spec
+    #   jsonschema-path
     #   pydruid
     #   pyhive
     #   requests-cache
@@ -705,11 +705,18 @@ requests-cache==1.2.0
 requests-oauthlib==2.0.0
     # via google-auth-oauthlib
 rfc3339-validator==0.1.4
-    # via openapi-schema-validator
+    # via
+    #   -c requirements/base.txt
+    #   openapi-schema-validator
 rich==13.9.4
     # via
     #   -c requirements/base.txt
     #   flask-limiter
+rpds-py==0.22.3
+    # via
+    #   -c requirements/base.txt
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via
     #   -c requirements/base.txt
@@ -785,14 +792,10 @@ sshtunnel==0.4.0
     #   apache-superset
 statsd==4.0.1
     # via apache-superset
-tabulate==0.8.10
+tabulate==0.9.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-tomli==2.2.1
-    # via
-    #   coverage
-    #   pytest
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -804,10 +807,8 @@ typing-extensions==4.12.2
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
-    #   cattrs
     #   flask-limiter
     #   limits
-    #   rich
     #   shillelagh
 tzdata==2024.2
     # via

@@ -9,13 +9,12 @@ apispec==6.3.0
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
-    # via
-    #   -r requirements/base.in
-    #   redis
+    # via -r requirements/base.in
 attrs==24.2.0
     # via
     #   cattrs
     #   jsonschema
+    #   referencing
     #   requests-cache
 babel==2.16.0
     # via flask-babel
@@ -92,8 +91,6 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
-exceptiongroup==1.2.2
-    # via cattrs
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -146,7 +143,6 @@ google-auth==2.36.0
     # via shillelagh
 greenlet==3.0.3
     # via
-    #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   shillelagh
 gunicorn==23.0.0
@@ -177,8 +173,14 @@ jinja2==3.1.4
     #   flask-babel
 jsonpath-ng==1.7.0
     # via apache-superset (pyproject.toml)
-jsonschema==4.17.3
-    # via flask-appbuilder
+jsonschema==4.23.0
+    # via
+    #   flask-appbuilder
+    #   openapi-schema-validator
+jsonschema-specifications==2023.12.1
+    # via
+    #   jsonschema
+    #   openapi-schema-validator
 kombu==5.4.2
     # via celery
 korean-lunar-calendar==0.3.1
@@ -215,7 +217,7 @@ nh3==0.2.19
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
-numpy==1.23.5
+numpy==1.26.4
     # via
     #   apache-superset (pyproject.toml)
     #   bottleneck
@@ -224,6 +226,8 @@ numpy==1.23.5
     #   pyarrow
 odfpy==1.4.1
     # via pandas
+openapi-schema-validator==0.6.2
+    # via -r requirements/base.in
 openpyxl==3.1.5
     # via pandas
 ordered-set==4.1.0
@@ -238,7 +242,7 @@ packaging==24.2
     #   marshmallow
     #   marshmallow-sqlalchemy
     #   shillelagh
-pandas==2.0.3
+pandas==2.1.4
     # via apache-superset (pyproject.toml)
 paramiko==3.5.0
     # via
@@ -281,8 +285,6 @@ pyopenssl==24.2.1
     # via shillelagh
 pyparsing==3.2.0
     # via apache-superset (pyproject.toml)
-pyrsistent==0.20.0
-    # via jsonschema
 python-dateutil==2.9.0.post0
     # via
     #   apache-superset (pyproject.toml)
@@ -309,14 +311,24 @@ pyyaml==6.0.2
     #   apispec
 redis==4.6.0
     # via apache-superset (pyproject.toml)
+referencing==0.35.1
+    # via
+    #   jsonschema
+    #   jsonschema-specifications
 requests==2.32.2
     # via
     #   requests-cache
     #   shillelagh
 requests-cache==1.2.0
     # via shillelagh
+rfc3339-validator==0.1.4
+    # via openapi-schema-validator
 rich==13.9.4
     # via flask-limiter
+rpds-py==0.22.3
+    # via
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via google-auth
 selenium==3.141.0
@@ -331,6 +343,7 @@ six==1.16.0
     # via
     #   prison
     #   python-dateutil
+    #   rfc3339-validator
     #   url-normalize
     #   wtforms-json
 slack-sdk==3.33.4
@@ -354,16 +367,14 @@ sqlparse==0.5.2
     # via apache-superset (pyproject.toml)
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
-tabulate==0.8.10
+tabulate==0.9.0
     # via apache-superset (pyproject.toml)
 typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
-    #   cattrs
     #   flask-limiter
     #   limits
-    #   rich
     #   shillelagh
 tzdata==2024.2
     # via

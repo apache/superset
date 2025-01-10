@@ -1976,7 +1976,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         self.make_orderby_compatible(select_exprs, orderby_exprs)
 
-        for col, (orig_col, ascending) in zip(orderby_exprs, orderby):  # noqa: B007
+        for col, (orig_col, ascending) in zip(orderby_exprs, orderby, strict=False):  # noqa: B007
             if not db_engine_spec.allows_alias_in_orderby and isinstance(col, Label):
                 # if engine does not allow using SELECT alias in ORDER BY
                 # revert to the underlying column
