@@ -353,16 +353,14 @@ export function saveDashboardRequest(data, id, saveType) {
       if (lastModifiedTime) {
         dispatch(saveDashboardRequestSuccess(lastModifiedTime));
       }
-      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-        const { chartConfiguration, globalChartConfiguration } =
-          handleChartConfiguration();
-        dispatch(
-          saveChartConfiguration({
-            chartConfiguration,
-            globalChartConfiguration,
-          }),
-        );
-      }
+      const { chartConfiguration, globalChartConfiguration } =
+        handleChartConfiguration();
+      dispatch(
+        saveChartConfiguration({
+          chartConfiguration,
+          globalChartConfiguration,
+        }),
+      );
       dispatch(saveDashboardFinished());
       dispatch(addSuccessToast(t('This dashboard was saved successfully.')));
       return response;
@@ -437,10 +435,8 @@ export function saveDashboardRequest(data, id, saveType) {
     ) {
       let chartConfiguration = {};
       let globalChartConfiguration = {};
-      if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-        ({ chartConfiguration, globalChartConfiguration } =
-          handleChartConfiguration());
-      }
+      ({ chartConfiguration, globalChartConfiguration } =
+        handleChartConfiguration());
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
           ? data

@@ -24,8 +24,6 @@ import {
   logging,
   Behavior,
   t,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
   VizType,
 } from '@superset-ui/core';
@@ -90,10 +88,7 @@ class ChartRenderer extends Component {
     )?.suppressContextMenu;
     this.state = {
       showContextMenu:
-        props.source === ChartSource.Dashboard &&
-        !suppressContextMenu &&
-        (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
-          isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
+        props.source === ChartSource.Dashboard && !suppressContextMenu,
       inContextMenu: false,
       legendState: undefined,
     };
