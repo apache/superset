@@ -585,8 +585,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if self.config["ENABLE_CORS"]:
             # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
-
-            CORS(self.superset_app, **self.config["CORS_OPTIONS"])
+            print('####################### CORS', self.config["CORS_OPTIONS"])
+            CORS(self.superset_app)
 
         if self.config["ENABLE_PROXY_FIX"]:
             self.superset_app.wsgi_app = ProxyFix(

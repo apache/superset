@@ -36,10 +36,10 @@ const { common } = getBootstrapData();
 const extensionsRegistry = getExtensionsRegistry();
 
 export const RootContextProviders: React.FC = ({ children }) => {
+  console.log('store', store.getState());
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
-
   return (
     <ThemeProvider theme={theme}>
       <AntdThemeProvider>

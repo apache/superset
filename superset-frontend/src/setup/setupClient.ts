@@ -41,6 +41,7 @@ function getDefaultConfiguration(): ClientConfig {
 }
 
 export default function setupClient(customConfig: Partial<ClientConfig> = {}) {
+  console.log('222222222222', getDefaultConfiguration(), customConfig)
   SupersetClient.configure({
     ...getDefaultConfiguration(),
     ...customConfig,

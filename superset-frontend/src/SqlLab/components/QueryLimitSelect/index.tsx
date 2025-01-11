@@ -57,11 +57,14 @@ const LimitSelectStyled = styled.span`
 `;
 
 function renderQueryLimit(
-  maxRow: number,
+  maxRowNumber: number,
   setQueryLimit: (limit: number) => void,
 ) {
   const limitDropdown = [];
-
+  let maxRow = maxRowNumber;
+  if (!maxRow) {
+    maxRow = 100000;
+  }
   // Construct limit dropdown as increasing powers of ten until we reach SQL_MAX_ROW
   for (let i = 10; i < maxRow; i *= 10) {
     limitDropdown.push(i);
@@ -89,7 +92,7 @@ const QueryLimitSelect = ({
   const dispatch = useDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
-  const queryLimit = queryEditor.queryLimit || defaultQueryLimit;
+  const queryLimit = queryEditor.queryLimit ?? defaultQueryLimit ?? 1000;
   const setQueryLimit = (updatedQueryLimit: number) =>
     dispatch(queryEditorSetQueryLimit(queryEditor, updatedQueryLimit));
 

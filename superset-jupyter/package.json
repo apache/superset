@@ -1,0 +1,19 @@
+{
+  "name": "superset-jupyter",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "cd ../superset-frontend && cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --color --mode production --config webpack.jupyter.js",
+    "build-dev": "npm run clean:assets && cd ../superset-frontend && cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=development webpack --mode=development --color --config webpack.jupyter.js",
+    "clean:assets":"rimraf ./static/assets"
+  },
+  "devDependencies": {
+    "rimraf":"^6.0.1",
+    "cross-env": "^7.0.3",
+    "webpack": "^5.94.0",
+    "webpack-bundle-analyzer": "^4.10.1",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.15.1",
+    "webpack-manifest-plugin": "^5.0.0",
+    "webpack-sources": "^3.2.3"
+  }
+}
