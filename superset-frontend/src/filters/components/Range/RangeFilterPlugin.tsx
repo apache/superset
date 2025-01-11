@@ -25,45 +25,19 @@ import {
   t,
 } from '@superset-ui/core';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { rgba } from 'emotion-rgba';
-import { AntdSlider } from 'src/components';
+import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
-const LIGHT_BLUE = '#99e7f0';
-const DARK_BLUE = '#6dd3e3';
-const LIGHT_GRAY = '#f5f5f5';
-const DARK_GRAY = '#e1e1e1';
-
-const StyledMinSlider = styled(AntdSlider)<{
-  validateStatus?: 'error' | 'warning' | 'info';
-}>`
-  ${({ theme, validateStatus }) => `
-  .ant-slider-rail {
-    background-color: ${
-      validateStatus ? theme.colors[validateStatus]?.light1 : LIGHT_BLUE
-    };
-  }
-
-  .ant-slider-track {
-    background-color: ${LIGHT_GRAY};
-  }
-
-  &:hover {
-    .ant-slider-rail {
-      background-color: ${
-        validateStatus ? theme.colors[validateStatus]?.base : DARK_BLUE
-      };
-    }
-
-    .ant-slider-track {
-      background-color: ${DARK_GRAY};
-    }
-  }
-  `}
+const StyledDivider = styled.span`
+  margin: 0 10px;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  align-content: center;
 `;
 
 const Wrapper = styled.div<{
@@ -71,66 +45,11 @@ const Wrapper = styled.div<{
   orientation?: FilterBarOrientation;
   isOverflowing?: boolean;
 }>`
-  ${({ theme, validateStatus, orientation, isOverflowing }) => `
-    border: 1px solid transparent;
-    &:focus {
-      border: 1px solid
-        ${theme.colors[validateStatus || 'primary']?.base};
-      outline: 0;
-      box-shadow: 0 0 0 3px
-        ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
-    }
-    & .ant-slider {
-      margin-top: ${
-        orientation === FilterBarOrientation.Horizontal ? 0 : theme.gridUnit
-      }px;
-      margin-bottom: ${
-        orientation === FilterBarOrientation.Horizontal ? 0 : theme.gridUnit * 5
-      }px;
-
-      ${
-        orientation === FilterBarOrientation.Horizontal &&
-        !isOverflowing &&
-        `line-height: 1.2;`
-      }
-
-      & .ant-slider-track {
-        background-color: ${
-          validateStatus && theme.colors[validateStatus]?.light1
-        };
-      }
-      & .ant-slider-handle {
-        border: ${
-          validateStatus && `2px solid ${theme.colors[validateStatus]?.light1}`
-        };
-        &:focus {
-          box-shadow: 0 0 0 3px
-            ${rgba(theme.colors[validateStatus || 'primary']?.base, 0.2)};
-        }
-      }
-      & .ant-slider-mark {
-        font-size: ${theme.typography.sizes.s}px;
-      }
-
-      &:hover {
-        & .ant-slider-track {
-          background-color: ${
-            validateStatus && theme.colors[validateStatus]?.base
-          };
-        }
-        & .ant-slider-handle {
-          border: ${
-            validateStatus && `2px solid ${theme.colors[validateStatus]?.base}`
-          };
-        }
-      }
-    }
-  `}
+  display: flex;
+  justify-content: space-between;
 `;
 
 const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
-
-const tipFormatter = (value: number) => numberFormatter(value);
 
 const getLabel = (lower: number | null, upper: number | null): string => {
   if (lower !== null && upper !== null && lower === upper) {
@@ -146,20 +65,6 @@ const getLabel = (lower: number | null, upper: number | null): string => {
     return `x ≤ ${numberFormatter(upper)}`;
   }
   return '';
-};
-
-const getMarks = (
-  lower: number | null,
-  upper: number | null,
-): { [key: number]: string } => {
-  const newMarks: { [key: number]: string } = {};
-  if (lower !== null) {
-    newMarks[lower] = numberFormatter(lower);
-  }
-  if (upper !== null) {
-    newMarks[upper] = numberFormatter(upper);
-  }
-  return newMarks;
 };
 
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
@@ -187,13 +92,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
-  const rangeValue = enableSingleValue === undefined;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, enableSingleExactValue ? min : max],
   );
-  const [marks, setMarks] = useState<{ [key: number]: string }>({});
+
   const minIndex = 0;
   const maxIndex = 1;
   const minMax = value ?? [min, max];
@@ -218,9 +122,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
-      setValue(value);
       const { lower, upper } = getBounds(value);
-      setMarks(getMarks(lower, upper));
+      setValue(value);
 
       setDataMask({
         extraFormData: getRangeExtraFormData(col, lower, upper),
@@ -233,9 +136,17 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     [col, getBounds, setDataMask],
   );
 
-  const handleChange = useCallback((value: [number, number]) => {
-    setValue(value);
-  }, []);
+  const handleChange = (newValue: number, index: 0 | 1) => {
+    const updatedValue: [number, number] = [...value];
+    if (index === minIndex && newValue > updatedValue[maxIndex]) {
+      updatedValue[minIndex] = updatedValue[maxIndex];
+    } else if (index === maxIndex && newValue < updatedValue[minIndex]) {
+      updatedValue[maxIndex] = updatedValue[minIndex];
+    } else {
+      updatedValue[index] = newValue;
+    }
+    handleAfterChange(updatedValue);
+  };
 
   useEffect(() => {
     // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
@@ -300,16 +211,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
   }, [enableSingleExactValue]);
 
-  const MIN_NUM_STEPS = 20;
-  const stepHeuristic = (min: number, max: number) => {
-    const maxStepSize = (max - min) / MIN_NUM_STEPS;
-    // normalizedStepSize: .06 -> .01, .003 -> .001
-    const normalizedStepSize = `1E${Math.floor(Math.log10(maxStepSize))}`;
-    return Math.min(1, parseFloat(normalizedStepSize));
-  };
-
-  const step = max - min <= 1 ? stepHeuristic(min, max) : 1;
-
   return (
     <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
@@ -332,57 +233,23 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onMouseDown={() => setFilterActive(true)}
             onMouseUp={() => setFilterActive(false)}
           >
-            {enableSingleMaxValue && (
-              <AntdSlider
-                min={min}
-                max={max}
-                step={step}
-                value={minMax[maxIndex]}
-                tipFormatter={tipFormatter}
-                marks={marks}
-                onAfterChange={value => handleAfterChange([min, value])}
-                onChange={value => handleChange([min, value])}
-              />
-            )}
-            {enableSingleMinValue && (
-              <StyledMinSlider
-                validateStatus={filterState.validateStatus}
-                min={min}
-                max={max}
-                step={step}
-                value={minMax[minIndex]}
-                tipFormatter={tipFormatter}
-                marks={marks}
-                onAfterChange={value => handleAfterChange([value, max])}
-                onChange={value => handleChange([value, max])}
-              />
-            )}
-            {enableSingleExactValue && (
-              <AntdSlider
-                min={min}
-                max={max}
-                step={step}
-                included={false}
-                value={minMax[minIndex]}
-                tipFormatter={tipFormatter}
-                marks={marks}
-                onAfterChange={value => handleAfterChange([value, value])}
-                onChange={value => handleChange([value, value])}
-              />
-            )}
-            {rangeValue && (
-              <AntdSlider
-                range
-                min={min}
-                max={max}
-                step={step}
-                value={minMax}
-                onAfterChange={handleAfterChange}
-                onChange={handleChange}
-                tipFormatter={tipFormatter}
-                marks={marks}
-              />
-            )}
+            <InputNumber
+              value={minMax[minIndex]}
+              min={min}
+              max={max}
+              onChange={value => handleChange(Number(value), minIndex)}
+              placeholder="From"
+              data-test="native-filter-from-input"
+            />
+            <StyledDivider>-</StyledDivider>
+            <InputNumber
+              value={minMax[maxIndex]}
+              min={min}
+              max={max}
+              onChange={value => handleChange(Number(value), maxIndex)}
+              placeholder="To"
+              data-test="native-filter-to-input"
+            />
           </Wrapper>
         </StyledFormItem>
       )}
