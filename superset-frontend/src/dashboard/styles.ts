@@ -127,7 +127,7 @@ export const focusStyle = (theme: SupersetTheme) => css`
     }
     &:not(
         .superset-button,
-        .ant-menu-item,
+        .antd5-menu-item,
         a,
         .fave-unfave-icon,
         .ant-tabs-tabpane,

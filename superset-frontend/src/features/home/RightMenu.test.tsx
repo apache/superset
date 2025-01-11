@@ -237,6 +237,8 @@ test('If only examples DB exist we must show the Connect Database option', async
   resetUseSelectorMock();
   // setAllowUploads called
   resetUseSelectorMock();
+  // setNonExamplesDBConnected called
+  resetUseSelectorMock();
   render(<RightMenu {...mockedProps} />, {
     useRedux: true,
     useQueryParams: true,

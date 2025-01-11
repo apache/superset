@@ -29,6 +29,7 @@ import ReactDOM from 'react-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   Behavior,
+  BinaryQueryObjectFilterClause,
   ContextMenuFilters,
   ensureIsArray,
   FeatureFlag,
@@ -47,6 +48,7 @@ import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { DrillByMenuItems } from '../DrillBy/DrillByMenuItems';
+import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 
 export enum ContextMenuItem {
   CrossFilter,
@@ -94,6 +96,12 @@ const ChartContextMenu = (
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
   const [openKeys, setOpenKeys] = useState<Key[]>([]);
+
+  const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
+    [],
+  );
+
+  const [visible, setVisible] = useState(false);
 
   const isDisplayed = (item: ContextMenuItem) =>
     displayedItems === ContextMenuItem.All ||
@@ -216,14 +224,13 @@ const ChartContextMenu = (
   if (showDrillToDetail) {
     menuItems.push(
       <DrillDetailMenuItems
-        chartId={id}
         formData={formData}
         filters={filters?.drillToDetail}
+        setFilters={setFilters}
         isContextMenu
         contextMenuY={clientY}
         onSelection={onSelection}
         submenuIndex={showCrossFilters ? 2 : 1}
-        showModal={drillModalIsOpen}
         setShowModal={setDrillModalIsOpen}
         {...(additionalConfig?.drillToDetail || {})}
       />,
@@ -279,37 +286,58 @@ const ChartContextMenu = (
   );
 
   return ReactDOM.createPortal(
-    <Dropdown
-      overlay={
-        <Menu
-          className="chart-context-menu"
-          data-test="chart-context-menu"
-          onOpenChange={openKeys => {
-            setOpenKeys(openKeys);
-          }}
-        >
-          {menuItems.length ? (
-            menuItems
-          ) : (
-            <Menu.Item disabled>No actions</Menu.Item>
-          )}
-        </Menu>
-      }
-      trigger={['click']}
-      onVisibleChange={value => !value && onClose()}
-    >
-      <span
-        id={`hidden-span-${id}`}
-        css={{
-          visibility: 'hidden',
-          position: 'fixed',
-          top: clientY,
-          left: clientX,
-          width: 1,
-          height: 1,
+    <>
+      <Dropdown
+        overlay={
+          <Menu
+            className="chart-context-menu"
+            data-test="chart-context-menu"
+            onOpenChange={setOpenKeys}
+            onClick={() => {
+              setVisible(false);
+              onClose();
+            }}
+          >
+            {menuItems.length ? (
+              menuItems
+            ) : (
+              <Menu.Item disabled>{t('No actions')}</Menu.Item>
+            )}
+          </Menu>
+        }
+        trigger={['click']}
+        onVisibleChange={value => {
+          setVisible(value);
+          if (!value) {
+            setOpenKeys([]);
+          }
         }}
-      />
-    </Dropdown>,
+        visible={visible}
+      >
+        <span
+          id={`hidden-span-${id}`}
+          css={{
+            visibility: 'hidden',
+            position: 'fixed',
+            top: clientY,
+            left: clientX,
+            width: 1,
+            height: 1,
+          }}
+        />
+      </Dropdown>
+      {showDrillToDetail && (
+        <DrillDetailModal
+          initialFilters={modalFilters}
+          chartId={id}
+          formData={formData}
+          showModal={drillModalIsOpen}
+          onHideModal={() => {
+            setDrillModalIsOpen(false);
+          }}
+        />
+      )}
+    </>,
     document.body,
   );
 };
