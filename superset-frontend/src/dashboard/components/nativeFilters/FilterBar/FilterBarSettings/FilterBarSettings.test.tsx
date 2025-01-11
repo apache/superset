@@ -104,33 +104,7 @@ test('Dropdown trigger does not render without dashboard edit permissions', asyn
   expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
 
-test('Dropdown trigger renders with FF DASHBOARD_CROSS_FILTERS on', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
-  await setup();
-
-  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
-});
-
-test('Dropdown trigger does not render with FF DASHBOARD_CROSS_FILTERS off', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: false,
-  };
-  await setup({
-    dash_edit_perm: false,
-  });
-
-  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
-});
-
 test('Popover shows cross-filtering option on by default', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
   expect(screen.getByText('Enable cross-filtering')).toBeInTheDocument();
@@ -138,10 +112,6 @@ test('Popover shows cross-filtering option on by default', async () => {
 });
 
 test('Can enable/disable cross-filtering', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
   fetchMock.reset();
   fetchMock.put('glob:*/api/v1/dashboard/1', {
     result: {},
