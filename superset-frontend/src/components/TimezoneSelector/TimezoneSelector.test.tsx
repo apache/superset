@@ -91,7 +91,7 @@ test('render timezones in correct order for standard time', async () => {
   const options = await getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
-  expect(options[2]).toHaveTextContent('GMT -10:00 (America/Adak)');
+  expect(options[2]).toHaveTextContent('GMT -11:00 (Pacific/Niue)');
 });
 
 test('can select a timezone values and returns canonical timezone name', async () => {
