@@ -25,11 +25,17 @@ export interface BaseFilter {
   initialValue: any;
 }
 
-export const FilterContainer = styled.div`
+// Define the prop type to include `width`
+interface FilterContainerProps {
+  width?: number; // Optional width prop
+}
+
+// Update styled.div to accept props
+export const FilterContainer = styled.div<FilterContainerProps>`
   display: inline-flex;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   align-items: center;
-  width: ${SELECT_WIDTH}px;
+  width: ${({ width }) => (width ? `${width}px` : `${SELECT_WIDTH}px`)};
 `;
 
 export type FilterHandler = {

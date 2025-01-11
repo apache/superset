@@ -562,6 +562,7 @@ function ChartList(props: ChartListProps) {
         { label: t('Yes'), value: true },
         { label: t('No'), value: false },
       ],
+      width: 100,
     }),
     [],
   );
@@ -600,6 +601,7 @@ function ChartList(props: ChartListProps) {
 
             return 0;
           }),
+        width: 150,
       },
       {
         Header: t('Dataset'),
@@ -645,6 +647,7 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
+        width: 150,
       },
       {
         Header: t('Dashboard'),
@@ -669,6 +672,7 @@ function ChartList(props: ChartListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+        width: 100,
       },
       {
         Header: t('Modified by'),
