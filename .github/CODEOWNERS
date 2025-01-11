@@ -12,7 +12,7 @@
 
 # Notify Helm Chart maintainers about changes in it
 
-/helm/superset/ @craig-rueda @dpgaspar @villebro @nytai @michael-s-molina @mistercrunch @rusackas
+/helm/superset/ @craig-rueda @dpgaspar @villebro @nytai @michael-s-molina @mistercrunch @rusackas @Antonio-RiveroMartnez
 
 # Notify E2E test maintainers of changes
 
@@ -24,7 +24,7 @@
 
 # Notify PMC members of changes to required GitHub Actions
 
-/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar
+/.asf.yaml @villebro @geido @eschutho @rusackas @betodealmeida @nytai @mistercrunch @craig-rueda @kgabryje @dpgaspar @Antonio-RiveroMartnez
 
 # Maps are a finicky contribution process we care about
 
