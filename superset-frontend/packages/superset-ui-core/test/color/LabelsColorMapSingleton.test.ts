@@ -212,7 +212,7 @@ describe('LabelsColorMap', () => {
 
     it('should use recycle colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: false,
+        [FeatureFlag.UseAnalogousColors]: false,
       };
       labelsColorMap.addSlice('a', 'red', 1);
       labelsColorMap.addSlice('b', 'blue', 2);
@@ -224,9 +224,9 @@ describe('LabelsColorMap', () => {
       expect(getAnalogousColorsSpy).not.toHaveBeenCalled();
     });
 
-    it('should use analagous colors', () => {
+    it('should use analogous colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: true,
+        [FeatureFlag.UseAnalogousColors]: true,
       };
 
       labelsColorMap.addSlice('a', 'red', 1);
