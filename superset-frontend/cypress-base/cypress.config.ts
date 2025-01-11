@@ -27,7 +27,8 @@ export default eyesPlugin(
     chromeWebSecurity: false,
     defaultCommandTimeout: 8000,
     numTestsKeptInMemory: 0,
-    experimentalFetchPolyfill: true,
+    // Disabled after realizing this MESSES UP rison encoding in intricate ways
+    experimentalFetchPolyfill: false,
     experimentalMemoryManagement: true,
     requestTimeout: 10000,
     video: false,
@@ -62,6 +63,7 @@ export default eyesPlugin(
           }
           return launchOptions;
         });
+
         // eslint-disable-next-line global-require
         require('@cypress/code-coverage/task')(on, config);
         on('task', verifyDownloadTasks);
@@ -70,6 +72,7 @@ export default eyesPlugin(
       },
       baseUrl: 'http://localhost:8088',
       excludeSpecPattern: [],
+      experimentalRunAllSpecs: true,
       specPattern: [
         'cypress/e2e/**/*.{js,jsx,ts,tsx}',
         'cypress/applitools/**/*.{js,jsx,ts,tsx}',
