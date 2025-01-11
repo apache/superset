@@ -55,6 +55,7 @@ const propTypes = {
     'vertical',
   ]),
   textAreaStyles: PropTypes.object,
+  wrapEnabled: PropTypes.bool,
 };
 
 const defaultProps = {
@@ -67,6 +68,7 @@ const defaultProps = {
   readOnly: false,
   resize: null,
   textAreaStyles: {},
+  wrapEnabled: true,
 };
 
 class TextAreaControl extends Component {
@@ -105,6 +107,7 @@ class TextAreaControl extends Component {
           defaultValue={this.props.initialValue}
           readOnly={this.props.readOnly}
           key={this.props.name}
+          wrapEnabled={this.props.wrapEnabled}
           {...this.props}
           onChange={this.onAreaEditorChange.bind(this)}
         />
