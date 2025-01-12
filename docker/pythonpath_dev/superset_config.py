@@ -22,9 +22,12 @@
 #
 import logging
 import os
+import secrets
 
 from celery.schedules import crontab
+from flask_appbuilder.security.manager import AUTH_OID
 from flask_caching.backends.filesystemcache import FileSystemCache
+from keycloak_security_manager import OIDCSecurityManager
 
 logger = logging.getLogger()
 
@@ -120,3 +123,24 @@ try:
     )
 except ImportError:
     logger.info("Using default Docker config...")
+
+# Basic secret key
+SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
+ENCRYPTION_KEY = SECRET_KEY
+# ------------------------------------------------------------------------------
+# Keycloak (OpenID Connect) authentication config and other settings...
+# ------------------------------------------------------------------------------
+AUTH_TYPE = AUTH_OID
+OIDC_CLIENT_SECRETS = "/app/docker/pythonpath_dev/client_secret.json"
+OIDC_ID_TOKEN_COOKIE_SECURE = False
+OIDC_OPENID_REALM = "hpc"
+OIDC_INTROSPECTION_AUTH_METHOD = "client_secret_post"
+CUSTOM_SECURITY_MANAGER = OIDCSecurityManager
+
+# Disable role sync on every login
+AUTH_ROLES_SYNC_AT_LOGIN = False
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = os.getenv("AUTH_USER_REGISTRATION_ROLE", "Public")
+
+# ... [rest of the configuration] ...
+logger.info("Superset configuration loaded successfully.")
