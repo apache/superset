@@ -55,6 +55,7 @@ import {
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
+  resetDashboardPast,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -675,7 +676,10 @@ const DashboardBuilder = () => {
                 )
               }
               buttonText={canEdit && t('Edit the dashboard')}
-              buttonAction={() => dispatch(setEditMode(true))}
+              buttonAction={() => {
+                dispatch(setEditMode(true));
+                dispatch(resetDashboardPast());
+              }}
               image="dashboard.svg"
             />
           )}

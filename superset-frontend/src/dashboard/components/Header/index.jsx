@@ -66,6 +66,7 @@ import {
   redoLayoutAction,
   undoLayoutAction,
   updateDashboardTitle,
+  resetDashboardPast,
 } from '../../actions/dashboardLayout';
 import {
   fetchCharts,
@@ -221,6 +222,7 @@ const Header = () => {
           addWarningToast,
           onUndo: undoLayoutAction,
           onRedo: redoLayoutAction,
+          clearDashboardHistory: resetDashboardPast,
           setEditMode,
           setUnsavedChanges,
           fetchFaveStar,
@@ -651,7 +653,10 @@ const Header = () => {
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
-                onClick={toggleEditMode}
+                onClick={() => {
+                  toggleEditMode();
+                  boundActionCreators.clearDashboardHistory(); // Resets the `past` as an empty array
+                }}
                 data-test="edit-dashboard-button"
                 className="action-button"
                 css={editButtonStyle}
