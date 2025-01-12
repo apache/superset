@@ -27,6 +27,10 @@ import {
   Ref,
 } from 'react';
 
+import { useSelector } from 'react-redux';
+import { ExplorePageState } from 'src/explore/types';
+import { registerLocale } from 'echarts/core';
+
 import { styled } from '@superset-ui/core';
 import { use, init, EChartsType } from 'echarts/core';
 import {
@@ -123,10 +127,22 @@ function Echart(
     getEchartInstance: () => chartRef.current,
   }));
 
+  const localeObj = useSelector(
+    (state: ExplorePageState) => state?.common?.locale ?? 'en',
+  );
+  try {
+    const lang = require(
+      `echarts/lib/i18n/lang/${localeObj.toUpperCase()}`,
+    ).default;
+    echarts.registerLocale(localeObj.toUpperCase(), lang);
+  } catch (e) {
+    console.warn(`Locale ${localeObj} not supported in ECharts`);
+  }
+
   useEffect(() => {
     if (!divRef.current) return;
     if (!chartRef.current) {
-      chartRef.current = init(divRef.current);
+      chartRef.current = init(divRef.current, undefined, { locale: localeObj });
     }
 
     Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
