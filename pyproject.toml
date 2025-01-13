@@ -24,15 +24,15 @@ name = "apache-superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file="LICENSE.txt" }
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
     "backoff>=1.8.0",
@@ -67,11 +67,12 @@ dependencies = [
     "markdown>=3.0",
     "msgpack>=1.0.0, <1.1",
     "nh3>=0.2.11, <0.3",
-    "numpy==1.23.5",
+    "numpy>=1.23.5, <2",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
-    "pandas[excel]>=2.0.3, <2.1",
+    # upper bounding at 2.2 as df.to_sql changes sqlalchemy type compatibility
+    "pandas[excel]>=2.0.3, <2.2",
     "bottleneck",
     # --------------------------
     "parsedatetime",
@@ -98,7 +99,8 @@ dependencies = [
     #https://github.com/tobymao/sqlglot/blob/main/CHANGELOG.md#v25250---2024-10-14
     "sqlglot>=25.24.0,<25.25.0",
     "sqlparse>=0.5.0",
-    "tabulate>=0.8.9, <0.9",
+    # newer pandas needs 0.9+
+    "tabulate>=0.9.0, <1.0",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "wtforms>=2.3.3, <4",
@@ -275,8 +277,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.9
-target-version = "py39"
+# Assume Python 3.10
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
