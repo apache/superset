@@ -21,9 +21,11 @@ import logging
 from abc import ABC, abstractmethod
 from enum import Enum
 from time import sleep
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import current_app
+from packaging import version
+from selenium import __version__ as selenium_version
 from selenium.common.exceptions import (
     StaleElementReferenceException,
     TimeoutException,
@@ -31,6 +33,7 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver import chrome, firefox, FirefoxProfile
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.service import Service
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC  # noqa: N812
 from selenium.webdriver.support.ui import WebDriverWait
@@ -246,13 +249,16 @@ class WebDriverSelenium(WebDriverProxy):
     def create(self) -> WebDriver:
         pixel_density = current_app.config["WEBDRIVER_WINDOW"].get("pixel_density", 1)
         if self._driver_type == "firefox":
-            driver_class = firefox.webdriver.WebDriver
+            driver_class: type[WebDriver] = firefox.webdriver.WebDriver
+            service_class: type[Service] = firefox.service.Service
             options = firefox.options.Options()
             profile = FirefoxProfile()
             profile.set_preference("layout.css.devPixelsPerPx", str(pixel_density))
-            kwargs: dict[Any, Any] = {"options": options, "firefox_profile": profile}
+            options.profile = profile
+            kwargs = {"options": options}
         elif self._driver_type == "chrome":
             driver_class = chrome.webdriver.WebDriver
+            service_class = chrome.service.Service
             options = chrome.options.Options()
             options.add_argument(f"--force-device-scale-factor={pixel_density}")
             options.add_argument(f"--window-size={self._window[0]},{self._window[1]}")
@@ -261,15 +267,41 @@ class WebDriverSelenium(WebDriverProxy):
             raise Exception(  # pylint: disable=broad-exception-raised
                 f"Webdriver name ({self._driver_type}) not supported"
             )
-        # Prepare args for the webdriver init
 
-        # Add additional configured options
-        for arg in current_app.config["WEBDRIVER_OPTION_ARGS"]:
+        # Prepare args for the webdriver init
+        for arg in list(current_app.config["WEBDRIVER_OPTION_ARGS"]):
             options.add_argument(arg)
 
-        kwargs.update(current_app.config["WEBDRIVER_CONFIGURATION"])
-        logger.debug("Init selenium driver")
+        # Add additional configured webdriver options
+        webdriver_conf = dict(current_app.config["WEBDRIVER_CONFIGURATION"])
 
+        if version.parse(selenium_version) < version.parse("4.10.0"):
+            kwargs |= webdriver_conf
+        else:
+            driver_opts = dict(
+                webdriver_conf.get("options", {"capabilities": {}, "preferences": {}})
+            )
+            driver_srv = dict(
+                webdriver_conf.get(
+                    "service",
+                    {
+                        "log_output": "/dev/null",
+                        "service_args": [],
+                        "port": 0,
+                        "env": {},
+                    },
+                )
+            )
+            for name, value in driver_opts.get("capabilities", {}).items():
+                options.set_capability(name, value)
+            if hasattr(options, "profile"):
+                for name, value in driver_opts.get("preferences", {}).items():
+                    options.profile.set_preference(str(name), value)
+            kwargs |= {
+                "service": service_class(**driver_srv),
+            }
+
+        logger.debug("Init selenium driver")
         return driver_class(**kwargs)
 
     def auth(self, user: User) -> WebDriver:
