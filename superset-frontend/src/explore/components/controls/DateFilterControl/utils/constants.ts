@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
 import { t } from '@superset-ui/core';
 import {
   SelectOptionType,
@@ -32,6 +31,7 @@ import {
   CurrentQuarter,
   CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
+import { extendedDayjs } from 'src/utils/dates';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
@@ -130,30 +130,16 @@ export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentRangeType> = new Set([
   CurrentYear,
 ]);
 
-export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
-export const SEVEN_DAYS_AGO = moment()
+export const DAYJS_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+export const SEVEN_DAYS_AGO = extendedDayjs()
   .utc()
   .startOf('day')
   .subtract(7, 'days')
-  .format(MOMENT_FORMAT);
-export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
-
-export const LOCALE_MAPPING = {
-  en: () => import('antd/lib/date-picker/locale/en_US'),
-  fr: () => import('antd/lib/date-picker/locale/fr_FR'),
-  es: () => import('antd/lib/date-picker/locale/es_ES'),
-  it: () => import('antd/lib/date-picker/locale/it_IT'),
-  zh: () => import('antd/lib/date-picker/locale/zh_CN'),
-  ja: () => import('antd/lib/date-picker/locale/ja_JP'),
-  de: () => import('antd/lib/date-picker/locale/de_DE'),
-  pt: () => import('antd/lib/date-picker/locale/pt_PT'),
-  pt_BR: () => import('antd/lib/date-picker/locale/pt_BR'),
-  ru: () => import('antd/lib/date-picker/locale/ru_RU'),
-  ko: () => import('antd/lib/date-picker/locale/ko_KR'),
-  sk: () => import('antd/lib/date-picker/locale/sk_SK'),
-  sl: () => import('antd/lib/date-picker/locale/sl_SI'),
-  nl: () => import('antd/lib/date-picker/locale/nl_NL'),
-};
+  .format(DAYJS_FORMAT);
+export const MIDNIGHT = extendedDayjs()
+  .utc()
+  .startOf('day')
+  .format(DAYJS_FORMAT);
 
 export enum DateFilterTestKey {
   CommonFrame = 'common-frame',
