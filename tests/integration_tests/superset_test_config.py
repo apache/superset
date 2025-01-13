@@ -68,8 +68,6 @@ SQLLAB_CTAS_NO_LIMIT = True  # SQL_MAX_ROW will not take effect for the CTA quer
 FEATURE_FLAGS = {
     **FEATURE_FLAGS,  # noqa: F405
     "foo": "bar",
-    "KV_STORE": True,
-    "SHARE_QUERIES_VIA_KV_STORE": True,
     "ENABLE_TEMPLATE_PROCESSING": True,
     "ALERT_REPORTS": True,
     "AVOID_COLORS_COLLISION": True,
