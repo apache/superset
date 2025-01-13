@@ -1,0 +1,19 @@
+@startuml
+!include ./../lib/C4_Context.puml
+
+AddRelTag("sync", $textColor="black", $lineColor="black", $lineStyle = DashedLine())
+
+LAYOUT_WITH_LEGEND()
+
+title CRM Order Management System - Context Diagram
+
+Person(customer, "Customer", "Places orders and tracks them.")
+System_Ext(paymentGateway, "Payment Gateway", "Processes payment for orders.")
+System_Ext(supplierSystem, "Supplier System", "External supplier management system.")
+System(CRMSystem, "CRM Order Management System", "Manages customer orders and inventory.")
+
+Rel_D(customer, CRMSystem, "Places and tracks orders", $tags="sync")
+Rel_R(CRMSystem, paymentGateway, "Processes payment", $tags="sync")
+Rel_D(CRMSystem, supplierSystem, "Sends order details", $tags="sync")
+
+@enduml

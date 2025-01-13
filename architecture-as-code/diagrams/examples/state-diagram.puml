@@ -1,0 +1,7 @@
+@startuml
+[*] --> Placed
+Placed --> Processed : payment done
+Processed --> Shipped : order packed
+Shipped --> Delivered : order delivered
+[*] --> Cancelled : order canceled
+@enduml

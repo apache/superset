@@ -1,0 +1,19 @@
+{
+  "name": "dodo-superset-architecture",
+  "version": "1.0.0",
+  "description": "## This is a repository that contains documentation about event analytics, notifications and the global architecture of the project `DODO Superset` using the `C4 model` for visualising software",
+  "main": "index.js",
+  "directories": {
+    "example": "examples",
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "fs-extra": "^11.2.0"
+  }
+}

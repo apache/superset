@@ -1,0 +1,33 @@
+@startuml
+!include ./../lib/C4_Component.puml
+
+AddRelTag("sync", $textColor="black", $lineColor="black", $lineStyle = DashedLine())
+
+LAYOUT_WITH_LEGEND()
+
+title CRM Order Management System - Component Diagram
+
+System_Boundary(CRMSystem, "CRM Order Management System") {
+    Container(api, "API", "ASP.NET Core", "Handles incoming HTTP requests.") {
+        Component(orderController, "OrderController", "Handles order-related endpoints.")
+        Component(productController, "ProductController", "Handles product-related endpoints.")
+        Component(paymentService, "PaymentService", "Processes payments using external payment gateway.")
+        Component(orderService, "OrderService", "Manages the business logic of order processing.")
+        Component(productService, "ProductService", "Manages product catalog and inventory.")
+        Component(orderRepository, "OrderRepository", "Handles CRUD operations for orders.")
+        Component(productRepository, "ProductRepository", "Handles CRUD operations for products.")
+    }
+    ContainerDb(database, "Orders Database", "SQL Database", "Stores order and product data")
+}
+
+System_Ext(paymentGateway, "Payment Gateway", "External Service", "Handles payment transactions")
+
+Rel(orderController, orderService, "Processes order requests", $tags="sync")
+Rel(productController, productService, "Processes product requests", $tags="sync")
+Rel(orderService, orderRepository, "Stores orders in the database", $tags="sync")
+Rel(productService, productRepository, "Stores products in the database", $tags="sync")
+Rel(orderRepository, database, "Reads/Writes order data", $tags="sync")
+Rel(productRepository, database, "Reads/Writes product data", $tags="sync")
+Rel(orderService, paymentGateway, "Processes payments through", $tags="sync")
+
+@enduml

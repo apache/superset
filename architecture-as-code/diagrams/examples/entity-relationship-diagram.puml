@@ -1,0 +1,29 @@
+@startuml
+entity "Customer" {
+  + CustomerId : int <<PK>>
+  + Name : string
+}
+
+entity "Order" {
+  + OrderId : int <<PK>>
+  + Date : DateTime
+  + CustomerId : int <<FK>> -- References Customer.CustomerId
+}
+
+entity "OrderItem" {
+  + ItemId : int <<PK>>
+  + OrderId : int <<FK>> -- References Order.OrderId
+  + ProductId : int <<FK>> -- References Product.ProductId
+  + Quantity : int
+}
+
+entity "Product" {
+  + ProductId : int <<PK>>
+  + ProductName : string
+  + QuantityAvailable : int
+}
+
+Customer ||--o{ Order : "places"
+Order ||--o{ OrderItem : "contains"
+Product ||--o{ OrderItem : "includes"
+@enduml

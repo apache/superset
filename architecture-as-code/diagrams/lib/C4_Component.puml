@@ -1,0 +1,87 @@
+' convert it with additional command line argument -DRELATIVE_INCLUDE="relative/absolute" to use locally
+
+!include ./C4_Container.puml
+
+' Scope: A single container.
+' Primary elements: Components within the container in scope.
+' Supporting elements: Containers (within the software system in scope) plus people and software systems directly connected to the components.
+' Intended audience: Software architects and developers.
+
+' Colors
+' ##################################
+
+!$COMPONENT_FONT_COLOR ?= "#000000"
+!$COMPONENT_BG_COLOR ?= "#85BBF0"
+!$COMPONENT_BORDER_COLOR ?= "#78A8D8"
+
+!$EXTERNAL_COMPONENT_LEGEND_TEXT ?= "external component"
+!$EXTERNAL_COMPONENT_FONT_COLOR ?= $COMPONENT_FONT_COLOR
+!$EXTERNAL_COMPONENT_BG_COLOR ?= "#CCCCCC"
+!$EXTERNAL_COMPONENT_BORDER_COLOR ?= "#BFBFBF"
+
+' Labels
+' ##################################
+
+!$COMPONENT_LEGEND_TEXT ?= "component"
+!$EXTERNAL_COMPONENT_LEGEND_TEXT ?= "external component"
+
+' Styling
+' ##################################
+
+UpdateElementStyle("component", $COMPONENT_BG_COLOR, $COMPONENT_FONT_COLOR, $COMPONENT_BORDER_COLOR, $legendText="$COMPONENT_LEGEND_TEXT")
+UpdateElementStyle("external_component", $EXTERNAL_COMPONENT_BG_COLOR, $EXTERNAL_COMPONENT_FONT_COLOR, $EXTERNAL_COMPONENT_BORDER_COLOR, $legendText="$EXTERNAL_COMPONENT_LEGEND_TEXT")
+
+' shortcuts with default colors
+!unquoted procedure AddComponentTag($tagStereo, $bgColor="", $fontColor="", $borderColor="", $shadowing="", $shape="", $sprite="", $techn="", $legendText="", $legendSprite="", $borderStyle="", $borderThickness="")
+  $addElementTagInclReuse("component", $tagStereo, $bgColor, $fontColor, $borderColor, $shadowing, $shape, $sprite, $techn, $legendText, $legendSprite, $borderStyle, $borderThickness)
+!endprocedure
+!unquoted procedure AddExternalComponentTag($tagStereo, $bgColor="", $fontColor="", $borderColor="", $shadowing="", $shape="", $sprite="", $techn="", $legendText="", $legendSprite="", $borderStyle="", $borderThickness="")
+  $addElementTagInclReuse("external_component", $tagStereo, $bgColor, $fontColor, $borderColor, $shadowing, $shape, $sprite, $techn, $legendText, $legendSprite, $borderStyle, $borderThickness)
+!endprocedure
+
+' Layout
+' ##################################
+
+SetDefaultLegendEntries("person\nsystem\ncontainer\ncomponent\nexternal_person\nexternal_system\nexternal_container\nexternal_component\nenterprise_boundary\nsystem_boundary\ncontainer_boundary\nboundary")
+
+!procedure LAYOUT_WITH_LEGEND()
+hide stereotype
+legend right
+|<color:$LEGEND_TITLE_COLOR>**Legend**</color> |
+|<$PERSON_BG_COLOR> person |
+|<$SYSTEM_BG_COLOR> system |
+|<$CONTAINER_BG_COLOR> container |
+|<$COMPONENT_BG_COLOR> component |
+|<$EXTERNAL_PERSON_BG_COLOR> external person |
+|<$EXTERNAL_SYSTEM_BG_COLOR> external system |
+|<$EXTERNAL_CONTAINER_BG_COLOR> external container |
+|<$EXTERNAL_COMPONENT_BG_COLOR> external component |
+endlegend
+!endprocedure
+
+' Elements
+' ##################################
+
+!unquoted procedure Component($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="rectangle")
+  $getElementLine($baseShape, "component", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ComponentDb($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("database", "component", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ComponentQueue($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("queue", "component", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure Component_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="rectangle")
+  $getElementLine($baseShape, "external_component", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ComponentDb_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("database", "external_component", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ComponentQueue_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("queue", "external_component", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure

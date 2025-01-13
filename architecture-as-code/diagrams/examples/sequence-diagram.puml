@@ -1,0 +1,41 @@
+@startuml
+
+participant "Customer" as Customer
+participant "Web Application" as WebApp
+participant "API" as API
+participant "Order Service" as OrderService
+participant "Payment Service" as PaymentService
+participant "Payment Gateway" as PaymentGateway
+participant "Order Repository" as OrderRepository
+participant "Product Repository" as ProductRepository
+participant "Supplier Service" as SupplierService
+participant "Supplier System" as SupplierSystem
+
+' Step 1: Customer places an order on the Web Application
+Customer -> WebApp : Places order
+
+' Step 2: Web Application sends order data to API
+WebApp -> API : Sends order details
+
+' Step 3: API forwards order to Order Service
+API -> OrderService : Process order request
+
+' Step 4: Order Service validates order and stores it in the database
+OrderService -> ProductRepository : Check product availability
+OrderService -> OrderRepository : Store order data
+
+' Step 5: Payment Service processes the payment
+OrderService -> PaymentService : Initiate payment processing
+PaymentService -> PaymentGateway : Process payment
+
+' Step 6: Payment Gateway confirms the payment
+PaymentGateway -> PaymentService : Payment confirmation
+PaymentService -> OrderService : Notify payment success
+
+' Step 7: Order Service notifies Supplier Service
+OrderService -> SupplierService : Notify supplier of order
+
+' Step 8: Supplier Service sends order to external Supplier System
+SupplierService -> SupplierSystem : Place supplier order
+
+@enduml

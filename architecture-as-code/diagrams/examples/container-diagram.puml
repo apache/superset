@@ -1,0 +1,27 @@
+@startuml
+!include ./../lib/C4_Container.puml
+
+AddRelTag("sync", $textColor="black", $lineColor="black", $lineStyle = DashedLine())
+
+LAYOUT_WITH_LEGEND()
+
+title CRM Order Management System - Container Diagram
+
+Person(customer, "Customer", "Interacts with the web application.")
+
+System(CRMSystem, "CRM Order Management System", "Handles orders, inventory, and customer data.") {
+    Container(webApp, "Web Application", "Angular", "Allows customers to place orders.")
+    Container(api, "API", "ASP.NET Core", "Handles business logic and processes requests.")
+    ContainerDb(database, "Orders Database", "SQL Database", "Stores orders, customers, products, and inventory.")
+}
+
+System_Ext(paymentGateway, "Payment Gateway", "Processes payment for orders.")
+System_Ext(supplierSystem, "Supplier System", "Handles supplier orders.")
+
+Rel_D(customer, webApp, "Places orders and views order status", $tags="sync")
+Rel_L(webApp, api, "Submits order requests", $tags="sync")
+Rel_L(api, database, "Reads and writes order details", $tags="sync")
+Rel_D(api, paymentGateway, "Processes payments", $tags="sync")
+Rel_D(api, supplierSystem, "Sends order information", $tags="sync")
+
+@enduml

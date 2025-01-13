@@ -1,0 +1,8 @@
+@startuml
+actor Customer
+actor Admin
+usecase "Place Order" as UC1
+usecase "Manage Products" as UC2
+Customer --> UC1
+Admin --> UC2
+@enduml

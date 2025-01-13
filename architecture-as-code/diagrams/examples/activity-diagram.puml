@@ -1,0 +1,10 @@
+@startuml
+start
+:Receive Order;
+if (Order Valid?) then (yes)
+  :Process Order;
+else (no)
+  :Reject Order;
+endif
+stop
+@enduml

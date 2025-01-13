@@ -1,0 +1,108 @@
+' convert it with additional command line argument -DRELATIVE_INCLUDE="relative/absolute" to use locally
+
+!include ./C4_Context.puml
+
+' Scope: A single software system.
+' Primary elements: Containers within the software system in scope.
+' Supporting elements: People and software systems directly connected to the containers.
+' Intended audience: Technical people inside and outside of the software development team; including software architects, developers and operations/support staff.
+
+' Colors
+' ##################################
+
+!$CONTAINER_FONT_COLOR ?= $ELEMENT_FONT_COLOR
+!$CONTAINER_BG_COLOR ?= "#438DD5"
+!$CONTAINER_BORDER_COLOR ?= "#3C7FC0"
+
+!$CONTAINER_BOUNDARY_COLOR ?= $BOUNDARY_COLOR
+!$CONTAINER_BOUNDARY_BG_COLOR ?= $BOUNDARY_BG_COLOR
+!$CONTAINER_BOUNDARY_BORDER_STYLE ?= $BOUNDARY_BORDER_STYLE
+
+!$EXTERNAL_CONTAINER_FONT_COLOR ?= $ELEMENT_FONT_COLOR
+!$EXTERNAL_CONTAINER_BG_COLOR ?= "#B3B3B3"
+!$EXTERNAL_CONTAINER_BORDER_COLOR ?= "#A6A6A6"
+
+' Labels
+' ##################################
+
+!$CONTAINER_LEGEND_TEXT ?= "container"
+!$CONTAINER_BOUNDARY_TYPE ?= "container"
+!$CONTAINER_BOUNDARY_LEGEND_TEXT ?= "container boundary"
+!$EXTERNAL_CONTAINER_LEGEND_TEXT ?= "external container"
+
+' Styling
+' ##################################
+UpdateElementStyle("container", $CONTAINER_BG_COLOR, $CONTAINER_FONT_COLOR, $CONTAINER_BORDER_COLOR, $legendText="$CONTAINER_LEGEND_TEXT")
+UpdateElementStyle("external_container", $EXTERNAL_CONTAINER_BG_COLOR, $EXTERNAL_CONTAINER_FONT_COLOR, $EXTERNAL_CONTAINER_BORDER_COLOR, $legendText="$EXTERNAL_CONTAINER_LEGEND_TEXT")
+
+UpdateBoundaryStyle("container", $bgColor=$CONTAINER_BOUNDARY_BG_COLOR, $fontColor=$CONTAINER_BOUNDARY_COLOR, $borderColor=$CONTAINER_BOUNDARY_COLOR, $type="$CONTAINER_BOUNDARY_TYPE", $legendText="$CONTAINER_BOUNDARY_LEGEND_TEXT")
+
+' shortcuts with default colors
+!unquoted procedure AddContainerTag($tagStereo, $bgColor="", $fontColor="", $borderColor="", $shadowing="", $shape="", $sprite="", $techn="", $legendText="", $legendSprite="", $borderStyle="", $borderThickness="")
+  $addElementTagInclReuse("container", $tagStereo, $bgColor, $fontColor, $borderColor, $shadowing, $shape, $sprite, $techn, $legendText, $legendSprite, $borderStyle, $borderThickness)
+!endprocedure
+!unquoted procedure AddExternalContainerTag($tagStereo, $bgColor="", $fontColor="", $borderColor="", $shadowing="", $shape="", $sprite="", $techn="", $legendText="", $legendSprite="", $borderStyle="", $borderThickness="")
+  $addElementTagInclReuse("external_container", $tagStereo, $bgColor, $fontColor, $borderColor, $shadowing, $shape, $sprite, $techn, $legendText, $legendSprite, $borderStyle, $borderThickness)
+!endprocedure
+
+!unquoted procedure UpdateContainerBoundaryStyle($bgColor=$CONTAINER_BOUNDARY_BG_COLOR, $fontColor=$CONTAINER_BOUNDARY_COLOR, $borderColor=$CONTAINER_BOUNDARY_COLOR, $shadowing="", $shape="", $type="Container", $legendText="", $borderStyle="", $borderThickness="", $sprite="", $legendSprite="")
+  UpdateBoundaryStyle("container", $bgColor, $fontColor, $borderColor, $shadowing, $shape, $type, $legendText, $borderStyle, $borderThickness, $sprite, $legendSprite)
+!endprocedure
+
+' Layout
+' ##################################
+
+SetDefaultLegendEntries("person\nsystem\ncontainer\nexternal_person\nexternal_system\nexternal_container\nenterprise_boundary\nsystem_boundary\ncontainer_boundary\nboundary")
+
+!procedure LAYOUT_WITH_LEGEND()
+hide stereotype
+legend right
+|<color:$LEGEND_TITLE_COLOR>**Legend**</color> |
+|<$PERSON_BG_COLOR> person |
+|<$SYSTEM_BG_COLOR> system |
+|<$CONTAINER_BG_COLOR> container |
+|<$EXTERNAL_PERSON_BG_COLOR> external person |
+|<$EXTERNAL_SYSTEM_BG_COLOR> external system |
+|<$EXTERNAL_CONTAINER_BG_COLOR> external container |
+endlegend
+!endprocedure
+
+' Elements
+' ##################################
+
+!unquoted procedure Container($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="rectangle")
+  $getElementLine($baseShape , "container", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ContainerDb($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("database", "container", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ContainerQueue($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("queue", "container", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure Container_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="", $baseShape="rectangle")
+  $getElementLine($baseShape , "external_container", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ContainerDb_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("database", "external_container", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure ContainerQueue_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  $getElementLine("queue", "external_container", $alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+' Boundaries
+' ##################################
+
+!unquoted procedure Container_Boundary($alias, $label, $tags="", $link="", $descr = "")
+  !if ($tags != "")
+    !$allTags = $tags + '+container'
+  !else
+    !$allTags = 'container'
+  !endif
+  ' $type defined via $tag style
+  Boundary($alias, $label, "", $allTags, $link, $descr)
+!endprocedure

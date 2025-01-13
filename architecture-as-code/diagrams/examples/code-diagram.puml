@@ -1,0 +1,55 @@
+@startuml
+
+title CRM Order Management System - C4 - Class Diagram
+
+class Customer {
+  + int CustomerId <<PK>>
+  + string Name
+  + PlaceOrder(Order order)
+}
+
+class Order {
+  + int OrderId <<PK>>
+  + DateTime OrderDate
+  + int CustomerId <<FK>> -- References Customer.CustomerId
+  + AddOrderItem(OrderItem item)
+}
+
+class OrderItem {
+  + int ItemId <<PK>>
+  + int OrderId <<FK>> -- References Order.OrderId
+  + int ProductId <<FK>> -- References Product.ProductId
+  + int Quantity
+}
+
+class Product {
+  + int ProductId <<PK>>
+  + string ProductName
+  + int QuantityAvailable
+  + UpdateInventory(int quantity)
+}
+
+class PaymentService {
+  + ProcessPayment(Order order)
+}
+
+class SupplierService {
+  + NotifySupplier(OrderItem orderItem)
+}
+
+class PaymentGateway {
+  + ProcessTransaction()
+}
+
+class SupplierSystem {
+  + ReceiveOrder()
+}
+
+Customer "1" --> "*" Order : places
+Order "1" --> "*" OrderItem : contains
+OrderItem "1" --> "*" Product : "references"
+Order "1" --> PaymentService : initiates
+PaymentService --> PaymentGateway : calls
+OrderItem --> SupplierService : "requests"
+SupplierService --> SupplierSystem : notifies
+@enduml
