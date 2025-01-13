@@ -121,3 +121,5 @@ docker/*local*
 
 # Jest test report
 test-report.html
+
+architecture-as-code/node_modules
