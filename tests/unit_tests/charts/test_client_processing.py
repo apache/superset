@@ -987,8 +987,12 @@ def test_pivot_df_complex():
         show_columns_total=False,
         apply_metrics_on_rows=False,
     )
+
+    # Sort the pivoted DataFrame to ensure deterministic output
+    pivoted_sorted = pivoted.sort_index()
+
     assert (
-        pivoted.to_markdown()
+        pivoted_sorted.to_markdown()
         == """
 |                    |   ('SUM(num)', 'CA') |   ('SUM(num)', 'FL') |   ('MAX(num)', 'CA') |   ('MAX(num)', 'FL') |
 |:-------------------|---------------------:|---------------------:|---------------------:|---------------------:|
@@ -2511,7 +2515,7 @@ def test_pivot_multi_level_index():
         ["City1", "City2", "City3", "City4", "City5", "City6"],
     ]
     index = pd.MultiIndex.from_tuples(
-        list(zip(*arrays)),
+        list(zip(*arrays, strict=False)),
         names=["Region", "State", "City"],
     )
 
@@ -2551,9 +2555,9 @@ def test_pivot_multi_level_index():
 | ('Region1', 'Subtotal', '')       |             60 |             30 |              0 |
 | ('Region2', 'State3', 'City4')    |             40 |             20 |            nan |
 | ('Region2', 'State3', 'City5')    |             50 |             25 |            nan |
-| ('Region2', 'State3', 'Subtotal') |            100 |             50 |              0 |
+| ('Region2', 'State3', 'Subtotal') |             90 |             45 |              0 |
 | ('Region2', 'State4', 'City6')    |             60 |             30 |            nan |
-| ('Region2', 'State4', 'Subtotal') |             40 |             20 |              0 |
+| ('Region2', 'State4', 'Subtotal') |             60 |             30 |              0 |
 | ('Region2', 'Subtotal', '')       |            150 |             75 |              0 |
 | ('Total (Sum)', '', '')           |            210 |            105 |              0 |
     """.strip()

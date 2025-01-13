@@ -182,12 +182,12 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
-        groups = df.index.copy()
+        groups = df.index
         for level in range(df.index.nlevels):
             subgroups = {group[:level] for group in groups}
             for subgroup in subgroups:
                 try:
-                    slice_ = groups.get_loc(subgroup)
+                    slice_ = df.index.get_loc(subgroup)
                 except Exception:  # pylint: disable=broad-except
                     logger.exception(
                         "Error getting location for subgroup %s from %s",
@@ -199,7 +199,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 subtotal = pivot_v2_aggfunc_map[aggfunc](
                     df.iloc[slice_, :].apply(pd.to_numeric, errors="coerce"), axis=0
                 )
-                depth = df.index.nlevels - len(subgroup) - 1
+                depth = groups.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert row after subgroup
