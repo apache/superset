@@ -177,11 +177,25 @@ export function getClientErrorObject(
     }
 
     if (
-      response instanceof TypeError &&
-      response.message === 'Failed to fetch'
+      (response instanceof TypeError &&
+        response.message === 'Failed to fetch') ||
+      (response instanceof TypeError &&
+        response.message.includes('NetworkError'))
     ) {
       resolve({
         error: t('Network error'),
+        message: t(
+          'Network Error when attempting to load resource. Please check your internet connection and try again.',
+        ),
+        errors: [
+          {
+            error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
+            level: 'error',
+            message:
+              'Network Error when attempting to load resource. Please check your internet connection and try again.',
+            extra: {},
+          },
+        ],
       });
       return;
     }
@@ -254,6 +268,7 @@ export function getClientErrorObject(
     }
 
     // fall back to Response.statusText or generic error of we cannot read the response
+    console.log({ response });
     let error = (response as any).statusText || (response as any).message;
     if (!error) {
       // eslint-disable-next-line no-console

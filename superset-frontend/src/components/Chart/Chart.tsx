@@ -273,8 +273,8 @@ class Chart extends PureComponent<ChartProps, {}> {
         key={chartId}
         chartId={chartId}
         error={error}
-        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
-        copyText={message}
+        subtitle={<MonospaceDiv>{error?.message || message}</MonospaceDiv>}
+        copyText={error?.message || message}
         link={queryResponse ? queryResponse.link : undefined}
         source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
