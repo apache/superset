@@ -487,7 +487,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # This feature flag is used by the download feature in the dashboard view.
     # It is dependent on ENABLE_DASHBOARD_SCREENSHOT_ENDPOINT being enabled.
     "ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT": False,
-    "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
