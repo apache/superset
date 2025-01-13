@@ -100,6 +100,7 @@ def validate_metadata_type(
 
 
 # pylint: disable=too-many-locals,too-many-arguments
+# ruff: noqa: C901
 def load_configs(
     contents: dict[str, str],
     schemas: dict[str, Schema],
@@ -221,6 +222,7 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
 
 
 # pylint: disable=consider-using-transaction
+# ruff: noqa: C901
 def import_tag(
     target_tag_names: list[str],
     contents: dict[str, Any],

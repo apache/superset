@@ -51,6 +51,7 @@ class ImportChartsCommand(ImportModelsCommand):
     import_error = ChartImportError
 
     @staticmethod
+    # ruff: noqa: C901
     def _import(
         configs: dict[str, Any],
         overwrite: bool = False,

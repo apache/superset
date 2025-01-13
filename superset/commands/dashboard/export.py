@@ -115,6 +115,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         return f"dashboards/{file_name}.yaml"
 
     @staticmethod
+    # ruff: noqa: C901
     def _file_content(model: Dashboard) -> str:
         payload = model.export_to_dict(
             recursive=False,
@@ -171,6 +172,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         return file_content
 
     @staticmethod
+    # ruff: noqa: C901
     def _export(
         model: Dashboard, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:

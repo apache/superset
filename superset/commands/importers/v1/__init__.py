@@ -63,6 +63,7 @@ class ImportModelsCommand(BaseCommand):
         self._configs: dict[str, Any] = {}
 
     @staticmethod
+    # ruff: noqa: C901
     def _import(
         configs: dict[str, Any],
         overwrite: bool = False,
