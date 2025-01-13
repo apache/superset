@@ -118,7 +118,9 @@ test('should removeQueryEditor', async () => {
     fireEvent.click(closeButton);
   }
   await waitFor(() => expect(getAllByRole('tab').length).toEqual(tabCount - 1));
-  expect(queryByText(initialState.sqlLab.queryEditors[0].name)).toBeFalsy();
+  expect(
+    queryByText(initialState.sqlLab.queryEditors[0].name),
+  ).not.toBeInTheDocument();
 });
 test('should add new query editor', async () => {
   const { getAllByLabelText, getAllByRole } = setup(undefined, initialState);

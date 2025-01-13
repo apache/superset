@@ -11590,7 +11590,7 @@ msgstr "X 軸の切り詰め"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr "X 軸を切り詰めます。最小値または最大値の境界を指定することでオーバーライドできます。数値 X 軸にのみ適用されます。"
 
 msgid "Truncate Y Axis"

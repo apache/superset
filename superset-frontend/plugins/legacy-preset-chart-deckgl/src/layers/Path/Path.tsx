@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PathLayer } from 'deck.gl/typed';
+import { PathLayer } from '@deck.gl/layers';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';
@@ -65,9 +65,9 @@ export function getLayer(
 
   return new PathLayer({
     id: `path-layer-${fd.slice_id}` as const,
-    getColor: d => d.color,
-    getPath: d => d.path,
-    getWidth: d => d.width,
+    getColor: (d: any) => d.color,
+    getPath: (d: any) => d.path,
+    getWidth: (d: any) => d.width,
     data,
     rounded: true,
     widthScale: 1,

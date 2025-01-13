@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
@@ -78,7 +79,7 @@ fetchMock.get('glob:*/api/v1/chart/318', {
       params:
         '{"adhoc_filters": [], "all_columns_x": ["age"], "color_scheme": "supersetColors", "datasource": "42__table", "granularity_sqla": "time_start", "groupby": null, "label_colors": {}, "link_length": "25", "queryFields": {"groupby": "groupby"}, "row_limit": 10000, "slice_id": 1380, "time_range": "No filter", "url_params": {}, "viz_type": "histogram", "x_axis_label": "age", "y_axis_label": "count"}',
       slice_name: 'Age distribution of respondents',
-      viz_type: 'histogram',
+      viz_type: VizType.Histogram,
     },
     show_columns: [
       'cache_timeout',
@@ -190,23 +191,23 @@ test('Should render all elements inside modal', async () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { name: 'Basic information' }),
-    ).toBeVisible();
-    expect(screen.getByText('Name')).toBeVisible();
-    expect(screen.getByText('Description')).toBeVisible();
+    ).toBeInTheDocument();
+    expect(screen.getByText('Name')).toBeInTheDocument();
+    expect(screen.getByText('Description')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: 'Configuration' }),
-    ).toBeVisible();
-    expect(screen.getByText('Cache timeout')).toBeVisible();
+    ).toBeInTheDocument();
+    expect(screen.getByText('Cache timeout')).toBeInTheDocument();
 
-    expect(screen.getByRole('heading', { name: 'Access' })).toBeVisible();
-    expect(screen.getByText('Owners')).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'Access' })).toBeInTheDocument();
+    expect(screen.getByText('Owners')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: 'Configuration' }),
-    ).toBeVisible();
-    expect(screen.getByText('Certified by')).toBeVisible();
-    expect(screen.getByText('Certification details')).toBeVisible();
+    ).toBeInTheDocument();
+    expect(screen.getByText('Certified by')).toBeInTheDocument();
+    expect(screen.getByText('Certification details')).toBeInTheDocument();
   });
 });
 

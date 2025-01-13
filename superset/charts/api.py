@@ -995,7 +995,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         try:
             body = ChartCacheWarmUpRequestSchema().load(request.json)
         except ValidationError as error:

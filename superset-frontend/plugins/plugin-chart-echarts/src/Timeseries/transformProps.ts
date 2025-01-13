@@ -171,6 +171,8 @@ export default function transformProps(
     stack,
     tooltipTimeFormat,
     tooltipSortByMetric,
+    showTooltipTotal,
+    showTooltipPercentage,
     truncateXAxis,
     truncateYAxis,
     xAxis: xAxisOrig,
@@ -192,7 +194,9 @@ export default function transformProps(
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
-  const labelMap = Object.entries(label_map).reduce((acc, entry) => {
+  const labelMap: { [key: string]: string[] } = Object.entries(
+    label_map,
+  ).reduce((acc, entry) => {
     if (
       entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
@@ -380,6 +384,7 @@ export default function transformProps(
             xAxisType,
             colorScale,
             sliceId,
+            orientation,
           ),
         );
       else if (isIntervalAnnotationLayer(layer)) {
@@ -391,6 +396,7 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            orientation,
           ),
         );
       } else if (isEventAnnotationLayer(layer)) {
@@ -402,6 +408,7 @@ export default function transformProps(
             colorScale,
             theme,
             sliceId,
+            orientation,
           ),
         );
       } else if (isTimeseriesAnnotationLayer(layer)) {
@@ -413,6 +420,7 @@ export default function transformProps(
             annotationData,
             colorScale,
             sliceId,
+            orientation,
           ),
         );
       }
@@ -487,7 +495,9 @@ export default function transformProps(
     minorTick: { show: minorTicks },
     minInterval:
       xAxisType === AxisType.Time && timeGrainSqla
-        ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+        ? TIMEGRAIN_TO_TIMESTAMP[
+            timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+          ]
         : 0,
     ...getMinAndMaxFromBounds(
       xAxisType,
@@ -567,8 +577,9 @@ export default function transformProps(
             value.observation !== undefined ? acc + value.observation : acc,
           0,
         );
-        const showTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
-        const showPercentage = showTotal && !forcePercentFormatter;
+        const allowTotal = Boolean(isMultiSeries) && richTooltip && !isForecast;
+        const showPercentage =
+          allowTotal && !forcePercentFormatter && showTooltipPercentage;
         const keys = Object.keys(forecastValues);
         let focusedRow;
         sortedKeys
@@ -599,7 +610,7 @@ export default function transformProps(
             focusedRow = rows.length - focusedRow - 1;
           }
         }
-        if (showTotal) {
+        if (allowTotal && showTooltipTotal) {
           const totalRow = ['Total', formatter.format(total)];
           if (showPercentage) {
             totalRow.push(percentFormatter.format(1));

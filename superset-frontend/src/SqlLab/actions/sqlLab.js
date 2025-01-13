@@ -421,9 +421,7 @@ export function postStopQuery(query) {
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
-      .catch(() =>
-        dispatch(addDangerToast(t('Failed at stopping query. %s', query.id))),
-      );
+      .catch(() => dispatch(addDangerToast(t('Failed to stop query.'))));
   };
 }
 
@@ -1206,6 +1204,7 @@ export function popSavedQuery(saveQueryId) {
           schema: queryEditorProps.schema,
           sql: queryEditorProps.sql,
           templateParams: queryEditorProps.templateParams,
+          remoteId: queryEditorProps.remoteId,
         };
         return dispatch(addQueryEditor(tmpAdaptedProps));
       })

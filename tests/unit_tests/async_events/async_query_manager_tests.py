@@ -20,7 +20,7 @@ from unittest.mock import ANY, Mock
 import redis
 from flask import g
 from jwt import encode
-from pytest import fixture, mark, raises
+from pytest import fixture, mark, raises  # noqa: PT013
 
 from superset import security_manager
 from superset.async_events.async_query_manager import (
@@ -32,8 +32,8 @@ from superset.async_events.cache_backend import (
     RedisSentinelCacheBackend,
 )
 
-JWT_TOKEN_SECRET = "some_secret"
-JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"
+JWT_TOKEN_SECRET = "some_secret"  # noqa: S105
+JWT_TOKEN_COOKIE_NAME = "superset_async_jwt"  # noqa: S105
 
 
 @fixture

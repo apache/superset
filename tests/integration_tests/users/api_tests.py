@@ -25,7 +25,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_config, with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 
-meUri = "/api/v1/me/"
+meUri = "/api/v1/me/"  # noqa: N816
 AVATAR_URL = "/internal/avatar.png"
 
 

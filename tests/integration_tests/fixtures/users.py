@@ -22,7 +22,7 @@ from superset import db, security_manager
 from tests.integration_tests.constants import GAMMA_SQLLAB_NO_DATA_USERNAME
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_gamma_sqllab_no_data(app_context: AppContext):
     gamma_role = db.session.query(Role).filter(Role.name == "Gamma").one_or_none()
     sqllab_role = db.session.query(Role).filter(Role.name == "sql_lab").one_or_none()
@@ -33,7 +33,7 @@ def create_gamma_sqllab_no_data(app_context: AppContext):
         "gamma_sqllab_no_data",
         "gamma_sqllab_no_data@apache.org",
         [gamma_role, sqllab_role],
-        password="general",
+        password="general",  # noqa: S106
     )
 
     yield

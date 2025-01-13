@@ -78,11 +78,11 @@ params:
   y_axis_title_margin: 15
   y_axis_title_position: Left
   color_scheme: supersetColors
-  seriesType: line
+  seriesType: echarts_timeseries_line
   opacity: 0.2
   markerSize: 6
   yAxisIndex: 1
-  seriesTypeB: bar
+  seriesTypeB: echarts_timeseries_bar
   opacityB: 0.2
   markerSizeB: 6
   yAxisIndexB: 0

@@ -54,6 +54,9 @@ class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("requests"), "requests not installed"
     )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
         model = Database(database_name="test_database", sqlalchemy_uri=sqlalchemy_uri)
@@ -108,7 +111,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert "core_db" == db
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     def test_database_schema_mysql(self):
         sqlalchemy_uri = "mysql://root@localhost/superset"
@@ -123,7 +126,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert "staging" == db
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     def test_database_impersonate_user(self):
         uri = "mysql://root@localhost"
@@ -142,6 +145,9 @@ class TestDatabaseModel(SupersetTestCase):
                 assert example_user.username != username
 
     @mock.patch("superset.models.core.create_engine")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_impersonate_user_presto(self, mocked_create_engine):
         uri = "presto://localhost"
         principal_user = security_manager.find_user(username="gamma")
@@ -190,7 +196,7 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     @mock.patch("superset.models.core.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
@@ -245,6 +251,12 @@ class TestDatabaseModel(SupersetTestCase):
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+    )
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
@@ -293,6 +305,9 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"
@@ -307,12 +322,12 @@ class TestDatabaseModel(SupersetTestCase):
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
-                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'
+                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'  # noqa: E501
                 in sql
             )
         elif db.backend == "hive":
             assert (
-                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"
+                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"  # noqa: E501
                 in sql
             )
         else:
@@ -370,7 +385,7 @@ class TestDatabaseModel(SupersetTestCase):
             return_value={Exception: SupersetException}
         )
         mocked_create_engine.side_effect = Exception()
-        with self.assertRaises(SupersetException):
+        with self.assertRaises(SupersetException):  # noqa: PT027
             model._get_sqla_engine()
 
 
@@ -433,10 +448,10 @@ class TestSqlaTableModel(SupersetTestCase):
         old_inner_join = spec.allows_joins
         spec.allows_joins = inner_join
         arbitrary_gby = "state || gender || '_test'"
-        arbitrary_metric = dict(
+        arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[arbitrary_gby, "name"],
             metrics=[arbitrary_metric],
             filter=[],
@@ -445,7 +460,7 @@ class TestSqlaTableModel(SupersetTestCase):
             granularity="ds",
             from_dttm=None,
             to_dttm=None,
-            extras=dict(time_grain_sqla="P1Y"),
+            extras=dict(time_grain_sqla="P1Y"),  # noqa: C408
             series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
@@ -487,7 +502,7 @@ class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=None,
             filter=[],
@@ -513,7 +528,7 @@ class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator_different_params(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=None,
             filter=[],
@@ -540,7 +555,7 @@ class TestSqlaTableModel(SupersetTestCase):
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")
 
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=["invalid"],
             filter=[],
@@ -552,14 +567,14 @@ class TestSqlaTableModel(SupersetTestCase):
             extras={},
         )
 
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(Exception) as context:  # noqa: PT027
             tbl.get_query_str(query_obj)
 
         assert "Metric 'invalid' does not exist", context.exception
 
     def test_query_label_without_group_by(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             columns=[
                 "gender",

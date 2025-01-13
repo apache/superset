@@ -18,7 +18,7 @@
  */
 /* eslint-env browser */
 import cx from 'classnames';
-import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addAlpha,
   css,
@@ -81,8 +81,6 @@ import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
 import DashboardWrapper from './DashboardWrapper';
-
-type DashboardBuilderProps = {};
 
 // @z-index-above-dashboard-charts + 1 = 11
 const FiltersPanel = styled.div<{ width: number; hidden: boolean }>`
@@ -370,7 +368,11 @@ const StyledDashboardContent = styled.div<{
   `}
 `;
 
-const DashboardBuilder: FC<DashboardBuilderProps> = () => {
+const ELEMENT_ON_SCREEN_OPTIONS = {
+  threshold: [1],
+};
+
+const DashboardBuilder = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
@@ -469,9 +471,9 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
     nativeFiltersEnabled,
   } = useNativeFilters();
 
-  const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>({
-    threshold: [1],
-  });
+  const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>(
+    ELEMENT_ON_SCREEN_OPTIONS,
+  );
 
   const showFilterBar =
     (crossFiltersEnabled || nativeFiltersEnabled) && !editMode;
@@ -581,6 +583,43 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
       ? 0
       : theme.gridUnit * 8;
 
+  const renderChild = useCallback(
+    adjustedWidth => {
+      const filterBarWidth = dashboardFiltersOpen
+        ? adjustedWidth
+        : CLOSED_FILTER_BAR_WIDTH;
+      return (
+        <FiltersPanel
+          width={filterBarWidth}
+          hidden={isReport}
+          data-test="dashboard-filters-panel"
+        >
+          <StickyPanel ref={containerRef} width={filterBarWidth}>
+            <ErrorBoundary>
+              <FilterBar
+                orientation={FilterBarOrientation.Vertical}
+                verticalConfig={{
+                  filtersOpen: dashboardFiltersOpen,
+                  toggleFiltersBar: toggleDashboardFiltersOpen,
+                  width: filterBarWidth,
+                  height: filterBarHeight,
+                  offset: filterBarOffset,
+                }}
+              />
+            </ErrorBoundary>
+          </StickyPanel>
+        </FiltersPanel>
+      );
+    },
+    [
+      dashboardFiltersOpen,
+      toggleDashboardFiltersOpen,
+      filterBarHeight,
+      filterBarOffset,
+      isReport,
+    ],
+  );
+
   return (
     <DashboardWrapper>
       {showFilterBar &&
@@ -593,33 +632,7 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
               maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
               initialWidth={OPEN_FILTER_BAR_WIDTH}
             >
-              {adjustedWidth => {
-                const filterBarWidth = dashboardFiltersOpen
-                  ? adjustedWidth
-                  : CLOSED_FILTER_BAR_WIDTH;
-                return (
-                  <FiltersPanel
-                    width={filterBarWidth}
-                    hidden={isReport}
-                    data-test="dashboard-filters-panel"
-                  >
-                    <StickyPanel ref={containerRef} width={filterBarWidth}>
-                      <ErrorBoundary>
-                        <FilterBar
-                          orientation={FilterBarOrientation.Vertical}
-                          verticalConfig={{
-                            filtersOpen: dashboardFiltersOpen,
-                            toggleFiltersBar: toggleDashboardFiltersOpen,
-                            width: filterBarWidth,
-                            height: filterBarHeight,
-                            offset: filterBarOffset,
-                          }}
-                        />
-                      </ErrorBoundary>
-                    </StickyPanel>
-                  </FiltersPanel>
-                );
-              }}
+              {renderChild}
             </ResizableSidebar>
           </>
         )}
@@ -722,4 +735,4 @@ const DashboardBuilder: FC<DashboardBuilderProps> = () => {
   );
 };
 
-export default DashboardBuilder;
+export default memo(DashboardBuilder);

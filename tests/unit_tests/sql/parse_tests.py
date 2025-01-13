@@ -37,7 +37,7 @@ def test_table() -> None:
     Test the `Table` class and its string conversion.
 
     Special characters in the table, schema, or catalog name should be escaped correctly.
-    """
+    """  # noqa: E501
     assert str(Table("tbname")) == "tbname"
     assert str(Table("tbname", "schemaname")) == "schemaname.tbname"
     assert (
@@ -945,6 +945,28 @@ on $left.Day1 == $right.Day
         ("kustokql", "set querytrace; Events | take 100", False),
         ("kustokql", ".drop table foo", True),
         ("kustokql", ".set-or-append table foo <| bar", True),
+        ("base", "SHOW LOCKS test EXTENDED", False),
+        ("base", "SET hivevar:desc='Legislators'", False),
+        ("base", "UPDATE t1 SET col1 = NULL", True),
+        ("base", "EXPLAIN SELECT 1", False),
+        ("base", "SELECT 1", False),
+        ("base", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("base", "SHOW CATALOGS", False),
+        ("base", "SHOW TABLES", False),
+        ("hive", "UPDATE t1 SET col1 = NULL", True),
+        ("hive", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("hive", "SHOW LOCKS test EXTENDED", False),
+        ("hive", "SET hivevar:desc='Legislators'", False),
+        ("hive", "EXPLAIN SELECT 1", False),
+        ("hive", "SELECT 1", False),
+        ("hive", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
+        ("presto", "SET hivevar:desc='Legislators'", False),
+        ("presto", "UPDATE t1 SET col1 = NULL", True),
+        ("presto", "INSERT OVERWRITE TABLE tabB SELECT a.Age FROM TableA", True),
+        ("presto", "SHOW LOCKS test EXTENDED", False),
+        ("presto", "EXPLAIN SELECT 1", False),
+        ("presto", "SELECT 1", False),
+        ("presto", "WITH bla AS (SELECT 1) SELECT * FROM bla", False),
     ],
 )
 def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
@@ -1042,9 +1064,52 @@ def test_custom_dialect(app: None) -> None:
 )
 def test_is_mutating(engine: str) -> None:
     """
-    Tests for `is_mutating`.
+    Global tests for `is_mutating`, covering all supported engines.
     """
     assert not SQLStatement(
         "with source as ( select 1 as one ) select * from source",
         engine=engine,
     ).is_mutating()
+
+
+def test_optimize() -> None:
+    """
+    Test that the `optimize` method works as expected.
+
+    The SQL optimization only works with engines that have a corresponding dialect.
+    """
+    sql = """
+SELECT anon_1.a, anon_1.b
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c
+FROM some_table) AS anon_1
+WHERE anon_1.a > 1 AND anon_1.b = 2
+    """
+
+    optimized = """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+
+    not_optimized = """
+SELECT anon_1.a,
+       anon_1.b
+FROM
+  (SELECT some_table.a AS a,
+          some_table.b AS b,
+          some_table.c AS c
+   FROM some_table) AS anon_1
+WHERE anon_1.a > 1
+  AND anon_1.b = 2"""
+
+    assert SQLStatement(sql, "sqlite").optimize().format() == optimized
+    assert SQLStatement(sql, "firebolt").optimize().format() == not_optimized

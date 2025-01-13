@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { DatasourceType } from '@superset-ui/core';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import { exploreActions } from 'src/explore/actions/exploreActions';
 import { ChartStatus } from 'src/explore/types';
 import {
@@ -27,7 +27,7 @@ import {
 } from '../types';
 
 const queryFormData = {
-  viz_type: 'heatmap',
+  viz_type: VizType.Heatmap,
   datasource: '34__table',
   slice_id: 456,
   url_params: {},
@@ -97,7 +97,7 @@ export const createSamplesPaneProps = ({
 export const createResultsPaneOnDashboardProps = ({
   sliceId,
   errorMessage,
-  vizType = 'table',
+  vizType = VizType.Table,
   queryForce = false,
   isRequest = true,
 }: {
