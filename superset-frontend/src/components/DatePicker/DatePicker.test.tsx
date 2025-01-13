@@ -16,20 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export function BottomRightResizeHandle() {
-  return <div className="resize-handle resize-handle--bottom-right" />;
-}
 
-export function RightResizeHandle() {
-  return <div className="resize-handle resize-handle--right" />;
-}
+import { render } from 'spec/helpers/testing-library';
+import { DatePicker, RangePicker } from '.';
 
-export function BottomResizeHandle() {
-  return <div className="resize-handle resize-handle--bottom" />;
-}
+test('should render date picker', () => {
+  const { container } = render(<DatePicker />);
+  expect(container).toBeInTheDocument();
+});
 
-export default {
-  right: RightResizeHandle,
-  bottom: BottomResizeHandle,
-  bottomRight: BottomRightResizeHandle,
-};
+test('should render range picker', () => {
+  const { container } = render(<RangePicker />);
+  expect(container).toBeInTheDocument();
+});

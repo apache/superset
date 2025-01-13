@@ -16,20 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export function BottomRightResizeHandle(): JSX.Element {
+  return <div className="resize-handle resize-handle--bottom-right" />;
+}
 
-import { ConfigProvider, type ConfigProviderProps } from 'antd-v5';
-import { getTheme, ThemeType } from 'src/theme/index';
+export function RightResizeHandle(): JSX.Element {
+  return <div className="resize-handle resize-handle--right" />;
+}
 
-export const AntdThemeProvider = ({
-  theme,
-  children,
-  ...rest
-}: ConfigProviderProps) => (
-  <ConfigProvider
-    theme={theme || getTheme(ThemeType.LIGHT)}
-    prefixCls="antd5"
-    {...rest}
-  >
-    {children}
-  </ConfigProvider>
-);
+export function BottomResizeHandle(): JSX.Element {
+  return <div className="resize-handle resize-handle--bottom" />;
+}
+
+export default {
+  right: RightResizeHandle,
+  bottom: BottomResizeHandle,
+  bottomRight: BottomRightResizeHandle,
+};

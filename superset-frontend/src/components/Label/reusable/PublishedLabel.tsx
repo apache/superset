@@ -16,20 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
+import { t } from '@superset-ui/core';
 
-import { ConfigProvider, type ConfigProviderProps } from 'antd-v5';
-import { getTheme, ThemeType } from 'src/theme/index';
+// Define props for the PublishedLabel component
+interface PublishedLabelProps {
+  isPublished: boolean; // Whether the item is published
+  onClick?: () => void; // Optional click handler
+}
 
-export const AntdThemeProvider = ({
-  theme,
-  children,
-  ...rest
-}: ConfigProviderProps) => (
-  <ConfigProvider
-    theme={theme || getTheme(ThemeType.LIGHT)}
-    prefixCls="antd5"
-    {...rest}
-  >
-    {children}
-  </ConfigProvider>
-);
+const PublishedLabel: React.FC<PublishedLabelProps> = ({
+  isPublished,
+  onClick,
+}) => {
+  const label = isPublished ? t('Published') : t('Draft');
+  const icon = isPublished ? (
+    <Icons.CircleCheck iconSize="s" />
+  ) : (
+    <Icons.Minus iconSize="s" />
+  );
+  const labelType = isPublished ? 'primary' : 'secondary';
+
+  return (
+    <Label type={labelType} icon={icon} onClick={onClick}>
+      {label}
+    </Label>
+  );
+};
+
+export default PublishedLabel;
