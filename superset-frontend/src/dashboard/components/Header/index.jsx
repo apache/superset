@@ -66,7 +66,7 @@ import {
   redoLayoutAction,
   undoLayoutAction,
   updateDashboardTitle,
-  resetDashboardPast,
+  clearDashboardHistory,
 } from '../../actions/dashboardLayout';
 import {
   fetchCharts,
@@ -222,7 +222,7 @@ const Header = () => {
           addWarningToast,
           onUndo: undoLayoutAction,
           onRedo: redoLayoutAction,
-          clearDashboardHistory: resetDashboardPast,
+          clearDashboardHistory,
           setEditMode,
           setUnsavedChanges,
           fetchFaveStar,
@@ -673,6 +673,7 @@ const Header = () => {
       NavExtension,
       boundActionCreators.onRedo,
       boundActionCreators.onUndo,
+      boundActionCreators.clearDashboardHistory(),
       editMode,
       emphasizeRedo,
       emphasizeUndo,

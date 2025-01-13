@@ -267,12 +267,7 @@ export function handleComponentDrop(dropResult) {
   };
 }
 
-export function resetDashboardPast() {
-  return (dispatch, getState) => {
-    const { dashboardLayout } = getState();
-    dashboardLayout.past = []; // Set `past` as an empty array
-  };
-}
+export const clearDashboardHistory = () => UndoActionCreators.clearHistory();
 
 // Undo redo ------------------------------------------------------------------
 export function undoLayoutAction() {
