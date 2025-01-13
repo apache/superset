@@ -222,7 +222,7 @@ def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
 
 # pylint: disable=consider-using-transaction
 def import_tag(
-    new_tag_names: list[str],
+    target_tag_names: list[str],
     contents: dict[str, Any],
     object_id: int,
     object_type: str,
@@ -247,15 +247,16 @@ def import_tag(
             description = tag_info.get("description", None)
             if tag_name:
                 tag_descriptions[tag_name] = description
-    existing_tags = (
+    existing_assocs = (
         db_session.query(TaggedObject)
         .filter_by(object_id=object_id, object_type=object_type)
         .all()
     )
 
-    for tag_name in new_tag_names:
+    existing_tags = {tag.name: tag for tag in db_session.query(Tag).filter(tag.name.in_(target_tag_names))}
+    for tag_name in target_tag_names:
+        tag = existing_tags.get(tag_name)
         try:
-            tag = db_session.query(Tag).filter_by(name=tag_name).first()
             if tag is None:
                 # If tag does not exist, create it with the provided description
                 description = tag_descriptions.get(tag_name, None)
@@ -288,7 +289,7 @@ def import_tag(
             continue  # Continue to the next tag if there's an error
 
     # Remove old tags not in the new config
-    for tag in existing_tags:
+    for tag in existing_assocs:
         if tag.tag_id not in new_tag_ids:
             db_session.delete(tag)
 

@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from __future__ import annotations
+
 from typing import Any, Optional
 
 from marshmallow import Schema
@@ -45,7 +47,7 @@ class ImportDatabasesCommand(ImportModelsCommand):
     def _import(
         configs: dict[str, Any],
         overwrite: bool = False,
-        contents: Optional[dict[str, Any]] = None,
+        contents: dict[str, Any] | None = None,
     ) -> None:
         # first import databases
         database_ids: dict[str, int] = {}

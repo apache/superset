@@ -130,7 +130,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     dataset = import_dataset(
                         config,
                         overwrite=overwrite,
-                        force_data=bool(force_data),
+                        force_data=force_data,
                         ignore_permissions=True,
                     )
                 except MultipleResultsFound:

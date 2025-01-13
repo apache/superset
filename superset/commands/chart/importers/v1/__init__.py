@@ -56,8 +56,7 @@ class ImportChartsCommand(ImportModelsCommand):
         overwrite: bool = False,
         contents: dict[str, Any] | None = None,
     ) -> None:
-        if contents is None:
-            contents = {}
+        contents = {} if contents is None else contents
         # discover datasets associated with charts
         dataset_uuids: set[str] = set()
         for file_name, config in configs.items():
@@ -108,7 +107,7 @@ class ImportChartsCommand(ImportModelsCommand):
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                     if "tags" in config:
-                        new_tag_names = config["tags"]
+                        target_tag_names = config["tags"]
                         import_tag(
-                            new_tag_names, contents, chart.id, "chart", db.session
+                            target_tag_names, contents, chart.id, "chart", db.session
                         )

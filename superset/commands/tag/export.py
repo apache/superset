@@ -123,7 +123,7 @@ class ExportTagsCommand:
         chart_ids: Optional[Union[int, List[Union[int, str]]]] = None,
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
-            yield from iter([])
+            return
 
         yield (
             ExportTagsCommand._file_name(),
