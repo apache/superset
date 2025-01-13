@@ -79,14 +79,6 @@ export default function TimezoneSelector({
       // @ts-ignore
       const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
 
-      // const TIMEZONE_OPTIONS = ALL_ZONES.map(zone => ({
-      //   label: `GMT ${extendedDayjs
-      //     .tz(currentDate, zone)
-      //     .format('Z')} (${getTimezoneName(zone)})`,
-      //   value: zone,
-      //   offsets: getOffsetKey(zone),
-      //   timezoneName: zone,
-      // }));
 
       const labels = new Set<string>();
       const TIMEZONE_OPTIONS = ALL_ZONES.map(zone => {
