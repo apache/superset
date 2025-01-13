@@ -29,7 +29,7 @@ x-superset-volumes: &superset-volumes
   - ./superset-frontend:/app/superset-frontend
   - superset_home:/app/superset_home
   - ./tests:/app/tests
-
+  - ./docker/custom_assets:/app/superset/static/assets/custom_assets
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`

@@ -174,9 +174,6 @@ RUN mkdir -p \
       requirements \
     && touch superset/static/version_info.json
 
-# *** COPY the client_secret.json file into the image ***
-COPY docker/pythonpath_dev/client_secret.json /app/docker/pythonpath_dev/client_secret.json
-
 # Copy required files for Python build
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/

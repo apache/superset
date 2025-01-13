@@ -22,7 +22,6 @@
 #
 import logging
 import os
-import secrets
 
 from celery.schedules import crontab
 from flask_appbuilder.security.manager import AUTH_OID
@@ -125,8 +124,9 @@ except ImportError:
     logger.info("Using default Docker config...")
 
 # Basic secret key
-SECRET_KEY = os.getenv("SECRET_KEY", secrets.token_urlsafe(32))
-ENCRYPTION_KEY = SECRET_KEY
+SECRET_KEY = os.getenv("SECRET_KEY", "your-constant-secret-key")
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY", "your-constant-encryption-key")
+
 # ------------------------------------------------------------------------------
 # Keycloak (OpenID Connect) authentication config and other settings...
 # ------------------------------------------------------------------------------
@@ -144,3 +144,9 @@ AUTH_USER_REGISTRATION_ROLE = os.getenv("AUTH_USER_REGISTRATION_ROLE", "Public")
 
 # ... [rest of the configuration] ...
 logger.info("Superset configuration loaded successfully.")
+
+ENABLE_TEMPLATE_PROCESSING = True
+
+# Styles
+APP_NAME = os.getenv("APP_NAME", "Superset")
+APP_ICON = os.getenv("APP_ICON", "/static/assets/custom_assets/cedia-logo-2025.png")
