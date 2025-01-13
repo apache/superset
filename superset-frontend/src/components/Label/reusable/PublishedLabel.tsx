@@ -16,29 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import Icons from 'src/components/Icons';
+import Label from 'src/components/Label';
+import { t } from '@superset-ui/core';
 
-import ResizableContainer, {
-  ResizableContainerProps,
-} from 'src/dashboard/components/resizable/ResizableContainer';
+// Define props for the PublishedLabel component
+interface PublishedLabelProps {
+  isPublished: boolean; // Whether the item is published
+  onClick?: () => void; // Optional click handler
+}
 
-describe('ResizableContainer', () => {
-  const props = {
-    editMode: false,
-    id: 'id',
-    heightMultiple: 0,
-    widthMultiple: 0,
-  };
-
-  const setup = (overrides?: ResizableContainerProps) => (
-    <ResizableContainer {...props} {...overrides} />
+const PublishedLabel: React.FC<PublishedLabelProps> = ({
+  isPublished,
+  onClick,
+}) => {
+  const label = isPublished ? t('Published') : t('Draft');
+  const icon = isPublished ? (
+    <Icons.CircleCheck iconSize="s" />
+  ) : (
+    <Icons.Minus iconSize="s" />
   );
+  const labelType = isPublished ? 'primary' : 'secondary';
 
-  it('should render a Resizable container', () => {
-    const rendered = render(setup());
-    const resizableContainer = rendered.container.querySelector(
-      '.resizable-container',
-    );
-    expect(resizableContainer).toBeVisible();
-  });
-});
+  return (
+    <Label type={labelType} icon={icon} onClick={onClick}>
+      {label}
+    </Label>
+  );
+};
+
+export default PublishedLabel;

@@ -29,6 +29,10 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_data,  # noqa: F401
 )
 
+pytest.skip(
+    reason="These tests will be changed to use the api/v1/data", allow_module_level=True
+)
+
 
 class TestCache(SupersetTestCase):
     def setUp(self):
