@@ -1189,7 +1189,9 @@ export function popPermalink(key) {
 
 export function popStoredQuery(urlId) {
   return function (dispatch) {
-    return SupersetClient.get({ endpoint: `/kv/${urlId}` })
+    return SupersetClient.get({
+      endpoint: `/api/v1/sqllab/permalink/kv:${urlId}`,
+    })
       .then(({ json }) =>
         dispatch(
           addQueryEditor({
