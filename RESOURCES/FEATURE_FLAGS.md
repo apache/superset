@@ -30,7 +30,6 @@ These features are considered **unfinished** and should only be used on developm
 - ALERT_REPORT_TABS
 - ENABLE_ADVANCED_DATA_TYPES
 - PRESTO_EXPAND_DATA
-- SHARE_QUERIES_VIA_KV_STORE
 - TAGGING_SYSTEM
 - CHART_PLUGINS_EXPERIMENTAL
 
@@ -62,6 +61,7 @@ These features flags are **safe for production**. They have been tested and will
 [//]: # "PLEASE KEEP THESE LISTS SORTED ALPHABETICALLY"
 
 ### Flags on the path to feature launch and flag deprecation/removal
+
 - DASHBOARD_VIRTUALIZATION
 - DRILL_BY
 - DISABLE_LEGACY_DATASOURCE_EDITOR
@@ -101,3 +101,4 @@ These features flags currently default to True and **will be removed in a future
 - DRILL_TO_DETAIL
 - ENABLE_JAVASCRIPT_CONTROLS
 - KV_STORE
+- SHARE_QUERIES_VIA_KV_STORE
