@@ -191,8 +191,9 @@ export function getClientErrorObject(
           {
             error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
             level: 'error',
-            message:
+            message: t(
               'Network Error when attempting to load resource. Please check your internet connection and try again.',
+            ),
             extra: {},
           },
         ],
