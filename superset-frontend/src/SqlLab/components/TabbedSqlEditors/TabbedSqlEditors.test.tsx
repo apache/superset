@@ -28,10 +28,6 @@ import { Store } from 'redux';
 import { RootState } from 'src/views/store';
 import { SET_ACTIVE_QUERY_EDITOR } from 'src/SqlLab/actions/sqlLab';
 
-fetchMock.get('glob:*/api/v1/database/*', {});
-fetchMock.get('glob:*/api/v1/saved_query/*', {});
-fetchMock.get('glob:*/kv/*', {});
-
 jest.mock('src/SqlLab/components/SqlEditor', () => () => (
   <div data-test="mock-sql-editor" />
 ));
@@ -48,7 +44,13 @@ const setup = (overridesStore?: Store, initialState?: RootState) =>
   });
 
 beforeEach(() => {
+  fetchMock.get('glob:*/api/v1/database/*', {});
+  fetchMock.get('glob:*/api/v1/saved_query/*', {});
   store.clearActions();
+});
+
+afterEach(() => {
+  fetchMock.reset();
 });
 
 describe('componentDidMount', () => {
@@ -61,8 +63,15 @@ describe('componentDidMount', () => {
   afterEach(() => {
     replaceState.mockReset();
     uriStub.mockReset();
+    document.getElementById('app')?.setAttribute('data-bootstrap', '');
   });
-  test('should handle id', () => {
+  test('should handle id', async () => {
+    const id = 1;
+    fetchMock.get(`glob:*/api/v1/sqllab/permalink/kv:${id}`, {
+      label: 'test permalink',
+      sql: 'SELECT * FROM test_table',
+      dbId: 1,
+    });
     uriStub.mockReturnValue({ id: 1 });
     setup(store);
     expect(replaceState).toHaveBeenCalledWith(
@@ -70,6 +79,12 @@ describe('componentDidMount', () => {
       expect.anything(),
       '/sqllab',
     );
+    await waitFor(() =>
+      expect(
+        fetchMock.calls(`glob:*/api/v1/sqllab/permalink/kv:${id}`),
+      ).toHaveLength(1),
+    );
+    fetchMock.reset();
   });
   test('should handle permalink', async () => {
     const key = '9sadkfl';
@@ -78,7 +93,9 @@ describe('componentDidMount', () => {
       sql: 'SELECT * FROM test_table',
       dbId: 1,
     });
-    uriStub.mockReturnValue({ p: key });
+    document
+      .getElementById('app')
+      ?.setAttribute('data-bootstrap', JSON.stringify({ permalink: key }));
     setup(store);
     await waitFor(() =>
       expect(

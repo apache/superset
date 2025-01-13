@@ -80,7 +80,6 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
     const {
       id,
       name,
-      p,
       sql,
       savedQueryId,
       datasourceKey,
@@ -97,11 +96,12 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       ...bootstrapData.requested_query,
       ...queryParameters,
     } as Record<string, string>;
+    const { permalink } = bootstrapData;
 
     // Popping a new tab based on the querystring
-    if (p || id || sql || savedQueryId || datasourceKey || queryId) {
-      if (p) {
-        this.props.actions.popPermalink(p);
+    if (permalink || id || sql || savedQueryId || datasourceKey || queryId) {
+      if (permalink) {
+        this.props.actions.popPermalink(permalink);
       } else if (id) {
         this.props.actions.popStoredQuery(id);
       } else if (savedQueryId) {
@@ -135,7 +135,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
-      this.popNewTab(pick(urlParams, Object.keys(queryParameters)));
+      this.popNewTab(pick(urlParams, Object.keys(queryParameters ?? {})));
     } else if (isNewQuery || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
 

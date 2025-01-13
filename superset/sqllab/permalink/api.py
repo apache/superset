@@ -88,7 +88,7 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
             state = self.add_model_schema.load(request.json)
             key = CreateSqlLabPermalinkCommand(state=state).run()
             http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/sqllab?p={key}"
+            url = f"{http_origin}/sqllab/p/{key}"
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
