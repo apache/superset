@@ -79,7 +79,6 @@ export default function TimezoneSelector({
       // @ts-ignore
       const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
 
-
       const labels = new Set<string>();
       const TIMEZONE_OPTIONS = ALL_ZONES.map(zone => {
         const label = `GMT ${extendedDayjs
