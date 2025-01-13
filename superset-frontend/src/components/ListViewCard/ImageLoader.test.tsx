@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
 import fetchMock from 'fetch-mock';
 
-import ImageLoader from 'src/components/ListViewCard/ImageLoader';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import ImageLoader, {
+  BackgroundPosition,
+} from 'src/components/ListViewCard/ImageLoader';
+import { act, render, screen } from 'spec/helpers/testing-library';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
 const blob = new Blob([], { type: 'image/png' });
@@ -37,36 +38,48 @@ describe('ImageLoader', () => {
   const defaultProps = {
     src: '/thumbnail',
     fallback: '/fallback',
+    position: 'top' as BackgroundPosition,
   };
 
-  const factory = (extraProps = {}) => {
-    const props = { ...defaultProps, ...extraProps };
-    return mount(<ImageLoader {...props} />);
-  };
-
-  afterEach(fetchMock.resetHistory);
+  afterEach(() => fetchMock.resetHistory());
 
   it('is a valid element', async () => {
-    const wrapper = factory();
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ImageLoader)).toExist();
+    await act(async () => {
+      render(<ImageLoader {...defaultProps} />);
+    });
+    expect(screen.getByTestId('image-loader')).toBeVisible();
   });
 
   it('fetches loads the image in the background', async () => {
-    const wrapper = factory();
-    expect(wrapper.find('div').props().src).toBe('/fallback');
-    await waitForComponentToPaint(wrapper);
+    await act(async () => {
+      render(<ImageLoader {...defaultProps} />);
+      expect(screen.getByTestId('image-loader')).toHaveAttribute(
+        'src',
+        '/fallback',
+      );
+    });
     expect(fetchMock.calls(/thumbnail/)).toHaveLength(1);
     expect(global.URL.createObjectURL).toHaveBeenCalled();
-    expect(wrapper.find('div').props().src).toBe('/local_url');
+    expect(screen.getByTestId('image-loader')).toHaveAttribute(
+      'src',
+      '/local_url',
+    );
   });
 
   it('displays fallback image when response is not an image', async () => {
     fetchMock.once('/thumbnail2', {});
-    const wrapper = factory({ src: '/thumbnail2' });
-    expect(wrapper.find('div').props().src).toBe('/fallback');
-    await waitForComponentToPaint(wrapper);
+    await act(async () => {
+      const props = { ...defaultProps, src: '/thumbnail2' };
+      render(<ImageLoader {...props} />);
+      expect(screen.getByTestId('image-loader')).toHaveAttribute(
+        'src',
+        '/fallback',
+      );
+    });
     expect(fetchMock.calls(/thumbnail2/)).toHaveLength(1);
-    expect(wrapper.find('div').props().src).toBe('/fallback');
+    expect(screen.getByTestId('image-loader')).toHaveAttribute(
+      'src',
+      '/fallback',
+    );
   });
 });
