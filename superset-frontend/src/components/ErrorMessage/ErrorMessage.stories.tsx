@@ -41,6 +41,7 @@ InteractiveBasicErrorAlert.args = {
   title: 'Title',
   body: 'Body',
   level: 'error',
+  bodyOnTooltip: false,
 };
 
 export const InteractiveErrorAlert = (args: any) => <ErrorAlert {...args} />;

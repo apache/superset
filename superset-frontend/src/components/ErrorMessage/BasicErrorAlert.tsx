@@ -18,17 +18,20 @@
  */
 import { ErrorLevel, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import { Tooltip } from '../Tooltip';
 
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
   display: flex;
   flex-direction: row;
+  align-items: center;
   background-color: ${({ level, theme }) => theme.colors[level].light2};
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ level, theme }) => theme.colors[level].base};
   color: ${({ level, theme }) => theme.colors[level].dark2};
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: ${({ theme }) => theme.gridUnit * 1}px;
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
   width: 100%;
+  min-width: max-content;
 `;
 
 const StyledContent = styled.div`
@@ -46,15 +49,34 @@ interface BasicErrorAlertProps {
   title: string;
   body: string;
   level?: ErrorLevel;
+  bodyOnTooltip?: boolean;
 }
 
 export default function BasicErrorAlert({
   body,
   level = 'error',
   title,
+  bodyOnTooltip,
 }: BasicErrorAlertProps) {
   const theme = useTheme();
   const iconColor = theme.colors[level].base;
+
+  if (bodyOnTooltip) {
+    return (
+      <Tooltip title={body}>
+        <StyledContainer level={level} role="alert">
+          {level === 'error' ? (
+            <Icons.ErrorSolid iconColor={iconColor} />
+          ) : (
+            <Icons.WarningSolid iconColor={iconColor} />
+          )}
+          <StyledContent>
+            <StyledTitle>{title}</StyledTitle>
+          </StyledContent>
+        </StyledContainer>
+      </Tooltip>
+    );
+  }
 
   return (
     <StyledContainer level={level} role="alert">
