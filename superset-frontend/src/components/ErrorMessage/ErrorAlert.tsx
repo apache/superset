@@ -83,6 +83,7 @@ const ErrorModal = styled(Modal)<{ level: ErrorLevel }>`
     display: flex;
     align-items: center;
     font-size: ${({ theme }) => theme.typography.sizes.l}px;
+    color: ${({ level, theme }) => theme.colors[level].dark2};
   }
 `;
 
