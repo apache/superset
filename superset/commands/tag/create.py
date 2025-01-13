@@ -106,7 +106,7 @@ class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):
                             not model.created_by
                             or model.created_by != security_manager.current_user
                         ):
-                            # skip the object if user doesn't have access
+                            # skip the object if the user doesn't have access
                             self._skipped_tagged_objects.add((obj_type, obj_id))
             except Exception as e:
                 exceptions.append(TagInvalidError(str(e)))
