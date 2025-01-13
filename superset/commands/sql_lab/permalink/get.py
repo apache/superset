@@ -17,16 +17,20 @@
 import logging
 from typing import Optional
 
-from superset.commands.key_value.get import GetKeyValueCommand
+from superset import db
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.sql_lab.permalink.base import BaseSqlLabPermalinkCommand
+from superset.daos.key_value import KeyValueDAO
 from superset.key_value.exceptions import (
     KeyValueCodecDecodeException,
     KeyValueGetFailedError,
     KeyValueParseKeyError,
 )
 from superset.key_value.utils import decode_permalink_id
+from superset.models import core as models
 from superset.sqllab.permalink.exceptions import SqlLabPermalinkGetFailedError
 from superset.sqllab.permalink.types import SqlLabPermalinkValue
+from superset.utils import core as utils, json
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +41,26 @@ class GetSqlLabPermalinkCommand(BaseSqlLabPermalinkCommand):
 
     def run(self) -> Optional[SqlLabPermalinkValue]:
         self.validate()
+        if self.key.startswith("kv:"):
+            id = int(self.key[3])
+            try:
+                kv = db.session.query(models.KeyValue).filter_by(id=id).scalar()
+                if not kv:
+                    return None
+                return json.loads(kv.value)
+            except Exception as ex:
+                raise SqlLabPermalinkGetFailedError(
+                    message=utils.error_msg_from_exception(ex)
+                ) from ex
+
         try:
             key = decode_permalink_id(self.key, salt=self.salt)
-            value: Optional[SqlLabPermalinkValue] = GetKeyValueCommand(
-                resource=self.resource,
-                key=key,
-                codec=self.codec,
-            ).run()
+            value = KeyValueDAO.get_value(self.resource, key, self.codec)
             if value:
                 return value
             return None
         except (
+            DatasetNotFoundError,
             KeyValueCodecDecodeException,
             KeyValueGetFailedError,
             KeyValueParseKeyError,

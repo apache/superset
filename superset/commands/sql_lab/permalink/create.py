@@ -17,8 +17,9 @@
 import logging
 from typing import Any
 
-from superset.commands.key_value.create import CreateKeyValueCommand
+from superset import db
 from superset.commands.sql_lab.permalink.base import BaseSqlLabPermalinkCommand
+from superset.daos.key_value import KeyValueDAO
 from superset.key_value.exceptions import KeyValueCodecEncodeException
 from superset.key_value.utils import encode_permalink_key
 from superset.sqllab.permalink.exceptions import SqlLabPermalinkCreateFailedError
@@ -33,15 +34,14 @@ class CreateSqlLabPermalinkCommand(BaseSqlLabPermalinkCommand):
     def run(self) -> str:
         self.validate()
         try:
-            command = CreateKeyValueCommand(
-                resource=self.resource,
-                value=self._properties,
-                codec=self.codec,
+            entry = KeyValueDAO.create_entry(
+                self.resource, self._properties, self.codec
             )
-            key = command.run()
-            if key.id is None:
+            db.session.flush()
+            key = entry.id
+            if key is None:
                 raise SqlLabPermalinkCreateFailedError("Unexpected missing key id")
-            return encode_permalink_key(key=key.id, salt=self.salt)
+            return encode_permalink_key(key=key, salt=self.salt)
         except KeyValueCodecEncodeException as ex:
             raise SqlLabPermalinkCreateFailedError(str(ex)) from ex
 
