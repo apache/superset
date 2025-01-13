@@ -253,11 +253,14 @@ def import_tag(
         .all()
     )
 
-    existing_tags = {tag.name: tag for tag in db_session.query(Tag).filter(Tag.name.in_(target_tag_names))}
+    existing_tags = {
+        tag.name: tag
+        for tag in db_session.query(Tag).filter(Tag.name.in_(target_tag_names))
+    }
     for tag_name in target_tag_names:
         try:
             tag = existing_tags.get(tag_name)
-            
+
             # If tag does not exist, create it
             if tag is None:
                 description = tag_descriptions.get(tag_name, None)
@@ -265,7 +268,7 @@ def import_tag(
                 db_session.add(tag)
                 db_session.commit()
                 existing_tags[tag_name] = tag  # Update the existing_tags dictionary
-            
+
             # Ensure the association with the object
             tagged_object = (
                 db_session.query(TaggedObject)
@@ -277,9 +280,9 @@ def import_tag(
                     tag_id=tag.id, object_id=object_id, object_type=object_type
                 )
                 db_session.add(new_tagged_object)
-            
+
             new_tag_ids.append(tag.id)
-        
+
         except SQLAlchemyError as err:
             logger.error(
                 "Error processing tag '%s' for %s ID %d: %s",
@@ -290,7 +293,6 @@ def import_tag(
             )
             db_session.rollback()  # Roll back the transaction in case of an error
             continue
-
 
     # Remove old tags not in the new config
     for tag in existing_assocs:
