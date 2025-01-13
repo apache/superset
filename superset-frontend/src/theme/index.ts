@@ -117,6 +117,11 @@ const baseConfig: ThemeConfig = {
       fontWeightStrong: supersetTheme.typography.weights.medium,
       colorBgContainer: supersetTheme.colors.grayscale.light4,
     },
+    DatePicker: {
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+      borderRadiusSM: supersetTheme.gridUnit / 2,
+    },
     Divider: {
       colorSplit: supersetTheme.colors.grayscale.light3,
     },
