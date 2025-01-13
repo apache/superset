@@ -26,7 +26,6 @@ import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import * as utils from 'src/utils/common';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
 
@@ -152,43 +151,6 @@ describe('ShareSqlLabQuery', () => {
       expect(
         JSON.parse(fetchMock.calls(storeQueryUrl)[0][1]?.body as string),
       ).toEqual(expected);
-    });
-  });
-
-  describe('via saved query', () => {
-    beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockReset();
-    });
-
-    it('does not call storeQuery() with the query when getCopyUrl() is called and feature is not enabled', async () => {
-      await act(async () => {
-        render(<ShareSqlLabQuery {...defaultProps} />, {
-          wrapper: standardProvider,
-        });
-      });
-      const storeQuerySpy = jest.spyOn(utils, 'storeQuery');
-      const button = screen.getByRole('button');
-      userEvent.click(button);
-      expect(storeQuerySpy.mock.calls).toHaveLength(0);
-      storeQuerySpy.mockRestore();
-    });
-
-    it('button is disabled and there is a request to save the query', async () => {
-      const updatedProps = {
-        queryEditorId: disabled.id,
-      };
-
-      render(<ShareSqlLabQuery {...updatedProps} />, {
-        wrapper: standardProvider,
-      });
-      const button = await screen.findByRole('button', { name: /copy link/i });
-      expect(button).toBeDisabled();
     });
   });
 });
