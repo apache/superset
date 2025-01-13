@@ -46,6 +46,16 @@ class SqllabView(BaseSupersetView):
                 payload["requested_query"] = json.loads(form_data)
         return self.render_app_template(payload)
 
+    @expose("/p/<string:permalink>/", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    @event_logger.log_this
+    def permalink(self, permalink: str) -> FlaskResponse:
+        payload = {}
+        if permalink:
+            payload["permalink"] = permalink
+        return self.render_app_template(payload)
+
     @expose("/history/", methods=("GET",))
     @has_access
     @permission_name("read")
