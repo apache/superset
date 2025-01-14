@@ -117,7 +117,7 @@ export default function TimezoneSelector({
           option =>
             option.offsets === getOffsetKey(timezone) &&
             option.timezoneName === timezone,
-           )?.value || DEFAULT_TIMEZONE.value;
+        )?.value || DEFAULT_TIMEZONE.value;
 
       const validTimezone = matchTimezoneToOptions(
         timezone || extendedDayjs.tz.guess(),
