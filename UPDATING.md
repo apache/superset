@@ -36,7 +36,7 @@ assists people when migrating to a new version.
 - [31385](https://github.com/apache/superset/pull/31385) Significant docker refactor, reducing access levels for the `superset` user, streamlining layer building, ...
 - [31503](https://github.com/apache/superset/pull/31503) Deprecating python 3.9.x support, 3.11 is now the recommended version and 3.10 is still supported over the Superset 5.0 lifecycle.
 - [29121](https://github.com/apache/superset/pull/29121) Removed the `css`, `position_json`, and `json_metadata` from the payload of the dashboard list endpoint (`GET api/v1/dashboard`) for performance reasons.
-- [29163](https://github.com/apache/superset/pull/29163) Deprecated the `SHARE_QUERIES_VIA_KV_STORE` feature flag
+- [29163](https://github.com/apache/superset/pull/29163) The /kv/ API used in the SQL Lab share link has been deprecated and replaced with a permalink. The legacy share link (i.e., /sqllab/?id=xxxx) will be temporarily available in 5.0 but will no longer be supported in 6.0
 
 ### Potential Downtime
 
