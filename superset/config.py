@@ -1380,6 +1380,10 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 MUTATE_AFTER_SPLIT = False
 
 
+# Boolean config that determines if alert SQL queries should also be mutated or not.
+MUTATE_ALERT_QUERY = False
+
+
 # This allows for a user to add header data to any outgoing emails. For example,
 # if you need to include metadata in the header or you want to change the specifications
 # of the email title, header, or sender.
