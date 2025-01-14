@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import dayjs, { Dayjs } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -24,6 +25,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import updateLocale from 'dayjs/plugin/updateLocale';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -32,6 +34,11 @@ dayjs.extend(relativeTime);
 dayjs.extend(customParseFormat);
 dayjs.extend(duration);
 dayjs.extend(updateLocale);
+dayjs.extend(isSameOrBefore);
+
+dayjs.updateLocale('en', {
+  invalidDate: 'Invalid date',
+});
 
 export const extendedDayjs = dayjs;
 

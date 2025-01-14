@@ -34,13 +34,9 @@ export { default as Card } from './Card';
 export {
   AutoComplete,
   Col,
-  Divider,
-  Empty,
   Grid,
   Row,
   Skeleton,
-  Space,
-  Steps,
   Tag,
   Tree,
   TreeSelect,

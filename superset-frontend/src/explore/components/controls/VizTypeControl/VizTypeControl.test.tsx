@@ -165,14 +165,14 @@ describe('VizTypeControl', () => {
   it('Render viz tiles when non-featured is rendered', async () => {
     const props = {
       ...defaultProps,
-      value: 'line',
+      value: VizType.Sankey,
       isModalOpenInit: false,
     };
     const state = {
       charts: {
         1: {
           latestQueryFormData: {
-            viz_type: VizType.LegacyLine,
+            viz_type: VizType.Sankey,
           },
         },
       },

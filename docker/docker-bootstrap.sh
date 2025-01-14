@@ -18,13 +18,12 @@
 
 set -eo pipefail
 
-# UV may not be installed in older images
-pip install uv
-
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
-    echo "Reinstalling the app in editable mode"
-    uv pip install -e .
+    if command -v uv > /dev/null 2>&1; then
+      echo "Reinstalling the app in editable mode"
+      uv pip install -e .
+    fi
 fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
 # If Cypress run – overwrite the password for admin and export env variables
@@ -35,7 +34,13 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
 fi
 if [[ "$DATABASE_DIALECT" == postgres* ]] ; then
     echo "Installing postgres requirements"
-    uv pip install -e .[postgres]
+    if command -v uv > /dev/null 2>&1; then
+        # Use uv in newer images
+        uv pip install -e .[postgres]
+    else
+        # Use pip in older images
+        pip install -e .[postgres]
+    fi
 fi
 #
 # Make sure we have dev requirements installed
