@@ -17,7 +17,10 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import * as d3array from 'd3-array';
+import d3array, {
+  ascending as d3ascending,
+  quantile as d3quantile,
+} from 'd3-array';
 import { JsonObject, JsonValue, QueryFormData } from '@superset-ui/core';
 import sandboxedEval from '../utils/sandbox';
 import { TooltipProps } from '../components/Tooltip';
@@ -93,13 +96,13 @@ export function getAggFunc(
       let sortedArr;
       if (accessor) {
         sortedArr = arr.sort((o1: JsonObject, o2: JsonObject) =>
-          d3array.ascending(accessor(o1), accessor(o2)),
+          d3ascending(accessor(o1), accessor(o2)),
         );
       } else {
-        sortedArr = arr.sort(d3array.ascending);
+        sortedArr = arr.sort(d3ascending);
       }
 
-      return d3array.quantile(sortedArr, percentiles[type], acc);
+      return d3quantile(sortedArr, percentiles[type], acc);
     };
   } else {
     d3func = d3array[type];
