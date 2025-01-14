@@ -1507,7 +1507,7 @@ def test_insert_rls_as_subquery(
             else candidate_table.table
         )
         for left, right in zip(
-            candidate_table_name.split(".")[::-1], table.split(".")[::-1]
+            candidate_table_name.split(".")[::-1], table.split(".")[::-1], strict=False
         ):
             if left != right:
                 return None
@@ -1719,7 +1719,9 @@ def test_insert_rls_in_predicate(
         Return the RLS ``condition`` if ``candidate`` matches ``table``.
         """
         # compare ignoring schema
-        for left, right in zip(str(candidate).split(".")[::-1], table.split(".")[::-1]):
+        for left, right in zip(
+            str(candidate).split(".")[::-1], table.split(".")[::-1], strict=False
+        ):
             if left != right:
                 return None
         return condition

@@ -111,7 +111,7 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                         }
                     )
                 ),
-                "latest": dict(zip(col_names, latest_parts)),
+                "latest": dict(zip(col_names, latest_parts, strict=False)),
                 "partitionQuery": cls._partition_query(
                     table=table,
                     indexes=indexes,

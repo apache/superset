@@ -153,7 +153,6 @@ google-auth==2.36.0
     # via shillelagh
 greenlet==3.0.3
     # via
-    #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
@@ -230,7 +229,7 @@ nh3==0.2.19
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
-numpy==1.23.5
+numpy==1.26.4
     # via
     #   apache-superset (pyproject.toml)
     #   bottleneck
