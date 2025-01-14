@@ -20,8 +20,6 @@ import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import Divider from 'src/dashboard/components/gridComponents/Divider';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
