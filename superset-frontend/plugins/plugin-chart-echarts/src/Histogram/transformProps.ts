@@ -99,6 +99,21 @@ export default function transformProps(
     console.warn(`Warning: maxValue (${maxValue}) does not fall within any bin range.`);
   }
 
+  // Identify the peak points for each bin
+  const peakPoints = binNames.map(bin => {
+    const peakValue = Math.max(...data.map(d => (d[bin] as number) || 0));
+    return { xAxis: bin, yAxis: peakValue };
+  });
+
+  // Create markLine segments between adjacent peak points
+  const trendLineData: { coord: [string, number] }[][] = [];
+  for (let i = 0; i < peakPoints.length - 1; i++) {
+    trendLineData.push([
+      { coord: [peakPoints[i].xAxis, peakPoints[i].yAxis] },
+      { coord: [peakPoints[i + 1].xAxis, peakPoints[i + 1].yAxis] },
+    ]);
+  }
+
   const barSeries: BarSeriesOption[] = data.map(datum => {
     const seriesName =
       groupby.length > 0
@@ -195,8 +210,23 @@ export default function transformProps(
       ...series,
       markLine: {
         data: [
-          { xAxis: minBin ?? "null", name: minValue ? minValue.toString() : 'minValue' },
-          { xAxis: maxBin ?? "null", name: maxValue ? maxValue.toString() : 'maxValue' },
+          { xAxis: minBin ?? "null", 
+            label: { formatter: () => minValue ? minValue.toString() : 'minValue' },
+            lineStyle: {
+              color: 'red',
+              type: 'solid',
+              width: 2,
+            },
+           } as any,
+          { xAxis: maxBin ?? "null", 
+            label: { formatter: () => maxValue ? maxValue.toString() : 'maxValue' },
+            lineStyle: {
+              color: 'red',
+              type: 'solid',
+              width: 2,
+            }
+           } as any,
+          ...trendLineData,
         ],
         label: {
           show: true,
@@ -207,9 +237,18 @@ export default function transformProps(
         },
         lineStyle: {
           color: 'red',
-          type: 'solid',
+          type: 'dashed',
           width: 2,
         },
+        symbol: ['arrow', 'arrow'],
+        symbolSize: 8,
+        animation: true,
+        animationDuration: 3000,
+        animationEasing: 'cubicOut',
+        animationDelay: (idx) => idx * 100,
+        animationDurationUpdate: 1000,
+        animationEasingUpdate: 'cubicOut',
+        animationDelayUpdate: (idx) => idx * 100,
       },
     })),
     legend: {
