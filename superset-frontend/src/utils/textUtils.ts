@@ -15,15 +15,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const loadModule = () => {
-  try {
-    // eslint-disable-next-line global-require, import/no-unresolved
-    return require('../../../superset_text') || {};
-  } catch (e) {
-    return {};
-  }
-};
-
-const supersetText = loadModule();
+let supersetText = {};
+try {
+  // eslint-disable-next-line global-require, import/no-unresolved
+  supersetText = require('../../../superset_text.yaml') || {};
+} catch (e) {
+  // Swallow the error if the file does not exist
+  supersetText = {};
+}
 
 export default supersetText;
