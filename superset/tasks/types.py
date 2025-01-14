@@ -19,7 +19,7 @@ from superset.utils.backports import StrEnum
 
 class ExecutorType(StrEnum):
     """
-    Which user should scheduled tasks be executed as. Used as follows:
+    Which user should async tasks be executed as. Used as follows:
     For Alerts & Reports: the "model" refers to the AlertSchedule object
     For Thumbnails: The "model" refers to the Slice or Dashboard object
     """
