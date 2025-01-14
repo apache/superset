@@ -72,6 +72,7 @@ documentation.
 configured to be secure.
 :::
 
+
 ### Supported environment variables
 
 Affecting the Docker build process:
@@ -79,6 +80,10 @@ Affecting the Docker build process:
 - **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
 - **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
+- **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,
+  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
+- **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
+  for more verbose logging
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
@@ -117,7 +122,8 @@ instance, but many people like to run that tooling from their host.
 
 Assuming you already have a way to setup your python environments
 like `pyenv`, `virtualenv` or something else, all you should have to
-do is to install our dev, pinned python requirements bundle
+do is to install our dev, pinned python requirements bundle, after installing
+the prerequisites mentioned in [OS Dependencies](https://superset.apache.org/docs/installation/pypi/#os-dependencies)
 
 ```bash
 pip install -r requirements/development.txt

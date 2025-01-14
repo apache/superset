@@ -348,7 +348,9 @@ class OcientEngineSpec(BaseEngineSpec):
                 rows = [
                     tuple(
                         sanitize_func(val)
-                        for sanitize_func, val in zip(sanitization_functions, row)
+                        for sanitize_func, val in zip(
+                            sanitization_functions, row, strict=False
+                        )
                     )
                     for row in rows
                 ]

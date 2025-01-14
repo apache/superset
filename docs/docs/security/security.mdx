@@ -253,6 +253,9 @@ You can get current nonce value by calling jinja macro `csp_nonce()`.
   connect-src 'self' https://api.mapbox.com https://events.mapbox.com
   ```
 
+- Cartodiagram charts request map data (image and json) from external resources that can be edited by users,
+and therefore either require a list of allowed domains to request from or a wildcard (`'*'`) for `img-src` and `connect-src`.
+
 * Other CSP directives default to `'self'` to limit content to the same origin as the Superset server.
 
 In order to adjust provided CSP configuration to your needs, follow the instructions and examples provided in

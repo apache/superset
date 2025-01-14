@@ -75,16 +75,13 @@ github:
           - dependency-review
           - frontend-build
           - pre-commit (current)
-          - pre-commit (next)
           - pre-commit (previous)
           - test-mysql
           - test-postgres (current)
-          - test-postgres (next)
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
           - unit-tests (current)
-          - unit-tests (next)
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Revenue by Deal Size
-viz_type: bar
+viz_type: echarts_timeseries_bar
 params:
   adhoc_filters: []
   annotation_layers: []
@@ -27,30 +27,30 @@ params:
   datasource: 23__table
   granularity_sqla: order_date
   groupby:
-  - deal_size
+    - deal_size
   label_colors: {}
   left_margin: auto
   line_interpolation: linear
   metrics:
-  - aggregate: SUM
-    column:
-      column_name: sales
-      description: null
-      expression: null
-      filterable: true
-      groupby: true
-      id: 917
-      is_dttm: false
-      optionName: _col_Sales
-      python_date_format: null
-      type: DOUBLE PRECISION
-      verbose_name: null
-    expressionType: SIMPLE
-    hasCustomLabel: false
-    isNew: false
-    label: (Sales)
-    optionName: metric_3is69ofceho_6d0ezok7ry6
-    sqlExpression: null
+    - aggregate: SUM
+      column:
+        column_name: sales
+        description: null
+        expression: null
+        filterable: true
+        groupby: true
+        id: 917
+        is_dttm: false
+        optionName: _col_Sales
+        python_date_format: null
+        type: DOUBLE PRECISION
+        verbose_name: null
+      expressionType: SIMPLE
+      hasCustomLabel: false
+      isNew: false
+      label: (Sales)
+      optionName: metric_3is69ofceho_6d0ezok7ry6
+      sqlExpression: null
   order_desc: true
   queryFields:
     groupby: groupby
@@ -61,14 +61,14 @@ params:
   show_brush: auto
   show_legend: true
   time_grain_sqla: P1M
-  time_range: '2003-01-01T00:00:00 : 2005-06-01T00:00:00'
+  time_range: "2003-01-01T00:00:00 : 2005-06-01T00:00:00"
   url_params: {}
-  viz_type: bar
+  viz_type: echarts_timeseries_bar
   x_axis_format: smart_date
   x_ticks_layout: auto
   y_axis_bounds:
-  - null
-  - null
+    - null
+    - null
   y_axis_format: SMART_NUMBER
 cache_timeout: null
 uuid: f065a533-2e13-42b9-bd19-801a21700dff
