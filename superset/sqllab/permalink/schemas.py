@@ -19,7 +19,7 @@ from marshmallow import fields, Schema
 
 class SqlLabPermalinkSchema(Schema):
     autorun = fields.Boolean()
-    dbId = fields.Integer(
+    dbId = fields.Integer(  # noqa: N815
         required=True,
         allow_none=False,
         metadata={"description": "The id of the database"},
@@ -39,7 +39,7 @@ class SqlLabPermalinkSchema(Schema):
         allow_none=False,
         metadata={"description": "SQL query text"},
     )
-    templateParams = fields.String(
+    templateParams = fields.String(  # noqa: N815
         required=False,
         allow_none=True,
         metadata={"description": "stringfied JSON string for template parameters"},
