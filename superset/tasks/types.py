@@ -24,8 +24,8 @@ class ExecutorType(StrEnum):
     For Thumbnails: The "model" refers to the Slice or Dashboard object
     """
 
-    # See the THUMBNAIL_SELENIUM_USER config parameter
-    SELENIUM = "selenium"
+    # See the ASYNC_TASK_FIXED_USER config parameter
+    FIXED_USER = "fixed_user"
     # The creator of the model
     CREATOR = "creator"
     # The creator of the model, if found in the owners list

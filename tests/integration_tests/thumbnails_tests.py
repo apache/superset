@@ -70,7 +70,7 @@ class TestThumbnailsSeleniumLive(LiveServerTestCase):
             thumbnail_url = resp["result"][0]["thumbnail_url"]
 
             response = self.url_open_auth(
-                "admin",
+                ADMIN_USERNAME,
                 thumbnail_url,
             )
             assert response.getcode() == 202
@@ -85,7 +85,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
     ):
         webdriver_proxy = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
+            app.config["ASYNC_TASK_FIXED_USER"]
         )
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
         webdriver_proxy.get_screenshot(url, "grid-container", user=user)
@@ -101,7 +101,7 @@ class TestWebDriverScreenshotErrorDetector(SupersetTestCase):
         app.config["SCREENSHOT_REPLACE_UNEXPECTED_ERRORS"] = True
         webdriver_proxy = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
+            app.config["ASYNC_TASK_FIXED_USER"]
         )
         url = get_url_path("Superset.dashboard", dashboard_id_or_slug=1)
         webdriver_proxy.get_screenshot(url, "grid-container", user=user)
@@ -150,7 +150,7 @@ class TestWebDriverSelenium(SupersetTestCase):
     ):
         webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
+            app.config["ASYNC_TASK_FIXED_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
@@ -163,7 +163,7 @@ class TestWebDriverSelenium(SupersetTestCase):
         app.config["SCREENSHOT_LOCATE_WAIT"] = 15
         webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
+            app.config["ASYNC_TASK_FIXED_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         webdriver.get_screenshot(url, "chart-container", user=user)
@@ -175,7 +175,7 @@ class TestWebDriverSelenium(SupersetTestCase):
         app.config["SCREENSHOT_LOAD_WAIT"] = 15
         webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
+            app.config["ASYNC_TASK_FIXED_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         webdriver.get_screenshot(url, "chart-container", user=user)
@@ -189,7 +189,7 @@ class TestWebDriverSelenium(SupersetTestCase):
     ):
         webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(
-            app.config["THUMBNAIL_SELENIUM_USER"]
+            app.config["ASYNC_TASK_FIXED_USER"]
         )
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
@@ -232,7 +232,7 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_dashboard_screenshot_as_selenium(self):
+    def test_get_async_dashboard_screenshot_as_fixed_user(self):
         """
         Thumbnails: Simple get async dashboard screenshot as selenium user
         """
@@ -241,7 +241,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.FIXED_USER],
                 },
             ),
             patch(
@@ -251,8 +251,8 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
-            assert mock_adjust_string.call_args[0][2] == "admin"
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.FIXED_USER
+            assert mock_adjust_string.call_args[0][2] == ADMIN_USERNAME
 
             rv = self.client.get(thumbnail_url)
             assert rv.status_code == 202
@@ -310,7 +310,7 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
-    def test_get_async_chart_screenshot_as_selenium(self):
+    def test_get_async_chart_screenshot_as_fixed_user(self):
         """
         Thumbnails: Simple get async chart screenshot as selenium user
         """
@@ -319,7 +319,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.SELENIUM],
+                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.FIXED_USER],
                 },
             ),
             patch(
@@ -329,8 +329,8 @@ class TestThumbnails(SupersetTestCase):
             mock_adjust_string.return_value = self.digest_return_value
             _, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
             assert self.digest_hash in thumbnail_url
-            assert mock_adjust_string.call_args[0][1] == ExecutorType.SELENIUM
-            assert mock_adjust_string.call_args[0][2] == "admin"
+            assert mock_adjust_string.call_args[0][1] == ExecutorType.FIXED_USER
+            assert mock_adjust_string.call_args[0][2] == ADMIN_USERNAME
 
             rv = self.client.get(thumbnail_url)
             assert rv.status_code == 202

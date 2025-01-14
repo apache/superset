@@ -64,8 +64,8 @@ def get_executor(  # noqa: C901
     owners = model.owners
     owner_dict = {owner.id: owner for owner in owners}
     for executor_type in executor_types:
-        if executor_type == ExecutorType.SELENIUM:
-            return executor_type, current_app.config["THUMBNAIL_SELENIUM_USER"]
+        if executor_type == ExecutorType.FIXED_USER:
+            return executor_type, current_app.config["ASYNC_TASK_FIXED_USER"]
         if executor_type == ExecutorType.CURRENT_USER and current_user:
             return executor_type, current_user
         if executor_type == ExecutorType.CREATOR_OWNER:

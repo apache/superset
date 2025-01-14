@@ -81,7 +81,7 @@ def prepare_datasource_mock(
     [
         (
             None,
-            [ExecutorType.SELENIUM],
+            [ExecutorType.FIXED_USER],
             False,
             False,
             [],
@@ -282,7 +282,7 @@ def test_dashboard_digest(
     [
         (
             None,
-            [ExecutorType.SELENIUM],
+            [ExecutorType.FIXED_USER],
             False,
             False,
             None,
