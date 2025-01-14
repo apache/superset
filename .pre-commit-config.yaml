@@ -57,7 +57,7 @@ repos:
     hooks:
       - id: prettier
         additional_dependencies:
-          - prettier@3.3.3
+          - prettier@3.4.2
         args: ["--ignore-path=./superset-frontend/.prettierignore"]
         files: "superset-frontend"
   # blacklist unsafe functions like make_url (see #19526)
