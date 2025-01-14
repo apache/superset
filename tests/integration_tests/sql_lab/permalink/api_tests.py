@@ -30,7 +30,7 @@ from tests.integration_tests.constants import (
 )
 
 
-@pytest.fixture()
+@pytest.fixture
 def tab_state_data() -> dict[str, Any]:
     return {
         "dbId": 1,
@@ -42,7 +42,7 @@ def tab_state_data() -> dict[str, Any]:
     }
 
 
-@pytest.fixture()
+@pytest.fixture
 def permalink_salt(app_context) -> Iterator[str]:
     from superset.key_value.shared_entries import get_permalink_salt, get_uuid_namespace
     from superset.key_value.types import SharedKey
