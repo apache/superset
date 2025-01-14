@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 from flask import current_app
 
 from superset import security_manager
+from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.types import ExecutorType
 from superset.tasks.utils import get_current_user, get_executor
 from superset.utils.core import override_user
@@ -92,11 +93,15 @@ def _adjust_string_with_rls(
 def get_dashboard_digest(dashboard: Dashboard) -> str:
     config = current_app.config
     datasources = dashboard.datasources
-    executor_type, executor = get_executor(
-        executor_types=config["THUMBNAIL_EXECUTE_AS"],
-        model=dashboard,
-        current_user=get_current_user(),
-    )
+    try:
+        executor_type, executor = get_executor(
+            executor_types=config["THUMBNAIL_EXECUTE_AS"],
+            model=dashboard,
+            current_user=get_current_user(),
+        )
+    except ExecutorNotFoundError:
+        return ""
+
     if func := config["THUMBNAIL_DASHBOARD_DIGEST_FUNC"]:
         return func(dashboard, executor_type, executor)
 
@@ -114,11 +119,14 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
 def get_chart_digest(chart: Slice) -> str:
     config = current_app.config
     datasource = chart.datasource
-    executor_type, executor = get_executor(
-        executor_types=config["THUMBNAIL_EXECUTE_AS"],
-        model=chart,
-        current_user=get_current_user(),
-    )
+    try:
+        executor_type, executor = get_executor(
+            executor_types=config["THUMBNAIL_EXECUTE_AS"],
+            model=chart,
+            current_user=get_current_user(),
+        )
+    except ExecutorNotFoundError:
+        return ""
 
     if func := config["THUMBNAIL_CHART_DIGEST_FUNC"]:
         return func(chart, executor_type, executor)

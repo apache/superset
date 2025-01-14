@@ -58,7 +58,7 @@ def get_executor(  # noqa: C901
            thumbnails this is the user that requested the thumbnail, while for alerts
            and reports this is None (=initiated by Celery).
     :return: User to execute the report as
-    :raises ScheduledTaskExecutorNotFoundError: If no users were found in after
+    :raises ExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executor_types`
     """
     owners = model.owners
