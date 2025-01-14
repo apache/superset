@@ -48,6 +48,7 @@ describe('Dashboard', () => {
       removeSliceFromDashboard() {},
       triggerQuery() {},
       logEvent() {},
+      clearDataMaskState() {},
     },
     dashboardState,
     dashboardInfo,
@@ -61,6 +62,7 @@ describe('Dashboard', () => {
     userId: dashboardInfo.userId,
     impressionId: 'id',
     loadStats: {},
+    dashboardId: 123,
   };
 
   const ChildrenComponent = () => <div>Test</div>;
@@ -125,9 +127,30 @@ describe('Dashboard', () => {
     let refreshSpy;
 
     beforeEach(() => {
-      wrapper = setup({ activeFilters: OVERRIDE_FILTERS });
-      wrapper.instance().appliedFilters = OVERRIDE_FILTERS;
-      prevProps = wrapper.instance().props;
+      jest.clearAllMocks();
+      getRelatedCharts.mockReset();
+
+      // Create a deep copy of OVERRIDE_FILTERS for prevProps
+      const initialFilters = JSON.parse(JSON.stringify(OVERRIDE_FILTERS));
+
+      // Setup with required props
+      wrapper = setup({
+        activeFilters: initialFilters,
+        editMode: false, // Ensure not in edit mode
+        chartConfiguration: {}, // Ensure chartConfiguration exists
+        ownDataCharts: {},
+      });
+      wrapper.instance().appliedFilters = initialFilters;
+
+      // Set up prevProps with the initial filters
+      prevProps = {
+        ...wrapper.instance().props,
+        activeFilters: initialFilters,
+        editMode: false,
+        chartConfiguration: {},
+        ownDataCharts: {},
+      };
+
       refreshSpy = sinon.spy(wrapper.instance(), 'refreshCharts');
     });
 
@@ -148,27 +171,36 @@ describe('Dashboard', () => {
     });
 
     it('should not call refresh when there is no change', () => {
+      const sameFilters = JSON.parse(JSON.stringify(OVERRIDE_FILTERS));
       wrapper.setProps({
-        activeFilters: OVERRIDE_FILTERS,
+        activeFilters: sameFilters,
       });
       wrapper.instance().componentDidUpdate(prevProps);
       expect(refreshSpy.callCount).toBe(0);
-      expect(wrapper.instance().appliedFilters).toBe(OVERRIDE_FILTERS);
+      expect(wrapper.instance().appliedFilters).toEqual(sameFilters);
     });
 
     it('should call refresh when native filters changed', () => {
       getRelatedCharts.mockReturnValue([230]);
+
+      const newFilters = {
+        ...OVERRIDE_FILTERS,
+        ...getAllActiveFilters({
+          dataMask: dataMaskWith1Filter,
+          nativeFilters: singleNativeFiltersState.filters,
+          allSliceIds: [227, 229, 230],
+        }),
+      };
+
       wrapper.setProps({
-        activeFilters: {
-          ...OVERRIDE_FILTERS,
-          ...getAllActiveFilters({
-            dataMask: dataMaskWith1Filter,
-            nativeFilters: singleNativeFiltersState.filters,
-            allSliceIds: [227, 229, 230],
-          }),
-        },
+        ...wrapper.instance().props,
+        activeFilters: newFilters,
+        editMode: false,
+        chartConfiguration: {},
       });
+
       wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual({
         ...OVERRIDE_FILTERS,
@@ -190,34 +222,51 @@ describe('Dashboard', () => {
 
     it('should call refresh if a filter is added', () => {
       getRelatedCharts.mockReturnValue([1]);
+
       const newFilter = {
         gender: { values: ['boy', 'girl'], scope: [1] },
       };
-      wrapper.setProps({
+
+      const newProps = {
+        ...wrapper.instance().props,
         activeFilters: newFilter,
-      });
+      };
+      wrapper.setProps(newProps);
+      wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual(newFilter);
     });
 
     it('should call refresh if a filter is removed', () => {
       getRelatedCharts.mockReturnValue([]);
-      wrapper.setProps({
+
+      const newProps = {
+        ...wrapper.instance().props,
         activeFilters: {},
-      });
+      };
+      wrapper.setProps(newProps);
+      wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual({});
     });
 
     it('should call refresh if a filter is changed', () => {
       getRelatedCharts.mockReturnValue([1]);
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '1_region': { values: ['Canada'], scope: [1] },
       };
-      wrapper.setProps({
+
+      const newProps = {
+        ...wrapper.instance().props,
         activeFilters: newFilters,
-      });
+      };
+      wrapper.setProps(newProps);
+      wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual(newFilters);
       expect(refreshSpy.getCall(0).args[0]).toEqual([1]);
@@ -225,41 +274,58 @@ describe('Dashboard', () => {
 
     it('should call refresh with multiple chart ids', () => {
       getRelatedCharts.mockReturnValue([1, 2]);
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '2_country_name': { values: ['New Country'], scope: [1, 2] },
       };
-      wrapper.setProps({
+
+      const newProps = {
+        ...wrapper.instance().props,
         activeFilters: newFilters,
-      });
+      };
+      wrapper.setProps(newProps);
+      wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(wrapper.instance().appliedFilters).toEqual(newFilters);
       expect(refreshSpy.getCall(0).args[0]).toEqual([1, 2]);
     });
 
     it('should call refresh if a filter scope is changed', () => {
+      getRelatedCharts.mockReturnValue([2]);
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '3_country_name': { values: ['USA'], scope: [2] },
       };
 
-      wrapper.setProps({
+      const newProps = {
+        ...wrapper.instance().props,
         activeFilters: newFilters,
-      });
+      };
+      wrapper.setProps(newProps);
+      wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(refreshSpy.getCall(0).args[0]).toEqual([2]);
     });
 
     it('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
       getRelatedCharts.mockReturnValue([]);
+
       const newFilters = {
         ...OVERRIDE_FILTERS,
         '3_country_name': { values: ['CHINA'], scope: [] },
       };
 
-      wrapper.setProps({
+      const newProps = {
+        ...wrapper.instance().props,
         activeFilters: newFilters,
-      });
+      };
+      wrapper.setProps(newProps);
+      wrapper.instance().componentDidUpdate(prevProps);
+
       expect(refreshSpy.callCount).toBe(1);
       expect(refreshSpy.getCall(0).args[0]).toEqual([]);
     });

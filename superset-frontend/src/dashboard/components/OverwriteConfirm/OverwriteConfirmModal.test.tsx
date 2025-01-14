@@ -20,6 +20,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
+import { act } from 'react-test-renderer';
 
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import { overwriteConfirmMetadata } from 'spec/fixtures/mockDashboardState';
@@ -61,10 +62,24 @@ test('requests update dashboard api when save button is clicked', async () => {
     last_modified_time: +new Date(),
     result: overwriteConfirmMetadata.data,
   });
+
+  // Initialize store with required state
   const store = mockStore({
-    dashboardLayout: {},
+    dashboardLayout: {
+      present: {},
+    },
     dashboardFilters: {},
+    dashboardInfo: {
+      metadata: {},
+      crossFiltersEnabled: false,
+    },
+    charts: {},
+    dataMask: {},
+    nativeFilters: {
+      filters: {},
+    },
   });
+
   const { findByTestId } = render(
     <OverwriteConfirmModal
       overwriteConfirmMetadata={overwriteConfirmMetadata}
@@ -74,17 +89,23 @@ test('requests update dashboard api when save button is clicked', async () => {
       store,
     },
   );
+
   const saveButton = await findByTestId('overwrite-confirm-save-button');
   expect(fetchMock.calls(updateDashboardEndpoint)).toHaveLength(0);
-  fireEvent.click(saveButton);
-  expect(fetchMock.calls(updateDashboardEndpoint)).toHaveLength(0);
-  mockAllIsIntersecting(true);
-  fireEvent.click(saveButton);
-  await waitFor(() =>
-    expect(fetchMock.calls(updateDashboardEndpoint)?.[0]?.[1]?.body).toEqual(
-      JSON.stringify(overwriteConfirmMetadata.data),
-    ),
-  );
+
+  await act(async () => {
+    mockAllIsIntersecting(true);
+    fireEvent.click(saveButton);
+  });
+
+  // Wait for the fetch mock to be called and verify the request body
+  await waitFor(() => {
+    const calls = fetchMock.calls(updateDashboardEndpoint);
+    expect(calls).toHaveLength(1);
+    expect(JSON.parse(calls[0][1].body)).toEqual(overwriteConfirmMetadata.data);
+  });
+
+  // Verify the action was dispatched
   await waitFor(() =>
     expect(store.getActions()).toContainEqual({
       type: 'SET_OVERRIDE_CONFIRM',

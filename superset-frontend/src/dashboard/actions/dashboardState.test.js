@@ -61,6 +61,7 @@ describe('dashboardState actions', () => {
       present: mockDashboardData.positions,
       future: {},
     },
+    charts: {},
   };
   const newDashboardData = mockDashboardData;
 
@@ -156,7 +157,12 @@ describe('dashboardState actions', () => {
 
       it('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {
         const id = 192;
-        const { getState, dispatch } = setup();
+        const { getState, dispatch } = setup({
+          charts: {
+            123: { id: 123 },
+            456: { id: 456 },
+          },
+        });
         const thunk = saveDashboardRequest(
           newDashboardData,
           id,
@@ -175,7 +181,12 @@ describe('dashboardState actions', () => {
 
       it('should post dashboard data with after confirm the overwrite values', async () => {
         const id = 192;
-        const { getState, dispatch } = setup();
+        const { getState, dispatch } = setup({
+          charts: {
+            123: { id: 123 },
+            456: { id: 456 },
+          },
+        });
         const confirmedDashboardData = {
           ...newDashboardData,
           css: updatedCss,
