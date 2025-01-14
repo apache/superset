@@ -60,6 +60,8 @@ export default function transformProps(
     sliceId,
     xAxisTitle,
     yAxisTitle,
+    minValue,
+    maxValue,
   } = formData;
   const { data } = queriesData[0];
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
@@ -71,6 +73,32 @@ export default function transformProps(
   const xAxisData: string[] = Object.keys(data[0]).filter(
     key => !groupbySet.has(key),
   );
+  
+  // Extract bin names from the data object keys
+  const binNames = Object.keys(data[0]);
+
+  // Function to determine which bin a minValue/maxValue belongs to
+  const findBin = (value: number, bins: string[]): string | null => {
+    for (let i = 0; i < bins.length; i++) {
+      const [min, max] = bins[i].split(' - ').map(Number);
+      if (value >= min && value <= max) {
+        return bins[i];
+      }
+    }
+    return null;
+  };
+
+  const minBin = findBin(minValue, binNames);
+  const maxBin = findBin(maxValue, binNames);
+
+  // warning if minBin or maxBin is null
+  if (!minBin) {
+    console.warn(`Warning: minValue (${minValue}) does not fall within any bin range.`);
+  }
+  if (!maxBin) {
+    console.warn(`Warning: maxValue (${maxValue}) does not fall within any bin range.`);
+  }
+
   const barSeries: BarSeriesOption[] = data.map(datum => {
     const seriesName =
       groupby.length > 0
@@ -162,7 +190,28 @@ export default function transformProps(
         formatter: (value: number) => formatter.format(value),
       },
     },
-    series: barSeries,
+    // upadted series to create vertical markLine
+    series: barSeries.map(series => ({
+      ...series,
+      markLine: {
+        data: [
+          { xAxis: minBin ?? "null", name: minValue ? minValue.toString() : 'minValue' },
+          { xAxis: maxBin ?? "null", name: maxValue ? maxValue.toString() : 'maxValue' },
+        ],
+        label: {
+          show: true,
+          position: 'end',
+          formatter: '{b}',
+          color: 'red',
+          fontSize: 12,
+        },
+        lineStyle: {
+          color: 'red',
+          type: 'solid',
+          width: 2,
+        },
+      },
+    })),
     legend: {
       ...getLegendProps(
         LegendType.Scroll,

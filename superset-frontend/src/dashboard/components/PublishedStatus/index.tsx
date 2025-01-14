@@ -19,7 +19,7 @@
 import { Component } from 'react';
 import { t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import Label from 'src/components/Label';
+import { PublishedLabel } from 'src/components/Label';
 import { HeaderProps, HeaderDropdownProps } from '../Header/types';
 
 export type DashboardPublishedStatusType = {
@@ -67,13 +67,12 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
             placement="bottom"
             title={draftButtonTooltip}
           >
-            <Label
-              onClick={() => {
-                this.togglePublished();
-              }}
-            >
-              {t('Draft')}
-            </Label>
+            <div>
+              <PublishedLabel
+                isPublished={isPublished}
+                onClick={this.togglePublished}
+              />
+            </div>
           </Tooltip>
         );
       }
@@ -83,7 +82,9 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
           placement="bottom"
           title={draftDivTooltip}
         >
-          <Label>{t('Draft')}</Label>
+          <div>
+            <PublishedLabel isPublished={isPublished} />
+          </div>
         </Tooltip>
       );
     }
@@ -96,13 +97,12 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
           placement="bottom"
           title={publishedTooltip}
         >
-          <Label
-            onClick={() => {
-              this.togglePublished();
-            }}
-          >
-            {t('Published')}
-          </Label>
+          <div>
+            <PublishedLabel
+              isPublished={isPublished}
+              onClick={this.togglePublished}
+            />
+          </div>
         </Tooltip>
       );
     }

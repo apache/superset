@@ -113,6 +113,52 @@ const config: ControlPanelConfig = {
         ['color_scheme'],
         [showValueControl],
         [showLegendControl],
+        [
+          {
+            name: 'x_axis_title',
+            config: {
+              type: 'TextControl',
+              label: t('X Axis Title'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_axis_title',
+            config: {
+              type: 'TextControl',
+              label: t('Y Axis Title'),
+              renderTrigger: true,
+              default: '',
+            },
+          },
+        ],
+        [
+          {
+            name: 'min_value',
+            config: {
+              type: 'TextControl',
+              label: t('Minimum Acceptable Value'),
+              renderTrigger: true,
+              default: 0,
+              description: t('Enter the minimum acceptable value'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'max_value',
+            config: {
+              type: 'TextControl',
+              label: t('Maximum Acceptable Value'),
+              renderTrigger: true,
+              default: 0,
+              description: t('Enter the maximum acceptable value'),
+            },
+          },
+        ],
       ],
     },
   ],

@@ -27,6 +27,7 @@ import {
   css,
   DatasourceType,
   isDefined,
+  logging,
   styled,
   SupersetClient,
   t,
@@ -136,7 +137,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
           });
         }
       } catch (error) {
-        this.props.actions.addDangerToast(
+        logging.warn(error);
+        this.props.addDangerToast(
           t('An error occurred while loading dashboard information.'),
         );
       }

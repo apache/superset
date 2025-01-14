@@ -35,6 +35,7 @@ import {
   MenuData,
 } from 'src/types/bootstrapTypes';
 import RightMenu from './RightMenu';
+import VannaAiButton from 'src/components/Vanna_ai/vannaAiButton';
 
 interface MenuProps {
   data: MenuData;
@@ -309,7 +310,7 @@ export function Menu({
             id="brand-tooltip"
             placement="bottomLeft"
             title={brand.tooltip}
-            arrowPointAtCenter
+            arrow={{ pointAtCenter: true }}
           >
             {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>
@@ -351,8 +352,11 @@ export function Menu({
 
               return renderSubMenu(props);
             })}
+          {/* <VannaAiButton></VannaAiButton> */}
+          <VannaAiButton></VannaAiButton>
           </DropdownMenu>
         </Col>
+        {/* <VannaAiButton></VannaAiButton> */}
         <Col md={8} xs={24}>
           <RightMenu
             align={screens.md ? 'flex-end' : 'flex-start'}

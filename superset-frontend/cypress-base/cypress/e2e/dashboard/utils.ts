@@ -24,9 +24,9 @@ export const WORLD_HEALTH_CHARTS = [
   { name: '% Rural', viz: 'world_map' },
   { name: 'Most Populated Countries', viz: 'table' },
   { name: "World's Population", viz: 'big_number' },
-  { name: 'Growth Rate', viz: 'line' },
+  { name: 'Growth Rate', viz: 'echarts_timeseries_line' },
   { name: 'Rural Breakdown', viz: 'sunburst_v2' },
-  { name: "World's Pop Growth", viz: 'area' },
+  { name: "World's Pop Growth", viz: 'echarts_area' },
   { name: 'Life Expectancy VS Rural %', viz: 'bubble' },
   { name: 'Treemap', viz: 'treemap_v2' },
   { name: 'Box plot', viz: 'box_plot' },
@@ -41,7 +41,7 @@ export const SUPPORTED_TIER1_CHARTS = [
   { name: 'Line Chart', viz: 'echarts_timeseries_line' },
   { name: 'Area Chart', viz: 'echarts_area' },
   { name: 'Scatter Chart', viz: 'echarts_timeseries_scatter' },
-  { name: 'Bar Chart V2', viz: 'echarts_timeseries_bar' },
+  { name: 'Bar Chart', viz: 'echarts_timeseries_bar' },
 ] as ChartSpec[];
 
 export const SUPPORTED_TIER2_CHARTS = [

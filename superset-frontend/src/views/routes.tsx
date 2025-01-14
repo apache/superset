@@ -18,6 +18,7 @@
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { lazy, ComponentType, ComponentProps } from 'react';
+import VannaAiPage from 'src/components/Vanna_ai/vannaAiPage';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -123,6 +124,10 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+const VannaAiPa = lazy (
+  () => import(/* webpackChunkName: "VannaAiPage" */ 'src/components/Vanna_ai/vannaAiPage')
+)
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -224,6 +229,10 @@ export const routes: Routes = [
   {
     path: '/sqllab/',
     Component: SqlLab,
+  },
+  {
+    path: '/vanna/home',
+    Component: VannaAiPa,
   },
 ];
 

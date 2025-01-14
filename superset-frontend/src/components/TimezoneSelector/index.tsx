@@ -75,28 +75,32 @@ export default function TimezoneSelector({
         );
       };
 
-      const dedupedTimezones = new Map();
-
       // TODO: remove this ts-ignore when typescript is upgraded to 5.1
       // @ts-ignore
       const ALL_ZONES: string[] = Intl.supportedValuesOf('timeZone');
 
-      ALL_ZONES.forEach(zone => {
-        const offsetKey = getOffsetKey(zone);
-        if (!dedupedTimezones.has(offsetKey)) {
-          dedupedTimezones.set(offsetKey, zone);
-        }
-      });
-      const TIMEZONES: string[] = Array.from(dedupedTimezones.values());
-
-      const TIMEZONE_OPTIONS = TIMEZONES.map(zone => ({
-        label: `GMT ${extendedDayjs
+      const labels = new Set<string>();
+      const TIMEZONE_OPTIONS = ALL_ZONES.map(zone => {
+        const label = `GMT ${extendedDayjs
           .tz(currentDate, zone)
-          .format('Z')} (${getTimezoneName(zone)})`,
-        value: zone,
-        offsets: getOffsetKey(zone),
-        timezoneName: zone,
-      }));
+          .format('Z')} (${getTimezoneName(zone)})`;
+
+        if (labels.has(label)) {
+          return null; // Skip duplicates
+        }
+        labels.add(label);
+        return {
+          label,
+          value: zone,
+          offsets: getOffsetKey(zone),
+          timezoneName: zone,
+        };
+      }).filter(Boolean) as {
+        label: string;
+        value: string;
+        offsets: string;
+        timezoneName: string;
+      }[];
 
       const TIMEZONE_OPTIONS_SORT_COMPARATOR = (
         a: (typeof TIMEZONE_OPTIONS)[number],
