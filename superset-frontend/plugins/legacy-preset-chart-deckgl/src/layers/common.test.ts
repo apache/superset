@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getAggFunc, commonLayerProps } from './common';
 import { JsonObject } from '@superset-ui/core';
+import { getAggFunc, commonLayerProps } from './common';
 
 describe('getAggFunc', () => {
   it('returns correct function for sum', () => {
