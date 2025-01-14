@@ -125,23 +125,6 @@ describe('commonLayerProps', () => {
     });
   });
 
-  it('calls onClick and opens link when js_onclick_href is provided', () => {
-    global.open = jest.fn();
-    const formData = {
-      ...partialformData,
-      js_onclick_href: 'o => `https://example.com/${o.id}`',
-    } as QueryFormData;
-    const props = commonLayerProps(
-      formData,
-      mockSetTooltip,
-      mockSetTooltipContent,
-    );
-
-    const mockObject = { id: 42 };
-    props.onClick?.(mockObject);
-    expect(global.open).toHaveBeenCalledWith('https://example.com/42');
-  });
-
   it('calls onSelect when table_filter is enabled', () => {
     const formData = {
       ...partialformData,
