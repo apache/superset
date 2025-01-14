@@ -143,6 +143,31 @@ def parse_past_timedelta(
     )
 
 
+def get_relative_base(unit: str, relative_start: datetime | None = None) -> str:
+    """
+    Determine the base time (`relative_start`) based on granularity and user input.
+
+    Args:
+        unit (str): The time unit (e.g., "second", "minute", "hour", "day", etc.).
+        relative_start (datetime | None): Optional user-provided base time.
+
+    Returns:
+        datetime: The base time (`now`, `today`, or user-provided).
+    """
+    if relative_start is not None:
+        return relative_start
+
+    granular_units = {"second", "minute", "hour"}
+    broad_units = {"day", "week", "month", "quarter", "year"}
+
+    if unit in granular_units:
+        return "now"
+    elif unit in broad_units:
+        return "today"
+    else:
+        raise ValueError(f"Unknown unit: {unit}")
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -247,12 +272,12 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
                 lambda delta,
-                unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
+                unit: f"DATEADD(DATETIME('{get_relative_base(unit, relative_start)}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
                 lambda delta,
-                unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
+                unit: f"DATEADD(DATETIME('{get_relative_base(unit, relative_start)}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
             ),
             (
                 r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",

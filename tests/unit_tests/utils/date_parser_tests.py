@@ -92,6 +92,18 @@ def test_get_since_until() -> None:
     expected = datetime(2016, 11, 6), datetime(2016, 11, 8)
     assert result == expected
 
+    result = get_since_until(" : now")
+    expected = None, datetime(2016, 11, 7, 9, 30, 10)
+    assert result == expected
+
+    result = get_since_until(" : last 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 28, 10)
+    assert result == expected
+
+    result = get_since_until(" : next 2 minutes")
+    expected = None, datetime(2016, 11, 7, 9, 32, 10)
+    assert result == expected
+
     result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
     expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
     assert result == expected
