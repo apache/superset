@@ -231,6 +231,9 @@ const config = {
       message:
         /export 'withTooltipPropTypes' \(imported as 'vxTooltipPropTypes'\) was not found/,
     },
+    {
+      message: /Can't resolve.*superset_text/,
+    },
   ],
   performance: {
     assetFilter(assetFilename) {
