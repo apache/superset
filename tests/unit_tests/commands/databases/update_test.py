@@ -418,6 +418,54 @@ def test_remove_oauth_config_purges_tokens(
     database_needs_oauth2.purge_oauth2_tokens.assert_called()
 
 
+def test_update_oauth2_removes_masked_encrypted_extra_key(
+    mocker: MockerFixture,
+    database_needs_oauth2: MockerFixture,
+) -> None:
+    """
+    Test that the ``masked_encrypted_extra`` key is properly purged from the properties.
+    """
+    DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database_needs_oauth2
+    DatabaseDAO.update.return_value = database_needs_oauth2
+
+    find_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "find_permission_view_menu",
+    )
+    find_permission_view_menu.side_effect = [
+        None,
+        "[my_db].[schema2]",
+    ]
+    add_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "add_permission_view_menu",
+    )
+
+    modified_oauth2_client_info = oauth2_client_info.copy()
+    modified_oauth2_client_info["scope"] = "scope-b"
+
+    UpdateDatabaseCommand(
+        1,
+        {
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": modified_oauth2_client_info}
+            )
+        },
+    ).run()
+
+    add_permission_view_menu.assert_not_called()
+    database_needs_oauth2.purge_oauth2_tokens.assert_called()
+    DatabaseDAO.update.assert_called_with(
+        database_needs_oauth2,
+        {
+            "encrypted_extra": json.dumps(
+                {"oauth2_client_info": modified_oauth2_client_info}
+            )
+        },
+    )
+
+
 def test_update_other_fields_dont_affect_oauth(
     mocker: MockerFixture,
     database_needs_oauth2: MockerFixture,
