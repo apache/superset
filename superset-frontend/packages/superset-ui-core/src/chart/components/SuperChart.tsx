@@ -25,7 +25,8 @@ import {
   Fragment,
 } from 'react';
 
-import ErrorBoundary, {
+import {
+  ErrorBoundary,
   ErrorBoundaryProps,
   FallbackProps,
 } from 'react-error-boundary';
@@ -46,7 +47,9 @@ const defaultProps = {
   enableNoResults: true,
 };
 
-export type FallbackPropsWithDimension = FallbackProps & Partial<Dimension>;
+export type FallbackPropsWithDimension = FallbackProps & {
+  componentStack?: string;
+} & Partial<Dimension>;
 
 export type WrapperProps = Dimension & {
   children: ReactNode;
