@@ -422,6 +422,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
+        if not engine.dialect.credentials_info:
+            raise SupersetDBAPIConnectionError(
+                "The database credentials do not contain a 'credentials_info' field."
+            )
+
         credentials = service_account.Credentials.from_service_account_info(
             engine.dialect.credentials_info
         )
@@ -496,7 +501,12 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         engine: Engine
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine, database)
+            try:
+                client = cls._get_client(engine, database)
+            except SupersetDBAPIConnectionError:
+                # return {} here, since it will be repopulated when creds are added
+                return set()
+
             projects = client.list_projects()
 
         return {project.project_id for project in projects}
