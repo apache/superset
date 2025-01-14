@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { styled, supersetTheme } from '@superset-ui/core';
 import { Input } from 'antd-v5';
 import Icons from '.';
