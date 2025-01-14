@@ -86,23 +86,44 @@ function hasOnlyGuestRole(data: BootstrapData) {
   return false;
 }
 
+const closeSession = async () => {
+  await fetch('/logout/', {
+    method: 'GET',
+    credentials: 'include',
+  });
+};
+
 const App = () => {
   useEffect(() => {
-    // Check if user exists and has the role "Guest"
-    if (hasOnlyGuestRole(bootstrapData)) {
-      // Send message to opener window
-      if (window.opener) {
-        window.opener.postMessage(
-          {
-            type: 'OAUTH2_SUCCESS',
-            data: {
-              // Add any additional data you need to send
-            },
-          },
-          '*',
-        );
+    const handleWindowOpen = async () => {
+      try {
+        // Check if the window was opened by another window
+        if (window.opener) {
+          // Verify if the user has only the "Guest" role
+          if (hasOnlyGuestRole(bootstrapData)) {
+            // Send a message to the opener window
+            window.opener.postMessage(
+              {
+                type: 'OAUTH2_SUCCESS',
+                data: {
+                  // Add any additional data to send
+                },
+              },
+              '*',
+            );
+          } else {
+            // Clear all cookies before proceeding
+            await closeSession();
+          }
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error handling guest role:', error);
       }
-    }
+    };
+
+    // Call the async function
+    handleWindowOpen();
   }, []); // Empty dependency array means this runs once when component mounts
 
   return (
