@@ -74,6 +74,8 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
+    DialectExtensions = dict[str, Dialects | type[Dialect]]
+
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 
@@ -251,7 +253,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 )
 
 # Extends the default SQLGlot dialects with additional dialects
-SQLGLOT_DIALECTS_EXTENSIONS: dict[str, Dialects | type[Dialect]] = {}
+SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
