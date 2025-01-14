@@ -20,6 +20,7 @@ import { ReactNode } from 'react';
 import {
   ascending as d3ascending,
   quantile as d3quantile,
+  count as d3count,
   sum as d3sum,
   mean as d3mean,
   min as d3min,
@@ -89,6 +90,7 @@ const percentiles = {
 /* Supported d3-array functions */
 const d3functions: Record<string, any> = {
   sum: d3sum,
+  count: d3count,
   min: d3min,
   max: d3max,
   mean: d3mean,
