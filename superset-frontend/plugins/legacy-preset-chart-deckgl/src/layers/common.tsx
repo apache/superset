@@ -131,8 +131,8 @@ export function getAggFunc(
   }
 
   if (!accessor) {
-    return (arr: JsonObject[]) => d3func(arr);
+    return (arr: number[]) => d3func(arr);
   }
 
-  return (arr: JsonObject[]) => d3func(arr.map(x => accessor(x)));
+  return (arr: number[]) => d3func(arr.map(x => accessor(x)));
 }

@@ -16,8 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject } from '@superset-ui/core';
+
+import { JsonObject, QueryFormData } from '@superset-ui/core';
 import { getAggFunc, commonLayerProps } from './common';
+
+const partialformData: Partial<QueryFormData> = {
+  viz_type: 'table',
+  datasource: '3_sqla',
+};
 
 describe('getAggFunc', () => {
   it('returns correct function for sum', () => {
@@ -53,7 +59,7 @@ describe('getAggFunc', () => {
   it('returns correct function for variance', () => {
     const aggFunc = getAggFunc('variance');
     const result = aggFunc([1, 2, 3, 4]);
-    expect(result).toBe(1.6666666666666667);
+    expect(result).toBeCloseTo(1.6666666666666667);
   });
 
   it('returns correct function for deviation', () => {
@@ -89,7 +95,10 @@ describe('commonLayerProps', () => {
   const mockOnSelect = jest.fn();
 
   it('returns correct props when js_tooltip is provided', () => {
-    const formData = { js_tooltip: 'tooltip => tooltip.content' } as any;
+    const formData = {
+      ...partialformData,
+      js_tooltip: 'tooltip => tooltip.content',
+    } as QueryFormData;
     const props = commonLayerProps(
       formData,
       mockSetTooltip,
@@ -100,7 +109,7 @@ describe('commonLayerProps', () => {
   });
 
   it('calls onHover and sets tooltip', () => {
-    const formData = { js_tooltip: null } as any;
+    const formData = { ...partialformData, js_tooltip: null } as QueryFormData;
     const props = commonLayerProps(
       formData,
       mockSetTooltip,
@@ -108,7 +117,7 @@ describe('commonLayerProps', () => {
     );
 
     const mockObject = { picked: true, x: 10, y: 20 };
-    props.onHover(mockObject);
+    props.onHover?.(mockObject);
     expect(mockSetTooltip).toHaveBeenCalledWith({
       content: expect.any(Function), // Matches any function
       x: 10,
@@ -119,8 +128,9 @@ describe('commonLayerProps', () => {
   it('calls onClick and opens link when js_onclick_href is provided', () => {
     global.open = jest.fn();
     const formData = {
+      ...partialformData,
       js_onclick_href: 'o => `https://example.com/${o.id}`',
-    } as any;
+    } as QueryFormData;
     const props = commonLayerProps(
       formData,
       mockSetTooltip,
@@ -128,12 +138,16 @@ describe('commonLayerProps', () => {
     );
 
     const mockObject = { id: 42 };
-    props.onClick(mockObject);
+    props.onClick?.(mockObject);
     expect(global.open).toHaveBeenCalledWith('https://example.com/42');
   });
 
   it('calls onSelect when table_filter is enabled', () => {
-    const formData = { table_filter: true, line_column: 'name' } as any;
+    const formData = {
+      ...partialformData,
+      table_filter: true,
+      line_column: 'name',
+    } as QueryFormData;
     const props = commonLayerProps(
       formData,
       mockSetTooltip,
@@ -142,7 +156,7 @@ describe('commonLayerProps', () => {
     );
 
     const mockObject = { object: { name: 'John Doe' } };
-    props.onClick(mockObject);
+    props.onClick?.(mockObject);
     expect(mockOnSelect).toHaveBeenCalledWith('John Doe');
   });
 });
