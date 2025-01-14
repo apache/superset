@@ -32,6 +32,7 @@ assists people when migrating to a new version.
 - [31262](https://github.com/apache/superset/pull/31262) NOTE: deprecated `pylint` in favor of `ruff` as our only python linter. Only affect development workflows positively (not the release itself). It should cover most important rules, be much faster, but some things linting rules that were enforced before may not be enforce in the exact same way as before.
 - [31173](https://github.com/apache/superset/pull/31173) Modified `fetch_csrf_token` to align with HTTP standards, particularly regarding how cookies are handled. If you encounter any issues related to CSRF functionality, please report them as a new issue and reference this PR for context.
 - [31385](https://github.com/apache/superset/pull/31385) Significant docker refactor, reducing access levels for the `superset` user, streamlining layer building, ...
+- [31503](https://github.com/apache/superset/pull/31503) Deprecating python 3.9.x support, 3.11 is  now the recommended version and 3.10 is still supported over the Superset 5.0 lifecycle.
 
 ### Potential Downtime
 
