@@ -31,6 +31,10 @@ export function interceptDelete() {
   cy.intercept('DELETE', `/api/v1/chart/*`).as('delete');
 }
 
+export function interceptFavoriteStatus() {
+  cy.intercept('GET', '/api/v1/chart/favorite_status/*').as('favoriteStatus');
+}
+
 export function interceptUpdate() {
   cy.intercept('PUT', `/api/v1/chart/*`).as('update');
 }
