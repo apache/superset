@@ -164,7 +164,6 @@ export interface BootstrapData {
     dashboard_id: string;
   };
   requested_query?: JsonObject;
-  permalink?: string;
 }
 
 export function isUser(user: any): user is User {

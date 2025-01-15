@@ -42,15 +42,18 @@ const setup = (overridesStore?: Store, initialState?: RootState) =>
     initialState,
     ...(overridesStore && { store: overridesStore }),
   });
+let pathStub = jest.spyOn(URI.prototype, 'path');
 
 beforeEach(() => {
   fetchMock.get('glob:*/api/v1/database/*', {});
   fetchMock.get('glob:*/api/v1/saved_query/*', {});
+  pathStub = jest.spyOn(URI.prototype, 'path').mockReturnValue(`/sqllab/`);
   store.clearActions();
 });
 
 afterEach(() => {
   fetchMock.reset();
+  pathStub.mockReset();
 });
 
 describe('componentDidMount', () => {
@@ -63,7 +66,6 @@ describe('componentDidMount', () => {
   afterEach(() => {
     replaceState.mockReset();
     uriStub.mockReset();
-    document.getElementById('app')?.setAttribute('data-bootstrap', '');
   });
   test('should handle id', async () => {
     const id = 1;
@@ -93,9 +95,7 @@ describe('componentDidMount', () => {
       sql: 'SELECT * FROM test_table',
       dbId: 1,
     });
-    document
-      .getElementById('app')
-      ?.setAttribute('data-bootstrap', JSON.stringify({ permalink: key }));
+    pathStub.mockReturnValue(`/sqllab/p/${key}`);
     setup(store);
     await waitFor(() =>
       expect(
