@@ -40,6 +40,7 @@ import {
   t,
   TimeseriesChartDataResponseResult,
   NumberFormats,
+  convertKeysToCamelCase,
 } from '@superset-ui/core';
 import {
   extractExtraMetrics,
@@ -194,7 +195,11 @@ export default function transformProps(
     yAxisTitlePosition,
     zoomable,
     stackDimension,
-  }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsTimeseriesFormData = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+    ...convertKeysToCamelCase(formData.extra_form_data),
+  };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
   const labelMap: { [key: string]: string[] } = Object.entries(
