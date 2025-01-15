@@ -18,13 +18,7 @@
  */
 
 import { FC, memo, useMemo } from 'react';
-import {
-  DataMaskStateWithId,
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-} from '@superset-ui/core';
+import { DataMaskStateWithId, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
@@ -35,7 +29,6 @@ import { useChartsVerboseMaps, getFilterBarTestId } from './utils';
 import { HorizontalBarProps } from './types';
 import FilterBarSettings from './FilterBarSettings';
 import crossFiltersSelector from './CrossFilters/selectors';
-import { CrossFilterIndicator } from '../selectors';
 
 const HorizontalBar = styled.div`
   ${({ theme }) => `
@@ -72,7 +65,6 @@ const FilterBarEmptyStateContainer = styled.div`
   `}
 `;
 
-const EMPTY_ARRAY: CrossFilterIndicator[] = [];
 const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
   dataMaskSelected,
@@ -85,22 +77,17 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   );
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
-  const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DashboardCrossFilters,
-  );
   const verboseMaps = useChartsVerboseMaps();
 
   const selectedCrossFilters = useMemo(
     () =>
-      isCrossFiltersEnabled
-        ? crossFiltersSelector({
-            dataMask,
-            chartIds,
-            chartLayoutItems,
-            verboseMaps,
-          })
-        : EMPTY_ARRAY,
-    [chartIds, chartLayoutItems, dataMask, isCrossFiltersEnabled, verboseMaps],
+      crossFiltersSelector({
+        dataMask,
+        chartIds,
+        chartLayoutItems,
+        verboseMaps,
+      }),
+    [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
 
   const hasFilters = filterValues.length > 0 || selectedCrossFilters.length > 0;

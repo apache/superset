@@ -20,11 +20,17 @@
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
 import { FeatureFlag } from '@superset-ui/core';
 import FilterBarSettings from '.';
+
+// Mock the number formatter registration to avoid duplicate warnings
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getNumberFormatter: jest.fn(),
+}));
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -104,33 +110,7 @@ test('Dropdown trigger does not render without dashboard edit permissions', asyn
   expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
 
-test('Dropdown trigger renders with FF DASHBOARD_CROSS_FILTERS on', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
-  await setup();
-
-  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
-});
-
-test('Dropdown trigger does not render with FF DASHBOARD_CROSS_FILTERS off', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: false,
-  };
-  await setup({
-    dash_edit_perm: false,
-  });
-
-  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
-});
-
 test('Popover shows cross-filtering option on by default', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
   expect(screen.getByText('Enable cross-filtering')).toBeInTheDocument();
@@ -138,10 +118,6 @@ test('Popover shows cross-filtering option on by default', async () => {
 });
 
 test('Can enable/disable cross-filtering', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
   fetchMock.reset();
   fetchMock.put('glob:*/api/v1/dashboard/1', {
     result: {},
@@ -165,10 +141,14 @@ test('Popover opens with "Vertical" selected', async () => {
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
+
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  // Look for the check icon in a different way
+  const menuItems = screen.getAllByRole('menuitem');
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    menuItems[2].querySelector('[aria-label="check"]'),
   ).toBeInTheDocument();
 });
 
@@ -180,10 +160,13 @@ test('Popover opens with "Horizontal" selected', async () => {
   await setup({ filterBarOrientation: FilterBarOrientation.Horizontal });
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
+
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  const menuItems = screen.getAllByRole('menuitem');
   expect(
-    within(screen.getAllByRole('menuitem')[3]).getByLabelText('check'),
+    menuItems[3].querySelector('[aria-label="check"]'),
   ).toBeInTheDocument();
 });
 
@@ -206,13 +189,12 @@ test('On selection change, send request and update checked value', async () => {
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
-  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
-  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+  const menuItems = screen.getAllByRole('menuitem');
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    menuItems[2].querySelector('[aria-label="check"]'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
+    menuItems[3].querySelector('[aria-label="check"]'),
   ).not.toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));

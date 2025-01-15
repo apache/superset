@@ -18,7 +18,7 @@
  */
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
-import { isFeatureEnabled, t, FeatureFlag } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
@@ -163,10 +163,7 @@ class Dashboard extends PureComponent {
       editMode,
     } = this.props;
     const { appliedFilters, appliedOwnDataCharts } = this;
-    if (
-      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-      !chartConfiguration
-    ) {
+    if (!chartConfiguration) {
       // For a first loading we need to wait for cross filters charts data loaded to get all active filters
       // for correct comparing  of filters to avoid unnecessary requests
       return;

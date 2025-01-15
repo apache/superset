@@ -119,9 +119,7 @@ const ChartContextMenu = (
     canDrillBy &&
     isDisplayed(ContextMenuItem.DrillBy);
 
-  const showCrossFilters =
-    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-    isDisplayed(ContextMenuItem.CrossFilter);
+  const showCrossFilters = isDisplayed(ContextMenuItem.CrossFilter);
 
   const isCrossFilteringSupportedByChart = getChartMetadataRegistry()
     .get(formData.viz_type)
