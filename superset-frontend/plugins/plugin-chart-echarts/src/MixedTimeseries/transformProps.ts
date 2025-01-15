@@ -23,6 +23,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  convertKeysToCamelCase,
   CurrencyFormatter,
   ensureIsArray,
   getCustomFormatter,
@@ -219,7 +220,11 @@ export default function transformProps(
     showQueryIdentifiers = false,
     metrics = [],
     metricsB = [],
-  }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsMixedTimeseriesFormData = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+    ...convertKeysToCamelCase(formData.extraFormData),
+  };
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
