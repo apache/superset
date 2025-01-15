@@ -1662,7 +1662,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         >
           <StyledInputContainer>
             <div className="control-label">
-              {t('Content type')}
+              {t('Content type')} hello filters...
               <span className="required">*</span>
             </div>
             <Select
@@ -1750,6 +1750,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
+          
           {tabsEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
               <>
@@ -1760,6 +1761,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={currentAlert?.extra?.dashboard?.anchor}
                   onSelect={updateAnchorState}
                   placeholder={t('Select a tab')}
+                />
+              </>
+              <>
+                <Select 
+                  ariaLabel={t('Select Filter')}
+                  value={"name"}
+                />
+                <Select 
+                  ariaLabel={t('Select Value')}
+                  value={"value"}
                 />
               </>
             </StyledInputContainer>
@@ -1784,6 +1795,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </div>
             </StyledInputContainer>
           )}
+
           {(isReport || contentType === ContentType.Dashboard) && (
             <div className="inline-container">
               <StyledCheckbox
