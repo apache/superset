@@ -23,6 +23,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  convertKeysToCamelCase,
   CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
@@ -205,7 +206,11 @@ export default function transformProps(
     percentageThreshold,
     metrics = [],
     metricsB = [],
-  }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsMixedTimeseriesFormData = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+    ...convertKeysToCamelCase(formData.extraFormData),
+  };
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
