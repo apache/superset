@@ -32,7 +32,7 @@ import Table, {
   TableSize,
   OnChangeFunction,
 } from 'src/components/Table';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import ChartImage from 'src/assets/images/chart.svg';
 import Icons from 'src/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -147,7 +147,7 @@ const emptyStateButtonText = (
   </>
 );
 
-const StyledEmptyStateBig = styled(EmptyStateBig)`
+const StyledEmptyState = styled(EmptyState)`
   margin: ${({ theme }) => 13 * theme.gridUnit}px 0;
 `;
 
@@ -250,8 +250,9 @@ const DatasetUsage = ({ datasetId }: DatasetUsageProps) => {
         onChange={onChange}
       />
       {!data.length && !loading ? (
-        <StyledEmptyStateBig
+        <StyledEmptyState
           image={<ChartImage />}
+          size="large"
           title={t('No charts')}
           description={t('This dataset is not used to power any charts.')}
           buttonText={emptyStateButtonText}
