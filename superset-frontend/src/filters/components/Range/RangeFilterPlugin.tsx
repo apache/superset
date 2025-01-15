@@ -123,7 +123,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const handleAfterChange = useCallback(
     (value: [number, number]): void => {
       const { lower, upper } = getBounds(value);
-      setValue(value);
       setDataMask({
         extraFormData: getRangeExtraFormData(col, lower, upper),
         filterState: {
@@ -139,19 +138,19 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     const updatedValue: [number, number] = [...value];
 
     if (enableSingleExactValue) {
-      handleAfterChange([newValue, newValue]);
+      setValue([newValue, newValue]);
       return;
     }
 
     if (enableSingleMinValue && index === minIndex) {
       updatedValue[minIndex] = Math.min(newValue, updatedValue[maxIndex]);
-      handleAfterChange(updatedValue);
+      setValue(updatedValue);
       return;
     }
 
     if (enableSingleMaxValue && index === maxIndex) {
       updatedValue[maxIndex] = Math.max(newValue, updatedValue[minIndex]);
-      handleAfterChange(updatedValue);
+      setValue(updatedValue);
       return;
     }
 
@@ -162,7 +161,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     } else {
       updatedValue[index] = newValue;
     }
-    handleAfterChange(updatedValue);
+    setValue(updatedValue);
   };
 
   useEffect(() => {
@@ -189,6 +188,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     } else if (enableSingleExactValue) {
       filterStateValue = [minMax[minIndex], minMax[minIndex]];
     }
+    setValue(value);
     handleAfterChange(filterStateValue);
   }, [
     enableSingleMaxValue,
