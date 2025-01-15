@@ -40,7 +40,7 @@ class Firebolt(Dialect):
             **parser.Parser.UNARY_PARSERS,
             TokenType.NOT: lambda self: self.expression(
                 exp.Not,
-                this=self._parse_unary(),
+                this=self._parse_unary(),  # pylint: disable=protected-access
             ),
         }
 
