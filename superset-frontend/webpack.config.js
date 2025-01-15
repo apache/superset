@@ -525,12 +525,14 @@ let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
   config.devServer = {
-    onBeforeSetupMiddleware(devServer) {
+    setupMiddlewares: (middlewares, devServer) => {
       // load proxy config when manifest updates
       const { afterEmit } = getCompilerHooks(devServer.compiler);
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
+
+      return middlewares; // Make sure to return the middlewares
     },
     historyApiFallback: true,
     hot: true,
