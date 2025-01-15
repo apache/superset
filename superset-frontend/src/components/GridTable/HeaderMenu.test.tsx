@@ -137,8 +137,8 @@ test('renders copy data', async () => {
 
 test('renders buttons pinning both side', () => {
   const { queryByText, getByText } = render(<HeaderMenu {...mockedProps} />);
-  expect(queryByText('Pin Left')).toBeTruthy();
-  expect(queryByText('Pin Right')).toBeTruthy();
+  expect(queryByText('Pin Left')).toBeInTheDocument();
+  expect(queryByText('Pin Right')).toBeInTheDocument();
   fireEvent.click(getByText('Pin Left'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
@@ -156,8 +156,8 @@ test('renders unpin on pinned left', () => {
   const { queryByText, getByText } = render(
     <HeaderMenu {...mockedProps} pinnedLeft />,
   );
-  expect(queryByText('Pin Left')).toBeFalsy();
-  expect(queryByText('Unpin')).toBeTruthy();
+  expect(queryByText('Pin Left')).not.toBeInTheDocument();
+  expect(queryByText('Unpin')).toBeInTheDocument();
   fireEvent.click(getByText('Unpin'));
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsPinned).toHaveBeenCalledWith(
@@ -168,8 +168,8 @@ test('renders unpin on pinned left', () => {
 
 test('renders unpin on pinned right', () => {
   const { queryByText } = render(<HeaderMenu {...mockedProps} pinnedRight />);
-  expect(queryByText('Pin Right')).toBeFalsy();
-  expect(queryByText('Unpin')).toBeTruthy();
+  expect(queryByText('Pin Right')).not.toBeInTheDocument();
+  expect(queryByText('Unpin')).toBeInTheDocument();
 });
 
 test('renders autosize column', async () => {
@@ -184,7 +184,7 @@ test('renders unhide when invisible column exists', async () => {
   const { queryByText } = render(
     <HeaderMenu {...mockedProps} invisibleColumns={[mockInvisibleColumn]} />,
   );
-  expect(queryByText('Unhide')).toBeTruthy();
+  expect(queryByText('Unhide')).toBeInTheDocument();
   const unhideColumnsButton = await screen.findByText('column2');
   fireEvent.click(unhideColumnsButton);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
