@@ -62,11 +62,14 @@ describe('EmptyState', () => {
       tableName: WelcomeTable.Recents,
     },
   ];
+
   variants.forEach(variant => {
-    it(`it renders an ${variant.tab} ${variant.tableName} empty state`, () => {
+    it(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
       const wrapper = mount(<EmptyState {...variant} />);
       expect(wrapper).toExist();
-      const textContainer = wrapper.find('.ant-empty-description');
+
+      // Select the first description node
+      const textContainer = wrapper.find('.ant-empty-description').at(0);
       expect(textContainer.text()).toEqual(
         variant.tab === TableTab.Favorite
           ? "You don't have any favorites yet!"
@@ -79,12 +82,19 @@ describe('EmptyState', () => {
       expect(wrapper.find('button')).toHaveLength(1);
     });
   });
+
   recents.forEach(recent => {
-    it(`it renders a ${recent.tab} ${recent.tableName} empty state`, () => {
+    it(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
       const wrapper = mount(<EmptyState {...recent} />);
       expect(wrapper).toExist();
-      const textContainer = wrapper.find('.ant-empty-description');
+
+      // Select the first description node
+      const textContainer = wrapper.find('.ant-empty-description').at(0);
+
+      // Validate the image
       expect(wrapper.find('.ant-empty-image').children()).toHaveLength(1);
+
+      // Check the correct text is displayed
       expect(textContainer.text()).toContain(
         `Recently ${recent.tab?.toLowerCase()} charts, dashboards, and saved queries will appear here`,
       );
