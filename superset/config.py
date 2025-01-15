@@ -1725,13 +1725,6 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
     "superset.async_events.async_query_manager.AsyncQueryManager"
 )
-GLOBAL_ASYNC_QUERIES_REDIS_CONFIG = {
-    "port": 6379,
-    "host": "127.0.0.1",
-    "password": "",
-    "db": 0,
-    "ssl": False,
-}
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000

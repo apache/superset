@@ -128,10 +128,6 @@ class TestAsyncEventApi(SupersetTestCase):
             RedisSentinelCacheBackend, self._test_events_logic
         )
 
-    @mock.patch("uuid.uuid4", return_value=UUID)
-    def test_events_redis(self, mock_uuid4):
-        self.run_test_with_cache_backend(redis.Redis, self._test_events_logic)
-
     def test_events_no_login(self):
         app._got_first_request = False
         async_query_manager.init_app(app)
