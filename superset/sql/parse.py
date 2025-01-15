@@ -40,8 +40,6 @@ from superset.sql.dialects.firebolt import Firebolt
 
 logger = logging.getLogger(__name__)
 
-# register 3rd party dialects
-Dialect.classes["firebolt"] = Firebolt
 
 # mapping between DB engine specs and sqlglot dialects
 SQLGLOT_DIALECTS = {
@@ -65,7 +63,7 @@ SQLGLOT_DIALECTS = {
     # "elasticsearch": ???
     # "exa": ???
     # "firebird": ???
-    "firebolt": "firebolt",
+    "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,

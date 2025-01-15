@@ -1146,3 +1146,21 @@ SELECT
 FROM tbl
     """.strip()
     )
+
+
+def test_firebolt_old() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    sql = "SELECT * FROM t1 UNNEST(col1 AS foo)"
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """SELECT
+  *
+FROM t1 UNNEST(col1 AS foo)"""
+    )
