@@ -57,7 +57,7 @@ const mockedProps = {
 
 test('renders display name for the column', () => {
   const { queryByText } = render(<Header {...mockedProps} />);
-  expect(queryByText(mockedProps.displayName)).toBeTruthy();
+  expect(queryByText(mockedProps.displayName)).toBeInTheDocument();
 });
 
 test('sorts by clicking a column header', () => {
@@ -87,8 +87,8 @@ test('disable menu when enableFilterButton is false', () => {
   const { queryByText, queryByTestId } = render(
     <Header {...mockedProps} enableFilterButton={false} />,
   );
-  expect(queryByText(mockedProps.displayName)).toBeTruthy();
-  expect(queryByTestId('mock-dropdown')).toBeFalsy();
+  expect(queryByText(mockedProps.displayName)).toBeInTheDocument();
+  expect(queryByTestId('mock-dropdown')).not.toBeInTheDocument();
 });
 
 test('hide display name for PIVOT_COL_ID', () => {

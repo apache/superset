@@ -43,7 +43,7 @@ const mockedProps = {
 test('renders a grid with 3 Table rows', () => {
   const { queryByText } = render(<GridTable {...mockedProps} />);
   mockedProps.data.forEach(({ b: columnBContent }) => {
-    expect(queryByText(columnBContent)).toBeTruthy();
+    expect(queryByText(columnBContent)).toBeInTheDocument();
   });
 });
 
