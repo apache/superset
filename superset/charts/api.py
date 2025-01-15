@@ -604,37 +604,34 @@ class ChartRestApi(BaseSupersetModelRestApi):
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
         cache_key = screenshot_obj.get_cache_key(window_size, thumb_size)
+        cache_payload = screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         image_url = get_url_path(
             "ChartRestApi.screenshot", pk=chart.id, digest=cache_key
         )
 
-        if force or not screenshot_obj.get_from_cache_key(cache_key):
-            payload = ScreenshotCachePayload()
-            screenshot_obj.cache.set(cache_key, payload)
-
-        if (cache_payload := screenshot_obj.get_from_cache_key(cache_key)) is not None:
-
-            def build_response(status_code: int) -> WerkzeugResponse:
-                return self.response(
-                    status_code,
-                    cache_key=cache_key,
-                    chart_url=chart_url,
-                    image_url=image_url,
-                    updated_at=cache_payload.get_timestamp(),
-                    update_status=cache_payload.get_status(),
-                )
-
-            if cache_payload.status != StatusValues.UPDATED:
-                logger.info("Triggering screenshot ASYNC")
-                cache_chart_thumbnail.delay(
-                    current_user=get_current_user(),
-                    chart_id=chart.id,
-                    window_size=window_size,
-                    thumb_size=thumb_size,
-                )
-                return build_response(202)
-            return build_response(200)
-        return self.response_500()
+        def build_response(status_code: int) -> WerkzeugResponse:
+            return self.response(
+                status_code,
+                cache_key=cache_key,
+                chart_url=chart_url,
+                image_url=image_url,
+                updated_at=cache_payload.get_timestamp(),
+                update_status=cache_payload.get_status(),
+            )
+        if cache_payload.status in [
+          StatusValues.PENDING,
+          StatusValues.ERROR
+          ] or force:
+            logger.info("Triggering screenshot ASYNC")
+            cache_chart_thumbnail.delay(
+                current_user=get_current_user(),
+                chart_id=chart.id,
+                window_size=window_size,
+                thumb_size=thumb_size,
+                force=force,
+            )
+            return build_response(202)
+        return build_response(200)
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @protect()
@@ -710,9 +707,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
               type: integer
             name: pk
           - in: path
+            name: digest
+            description: A hex digest that makes this chart unique
             schema:
               type: string
-            name: digest
           responses:
             200:
               description: Chart thumbnail image
@@ -740,16 +738,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(url, chart.digest)
         cache_key = screenshot_obj.get_cache_key()
-        cache_payload = screenshot_obj.get_from_cache_key(cache_key)
+        cache_payload = screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
 
-        if not cache_payload:
-            cache_payload = ScreenshotCachePayload()
-            screenshot_obj.cache.set(cache_key, cache_payload)
-
-        if (
-            kwargs["rison"].get("force", False)
-            or cache_payload.status != StatusValues.UPDATED
-        ):
+        if cache_payload.status != StatusValues.UPDATED:
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)
@@ -757,6 +748,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             cache_chart_thumbnail.delay(
                 current_user=current_user,
                 chart_id=chart.id,
+                force=False,
             )
             return self.response(
                 202,

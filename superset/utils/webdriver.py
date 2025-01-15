@@ -379,6 +379,7 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
+                logger.info("caught Timeout Exception")
                 # Fallback to allow a screenshot of an empty dashboard
                 try:
                     WebDriverWait(driver, 0).until(
@@ -431,7 +432,7 @@ class WebDriverSelenium(WebDriverProxy):
             img = element.screenshot_as_png
         except TimeoutException:
             # raise again for the finally block, but handled above
-            pass
+            raise
         except StaleElementReferenceException:
             logger.exception(
                 "Selenium got a stale element while requesting url %s",

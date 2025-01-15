@@ -74,8 +74,14 @@ class ScreenshotCachePayload:
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
 
+    def pending(self) -> None:
+        self.update_timestamp()
+        self._image = None
+        self.status = StatusValues.PENDING
+
     def computing(self) -> None:
         self.update_timestamp()
+        self._image = None
         self.status = StatusValues.COMPUTING
 
     def update(self, image: bytes) -> None:
@@ -164,6 +170,7 @@ class BaseScreenshot:
 
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
+        force: bool,
         user: User = None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
@@ -181,9 +188,9 @@ class BaseScreenshot:
         """
         cache_key = cache_key or self.get_cache_key(window_size, thumb_size)
         cache_payload = self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        if cache_payload and cache_payload.status != StatusValues.PENDING:
+        if cache_payload.status in [StatusValues.COMPUTING, StatusValues.UPDATED] and not force:
             logger.info(
-                "Skipping compute - already in progress for thumbnail: %s", cache_key
+                "Skipping compute - already processed for thumbnail: %s", cache_key
             )
             return
 
@@ -195,6 +202,7 @@ class BaseScreenshot:
         image = None
         # Assuming all sorts of things can go wrong with Selenium
         try:
+            logger.info("trying to generate screenshot")
             with event_logger.log_context(f"screenshot.compute.{self.thumbnail_type}"):
                 image = self.get_screenshot(user=user, window_size=window_size)
         except Exception as ex:  # pylint: disable=broad-except
@@ -213,8 +221,8 @@ class BaseScreenshot:
             logger.info("Caching thumbnail: %s", cache_key)
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
-                self.cache.set(cache_key, cache_payload)
                 logger.info("Done caching thumbnail")
+        self.cache.set(cache_key, cache_payload)
         return
 
     @classmethod

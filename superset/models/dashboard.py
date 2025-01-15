@@ -350,6 +350,7 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         cache_dashboard_thumbnail.delay(
             current_user=get_current_user(),
             dashboard_id=self.id,
+            force=True,
         )
 
     @classmethod

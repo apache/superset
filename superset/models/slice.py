@@ -379,6 +379,7 @@ def event_after_chart_changed(
     cache_chart_thumbnail.delay(
         current_user=get_current_user(),
         chart_id=target.id,
+        force=True
     )
 
 

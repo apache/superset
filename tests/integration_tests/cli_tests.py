@@ -322,5 +322,6 @@ def test_compute_thumbnails(thumbnail_mock, app_context, fs):
     thumbnail_mock.assert_called_with(
         None,
         dashboard.id,
+        force=False
     )
     assert response.exit_code == 0

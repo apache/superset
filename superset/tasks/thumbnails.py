@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 def cache_chart_thumbnail(
     current_user: Optional[str],
     chart_id: int,
+    force: bool,
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
@@ -65,6 +66,7 @@ def cache_chart_thumbnail(
             user=user,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
         )
     return None
 
@@ -73,6 +75,7 @@ def cache_chart_thumbnail(
 def cache_dashboard_thumbnail(
     current_user: Optional[str],
     dashboard_id: int,
+    force: bool,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
 ) -> None:
@@ -99,6 +102,7 @@ def cache_dashboard_thumbnail(
             user=user,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
         )
 
 
@@ -107,7 +111,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
     username: str,
     dashboard_id: int,
     dashboard_url: str,
-    force: bool = True,
+    force: bool,
     cache_key: Optional[str] = None,
     guest_token: Optional[GuestToken] = None,
     thumb_size: Optional[WindowSize] = None,
@@ -142,4 +146,5 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
             window_size=window_size,
             thumb_size=thumb_size,
             cache_key=cache_key,
+            force=force,
         )
