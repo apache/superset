@@ -199,7 +199,7 @@ def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str)
     _delta = int(delta) if delta else 1
     if scope.lower() == "this":
         return f"DATETIME('{relative_base}')"
-    elif scope.lower() == "last":
+    elif scope.lower() in ["last", "prior"]:
         return f"DATEADD(DATETIME('{relative_base}'), -{_delta}, {unit})"
     elif scope.lower() == "next":
         return f"DATEADD(DATETIME('{relative_base}'), {_delta}, {unit})"
@@ -305,7 +305,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range and separator in time_range:
         time_range_lookup = [
             (
-                r"^(start of|beginning of|end of)\s+(this|last|next)\s+([0-9]+)?\s*(day|week|month|quarter|year)s?$",  # pylint: disable=line-too-long,useless-suppression
+                r"^(start of|beginning of|end of)\s+(this|last|next|prior)\s+([0-9]+)?\s*(day|week|month|quarter|year)s?$",  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
                     modifier,
                     scope,
@@ -315,7 +315,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 ),
             ),
             (
-                r"^(this|last|next)\s+([0-9]+)?\s*(second|minute|day|week|month|quarter|year)s?$",
+                r"^(this|last|next|prior)\s+([0-9]+)?\s*(second|minute|day|week|month|quarter|year)s?$",
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
