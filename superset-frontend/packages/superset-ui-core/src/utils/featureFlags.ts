@@ -42,6 +42,7 @@ export enum FeatureFlag {
   DynamicPlugins = 'DYNAMIC_PLUGINS',
   EmbeddableCharts = 'EMBEDDABLE_CHARTS',
   EmbeddedSuperset = 'EMBEDDED_SUPERSET',
+  EmbeddedSupersetEmitDataMasks = 'EMBEDDED_SUPERSET_EMIT_DATA_MASKS',
   EnableAdvancedDataTypes = 'ENABLE_ADVANCED_DATA_TYPES',
   /** @deprecated */
   EnableJavascriptControls = 'ENABLE_JAVASCRIPT_CONTROLS',
