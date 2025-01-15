@@ -340,6 +340,9 @@ export function transformSeries(
         if (!stack && isSelectedLegend) {
           return formatter(numericValue);
         }
+        console.error('numericValue', numericValue);
+        console.error('thresholdValues', thresholdValues);
+        console.error('thresholdValue', thresholdValues[dataIndex]);
         if (!onlyTotal) {
           if (
             numericValue >=
