@@ -77,6 +77,7 @@ export default function ImageLoader({
 
   return (
     <ImageContainer
+      data-test="image-loader"
       src={isLoading ? fallback : imgSrc}
       {...rest}
       position={position}
