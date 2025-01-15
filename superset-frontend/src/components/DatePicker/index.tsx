@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePicker as AntdDatePicker } from 'antd';
-import { styled } from '@superset-ui/core';
-
-const AntdRangePicker = AntdDatePicker.RangePicker;
-
-export const RangePicker = styled(AntdRangePicker)`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
-`;
+import { DatePicker as AntdDatePicker } from 'antd-v5';
 
 export const DatePicker = AntdDatePicker;
+export const { RangePicker } = AntdDatePicker;

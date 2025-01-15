@@ -30,7 +30,7 @@ export const NULL_STRING = '<NULL>';
 export const TRUE_STRING = 'TRUE';
 export const FALSE_STRING = 'FALSE';
 
-// moment time format strings
+// dayjs time format strings
 export const SHORT_DATE = 'MMM D, YYYY';
 export const SHORT_TIME = 'h:m a';
 

@@ -123,7 +123,9 @@ class SupersetResultSet:
             # fix cursor descriptor with the deduped names
             deduped_cursor_desc = [
                 tuple([column_name, *list(description)[1:]])  # noqa: C409
-                for column_name, description in zip(column_names, cursor_description)
+                for column_name, description in zip(
+                    column_names, cursor_description, strict=False
+                )
             ]
 
             # generate numpy structured array dtype

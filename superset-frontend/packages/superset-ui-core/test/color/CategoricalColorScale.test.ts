@@ -165,7 +165,7 @@ describe('CategoricalColorScale', () => {
     });
     it('get analogous colors when number of items exceed available colors', () => {
       window.featureFlags = {
-        [FeatureFlag.UseAnalagousColors]: true,
+        [FeatureFlag.UseAnalogousColors]: true,
       };
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('pig');
