@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-from contextlib import nullcontext
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch, PropertyMock
 
@@ -24,7 +23,6 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.types import ExecutorType
 from superset.utils.core import DatasourceType, override_user
 
@@ -214,7 +212,7 @@ def prepare_datasource_mock(
             False,
             False,
             [],
-            ExecutorNotFoundError(),
+            "",
         ),
     ],
 )
@@ -224,7 +222,7 @@ def test_dashboard_digest(
     has_current_user: bool,
     use_custom_digest: bool,
     rls_datasources: list[dict[str, Any]],
-    expected_result: str | Exception,
+    expected_result: str,
 ) -> None:
     from superset import app, security_manager
     from superset.models.dashboard import Dashboard
@@ -268,13 +266,7 @@ def test_dashboard_digest(
         patch.object(security_manager, "find_user", return_value=user),
         override_user(user),
     ):
-        cm = (
-            pytest.raises(type(expected_result))
-            if isinstance(expected_result, Exception)
-            else nullcontext()
-        )
-        with cm:
-            assert get_dashboard_digest(dashboard=dashboard) == expected_result
+        assert get_dashboard_digest(dashboard=dashboard) == expected_result
 
 
 @pytest.mark.parametrize(
@@ -345,7 +337,7 @@ def test_dashboard_digest(
             False,
             False,
             None,
-            ExecutorNotFoundError(),
+            "",
         ),
     ],
 )
@@ -355,7 +347,7 @@ def test_chart_digest(
     has_current_user: bool,
     use_custom_digest: bool,
     rls_datasource: dict[str, Any] | None,
-    expected_result: str | Exception,
+    expected_result: str,
 ) -> None:
     from superset import app, security_manager
     from superset.models.slice import Slice
@@ -396,10 +388,4 @@ def test_chart_digest(
         patch.object(security_manager, "find_user", return_value=user),
         override_user(user),
     ):
-        cm = (
-            pytest.raises(type(expected_result))
-            if isinstance(expected_result, Exception)
-            else nullcontext()
-        )
-        with cm:
-            assert get_chart_digest(chart=chart) == expected_result
+        assert get_chart_digest(chart=chart) == expected_result
