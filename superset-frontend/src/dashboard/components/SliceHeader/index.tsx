@@ -50,6 +50,7 @@ type SliceHeaderProps = SliceHeaderControlsProps & {
   formData: object;
   width: number;
   height: number;
+  databaseBackend?: string;
 };
 
 const annotationsLoading = t('Annotation layers are still loading.');
@@ -163,6 +164,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       formData,
       width,
       height,
+      databaseBackend,
     },
     ref,
   ) => {
@@ -297,6 +299,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   formData={formData}
                   exploreUrl={exploreUrl}
                   crossFiltersEnabled={isCrossFiltersEnabled}
+                  databaseBackend={databaseBackend}
                 />
               )}
             </>

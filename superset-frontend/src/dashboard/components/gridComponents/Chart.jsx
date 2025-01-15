@@ -503,6 +503,7 @@ const Chart = props => {
         formData={formData}
         width={width}
         height={getHeaderHeight()}
+        databaseBackend={datasource.database?.backend}
       />
 
       {/*

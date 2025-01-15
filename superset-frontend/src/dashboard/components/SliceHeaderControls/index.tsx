@@ -172,6 +172,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         break;
       case MenuKeys.ExportCsv:
         // eslint-disable-next-line no-unused-expressions
+        if (isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) && props.databaseBackend === 'awsathena') {
+          props.downloadCSVFromS3?.(props.slice.slice_id);
+          break;
+        }
         props.exportCSV?.(props.slice.slice_id);
         break;
       case MenuKeys.ExportPivotCsv:
@@ -183,6 +187,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         break;
       case MenuKeys.ExportFullCsv:
         // eslint-disable-next-line no-unused-expressions
+        if (isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) && props.databaseBackend === 'awsathena') {
+          props.downloadCSVFromS3?.(props.slice.slice_id);
+          break;
+        }
         props.exportFullCSV?.(props.slice.slice_id);
         break;
       case MenuKeys.ExportFullXlsx:
@@ -217,10 +225,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         });
         break;
       }
-      case MenuKeys.DownloadCSVFromS3:
-        // eslint-disable-next-line no-unused-expressions
-        props.downloadCSVFromS3?.(props.slice.slice_id);
-        break;
       case MenuKeys.CrossFilterScoping: {
         openScopingModal();
         break;
@@ -435,30 +439,26 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
           key={MenuKeys.Download}
           onTitleMouseEnter={() => setOpenKeys(undefined)}
         >
-          {isFeatureEnabled(FeatureFlag.ShowDefaultCSVOptions) && (
-            <>
-              <Menu.Item
-                key={MenuKeys.ExportCsv}
-                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Export to .CSV')}
-              </Menu.Item>
-              {isPivotTable && (
-                <Menu.Item
-                  key={MenuKeys.ExportPivotCsv}
-                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-                >
-                  {t('Export to Pivoted .CSV')}
-                </Menu.Item>
-              )}
-              <Menu.Item
-                key={MenuKeys.ExportXlsx}
-                icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-              >
-                {t('Export to Excel')}
-              </Menu.Item>
-            </>
+          <Menu.Item
+            key={MenuKeys.ExportCsv}
+            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Export to .CSV')}
+          </Menu.Item>
+          {isPivotTable && (
+            <Menu.Item
+              key={MenuKeys.ExportPivotCsv}
+              icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+            >
+              {t('Export to Pivoted .CSV')}
+            </Menu.Item>
           )}
+          <Menu.Item
+            key={MenuKeys.ExportXlsx}
+            icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
+          >
+            {t('Export to Excel')}
+          </Menu.Item>
 
           {isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
             props.supersetCanCSV &&
@@ -485,19 +485,6 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
           >
             {t('Download as image')}
           </Menu.Item>
-
-          {isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) &&
-            props.supersetCanCSV &&
-            isTable && (
-              <>
-                <Menu.Item
-                  key={MenuKeys.DownloadCSVFromS3}
-                  icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
-                >
-                  {t('Download CSV from S3')}
-                </Menu.Item>
-              </>
-            )}
         </Menu.SubMenu>
       )}
     </Menu>

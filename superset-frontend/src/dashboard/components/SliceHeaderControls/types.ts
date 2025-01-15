@@ -39,6 +39,7 @@ export interface SliceHeaderControlsProps {
   isDescriptionExpanded?: boolean;
   formData: QueryFormData;
   exploreUrl: string;
+  databaseBackend: string;
 
   forceRefresh: (sliceId: number, dashboardId: number) => void;
   logExploreChart?: (sliceId: number) => void;
