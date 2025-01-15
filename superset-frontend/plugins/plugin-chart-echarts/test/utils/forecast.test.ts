@@ -22,8 +22,10 @@ import {
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
   rebaseForecastDatum,
+  reorderForecastSeries,
 } from '../../src/utils/forecast';
 import { ForecastSeriesEnum } from '../../src/types';
+import { SeriesOption } from 'echarts';
 
 describe('extractForecastSeriesContext', () => {
   it('should extract the correct series name and type', () => {
@@ -43,6 +45,47 @@ describe('extractForecastSeriesContext', () => {
       name: '1 2 3',
       type: ForecastSeriesEnum.ForecastLower,
     });
+  });
+});
+
+describe('reorderForecastSeries', () => {
+  it('should reorder the forecast series and preserve values', () => {
+    const input: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
+      { id: `series${ForecastSeriesEnum.ForecastLower}`, data: [5, 15, 25] },
+      { id: `series${ForecastSeriesEnum.ForecastUpper}`, data: [25, 35, 45] },
+    ];
+    const expectedOutput: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.ForecastLower}`, data: [5, 15, 25] },
+      { id: `series${ForecastSeriesEnum.ForecastUpper}`, data: [25, 35, 45] },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}`, data: [15, 25, 35] },
+      { id: `series${ForecastSeriesEnum.Observation}`, data: [10, 20, 30] },
+    ];
+    expect(reorderForecastSeries(input)).toEqual(expectedOutput);
+  });
+
+  it('should handle an empty array', () => {
+    expect(reorderForecastSeries([])).toEqual([]);
+  });
+
+  it('should not reorder if no relevant series are present', () => {
+    const input: SeriesOption[] = [{ id: 'some-other-series' }];
+    expect(reorderForecastSeries(input)).toEqual(input);
+  });
+
+  it('should handle undefined ids', () => {
+    const input: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.ForecastLower}` },
+      { id: undefined },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}` },
+    ];
+    const expectedOutput: SeriesOption[] = [
+      { id: `series${ForecastSeriesEnum.ForecastLower}` },
+      { id: `series${ForecastSeriesEnum.ForecastTrend}` },
+      { id: undefined },
+    ];
+    expect(reorderForecastSeries(input)).toEqual(expectedOutput);
   });
 });
 
