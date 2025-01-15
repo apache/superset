@@ -77,6 +77,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
     // the reducer.
     const bootstrapData = getBootstrapData();
     const queryParameters = URI(window.location).search(true);
+    const path = URI(window.location).path();
     const {
       id,
       name,
@@ -96,10 +97,13 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       ...bootstrapData.requested_query,
       ...queryParameters,
     } as Record<string, string>;
+    const permalink = path.match(/\/p\/\w+/)?.[0].slice(3);
 
     // Popping a new tab based on the querystring
-    if (id || sql || savedQueryId || datasourceKey || queryId) {
-      if (id) {
+    if (permalink || id || sql || savedQueryId || datasourceKey || queryId) {
+      if (permalink) {
+        this.props.actions.popPermalink(permalink);
+      } else if (id) {
         this.props.actions.popStoredQuery(id);
       } else if (savedQueryId) {
         this.props.actions.popSavedQuery(savedQueryId);
@@ -132,7 +136,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
-      this.popNewTab(pick(urlParams, Object.keys(queryParameters)));
+      this.popNewTab(pick(urlParams, Object.keys(queryParameters ?? {})));
     } else if (isNewQuery || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
 

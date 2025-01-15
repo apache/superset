@@ -74,8 +74,6 @@ CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {
     "foo": "bar",
-    "KV_STORE": False,
-    "SHARE_QUERIES_VIA_KV_STORE": False,
     "THUMBNAILS": True,
     "THUMBNAILS_SQLA_LISTENERS": False,
 }

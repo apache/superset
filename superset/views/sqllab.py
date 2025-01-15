@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import contextlib
+from typing import Any
 
 from flask import request
 from flask_appbuilder import permission_name
@@ -36,10 +37,11 @@ class SqllabView(BaseSupersetView):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     @expose("/", methods=["GET", "POST"])
+    @expose("/p/<string:permalink>/", methods=["GET"])
     @has_access
     @permission_name("read")
     @event_logger.log_this
-    def root(self) -> FlaskResponse:
+    def root(self, **kwargs: Any) -> FlaskResponse:
         payload = {}
         if form_data := request.form.get("form_data"):
             with contextlib.suppress(json.JSONDecodeError):
