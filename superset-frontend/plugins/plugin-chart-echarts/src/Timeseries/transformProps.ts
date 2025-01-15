@@ -204,7 +204,7 @@ export default function transformProps(
   }: EchartsTimeseriesFormData = {
     ...DEFAULT_FORM_DATA,
     ...formData,
-    ...convertKeysToCamelCase(formData.extra_form_data),
+    ...convertKeysToCamelCase(formData.extraFormData),
   };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
