@@ -36,24 +36,15 @@ class SqllabView(BaseSupersetView):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     @expose("/", methods=["GET", "POST"])
-    @has_access
-    @permission_name("read")
-    @event_logger.log_this
-    def root(self) -> FlaskResponse:
-        payload = {}
-        if form_data := request.form.get("form_data"):
-            with contextlib.suppress(json.JSONDecodeError):
-                payload["requested_query"] = json.loads(form_data)
-        return self.render_app_template(payload)
-
     @expose("/p/<string:permalink>/", methods=["GET"])
     @has_access
     @permission_name("read")
     @event_logger.log_this
-    def permalink(self, permalink: str) -> FlaskResponse:
+    def root(self, **kwargs) -> FlaskResponse:
         payload = {}
-        if permalink:
-            payload["permalink"] = permalink
+        if form_data := request.form.get("form_data"):
+            with contextlib.suppress(json.JSONDecodeError):
+                payload["requested_query"] = json.loads(form_data)
         return self.render_app_template(payload)
 
     @expose("/history/", methods=("GET",))
