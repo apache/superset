@@ -104,6 +104,10 @@ def test_get_since_until() -> None:
     expected = None, datetime(2016, 11, 7, 9, 32, 10)
     assert result == expected
 
+    result = get_since_until("start of this month : ")
+    expected = datetime(2016, 11, 1), None
+    assert result == expected
+
     result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
     expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
     assert result == expected
