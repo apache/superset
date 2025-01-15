@@ -18,7 +18,6 @@ from typing import Any, Optional, Type
 from unittest import mock
 
 import pytest
-import redis
 
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
