@@ -220,6 +220,10 @@ const SliceHeaderControls = (
           break;
         }
         // eslint-disable-next-line no-unused-expressions
+        if (isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) && props.databaseBackend === 'awsathena') {
+          props.downloadCSVFromS3?.(props.slice.slice_id);
+          break;
+        }
         props.exportCSV?.(props.slice.slice_id);
         break;
       case MenuKeys.ExportPivotCsv:
@@ -235,6 +239,10 @@ const SliceHeaderControls = (
           break;
         }
         // eslint-disable-next-line no-unused-expressions
+        if (isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) && props.databaseBackend === 'awsathena') {
+          props.downloadCSVFromS3?.(props.slice.slice_id);
+          break;
+        }
         props.exportFullCSV?.(props.slice.slice_id);
         break;
       case MenuKeys.ExportFullXlsx:
