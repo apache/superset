@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
+
 import pandas as pd
 from sqlalchemy import BigInteger, Float, inspect, Text
 
@@ -24,6 +26,8 @@ from superset.sql_parse import Table
 from superset.utils import json
 
 from .helpers import get_example_url, get_table_connector_registry
+
+logger = logging.getLogger(__name__)
 
 
 def load_sf_population_polygons(
@@ -55,7 +59,7 @@ def load_sf_population_polygons(
                 index=False,
             )
 
-    print(f"Creating table {tbl_name} reference")
+    logger.debug(f"Creating table {tbl_name} reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:

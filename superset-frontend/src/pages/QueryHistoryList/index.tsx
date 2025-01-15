@@ -214,8 +214,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             original: { start_time },
           },
         }: any) => {
-          const startMoment = extendedDayjs.utc(start_time).local();
-          const formattedStartTimeData = startMoment
+          const start = extendedDayjs.utc(start_time).local();
+          const formattedStartTimeData = start
             .format(DATETIME_WITH_TIME_ZONE)
             .split(' ');
 

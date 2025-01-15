@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import datetime
+import logging
 
 import pandas as pd
 from sqlalchemy import BigInteger, Date, inspect, String
@@ -34,6 +35,8 @@ from .helpers import (
     merge_slice,
     misc_dash_slices,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def load_country_map_data(only_metadata: bool = False, force: bool = False) -> None:
@@ -73,10 +76,10 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
                 },
                 index=False,
             )
-        print("Done loading table!")
-        print("-" * 80)
+        logger.debug("Done loading table!")
+        logger.debug("-" * 80)
 
-    print("Creating table reference")
+    logger.debug("Creating table reference")
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not obj:
@@ -108,7 +111,7 @@ def load_country_map_data(only_metadata: bool = False, force: bool = False) -> N
         "select_country": "france",
     }
 
-    print("Creating a slice")
+    logger.debug("Creating a slice")
     slc = Slice(
         slice_name="Birth in France by department in 2016",
         viz_type="country_map",

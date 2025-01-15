@@ -16,20 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { interceptV1ChartData } from './utils';
+
 describe('Advanced analytics', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
-    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    interceptV1ChartData();
     cy.intercept('PUT', '/api/v1/explore/**').as('putExplore');
     cy.intercept('GET', '/explore/**').as('getExplore');
   });
 
   it('Create custom time compare', () => {
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@v1Data' });
 
     cy.get('.ant-collapse-header')
-      .contains('Advanced Analytics')
+      .contains('Advanced analytics')
       .click({ force: true });
 
     cy.get('[data-test=time_compare]').find('.ant-select').click();
@@ -43,17 +44,16 @@ describe('Advanced analytics', () => {
       .type('1 year{enter}');
 
     cy.get('button[data-test="run-query-button"]').click();
-    cy.wait('@postJson');
+    cy.wait('@v1Data');
     cy.wait('@putExplore');
 
     cy.reload();
     cy.verifySliceSuccess({
-      waitAlias: '@postJson',
-      chartSelector: 'svg',
+      waitAlias: '@v1Data',
     });
     cy.wait('@getExplore');
     cy.get('.ant-collapse-header')
-      .contains('Advanced Analytics')
+      .contains('Advanced analytics')
       .click({ force: true });
     cy.get('[data-test=time_compare]')
       .find('.ant-select-selector')

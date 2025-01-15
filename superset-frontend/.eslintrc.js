@@ -193,6 +193,12 @@ module.exports = {
             message:
               'Default React import is not required due to automatic JSX runtime in React 16.4',
           },
+          {
+            // this disallows wildcard imports from modules (but allows them for local files with `./` or `src/`)
+            selector:
+              'ImportNamespaceSpecifier[parent.source.value!=/^(\\.|src)/]',
+            message: 'Wildcard imports are not allowed',
+          },
         ],
       },
       settings: {

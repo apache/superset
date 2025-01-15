@@ -24,13 +24,12 @@ name = "apache-superset"
 description = "A modern, enterprise-ready business intelligence web application"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file="LICENSE.txt" }
 authors = [
     { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
@@ -67,7 +66,7 @@ dependencies = [
     "markdown>=3.0",
     "msgpack>=1.0.0, <1.1",
     "nh3>=0.2.11, <0.3",
-    "numpy==1.23.5",
+    "numpy>1.23.5, <2",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
@@ -86,7 +85,7 @@ dependencies = [
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=4.6.0, <5.0",
-    "selenium>=3.141.0, <4.10.0",
+    "selenium>=4.14.0, <5.0",
     "shillelagh[gsheetsapi]>=1.2.18, <2.0",
     "shortid",
     "sshtunnel>=0.4.0, <0.5",
@@ -94,9 +93,7 @@ dependencies = [
     "slack_sdk>=3.19.0, <4",
     "sqlalchemy>=1.4, <2",
     "sqlalchemy-utils>=0.38.3, <0.39",
-    # known breaking changes in sqlglot 25.25.0
-    #https://github.com/tobymao/sqlglot/blob/main/CHANGELOG.md#v25250---2024-10-14
-    "sqlglot>=25.24.0,<25.25.0",
+    "sqlglot>=26.1.3, <27",
     "sqlparse>=0.5.0",
     "tabulate>=0.8.9, <0.9",
     "typing-extensions>=4, <5",
@@ -275,8 +272,8 @@ exclude = [
 line-length = 88
 indent-width = 4
 
-# Assume Python 3.9
-target-version = "py39"
+# Assume Python 3.10
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

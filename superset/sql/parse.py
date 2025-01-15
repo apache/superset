@@ -36,9 +36,12 @@ from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
 from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
 
 from superset.exceptions import SupersetParseError
+from superset.sql.dialects.firebolt import Firebolt
 
 logger = logging.getLogger(__name__)
 
+# register 3rd party dialects
+Dialect.classes["firebolt"] = Firebolt
 
 # mapping between DB engine specs and sqlglot dialects
 SQLGLOT_DIALECTS = {
@@ -62,7 +65,7 @@ SQLGLOT_DIALECTS = {
     # "elasticsearch": ???
     # "exa": ???
     # "firebird": ???
-    # "firebolt": ???
+    "firebolt": "firebolt",
     "gsheets": Dialects.SQLITE,
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
@@ -81,7 +84,7 @@ SQLGLOT_DIALECTS = {
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
-    # "risingwave": ???
+    "risingwave": Dialects.RISINGWAVE,
     # "rockset": ???
     "shillelagh": Dialects.SQLITE,
     "snowflake": Dialects.SNOWFLAKE,

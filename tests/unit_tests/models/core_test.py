@@ -17,6 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 
+
 from datetime import datetime
 
 import pytest
@@ -728,13 +729,13 @@ def test_compile_sqla_query_no_optimization(query: Select) -> None:
     )
 
     space = " "
-
+    #
     assert (
         database.compile_sqla_query(query, is_virtual=True)
         == f"""SELECT anon_1.a, anon_1.b{space}
 FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c{space}
 FROM some_table) AS anon_1{space}
-WHERE anon_1.a > 1 AND anon_1.b = 2"""
+WHERE anon_1.a > 1 AND anon_1.b = 2"""  # noqa: S608
     )
 
 

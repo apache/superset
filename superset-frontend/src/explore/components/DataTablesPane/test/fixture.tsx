@@ -27,7 +27,7 @@ import {
 } from '../types';
 
 const queryFormData = {
-  viz_type: VizType.LegacyHeatmap,
+  viz_type: VizType.Heatmap,
   datasource: '34__table',
   slice_id: 456,
   url_params: {},

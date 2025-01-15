@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import textwrap
 from typing import Union
 
@@ -39,6 +40,8 @@ from .helpers import (
     misc_dash_slices,
     update_slice_ids,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def gen_filter(
@@ -83,8 +86,8 @@ def load_data(tbl_name: str, database: Database, sample: bool = False) -> None:
             method="multi",
             index=False,
         )
-    print("Done loading table!")
-    print("-" * 80)
+    logger.debug("Done loading table!")
+    logger.debug("-" * 80)
 
 
 def load_birth_names(
@@ -104,7 +107,7 @@ def load_birth_names(
     table = get_table_connector_registry()
     obj = db.session.query(table).filter_by(table_name=tbl_name, schema=schema).first()
     if not obj:
-        print(f"Creating table [{tbl_name}] reference")
+        logger.debug(f"Creating table [{tbl_name}] reference")
         obj = table(table_name=tbl_name, schema=schema)
         db.session.add(obj)
 
@@ -196,7 +199,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "datasource_type": DatasourceType.TABLE,
     }
 
-    print("Creating some slices")
+    logger.debug("Creating some slices")
     slices = [
         Slice(
             **slice_kwargs,
@@ -224,10 +227,10 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Trends",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             params=get_slice_json(
                 defaults,
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 groupby=["name"],
                 granularity_sqla="ds",
                 rich_tooltip=True,
@@ -239,7 +242,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Genders by State",
-            viz_type="dist_bar",
+            viz_type="echarts_timeseries_bar",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[
@@ -252,7 +255,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                         "subject": "state",
                     }
                 ],
-                viz_type="dist_bar",
+                viz_type="echarts_timeseries_bar",
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
@@ -338,7 +341,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Top 10 Girl Name Share",
-            viz_type="area",
+            viz_type="echarts_area",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
@@ -347,7 +350,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
-                viz_type="area",
+                viz_type="echarts_area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
@@ -356,7 +359,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Top 10 Boy Name Share",
-            viz_type="area",
+            viz_type="echarts_area",
             params=get_slice_json(
                 defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
@@ -365,7 +368,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 limit=10,
                 stacked_style="expand",
                 time_grain_sqla="P1D",
-                viz_type="area",
+                viz_type="echarts_area",
                 x_axis_forma="smart_date",
                 metrics=metrics,
             ),
@@ -421,8 +424,10 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Num Births Trend",
-            viz_type="line",
-            params=get_slice_json(defaults, viz_type="line", metrics=metrics),
+            viz_type="echarts_timeseries_line",
+            params=get_slice_json(
+                defaults, viz_type="echarts_timeseries_line", metrics=metrics
+            ),
             owners=[],
         ),
         Slice(
@@ -471,7 +476,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         Slice(
             **slice_kwargs,
             slice_name="Top 10 California Names Timeseries",
-            viz_type="line",
+            viz_type="echarts_timeseries_line",
             params=get_slice_json(
                 defaults,
                 metrics=[
@@ -485,7 +490,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                         "label": "SUM(num_california)",
                     }
                 ],
-                viz_type="line",
+                viz_type="echarts_timeseries_line",
                 granularity_sqla="ds",
                 groupby=["name"],
                 timeseries_limit_metric={
@@ -561,7 +566,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
 
 
 def create_dashboard(slices: list[Slice]) -> Dashboard:
-    print("Creating a dashboard")
+    logger.debug("Creating a dashboard")
     dash = db.session.query(Dashboard).filter_by(slug="births").first()
     if not dash:
         dash = Dashboard()
@@ -579,7 +584,7 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         }
     }"""
     )
-    # pylint: disable=line-too-long
+    # pylint: disable=echarts_timeseries_line-too-long
     pos = json.loads(
         textwrap.dedent(
             """\
@@ -854,7 +859,7 @@ def create_dashboard(slices: list[Slice]) -> Dashboard:
         """  # noqa: E501
         )
     )
-    # pylint: enable=line-too-long
+    # pylint: enable=echarts_timeseries_line-too-long
     # dashboard v2 doesn't allow add markup slice
     dash.slices = [slc for slc in slices if slc.viz_type != "markup"]
     update_slice_ids(pos)

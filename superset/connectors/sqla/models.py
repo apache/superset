@@ -1907,6 +1907,7 @@ class SqlaTable(
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),
+                strict=False,
             )
             if perms
         ]

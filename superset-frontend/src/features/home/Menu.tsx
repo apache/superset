@@ -309,7 +309,7 @@ export function Menu({
             id="brand-tooltip"
             placement="bottomLeft"
             title={brand.tooltip}
-            arrowPointAtCenter
+            arrow={{ pointAtCenter: true }}
           >
             {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>

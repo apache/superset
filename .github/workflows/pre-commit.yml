@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     strategy:
       matrix:
-        python-version: ["current", "next", "previous"]
+        python-version: ["current", "previous"]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -41,6 +41,8 @@ jobs:
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
+          # Skip eslint as it requires `npm ci` and is executed in another job
+          export SKIP=eslint
           pre-commit run --all-files
           if [ $? -ne 0 ] || ! git diff --quiet --exit-code; then
             echo "❌ Pre-commit check failed."

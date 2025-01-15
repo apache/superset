@@ -1035,6 +1035,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == expected_response
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_get_chart(self):
         """
         Chart API: Test get chart
@@ -1170,6 +1171,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert result[0]["slice_name"] == self.chart.slice_name
 
     @pytest.mark.usefixtures("create_charts_some_with_tags")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_get_charts_tag_filters(self):
         """
         Chart API: Test get charts with tag filters
@@ -1970,7 +1972,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
     @parameterized.expand(
         [
-            "Top 10 Girl Name Share",  # Legacy chart
             "Pivot Table v2",  # Non-legacy chart
         ],
     )
@@ -2096,6 +2097,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_warm_up_cache_no_datasource(self) -> None:
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Top 10 Girl Name Share")

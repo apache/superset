@@ -24,7 +24,7 @@ import validator from '@rjsf/validator-ajv8';
 import { Row, Col } from 'src/components';
 import { Input, TextArea } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import * as chrono from 'chrono-node';
+import { parseDate } from 'chrono-node';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';
 import { Form, FormItem } from 'src/components/Form';
 import Button from 'src/components/Button';
@@ -47,11 +47,10 @@ const getJSONSchema = () => {
     Object.entries(jsonSchema.properties).forEach(
       ([key, value]: [string, any]) => {
         if (value.default && value.format === 'date-time') {
+          const parsedDate = parseDate(value.default);
           jsonSchema.properties[key] = {
             ...value,
-            default: value.default
-              ? chrono.parseDate(value.default)?.toISOString()
-              : null,
+            default: parsedDate ? parsedDate.toISOString() : null,
           };
         }
       },

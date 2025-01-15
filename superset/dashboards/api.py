@@ -19,20 +19,19 @@ import functools
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
-from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import db, is_feature_enabled, thumbnail_cache
+from superset import db, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
@@ -124,6 +123,7 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
@@ -159,18 +159,6 @@ def with_dashboard(
 # pylint: disable=too-many-public-methods
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
-
-    @before_request(only=["thumbnail", "cache_dashboard_screenshot", "screenshot"])
-    def ensure_thumbnails_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("THUMBNAILS"):
-            return self.response_404()
-        return None
-
-    @before_request(only=["cache_dashboard_screenshot", "screenshot"])
-    def ensure_screenshots_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"):
-            return self.response_404()
-        return None
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -1038,6 +1026,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return response
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
+    @validate_feature_flags(["THUMBNAILS"])
     @protect()
     @safe
     @rison(thumbnail_query_schema)
@@ -1141,6 +1130,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
+    @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
     @rison(screenshot_query_schema)
     @safe
@@ -1241,6 +1231,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return trigger_celery()
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
+    @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
     @safe
     @statsd_metrics

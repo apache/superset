@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { interceptChart } from 'cypress/utils';
+
 describe('AdhocMetrics', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('postJson');
-    cy.intercept('GET', '/superset/explore_json/**').as('getJson');
+    interceptChart({ legacy: false }).as('chartData');
     cy.visitChartByName('Num Births Trend');
-    cy.verifySliceSuccess({ waitAlias: '@postJson' });
+    cy.verifySliceSuccess({ waitAlias: '@chartData' });
   });
 
   it('Clear metric and set simple adhoc metric', () => {
@@ -52,9 +53,8 @@ describe('AdhocMetrics', () => {
 
     cy.get('button[data-test="run-query-button"]').click();
     cy.verifySliceSuccess({
-      waitAlias: '@postJson',
+      waitAlias: '@chartData',
       querySubstring: `${metric} AS "${metricName}"`, // SQL statement
-      chartSelector: 'svg',
     });
   });
 
@@ -88,9 +88,8 @@ describe('AdhocMetrics', () => {
 
     const metric = 'SUM(num)/COUNT(DISTINCT name)';
     cy.verifySliceSuccess({
-      waitAlias: '@postJson',
+      waitAlias: '@chartData',
       querySubstring: `${metric} AS "${metric}"`,
-      chartSelector: 'svg',
     });
   });
 
@@ -117,9 +116,8 @@ describe('AdhocMetrics', () => {
 
     const metric = 'SUM(num)';
     cy.verifySliceSuccess({
-      waitAlias: '@postJson',
+      waitAlias: '@chartData',
       querySubstring: `${metric} AS "${metric}"`,
-      chartSelector: 'svg',
     });
   });
 });
