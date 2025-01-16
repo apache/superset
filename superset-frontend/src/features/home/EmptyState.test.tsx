@@ -70,15 +70,7 @@ describe('EmptyState', () => {
 
       // Select the first description node
       const textContainer = wrapper.find('.ant-empty-description').at(0);
-      expect(textContainer.text()).toEqual(
-        variant.tab === TableTab.Favorite
-          ? "You don't have any favorites yet!"
-          : `No ${
-              variant.tableName === WelcomeTable.SavedQueries
-                ? 'saved queries'
-                : variant.tableName.toLowerCase()
-            } yet`,
-      );
+      expect(textContainer.text()).toEqual('Nothing here yet');
       expect(wrapper.find('button')).toHaveLength(1);
     });
   });
