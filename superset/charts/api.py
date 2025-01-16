@@ -621,7 +621,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 update_status=cache_payload.get_status(),
             )
 
-        if cache_payload.status == StatusValues.ERROR or force:
+        if cache_payload.status in [StatusValues.PENDING, StatusValues.ERROR] or force:
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload())
             cache_chart_thumbnail.delay(

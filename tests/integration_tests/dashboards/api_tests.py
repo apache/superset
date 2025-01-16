@@ -3070,10 +3070,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    @patch("superset.dashboards.api.is_feature_enabled")
-    def test_screenshot_success_png(
-        self, is_feature_enabled, mock_get_from_cache_key, mock_cache_task
-    ):
+    def test_screenshot_success_png(self, mock_get_from_cache_key, mock_cache_task):
         """
         Validate screenshot returns png
         """
@@ -3097,6 +3094,10 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.mimetype == "image/png"
         assert response.data == b"fake image data"
 
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload()
+        cache_resp = self._cache_screenshot(dashboard.id)
+        assert cache_resp.status_code == 202
+
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
@@ -3104,7 +3105,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
     def test_screenshot_success_pdf(
         self,
-        is_feature_enabled,
         mock_get_from_cache_key,
         mock_build_pdf,
         mock_cache_task,
@@ -3133,11 +3133,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert response.mimetype == "application/pdf"
         assert response.data == b"fake pdf data"
 
-    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
         mock_get_from_cache_key.return_value = ScreenshotCachePayload()
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
 
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
@@ -3151,6 +3151,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
+        print(dashboard.id)
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
@@ -3169,11 +3170,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    @patch("superset.dashboards.api.is_feature_enabled")
     def test_screenshot_invalid_download_format(
-        self, is_feature_enabled, mock_get_from_cache_key, mock_cache_task
+        self, mock_get_from_cache_key, mock_cache_task
     ):
-        is_feature_enabled.return_value = True
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(b"fake png data")

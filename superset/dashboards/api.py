@@ -31,7 +31,7 @@ from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import db, thumbnail_cache, is_feature_enabled
+from superset import db
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
@@ -1024,109 +1024,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             response.set_cookie(token, "done", max_age=600)
         return response
 
-    @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
-    @validate_feature_flags(["THUMBNAILS"])
-    @protect()
-    @safe
-    @rison(thumbnail_query_schema)
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.thumbnail",
-        log_to_statsd=False,
-    )
-    def thumbnail(self, pk: int, digest: str, **kwargs: Any) -> WerkzeugResponse:
-        """Compute async or get already computed dashboard thumbnail from cache.
-        ---
-        get:
-          summary: Get dashboard's thumbnail
-          description: >-
-            Computes async or get already computed dashboard thumbnail from cache.
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          - in: path
-            name: digest
-            description: A hex digest that makes this dashboard unique
-            schema:
-              type: string
-          - in: query
-            name: q
-            content:
-              application/json:
-                schema:
-                  $ref: '#/components/schemas/thumbnail_query_schema'
-          responses:
-            200:
-              description: Dashboard thumbnail image
-              content:
-               image/*:
-                 schema:
-                   type: string
-                   format: binary
-            202:
-              description: Thumbnail does not exist on cache, fired async to compute
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            302:
-              description: Redirects to the current digest
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
-        if not dashboard:
-            return self.response_404()
-
-        dashboard_url = get_url_path(
-            "Superset.dashboard", dashboard_id_or_slug=dashboard.id
-        )
-        # If force, request a screenshot from the workers
-        current_user = get_current_user()
-        screenshot_obj = DashboardScreenshot(dashboard_url, digest)
-        cache_key = screenshot_obj.get_cache_key()
-        cache_payload = screenshot_obj.get_from_cache_key(cache_key)
-        if not cache_payload or kwargs["rison"].get("force", False):
-            cache_payload = ScreenshotCachePayload()
-            screenshot_obj.cache.set(cache_key, cache_payload)
-
-        if cache_payload.status != StatusValues.UPDATED:
-            cache_dashboard_thumbnail.delay(
-                current_user=current_user,
-                dashboard_id=dashboard.id,
-            )
-            return self.response(
-                202,
-                updated_at=cache_payload.get_timestamp(),
-                update_status=cache_payload.get_status(),
-            )
-
-        if dashboard.digest != digest:
-            self.incr_stats("redirect", self.thumbnail.__name__)
-            return redirect(
-                url_for(
-                    f"{self.__class__.__name__}.thumbnail",
-                    pk=pk,
-                    digest=dashboard.digest,
-                )
-            )
-        self.incr_stats("from_cache", self.thumbnail.__name__)
-        return Response(
-            FileWrapper(cache_payload.get_image()),
-            mimetype="image/png",
-            direct_passthrough=True,
-        )
-
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
@@ -1217,7 +1114,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 update_status=cache_payload.get_status(),
             )
 
-        if cache_payload.status == StatusValues.ERROR or force:
+        if cache_payload.status in [StatusValues.PENDING, StatusValues.ERROR] or force:
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload())
             cache_dashboard_screenshot.delay(
@@ -1315,6 +1212,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
+    @validate_feature_flags(["THUMBNAILS"])
     @protect()
     @safe
     @rison(thumbnail_query_schema)
