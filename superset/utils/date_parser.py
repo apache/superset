@@ -269,9 +269,9 @@ def handle_modifier_and_unit(
     base_expression = handle_scope_and_unit(scope, delta, unit, relative_base)
 
     if modifier.lower() in ["start of", "beginning of"]:
-        return handle_start_of(base_expression, unit)
+        return handle_start_of(base_expression, unit.lower())
     elif modifier.lower() == "end of":
-        return handle_end_of(base_expression, unit)
+        return handle_end_of(base_expression, unit.lower())
     else:
         raise ValueError(f"Unknown modifier: {modifier}")
 
