@@ -646,7 +646,7 @@ class Header extends React.PureComponent {
                     </div>
                   )}
                 </div>
-                <div>
+                {/* <div>
                   <span
                     style={{ cursor: 'pointer' }}
                     onClick={() => {
@@ -674,7 +674,7 @@ class Header extends React.PureComponent {
                     dashboardInfo={this.props.dashboardInfo?.charts}
                     extraProps={this.props}
                   />
-                </div>
+                </div> */}
               </>
             }
             menuDropdownProps={{
