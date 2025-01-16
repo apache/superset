@@ -28,7 +28,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
 import DatabaseSelector, { DatabaseSelectorProps } from '.';
-import { EmptyStateSmall } from '../EmptyState';
+import { EmptyState } from '../EmptyState';
 
 const createProps = (): DatabaseSelectorProps => ({
   db: {
@@ -307,7 +307,7 @@ test('should show empty state if there are no options', async () => {
     <DatabaseSelector
       {...props}
       db={undefined}
-      emptyState={<EmptyStateSmall title="empty" image="" />}
+      emptyState={<EmptyState size="small" title="empty" />}
     />,
     { useRedux: true, store },
   );

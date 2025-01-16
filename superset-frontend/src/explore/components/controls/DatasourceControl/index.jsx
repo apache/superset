@@ -106,7 +106,6 @@ const Styles = styled.div`
   .title-select {
     flex: 1 1 100%;
     display: inline-block;
-    background-color: ${({ theme }) => theme.colors.grayscale.light3};
     padding: ${({ theme }) => theme.gridUnit * 2}px;
     border-radius: ${({ theme }) => theme.borderRadius}px;
     text-align: center;
@@ -430,10 +429,10 @@ class DatasourceControl extends PureComponent {
         {isMissingDatasource && isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
-              level="warning"
-              title={t('Missing URL parameters')}
-              source="explore"
-              subtitle={
+              type="warning"
+              descriptionPre={false}
+              message={t('Missing URL parameters')}
+              description={
                 <>
                   <p>
                     {t(
@@ -448,10 +447,11 @@ class DatasourceControl extends PureComponent {
         {isMissingDatasource && !isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
-              level="warning"
-              title={t('Missing dataset')}
-              source="explore"
-              subtitle={
+              type="warning"
+              errorType={t('Missing dataset')}
+              descriptionPre={false}
+              descriptionDetailsCollapsed={false}
+              descriptionDetails={
                 <>
                   <p>
                     {t(
@@ -460,7 +460,7 @@ class DatasourceControl extends PureComponent {
                   </p>
                   <p>
                     <Button
-                      buttonStyle="primary"
+                      buttonStyle="warning"
                       onClick={() =>
                         this.handleMenuItemClick({ key: CHANGE_DATASET })
                       }

@@ -10,30 +10,127 @@
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License
+ * for the specific language governing permissions and
+ * limitations under the License.
  */
+// @ant-prefix: antd4;
 
-@import '~antd/lib/style/themes/index';
+// Core styles and dependencies
+@import '~antd/lib/style/themes/default.less';  // Use default theme instead of index
 @import '~antd/lib/style/mixins/index';
-@import '~antd/lib/style/core/base';
 
+// Base styles with prefix
+@import '~antd/lib/style/core/base';
 @import '~antd/lib/style/core/iconfont';
 @import '~antd/lib/style/core/motion';
+
+// All component styles
 @import '~antd/lib/style/components.less';
+
 
 /*
   Theme variables here: https://github.com/ant-design/ant-design/blob/master/components/style/themes/default.less
 */
+/* Core Colors */
 @primary-color: #20a7c9;
 @info-color: #66bcfe;
-@success-color: #59c189;
-@processing-color: #66bcfe;
+@success-color: #5ac189;
 @error-color: #e04355;
 @highlight-color: #e04355;
-@normal-color: #d9d9d9;
-@white: #fff;
-@black: #000;
+@normal-color: #000;
+
+// Menu-related
+@menu-highlight-color: #1e91ae;
+@menu-item-active-bg: ;
+@menu-item-color: #bce5ef;
+@menu-popup-bg: #000;
+@menu-bg: #000;
+
+@tabs-card-head-background: #1f1f1f;
+@component-background: #000;
+@select-item-selected-bg: #121f24;
+@select-item-active-bg: #121f24;
+@select-item-hover-bg: #121f24;
+
+@item-hover-bg: #1f1f1f;
+@menu-item-hover-bg: #1f1f1f;
+
+// GPT generated:
+
+/* Backgrounds */
+@layout-body-background: #141414;
+@layout-header-background: #000;
+@layout-footer-background: #000;
+@layout-sider-background: #000;
+@background-color-light: #141414;
+@background-color-base: #000;
+@background-elevated: #1f1f1f;
+
+/* Text */
+@text-color: rgba(255, 255, 255, 0.85);
+@text-color-secondary: rgba(255, 255, 255, 0.65);
+@text-color-tertiary: rgba(255, 255, 255, 0.45);
+@text-color-quaternary: rgba(255, 255, 255, 0.25);
+@heading-color: #000;
+@disabled-color: rgba(255, 255, 255, 0.65);
+@input-placeholder-color: rgba(255, 255, 255, 0.65);
+
+/* Borders */
+@border-color-base: #424242;
+@border-color-split: #303030;
+@border-radius-base: 4;
+@border-radius-sm: 4;
+@border-radius-lg: 4;
+
+/* Buttons */
+@btn-primary-bg: #1e91ae;
+@btn-default-bg: #141414;
+@btn-default-border: #424242;
+@btn-danger-bg: #c13c4b;
+@btn-danger-border: #c13c4b;
+
+/* Inputs */
+//@input-bg: ;
+@input-border-color: #424242;
+@input-hover-border-color: #195665;
+
+/* Menus */
+@menu-bg: #000;
+@menu-popup-bg: #000;
+@menu-item-color: rgba(255, 255, 255, 0.85);
+@menu-inline-submenu-bg: #000;
+@menu-highlight-color: rgba(255, 255, 255, 0.85);
+@menu-highlight-danger-color: #c13c4b;
+@menu-item-active-bg: #1e91ae;
+@menu-item-active-danger-bg: #271619;
+@menu-item-group-title-color: rgba(255, 255, 255, 0.85);
+
+/* Typography */
+@font-family: 'Inter', Helvetica, Arial;
+@font-family-code: 'Fira Code', 'Courier New', monospace;
+@font-size-base: 14px;
+@font-size-sm: 12px;
+@font-size-lg: 16px;
+@line-height-base: 1.5714285714285714;
+@line-height-sm: 1.6666666666666667;
+@line-height-lg: 1.5;
+
+/* Tables */
+@table-header-bg: #141414;
+@table-row-hover-bg: #1f1f1f;
+@table-selected-row-bg: #121f24;
+
+/* Motion */
+@motion-duration-fast: 0.1s;
+@motion-duration-mid: 0.2s;
+@motion-duration-slow: 0.3s;
+@motion-ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+@motion-ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+
+/* headers */
+@heading-color: rgba(255, 255, 255, 0.85);
+@collapse-header-bg: #000;
+@collapse-header-padding: 4px 4px;

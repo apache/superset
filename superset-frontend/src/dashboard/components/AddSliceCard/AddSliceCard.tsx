@@ -202,7 +202,6 @@ const AddSliceCard: FC<{
         css={(theme: Theme) => css`
           border: 1px solid ${theme.colors.grayscale.light2};
           border-radius: ${theme.gridUnit}px;
-          background: ${theme.colors.grayscale.light5};
           padding: ${theme.gridUnit * 4}px;
           margin: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 3}px
             ${theme.gridUnit * 3}px;
@@ -214,7 +213,7 @@ const AddSliceCard: FC<{
           color: ${theme.colors.grayscale.dark1};
 
           &:hover {
-            background: ${theme.colors.grayscale.light4};
+            //background: ${theme.colors.grayscale.light4};
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};

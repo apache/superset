@@ -19,71 +19,73 @@
 
 /************************************************************************/
 /* COLORS                                                               */
-/* Please attempt to use and standardize on these colors,               */
-/* rather than including specific color values in                       */
-/* component styles. This will allow us to more easily adjust theming   */
 /************************************************************************/
 
 @primary-color: #20a7c9;
 @indicator-color: @primary-color;
 
-@brand-primary-dark1: #1a85a0;
-@brand-primary-dark2: #156378;
-@brand-primary-light1: #79cade;
-@brand-primary-light2: #a5dae9;
-@brand-primary-light3: #d2edf4;
-@brand-primary-light4: #e9f6f9;
-@brand-primary-light5: #f3f8fa;
+@brand-primary-dark1: #4db9d4;
+@brand-primary-dark2: #84cfe1;
+@brand-primary-light1: #1d96b5;
+@brand-primary-light2: #1a86a1;
+@brand-primary-light3: #136479;
+@brand-primary-light4: #0d4350;
+@brand-primary-light5: #062128;
 
 @brand-secondary: #444e7c;
-@brand-secondary-dark1: #363e63;
-@brand-secondary-dark2: #282e4a;
-@brand-secondary-dark3: #1b1f31;
-@brand-secondary-light1: #8e94b0;
-@brand-secondary-light2: #b4b8ca;
-@brand-secondary-light3: #d9dbe4;
-@brand-secondary-light4: #eceef2;
-@brand-secondary-light5: #f5f5f8;
+@brand-secondary-dark1: #697196;
+@brand-secondary-dark2: #989eb7;
+@brand-secondary-dark3: #c7cad8;
+@brand-secondary-light1: #3d4670;
+@brand-secondary-light2: #363e63;
+@brand-secondary-light3: #292f4a;
+@brand-secondary-light4: #1b1f32;
+@brand-secondary-light5: #0e1019;
 
-@almost-black: #263238;
-@gray-dark: #484848;
-@gray-light: #e0e0e0;
-@gray-light5: #666666;
-@gray: #879399;
-@gray-bg: #f7f7f7;
-@gray-heading: #a3a3a3;
-@menu-hover: #f2f3f5;
-@lightest: #ffffff;
-@darkest: #000000;
+// TODO line up with theme
+@almost-black: #f7f7f7;
+@gray-dark: #d1d1d1;
+@gray-light: #292929;
+@gray-light5: #FFF;
+@gray: #20a7c9;
+@gray-bg: #292929;
+@gray-heading: #858585;
+@menu-hover: ;
+@lightest: #000;
+@darkest: #FFF;
+
+@body-bg: #000;
 
 /**************************** text-specific *****************************/
-@link: #1985a0;
-@link-hover: darken(@link, @colorstop-one);
+@text-color: #fff;
+@heading-color: #fff;
+@link: #4db9d4;
+@link-hover: #84cfe1;
 
 /***************************** status colors ****************************/
 @info: #66bcfe;
-@info-dark1: #4d8cbe;
-@info-dark2: #315e7e;
-@info-light1: #b3defe;
-@info-light2: #eff8fe;
+@info-dark1: #85c9fe;
+@info-dark2: #abdafe;
+@info-light1: #5ca9e5;
+@info-light2: #5296cb;
 
 @danger: #e04355;
-@danger-dark1: #a7323f;
-@danger-dark2: #6f212a;
-@danger-light1: #efa1aa;
-@danger-light2: #faedee;
+@danger-dark1: #e66977;
+@danger-dark2: #ee98a2;
+@danger-light1: #ca3c4d;
+@danger-light2: #b33644;
 
 @success: #5ac189;
-@success-dark1: #439066;
-@success-dark2: #2b6144;
-@success-light1: #ace1c4;
-@success-light2: #eef8f3;
+@success-dark1: #7bcda1;
+@success-dark2: #a4ddbe;
+@success-light1: #51ae7b;
+@success-light2: #489a6e;
 
 @warning: #fcc700;
-@warning-dark1: #bc9501;
-@warning-dark2: #7d6300;
-@warning-light1: #fde380;
-@warning-light2: #fef9e6;
+@warning-dark1: #fdd233;
+@warning-dark2: #fde073;
+@warning-light1: #e3b300;
+@warning-light2: #ca9f00;
 
 /* general component effects */
 @shadow-highlight: @primary-color;
@@ -141,19 +143,16 @@
 /* Commonly used font weights, line heights, etc. These should be the   */
 /* core values used to build more complex styles for headers, etc.      */
 /************************************************************************/
+@font-size-base: 14px; // Base `rem` units on this, as needed.
 
-// *************************** Weights **********************************
 @font-weight-light: 200;
 @font-weight-normal: 400;
 @font-weight-bold: 600;
 
-// ***************************** Font Sizes *****************************
-@font-size-base: 14px; // Base `rem` units on this, as needed.
-
 @font-size-xxs: 9px;
 @font-size-xs: 10px;
 @font-size-s: 12px;
-@font-size-m: @font-size-base;
+@font-size-m: 14px;
 @font-size-l: 16px;
 @font-size-xl: 21px;
 @font-size-xxl: 28px;
@@ -184,14 +183,14 @@
 }
 
 // ****************************** Families ******************************
+
 @font-family-sans-serif: 'Inter', Helvetica, Arial;
-@font-family-serif: Georgia, 'Times New Roman', Times, serif;
 @font-family-monospace: 'Fira Code', 'Courier New', monospace;
 @font-family-base: @font-family-sans-serif;
+@line-height-tight: 1;
 
 /************************************************************************/
 /* TRANSITIONS                                                          */
-/* Timing and easings presets used in CSS transitions                   */
 /************************************************************************/
 @timing-normal: 0.3s;
 

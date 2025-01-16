@@ -216,6 +216,7 @@ module.exports = {
         '*.test.tsx',
         '*.test.js',
         '*.test.jsx',
+        '*src/utils/testUtils*',
         '*.stories.tsx',
         '*.stories.jsx',
         'fixtures.*',
@@ -280,7 +281,7 @@ module.exports = {
         'fixtures.*',
         'cypress-base/cypress/**/*',
         'Stories.tsx',
-        'packages/superset-ui-core/src/style/index.tsx',
+        'packages/superset-ui-core/src/theme/index.tsx',
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,

@@ -80,7 +80,6 @@ export interface Props {
 
 const DatasourceContainer = styled.div`
   ${({ theme }) => css`
-    background-color: ${theme.colors.grayscale.light5};
     position: relative;
     height: 100%;
     display: flex;

@@ -30,9 +30,11 @@ export default {
 
 const palette = { Default: null };
 Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
-  Object.entries(family).forEach(([colorName, colorValue]) => {
-    palette[`${familyName} / ${colorName}`] = colorValue;
-  });
+  Object.entries(family as Record<string, string>).forEach(
+    ([colorName, colorValue]) => {
+      palette[`${familyName} / ${colorName}`] = colorValue;
+    },
+  );
 });
 
 const IconSet = styled.div`

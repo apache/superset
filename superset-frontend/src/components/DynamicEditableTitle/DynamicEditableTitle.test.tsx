@@ -18,7 +18,7 @@
  */
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import { DynamicEditableTitle } from '.';
+import DynamicEditableTitle from '.';
 
 const createProps = (overrides: Record<string, any> = {}) => ({
   title: 'Chart title',

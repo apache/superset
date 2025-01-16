@@ -1,0 +1,136 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License
+ * for the specific language governing permissions and
+ * limitations under the License.
+ */
+// @ant-prefix: antd4;
+
+// Core styles and dependencies
+@import '~antd/lib/style/themes/default.less';  // Use default theme instead of index
+@import '~antd/lib/style/mixins/index';
+
+// Base styles with prefix
+@import '~antd/lib/style/core/base';
+@import '~antd/lib/style/core/iconfont';
+@import '~antd/lib/style/core/motion';
+
+// All component styles
+@import '~antd/lib/style/components.less';
+
+
+/*
+  Theme variables here: https://github.com/ant-design/ant-design/blob/master/components/style/themes/default.less
+*/
+/* Core Colors */
+@primary-color: {{theme.colors.primary.base}};
+@info-color: {{theme.colors.info.base}};
+@success-color: {{theme.colors.success.base}};
+@error-color: {{theme.colors.error.base}};
+@highlight-color: {{theme.colors.error.base}};
+@normal-color: {{theme.antd.colorBgBase}};
+
+// Menu-related
+@menu-highlight-color: {{theme.antd.colorPrimary}};
+@menu-item-active-bg: {{theme.antd.colorElevated}};
+@menu-item-color: {{theme.colors.primary.dark3}};
+@menu-popup-bg: {{theme.antd.colorBgBase}};
+@menu-bg: {{theme.antd.colorBgBase}};
+
+@tabs-card-head-background: {{theme.antd.colorBgElevated}};
+@component-background: {{theme.antd.colorBgBase}};
+@select-item-selected-bg: {{theme.antd.colorPrimaryBg}};
+@select-item-active-bg: {{theme.antd.colorPrimaryBg}};
+@select-item-hover-bg: {{theme.antd.colorPrimaryBg}};
+
+@item-hover-bg: {{theme.antd.colorBgElevated}};
+@menu-item-hover-bg: {{theme.antd.colorBgElevated}};
+
+// GPT generated:
+
+/* Backgrounds */
+@layout-body-background: {{theme.antd.colorBgLayout}};
+@layout-header-background: {{theme.antd.colorBgBase}};
+@layout-footer-background: {{theme.antd.colorBgBase}};
+@layout-sider-background: {{theme.antd.colorBgBase}};
+@background-color-light: {{theme.antd.colorBgContainer}};
+@background-color-base: {{theme.antd.colorBgBase}};
+@background-elevated: {{theme.antd.colorBgElevated}};
+
+/* Text */
+@text-color: {{theme.antd.colorText}};
+@text-color-secondary: {{theme.antd.colorTextSecondary}};
+@text-color-tertiary: {{theme.antd.colorTextTertiary}};
+@text-color-quaternary: {{theme.antd.colorTextQuaternary}};
+@heading-color: {{theme.antd.colorBgBase}};
+@disabled-color: {{theme.antd.colorTextSecondary}};
+@input-placeholder-color: {{theme.antd.colorTextSecondary}};
+
+/* Borders */
+@border-color-base: {{theme.antd.colorBorder}};
+@border-color-split: {{theme.antd.colorBorderSecondary}};
+@border-radius-base: {{theme.antd.borderRadius}};
+@border-radius-sm: {{theme.antd.borderRadiusSM}};
+@border-radius-lg: {{theme.antd.borderRadiusLG}};
+
+/* Buttons */
+@btn-primary-bg: {{theme.antd.colorPrimary}};
+@btn-default-bg: {{theme.antd.colorBgContainer}};
+@btn-default-border: {{theme.antd.colorBorder}};
+@btn-danger-bg: {{theme.antd.colorError}};
+@btn-danger-border: {{theme.antd.colorError}};
+
+/* Inputs */
+//@input-bg: {{theme.antd.colorBgInput}};
+@input-border-color: {{theme.antd.colorBorder}};
+@input-hover-border-color: {{theme.antd.colorPrimaryBorderHover}};
+
+/* Menus */
+@menu-bg: {{theme.antd.colorBgBase}};
+@menu-popup-bg: {{theme.antd.colorBgBase}};
+@menu-item-color: {{theme.antd.colorText}};
+@menu-inline-submenu-bg: {{theme.antd.colorBgBase}};
+@menu-highlight-color: {{theme.antd.colorText}};
+@menu-highlight-danger-color: {{theme.antd.colorError}};
+@menu-item-active-bg: {{theme.antd.colorPrimary}};
+@menu-item-active-danger-bg: {{theme.antd.colorErrorBg}};
+@menu-item-group-title-color: {{theme.antd.colorText}};
+
+/* Typography */
+@font-family: {{theme.antd.fontFamily}};
+@font-family-code: {{theme.antd.fontFamilyCode}};
+@font-size-base: {{theme.antd.fontSize}}px;
+@font-size-sm: {{theme.antd.fontSizeSM}}px;
+@font-size-lg: {{theme.antd.fontSizeLG}}px;
+@line-height-base: {{theme.antd.lineHeight}};
+@line-height-sm: {{theme.antd.lineHeightSM}};
+@line-height-lg: {{theme.antd.lineHeightLG}};
+
+/* Tables */
+@table-header-bg: {{theme.antd.colorBgContainer}};
+@table-row-hover-bg: {{theme.antd.colorBgElevated}};
+@table-selected-row-bg: {{theme.antd.colorPrimaryBg}};
+
+/* Motion */
+@motion-duration-fast: {{theme.antd.motionDurationFast}};
+@motion-duration-mid: {{theme.antd.motionDurationMid}};
+@motion-duration-slow: {{theme.antd.motionDurationSlow}};
+@motion-ease-out: {{theme.antd.motionEaseOut}};
+@motion-ease-in-out: {{theme.antd.motionEaseInOut}};
+
+/* headers */
+@heading-color: {{theme.antd.colorText}};
+@collapse-header-bg: {{theme.antd.colorBgBase}};
+@collapse-header-padding: {{theme.gridUnit}}px {{theme.gridUnit}}px;

@@ -11,16 +11,80 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 
 import { supersetTheme } from '@superset-ui/core';
 
-export default {
-  title: 'Core Packages/@superset-ui-style',
+const AntDFunctionalColors = ({ antdTheme }) => {
+  const { antd } = supersetTheme;
+
+  // Define color types and variations dynamically
+  const colorTypes = ['Primary', 'Success', 'Error', 'Warning', 'Info'];
+  const variations = [
+    '',
+    'Active',
+    'TextActive',
+    'Text',
+    'TextHover',
+    'Hover',
+    'BorderHover',
+    'Border',
+    'BgHover',
+    'Bg',
+  ];
+
+  return (
+    <table
+      style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}
+    >
+      <thead>
+        <tr>
+          <th style={{ border: '1px solid #ddd', padding: '8px' }}>Type</th>
+          {variations.map(variation => (
+            <th
+              key={variation}
+              style={{ border: '1px solid #ddd', padding: '8px' }}
+            >
+              {variation}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {colorTypes.map(type => {
+          const typeKey = `color${type}`;
+          return (
+            <tr key={type}>
+              <td style={{ border: '1px solid #ddd', padding: '8px' }}>
+                <strong>{type}</strong>
+              </td>
+              {variations.map(variation => {
+                const tokenKey = `${typeKey}${variation}`;
+                const color = antd[tokenKey];
+                return (
+                  <td
+                    key={variation}
+                    style={{
+                      border: '1px solid #ddd',
+                      padding: '8px',
+                      backgroundColor: color || 'transparent',
+                      color: antdTheme[`color${type}${variation}`],
+                    }}
+                  >
+                    {color ? <code>{color}</code> : '-'}
+                  </td>
+                );
+              })}
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
 };
 
 export const ThemeColors = () => {
@@ -28,7 +92,9 @@ export const ThemeColors = () => {
 
   // Define tones to be displayed in columns
   const tones = [
-    'dark2',
+    'dark5',
+    'dark4',
+    'dark3',
     'dark1',
     'base',
     'light1',
@@ -50,6 +116,7 @@ export const ThemeColors = () => {
   return (
     <div>
       <h1>Theme Colors</h1>
+      <h2>Color Palette</h2>
       <table
         style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}
       >
@@ -111,10 +178,20 @@ export const ThemeColors = () => {
         veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea
         commodo consequat.
       </div>
-      <h3>The supersetTheme object</h3>
+      <h2>Ant Design Theme Colors</h2>
+      <h3>Functional Colors</h3>
+      <AntDFunctionalColors antdTheme={supersetTheme.antd} />
+      <h2>The supersetTheme object</h2>
       <code>
         <pre>{JSON.stringify(supersetTheme, null, 2)}</pre>
       </code>
     </div>
   );
 };
+/*
+ * */
+export default {
+  title: 'Core Packages/@superset-ui-theme',
+};
+
+export const Default = () => <ThemeColors />;

@@ -50,12 +50,40 @@ type AceEditorWrapperProps = {
 
 const StyledAceEditor = styled(AceEditor)`
   ${({ theme }) => css`
+    color: ${theme.antd.colorText};
     && {
       // double class is better than !important
-      border: 1px solid ${theme.colors.grayscale.light2};
+      border: 1px solid ${theme.antd.colorBorder};
       font-feature-settings:
         'liga' off,
         'calt' off;
+
+      .ace_editor {
+        font-family: 'Roboto Mono', monospace;
+        font-size: 14px;
+        background-color: ${theme.antd.colorBgContainer};
+        color: ${theme.antd.colorText};
+      }
+      .ace-github {
+        color: ${theme.antd.colorText};
+      }
+
+      .ace_gutter {
+        background: ${theme.antd.colorBgElevated};
+        color: ${theme.antd.colorText};
+      }
+
+      .ace_cursor {
+        color: ${theme.antd.colorPrimary};
+      }
+
+      .ace_marker-layer .ace_active-line {
+        background: ${theme.antd.colorFillTertiary};
+      }
+
+      .ace_marker-layer .ace_selection {
+        background: ${theme.antd.colorPrimaryHover};
+      }
     }
   `}
 `;
