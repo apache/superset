@@ -72,7 +72,10 @@ export function saveChartToDashboard(dashboardName: string) {
   interceptUpdate();
   interceptExploreGet();
 
-  cy.getBySel('query-save-button').click();
+  cy.getBySel('query-save-button')
+    .should('be.enabled')
+    .should('not.be.disabled')
+    .click();
   cy.getBySelLike('chart-modal').should('be.visible');
   cy.get(
     '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',

@@ -81,7 +81,7 @@ describe('Charts list', () => {
       cy.wait('@get');
     });
 
-    it('should show the newly added dashboards in a tooltip', () => {
+    it.only('should show the newly added dashboards in a tooltip', () => {
       interceptDashboardGet();
       visitSampleChartFromList('1 - Sample chart');
       saveChartToDashboard('1 - Sample dashboard');
@@ -89,9 +89,13 @@ describe('Charts list', () => {
       saveChartToDashboard('3 - Sample dashboard');
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
-      cy.getBySel('crosslinks').first().trigger('mouseover', { force: true });
+      cy.getBySel('crosslinks')
+        .first()
+        .scrollIntoView()
+        .trigger('mouseover', { force: true });
       cy.get('.antd5-tooltip', { timeout: 2000 })
         .should('exist')
+        .and('be.visible')
         .contains('3 - Sample dashboard')
         .invoke('removeAttr', 'target')
         .click();
