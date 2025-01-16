@@ -514,6 +514,7 @@ function DashboardList(props: DashboardListProps) {
         { label: t('Yes'), value: true },
         { label: t('No'), value: false },
       ],
+      width: 100,
     }),
     [],
   );
@@ -587,6 +588,7 @@ function DashboardList(props: DashboardListProps) {
           { label: t('Yes'), value: true },
           { label: t('No'), value: false },
         ],
+        width: 100,
       },
       {
         Header: t('Modified by'),
