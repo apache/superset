@@ -14,7 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import NamedTuple
+
 from superset.utils.backports import StrEnum
+
+
+class FixedExecutor(NamedTuple):
+    username: str
 
 
 class ExecutorType(StrEnum):
@@ -24,7 +30,8 @@ class ExecutorType(StrEnum):
     For Thumbnails: The "model" refers to the Slice or Dashboard object
     """
 
-    # See the ASYNC_TASK_FIXED_USER config parameter
+    # A fixed user account. Note that for assigning a fixed user you should use the
+    # FixedExecutor class.
     FIXED_USER = "fixed_user"
     # The creator of the model
     CREATOR = "creator"
@@ -41,3 +48,6 @@ class ExecutorType(StrEnum):
     # user. If the modifier is not found, returns the creator if found in the owners
     # list. Finally, if neither are present, returns the first user in the owners list.
     OWNER = "owner"
+
+
+Executor = FixedExecutor | ExecutorType

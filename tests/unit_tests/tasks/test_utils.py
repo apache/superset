@@ -23,8 +23,8 @@ from typing import Any, Optional, Union
 import pytest
 from flask_appbuilder.security.sqla.models import User
 
-from superset.tasks.exceptions import ExecutorNotFoundError
-from superset.tasks.types import ExecutorType
+from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
+from superset.tasks.types import Executor, ExecutorType, FixedExecutor
 
 FIXED_USER_ID = 1234
 FIXED_USERNAME = "admin"
@@ -54,11 +54,11 @@ class ModelType(int, Enum):
 
 
 @pytest.mark.parametrize(
-    "model_type,executor_types,model_config,current_user,expected_result",
+    "model_type,executors,model_config,current_user,expected_result",
     [
         (
             ModelType.REPORT_SCHEDULE,
-            [ExecutorType.FIXED_USER],
+            [FixedExecutor(FIXED_USERNAME)],
             ModelConfig(
                 owners=[1, 2],
                 creator=3,
@@ -75,7 +75,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[]),
             None,
@@ -89,7 +89,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[], modifier=1),
             None,
@@ -103,7 +103,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[2], modifier=1),
             None,
@@ -117,7 +117,7 @@ class ModelType(int, Enum):
                 ExecutorType.OWNER,
                 ExecutorType.MODIFIER,
                 ExecutorType.MODIFIER_OWNER,
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[2], creator=3, modifier=1),
             None,
@@ -198,7 +198,7 @@ class ModelType(int, Enum):
         (
             ModelType.DASHBOARD,
             [
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             4,
@@ -219,7 +219,7 @@ class ModelType(int, Enum):
                 ExecutorType.CREATOR_OWNER,
                 ExecutorType.MODIFIER_OWNER,
                 ExecutorType.CURRENT_USER,
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             None,
@@ -237,7 +237,7 @@ class ModelType(int, Enum):
         (
             ModelType.CHART,
             [
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             4,
@@ -255,10 +255,19 @@ class ModelType(int, Enum):
         (
             ModelType.CHART,
             [
+                ExecutorType.FIXED_USER,
+            ],
+            ModelConfig(owners=[]),
+            None,
+            InvalidExecutorError(),
+        ),
+        (
+            ModelType.CHART,
+            [
                 ExecutorType.CREATOR_OWNER,
                 ExecutorType.MODIFIER_OWNER,
                 ExecutorType.CURRENT_USER,
-                ExecutorType.FIXED_USER,
+                FixedExecutor(FIXED_USERNAME),
             ],
             ModelConfig(owners=[1], creator=2, modifier=3),
             None,
@@ -268,10 +277,10 @@ class ModelType(int, Enum):
 )
 def test_get_executor(
     model_type: ModelType,
-    executor_types: list[ExecutorType],
+    executors: list[Executor],
     model_config: ModelConfig,
     current_user: Optional[int],
-    expected_result: tuple[int, ExecutorNotFoundError],
+    expected_result: tuple[ExecutorType, int] | Exception,
 ) -> None:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -315,7 +324,7 @@ def test_get_executor(
 
     with cm:
         executor_type, executor = get_executor(
-            executor_types=executor_types,
+            executors=executors,
             model=obj,
             current_user=str(current_user) if current_user else None,
         )

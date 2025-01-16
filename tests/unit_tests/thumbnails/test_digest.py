@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+from contextlib import nullcontext
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch, PropertyMock
 
@@ -23,7 +24,8 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.tasks.types import ExecutorType
+from superset.tasks.exceptions import InvalidExecutorError
+from superset.tasks.types import Executor, ExecutorType, FixedExecutor
 from superset.utils.core import DatasourceType, override_user
 
 if TYPE_CHECKING:
@@ -79,7 +81,7 @@ def prepare_datasource_mock(
     [
         (
             None,
-            [ExecutorType.FIXED_USER],
+            [FixedExecutor("admin")],
             False,
             False,
             [],
@@ -214,15 +216,23 @@ def prepare_datasource_mock(
             [],
             "",
         ),
+        (
+            None,
+            [ExecutorType.FIXED_USER],
+            False,
+            False,
+            [],
+            InvalidExecutorError(),
+        ),
     ],
 )
 def test_dashboard_digest(
     dashboard_overrides: dict[str, Any] | None,
-    execute_as: list[ExecutorType],
+    execute_as: list[Executor],
     has_current_user: bool,
     use_custom_digest: bool,
     rls_datasources: list[dict[str, Any]],
-    expected_result: str,
+    expected_result: str | Exception,
 ) -> None:
     from superset import app, security_manager
     from superset.models.dashboard import Dashboard
@@ -266,7 +276,13 @@ def test_dashboard_digest(
         patch.object(security_manager, "find_user", return_value=user),
         override_user(user),
     ):
-        assert get_dashboard_digest(dashboard=dashboard) == expected_result
+        cm = (
+            pytest.raises(type(expected_result))
+            if isinstance(expected_result, Exception)
+            else nullcontext()
+        )
+        with cm:
+            assert get_dashboard_digest(dashboard=dashboard) == expected_result
 
 
 @pytest.mark.parametrize(
@@ -274,7 +290,7 @@ def test_dashboard_digest(
     [
         (
             None,
-            [ExecutorType.FIXED_USER],
+            [FixedExecutor("admin")],
             False,
             False,
             None,
@@ -339,15 +355,23 @@ def test_dashboard_digest(
             None,
             "",
         ),
+        (
+            None,
+            [ExecutorType.FIXED_USER],
+            False,
+            False,
+            None,
+            InvalidExecutorError(),
+        ),
     ],
 )
 def test_chart_digest(
     chart_overrides: dict[str, Any] | None,
-    execute_as: list[ExecutorType],
+    execute_as: list[Executor],
     has_current_user: bool,
     use_custom_digest: bool,
     rls_datasource: dict[str, Any] | None,
-    expected_result: str,
+    expected_result: str | Exception,
 ) -> None:
     from superset import app, security_manager
     from superset.models.slice import Slice
@@ -388,4 +412,10 @@ def test_chart_digest(
         patch.object(security_manager, "find_user", return_value=user),
         override_user(user),
     ):
-        assert get_chart_digest(chart=chart) == expected_result
+        cm = (
+            pytest.raises(type(expected_result))
+            if isinstance(expected_result, Exception)
+            else nullcontext()
+        )
+        with cm:
+            assert get_chart_digest(chart=chart) == expected_result
