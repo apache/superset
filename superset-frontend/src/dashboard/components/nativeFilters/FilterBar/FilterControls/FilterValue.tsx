@@ -106,6 +106,7 @@ const FilterValue: FC<FilterControlProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
     inView: false,
@@ -310,6 +311,7 @@ const FilterValue: FC<FilterControlProps> = ({
             title={t('Cannot load filter')}
             body={error.error}
             level="error"
+            bodyOnTooltip
           />
         }
       />

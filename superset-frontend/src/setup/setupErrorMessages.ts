@@ -25,6 +25,7 @@ import ParameterErrorMessage from 'src/components/ErrorMessage/ParameterErrorMes
 import DatasetNotFoundErrorMessage from 'src/components/ErrorMessage/DatasetNotFoundErrorMessage';
 import InvalidSQLErrorMessage from 'src/components/ErrorMessage/InvalidSQLErrorMessage';
 import OAuth2RedirectMessage from 'src/components/ErrorMessage/OAuth2RedirectMessage';
+import NetworkErrorMessage from 'src/components/ErrorMessage/NetworkErrorMessage';
 
 import setupErrorMessagesExtra from './setupErrorMessagesExtra';
 
@@ -162,6 +163,10 @@ export default function setupErrorMessages() {
   errorMessageComponentRegistry.registerValue(
     ErrorTypeEnum.RESULT_TOO_LARGE_ERROR,
     DatabaseErrorMessage,
+  );
+  errorMessageComponentRegistry.registerValue(
+    ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
+    NetworkErrorMessage,
   );
   setupErrorMessagesExtra();
 }

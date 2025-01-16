@@ -125,6 +125,14 @@ test('Handles TypeError Response', async () => {
   expect(errorObj).toMatchObject({ error: 'Network error' });
 });
 
+test('Handles TypeError NetworkError Response', async () => {
+  const error = new TypeError('NetworkError');
+
+  // @ts-ignore
+  const errorObj = await getClientErrorObject(error);
+  expect(errorObj).toMatchObject({ error: 'Network error' });
+});
+
 test('Handles timeout error', async () => {
   const errorObj = await getClientErrorObject({
     timeout: 1000,
