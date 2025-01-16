@@ -521,22 +521,36 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
 });
 console.log(''); // pure cosmetic new line
 
-let proxyConfig = getProxyConfig();
-
 if (isDevMode) {
-  const { afterEmit } = getCompilerHooks(devServer.compiler);
-
   config.devServer = {
-    onBeforeSetupMiddleware(devServer) {
-      // Tap into manifest updates
+    setupMiddleware: (middlewares, devServer) => {
+      // load proxy config when manifest updates
+      const { afterEmit } = getCompilerHooks(devServer.compiler);
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
+
+        // Update the proxy configuration
+        if (devServer.proxy) {
+          // Instead of trying to find and remove the old middleware,
+          // let webpack-dev-server handle the proxy configuration update
+          devServer.proxy = [() => proxyConfig];
+
+          // Force webpack-dev-server to update its middleware stack
+          if (typeof devServer.invalidate === 'function') {
+            devServer.invalidate();
+          }
+        }
       });
+
+      return middlewares;
     },
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
-    proxy: [() => proxyConfig],
+    proxy: [
+      // functions are called for every request
+      () => proxyConfig,
+    ],
     client: {
       overlay: {
         errors: true,
@@ -545,7 +559,9 @@ if (isDevMode) {
       },
       logging: 'error',
     },
-    static: path.join(process.cwd(), '../static/assets'),
+    static: {
+      directory: path.join(process.cwd(), '../static/assets'),
+    },
   };
 }
 
