@@ -143,6 +143,70 @@ def parse_past_timedelta(
     )
 
 
+def get_relative_base(unit: str, relative_start: str | None = None) -> str:
+    """
+    Determine the base time (`relative_start`) based on granularity and user input.
+
+    Args:
+        unit (str): The time unit (e.g., "second", "minute", "hour", "day", etc.).
+        relative_start (datetime | None): Optional user-provided base time.
+
+    Returns:
+        datetime: The base time (`now`, `today`, or user-provided).
+    """
+    if relative_start is not None:
+        return relative_start
+
+    granular_units = {"second", "minute", "hour"}
+    broad_units = {"day", "week", "month", "quarter", "year"}
+
+    if unit.lower() in granular_units:
+        return "now"
+    elif unit.lower() in broad_units:
+        return "today"
+    else:
+        raise ValueError(f"Unknown unit: {unit}")
+
+
+def handle_start_of(base_expression: str, unit: str) -> str:
+    valid_units = {"year", "quarter", "month", "week", "day"}
+    if unit in valid_units:
+        return f"DATETRUNC({base_expression}, {unit})"
+    raise ValueError(f"Invalid unit for 'start of': {unit}")
+
+
+def handle_end_of(base_expression: str, unit: str) -> str:
+    valid_units = {"year", "quarter", "month", "week", "day"}
+    if unit in valid_units:
+        return f"LASTDAY({base_expression}, {unit})"
+    raise ValueError(f"Invalid unit for 'end of': {unit}")
+
+
+def handle_modifier_and_unit(
+    modifier: str, scope: str, delta: str, unit: str, relative_base: str
+) -> str:
+    base_expression = handle_scope_and_unit(scope, delta, unit, relative_base)
+
+    if modifier.lower() in ["start of", "beginning of"]:
+        return handle_start_of(base_expression, unit)
+    elif modifier.lower() == "end of":
+        return handle_end_of(base_expression, unit)
+    else:
+        raise ValueError(f"Unknown modifier: {modifier}")
+
+
+def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str) -> str:
+    _delta = int(delta) if delta else 1
+    if scope.lower() == "this":
+        return f"DATETIME('{relative_base}')"
+    elif scope.lower() in ["last", "prior"]:
+        return f"DATEADD(DATETIME('{relative_base}'), -{_delta}, {unit})"
+    elif scope.lower() == "next":
+        return f"DATEADD(DATETIME('{relative_base}'), {_delta}, {unit})"
+    else:
+        raise ValueError(f"Invalid scope: {scope}")
+
+
 def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-many-branches,too-many-statements  # noqa: C901
     time_range: str | None = None,
     since: str | None = None,
@@ -241,18 +305,20 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range and separator in time_range:
         time_range_lookup = [
             (
-                r"^last\s+(day|week|month|quarter|year)$",
-                lambda unit: f"DATEADD(DATETIME('{_relative_start}'), -1, {unit})",
+                r"^(start of|beginning of|end of)\s+(this|last|next|prior)\s+([0-9]+)?\s*(day|week|month|quarter|year)s?$",  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+                lambda modifier, scope, delta, unit: handle_modifier_and_unit(
+                    modifier,
+                    scope,
+                    delta,
+                    unit,
+                    get_relative_base(unit, relative_start),
+                ),
             ),
             (
-                r"^last\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta,
-                unit: f"DATEADD(DATETIME('{_relative_start}'), -{int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
-            ),
-            (
-                r"^next\s+([0-9]+)\s+(second|minute|hour|day|week|month|year)s?$",
-                lambda delta,
-                unit: f"DATEADD(DATETIME('{_relative_end}'), {int(delta)}, {unit})",  # pylint: disable=line-too-long,useless-suppression
+                r"^(this|last|next|prior)\s+([0-9]+)?\s*(second|minute|day|week|month|quarter|year)s?$",
+                lambda scope, delta, unit: handle_scope_and_unit(
+                    scope, delta, unit, get_relative_base(unit, relative_start)
+                ),
             ),
             (
                 r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
