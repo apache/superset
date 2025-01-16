@@ -145,7 +145,9 @@ def parse_past_timedelta(
 
 def get_relative_base(unit: str, relative_start: str | None = None) -> str:
     """
-    Determine the base time (`relative_start`) based on granularity and user input.
+    Determines the relative base (`now` or `today`) based on the granularity of the unit
+    and an optional user-provided base expression. This is used as the base for all
+    queries parsed from `time_range_lookup`.
 
     Args:
         unit (str): The time unit (e.g., "second", "minute", "hour", "day", etc.).
@@ -160,15 +162,38 @@ def get_relative_base(unit: str, relative_start: str | None = None) -> str:
     granular_units = {"second", "minute", "hour"}
     broad_units = {"day", "week", "month", "quarter", "year"}
 
-    if unit.lower() in granular_units:
+    if unit in granular_units:
         return "now"
-    elif unit.lower() in broad_units:
+    elif unit in broad_units:
         return "today"
     else:
         raise ValueError(f"Unknown unit: {unit}")
 
 
 def handle_start_of(base_expression: str, unit: str) -> str:
+    """
+    Generates a datetime expression for the start of a given unit (e.g., start of month,
+     start of year).
+    This function is used to handle queries matching the first regex in
+    `time_range_lookup`.
+
+    Args:
+        base_expression (str): The base datetime expression (e.g., "DATETIME('now')"),
+            provided by `get_relative_base`.
+        unit (str): The granularity to calculate the start for (e.g., "year",
+        "month", "week"),
+            extracted from the regex.
+
+    Returns:
+        str: The resulting expression for the start of the specified unit.
+
+    Raises:
+        ValueError: If the unit is not one of the valid options.
+
+    Relation to `time_range_lookup`:
+        - Handles the "start of" or "beginning of" modifiers in the first regex pattern.
+        - Example: "start of this month" → `DATETRUNC(DATETIME('today'), month)`.
+    """
     valid_units = {"year", "quarter", "month", "week", "day"}
     if unit in valid_units:
         return f"DATETRUNC({base_expression}, {unit})"
@@ -176,6 +201,28 @@ def handle_start_of(base_expression: str, unit: str) -> str:
 
 
 def handle_end_of(base_expression: str, unit: str) -> str:
+    """
+    Generates a datetime expression for the end of a given unit (e.g., end of month,
+      end of year).
+    This function is used to handle queries matching the first regex in
+    `time_range_lookup`.
+
+    Args:
+        base_expression (str): The base datetime expression (e.g., "DATETIME('now')"),
+            provided by `get_relative_base`.
+        unit (str): The granularity to calculate the end for (e.g., "year", "month",
+          "week"), extracted from the regex.
+
+    Returns:
+        str: The resulting expression for the end of the specified unit.
+
+    Raises:
+        ValueError: If the unit is not one of the valid options.
+
+    Relation to `time_range_lookup`:
+        - Handles the "end of" modifier in the first regex pattern.
+        - Example: "end of last month" → `LASTDAY(DATETIME('today'), month)`.
+    """
     valid_units = {"year", "quarter", "month", "week", "day"}
     if unit in valid_units:
         return f"LASTDAY({base_expression}, {unit})"
@@ -185,23 +232,81 @@ def handle_end_of(base_expression: str, unit: str) -> str:
 def handle_modifier_and_unit(
     modifier: str, scope: str, delta: str, unit: str, relative_base: str
 ) -> str:
+    """
+    Generates a datetime expression based on a modifier, scope, delta, unit,
+    and relative base.
+    This function handles queries matching the first regex pattern in
+    `time_range_lookup`.
+
+    Args:
+        modifier (str): Specifies the operation (e.g., "start of", "end of").
+            Extracted from the regex to determine whether to calculate the start or end.
+        scope (str): The time scope (e.g., "this", "last", "next", "prior"),
+            extracted from the regex.
+        delta (str): The numeric delta value (e.g., "1", "2"), extracted from the regex.
+        unit (str): The granularity (e.g., "day", "month", "year"), extracted from
+                    the regex.
+        relative_base (str): The base datetime expression (e.g., "now" or "today"),
+            determined by `get_relative_base`.
+
+    Returns:
+        str: The resulting datetime expression.
+
+    Raises:
+        ValueError: If the modifier is invalid.
+
+    Relation to `time_range_lookup`:
+        - Processes queries like "start of this month" or "end of prior 2 years".
+        - Example: "start of this month" → `DATETRUNC(DATETIME('today'), month)`.
+
+    Example:
+        >>> handle_modifier_and_unit("start of", "this", "", "month", "today")
+        "DATETRUNC(DATETIME('today'), month)"
+
+        >>> handle_modifier_and_unit("end of", "last", "1", "year", "today")
+        "LASTDAY(DATEADD(DATETIME('today'), -1, year), year)"
+    """
     base_expression = handle_scope_and_unit(scope, delta, unit, relative_base)
 
-    if modifier.lower() in ["start of", "beginning of"]:
+    if modifier in ["start of", "beginning of"]:
         return handle_start_of(base_expression, unit)
-    elif modifier.lower() == "end of":
+    elif modifier == "end of":
         return handle_end_of(base_expression, unit)
     else:
         raise ValueError(f"Unknown modifier: {modifier}")
 
 
 def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str) -> str:
+    """
+    Generates a datetime expression based on the scope, delta, unit, and relative base.
+    This function handles queries matching the second regex pattern in
+    `time_range_lookup`.
+
+    Args:
+        scope (str): The time scope (e.g., "this", "last", "next", "prior"),
+            extracted from the regex.
+        delta (str): The numeric delta value (e.g., "1", "2"), extracted from the regex.
+        unit (str): The granularity (e.g., "second", "minute", "hour", "day"),
+            extracted from the regex.
+        relative_base (str): The base datetime expression (e.g., "now" or "today"),
+            determined by `get_relative_base`.
+
+    Returns:
+        str: The resulting datetime expression.
+
+    Raises:
+        ValueError: If the scope is invalid.
+
+    Relation to `time_range_lookup`:
+        - Processes queries like "last 2 weeks" or "this month".
+        - Example: "last 2 weeks" → `DATEADD(DATETIME('today'), -2, week)`.
+    """
     _delta = int(delta) if delta else 1
-    if scope.lower() == "this":
+    if scope == "this":
         return f"DATETIME('{relative_base}')"
-    elif scope.lower() in ["last", "prior"]:
+    elif scope in ["last", "prior"]:
         return f"DATEADD(DATETIME('{relative_base}'), -{_delta}, {unit})"
-    elif scope.lower() == "next":
+    elif scope == "next":
         return f"DATEADD(DATETIME('{relative_base}'), {_delta}, {unit})"
     else:
         raise ValueError(f"Invalid scope: {scope}")
@@ -307,17 +412,20 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(start of|beginning of|end of)\s+(this|last|next|prior)\s+([0-9]+)?\s*(day|week|month|quarter|year)s?$",  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
-                    modifier,
-                    scope,
+                    modifier.lower(),
+                    scope.lower(),
                     delta,
-                    unit,
-                    get_relative_base(unit, relative_start),
+                    unit.lower,
+                    get_relative_base(unit.lower(), relative_start),
                 ),
             ),
             (
                 r"^(this|last|next|prior)\s+([0-9]+)?\s*(second|minute|day|week|month|quarter|year)s?$",
                 lambda scope, delta, unit: handle_scope_and_unit(
-                    scope, delta, unit, get_relative_base(unit, relative_start)
+                    scope.lower(),
+                    delta,
+                    unit.lower(),
+                    get_relative_base(unit.lower(), relative_start),
                 ),
             ),
             (
