@@ -16,6 +16,7 @@
 # under the License.
 import re
 from datetime import date, datetime, timedelta
+from functools import partial
 from typing import Optional
 from unittest.mock import Mock, patch
 
@@ -73,6 +74,20 @@ def mock_parse_human_datetime(s: str) -> Optional[datetime]:  # noqa: C901
         return datetime(2022, 1, 1)
     else:
         return None
+
+
+def mock_today(s: str, today: datetime) -> datetime:
+    """
+    Mock implementation of parse_human_datetime, only handles 'today'.
+
+    :param s: The human-readable date string (e.g., "today").
+    :param today: The datetime value to use as "today".
+    :return: The mocked or actual datetime for 'today'.
+    """
+    if s == "today":
+        return today.replace(hour=0, minute=0, second=0, microsecond=0)
+    else:
+        raise ValueError(f"Unrecognized date string: {s}")
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)
@@ -313,6 +328,44 @@ def test_get_since_until_instant_time_comparison_enabled() -> None:
         instant_time_comparison_range="unknown",
     )
     expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
+    assert result == expected
+
+
+@patch("superset.utils.date_parser.parse_human_datetime")
+def test_previous_calendar_quarter(mock_parse):
+    today = datetime(2023, 1, 15)
+    mock_parse.side_effect = partial(mock_today, today=today)
+
+    result = get_since_until("previous calendar quarter")
+    expected = (datetime(2022, 10, 1), datetime(2023, 1, 1))
+    assert result == expected
+
+    today = datetime(2023, 4, 15)
+    mock_parse.side_effect = partial(mock_today, today=today)
+
+    result = get_since_until("previous calendar quarter")
+    expected = (datetime(2023, 1, 1), datetime(2023, 4, 1))
+    assert result == expected
+
+    today = datetime(2023, 8, 15)
+    mock_parse.side_effect = partial(mock_today, today=today)
+
+    result = get_since_until("previous calendar quarter")
+    expected = (datetime(2023, 4, 1), datetime(2023, 7, 1))
+    assert result == expected
+
+    today = datetime(2023, 10, 15)
+    mock_parse.side_effect = partial(mock_today, today=today)
+
+    result = get_since_until("previous calendar quarter")
+    expected = (datetime(2023, 7, 1), datetime(2023, 10, 1))
+    assert result == expected
+
+    today = datetime(2024, 1, 1)
+    mock_parse.side_effect = partial(mock_today, today=today)
+
+    result = get_since_until("previous calendar quarter")
+    expected = (datetime(2023, 10, 1), datetime(2024, 1, 1))
     assert result == expected
 
 
