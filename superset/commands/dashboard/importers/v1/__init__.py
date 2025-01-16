@@ -86,7 +86,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(config, overwrite=False)
+                database = import_database(config, overwrite=overwrite)
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref
@@ -97,7 +97,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 and config["database_uuid"] in database_ids
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
-                dataset = import_dataset(config, overwrite=False)
+                dataset = import_dataset(config, overwrite=overwrite)
                 dataset_info[str(dataset.uuid)] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
@@ -121,7 +121,7 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 if "query_context" in config:
                     config["query_context"] = None
 
-                chart = import_chart(config, overwrite=False)
+                chart = import_chart(config, overwrite=overwrite)
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
