@@ -521,26 +521,24 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
 });
 console.log(''); // pure cosmetic new line
 
-let proxyConfig = getProxyConfig();
-
 if (isDevMode) {
-  config.devServer = {
-    onBeforeSetupMiddleware(devServer) {
-      // load proxy config when manifest updates
-      const { afterEmit } = getCompilerHooks(devServer.compiler);
+  let proxyConfig = getProxyConfig();
+  // Set up a plugin to handle manifest updates
+  config.plugins = config.plugins || [];
+  config.plugins.push({
+    apply: compiler => {
+      const { afterEmit } = getCompilerHooks(compiler);
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
     },
+  });
+
+  config.devServer = {
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
-    // Only serves bundled files from webpack-dev-server
-    // and proxy everything else to Superset backend
-    proxy: [
-      // functions are called for every request
-      () => proxyConfig,
-    ],
+    proxy: [() => proxyConfig],
     client: {
       overlay: {
         errors: true,
@@ -549,7 +547,9 @@ if (isDevMode) {
       },
       logging: 'error',
     },
-    static: path.join(process.cwd(), '../static/assets'),
+    static: {
+      directory: path.join(process.cwd(), '../static/assets'),
+    },
   };
 }
 
