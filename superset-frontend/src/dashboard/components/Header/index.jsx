@@ -673,7 +673,7 @@ const Header = () => {
       NavExtension,
       boundActionCreators.onRedo,
       boundActionCreators.onUndo,
-      boundActionCreators.clearDashboardHistory(),
+      boundActionCreators.clearDashboardHistory,
       editMode,
       emphasizeRedo,
       emphasizeUndo,
