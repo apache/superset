@@ -834,10 +834,11 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
-# next available socket. PR #5039 is trying to allow domain sharding for Superset,
-# and this feature will be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request).
-SUPERSET_WEBSERVER_DOMAINS = None
+# next available socket. PR #5039 added domain sharding for Superset,
+# and this feature can be enabled by configuration only (by default Superset
+# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
+# in the next major version of Superset, as enabling HTTP2 will serve the same goals.
+SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
 # Allowed format types for upload on Database view
 EXCEL_EXTENSIONS = {"xlsx", "xls"}
