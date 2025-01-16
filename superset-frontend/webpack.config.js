@@ -524,25 +524,19 @@ console.log(''); // pure cosmetic new line
 let proxyConfig = getProxyConfig();
 
 if (isDevMode) {
+  const { afterEmit } = getCompilerHooks(devServer.compiler);
+
   config.devServer = {
-    setupMiddlewares: (middlewares, devServer) => {
-      // load proxy config when manifest updates
-      const { afterEmit } = getCompilerHooks(devServer.compiler);
+    onBeforeSetupMiddleware(devServer) {
+      // Tap into manifest updates
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
-
-      return middlewares; // Make sure to return the middlewares
     },
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
-    // Only serves bundled files from webpack-dev-server
-    // and proxy everything else to Superset backend
-    proxy: [
-      // functions are called for every request
-      () => proxyConfig,
-    ],
+    proxy: [() => proxyConfig],
     client: {
       overlay: {
         errors: true,
