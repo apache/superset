@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 
 COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 DEFAULT_ACCESS_TOKEN_URL = (
-    "https://app.motherduck.com/token-request?appName=Superset&close=y"
+    "https://app.motherduck.com/token-request?appName=Superset&close=y"  # noqa: S105
 )
 
 
@@ -112,7 +112,7 @@ class DuckDBParametersMixin:
         """
         Build SQLAlchemy URI for connecting to a DuckDB database.
         If an access token is specified, return a URI to connect to a MotherDuck database.
-        """
+        """  # noqa: E501
         if parameters is None:
             parameters = {}
         query = parameters.get("query", {})

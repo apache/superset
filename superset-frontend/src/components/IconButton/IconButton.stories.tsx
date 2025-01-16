@@ -46,12 +46,12 @@ InteractiveIconButton.argTypes = {
     defaultValue: '/images/icons/sql.svg',
     control: {
       type: 'select',
-      options: [
-        '/images/icons/sql.svg',
-        '/images/icons/server.svg',
-        '/images/icons/image.svg',
-        'Click to see example alt text',
-      ],
     },
+    options: [
+      '/images/icons/sql.svg',
+      '/images/icons/server.svg',
+      '/images/icons/image.svg',
+      'Click to see example alt text',
+    ],
   },
 };

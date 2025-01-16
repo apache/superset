@@ -44,10 +44,26 @@ export function sanitizeHtml(htmlString: string) {
   return xssFilter.process(htmlString);
 }
 
+export function hasHtmlTagPattern(str: string): boolean {
+  const htmlTagPattern =
+    /<(html|head|body|div|span|a|p|h[1-6]|title|meta|link|script|style)/i;
+
+  return htmlTagPattern.test(str);
+}
+
 export function isProbablyHTML(text: string) {
-  return Array.from(
-    new DOMParser().parseFromString(text, 'text/html').body.childNodes,
-  ).some(({ nodeType }) => nodeType === 1);
+  const cleanedStr = text.trim().toLowerCase();
+
+  if (
+    cleanedStr.startsWith('<!doctype html>') &&
+    hasHtmlTagPattern(cleanedStr)
+  ) {
+    return true;
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(cleanedStr, 'text/html');
+  return Array.from(doc.body.childNodes).some(({ nodeType }) => nodeType === 1);
 }
 
 export function sanitizeHtmlIfNeeded(htmlString: string) {
@@ -69,4 +85,37 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
 
 export function removeHTMLTags(str: string): string {
   return str.replace(/<[^>]*>/g, '');
+}
+
+export function isJsonString(str: string): boolean {
+  try {
+    JSON.parse(str);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function getParagraphContents(
+  str: string,
+): { [key: string]: string } | null {
+  if (!isProbablyHTML(str)) {
+    return null;
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(str, 'text/html');
+  const pTags = doc.querySelectorAll('p');
+
+  if (pTags.length === 0) {
+    return null;
+  }
+
+  const paragraphContents: { [key: string]: string } = {};
+
+  pTags.forEach((pTag, index) => {
+    paragraphContents[`p${index + 1}`] = pTag.textContent || '';
+  });
+
+  return paragraphContents;
 }

@@ -23,6 +23,8 @@ from typing import TYPE_CHECKING
 from flask import current_app
 
 from superset import feature_flag_manager
+from superset.dashboards.permalink.types import DashboardPermalinkState
+from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.urls import modify_url_query
 from superset.utils.webdriver import (
@@ -90,7 +92,8 @@ class BaseScreenshot:
         self, user: User, window_size: WindowSize | None = None
     ) -> bytes | None:
         driver = self.driver(window_size)
-        self.screenshot = driver.get_screenshot(self.url, self.element, user)
+        with event_logger.log_context("screenshot", screenshot_url=self.url):
+            self.screenshot = driver.get_screenshot(self.url, self.element, user)
         return self.screenshot
 
     def get(
@@ -144,6 +147,7 @@ class BaseScreenshot:
         thumb_size: WindowSize | None = None,
         cache: Cache = None,
         force: bool = True,
+        cache_key: str | None = None,
     ) -> bytes | None:
         """
         Fetches the screenshot, computes the thumbnail and caches the result
@@ -155,7 +159,7 @@ class BaseScreenshot:
         :param force: Will force the computation even if it's already cached
         :return: Image payload
         """
-        cache_key = self.cache_key(window_size, thumb_size)
+        cache_key = cache_key or self.cache_key(window_size, thumb_size)
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         if not force and cache and cache.get(cache_key):
@@ -167,7 +171,10 @@ class BaseScreenshot:
 
         # Assuming all sorts of things can go wrong with Selenium
         try:
-            payload = self.get_screenshot(user=user, window_size=window_size)
+            with event_logger.log_context(
+                f"screenshot.compute.{self.thumbnail_type}", force=force
+            ):
+                payload = self.get_screenshot(user=user, window_size=window_size)
         except Exception as ex:  # pylint: disable=broad-except
             logger.warning("Failed at generating thumbnail %s", ex, exc_info=True)
 
@@ -180,7 +187,10 @@ class BaseScreenshot:
 
         if payload:
             logger.info("Caching thumbnail: %s", cache_key)
-            cache.set(cache_key, payload)
+            with event_logger.log_context(
+                f"screenshot.cache.{self.thumbnail_type}", force=force
+            ):
+                cache.set(cache_key, payload)
             logger.info("Done caching thumbnail")
         return payload
 
@@ -248,7 +258,24 @@ class DashboardScreenshot(BaseScreenshot):
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-
         super().__init__(url, digest)
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
+
+    def cache_key(
+        self,
+        window_size: bool | WindowSize | None = None,
+        thumb_size: bool | WindowSize | None = None,
+        dashboard_state: DashboardPermalinkState | None = None,
+    ) -> str:
+        window_size = window_size or self.window_size
+        thumb_size = thumb_size or self.thumb_size
+        args = {
+            "thumbnail_type": self.thumbnail_type,
+            "digest": self.digest,
+            "type": "thumb",
+            "window_size": window_size,
+            "thumb_size": thumb_size,
+            "dashboard_state": dashboard_state,
+        }
+        return md5_sha_from_dict(args)

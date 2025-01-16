@@ -47,6 +47,11 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelMissingCredentials,
 )
 from superset.constants import PASSWORD_MASK
+from superset.databases.types import (  # pylint:disable=unused-import
+    EncryptedDict,  # noqa: F401
+    EncryptedField,
+    EncryptedString,  # noqa: F401
+)
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
 from superset.exceptions import CertificateException, SupersetSecurityException
@@ -647,7 +652,7 @@ class TableMetadataOptionsResponseSchema(Schema):
 
 class TableMetadataColumnsResponseSchema(Schema):
     keys = fields.List(fields.String(), metadata={"description": ""})
-    longType = fields.String(
+    longType = fields.String(  # noqa: N815
         metadata={"description": "The actual backend long type for the column"}
     )
     name = fields.String(metadata={"description": "The column name"})
@@ -692,7 +697,7 @@ class TableMetadataResponseSchema(Schema):
         fields.Nested(TableMetadataColumnsResponseSchema),
         metadata={"description": "A list of columns and their metadata"},
     )
-    foreignKeys = fields.List(
+    foreignKeys = fields.List(  # noqa: N815
         fields.Nested(TableMetadataForeignKeysIndexesResponseSchema),
         metadata={"description": "A list of foreign keys and their metadata"},
     )
@@ -700,11 +705,11 @@ class TableMetadataResponseSchema(Schema):
         fields.Nested(TableMetadataForeignKeysIndexesResponseSchema),
         metadata={"description": "A list of indexes and their metadata"},
     )
-    primaryKey = fields.Nested(
+    primaryKey = fields.Nested(  # noqa: N815
         TableMetadataPrimaryKeyResponseSchema,
         metadata={"description": "Primary keys metadata"},
     )
-    selectStar = fields.String(metadata={"description": "SQL select star"})
+    selectStar = fields.String(metadata={"description": "SQL select star"})  # noqa: N815
 
 
 class TableExtraMetadataResponseSchema(Schema):
@@ -857,6 +862,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_cvas = fields.Boolean()
     allow_dml = fields.Boolean(required=False)
     allow_csv_upload = fields.Boolean()
+    impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
@@ -878,7 +884,7 @@ class ImportV1DatabaseSchema(Schema):
             raise ValidationError("Must provide a password for the database")
 
     @validates_schema
-    def validate_ssh_tunnel_credentials(
+    def validate_ssh_tunnel_credentials(  # noqa: C901
         self, data: dict[str, Any], **kwargs: Any
     ) -> None:
         """If ssh_tunnel has a masked credentials, credentials are required"""
@@ -940,20 +946,6 @@ class ImportV1DatabaseSchema(Schema):
         return
 
 
-class EncryptedField:  # pylint: disable=too-few-public-methods
-    """
-    A database field that should be stored in encrypted_extra.
-    """
-
-
-class EncryptedString(EncryptedField, fields.String):
-    pass
-
-
-class EncryptedDict(EncryptedField, fields.Dict):
-    pass
-
-
 def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
     ret = {}
     if isinstance(field, EncryptedField):
@@ -981,8 +973,11 @@ class EngineInformationSchema(Schema):
     )
     supports_dynamic_catalog = fields.Boolean(
         metadata={
-            "description": "The database supports multiple catalogs in a single connection"
+            "description": "The database supports multiple catalogs in a single connection"  # noqa: E501
         }
+    )
+    supports_oauth2 = fields.Boolean(
+        metadata={"description": "The database supports OAuth2"}
     )
 
 

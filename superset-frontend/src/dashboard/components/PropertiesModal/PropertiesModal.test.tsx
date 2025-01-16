@@ -181,7 +181,7 @@ test('should render - FeatureFlag disabled', async () => {
   expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getByRole('combobox')).toBeInTheDocument();
 
-  expect(spyColorSchemeControlWrapper).toBeCalledWith(
+  expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
     expect.objectContaining({ colorScheme: 'supersetColors' }),
     {},
   );
@@ -222,7 +222,7 @@ test('should render - FeatureFlag enabled', async () => {
   expect(screen.getAllByRole('textbox')).toHaveLength(4);
   expect(screen.getAllByRole('combobox')).toHaveLength(3);
 
-  expect(spyColorSchemeControlWrapper).toBeCalledWith(
+  expect(spyColorSchemeControlWrapper).toHaveBeenCalledWith(
     expect.objectContaining({ colorScheme: 'supersetColors' }),
     {},
   );
@@ -255,11 +255,11 @@ test('should close modal', async () => {
     await screen.findByTestId('dashboard-edit-properties-form'),
   ).toBeInTheDocument();
 
-  expect(props.onHide).not.toBeCalled();
+  expect(props.onHide).not.toHaveBeenCalled();
   userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-  expect(props.onHide).toBeCalledTimes(1);
+  expect(props.onHide).toHaveBeenCalledTimes(1);
   userEvent.click(screen.getByRole('button', { name: 'Close' }));
-  expect(props.onHide).toBeCalledTimes(2);
+  expect(props.onHide).toHaveBeenCalledTimes(2);
 });
 
 test('submitting with onlyApply:false', async () => {
@@ -293,13 +293,13 @@ test('submitting with onlyApply:false', async () => {
     await screen.findByTestId('dashboard-edit-properties-form'),
   ).toBeInTheDocument();
 
-  expect(props.onHide).not.toBeCalled();
-  expect(props.onSubmit).not.toBeCalled();
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.onSubmit).not.toHaveBeenCalled();
 
   userEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() => {
-    expect(props.onSubmit).toBeCalledTimes(1);
-    expect(props.onSubmit).toBeCalledWith({
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
+    expect(props.onSubmit).toHaveBeenCalledWith({
       certificationDetails: 'Sample certification',
       certifiedBy: 'John Doe',
       colorScheme: 'supersetColors',
@@ -332,12 +332,12 @@ test('submitting with onlyApply:true', async () => {
     await screen.findByTestId('dashboard-edit-properties-form'),
   ).toBeInTheDocument();
 
-  expect(props.onHide).not.toBeCalled();
-  expect(props.onSubmit).not.toBeCalled();
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.onSubmit).not.toHaveBeenCalled();
 
   userEvent.click(screen.getByRole('button', { name: 'Apply' }));
   await waitFor(() => {
-    expect(props.onSubmit).toBeCalledTimes(1);
+    expect(props.onSubmit).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -360,7 +360,7 @@ test('should show all roles', async () => {
   spyIsFeatureEnabled.mockReturnValue(true);
 
   const props = createProps();
-  const propsWithDashboardIndo = { ...props, dashboardInfo };
+  const propsWithDashboardInfo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
@@ -372,7 +372,7 @@ test('should show all roles', async () => {
   const findAllSelectOptions = () =>
     waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
-  render(<PropertiesModal {...propsWithDashboardIndo} />, {
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
     useRedux: true,
   });
 
@@ -393,7 +393,7 @@ test('should show active owners with dashboard rbac', async () => {
   spyIsFeatureEnabled.mockReturnValue(true);
 
   const props = createProps();
-  const propsWithDashboardIndo = { ...props, dashboardInfo };
+  const propsWithDashboardInfo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
@@ -405,7 +405,7 @@ test('should show active owners with dashboard rbac', async () => {
   const findAllSelectOptions = () =>
     waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
-  render(<PropertiesModal {...propsWithDashboardIndo} />, {
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
     useRedux: true,
   });
 
@@ -426,7 +426,7 @@ test('should show active owners without dashboard rbac', async () => {
   spyIsFeatureEnabled.mockReturnValue(false);
 
   const props = createProps();
-  const propsWithDashboardIndo = { ...props, dashboardInfo };
+  const propsWithDashboardInfo = { ...props, dashboardInfo };
 
   const open = () => waitFor(() => userEvent.click(getSelect()));
   const getSelect = () =>
@@ -438,7 +438,7 @@ test('should show active owners without dashboard rbac', async () => {
   const findAllSelectOptions = () =>
     waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
-  render(<PropertiesModal {...propsWithDashboardIndo} />, {
+  render(<PropertiesModal {...propsWithDashboardInfo} />, {
     useRedux: true,
   });
 

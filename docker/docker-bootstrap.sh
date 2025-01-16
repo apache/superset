@@ -18,6 +18,13 @@
 
 set -eo pipefail
 
+# Make python interactive
+if [ "$DEV_MODE" == "true" ]; then
+    if command -v uv > /dev/null 2>&1; then
+      echo "Reinstalling the app in editable mode"
+      uv pip install -e .
+    fi
+fi
 REQUIREMENTS_LOCAL="/app/docker/requirements-local.txt"
 # If Cypress run – overwrite the password for admin and export env variables
 if [ "$CYPRESS_CONFIG" == "true" ]; then
@@ -25,12 +32,22 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
     export SUPERSET_TESTENV=true
     export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset
 fi
+if [[ "$DATABASE_DIALECT" == postgres* ]] ; then
+    echo "Installing postgres requirements"
+    if command -v uv > /dev/null 2>&1; then
+        # Use uv in newer images
+        uv pip install -e .[postgres]
+    else
+        # Use pip in older images
+        pip install -e .[postgres]
+    fi
+fi
 #
 # Make sure we have dev requirements installed
 #
 if [ -f "${REQUIREMENTS_LOCAL}" ]; then
   echo "Installing local overrides at ${REQUIREMENTS_LOCAL}"
-  pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
+  uv pip install --no-cache-dir -r "${REQUIREMENTS_LOCAL}"
 else
   echo "Skipping local overrides"
 fi

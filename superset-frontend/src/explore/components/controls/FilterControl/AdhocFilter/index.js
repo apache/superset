@@ -92,6 +92,7 @@ export default class AdhocFilter {
 
   equals(adhocFilter) {
     return (
+      adhocFilter.clause === this.clause &&
       adhocFilter.expressionType === this.expressionType &&
       adhocFilter.sqlExpression === this.sqlExpression &&
       adhocFilter.operator === this.operator &&

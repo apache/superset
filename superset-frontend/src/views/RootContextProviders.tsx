@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { FC } from 'react';
 import { Route } from 'react-router-dom';
 import { getExtensionsRegistry, ThemeProvider } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
@@ -25,6 +24,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { AntdThemeProvider } from '../components/AntdThemeProvider';
 import { store } from './store';
 import FlashProvider from '../components/FlashProvider';
 import { theme } from '../preamble';
@@ -35,35 +35,37 @@ const { common } = getBootstrapData();
 
 const extensionsRegistry = getExtensionsRegistry();
 
-export const RootContextProviders: FC = ({ children }) => {
+export const RootContextProviders: React.FC = ({ children }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
 
   return (
     <ThemeProvider theme={theme}>
-      <ReduxProvider store={store}>
-        <DndProvider backend={HTML5Backend}>
-          <FlashProvider messages={common.flash_messages}>
-            <EmbeddedUiConfigProvider>
-              <DynamicPluginProvider>
-                <QueryParamProvider
-                  ReactRouterRoute={Route}
-                  stringifyOptions={{ encode: false }}
-                >
-                  {RootContextProviderExtension ? (
-                    <RootContextProviderExtension>
-                      {children}
-                    </RootContextProviderExtension>
-                  ) : (
-                    children
-                  )}
-                </QueryParamProvider>
-              </DynamicPluginProvider>
-            </EmbeddedUiConfigProvider>
-          </FlashProvider>
-        </DndProvider>
-      </ReduxProvider>
+      <AntdThemeProvider>
+        <ReduxProvider store={store}>
+          <DndProvider backend={HTML5Backend}>
+            <FlashProvider messages={common.flash_messages}>
+              <EmbeddedUiConfigProvider>
+                <DynamicPluginProvider>
+                  <QueryParamProvider
+                    ReactRouterRoute={Route}
+                    stringifyOptions={{ encode: false }}
+                  >
+                    {RootContextProviderExtension ? (
+                      <RootContextProviderExtension>
+                        {children}
+                      </RootContextProviderExtension>
+                    ) : (
+                      children
+                    )}
+                  </QueryParamProvider>
+                </DynamicPluginProvider>
+              </EmbeddedUiConfigProvider>
+            </FlashProvider>
+          </DndProvider>
+        </ReduxProvider>
+      </AntdThemeProvider>
     </ThemeProvider>
   );
 };

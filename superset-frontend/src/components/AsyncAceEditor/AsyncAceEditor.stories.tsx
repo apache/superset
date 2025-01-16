@@ -87,11 +87,13 @@ AsyncAceEditor.args = {
 AsyncAceEditor.argTypes = {
   editorType: {
     defaultValue: 'json',
-    control: { type: 'select', options: editorTypes },
+    control: { type: 'select' },
+    options: editorTypes,
   },
   defaultTheme: {
     defaultValue: 'github',
-    control: { type: 'radio', options: ['textmate', 'github'] },
+    control: { type: 'radio' },
+    options: ['textmate', 'github'],
   },
 };
 

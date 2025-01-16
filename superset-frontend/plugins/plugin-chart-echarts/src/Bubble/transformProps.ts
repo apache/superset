@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { EChartsCoreOption, ScatterSeriesOption } from 'echarts';
+import type { EChartsCoreOption } from 'echarts/core';
+import type { ScatterSeriesOption } from 'echarts/charts';
 import { extent } from 'd3-array';
 import {
   CategoricalColorNamespace,
@@ -41,12 +42,12 @@ function normalizeSymbolSize(
   nodes: ScatterSeriesOption[],
   maxBubbleValue: number,
 ) {
-  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data![0][2]);
+  const [bubbleMinValue, bubbleMaxValue] = extent(nodes, x => x.data?.[0]?.[2]);
   const nodeSpread = bubbleMaxValue - bubbleMinValue;
   nodes.forEach(node => {
     // eslint-disable-next-line no-param-reassign
     node.symbolSize =
-      (((node.data![0][2] - bubbleMinValue) / nodeSpread) *
+      (((node.data?.[0]?.[2] - bubbleMinValue) / nodeSpread) *
         (maxBubbleValue * 2) || 0) + MINIMUM_BUBBLE_SIZE;
   });
 }
@@ -107,8 +108,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     legendMargin,
     legendType,
+    sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   const legends = new Set<string>();
@@ -137,7 +138,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         ],
       ],
       type: 'scatter',
-      itemStyle: { color: colorFn(name), opacity },
+      itemStyle: {
+        color: colorFn(name, sliceId),
+        opacity,
+      },
     });
     legends.add(name);
   });

@@ -95,10 +95,9 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             data = self._get_sql_results_with_timeout(
                 execution_context, rendered_query, log_params
             )
-            self._query_dao.update_saved_query_exec_info(query_id)
             execution_context.set_execution_result(data)
-        except SupersetTimeoutException as ex:
-            raise ex
+        except SupersetTimeoutException:
+            raise
         except Exception as ex:
             logger.exception("Query %i failed unexpectedly", query_id)
             raise SupersetGenericDBErrorException(
@@ -112,6 +111,7 @@ class SynchronousSqlJsonExecutor(SqlJsonExecutorBase):
                     [SupersetError(**params) for params in data["errors"]]  # type: ignore
                 )
             # old string-only error message
+            print(data)
             raise SupersetGenericDBErrorException(data["error"])  # type: ignore
 
         return SqlJsonExecutionStatus.HAS_RESULTS
@@ -199,5 +199,4 @@ class ASynchronousSqlJsonExecutor(SqlJsonExecutorBase):
             query.status = QueryStatus.FAILED
             query.error_message = message
             raise SupersetErrorException(error) from ex
-        self._query_dao.update_saved_query_exec_info(query_id)
         return SqlJsonExecutionStatus.QUERY_IS_RUNNING

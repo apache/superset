@@ -143,7 +143,7 @@ const SearchWrapper = styled.div`
     margin-bottom: ${theme.gridUnit}px;
     margin-left: ${theme.gridUnit * 3}px;
     margin-right: ${theme.gridUnit * 3}px;
-    .ant-input-affix-wrapper {
+    .antd5-input-affix-wrapper {
       padding-left: ${theme.gridUnit * 2}px;
     }
   `}
@@ -302,7 +302,6 @@ const HighlightLabel = styled.div`
     font-weight: ${theme.typography.weights.bold};
     text-align: center;
     padding: ${theme.gridUnit * 0.5}px ${theme.gridUnit}px;
-    text-transform: uppercase;
     cursor: pointer;
 
     div {

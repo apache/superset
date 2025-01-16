@@ -38,6 +38,11 @@ class DremioEngineSpec(BaseEngineSpec):
     engine = "dremio"
     engine_name = "Dremio"
     engine_aliases = {"dremio+flight"}
+    drivers = {
+        "flight": "Arrow Flight driver for Dremio",
+        "pyodbc": "ODBC driver for Dremio",
+    }
+    default_driver = "flight"
     sqlalchemy_uri_placeholder = (
         "dremio+flight://data.dremio.cloud:443/?"
         "Token=<TOKEN>&"

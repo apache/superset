@@ -104,9 +104,10 @@ class Slice(  # pylint: disable=too-many-public-methods
         "Tag",
         secondary="tagged_object",
         overlaps="objects,tag,tags",
-        primaryjoin="and_(Slice.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        primaryjoin="and_(Slice.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'chart')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
     table = relationship(
         "SqlaTable",
@@ -368,6 +369,7 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
             target.perm = ds.perm
+            target.catalog_perm = ds.catalog_perm
             target.schema_perm = ds.schema_perm
 
 

@@ -78,7 +78,6 @@ const RowPanel = styled.div`
 `;
 
 const Label = styled.div`
-  text-transform: uppercase;
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   color: ${({ theme }) => theme.colors.grayscale.base};
   margin-bottom: ${({ theme }) => theme.gridUnit}px;

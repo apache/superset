@@ -151,6 +151,7 @@ export interface DrillByModalProps {
   drillByConfig: Required<ContextMenuFilters>['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onHideModal: () => void;
+  canDownload: boolean;
 }
 
 type DrillByConfigs = (ContextMenuFilters['drillBy'] & { column?: Column })[];
@@ -161,6 +162,7 @@ export default function DrillByModal({
   drillByConfig,
   formData,
   onHideModal,
+  canDownload,
 }: DrillByModalProps) {
   const dispatch = useDispatch();
   const theme = useTheme();
@@ -187,8 +189,8 @@ export default function DrillByModal({
   const initialGroupbyColumns = useMemo(
     () =>
       ensureIsArray(formData[groupbyFieldName])
-        .map(
-          colName => dataset.columns?.find(col => col.column_name === colName),
+        .map(colName =>
+          dataset.columns?.find(col => col.column_name === colName),
         )
         .filter(isDefined),
     [dataset.columns, formData, groupbyFieldName],
@@ -200,6 +202,7 @@ export default function DrillByModal({
   const resultsTable = useResultsTableView(
     chartDataResult,
     formData.datasource,
+    canDownload,
   );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
@@ -228,7 +231,7 @@ export default function DrillByModal({
               config.column,
               config.groupbyFieldName,
             );
-            acc.overridenGroupbyFields.add(config.groupbyFieldName);
+            acc.overriddenGroupbyFields.add(config.groupbyFieldName);
           }
           const adhocFilterFieldName =
             config?.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
@@ -238,14 +241,14 @@ export default function DrillByModal({
               simpleFilterToAdhoc(filter),
             ),
           ];
-          acc.overridenAdhocFilterFields.add(adhocFilterFieldName);
+          acc.overriddenAdhocFilterFields.add(adhocFilterFieldName);
 
           return acc;
         },
         {
           formData: {},
-          overridenGroupbyFields: new Set<string>(),
-          overridenAdhocFilterFields: new Set<string>(),
+          overriddenGroupbyFields: new Set<string>(),
+          overriddenAdhocFilterFields: new Set<string>(),
         },
       ),
     [getNewGroupby],
@@ -285,14 +288,14 @@ export default function DrillByModal({
         if (index === 0) {
           return formData;
         }
-        const { formData: overrideFormData, overridenAdhocFilterFields } =
+        const { formData: overrideFormData, overriddenAdhocFilterFields } =
           getFormDataChangesFromConfigs(drillByConfigs.slice(0, index));
 
         const newFormData = {
           ...formData,
           ...overrideFormData,
         };
-        overridenAdhocFilterFields.forEach(adhocFilterField => ({
+        overriddenAdhocFilterFields.forEach(adhocFilterField => ({
           ...newFormData,
           [adhocFilterField]: [
             ...formData[adhocFilterField],
@@ -425,7 +428,7 @@ export default function DrillByModal({
   return (
     <Modal
       css={css`
-        .ant-modal-footer {
+        .antd5-modal-footer {
           border-top: none;
         }
       `}

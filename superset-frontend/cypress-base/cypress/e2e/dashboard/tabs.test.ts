@@ -25,7 +25,7 @@ import { TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { expandFilterOnLeftPanel } from './utils';
 
 const TREEMAP = { name: 'Treemap', viz: 'treemap_v2' };
-const LINE_CHART = { name: 'Growth Rate', viz: 'line' };
+const LINE_CHART = { name: 'Growth Rate', viz: 'echarts_timeseries_line' };
 const BOX_PLOT = { name: 'Box plot', viz: 'box_plot' };
 const BIG_NUMBER = { name: 'Number of Girls', viz: 'big_number_total' };
 const TABLE = { name: 'Names Sorted by Num in California', viz: 'table' };
@@ -57,26 +57,26 @@ describe('Dashboard tabs', () => {
   it('should switch tabs', () => {
     topLevelTabs();
 
+    cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .last()
       .should('not.have.class', 'ant-tabs-tab-active');
+    cy.get('[data-test-chart-name="Box plot"]').should('not.exist');
+    cy.get('[data-test-chart-name="Trends"]').should('not.exist');
 
-    cy.getBySel('grid-container').find('.box_plot').should('not.exist');
-    cy.getBySel('grid-container').find('.line').should('not.exist');
-
+    cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
     cy.get('@top-level-tabs')
       .first()
       .should('not.have.class', 'ant-tabs-tab-active');
     waitForChartLoad(BOX_PLOT);
-    cy.getBySel('grid-container').find('.box_plot').should('be.visible');
+
+    cy.get('[data-test-chart-name="Box plot"]').should('exist');
 
     resetTabs();
 
@@ -88,7 +88,7 @@ describe('Dashboard tabs', () => {
 
     cy.get('@row-level-tabs').last().click();
     waitForChartLoad(LINE_CHART);
-    cy.getBySel('grid-container').find('.line').should('be.visible');
+    cy.get('[data-test-chart-name="Trends"]').should('exist');
     cy.get('@row-level-tabs').first().click();
   });
 
@@ -99,7 +99,8 @@ describe('Dashboard tabs', () => {
     getChartAliasBySpec(TREEMAP).then(treemapAlias => {
       // apply filter
       cy.get('.Select__control').first().should('be.visible').click();
-      cy.get('.Select__control input[type=text]').first().focus().type('South');
+      cy.get('.Select__control input[type=text]').first().focus();
+      cy.focused().type('South');
       cy.get('.Select__option').contains('South Asia').click();
       cy.get('.filter button:not(:disabled)').contains('Apply').click();
 
@@ -166,18 +167,18 @@ describe('Dashboard tabs', () => {
   });
 
   it('should update size when switch tab', () => {
+    cy.get('@top-level-tabs').last().click();
     cy.get('@top-level-tabs')
       .last()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
 
     expandFilterOnLeftPanel();
 
     cy.wait(1000);
 
+    cy.get('@top-level-tabs').first().click();
     cy.get('@top-level-tabs')
       .first()
-      .click()
       .should('have.class', 'ant-tabs-tab-active');
 
     cy.wait(1000);

@@ -45,7 +45,7 @@ const StyledTitle = styled.span`
 interface BasicErrorAlertProps {
   title: string;
   body: string;
-  level: ErrorLevel;
+  level?: ErrorLevel;
 }
 
 export default function BasicErrorAlert({

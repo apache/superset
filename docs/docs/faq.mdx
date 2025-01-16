@@ -4,7 +4,6 @@ sidebar_position: 9
 
 # FAQ
 
-
 ## How big of a dataset can Superset handle?
 
 Superset can work with even gigantic databases! Superset acts as a thin layer above your underlying
@@ -27,7 +26,6 @@ to occur in spikes, e.g., if everyone in a meeting loads the same dashboard at o
 
 Superset's application metadata does not require a very large database to store it, though
 the log file grows over time.
-
 
 ## Can I join / query multiple tables at one time?
 
@@ -176,13 +174,16 @@ You can take a look at this Flask-AppBuilder
 ## Is there a way to force the dashboard to use specific colors?
 
 It is possible on a per-dashboard basis by providing a mapping of labels to colors in the JSON
-Metadata attribute using the `label_colors` key.
+Metadata attribute using the `label_colors` key. You can use either the full hex color, a named color,
+like `red`, `coral` or `lightblue`, or the index in the current color palette (0 for first color, 1 for
+second etc). Example:
 
-```
+```json
 {
     "label_colors": {
-        "Girls": "#FF69B4",
-        "Boys": "#ADD8E6"
+        "foo": "#FF69B4",
+        "bar": "lightblue",
+        "baz": 0
     }
 }
 ```

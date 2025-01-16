@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint no-unused-expressions: 0 */
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import shortid from 'shortid';
 import { waitFor } from '@testing-library/react';
 import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
@@ -32,9 +30,43 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
+import { SupersetClient } from '@superset-ui/core';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ToastType } from '../../components/MessageToasts/types';
 
 const middlewares = [thunk];
 const mockStore = configureMockStore(middlewares);
+
+jest.mock('nanoid', () => ({
+  nanoid: () => 'abcd',
+}));
+
+afterAll(() => {
+  jest.resetAllMocks();
+});
+
+describe('getUpToDateQuery', () => {
+  test('should return the up to date query editor state', () => {
+    const outOfUpdatedQueryEditor = {
+      ...defaultQueryEditor,
+      schema: null,
+      sql: 'SELECT ...',
+    };
+    const queryEditor = {
+      ...defaultQueryEditor,
+      sql: 'SELECT * FROM table',
+    };
+    const state = {
+      sqlLab: {
+        queryEditors: [queryEditor],
+        unsavedQueryEditor: {},
+      },
+    };
+    expect(actions.getUpToDateQuery(state, outOfUpdatedQueryEditor)).toEqual(
+      queryEditor,
+    );
+  });
+});
 
 describe('async actions', () => {
   const mockBigNumber = '9223372036854775807';
@@ -145,8 +177,9 @@ describe('async actions', () => {
 
   describe('fetchQueryResults', () => {
     const makeRequest = () => {
+      const store = mockStore(initialState);
       const request = actions.fetchQueryResults(query);
-      return request(dispatch);
+      return request(dispatch, store.getState);
     };
 
     it('makes the fetch request', () => {
@@ -325,14 +358,6 @@ describe('async actions', () => {
   });
 
   describe('reRunQuery', () => {
-    let stub;
-    beforeEach(() => {
-      stub = sinon.stub(shortid, 'generate').returns('abcd');
-    });
-    afterEach(() => {
-      stub.restore();
-    });
-
     it('creates new query with a new id', () => {
       const id = 'id';
       const state = {
@@ -390,14 +415,6 @@ describe('async actions', () => {
   });
 
   describe('cloneQueryToNewTab', () => {
-    let stub;
-    beforeEach(() => {
-      stub = sinon.stub(shortid, 'generate').returns('abcd');
-    });
-    afterEach(() => {
-      stub.restore();
-    });
-
     it('creates new query editor', () => {
       expect.assertions(1);
 
@@ -439,15 +456,113 @@ describe('async actions', () => {
     });
   });
 
-  describe('addQueryEditor', () => {
-    let stub;
+  describe('popSavedQuery', () => {
+    const supersetClientGetSpy = jest.spyOn(SupersetClient, 'get');
+    const store = mockStore({});
+
+    const mockSavedQueryApiResponse = {
+      catalog: null,
+      changed_by: {
+        first_name: 'Superset',
+        id: 1,
+        last_name: 'Admin',
+      },
+      changed_on: '2024-12-28T20:06:14.246743',
+      changed_on_delta_humanized: '8 days ago',
+      created_by: {
+        first_name: 'Superset',
+        id: 1,
+        last_name: 'Admin',
+      },
+      database: {
+        database_name: 'examples',
+        id: 2,
+      },
+      description: '',
+      id: 1,
+      label: 'Query 1',
+      schema: 'public',
+      sql: 'SELECT * FROM channels',
+      sql_tables: [
+        {
+          catalog: null,
+          schema: null,
+          table: 'channels',
+        },
+      ],
+      template_parameters: null,
+    };
+
+    const makeRequest = id => {
+      const request = actions.popSavedQuery(id);
+      const { dispatch } = store;
+
+      return request(dispatch, () => initialState);
+    };
+
     beforeEach(() => {
-      stub = sinon.stub(shortid, 'generate').returns('abcd');
-    });
-    afterEach(() => {
-      stub.restore();
+      supersetClientGetSpy.mockClear();
+      store.clearActions();
     });
 
+    afterAll(() => {
+      supersetClientGetSpy.mockRestore();
+    });
+
+    it('calls API endpint with correct params', async () => {
+      supersetClientGetSpy.mockResolvedValue({
+        json: { result: mockSavedQueryApiResponse },
+      });
+
+      await makeRequest(123);
+
+      expect(supersetClientGetSpy).toHaveBeenCalledWith({
+        endpoint: '/api/v1/saved_query/123',
+      });
+    });
+
+    it('dispatches addQueryEditor with correct params on successful API call', async () => {
+      supersetClientGetSpy.mockResolvedValue({
+        json: { result: mockSavedQueryApiResponse },
+      });
+
+      const expectedParams = {
+        name: 'Query 1',
+        dbId: 2,
+        catalog: null,
+        schema: 'public',
+        sql: 'SELECT * FROM channels',
+        templateParams: null,
+        remoteId: 1,
+      };
+
+      await makeRequest(1);
+
+      const addQueryEditorAction = store
+        .getActions()
+        .find(action => action.type === actions.ADD_QUERY_EDITOR);
+
+      expect(addQueryEditorAction).toBeTruthy();
+      expect(addQueryEditorAction?.queryEditor).toEqual(
+        expect.objectContaining(expectedParams),
+      );
+    });
+
+    it('should dispatch addDangerToast on API error', async () => {
+      supersetClientGetSpy.mockResolvedValue(new Error());
+
+      await makeRequest(1);
+
+      const addToastAction = store
+        .getActions()
+        .find(action => action.type === ADD_TOAST);
+
+      expect(addToastAction).toBeTruthy();
+      expect(addToastAction?.payload?.toastType).toBe(ToastType.Danger);
+    });
+  });
+
+  describe('addQueryEditor', () => {
     it('creates new query editor', () => {
       expect.assertions(1);
 
@@ -505,6 +620,100 @@ describe('async actions', () => {
     });
   });
 
+  it('set current query editor', () => {
+    expect.assertions(1);
+
+    const store = mockStore(initialState);
+    const expectedActions = [
+      {
+        type: actions.SET_ACTIVE_QUERY_EDITOR,
+        queryEditor: defaultQueryEditor,
+      },
+    ];
+    store.dispatch(actions.setActiveQueryEditor(defaultQueryEditor));
+
+    expect(store.getActions()).toEqual(expectedActions);
+  });
+
+  describe('swithQueryEditor', () => {
+    it('switch to the next tab editor', () => {
+      const store = mockStore(initialState);
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[1],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor());
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    it('switch to the first tab editor once it reaches the rightmost tab', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [
+            initialState.sqlLab.queryEditors[
+              initialState.sqlLab.queryEditors.length - 1
+            ].id,
+          ],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[0],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor());
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    it('switch to the previous tab editor', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [initialState.sqlLab.queryEditors[1].id],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor: initialState.sqlLab.queryEditors[0],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor(true));
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+
+    it('switch to the last tab editor once it reaches the leftmost tab', () => {
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          tabHistory: [initialState.sqlLab.queryEditors[0].id],
+        },
+      });
+      const expectedActions = [
+        {
+          type: actions.SET_ACTIVE_QUERY_EDITOR,
+          queryEditor:
+            initialState.sqlLab.queryEditors[
+              initialState.sqlLab.queryEditors.length - 1
+            ],
+        },
+      ];
+      store.dispatch(actions.switchQueryEditor(true));
+
+      expect(store.getActions()).toEqual(expectedActions);
+    });
+  });
+
   describe('backend sync', () => {
     const updateTabStateEndpoint = 'glob:*/tabstateview/*';
     fetchMock.put(updateTabStateEndpoint, {});
@@ -540,14 +749,6 @@ describe('async actions', () => {
     afterEach(fetchMock.resetHistory);
 
     describe('addQueryEditor', () => {
-      let stub;
-      beforeEach(() => {
-        stub = sinon.stub(shortid, 'generate').returns('abcd');
-      });
-      afterEach(() => {
-        stub.restore();
-      });
-
       it('creates the tab state in the local storage', () => {
         expect.assertions(2);
 
@@ -570,29 +771,9 @@ describe('async actions', () => {
       });
     });
 
-    describe('setActiveQueryEditor', () => {
-      it('updates the tab state in the backend', () => {
-        expect.assertions(2);
-
-        const store = mockStore({});
-        const expectedActions = [
-          {
-            type: actions.SET_ACTIVE_QUERY_EDITOR,
-            queryEditor,
-          },
-        ];
-        return store
-          .dispatch(actions.setActiveQueryEditor(queryEditor))
-          .then(() => {
-            expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
-          });
-      });
-    });
-
     describe('removeQueryEditor', () => {
       it('updates the tab state in the backend', () => {
-        expect.assertions(2);
+        expect.assertions(1);
 
         const store = mockStore({});
         const expectedActions = [
@@ -601,12 +782,8 @@ describe('async actions', () => {
             queryEditor,
           },
         ];
-        return store
-          .dispatch(actions.removeQueryEditor(queryEditor))
-          .then(() => {
-            expect(store.getActions()).toEqual(expectedActions);
-            expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(1);
-          });
+        store.dispatch(actions.removeQueryEditor(queryEditor));
+        expect(store.getActions()).toEqual(expectedActions);
       });
     });
 
@@ -715,7 +892,13 @@ describe('async actions', () => {
         it('updates the tab state in the backend', () => {
           expect.assertions(2);
 
-          const store = mockStore(initialState);
+          const store = mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              queryEditors: [queryEditor],
+            },
+          });
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           return request(store.dispatch, store.getState).then(() => {
             expect(store.getActions()).toEqual(expectedActions);
@@ -731,7 +914,13 @@ describe('async actions', () => {
               feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
             );
 
-          const store = mockStore(initialState);
+          const store = mockStore({
+            ...initialState,
+            sqlLab: {
+              ...initialState.sqlLab,
+              queryEditors: [queryEditor],
+            },
+          });
           const request = actions.queryEditorSetAndSaveSql(queryEditor, sql);
           request(store.dispatch, store.getState);
 

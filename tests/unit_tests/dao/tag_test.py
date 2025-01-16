@@ -22,8 +22,7 @@ def test_user_favorite_tag(mocker):
     from superset.daos.tag import TagDAO
 
     # Mock the behavior of TagDAO and g
-    mock_session = mocker.patch("superset.daos.tag.db.session")
-    mock_TagDAO = mocker.patch(
+    mock_TagDAO = mocker.patch(  # noqa: N806
         "superset.daos.tag.TagDAO"
     )  # Replace with the actual path to TagDAO
     mock_TagDAO.find_by_id.return_value = mocker.MagicMock(users_favorited=[])
@@ -40,15 +39,12 @@ def test_user_favorite_tag(mocker):
     # Check that users_favorited was updated correctly
     assert mock_TagDAO.find_by_id().users_favorited == [mock_g.user]
 
-    mock_session.commit.assert_called_once()
-
 
 def test_remove_user_favorite_tag(mocker):
     from superset.daos.tag import TagDAO
 
     # Mock the behavior of TagDAO and g
-    mock_session = mocker.patch("superset.daos.tag.db.session")
-    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")  # noqa: N806
     mock_tag = mocker.MagicMock(users_favorited=[])
     mock_TagDAO.find_by_id.return_value = mock_tag
 
@@ -68,9 +64,6 @@ def test_remove_user_favorite_tag(mocker):
     # Check that users_favorited no longer contains the user
     assert mock_user not in mock_tag.users_favorited
 
-    # Check that the db.session.was committed
-    mock_session.commit.assert_called_once()
-
 
 def test_remove_user_favorite_tag_no_user(mocker):
     from superset.daos.tag import TagDAO
@@ -78,7 +71,7 @@ def test_remove_user_favorite_tag_no_user(mocker):
 
     # Mock the behavior of TagDAO and g
     mocker.patch("superset.daos.tag.db.session")  # noqa: F841
-    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")  # noqa: N806
     mock_tag = mocker.MagicMock(users_favorited=[])
     mock_TagDAO.find_by_id.return_value = mock_tag
 
@@ -95,7 +88,7 @@ def test_remove_user_favorite_tag_exc_raise(mocker):
 
     # Mock the behavior of TagDAO and g
     mock_session = mocker.patch("superset.daos.tag.db.session")
-    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")  # noqa: N806
     mock_tag = mocker.MagicMock(users_favorited=[])
     mock_TagDAO.find_by_id.return_value = mock_tag
 
@@ -105,7 +98,7 @@ def test_remove_user_favorite_tag_exc_raise(mocker):
 
     # Test that exception is raised when commit fails
     mock_session.commit.side_effect = Exception("DB Error")
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017, PT011
         TagDAO.remove_user_favorite_tag(1)
 
 
@@ -115,7 +108,7 @@ def test_user_favorite_tag_no_user(mocker):
 
     # Mock the behavior of TagDAO and g
     mocker.patch("superset.daos.tag.db.session")  # noqa: F841
-    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")  # noqa: N806
     mock_tag = mocker.MagicMock(users_favorited=[])
     mock_TagDAO.find_by_id.return_value = mock_tag
 
@@ -132,7 +125,7 @@ def test_user_favorite_tag_exc_raise(mocker):
 
     # Mock the behavior of TagDAO and g
     mock_session = mocker.patch("superset.daos.tag.db.session")
-    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")
+    mock_TagDAO = mocker.patch("superset.daos.tag.TagDAO")  # noqa: N806
     mock_tag = mocker.MagicMock(users_favorited=[])
     mock_TagDAO.find_by_id.return_value = mock_tag
 
@@ -142,7 +135,7 @@ def test_user_favorite_tag_exc_raise(mocker):
 
     # Test that exception is raised when commit fails
     mock_session.commit.side_effect = Exception("DB Error")
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017, PT011
         TagDAO.remove_user_favorite_tag(1)
 
 

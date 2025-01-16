@@ -247,7 +247,7 @@ const RightMenu = ({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      // There might be some existings Gsheets and Clickhouse DBs
+      // There might be some existing Gsheets and Clickhouse DBs
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
@@ -313,7 +313,7 @@ const RightMenu = ({
 
   const buildMenuItem = (item: MenuObjectChildProps) =>
     item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled}>
+      <Menu.Item key={item.name} css={styledDisabled} disabled>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>
@@ -347,6 +347,10 @@ const RightMenu = ({
   );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
+  const handleLogout = () => {
+    localStorage.removeItem('redux');
+  };
 
   const theme = useTheme();
 
@@ -512,7 +516,7 @@ const RightMenu = ({
                   <a href={navbarRight.user_info_url}>{t('Info')}</a>
                 </Menu.Item>
               )}
-              <Menu.Item key="logout">
+              <Menu.Item key="logout" onClick={handleLogout}>
                 <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
               </Menu.Item>
             </Menu.ItemGroup>,

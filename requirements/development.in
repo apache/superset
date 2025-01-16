@@ -16,5 +16,4 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--r base.in
--e .[development,bigquery,cors,druid,gevent,gsheets,hive,mysql,playwright,postgres,presto,prophet,trino,thumbnails]
+-e .[development,bigquery,cors,druid,gevent,gsheets,mysql,postgres,presto,prophet,trino,thumbnails]

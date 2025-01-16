@@ -17,21 +17,21 @@
  * under the License.
  */
 import {
+  ControlPanelConfig,
+  D3_TIME_FORMAT_OPTIONS,
+  Dataset,
+  getStandardizedControls,
+  sharedControls,
+} from '@superset-ui/chart-controls';
+import {
   ensureIsArray,
   isAdhocColumn,
   isPhysicalColumn,
   QueryFormMetric,
-  smartDateFormatter,
+  SMART_DATE_ID,
   t,
   validateNonEmpty,
 } from '@superset-ui/core';
-import {
-  ControlPanelConfig,
-  D3_TIME_FORMAT_OPTIONS,
-  sharedControls,
-  Dataset,
-  getStandardizedControls,
-} from '@superset-ui/chart-controls';
 import { MetricsLayoutEnum } from '../types';
 
 const config: ControlPanelConfig = {
@@ -298,7 +298,7 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               freeForm: true,
               label: t('Date format'),
-              default: smartDateFormatter.id,
+              default: SMART_DATE_ID,
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
               description: t('D3 time format for datetime columns'),
@@ -411,7 +411,7 @@ const config: ControlPanelConfig = {
                   'verbose_map',
                 )
                   ? (explore?.datasource as Dataset)?.verbose_map
-                  : explore?.datasource?.columns ?? {};
+                  : (explore?.datasource?.columns ?? {});
                 const chartStatus = chart?.chartStatus;
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
@@ -425,6 +425,20 @@ const config: ControlPanelConfig = {
                   verboseMap,
                 };
               },
+            },
+          },
+        ],
+        [
+          {
+            name: 'allow_render_html',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Render columns in HTML format'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+              ),
             },
           },
         ],

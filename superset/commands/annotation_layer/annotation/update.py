@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional
 
 from flask_appbuilder.models.sqla import Model
@@ -31,8 +32,8 @@ from superset.commands.annotation_layer.annotation.exceptions import (
 from superset.commands.annotation_layer.exceptions import AnnotationLayerNotFoundError
 from superset.commands.base import BaseCommand
 from superset.daos.annotation_layer import AnnotationDAO, AnnotationLayerDAO
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.models.annotations import Annotation
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +44,11 @@ class UpdateAnnotationCommand(BaseCommand):
         self._properties = data.copy()
         self._model: Optional[Annotation] = None
 
+    @transaction(on_error=partial(on_error, reraise=AnnotationUpdateFailedError))
     def run(self) -> Model:
         self.validate()
         assert self._model
-
-        try:
-            annotation = AnnotationDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise AnnotationUpdateFailedError() from ex
-        return annotation
+        return AnnotationDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

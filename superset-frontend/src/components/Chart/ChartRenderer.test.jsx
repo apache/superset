@@ -16,10 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { shallow } from 'enzyme';
-import { SuperChart } from '@superset-ui/core';
-
+import { render } from 'spec/helpers/testing-library';
+import {
+  ChartMetadata,
+  getChartMetadataRegistry,
+  VizType,
+} from '@superset-ui/core';
 import ChartRenderer from 'src/components/Chart/ChartRenderer';
+import { ChartSource } from 'src/types/ChartSource';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  SuperChart: ({ formData }) => (
+    <div data-test="mock-super-chart">{JSON.stringify(formData)}</div>
+  ),
+}));
+
+jest.mock(
+  'src/components/Chart/ChartContextMenu/ChartContextMenu',
+  () => () => <div data-test="mock-chart-context-menu" />,
+);
 
 const requiredProps = {
   chartId: 1,
@@ -28,21 +44,50 @@ const requiredProps = {
   latestQueryFormData: {
     testControl: 'bar',
   },
-  vizType: 'table',
+  vizType: VizType.Table,
+  source: ChartSource.Dashboard,
 };
 
-describe('ChartRenderer', () => {
-  it('should render SuperChart', () => {
-    const wrapper = shallow(
-      <ChartRenderer {...requiredProps} chartIsStale={false} />,
-    );
-    expect(wrapper.find(SuperChart)).toExist();
-  });
+beforeAll(() => {
+  window.featureFlags = { DRILL_TO_DETAIL: true };
+});
+afterAll(() => {
+  window.featureFlags = {};
+});
 
-  it('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
-    const wrapper = shallow(<ChartRenderer {...requiredProps} chartIsStale />);
-    expect(wrapper.find(SuperChart).prop('formData')).toEqual({
-      testControl: 'bar',
-    });
-  });
+test('should render SuperChart', () => {
+  const { getByTestId } = render(
+    <ChartRenderer {...requiredProps} chartIsStale={false} />,
+  );
+  expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+});
+
+test('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
+  const { getByTestId } = render(
+    <ChartRenderer {...requiredProps} chartIsStale />,
+  );
+  expect(getByTestId('mock-super-chart')).toHaveTextContent(
+    JSON.stringify({ testControl: 'bar' }),
+  );
+});
+
+test('should render chart context menu', () => {
+  const { getByTestId } = render(<ChartRenderer {...requiredProps} />);
+  expect(getByTestId('mock-chart-context-menu')).toBeInTheDocument();
+});
+
+test('should not render chart context menu if the context menu is suppressed for given viz plugin', () => {
+  getChartMetadataRegistry().registerValue(
+    'chart_without_context_menu',
+    new ChartMetadata({
+      name: 'chart with suppressed context menu',
+      thumbnail: '.png',
+      useLegacyApi: false,
+      suppressContextMenu: true,
+    }),
+  );
+  const { queryByTestId } = render(
+    <ChartRenderer {...requiredProps} vizType="chart_without_context_menu" />,
+  );
+  expect(queryByTestId('mock-chart-context-menu')).not.toBeInTheDocument();
 });

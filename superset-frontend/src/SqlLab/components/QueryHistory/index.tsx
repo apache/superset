@@ -42,7 +42,7 @@ interface QueryHistoryProps {
 
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
-  .ant-empty-image img {
+  .antd5-empty-image img {
     margin-right: 28px;
   }
 
@@ -70,7 +70,11 @@ const QueryHistory = ({
     ({ sqlLab: { queries } }: SqlLabRootState) => queries,
     shallowEqual,
   );
-  const { data, isLoading, isFetching } = useEditorQueriesQuery(
+  const {
+    currentData: data,
+    isLoading,
+    isFetching,
+  } = useEditorQueriesQuery(
     { editorId: `${queryEditorId}`, pageIndex },
     {
       skip: !isFeatureEnabled(FeatureFlag.SqllabBackendPersistence),

@@ -51,7 +51,7 @@ class QueryCacheManager:
     # pylint: disable=too-many-instance-attributes,too-many-arguments
     def __init__(
         self,
-        df: DataFrame = DataFrame(),
+        df: DataFrame = DataFrame(),  # noqa: B008
         query: str = "",
         annotation_data: dict[str, Any] | None = None,
         applied_template_filters: list[str] | None = None,

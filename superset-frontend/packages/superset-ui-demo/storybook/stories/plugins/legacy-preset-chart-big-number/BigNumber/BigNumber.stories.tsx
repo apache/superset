@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SuperChart } from '@superset-ui/core';
+import { SuperChart, VizType } from '@superset-ui/core';
 import { BigNumberChartPlugin } from '@superset-ui/plugin-chart-echarts';
 import testData from './data';
 
@@ -37,7 +37,7 @@ const formData = {
   showTrendLine: true,
   startYAxisAtZero: true,
   timeGrainSqla: 'P1Y',
-  vizType: 'big_number',
+  vizType: VizType.BigNumber,
   yAxisFormat: '.3s',
 };
 

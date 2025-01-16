@@ -24,15 +24,15 @@ import { Prev } from './Prev';
 test('Prev - click when the button is enabled', () => {
   const click = jest.fn();
   render(<Prev onClick={click} />);
-  expect(click).toBeCalledTimes(0);
+  expect(click).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
-  expect(click).toBeCalledTimes(1);
+  expect(click).toHaveBeenCalledTimes(1);
 });
 
 test('Prev - click when the button is disabled', () => {
   const click = jest.fn();
   render(<Prev onClick={click} disabled />);
-  expect(click).toBeCalledTimes(0);
+  expect(click).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
-  expect(click).toBeCalledTimes(0);
+  expect(click).toHaveBeenCalledTimes(0);
 });

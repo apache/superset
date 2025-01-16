@@ -227,6 +227,7 @@ export const ErrorTypeEnum = {
   ASYNC_WORKERS_ERROR: 'ASYNC_WORKERS_ERROR',
   ADHOC_SUBQUERY_NOT_ALLOWED_ERROR: 'ADHOC_SUBQUERY_NOT_ALLOWED_ERROR',
   INVALID_SQL_ERROR: 'INVALID_SQL_ERROR',
+  RESULT_TOO_LARGE_ERROR: 'RESULT_TOO_LARGE_ERROR',
 
   // Generic errors
   GENERIC_COMMAND_ERROR: 'GENERIC_COMMAND_ERROR',
@@ -283,7 +284,7 @@ export enum QueryState {
   TimedOut = 'timed_out',
 }
 
-// Inidcates a Query's state is still processing
+// Indicates a Query's state is still processing
 export const runningQueryStateList: QueryState[] = [
   QueryState.Running,
   QueryState.Started,

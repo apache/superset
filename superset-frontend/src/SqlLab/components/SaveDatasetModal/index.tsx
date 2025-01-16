@@ -32,9 +32,10 @@ import {
   JsonObject,
   QueryResponse,
   QueryFormData,
+  VizType,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -159,11 +160,11 @@ export const SaveDatasetModal = ({
   formData = {},
 }: SaveDatasetModalProps) => {
   const defaultVizType = useSelector<SqlLabRootState, string>(
-    state => state.common?.conf?.DEFAULT_VIZ_TYPE || 'table',
+    state => state.common?.conf?.DEFAULT_VIZ_TYPE || VizType.Table,
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${dayjs().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SaveNew,
@@ -217,7 +218,7 @@ export const SaveDatasetModal = ({
       postFormData(datasetToOverwrite.datasetid, 'table', {
         ...formDataWithDefaults,
         datasource: `${datasetToOverwrite.datasetid}__table`,
-        ...(defaultVizType === 'table' && {
+        ...(defaultVizType === VizType.Table && {
           all_columns: datasource?.columns?.map(column => column.column_name),
         }),
       }),
@@ -304,7 +305,7 @@ export const SaveDatasetModal = ({
         postFormData(data.id, 'table', {
           ...formDataWithDefaults,
           datasource: `${data.id}__table`,
-          ...(defaultVizType === 'table' && {
+          ...(defaultVizType === VizType.Table && {
             all_columns: selectedColumns.map(column => column.column_name),
           }),
         }),

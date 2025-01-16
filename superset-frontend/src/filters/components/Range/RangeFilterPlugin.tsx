@@ -315,7 +315,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
         <h4>{t('Chosen non-numeric column')}</h4>
       ) : (
-        <StyledFormItem extra={formItemExtra}>
+        <StyledFormItem
+          aria-labelledby={`filter-name-${formData.nativeFilterId}`}
+          extra={formItemExtra}
+        >
           <Wrapper
             tabIndex={-1}
             ref={inputRef}

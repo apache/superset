@@ -40,6 +40,7 @@ export interface DataTablesPaneProps {
   onCollapseChange: (isOpen: boolean) => void;
   errorMessage?: JSX.Element;
   actions: ExploreActions;
+  canDownload: boolean;
 }
 
 export interface ResultsPaneProps {
@@ -52,6 +53,7 @@ export interface ResultsPaneProps {
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
+  canDownload: boolean;
 }
 
 export interface SamplesPaneProps {
@@ -62,6 +64,7 @@ export interface SamplesPaneProps {
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
+  canDownload: boolean;
 }
 
 export interface TableControlsProps {
@@ -73,6 +76,7 @@ export interface TableControlsProps {
   columnTypes: GenericDataType[];
   isLoading: boolean;
   rowcount: number;
+  canDownload: boolean;
 }
 
 export interface QueryResultInterface {
@@ -88,4 +92,5 @@ export interface SingleQueryResultPaneProp extends QueryResultInterface {
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
+  canDownload: boolean;
 }

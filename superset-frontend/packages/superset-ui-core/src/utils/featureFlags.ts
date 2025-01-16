@@ -25,6 +25,7 @@ export enum FeatureFlag {
   AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
   AlertReports = 'ALERT_REPORTS',
   AlertReportTabs = 'ALERT_REPORT_TABS',
+  AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
@@ -35,6 +36,7 @@ export enum FeatureFlag {
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
   DisableLegacyDatasourceEditor = 'DISABLE_LEGACY_DATASOURCE_EDITOR',
+  /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
   DynamicPlugins = 'DYNAMIC_PLUGINS',
@@ -56,7 +58,11 @@ export enum FeatureFlag {
   SshTunneling = 'SSH_TUNNELING',
   TaggingSystem = 'TAGGING_SYSTEM',
   Thumbnails = 'THUMBNAILS',
-  UseAnalagousColors = 'USE_ANALAGOUS_COLORS',
+  UseAnalogousColors = 'USE_ANALOGOUS_COLORS',
+  ForceSqlLabRunAsync = 'SQLLAB_FORCE_RUN_ASYNC',
+  SlackEnableAvatars = 'SLACK_ENABLE_AVATARS',
+  EnableDashboardScreenshotEndpoints = 'ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS',
+  EnableDashboardDownloadWebDriverScreenshot = 'ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT',
 }
 
 export type ScheduleQueriesProps = {

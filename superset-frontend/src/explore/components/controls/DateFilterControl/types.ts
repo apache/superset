@@ -101,6 +101,7 @@ export type CurrentRangeType =
 export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;
+  isOverflowingFilterBar?: boolean;
 };
 
 export interface DateFilterControlProps {

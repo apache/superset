@@ -47,7 +47,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             sql="SELECT 42",
             label="The answer",
             schema="schema1",
-            description="Answer to the Ultimate Question of Life, the Universe, and Everything",
+            description="Answer to the Ultimate Question of Life, the Universe, and Everything",  # noqa: E501
         )
         db.session.add(self.example_query)
         db.session.commit()
@@ -78,7 +78,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
             "catalog": None,
             "schema": "schema1",
             "label": "The answer",
-            "description": "Answer to the Ultimate Question of Life, the Universe, and Everything",
+            "description": "Answer to the Ultimate Question of Life, the Universe, and Everything",  # noqa: E501
             "sql": "SELECT 42",
             "uuid": str(self.example_query.uuid),
             "version": "1.0.0",
@@ -110,7 +110,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
         command = ExportSavedQueriesCommand([self.example_query.id])
         contents = command.run()
-        with self.assertRaises(SavedQueryNotFoundError):
+        with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.queries.saved_queries.filters.g")
@@ -120,7 +120,7 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
         command = ExportSavedQueriesCommand([-1])
         contents = command.run()
-        with self.assertRaises(SavedQueryNotFoundError):
+        with self.assertRaises(SavedQueryNotFoundError):  # noqa: PT027
             next(contents)
 
     @patch("superset.queries.saved_queries.filters.g")
@@ -148,7 +148,8 @@ class TestExportSavedQueriesCommand(SupersetTestCase):
 
 class TestImportSavedQueriesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
-    def test_import_v1_saved_queries(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_saved_queries(self, mock_add_permissions, mock_g):
         """Test that we can import a saved query"""
         mock_g.user = security_manager.find_user("admin")
 
@@ -178,7 +179,8 @@ class TestImportSavedQueriesCommand(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.security.manager.g")
-    def test_import_v1_saved_queries_multiple(self, mock_g):
+    @patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_v1_saved_queries_multiple(self, mock_add_permissions, mock_g):
         """Test that a saved query can be imported multiple times"""
         mock_g.user = security_manager.find_user("admin")
 
