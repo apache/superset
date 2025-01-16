@@ -285,8 +285,8 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context(self) -> QueryContext | None:
         if self.query_context:
             try:
-                return self.get_query_context_factory().create(slice=self,
-                    **json.loads(self.query_context)
+                return self.get_query_context_factory().create(
+                    current_slice=self, **json.loads(self.query_context)
                 )
             except json.JSONDecodeError as ex:
                 logger.error("Malformed json in slice's query context", exc_info=True)
