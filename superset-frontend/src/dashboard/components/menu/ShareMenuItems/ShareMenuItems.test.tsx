@@ -36,6 +36,7 @@ const createProps = () => ({
   emailSubject: 'Superset dashboard COVID Vaccine Dashboard',
   emailBody: 'Check out this dashboard: ',
   dashboardId: DASHBOARD_ID,
+  title: 'Test Dashboard',
 });
 
 const { location } = window;
@@ -66,30 +67,30 @@ afterAll((): void => {
 test('Should render menu items', () => {
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
   );
-  expect(
-    screen.getByRole('menuitem', { name: 'Copy dashboard URL' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Share dashboard by email' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Copy dashboard URL' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  ).toBeInTheDocument();
+  expect(screen.getByText('Copy dashboard URL')).toBeInTheDocument();
+  expect(screen.getByText('Share dashboard by email')).toBeInTheDocument();
 });
 
 test('Click on "Copy dashboard URL" and succeed', async () => {
   spy.mockResolvedValue(undefined);
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
@@ -101,7 +102,7 @@ test('Click on "Copy dashboard URL" and succeed', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
+  userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -117,7 +118,12 @@ test('Click on "Copy dashboard URL" and fail', async () => {
   spy.mockRejectedValue(undefined);
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
@@ -129,7 +135,7 @@ test('Click on "Copy dashboard URL" and fail', async () => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Copy dashboard URL' }));
+  userEvent.click(screen.getByText('Copy dashboard URL'));
 
   await waitFor(async () => {
     expect(spy).toHaveBeenCalledTimes(1);
@@ -146,7 +152,12 @@ test('Click on "Copy dashboard URL" and fail', async () => {
 test('Click on "Share dashboard by email" and succeed', async () => {
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
@@ -157,9 +168,7 @@ test('Click on "Share dashboard by email" and succeed', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  );
+  userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(props.addDangerToast).toHaveBeenCalledTimes(0);
@@ -177,7 +186,12 @@ test('Click on "Share dashboard by email" and fail', async () => {
   );
   const props = createProps();
   render(
-    <Menu onClick={jest.fn()} selectable={false} data-test="main-menu">
+    <Menu
+      onClick={jest.fn()}
+      selectable={false}
+      data-test="main-menu"
+      forceSubMenuRender
+    >
       <ShareMenuItems {...props} />
     </Menu>,
     { useRedux: true },
@@ -188,9 +202,7 @@ test('Click on "Share dashboard by email" and fail', async () => {
     expect(window.location.href).toBe('');
   });
 
-  userEvent.click(
-    screen.getByRole('button', { name: 'Share dashboard by email' }),
-  );
+  userEvent.click(screen.getByText('Share dashboard by email'));
 
   await waitFor(() => {
     expect(window.location.href).toBe('');
