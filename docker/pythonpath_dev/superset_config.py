@@ -29,29 +29,6 @@ from flask_caching.backends.filesystemcache import FileSystemCache
 
 logger = logging.getLogger()
 
-
-# If BASE_PATH is set we are assumed to be proxyed at this prefix location.
-base_path = os.getenv("BASE_PATH", "")
-if base_path:
-    ENABLE_PROXY_FIX = True
-    # Change x_port to 1 if the we are on the same port as the proxy server
-    PROXY_FIX_CONFIG = {
-        "x_for": 1,
-        "x_proto": 1,
-        "x_host": 1,
-        "x_port": 0,
-        "x_prefix": 1,
-    }
-    logger.debug(f"Non-empty base path detected '{base_path}'. Enabled proxy fix.")
-# If ASSET_BASE_URL is an empty string but BASE_PATH is set we should pick up BASE_PATH
-asset_base = (
-    os.getenv("ASSET_BASE_URL") if os.getenv("ASSET_BASE_URL", "") else base_path
-)
-if asset_base:
-    STATIC_ASSETS_PREFIX = asset_base
-    APP_ICON = f"{STATIC_ASSETS_PREFIX}/static/assets/images/superset-logo-horiz.png"
-    logger.debug(f"Non-empty asset base detected '{STATIC_ASSETS_PREFIX}'")
-
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
@@ -96,6 +73,7 @@ CACHE_CONFIG = {
 DATA_CACHE_CONFIG = CACHE_CONFIG
 THUMBNAIL_CACHE_CONFIG = CACHE_CONFIG
 
+
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
     imports = (
@@ -123,9 +101,11 @@ CELERY_CONFIG = CeleryConfig
 
 FEATURE_FLAGS = {"ALERT_REPORTS": True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
-WEBDRIVER_BASEURL = f"http://superset_nginx{base_path}/" # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
+WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
 # The base URL for the email report hyperlinks.
-WEBDRIVER_BASEURL_USER_FRIENDLY = f"http://localhost:8888{base_path}/"
+WEBDRIVER_BASEURL_USER_FRIENDLY = (
+    f"http://localhost:8888/{os.environ.get('SUPERSET_APP_ROOT', '/')}/"
+)
 SQLLAB_CTAS_NO_LIMIT = True
 
 log_level_text = os.getenv("SUPERSET_LOG_LEVEL", "INFO")

@@ -11,11 +11,6 @@ upstream superset_websocket {
 server {
     listen 80 default_server;
     server_name  _;
-    set $superset_location ${SUPERSET_LOCATION};
-    set $forwarded_prefix "";
-    if ($superset_location != "/") {
-      set $forwarded_prefix "${SUPERSET_LOCATION}";
-    }
 
     location /ws {
         proxy_pass http://superset_websocket;
@@ -25,13 +20,12 @@ server {
         proxy_set_header Host $host;
     }
 
-    location ${SUPERSET_LOCATION} {
-        proxy_pass http://superset_app/;
+    location ${SUPERSET_APP_ROOT} {
+        proxy_pass http://superset_app;
         proxy_set_header Host $http_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header X-Forwarded-Prefix $forwarded_prefix;
         proxy_http_version 1.1;
         port_in_redirect off;
         proxy_connect_timeout 300;
