@@ -383,7 +383,7 @@ describe('DatabaseModal', () => {
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
-      const alertIcon = screen.getByRole('img', { name: /info icon/i });
+      const alertIcon = screen.getByRole('img', { name: /info-circle/i });
       const alertMessage = screen.getByText(/want to add a new database\?/i);
       const alertDescription = screen.getByText(
         /any databases that allow connections via sql alchemy uris can be added\. learn about how to connect a database driver \./i,
@@ -432,7 +432,7 @@ describe('DatabaseModal', () => {
 
       // ---------- Components ----------
       // <TabHeader> - AntD header
-      const closeButton = screen.getByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: 'Close' });
 
       const basicHeader = screen.getByRole('heading', {
         name: /connect a database/i,
@@ -481,7 +481,7 @@ describe('DatabaseModal', () => {
         name: /test connection/i,
       });
       // <Alert> - Basic tab's alert
-      const alertIcon = screen.getByRole('img', { name: /info icon/i });
+      const alertIcon = screen.getByRole('img', { name: /info-circle/i });
       const alertMessage = screen.getByText(
         /additional fields may be required/i,
       );
@@ -1605,8 +1605,6 @@ describe('DatabaseModal', () => {
       userEvent.click(button);
       const errorMessage = screen.getByText(/Test Error With String/i);
       expect(errorMessage).toBeInTheDocument();
-      const closeButton = screen.getByText('Close');
-      userEvent.click(closeButton);
       expect(step2of3text).toBeInTheDocument();
       expect(errorTitleMessage).toBeInTheDocument();
     });
