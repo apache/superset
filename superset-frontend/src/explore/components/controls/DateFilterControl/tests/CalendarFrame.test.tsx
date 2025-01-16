@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import '@testing-library/jest-dom'; // For advanced DOM assertions
 import { CalendarFrame } from '../components/CalendarFrame';
 import { PreviousCalendarWeek, PreviousCalendarQuarter } from '../types';
