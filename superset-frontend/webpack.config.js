@@ -522,10 +522,16 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
 console.log(''); // pure cosmetic new line
 
 if (isDevMode) {
-  // Set up manifest hook outside of devServer config
-  const { afterEmit } = getCompilerHooks(compiler);
-  afterEmit.tap('ManifestPlugin', manifest => {
-    proxyConfig = getProxyConfig(manifest);
+  let proxyConfig = getProxyConfig();
+  // Set up a plugin to handle manifest updates
+  config.plugins = config.plugins || [];
+  config.plugins.push({
+    apply: compiler => {
+      const { afterEmit } = getCompilerHooks(compiler);
+      afterEmit.tap('ManifestPlugin', manifest => {
+        proxyConfig = getProxyConfig(manifest);
+      });
+    },
   });
 
   config.devServer = {
