@@ -34,7 +34,7 @@ from tests.integration_tests.test_app import app
 @pytest.mark.parametrize(
     "owner_names,creator_name,config,expected_result",
     [
-        (["gamma"], None, [ExecutorType.SELENIUM], "admin"),
+        (["gamma"], None, [ExecutorType.FIXED_USER], "admin"),
         (["gamma"], None, [ExecutorType.OWNER], "gamma"),
         (
             ["alpha", "gamma"],

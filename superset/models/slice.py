@@ -256,7 +256,10 @@ class Slice(  # pylint: disable=too-many-public-methods
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/chart/{self.id}/thumbnail/{self.digest}/"
+        if digest := self.digest:
+            return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+
+        return ""
 
     @property
     def json_data(self) -> str:
