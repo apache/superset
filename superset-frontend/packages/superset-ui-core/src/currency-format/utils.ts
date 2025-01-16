@@ -24,7 +24,14 @@ import {
   isSavedMetric,
   QueryFormMetric,
   ValueFormatter,
+  NumberFormatter,
 } from '@superset-ui/core';
+import localeCurrency from 'locale-currency';
+
+const getCurrencyForLocale = (locale: string): string => {
+  const currency = localeCurrency.getCurrency(locale);
+  return currency || 'USD'; // default value
+};
 
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
@@ -76,24 +83,36 @@ export const getValueFormatter = (
   d3Format: string | undefined,
   currencyFormat: Currency | undefined,
   key?: string,
-) => {
-  const customFormatter = getCustomFormatter(
-    buildCustomFormatters(
-      metrics,
-      savedCurrencyFormats,
-      savedColumnFormats,
-      d3Format,
-      currencyFormat,
-    ),
-    metrics,
-    key,
-  );
+): ValueFormatter => {
+  const urlParams = new URLSearchParams(window.location.search);
+  // get urlParam locale
+  const urlLocale = urlParams.get('locale');
 
-  if (customFormatter) {
-    return customFormatter;
+  if (!urlLocale) {
+    if (currencyFormat?.symbol) {
+      return new CurrencyFormatter({ currency: currencyFormat, d3Format });
+    }
+    return getNumberFormatter(d3Format);
+  } else {
+    try {
+      const currency = getCurrencyForLocale(urlLocale);
+
+      const formatter = new Intl.NumberFormat(urlLocale, {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+
+      return new NumberFormatter({
+        id: `currency-${currency}`,
+        formatFunc: (value: number) => formatter.format(value),
+        label: `Currency (${currency})`,
+        description: `Formats numbers as currency in ${currency}`,
+      });
+    } catch (error) {
+      console.error('Error during number formater creation:', error);
+      return getNumberFormatter(d3Format);
+    }
   }
-  if (currencyFormat?.symbol) {
-    return new CurrencyFormatter({ currency: currencyFormat, d3Format });
-  }
-  return getNumberFormatter(d3Format);
 };
