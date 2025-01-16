@@ -528,20 +528,7 @@ if (isDevMode) {
       const { afterEmit } = getCompilerHooks(devServer.compiler);
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
-
-        // Update the proxy configuration
-        if (devServer.proxy) {
-          // Instead of trying to find and remove the old middleware,
-          // let webpack-dev-server handle the proxy configuration update
-          devServer.proxy = [() => proxyConfig];
-
-          // Force webpack-dev-server to update its middleware stack
-          if (typeof devServer.invalidate === 'function') {
-            devServer.invalidate();
-          }
-        }
       });
-
       return middlewares;
     },
     historyApiFallback: true,
