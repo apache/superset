@@ -26,6 +26,7 @@ import {
   visitSampleChartFromList,
   saveChartToDashboard,
   interceptFiltering,
+  interceptFavoriteStatus,
 } from '../explore/utils';
 import { interceptGet as interceptDashboardGet } from '../dashboard/utils';
 
@@ -49,8 +50,10 @@ function confirmDelete() {
 
 function visitChartList() {
   interceptFiltering();
+  interceptFavoriteStatus();
   cy.visit(CHART_LIST);
   cy.wait('@filtering');
+  cy.wait('@favoriteStatus');
 }
 
 describe('Charts list', () => {
@@ -86,8 +89,9 @@ describe('Charts list', () => {
       saveChartToDashboard('3 - Sample dashboard');
       visitChartList();
       cy.getBySel('count-crosslinks').should('be.visible');
-      cy.getBySel('crosslinks').first().trigger('mouseover');
-      cy.get('.antd5-tooltip')
+      cy.getBySel('crosslinks').first().trigger('mouseover', { force: true });
+      cy.get('.antd5-tooltip', { timeout: 2000 })
+        .should('exist')
         .contains('3 - Sample dashboard')
         .invoke('removeAttr', 'target')
         .click();
