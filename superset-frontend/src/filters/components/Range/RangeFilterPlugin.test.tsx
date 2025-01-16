@@ -17,7 +17,7 @@
  * under the License.
  */
 import { AppSection, GenericDataType } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import RangeFilterPlugin from './RangeFilterPlugin';
 import { SingleValueType } from './SingleValueType';
 import transformProps from './transformProps';
@@ -100,6 +100,44 @@ describe('RangeFilterPlugin', () => {
     jest.clearAllMocks();
   });
 
+  it('should render two numerical inputs', () => {
+    getWrapper();
+
+    const inputs = screen.getAllByRole('spinbutton');
+    expect(inputs).toHaveLength(2);
+
+    expect(inputs[0]).toHaveValue('10');
+    expect(inputs[1]).toHaveValue('70');
+  });
+
+  it('should set the "To" input to be equal to "From" when a lower value is entered', () => {
+    getWrapper();
+
+    const inputs = screen.getAllByRole('spinbutton');
+    const fromInput = inputs[0];
+    const toInput = inputs[1];
+
+    fireEvent.change(fromInput, { target: { value: 20 } });
+
+    fireEvent.change(toInput, { target: { value: 10 } });
+
+    expect(toInput).toHaveValue('20');
+  });
+
+  it('should set the "From" input to be equal to "To" when a higher value is entered', () => {
+    getWrapper();
+
+    const inputs = screen.getAllByRole('spinbutton');
+    const fromInput = inputs[0];
+    const toInput = inputs[1];
+
+    fireEvent.change(toInput, { target: { value: 30 } });
+
+    fireEvent.change(fromInput, { target: { value: 40 } });
+
+    expect(fromInput).toHaveValue('30');
+  });
+
   it('should call setDataMask with correct filter', () => {
     getWrapper();
     expect(setDataMask).toHaveBeenCalledWith({
@@ -139,7 +177,7 @@ describe('RangeFilterPlugin', () => {
         value: [20, 100],
       },
     });
-    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '20');
+    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue('20');
   });
 
   it('should call setDataMask with correct less than filter', () => {
@@ -162,7 +200,7 @@ describe('RangeFilterPlugin', () => {
         value: [10, 60],
       },
     });
-    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '60');
+    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue('60');
   });
 
   it('should call setDataMask with correct exact filter', () => {
