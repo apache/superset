@@ -24,12 +24,12 @@ const yargs = require('yargs');
 const parsedArgs = yargs.argv;
 
 const parsedEnvArg = () => {
+  let envArgs = {};
   if (parsedArgs.env) {
-    return yargs(parsedArgs.env).argv;
+    envArgs = yargs(parsedArgs.env).argv;
   }
-  return {};
+  return { ...process.env, ...envArgs };
 };
-
 const { supersetPort = 8088, superset: supersetUrl = null } = parsedEnvArg();
 const backend = (supersetUrl || `http://localhost:${supersetPort}`).replace(
   '//+$/',
