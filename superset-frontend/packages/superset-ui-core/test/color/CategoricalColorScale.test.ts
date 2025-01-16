@@ -199,11 +199,7 @@ describe('CategoricalColorScale', () => {
       const returnedColor = scale.getColor(value, sliceId);
       expect(returnedColor).toBe(expectedColor);
     });
-    it('conditionally calls getNextAvailableColor', () => {
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: true,
-      };
-
+    it('calls getNextAvailableColor', () => {
       scale.getColor('testValue1');
       scale.getColor('testValue2');
       scale.getColor('testValue1');
@@ -216,14 +212,6 @@ describe('CategoricalColorScale', () => {
       );
 
       getNextAvailableColorSpy.mockClear();
-
-      window.featureFlags = {
-        [FeatureFlag.AvoidColorsCollision]: false,
-      };
-
-      scale.getColor('testValue3');
-
-      expect(getNextAvailableColorSpy).not.toHaveBeenCalled();
     });
   });
 

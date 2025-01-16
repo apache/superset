@@ -536,7 +536,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
-    "AVOID_COLORS_COLLISION": True,
     # Do not show user info in the menu
     "MENU_HIDE_USER_INFO": False,
     # Allows users to add a ``superset://`` DB that can query across databases. This is
