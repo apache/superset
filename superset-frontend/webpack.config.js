@@ -24,7 +24,6 @@ const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const MomentLocalesPlugin = require('moment-locales-webpack-plugin');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const SpeedMeasurePlugin = require('speed-measure-webpack-plugin');
 const {
@@ -42,25 +41,6 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 const ROOT_DIR = path.resolve(__dirname, '..');
-const TRANSLATIONS_DIR = path.resolve(__dirname, '../superset/translations');
-
-const getAvailableTranslationCodes = () => {
-  if (process.env.BUILD_TRANSLATIONS === 'true') {
-    const LOCALE_CODE_MAPPING = {
-      zh: 'zh-cn',
-    };
-    const files = fs.readdirSync(TRANSLATIONS_DIR);
-    return files
-      .filter(file =>
-        fs.statSync(path.join(TRANSLATIONS_DIR, file)).isDirectory(),
-      )
-      .filter(dirName => !dirName.startsWith('__'))
-      .map(dirName => dirName.replace('_', '-'))
-      .map(dirName => LOCALE_CODE_MAPPING[dirName] || dirName);
-  }
-  // Indicates to the MomentLocalesPlugin that we only want to keep 'en'.
-  return [];
-};
 
 const {
   mode = 'development',
@@ -160,9 +140,6 @@ const plugins = [
     chunks: [],
     filename: '500.html',
   }),
-  new MomentLocalesPlugin({
-    localesToKeep: getAvailableTranslationCodes(),
-  }),
 ];
 
 if (!process.env.CI) {
@@ -253,6 +230,9 @@ const config = {
     {
       message:
         /export 'withTooltipPropTypes' \(imported as 'vxTooltipPropTypes'\) was not found/,
+    },
+    {
+      message: /Can't resolve.*superset_text/,
     },
   ],
   performance: {
@@ -526,7 +506,7 @@ const config = {
     'react/lib/ReactContext': true,
   },
   plugins,
-  devtool: 'source-map',
+  devtool: isDevMode ? 'eval-cheap-module-source-map' : false,
 };
 
 // find all the symlinked plugins and use their source code for imports
@@ -541,27 +521,24 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
 });
 console.log(''); // pure cosmetic new line
 
-let proxyConfig = getProxyConfig();
-
 if (isDevMode) {
-  config.devtool = 'eval-cheap-module-source-map';
-  config.devServer = {
-    onBeforeSetupMiddleware(devServer) {
-      // load proxy config when manifest updates
-      const { afterEmit } = getCompilerHooks(devServer.compiler);
+  let proxyConfig = getProxyConfig();
+  // Set up a plugin to handle manifest updates
+  config.plugins = config.plugins || [];
+  config.plugins.push({
+    apply: compiler => {
+      const { afterEmit } = getCompilerHooks(compiler);
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
     },
+  });
+
+  config.devServer = {
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
-    // Only serves bundled files from webpack-dev-server
-    // and proxy everything else to Superset backend
-    proxy: [
-      // functions are called for every request
-      () => proxyConfig,
-    ],
+    proxy: [() => proxyConfig],
     client: {
       overlay: {
         errors: true,
@@ -570,7 +547,9 @@ if (isDevMode) {
       },
       logging: 'error',
     },
-    static: path.join(process.cwd(), '../static/assets'),
+    static: {
+      directory: path.join(process.cwd(), '../static/assets'),
+    },
   };
 }
 

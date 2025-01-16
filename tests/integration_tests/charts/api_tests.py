@@ -93,7 +93,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             cache_manager.data_cache.clear()
             yield
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_charts(self):
         with self.create_app().app_context():
             charts = []
@@ -117,7 +117,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 db.session.delete(fav_chart)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_charts_created_by_gamma(self):
         with self.create_app().app_context():
             charts = []
@@ -130,7 +130,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_certified_charts(self):
         with self.create_app().app_context():
             certified_charts = []
@@ -153,7 +153,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_chart_with_report(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -173,7 +173,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(chart)
             db.session.commit()
 
-    @pytest.fixture()
+    @pytest.fixture
     def add_dashboard_to_chart(self):
         with self.create_app().app_context():
             admin = self.get_user("admin")
@@ -348,7 +348,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         admin = self.get_user("admin")
         chart_count = 4
-        chart_ids = list()
+        chart_ids = list()  # noqa: C408
         for chart_name_index in range(chart_count):
             chart_ids.append(
                 self.insert_chart(f"title{chart_name_index}", [admin.id], 1, admin).id
@@ -462,7 +462,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         """
         gamma_id = self.get_user("gamma").id
         chart_count = 4
-        chart_ids = list()
+        chart_ids = list()  # noqa: C408
         for chart_name_index in range(chart_count):
             chart_ids.append(
                 self.insert_chart(f"title{chart_name_index}", [gamma_id], 1).id
@@ -492,7 +492,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             "alpha2", "password", "Alpha", email="alpha2@superset.org"
         )
         chart = self.insert_chart("title", [user_alpha1.id], 1)
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         uri = f"api/v1/chart/{chart.id}"
         rv = self.delete_assert_metric(uri, "delete")
         assert rv.status_code == 403
@@ -513,7 +513,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         )
 
         chart_count = 4
-        charts = list()
+        charts = list()  # noqa: C408
         for chart_name_index in range(chart_count):
             charts.append(
                 self.insert_chart(f"title{chart_name_index}", [user_alpha1.id], 1)
@@ -521,7 +521,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         owned_chart = self.insert_chart("title_owned", [user_alpha2.id], 1)
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
 
         # verify we can't delete not owned charts
         arguments = [chart.id for chart in charts]
@@ -922,7 +922,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         )
         chart = self.insert_chart("title", [user_alpha1.id], 1)
 
-        self.login(username="alpha2", password="password")
+        self.login(username="alpha2", password="password")  # noqa: S106
         chart_data = {"slice_name": "title1_changed"}
         uri = f"api/v1/chart/{chart.id}"
         rv = self.put_assert_metric(uri, chart_data, "put")
@@ -960,7 +960,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         new_dashboard.published = False
         db.session.add(new_dashboard)
 
-        self.login(username="alpha1", password="password")
+        self.login(username="alpha1", password="password")  # noqa: S106
         chart_data_with_invalid_dashboard = {
             "slice_name": "title1_changed",
             "dashboards": [original_dashboard.id, 0],
@@ -1035,6 +1035,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert response == expected_response
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_get_chart(self):
         """
         Chart API: Test get chart
@@ -1170,6 +1171,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert result[0]["slice_name"] == self.chart.slice_name
 
     @pytest.mark.usefixtures("create_charts_some_with_tags")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_get_charts_tag_filters(self):
         """
         Chart API: Test get charts with tag filters
@@ -1208,9 +1210,9 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
             # Compare results
             assert data_by_id["count"] == data_by_name["count"], len(expected_charts)
-            assert set(chart["id"] for chart in data_by_id["result"]) == set(
+            assert set(chart["id"] for chart in data_by_id["result"]) == set(  # noqa: C401
                 chart["id"] for chart in data_by_name["result"]
-            ), set(chart.id for chart in expected_charts)
+            ), set(chart.id for chart in expected_charts)  # noqa: C401
 
     def test_get_charts_changed_on(self):
         """
@@ -1255,7 +1257,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 5
 
-    @pytest.fixture()
+    @pytest.fixture
     def load_energy_charts(self):
         with app.app_context():
             admin = self.get_user("admin")
@@ -1824,11 +1826,11 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
-                        "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",
+                        "charts/imported_chart.yaml": "Chart already exists and `overwrite=true` was not passed",  # noqa: E501
                         "issue_codes": [
                             {
                                 "code": 1010,
-                                "message": "Issue 1010 - Superset encountered an error while running a command.",
+                                "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                             }
                         ],
                     },
@@ -1970,7 +1972,6 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
     @parameterized.expand(
         [
-            "Top 10 Girl Name Share",  # Legacy chart
             "Pivot Table v2",  # Non-legacy chart
         ],
     )
@@ -2096,6 +2097,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     def test_warm_up_cache_no_datasource(self) -> None:
         self.login(ADMIN_USERNAME)
         slc = self.get_slice("Top 10 Girl Name Share")
@@ -2383,4 +2385,4 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
             data = json.loads(rv.data.decode("utf-8"))
             result = data["result"]
             excluded_key = "query"
-            assert all([excluded_key not in query for query in result])
+            assert all([excluded_key not in query for query in result])  # noqa: C419

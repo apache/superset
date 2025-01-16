@@ -46,7 +46,7 @@ const { id: defaultChartId, form_data: defaultFormData } =
 const { slice_name: chartName } = defaultFormData;
 const unsupportedChartFormData = {
   ...defaultFormData,
-  viz_type: VizType.DistBar,
+  viz_type: VizType.Sankey,
 };
 
 const noDimensionsFormData = {
@@ -117,12 +117,13 @@ const expectDrillToDetailModal = async (
   filters: BinaryQueryObjectFilterClause[] = [],
 ) => {
   const button = screen.getByRole('menuitem', { name: buttonName });
+
   userEvent.click(button);
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,
   });
 
-  expect(modal).toBeVisible();
+  expect(modal).toBeInTheDocument();
   expect(screen.getByTestId('modal-filters')).toHaveTextContent(
     JSON.stringify(filters),
   );

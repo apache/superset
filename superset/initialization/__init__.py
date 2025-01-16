@@ -547,7 +547,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         feature_flag_manager.init_app(self.superset_app)
 
     def configure_sqlglot_dialects(self) -> None:
-        SQLGLOT_DIALECTS.update(self.config["SQLGLOT_DIALECTS_EXTENSIONS"])
+        extensions = self.config["SQLGLOT_DIALECTS_EXTENSIONS"]
+
+        if callable(extensions):
+            extensions = extensions()
+
+        SQLGLOT_DIALECTS.update(extensions)
 
     @transaction()
     def configure_fab(self) -> None:
@@ -581,7 +586,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.superset_app.url_map.converters["regex"] = RegexConverter
         self.superset_app.url_map.converters["object_type"] = ObjectTypeConverter
 
-    def configure_middlewares(self) -> None:
+    def configure_middlewares(self) -> None:  # noqa: C901
         if self.config["ENABLE_CORS"]:
             # pylint: disable=import-outside-toplevel
             from flask_cors import CORS
@@ -648,7 +653,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "We haven't found any Content Security Policy (CSP) defined in "
                 "the configurations. Please make sure to configure CSP using the "
                 "TALISMAN_ENABLED and TALISMAN_CONFIG keys or any other external "
-                "software. Failing to configure CSP have serious security implications. "
+                "software. Failing to configure CSP have serious security implications. "  # noqa: E501
                 "Check https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP for more "
                 "information. You can disable this warning using the "
                 "CONTENT_SECURITY_POLICY_WARNING key."

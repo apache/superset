@@ -46,7 +46,7 @@ const withIdResult = {
         groupby: ['country'],
       },
     }),
-    viz_type: VizType.LegacyLine,
+    viz_type: VizType.Line,
   },
 };
 

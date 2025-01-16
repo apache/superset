@@ -66,7 +66,7 @@ class TestTagsDAO(SupersetTestCase):
         db.session.commit()
         return tagged_object
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
@@ -85,7 +85,7 @@ class TestTagsDAO(SupersetTestCase):
                 )
             yield tags
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tagged_objects(self):
         with self.create_app().app_context():
             # clear tags table

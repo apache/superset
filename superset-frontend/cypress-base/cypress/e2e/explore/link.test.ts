@@ -30,7 +30,7 @@ const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
 
 describe('Test explore links', () => {
   beforeEach(() => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Open and close view query modal', () => {
@@ -42,8 +42,8 @@ describe('Test explore links', () => {
     cy.wait('@chartData').then(() => {
       cy.get('code');
     });
-    cy.get('.ant-modal-content').within(() => {
-      cy.get('button.ant-modal-close').first().click({ force: true });
+    cy.get('.antd5-modal-content').within(() => {
+      cy.get('button.antd5-modal-close').first().click({ force: true });
     });
   });
 

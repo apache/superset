@@ -478,7 +478,7 @@ def load_mutltiple_tabs_dashboard():
             "children": [],
             "id": "MARKDOWN-BUmyHM2s0x",
             "meta": {
-                "code": "# Aspiring Developers\n\nThe mission of FreeCodeCamp is to \"help people learn to code for free\". With this in mind, it's no surprise that ~83% of this survey's respondents fall into the **Aspiring Developer** category.\n\nIn this tab, we use visualization to explore:\n\n- Interest in relocating for work\n- Preferences around work location & style\n- Distribution of expected income\n- Distribution of highest degree held\n- Heatmap of highest degree held vs employment style preference",
+                "code": "# Aspiring Developers\n\nThe mission of FreeCodeCamp is to \"help people learn to code for free\". With this in mind, it's no surprise that ~83% of this survey's respondents fall into the **Aspiring Developer** category.\n\nIn this tab, we use visualization to explore:\n\n- Interest in relocating for work\n- Preferences around work location & style\n- Distribution of expected income\n- Distribution of highest degree held\n- Heatmap of highest degree held vs employment style preference",  # noqa: E501
                 "height": 50,
                 "width": 4,
             },
@@ -495,7 +495,7 @@ def load_mutltiple_tabs_dashboard():
             "children": [],
             "id": "MARKDOWN-NQmSPDOtpl",
             "meta": {
-                "code": "# Current Developers\n\nWhile majority of the students on FCC are Aspiring developers, there's a nontrivial minority that's there to continue leveling up their skills (17% of the survey respondents).\n\nBased on how respondents self-identified in the start of the survey, they were asked different questions. In this tab, we use visualizations to explore:\n\n- The buckets of commute team these developers encounter\n- The proportion of developers whose current job is their first developer job\n- Distribution of last year's income\n- The geographic distribution of these developers\n- The overlap between commute time and if their current job is their first developer job\n- Potential link between highest degree earned and last year's income",
+                "code": "# Current Developers\n\nWhile majority of the students on FCC are Aspiring developers, there's a nontrivial minority that's there to continue leveling up their skills (17% of the survey respondents).\n\nBased on how respondents self-identified in the start of the survey, they were asked different questions. In this tab, we use visualizations to explore:\n\n- The buckets of commute team these developers encounter\n- The proportion of developers whose current job is their first developer job\n- Distribution of last year's income\n- The geographic distribution of these developers\n- The overlap between commute time and if their current job is their first developer job\n- Potential link between highest degree earned and last year's income",  # noqa: E501
                 "height": 56,
                 "width": 4,
             },
@@ -512,7 +512,7 @@ def load_mutltiple_tabs_dashboard():
             "children": [],
             "id": "MARKDOWN-__u6CsUyfh",
             "meta": {
-                "code": "## FreeCodeCamp New Coder Survey 2018\n\nEvery year, FCC surveys its user base (mostly budding software developers) to learn more about their interests, backgrounds, goals, job status, and socioeconomic features. This dashboard visualizes survey data from the 2018 survey.\n\n- [Survey link](https://freecodecamp.typeform.com/to/S3UeD9)\n- [Dataset](https://github.com/freeCodeCamp/2018-new-coder-survey)\n- [FCC Blog Post](https://www.freecodecamp.org/news/we-asked-20-000-people-who-they-are-and-how-theyre-learning-to-code-fff5d668969/)",
+                "code": "## FreeCodeCamp New Coder Survey 2018\n\nEvery year, FCC surveys its user base (mostly budding software developers) to learn more about their interests, backgrounds, goals, job status, and socioeconomic features. This dashboard visualizes survey data from the 2018 survey.\n\n- [Survey link](https://freecodecamp.typeform.com/to/S3UeD9)\n- [Dataset](https://github.com/freeCodeCamp/2018-new-coder-survey)\n- [FCC Blog Post](https://www.freecodecamp.org/news/we-asked-20-000-people-who-they-are-and-how-theyre-learning-to-code-fff5d668969/)",  # noqa: E501
                 "height": 30,
                 "width": 6,
             },
@@ -529,7 +529,7 @@ def load_mutltiple_tabs_dashboard():
             "children": [],
             "id": "MARKDOWN-zc2mWxZeox",
             "meta": {
-                "code": "# Demographics\n\nFreeCodeCamp is a completely-online community of people learning to code and consists of aspiring & current developers from all over the world. That doesn't necessarily mean that access to these types of opportunities are evenly distributed. \n\nThe following charts can begin to help us understand:\n\n- the original citizenship of the survey respondents\n- minority representation among both aspiring and current developers\n- their age distribution\n- household languages",
+                "code": "# Demographics\n\nFreeCodeCamp is a completely-online community of people learning to code and consists of aspiring & current developers from all over the world. That doesn't necessarily mean that access to these types of opportunities are evenly distributed. \n\nThe following charts can begin to help us understand:\n\n- the original citizenship of the survey respondents\n- minority representation among both aspiring and current developers\n- their age distribution\n- household languages",  # noqa: E501
                 "height": 52,
                 "width": 3,
             },
@@ -648,4 +648,4 @@ def load_mutltiple_tabs_dashboard():
         dash = create_dashboard(
             "multi_tabs_test", "multiple tabs Test", json.dumps(position_json), None
         )
-    yield dash
+    return dash

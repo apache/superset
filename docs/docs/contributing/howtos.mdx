@@ -571,13 +571,9 @@ pybabel compile -d superset/translations
 
 ### Python
 
-We use [Pylint](https://pylint.org/) and [ruff](https://github.com/astral-sh/ruff)
-for linting which can be invoked via:
+We use [ruff](https://github.com/astral-sh/ruff) for linting which can be invoked via:
 
 ```
-# Run pylint
-pylint superset/
-
 # auto-reformat using ruff
 ruff format
 
@@ -588,11 +584,8 @@ ruff check
 ruff check --fix
 ```
 
-
-In terms of best practices please avoid blanket disabling of Pylint messages globally
-(via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions.
-Disabling should occur inline as it prevents masking issues and provides context as to why
-said message is disabled.
+Ruff configuration is located in our
+(pyproject.toml)[https://github.com/apache/superset/blob/master/pyproject.toml] file
 
 All this is configured to run in pre-commit hooks, which we encourage you to setup
 with `pre-commit install`

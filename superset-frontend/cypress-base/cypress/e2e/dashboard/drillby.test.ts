@@ -57,7 +57,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
   cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
     .first()
     .find("[role='menu'] [role='menuitem'] [title='Drill by']")
-    .trigger('mouseover');
+    .trigger('mouseover', { force: true });
   cy.get(
     '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-hidden) [data-test="drill-by-submenu"]',
   )
@@ -524,8 +524,8 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it('Bar Chart V2', () => {
-      testEchart('echarts_timeseries_bar', 'Bar Chart V2', [
+    it('Bar Chart', () => {
+      testEchart('echarts_timeseries_bar', 'Bar Chart', [
         [70, 94],
         [362, 68],
       ]);

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
+
 import pandas as pd
 from sqlalchemy import DateTime, inspect
 
@@ -22,6 +24,8 @@ from superset import db
 from superset.sql_parse import Table
 
 from .helpers import get_example_url, get_table_connector_registry
+
+logger = logging.getLogger(__name__)
 
 
 def load_flights(only_metadata: bool = False, force: bool = False) -> None:
@@ -67,4 +71,4 @@ def load_flights(only_metadata: bool = False, force: bool = False) -> None:
     tbl.database = database
     tbl.filter_select_enabled = True
     tbl.fetch_metadata()
-    print("Done loading table!")
+    logger.debug("Done loading table!")

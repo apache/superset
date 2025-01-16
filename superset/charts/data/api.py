@@ -28,8 +28,8 @@ from marshmallow import ValidationError
 from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
+from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
-from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.create_async_job_command import (
     CreateAsyncChartDataJobCommand,
@@ -306,7 +306,7 @@ class ChartDataRestApi(ChartRestApi):
             cached_data = self._load_query_context_form_from_cache(cache_key)
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            setattr(g, "form_data", cached_data)
+            g.form_data = cached_data
             query_context = self._create_query_context_from_form(cached_data)
             command = ChartDataCommand(query_context)
             command.validate()
@@ -343,7 +343,7 @@ class ChartDataRestApi(ChartRestApi):
         result = async_command.run(form_data, get_user_id())
         return self.response(202, **result)
 
-    def _send_chart_response(
+    def _send_chart_response(  # noqa: C901
         self,
         result: dict[Any, Any],
         form_data: dict[str, Any] | None = None,
@@ -356,7 +356,7 @@ class ChartDataRestApi(ChartRestApi):
         # This is needed for sending reports based on text charts that do the
         # post-processing of data, eg, the pivot table.
         if result_type == ChartDataResultType.POST_PROCESSED:
-            result = apply_post_process(result, form_data, datasource)
+            result = apply_client_processing(result, form_data, datasource)
 
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file

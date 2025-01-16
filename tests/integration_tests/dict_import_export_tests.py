@@ -58,7 +58,13 @@ class TestDictImportExport(SupersetTestCase):
         cls.delete_imports()
 
     def create_table(
-        self, name, schema=None, id=0, cols_names=[], cols_uuids=None, metric_names=[]
+        self,
+        name,
+        schema=None,
+        id=0,
+        cols_names=[],  # noqa: B006
+        cols_uuids=None,
+        metric_names=[],  # noqa: B006
     ):
         database_name = "main"
         name = f"{NAME_PREFIX}{name}"
@@ -74,7 +80,8 @@ class TestDictImportExport(SupersetTestCase):
             "id": id,
             "params": json.dumps(params),
             "columns": [
-                {"column_name": c, "uuid": u} for c, u in zip(cols_names, cols_uuids)
+                {"column_name": c, "uuid": u}
+                for c, u in zip(cols_names, cols_uuids, strict=False)
             ],
             "metrics": [{"metric_name": c, "expression": ""} for c in metric_names],
         }
@@ -82,7 +89,7 @@ class TestDictImportExport(SupersetTestCase):
         table = SqlaTable(
             id=id, schema=schema, table_name=name, params=json.dumps(params)
         )
-        for col_name, uuid in zip(cols_names, cols_uuids):
+        for col_name, uuid in zip(cols_names, cols_uuids, strict=False):
             table.columns.append(TableColumn(column_name=col_name, uuid=uuid))
         for metric_name in metric_names:
             table.metrics.append(SqlMetric(metric_name=metric_name, expression=""))
@@ -250,7 +257,7 @@ class TestDictImportExport(SupersetTestCase):
             back_references=False,
             include_defaults=False,
         )
-        self.get_resp("/login/", data=dict(username="admin", password="general"))
+        self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
         resp = self.get_resp(
             "/databaseview/action_post", {"action": "yaml_export", "rowid": 1}
         )

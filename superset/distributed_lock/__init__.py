@@ -36,7 +36,7 @@ RESOURCE = KeyValueResource.LOCK
 
 
 @contextmanager
-def KeyValueDistributedLock(  # pylint: disable=invalid-name
+def KeyValueDistributedLock(  # pylint: disable=invalid-name  # noqa: N802
     namespace: str,
     **kwargs: Any,
 ) -> Iterator[uuid.UUID]:

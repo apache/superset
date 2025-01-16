@@ -35,7 +35,7 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
   padding: 0;
   border: 1px solid ${theme.colors.primary.dark2};
 
-  &.ant-btn > span.anticon {
+  &.antd5-btn > span.anticon {
     line-height: 0;
     transition: inherit;
   }

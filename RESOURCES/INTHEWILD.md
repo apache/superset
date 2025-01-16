@@ -43,10 +43,12 @@ Join our growing community!
 - [Capital Service S.A.](https://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](https://clark.de/)
 - [KarrotPay](https://www.daangnpay.com/)
+- [Remita](https://remita.net) [@mujibishola]
 - [Taveo](https://www.taveo.com) [@codek]
 - [Unit](https://www.unit.co/about-us) [@amitmiran137]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](https://xendit.co/) [@LieAlbertTriAdrian]
+- [Cover Genius](https://covergenius.com/)
 
 ### Gaming
 - [Popoko VM Games Studio](https://popoko.live)
@@ -59,18 +61,21 @@ Join our growing community!
 - [Fanatics](https://www.fanatics.com/) [@coderfender]
 - [Fordeal](https://www.fordeal.com) [@Renkai]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
+- [GoTo/Gojek](https://www.gojek.io/) [@gwthm-in]
 - [HuiShouBao](https://www.huishoubao.com/) [@Yukinoshita-Yukino]
 - [Now](https://www.now.vn/) [@davidkohcw]
 - [Qunar](https://www.qunar.com/) [@flametest]
 - [Rakuten Viki](https://www.viki.com)
 - [Shopee](https://shopee.sg) [@xiaohanyu]
 - [Shopkick](https://www.shopkick.com) [@LAlbertalli]
+- [ShopUp](https://www.shopup.org/) [@gwthm-in]
 - [Tails.com](https://tails.com/gb/) [@alanmcruickshank]
 - [THE ICONIC](https://theiconic.com.au/) [@ksaagariconic]
 - [Utair](https://www.utair.ru) [@utair-digital]
 - [VkusVill](https://vkusvill.ru/) [@ETselikov]
 - [Zalando](https://www.zalando.com) [@dmigo]
 - [Zalora](https://www.zalora.com) [@ksaagariconic]
+- [Zepto](https://www.zeptonow.com/) [@gwthm-in]
 
 ### Enterprise Technology
 - [A3Data](https://a3data.com.br) [@neylsoncrepalde]
@@ -79,7 +84,7 @@ Join our growing community!
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Caizin](https://caizin.com/) [@tejaskatariya]
-- [Careem](https://www.careem.com/) [@SamraHanifCareem]
+- [Careem](https://www.careem.com/) [@samraHanif0340]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
 - [Deepomatic](https://deepomatic.com/) [@Zanoellia]
@@ -119,6 +124,7 @@ Join our growing community!
 - [Tobii](https://www.tobii.com/) [@dwa]
 - [Tooploox](https://www.tooploox.com/) [@jakubczaplicki]
 - [Unvired](https://unvired.com) [@srinisubramanian]
+- [Virtuoso QA](https://www.virtuosoqa.com)
 - [Whale](https://whale.im)
 - [Windsor.ai](https://www.windsor.ai/) [@octaviancorlade]
 - [Zeta](https://www.zeta.tech/) [@shaikidris]
@@ -138,6 +144,7 @@ Join our growing community!
 ### Education
 - [Aveti Learning](https://avetilearning.com/) [@TheShubhendra]
 - [Brilliant.org](https://brilliant.org/)
+- [Open edX](https://openedx.org/)
 - [Platzi.com](https://platzi.com/)
 - [Sunbird](https://www.sunbird.org/) [@eksteporg]
 - [The GRAPH Network](https://thegraphnetwork.org/) [@fccoelho]

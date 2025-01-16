@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useRef, useCallback } from 'react';
-import { Divider } from 'src/components';
+import { Divider } from 'src/components/Divider';
 import { Input } from 'src/components/Input';
 import { CronPicker, CronError, CronProps } from '.';
 

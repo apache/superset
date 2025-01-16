@@ -36,14 +36,14 @@
     "@superset-ui/core": "*",
     "ace-builds": "^1.4.14",
     "lodash": "^4.17.11",
-    "moment": "^2.26.0",
+    "dayjs": "^1.11.13",
     "react": "^16.13.1",
     "react-ace": "^10.1.0",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.12",
-    "@types/lodash": "^4.17.7",
+    "@types/jest": "^29.5.14",
+    "@types/lodash": "^4.17.13",
     "jest": "^29.7.0"
   }
 }

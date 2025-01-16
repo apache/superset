@@ -58,7 +58,7 @@ export const ViewResultsModalTrigger = ({
       {(() => (
         <Modal
           css={css`
-            .ant-modal-body {
+            .antd5-modal-body {
               display: flex;
               flex-direction: column;
             }

@@ -19,20 +19,19 @@ import functools
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Callable, cast, Optional
+from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
 from flask import g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose, protect, rison, safe
-from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
-from superset import db, is_feature_enabled, thumbnail_cache
+from superset import db, thumbnail_cache
 from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
@@ -42,6 +41,7 @@ from superset.commands.dashboard.delete import (
 )
 from superset.commands.dashboard.exceptions import (
     DashboardAccessDeniedError,
+    DashboardColorsConfigUpdateFailedError,
     DashboardCopyError,
     DashboardCreateFailedError,
     DashboardDeleteFailedError,
@@ -57,6 +57,7 @@ from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCom
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
+    UpdateDashboardColorsConfigCommand,
     UpdateDashboardCommand,
     UpdateDashboardNativeFiltersCommand,
 )
@@ -81,6 +82,7 @@ from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.dashboards.schemas import (
     CacheScreenshotSchema,
     DashboardCacheScreenshotResponseSchema,
+    DashboardColorsConfigUpdateSchema,
     DashboardCopySchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
@@ -108,6 +110,7 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.core import parse_boolean_string
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
@@ -120,6 +123,7 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
@@ -156,18 +160,6 @@ def with_dashboard(
 class DashboardRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(Dashboard)
 
-    @before_request(only=["thumbnail", "cache_dashboard_screenshot", "screenshot"])
-    def ensure_thumbnails_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("THUMBNAILS"):
-            return self.response_404()
-        return None
-
-    @before_request(only=["cache_dashboard_screenshot", "screenshot"])
-    def ensure_screenshots_enabled(self) -> Optional[Response]:
-        if not is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"):
-            return self.response_404()
-        return None
-
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
         RouteMethod.IMPORT,
@@ -187,6 +179,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "cache_dashboard_screenshot",
         "screenshot",
         "put_filters",
+        "put_colors",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -275,6 +268,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     add_model_schema = DashboardPostSchema()
     edit_model_schema = DashboardPutSchema()
     update_filters_model_schema = DashboardNativeFiltersConfigUpdateSchema()
+    update_colors_model_schema = DashboardColorsConfigUpdateSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
     dashboard_dataset_schema = DashboardDatasetSchema()
@@ -475,7 +469,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
-        """
+        """  # noqa: E501
         try:
             tabs = DashboardDAO.get_tabs_for_dashboard(id_or_slug)
             result = self.tab_schema.dump(tabs)
@@ -767,6 +761,88 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             response = self.response_422(message=str(ex))
         return response
 
+    @expose("/<pk>/colors", methods=("PUT",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.put_colors",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def put_colors(self, pk: int) -> Response:
+        """
+        Modify colors configuration for a dashboard.
+        ---
+        put:
+          summary: Update colors configuration for a dashboard.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            name: mark_updated
+            schema:
+              type: boolean
+              description: Whether to update the dashboard changed_on field
+          requestBody:
+            description: Colors configuration
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DashboardColorsConfigUpdateSchema'
+          responses:
+            200:
+              description: Dashboard colors updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            item = self.update_colors_model_schema.load(request.json, partial=True)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            mark_updated = parse_boolean_string(
+                request.args.get("mark_updated", "true")
+            )
+            UpdateDashboardColorsConfigCommand(pk, item, mark_updated).run()
+            response = self.response(200)
+        except DashboardNotFoundError:
+            response = self.response_404()
+        except DashboardForbiddenError:
+            response = self.response_403()
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
+        except DashboardColorsConfigUpdateFailedError as ex:
+            logger.error(
+                "Error changing color configuration for dashboard %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            response = self.response_422(message=str(ex))
+        return response
+
     @expose("/<pk>", methods=("DELETE",))
     @protect()
     @safe
@@ -950,6 +1026,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return response
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
+    @validate_feature_flags(["THUMBNAILS"])
     @protect()
     @safe
     @rison(thumbnail_query_schema)
@@ -1053,6 +1130,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         )
 
     @expose("/<pk>/cache_dashboard_screenshot/", methods=("POST",))
+    @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
     @rison(screenshot_query_schema)
     @safe
@@ -1153,6 +1231,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         return trigger_celery()
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
+    @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
     @protect()
     @safe
     @statsd_metrics
@@ -1174,6 +1253,11 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             schema:
               type: string
             name: digest
+          - in: query
+            name: download_format
+            schema:
+              type: string
+              enum: [png, pdf]
           responses:
             200:
               description: Dashboard thumbnail image

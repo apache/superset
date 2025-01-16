@@ -183,7 +183,7 @@ def create_test_table_context(database: Database):
         engine.execute("DROP TABLE test_table")
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -194,7 +194,7 @@ def create_report_email_chart():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart_with_cc_and_bcc():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -208,7 +208,7 @@ def create_report_email_chart_with_cc_and_bcc():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart_alpha_owner(get_user):
     owners = [get_user("alpha")]
     chart = db.session.query(Slice).first()
@@ -220,7 +220,7 @@ def create_report_email_chart_alpha_owner(get_user):
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart_force_screenshot():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -231,7 +231,7 @@ def create_report_email_chart_force_screenshot():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart_with_csv():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -244,7 +244,7 @@ def create_report_email_chart_with_csv():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart_with_text():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -257,7 +257,7 @@ def create_report_email_chart_with_text():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_chart_with_csv_no_query_context():
     chart = db.session.query(Slice).first()
     chart.query_context = None
@@ -271,7 +271,7 @@ def create_report_email_chart_with_csv_no_query_context():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_dashboard():
     dashboard = db.session.query(Dashboard).first()
     report_schedule = create_report_notification(
@@ -282,7 +282,7 @@ def create_report_email_dashboard():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_email_dashboard_force_screenshot():
     dashboard = db.session.query(Dashboard).first()
     report_schedule = create_report_notification(
@@ -293,7 +293,7 @@ def create_report_email_dashboard_force_screenshot():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_slack_chart():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -304,7 +304,7 @@ def create_report_slack_chart():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_slack_chartv2():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -315,7 +315,7 @@ def create_report_slack_chartv2():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_slack_chart_with_csv():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -329,7 +329,7 @@ def create_report_slack_chart_with_csv():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_slack_chart_with_text():
     chart = db.session.query(Slice).first()
     chart.query_context = '{"mock": "query_context"}'
@@ -343,7 +343,7 @@ def create_report_slack_chart_with_text():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_report_slack_chart_working():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -372,7 +372,7 @@ def create_report_slack_chart_working():
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_alert_slack_chart_success():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
@@ -666,7 +666,7 @@ def test_email_chart_report_schedule_with_cc_bcc(
 ):
     """
     ExecuteReport Command: Test chart email report schedule with screenshot and email cc, bcc options
-    """
+    """  # noqa: E501
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
 
@@ -1185,8 +1185,8 @@ def test_email_dashboard_report_schedule(
     "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=True
 )
 def test_email_dashboard_report_schedule_with_tab_anchor(
-    _email_mock,
-    _screenshot_mock,
+    _email_mock,  # noqa: PT019
+    _screenshot_mock,  # noqa: PT019
 ):
     """
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
@@ -1232,8 +1232,8 @@ def test_email_dashboard_report_schedule_with_tab_anchor(
     "superset.extensions.feature_flag_manager._feature_flags", ALERT_REPORT_TABS=False
 )
 def test_email_dashboard_report_schedule_disabled_tabs(
-    _email_mock,
-    _screenshot_mock,
+    _email_mock,  # noqa: PT019
+    _screenshot_mock,  # noqa: PT019
 ):
     """
     ExecuteReport Command: Test dashboard email report schedule with tab metadata
@@ -1432,7 +1432,7 @@ def test_slack_chart_report_schedule_with_errors(
         SlackApiError(message="foo", response="bar"),
     ]
 
-    for idx, er in enumerate(slack_errors):
+    for idx, er in enumerate(slack_errors):  # noqa: B007
         web_client_mock.side_effect = [SlackApiError(None, None), er]
 
         with pytest.raises(ReportScheduleClientErrorsException):
@@ -1565,7 +1565,7 @@ def test_slack_chart_report_schedule_with_text(
             ]
         )
         assert (
-            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+{create_report_slack_chart_with_text.chart.id}%7D&force=false|Explore in Superset>"
+            f"<http://0.0.0.0:8080/explore/?form_data=%7B%22slice_id%22:+{create_report_slack_chart_with_text.chart.id}%7D&force=false|Explore in Superset>"  # noqa: E501
             in slack_client_mock_class.return_value.chat_postMessage.call_args[1][
                 "text"
             ]
@@ -1762,7 +1762,7 @@ def test_email_dashboard_report_fails_uncaught_exception(
     email_mock.side_effect = Exception("Uncaught exception")
     app.config["EMAIL_REPORTS_CTA"] = "Call to action"
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception):  # noqa: B017, PT011
         AsyncExecuteReportScheduleCommand(
             TEST_ID, create_report_email_dashboard.id, datetime.utcnow()
         ).run()
@@ -1870,7 +1870,7 @@ def test_slack_token_callable_chart_report(
             TEST_ID, create_report_slack_chart.id, datetime.utcnow()
         ).run()
         app.config["SLACK_API_TOKEN"].assert_called()
-        assert slack_client_mock_class.called_with(token="cool_code", proxy="")
+        assert slack_client_mock_class.called_with(token="cool_code", proxy="")  # noqa: S106
         assert_log(ReportState.SUCCESS)
 
 
@@ -2281,7 +2281,7 @@ def test__send_with_client_errors(notification_mock, logger_mock):
 
     assert excinfo.errisinstance(SupersetException)
     logger_mock.warning.assert_called_with(
-        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
+        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"  # noqa: E501
     )
 
 
@@ -2303,10 +2303,10 @@ def test__send_with_multiple_errors(notification_mock, logger_mock):
     logger_mock.warning.assert_has_calls(
         [
             call(
-                "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"
+                "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.WARNING: 'warning'>, extra=None)"  # noqa: E501
             ),
             call(
-                "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
+                "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"  # noqa: E501
             ),
         ]
     )
@@ -2324,5 +2324,5 @@ def test__send_with_server_errors(notification_mock, logger_mock):
     assert excinfo.errisinstance(SupersetException)
     # it logs the error
     logger_mock.warning.assert_called_with(
-        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"
+        "SupersetError(message='', error_type=<SupersetErrorType.REPORT_NOTIFICATION_ERROR: 'REPORT_NOTIFICATION_ERROR'>, level=<ErrorLevel.ERROR: 'error'>, extra=None)"  # noqa: E501
     )

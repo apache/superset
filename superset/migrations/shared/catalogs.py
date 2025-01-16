@@ -150,10 +150,10 @@ def print_processed_batch(
     """
     elapsed_time = datetime.now() - start_time
     elapsed_seconds = elapsed_time.total_seconds()
-    elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"
+    elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"  # noqa: E501
     rows_processed = min(offset + batch_size, total_rows)
     logger.info(
-        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "
+        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "  # noqa: E501
         f"({(rows_processed / total_rows) * 100:.2f}%)"
     )
 
@@ -252,7 +252,7 @@ def update_schema_catalog_perms(
         catalog (str): The new catalog to set.
         downgrade (bool, optional): If True, reset the `catalog` and `catalog_perm` fields to None.
                                     Defaults to False.
-    """
+    """  # noqa: E501
     # Mapping of table id to schema permission
     mapping = {}
 
@@ -505,7 +505,9 @@ def upgrade_schema_perms(
             .filter_by(name=current_perm)
             .one_or_none()
         ):
-            existing_pvm.name = new_perm
+            # check that new_perm does not exist
+            if not session.query(ViewMenu).filter_by(name=new_perm).one_or_none():
+                existing_pvm.name = new_perm
         elif new_perm:
             # new schema discovered, need to create a new permission
             perms[new_perm] = ("schema_access",)
@@ -683,7 +685,9 @@ def downgrade_schema_perms(
                 None,
                 schema,
             )
-            pvms_to_rename.append((pvm, new_name))
+            # check to see if the new name already exists
+            if not session.query(ViewMenu).filter_by(name=new_name).one_or_none():
+                pvms_to_rename.append((pvm, new_name))
         else:
             # non-default catalog, delete schema perm
             pvms_to_delete.append(pvm)

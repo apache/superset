@@ -40,7 +40,7 @@ const createProps = (additionalProps = {}) => ({
   chart: {
     id: 1,
     latestQueryFormData: {
-      viz_type: VizType.LegacyHistogram,
+      viz_type: VizType.Histogram,
       datasource: '49__table',
       slice_id: 318,
       url_params: {},
@@ -80,7 +80,7 @@ const createProps = (additionalProps = {}) => ({
       slice_id: 318,
       time_range: 'No filter',
       url_params: {},
-      viz_type: VizType.LegacyHistogram,
+      viz_type: VizType.Histogram,
       x_axis_label: 'age',
       y_axis_label: 'count',
     },
@@ -296,10 +296,14 @@ describe('Additional actions tests', () => {
     });
     expect(props.actions.redirectSQLLab).toHaveBeenCalledTimes(0);
     userEvent.click(screen.getByLabelText('Menu actions trigger'));
+
+    expect(screen.queryByText('Edit Chart Properties')).not.toBeInTheDocument();
     userEvent.click(
       screen.getByRole('menuitem', { name: 'Edit chart properties' }),
     );
-    expect(await screen.findByText('Edit Chart Properties')).toBeVisible();
+    expect(
+      await screen.findByText('Edit Chart Properties'),
+    ).toBeInTheDocument();
   });
 
   test('Should call getChartDataRequest when click on "View query"', async () => {

@@ -226,7 +226,7 @@ class BaseReportState:
     ) -> list[str]:
         """
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
-        """
+        """  # noqa: E501
         force = "true" if self._report_schedule.force_screenshot else "false"
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
@@ -464,7 +464,7 @@ class BaseReportState:
         }
         return log_data
 
-    def _get_notification_content(self) -> NotificationContent:
+    def _get_notification_content(self) -> NotificationContent:  # noqa: C901
         """
         Gets a notification content, this is composed by a title and a screenshot
 
@@ -698,7 +698,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
-                if not AlertCommand(self._report_schedule).run():
+                if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             self.send()
@@ -782,7 +782,7 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                if not AlertCommand(self._report_schedule).run():
+                if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             except Exception as ex:
