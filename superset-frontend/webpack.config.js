@@ -522,23 +522,17 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
 console.log(''); // pure cosmetic new line
 
 if (isDevMode) {
-  config.devServer = {
-    setupMiddleware: (middlewares, devServer) => {
-      // load proxy config when manifest updates
-      const { afterEmit } = getCompilerHooks(devServer.compiler);
-      afterEmit.tap('ManifestPlugin', manifest => {
-        proxyConfig = getProxyConfig(manifest);
-      });
+  // Set up manifest hook outside of devServer config
+  const { afterEmit } = getCompilerHooks(compiler);
+  afterEmit.tap('ManifestPlugin', manifest => {
+    proxyConfig = getProxyConfig(manifest);
+  });
 
-      return middlewares;
-    },
+  config.devServer = {
     historyApiFallback: true,
     hot: true,
     port: devserverPort,
-    proxy: [
-      // functions are called for every request
-      () => proxyConfig,
-    ],
+    proxy: [() => proxyConfig],
     client: {
       overlay: {
         errors: true,
