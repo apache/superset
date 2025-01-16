@@ -95,7 +95,7 @@ def get_dashboard_digest(dashboard: Dashboard) -> str:
     datasources = dashboard.datasources
     try:
         executor_type, executor = get_executor(
-            executor_types=config["THUMBNAIL_EXECUTE_AS"],
+            executors=config["THUMBNAIL_EXECUTE_AS"],
             model=dashboard,
             current_user=get_current_user(),
         )
@@ -121,7 +121,7 @@ def get_chart_digest(chart: Slice) -> str:
     datasource = chart.datasource
     try:
         executor_type, executor = get_executor(
-            executor_types=config["THUMBNAIL_EXECUTE_AS"],
+            executors=config["THUMBNAIL_EXECUTE_AS"],
             model=chart,
             current_user=get_current_user(),
         )

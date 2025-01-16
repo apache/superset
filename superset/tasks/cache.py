@@ -284,7 +284,7 @@ def cache_warmup(
         logger.exception(message)
         return message
 
-    user = security_manager.get_user_by_username(app.config["ASYNC_TASK_FIXED_USER"])
+    user = security_manager.get_user_by_username(app.config["CACHE_WARMUP_USERNAME"])
     cookies = MachineAuthProvider.get_auth_cookies(user)
     headers = {
         "Cookie": f"session={cookies.get('session', '')}",
