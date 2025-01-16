@@ -162,9 +162,9 @@ def get_relative_base(unit: str, relative_start: str | None = None) -> str:
     granular_units = {"second", "minute", "hour"}
     broad_units = {"day", "week", "month", "quarter", "year"}
 
-    if unit in granular_units:
+    if unit.lower() in granular_units:
         return "now"
-    elif unit in broad_units:
+    elif unit.lower() in broad_units:
         return "today"
     else:
         raise ValueError(f"Unknown unit: {unit}")
@@ -268,9 +268,9 @@ def handle_modifier_and_unit(
     """
     base_expression = handle_scope_and_unit(scope, delta, unit, relative_base)
 
-    if modifier in ["start of", "beginning of"]:
+    if modifier.lower() in ["start of", "beginning of"]:
         return handle_start_of(base_expression, unit)
-    elif modifier == "end of":
+    elif modifier.lower() == "end of":
         return handle_end_of(base_expression, unit)
     else:
         raise ValueError(f"Unknown modifier: {modifier}")
@@ -302,11 +302,11 @@ def handle_scope_and_unit(scope: str, delta: str, unit: str, relative_base: str)
         - Example: "last 2 weeks" → `DATEADD(DATETIME('today'), -2, week)`.
     """
     _delta = int(delta) if delta else 1
-    if scope == "this":
+    if scope.lower() == "this":
         return f"DATETIME('{relative_base}')"
-    elif scope in ["last", "prior"]:
+    elif scope.lower() in ["last", "prior"]:
         return f"DATEADD(DATETIME('{relative_base}'), -{_delta}, {unit})"
-    elif scope == "next":
+    elif scope.lower() == "next":
         return f"DATEADD(DATETIME('{relative_base}'), {_delta}, {unit})"
     else:
         raise ValueError(f"Invalid scope: {scope}")
@@ -412,20 +412,17 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             (
                 r"^(start of|beginning of|end of)\s+(this|last|next|prior)\s+([0-9]+)?\s*(day|week|month|quarter|year)s?$",  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
-                    modifier.lower(),
-                    scope.lower(),
+                    modifier,
+                    scope,
                     delta,
-                    unit.lower,
-                    get_relative_base(unit.lower(), relative_start),
+                    unit,
+                    get_relative_base(unit, relative_start),
                 ),
             ),
             (
                 r"^(this|last|next|prior)\s+([0-9]+)?\s*(second|minute|day|week|month|quarter|year)s?$",
                 lambda scope, delta, unit: handle_scope_and_unit(
-                    scope.lower(),
-                    delta,
-                    unit.lower(),
-                    get_relative_base(unit.lower(), relative_start),
+                    scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
             ),
             (
