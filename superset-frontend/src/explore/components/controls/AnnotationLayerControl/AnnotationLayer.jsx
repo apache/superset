@@ -38,7 +38,7 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from 'src/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -111,8 +111,9 @@ const NotFoundContentWrapper = styled.div`
 
 const NotFoundContent = () => (
   <NotFoundContentWrapper>
-    <EmptyStateSmall
+    <EmptyState
       title={t('No annotation layers')}
+      size="small"
       description={
         <span>
           {t('Add an annotation layer')}{' '}
