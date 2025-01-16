@@ -170,8 +170,7 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
-class BaseDatasource(AuditMixinNullable,
-                     ImportExportMixin):  # pylint: disable=too-many-public-methods
+class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -360,11 +359,23 @@ class BaseDatasource(AuditMixinNullable,
     @property
     def verbose_map(self) -> dict[str, str]:
         verb_map = {"__timestamp": "Time"}
-        verb_map.update({o.metric_name: verb_map.setdefault(
-            o.metric_name, o.verbose_name or o.metric_name) for o in self.metrics})
+        verb_map.update(
+            {
+                o.metric_name: verb_map.setdefault(
+                    o.metric_name, o.verbose_name or o.metric_name
+                )
+                for o in self.metrics
+            }
+        )
 
-        verb_map.update({o.column_name: verb_map.setdefault(
-            o.column_name, o.verbose_name or o.column_name) for o in self.columns})
+        verb_map.update(
+            {
+                o.column_name: verb_map.setdefault(
+                    o.column_name, o.verbose_name or o.column_name
+                )
+                for o in self.columns
+            }
+        )
         return verb_map
 
     @property
@@ -541,9 +552,9 @@ class BaseDatasource(AuditMixinNullable,
                     target_generic_type == utils.GenericDataType.NUMERIC
                     and operator
                     not in {
-                    utils.FilterOperator.ILIKE,
-                    utils.FilterOperator.LIKE,
-                }
+                        utils.FilterOperator.ILIKE,
+                        utils.FilterOperator.LIKE,
+                    }
                 ):
                     # For backwards compatibility and edge cases
                     # where a column data type might have changed
@@ -1736,7 +1747,7 @@ class SqlaTable(
                         _("Db engine did not return all queried columns")
                     )
                 if len(df.columns) > len(labels_expected):
-                    df = df.iloc[:, 0: len(labels_expected)]
+                    df = df.iloc[:, 0 : len(labels_expected)]
                 df.columns = labels_expected
             return df
 
