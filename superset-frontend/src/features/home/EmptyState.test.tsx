@@ -95,9 +95,7 @@ describe('EmptyState', () => {
       expect(wrapper.find('.ant-empty-image').children()).toHaveLength(1);
 
       // Check the correct text is displayed
-      expect(textContainer.text()).toContain(
-        `Recently ${recent.tab?.toLowerCase()} charts, dashboards, and saved queries will appear here`,
-      );
+      expect(textContainer.text()).toContain(`Nothing here yet`);
     });
   });
 });
