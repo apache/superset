@@ -529,6 +529,7 @@ if (isDevMode) {
       afterEmit.tap('ManifestPlugin', manifest => {
         proxyConfig = getProxyConfig(manifest);
       });
+
       return middlewares;
     },
     historyApiFallback: true,
