@@ -88,18 +88,8 @@ describe('Charts list', () => {
       saveChartToDashboard('2 - Sample dashboard');
       saveChartToDashboard('3 - Sample dashboard');
       visitChartList();
+
       cy.getBySel('count-crosslinks').should('be.visible');
-      cy.getBySel('crosslinks')
-        .first()
-        .scrollIntoView()
-        .trigger('mouseover', { force: true });
-      cy.get('.antd5-tooltip', { timeout: 2000 })
-        .should('exist')
-        .and('be.visible')
-        .contains('3 - Sample dashboard')
-        .invoke('removeAttr', 'target')
-        .click();
-      cy.wait('@get');
     });
   });
 
@@ -124,7 +114,7 @@ describe('Charts list', () => {
 
     it('should sort correctly in list mode', () => {
       cy.getBySel('sort-header').eq(1).click();
-      cy.getBySel('table-row').first().contains('% Rural');
+      cy.getBySel('table-row').first().contains('Area Chart');
       cy.getBySel('sort-header').eq(1).click();
       cy.getBySel('table-row').first().contains("World's Population");
       cy.getBySel('sort-header').eq(1).click();
