@@ -243,6 +243,9 @@ npm install
 # run tests via headless Chrome browser (requires Chrome 64+)
 npm run cypress-run-chrome
 
+# use interactive mode to run tests, while keeping memory usage contained (default is 50!)
+npx cypress open --config numTestsKeptInMemory=3
+
 # run tests from a specific file
 npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
 
