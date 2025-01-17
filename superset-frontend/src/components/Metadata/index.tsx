@@ -25,11 +25,12 @@ const MetadataWrapper = styled.div`
   position: absolute;
   left: 0;
   top: 100%;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
 `;
 
 const MetadataText = styled.span`
   font-size: ${({ theme }) => theme.typography.sizes.xs}px;
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  color: ${({ theme }) => theme.colors.grayscale.light1};
   font-weight: ${({ theme }) => theme.typography.weights.medium};
 `;
 

@@ -1249,6 +1249,7 @@ const FiltersConfigForm = (
                     rules={[
                       {
                         validator: () => {
+                          console.log(formFilter);
                           if (
                             formFilter?.defaultDataMask?.filterState?.value !==
                             undefined
