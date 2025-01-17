@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [29121](https://github.com/apache/superset/pull/29121) Removed the `css`, `position_json`, and `json_metadata` from the payload of the dashboard list endpoint (`GET api/v1/dashboard`) for performance reasons.
 - [27505](https://github.com/apache/superset/pull/27505): We simplified the files under
   `requirements/` folder. If you use these files for your builds you may want to double
   check that your builds are not affected. `base.txt` should be the same as before, though
