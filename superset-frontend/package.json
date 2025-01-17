@@ -335,7 +335,6 @@
     "less-loader": "^12.2.0",
     "mini-css-extract-plugin": "^2.9.0",
     "mock-socket": "^9.3.1",
-    "node-fetch": "^2.6.7",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
     "prettier": "3.3.3",
