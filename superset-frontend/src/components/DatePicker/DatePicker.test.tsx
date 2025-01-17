@@ -17,19 +17,15 @@
  * under the License.
  */
 
-import { ConfigProvider, type ConfigProviderProps } from 'antd-v5';
-import { getTheme, ThemeType } from 'src/theme/index';
+import { render } from 'spec/helpers/testing-library';
+import { DatePicker, RangePicker } from '.';
 
-export const AntdThemeProvider = ({
-  theme,
-  children,
-  ...rest
-}: ConfigProviderProps) => (
-  <ConfigProvider
-    theme={theme || getTheme(ThemeType.LIGHT)}
-    prefixCls="antd5"
-    {...rest}
-  >
-    {children}
-  </ConfigProvider>
-);
+test('should render date picker', () => {
+  const { container } = render(<DatePicker />);
+  expect(container).toBeInTheDocument();
+});
+
+test('should render range picker', () => {
+  const { container } = render(<RangePicker />);
+  expect(container).toBeInTheDocument();
+});

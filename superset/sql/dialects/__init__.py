@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,11 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
-urllib3>=1.26.18
-werkzeug>=3.0.1
-numexpr>=2.9.0
 
-# 5.0.0 has a sensitive deprecation used in other libs
-# -> https://github.com/aio-libs/async-timeout/blob/master/CHANGES.rst#500-2024-10-31
-async_timeout>=4.0.0,<5.0.0
+from .firebolt import Firebolt, FireboltOld
+
+__all__ = ["Firebolt", "FireboltOld"]

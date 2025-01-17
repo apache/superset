@@ -89,6 +89,17 @@ For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
 used in the `docker compose` context to assign env vars to the superset configuration.
 
+### Accessing the postgres database
+Sometimes it's useful to access the database in the docker container directly.
+You can enter a `psql` shell (the official Postgres client) by running the following command:
+
+```bash
+docker compose exec db psql -U superset
+```
+
+Also note that the database is exposed on port 5432, so you can connect to it using your favorite
+Postgres client or even SQL Lab itselft directly in Superset by creating a new database connection
+to `localhost:5432`.
 
 ### Nuking the postgres database
 
@@ -122,7 +133,8 @@ instance, but many people like to run that tooling from their host.
 
 Assuming you already have a way to setup your python environments
 like `pyenv`, `virtualenv` or something else, all you should have to
-do is to install our dev, pinned python requirements bundle
+do is to install our dev, pinned python requirements bundle, after installing
+the prerequisites mentioned in [OS Dependencies](https://superset.apache.org/docs/installation/pypi/#os-dependencies)
 
 ```bash
 pip install -r requirements/development.txt

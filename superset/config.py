@@ -74,6 +74,8 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
+    DialectExtensions = dict[str, Dialects | type[Dialect]]
+
 # Realtime stats logger, a StatsD implementation exists
 STATS_LOGGER = DummyStatsLogger()
 
@@ -251,7 +253,7 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 )
 
 # Extends the default SQLGlot dialects with additional dialects
-SQLGLOT_DIALECTS_EXTENSIONS: dict[str, Dialects | type[Dialect]] = {}
+SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -832,10 +834,11 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 
 # Chrome allows up to 6 open connections per domain at a time. When there are more
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
-# next available socket. PR #5039 is trying to allow domain sharding for Superset,
-# and this feature will be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request).
-SUPERSET_WEBSERVER_DOMAINS = None
+# next available socket. PR #5039 added domain sharding for Superset,
+# and this feature can be enabled by configuration only (by default Superset
+# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
+# in the next major version of Superset, as enabling HTTP2 will serve the same goals.
+SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
 # Allowed format types for upload on Database view
 EXCEL_EXTENSIONS = {"xlsx", "xls"}
@@ -1380,6 +1383,10 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
 MUTATE_AFTER_SPLIT = False
 
 
+# Boolean config that determines if alert SQL queries should also be mutated or not.
+MUTATE_ALERT_QUERY = False
+
+
 # This allows for a user to add header data to any outgoing emails. For example,
 # if you need to include metadata in the header or you want to change the specifications
 # of the email title, header, or sender.
@@ -1488,7 +1495,10 @@ WEBDRIVER_WINDOW = {
 WEBDRIVER_AUTH_FUNC = None
 
 # Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION: dict[Any, Any] = {"service_log_path": "/dev/null"}
+WEBDRIVER_CONFIGURATION = {
+    "options": {"capabilities": {}, "preferences": {}},
+    "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
+}
 
 # Additional args to be passed as arguments to the config object
 # Note: If using Chrome, you'll want to add the "--marionette" arg.
