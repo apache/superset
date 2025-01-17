@@ -31,7 +31,7 @@ from superset.utils.json import json_dumps_w_dates
 HASHIDS_MIN_LENGTH = 11
 
 
-def random_key(nbytes=8) -> str:
+def random_key(nbytes: int = 8) -> str:
     """
     Generate a random URL-safe string.
 
