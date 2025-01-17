@@ -27,13 +27,14 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import Metadata from 'src/components/Metadata';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
 const StyledDivider = styled.span`
-  margin: 0 10px;
+  margin: 0 ${({ theme }) => theme.gridUnit * 3}px;
   color: ${({ theme }) => theme.colors.grayscale.light1};
   font-weight: ${({ theme }) => theme.typography.weights.bold};
   font-size: ${({ theme }) => theme.typography.sizes.m}px;
@@ -44,15 +45,27 @@ const Wrapper = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
   orientation?: FilterBarOrientation;
   isOverflowing?: boolean;
+  enableSingleValue?: boolean;
 }>`
   display: flex;
   justify-content: space-between;
+  flex-direction: ${({ enableSingleValue }) =>
+    enableSingleValue ? 'column' : 'row'};
+
+  .antd5-input-number {
+    width: 100%;
+    position: relative;
+  }
 `;
 
 const numberFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
 
-const getLabel = (lower: number | null, upper: number | null): string => {
-  if (lower !== null && upper !== null && lower === upper) {
+const getLabel = (
+  lower: number | null,
+  upper: number | null,
+  enableSingleExactValue = false,
+): string => {
+  if (enableSingleExactValue && lower !== null) {
     return `x = ${numberFormatter(lower)}`;
   }
   if (lower !== null && upper !== null) {
@@ -127,41 +140,52 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         extraFormData: getRangeExtraFormData(col, lower, upper),
         filterState: {
           value: lower !== null || upper !== null ? value : null,
-          label: getLabel(lower, upper),
+          label: getLabel(lower, upper, enableSingleExactValue),
         },
       });
     },
     [col, getBounds, setDataMask],
   );
 
+  const metadataText = useMemo(() => {
+    if (enableSingleMinValue) {
+      return t('Filters for values greater than or equal.');
+    }
+    if (enableSingleMaxValue) {
+      return t('Filters for values less than or equal.');
+    }
+    if (enableSingleExactValue) {
+      return t('Filters for values equal to this exact value.');
+    }
+    return '';
+  }, [enableSingleValue]);
+
   const handleChange = (newValue: number, index: 0 | 1) => {
     const updatedValue: [number, number] = [...value];
-
-    if (enableSingleExactValue) {
-      setValue([newValue, newValue]);
+    console.log(newValue);
+    if (enableSingleExactValue || enableSingleMinValue) {
+      updatedValue[minIndex] = newValue;
+      setValue(updatedValue);
+      handleAfterChange(updatedValue);
       return;
     }
 
-    if (enableSingleMinValue && index === minIndex) {
-      updatedValue[minIndex] = Math.min(newValue, updatedValue[maxIndex]);
+    if (enableSingleMaxValue) {
+      updatedValue[maxIndex] = newValue;
       setValue(updatedValue);
-      return;
-    }
-
-    if (enableSingleMaxValue && index === maxIndex) {
-      updatedValue[maxIndex] = Math.max(newValue, updatedValue[minIndex]);
-      setValue(updatedValue);
+      handleAfterChange(updatedValue);
       return;
     }
 
     if (index === minIndex && newValue > updatedValue[maxIndex]) {
-      updatedValue[minIndex] = updatedValue[maxIndex];
+      updatedValue[minIndex] = min;
     } else if (index === maxIndex && newValue < updatedValue[minIndex]) {
-      updatedValue[maxIndex] = updatedValue[minIndex];
+      updatedValue[maxIndex] = max;
     } else {
       updatedValue[index] = newValue;
     }
     setValue(updatedValue);
+    handleAfterChange(updatedValue);
   };
 
   useEffect(() => {
@@ -169,27 +193,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     if (row?.min === undefined && row?.max === undefined) {
       return;
     }
-
-    let filterStateValue = filterState.value ?? [min, max];
-    if (enableSingleMaxValue) {
-      const filterStateMax =
-        filterStateValue[maxIndex] <= minMax[maxIndex]
-          ? filterStateValue[maxIndex]
-          : minMax[maxIndex];
-
-      filterStateValue = [min, filterStateMax];
-    } else if (enableSingleMinValue) {
-      const filterStateMin =
-        filterStateValue[minIndex] >= minMax[minIndex]
-          ? filterStateValue[minIndex]
-          : minMax[minIndex];
-
-      filterStateValue = [filterStateMin, max];
-    } else if (enableSingleExactValue) {
-      filterStateValue = [minMax[minIndex], minMax[minIndex]];
+    const filterStateValue = filterState.value ?? minMax;
+    if (filterStateValue !== minMax) {
+      setValue(filterStateValue);
+      handleAfterChange(filterStateValue);
     }
-    setValue(value);
-    handleAfterChange(filterStateValue);
   }, [
     enableSingleMaxValue,
     enableSingleMinValue,
@@ -248,24 +256,45 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onMouseLeave={unsetHoveredFilter}
             onMouseDown={() => setFilterActive(true)}
             onMouseUp={() => setFilterActive(false)}
+            enableSingleValue={enableSingleValue !== undefined}
           >
-            <InputNumber
-              value={minMax[minIndex]}
-              min={min}
-              max={max}
-              onChange={value => handleChange(Number(value), minIndex)}
-              placeholder="From"
-              data-test="native-filter-from-input"
-            />
-            <StyledDivider>-</StyledDivider>
-            <InputNumber
-              value={minMax[maxIndex]}
-              min={min}
-              max={max}
-              onChange={value => handleChange(Number(value), maxIndex)}
-              placeholder="To"
-              data-test="native-filter-to-input"
-            />
+            {enableSingleValue !== undefined ? (
+              <>
+                <InputNumber
+                  value={
+                    enableSingleMaxValue ? minMax[maxIndex] : minMax[minIndex]
+                  }
+                  min={min}
+                  max={max}
+                  onChange={val => handleChange(Number(val), minIndex)}
+                  placeholder={t('Number')}
+                  data-test="native-filter-single-value"
+                />
+                {filterBarOrientation === FilterBarOrientation.Vertical && (
+                  <Metadata value={metadataText} />
+                )}
+              </>
+            ) : (
+              <>
+                <InputNumber
+                  value={minMax[minIndex]}
+                  min={min}
+                  max={max}
+                  onChange={val => handleChange(Number(val), minIndex)}
+                  placeholder={t('From')}
+                  data-test="native-filter-from-input"
+                />
+                <StyledDivider>-</StyledDivider>
+                <InputNumber
+                  value={minMax[maxIndex]}
+                  min={min}
+                  max={max}
+                  onChange={val => handleChange(Number(val), maxIndex)}
+                  placeholder={t('To')}
+                  data-test="native-filter-to-input"
+                />
+              </>
+            )}
           </Wrapper>
         </StyledFormItem>
       )}
