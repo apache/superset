@@ -143,6 +143,8 @@ export interface MenuData {
 }
 
 export interface CommonBootstrapData {
+  application_root: string;
+  static_assets_prefix: string;
   flash_messages: FlashMessage[];
   conf: JsonObject;
   locale: Locale;

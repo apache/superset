@@ -17,13 +17,17 @@
  * under the License.
  */
 
-import { ASSET_BASE_URL } from 'src/constants';
+import getBootstrapData from 'src/utils/getBootstrapData';
+
+// eslint-disable-next-line import/no-mutable-exports
+const BOOTSTRAP_DATA = getBootstrapData();
+
 
 /**
- * Takes a string path to a static assetand prefixes it with any ASSET_BASE_URL that is
- * defined in the webpack configuration.
+ * Takes a string path to a static asset and prefixes it with the defined static asset prefix
+ * defined in the bootstrap data
  * @param path A string path to a resource
  */
 export function assetUrl(path: string) {
-  return `${ASSET_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  return `${BOOTSTRAP_DATA.common.static_assets_prefix}${path.startsWith('/') ? path : `/${path}`}`;
 }

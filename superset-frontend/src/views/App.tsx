@@ -70,7 +70,7 @@ const LocationPathnameLogger = () => {
 };
 
 const App = () => (
-  <Router basename={`${BASE_PATH}`}>
+  <Router basename={bootstrapData.common.application_root}>
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>

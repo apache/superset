@@ -254,9 +254,6 @@ to include the prefix. The prefix path is controlled by two environment variable
 
 - `BASE_PATH`: Set this to the absolute path for the base of the application,
   e.g. `/analytics` would place the login page at `http://host.domain/analytics/login/`
-- `ASSET_BASE_URL` _(optional)_: This is an optional second variable to place the static
-  assets at a different url, e.g. on a CDN. If unset this defaults to the same value
-  as `BASE_PATH`.
 
 Build the frontend with these variables set, e.g. `BASE_PATH=/analytics npm run build`.
 

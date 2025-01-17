@@ -27,7 +27,7 @@ import {
   initFeatureFlags,
 } from '@superset-ui/core';
 import { merge } from 'lodash';
-import { BASE_PATH } from './constants';
+//import { BASE_PATH } from './constants';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';
@@ -54,7 +54,7 @@ if (typeof window !== 'undefined') {
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 // Setup SupersetClient
-setupClient({ basePath: BASE_PATH });
+setupClient({ basePath: bootstrapData.common.application_root });
 
 setupColors(
   bootstrapData.common.extra_categorical_color_schemes,

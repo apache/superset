@@ -32,7 +32,6 @@ x-superset-volumes: &superset-volumes
 x-environ-base-path: &superset-base-path
 # Set the following variables if you are running superset under a prefixed path.
 # Also set the value in the nginx.conf file
-  ASSET_BASE_URL: ${ASSET_BASE_URL:-}
   BASE_PATH: ${BASE_PATH:-}
 x-common-build: &common-build
   context: .

@@ -51,11 +51,9 @@ const {
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
 const BASE_PATH = process.env.BASE_PATH || '';
-const ASSET_BASE_URL = process.env.ASSET_BASE_URL || BASE_PATH;
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -80,7 +78,6 @@ const plugins = [
 
   // creates a manifest.json mapping of name to hashed output used in template files
   new WebpackManifestPlugin({
-    publicPath: output.publicPath,
     seed: { app: 'superset' },
     // This enables us to include all relevant files for an entry
     generate: (seed, files, entrypoints) => {
@@ -96,10 +93,10 @@ const plugins = [
         entryFiles[entry] = {
           css: chunks
             .filter(x => x.endsWith('.css'))
-            .map(x => `${output.publicPath}${x}`),
+            .map(x => `${x}`),
           js: chunks
             .filter(x => x.endsWith('.js') && x.match(/(?<!hot-update).js$/))
-            .map(x => `${output.publicPath}${x}`),
+            .map(x => `${x}`),
         };
       });
       return {
@@ -115,7 +112,6 @@ const plugins = [
   // expose mode variable to other modules
   new webpack.DefinePlugin({
     INJECTED_BASE_PATH: JSON.stringify(BASE_PATH),
-    INJECTED_ASSET_BASE_URL: JSON.stringify(ASSET_BASE_URL),
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
     'process.env.REDUX_DEFAULT_MIDDLEWARE':
       process.env.REDUX_DEFAULT_MIDDLEWARE,
