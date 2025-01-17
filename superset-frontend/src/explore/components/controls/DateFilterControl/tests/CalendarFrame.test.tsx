@@ -18,7 +18,6 @@
  */
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import '@testing-library/jest-dom'; // For advanced DOM assertions
 import { CalendarFrame } from '../components/CalendarFrame';
 import { PreviousCalendarWeek, PreviousCalendarQuarter } from '../types';
 import { CALENDAR_RANGE_OPTIONS } from '../utils/constants';
