@@ -18,7 +18,6 @@
 # from superset.models.dashboard import Dashboard
 
 import urllib.request
-from io import BytesIO
 from unittest import skipUnless
 from unittest.mock import ANY, call, MagicMock, patch
 
@@ -32,7 +31,11 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils import json
-from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
+from superset.utils.screenshots import (
+    ChartScreenshot,
+    DashboardScreenshot,
+    ScreenshotCachePayload,
+)
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -287,14 +290,14 @@ class TestThumbnails(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @skipUnless((is_feature_enabled("THUMBNAILS")), "Thumbnails feature")
-    def test_get_async_dashboard_not_allowed(self):
+    def test_get_async_dashboard_created(self):
         """
         Thumbnails: Simple get async dashboard not allowed
         """
         self.login(ADMIN_USERNAME)
         _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
         rv = self.client.get(thumbnail_url)
-        assert rv.status_code == 404
+        assert rv.status_code == 202
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @with_feature_flags(THUMBNAILS=True)
@@ -370,7 +373,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get chart with wrong digest
         """
         with patch.object(
-            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            ChartScreenshot,
+            "get_from_cache",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
@@ -385,7 +390,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get cached dashboard screenshot
         """
         with patch.object(
-            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            DashboardScreenshot,
+            "get_from_cache_key",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             _, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)
@@ -400,7 +407,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get cached chart screenshot
         """
         with patch.object(
-            ChartScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            ChartScreenshot,
+            "get_from_cache_key",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(CHART_URL)
@@ -415,7 +424,9 @@ class TestThumbnails(SupersetTestCase):
         Thumbnails: Simple get dashboard with wrong digest
         """
         with patch.object(
-            DashboardScreenshot, "get_from_cache", return_value=BytesIO(self.mock_image)
+            DashboardScreenshot,
+            "get_from_cache",
+            return_value=ScreenshotCachePayload(self.mock_image),
         ):
             self.login(ADMIN_USERNAME)
             id_, thumbnail_url = self._get_id_and_thumbnail_url(DASHBOARD_URL)

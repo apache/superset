@@ -1273,7 +1273,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         dashboard_url = get_url_path(
             "Superset.dashboard", dashboard_id_or_slug=dashboard.id
         )
-        screenshot_obj = DashboardScreenshot(dashboard_url, digest)
+        if dashboard.digest != digest:
+            self.incr_stats("redirect", self.thumbnail.__name__)
+            return redirect(
+                url_for(
+                    f"{self.__class__.__name__}.thumbnail",
+                    pk=pk,
+                    digest=dashboard.digest,
+                )
+            )
+        screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
         cache_key = screenshot_obj.get_cache_key()
         cache_payload = (
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
@@ -1303,15 +1312,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 update_status=cache_payload.get_status(),
             )
 
-        if dashboard.digest != digest:
-            self.incr_stats("redirect", self.thumbnail.__name__)
-            return redirect(
-                url_for(
-                    f"{self.__class__.__name__}.thumbnail",
-                    pk=pk,
-                    digest=dashboard.digest,
-                )
-            )
         self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(
             FileWrapper(cache_payload.get_image()),

@@ -736,6 +736,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
         current_user = get_current_user()
+        if chart.digest != digest:
+            self.incr_stats("redirect", self.thumbnail.__name__)
+            return redirect(
+                url_for(
+                    f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
+                )
+            )
         url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(url, chart.digest)
         cache_key = screenshot_obj.get_cache_key()
@@ -758,14 +765,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 202,
                 updated_at=cache_payload.get_timestamp(),
                 update_status=cache_payload.get_status(),
-            )
-        # TODO remove digest from params... currently does nothing
-        if chart.digest != digest:
-            self.incr_stats("redirect", self.thumbnail.__name__)
-            return redirect(
-                url_for(
-                    f"{self.__class__.__name__}.thumbnail", pk=pk, digest=chart.digest
-                )
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(
