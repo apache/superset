@@ -359,8 +359,7 @@
     "webpack-dev-server": "^4.15.1",
     "webpack-manifest-plugin": "^5.0.0",
     "webpack-sources": "^3.2.3",
-    "webpack-visualizer-plugin2": "^1.1.0",
-    "xdm": "^3.4.0"
+    "webpack-visualizer-plugin2": "^1.1.0"
   },
   "engines": {
     "node": "^20.16.0",
