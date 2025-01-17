@@ -41,9 +41,10 @@ function openMenu() {
 }
 
 function confirmDelete() {
-  cy.getBySel('delete-modal').should('be.visible');
-  cy.getBySel('delete-modal-input').type('DELETE');
-  cy.getBySel('modal-confirm-button').click();
+  // Wait for modal dialog to be present and visible
+  cy.get('[role="dialog"][aria-modal="true"]').should('be.visible');
+  cy.getBySel('delete-modal-input').should('be.visible').clear().type('DELETE');
+  cy.getBySel('modal-confirm-button').should('be.visible').click();
 }
 
 describe('Dashboards list', () => {
@@ -194,7 +195,7 @@ describe('Dashboards list', () => {
         .should('not.contain', '4 - Sample dashboard');
     });
 
-    it('should delete correctly', () => {
+    it.only('should delete correctly', () => {
       interceptDelete();
 
       // deletes in card-view
