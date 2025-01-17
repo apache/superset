@@ -791,7 +791,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.sqlalchemy_uri
 
     @cache_util.memoized_func(
-        key="db:{self.id}:schema:{schema}:table_list",
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:table_list",
         cache=cache_manager.cache,
     )
     def get_all_table_names_in_schema(
@@ -825,7 +825,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
-        key="db:{self.id}:schema:{schema}:view_list",
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:view_list",
         cache=cache_manager.cache,
     )
     def get_all_view_names_in_schema(
