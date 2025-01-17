@@ -141,6 +141,7 @@ RUN apt-get update -qq \
         libxtst6 \
         git \
         pkg-config \
+        postgresql-client \
         && rm -rf /var/lib/apt/lists/*
 
 RUN --mount=type=cache,target=/root/.cache/pip \
