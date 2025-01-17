@@ -19,6 +19,7 @@
 import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
 import failOnConsoleError from 'cypress-fail-on-console-error';
+import { expect } from 'chai';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -36,7 +37,7 @@ const { getConfig, setConfig } = failOnConsoleError({
   ],
 });
 
-// Set infividual tests to allow certain console erros to NOT fail, e.g
+// Set individual tests to allow certain console errors to NOT fail, e.g
 // cy.allowConsoleErrors(['foo', /^some bar-regex.*/]);
 // This will be reset between tests.
 Cypress.Commands.addAll({

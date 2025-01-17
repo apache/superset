@@ -47,7 +47,14 @@ beforeEach(() => {
     count: 0,
     result: [],
   });
-  fetchMock.get('glob:*/api/v1/database/*/schemas/?*', {
+  fetchMock.get('glob:*/api/v1/database/3/schemas/?*', {
+    error: 'Unauthorized',
+  });
+  fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {
+    count: 2,
+    result: ['main', 'db1_schema', 'db1_schema2'],
+  });
+  fetchMock.get('glob:*/api/v1/database/2/schemas/?*', {
     count: 2,
     result: ['main', 'new_schema'],
   });
@@ -198,7 +205,7 @@ test('should toggle the table when the header is clicked', async () => {
   );
 });
 
-test('When changing database the table list must be updated', async () => {
+test('When changing database the schema and table list must be updated', async () => {
   const { rerender } = await renderAndWait(mockedProps, undefined, {
     ...initialState,
     sqlLab: {
@@ -245,6 +252,32 @@ test('When changing database the table list must be updated', async () => {
   expect(updatedDbSelector[0]).toBeInTheDocument();
   const updatedTableSelector = await screen.findAllByText(/new_table/i);
   expect(updatedTableSelector[0]).toBeInTheDocument();
+
+  const select = screen.getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
+  });
+  userEvent.click(select);
+  expect(
+    await screen.findByRole('option', { name: 'main' }),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByRole('option', { name: 'new_schema' }),
+  ).toBeInTheDocument();
+  rerender(
+    <SqlEditorLeftBar
+      {...mockedProps}
+      database={{
+        id: 3,
+        database_name: 'unauth_db',
+        backend: 'minervasql',
+      }}
+      queryEditorId={extraQueryEditor1.id}
+    />,
+  );
+  userEvent.click(select);
+  expect(
+    await screen.findByText('No compatible schema found'),
+  ).toBeInTheDocument();
 });
 
 test('ignore schema api when current schema is deprecated', async () => {

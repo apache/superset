@@ -55,7 +55,7 @@ def migrate(mapping: dict[str, str]) -> None:
             if time_grain_sqla in mapping:
                 params["time_grain_sqla"] = mapping[time_grain_sqla]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

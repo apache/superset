@@ -33,6 +33,7 @@ const PaginationContainer = styled.div`
 export const useResultsTableView = (
   chartDataResult: QueryData[] | undefined,
   datasourceId: string,
+  canDownload: boolean,
 ) => {
   if (!isDefined(chartDataResult)) {
     return <div />;
@@ -48,6 +49,7 @@ export const useResultsTableView = (
           dataSize={DATA_SIZE}
           datasourceId={datasourceId}
           isVisible
+          canDownload={canDownload}
         />
       </PaginationContainer>
     );
@@ -65,6 +67,7 @@ export const useResultsTableView = (
               dataSize={DATA_SIZE}
               datasourceId={datasourceId}
               isVisible
+              canDownload={canDownload}
             />
           </PaginationContainer>
         </Tabs.TabPane>

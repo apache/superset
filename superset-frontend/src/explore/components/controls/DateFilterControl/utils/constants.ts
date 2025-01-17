@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import moment from 'moment';
 import { t } from '@superset-ui/core';
 import {
   SelectOptionType,
@@ -32,6 +31,7 @@ import {
   CurrentQuarter,
   CurrentDay,
 } from 'src/explore/components/controls/DateFilterControl/types';
+import { extendedDayjs } from 'src/utils/dates';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
   { value: 'Common', label: t('Last') },
@@ -130,30 +130,16 @@ export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentRangeType> = new Set([
   CurrentYear,
 ]);
 
-export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
-export const SEVEN_DAYS_AGO = moment()
+export const DAYJS_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+export const SEVEN_DAYS_AGO = extendedDayjs()
   .utc()
   .startOf('day')
   .subtract(7, 'days')
-  .format(MOMENT_FORMAT);
-export const MIDNIGHT = moment().utc().startOf('day').format(MOMENT_FORMAT);
-
-export const LOCALE_MAPPING = {
-  en: 'en_US',
-  fr: 'fr_FR',
-  es: 'es_ES',
-  it: 'it_IT',
-  zh: 'zh_CN',
-  ja: 'ja_JP',
-  de: 'de_DE',
-  pt: 'pt_PT',
-  pt_BR: 'pt_BR',
-  ru: 'ru_RU',
-  ko: 'ko_KR',
-  sk: 'sk_SK',
-  sl: 'sl_SI',
-  nl: 'nl_NL',
-};
+  .format(DAYJS_FORMAT);
+export const MIDNIGHT = extendedDayjs()
+  .utc()
+  .startOf('day')
+  .format(DAYJS_FORMAT);
 
 export enum DateFilterTestKey {
   CommonFrame = 'common-frame',

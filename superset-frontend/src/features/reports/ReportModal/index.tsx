@@ -25,7 +25,12 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, SupersetTheme, getClientErrorObject } from '@superset-ui/core';
+import {
+  t,
+  SupersetTheme,
+  getClientErrorObject,
+  VizType,
+} from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   addReport,
@@ -73,6 +78,8 @@ interface ReportProps {
   show: boolean;
   userId: number;
   userEmail: string;
+  ccEmail: string;
+  bccEmail: string;
   chart?: ChartState;
   chartName?: string;
   dashboardId?: number;
@@ -82,9 +89,9 @@ interface ReportProps {
 }
 
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 const INITIAL_STATE = {
@@ -109,6 +116,8 @@ function ReportModal({
   chart,
   userId,
   userEmail,
+  ccEmail,
+  bccEmail,
   creationMethod,
   dashboardName,
   chartName,
@@ -184,7 +193,11 @@ function ReportModal({
       owners: [userId],
       recipients: [
         {
-          recipient_config_json: { target: userEmail },
+          recipient_config_json: {
+            target: userEmail,
+            ccTarget: ccEmail,
+            bccTarget: bccEmail,
+          },
           type: 'Email',
         },
       ],

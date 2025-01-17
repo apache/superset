@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Loads datasets, dashboards and slices in a new superset instance"""
-
 import os
 from typing import Any
 
@@ -62,7 +60,6 @@ def merge_slice(slc: Slice) -> None:
     if o:
         db.session.delete(o)
     db.session.add(slc)
-    db.session.commit()
 
 
 def get_slice_json(defaults: dict[Any, Any], **kwargs: Any) -> str:

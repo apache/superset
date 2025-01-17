@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { ToastType, ToastMeta } from './types';
 
 type ToastOptions = Partial<Omit<ToastMeta, 'id' | 'toastType' | 'text'>>;
 
 export function getToastUuid(type: ToastType) {
-  return `${type}-${shortid.generate()}`;
+  return `${type}-${nanoid()}`;
 }
 
 export const ADD_TOAST = 'ADD_TOAST';

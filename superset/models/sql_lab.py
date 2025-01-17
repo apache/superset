@@ -374,6 +374,7 @@ class Query(
         expression = self._process_sql_expression(
             expression=col["sqlExpression"],
             database_id=self.database_id,
+            engine=self.database.backend,
             schema=self.schema,
             template_processor=template_processor,
         )
@@ -415,10 +416,11 @@ class SavedQuery(
     tags = relationship(
         "Tag",
         secondary="tagged_object",
-        overlaps="tags",
-        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id)",
-        secondaryjoin="and_(TaggedObject.tag_id == Tag.id, "
+        overlaps="objects,tag,tags",
+        primaryjoin="and_(SavedQuery.id == TaggedObject.object_id, "
         "TaggedObject.object_type == 'query')",
+        secondaryjoin="TaggedObject.tag_id == Tag.id",
+        viewonly=True,  # cascading deletion already handled by superset.tags.models.ObjectUpdater.after_delete  # noqa: E501
     )
 
     export_parent = "database"

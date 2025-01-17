@@ -45,7 +45,7 @@ const defaultProps = {
   creationMethod: 'dashboards',
   chart: {
     sliceFormData: {
-      viz_type: 'table',
+      viz_type: uiCore.VizType.Table,
     },
   },
 };
@@ -64,8 +64,7 @@ describe('Email Report Modal', () => {
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('inputs respond correctly', () => {
@@ -74,6 +73,7 @@ describe('Email Report Modal', () => {
     const reportNameTextbox = screen.getByTestId('report-name-test');
     expect(reportNameTextbox).toHaveDisplayValue('Weekly Report');
     // Type in the textbox and assert that it worked
+    userEvent.clear(reportNameTextbox);
     userEvent.type(reportNameTextbox, 'Report name text test');
     expect(reportNameTextbox).toHaveDisplayValue('Report name text test');
 

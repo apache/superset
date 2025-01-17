@@ -25,6 +25,7 @@ import {
   styled,
   t,
   useTheme,
+  VizType,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Menu } from 'src/components/Menu';
@@ -70,7 +71,7 @@ const MENU_KEYS = {
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
 };
 
-const VIZ_TYPES_PIVOTABLE = ['pivot_table_v2'];
+const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
 
 export const MenuItemWithCheckboxContainer = styled.div`
   ${({ theme }) => css`
@@ -96,7 +97,7 @@ export const MenuTrigger = styled(Button)`
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
-    &.ant-btn > span.anticon {
+    &.antd5-btn > span.anticon {
       line-height: 0;
       transition: inherit;
     }
@@ -173,22 +174,26 @@ export const useExploreAdditionalActionsMenu = (
 
   const exportJson = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'json',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'json',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const exportExcel = useCallback(
     () =>
-      exportChart({
-        formData: latestQueryFormData,
-        resultType: 'results',
-        resultFormat: 'xlsx',
-      }),
-    [latestQueryFormData],
+      canDownloadCSV
+        ? exportChart({
+            formData: latestQueryFormData,
+            resultType: 'results',
+            resultFormat: 'xlsx',
+          })
+        : null,
+    [canDownloadCSV, latestQueryFormData],
   );
 
   const copyLink = useCallback(async () => {
@@ -350,6 +355,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
             {t('Export to .JSON')}
           </Menu.Item>
@@ -362,6 +368,7 @@ export const useExploreAdditionalActionsMenu = (
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_XLSX}
             icon={<Icons.FileOutlined css={iconReset} />}
+            disabled={!canDownloadCSV}
           >
             {t('Export to Excel')}
           </Menu.Item>

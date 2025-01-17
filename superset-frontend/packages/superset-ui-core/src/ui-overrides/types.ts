@@ -23,12 +23,22 @@ import {
   ComponentType,
 } from 'react';
 import type { Editor } from 'brace';
+import { BaseFormData } from '../query';
+import { JsonResponse } from '../connection';
 
 /**
  * A function which returns text (or marked-up text)
  * If what you want is a react component, don't use this. Use React.ComponentType instead.
  */
 type ReturningDisplayable<P = void> = (props: P) => string | ReactElement;
+
+/**
+ * A function which returns the drill by options for a given dataset and chart's formData.
+ */
+export type LoadDrillByOptions = (
+  datasetId: number,
+  formData: BaseFormData,
+) => Promise<JsonResponse>;
 
 /**
  * This type defines all available extensions of Superset's default UI.
@@ -193,6 +203,7 @@ export interface CustomAutocomplete extends AutocompleteItem {
 
 export type Extensions = Partial<{
   'alertsreports.header.icon': ComponentType;
+  'load.drillby.options': LoadDrillByOptions;
   'embedded.documentation.configuration_details': ComponentType<ConfigDetailsProps>;
   'embedded.documentation.description': ReturningDisplayable;
   'embedded.documentation.url': string;

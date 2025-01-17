@@ -36,13 +36,14 @@ import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
 import getOwnerName from 'src/utils/getOwnerName';
+import { ConfigType } from 'dayjs';
 
 interface TaggedObject {
   id: number;
   type: string;
   name: string;
   url: string;
-  changed_on: moment.MomentInput;
+  changed_on: ConfigType;
   created_by: number | undefined;
   creator: string;
   owners: Owner[];
@@ -67,7 +68,6 @@ const AllEntitiesContainer = styled.div`
     margin-bottom: ${theme.gridUnit * 2}px;
   }
   .select-control-label {
-    text-transform: uppercase;
     font-size: ${theme.gridUnit * 3}px;
     color: ${theme.colors.grayscale.base};
     margin-bottom: ${theme.gridUnit * 1}px;

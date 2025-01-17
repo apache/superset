@@ -183,7 +183,9 @@ function StickyWrap({
     }
     const fullTableHeight = (bodyThead.parentNode as HTMLTableElement)
       .clientHeight;
-    const ths = bodyThead.childNodes[0]
+    // instead of always using the first tr, we use the last one to support
+    // multi-level headers assuming the last one is the more detailed one
+    const ths = bodyThead.childNodes?.[bodyThead.childNodes?.length - 1 || 0]
       .childNodes as NodeListOf<HTMLTableHeaderCellElement>;
     const widths = Array.from(ths).map(
       th => th.getBoundingClientRect()?.width || th.clientWidth,

@@ -18,7 +18,7 @@
  */
 import { render } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
-import '@testing-library/jest-dom/extend-expect';
+import '@testing-library/jest-dom';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';

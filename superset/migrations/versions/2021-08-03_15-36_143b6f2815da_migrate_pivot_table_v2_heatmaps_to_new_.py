@@ -92,9 +92,9 @@ def upgrade():
                 ]
                 changed_slices += 1
                 slice.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for slice {slice.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()

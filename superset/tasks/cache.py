@@ -29,10 +29,11 @@ from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject
+from superset.tasks.utils import fetch_csrf_token
 from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
-from superset.utils.urls import get_url_path
+from superset.utils.urls import get_url_path, is_secure_url
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
@@ -219,12 +220,20 @@ def fetch_url(data: str, headers: dict[str, str]) -> dict[str, str]:
     """
     result = {}
     try:
-        url = get_url_path("Superset.warm_up_cache")
+        url = get_url_path("ChartRestApi.warm_up_cache")
+
+        if is_secure_url(url):
+            logger.info("URL '%s' is secure. Adding Referer header.", url)
+            headers.update({"Referer": url})
+
+        # Fetch CSRF token for API request
+        headers.update(fetch_csrf_token(headers))
+
         logger.info("Fetching %s with payload %s", url, data)
-        req = request.Request(
+        req = request.Request(  # noqa: S310
             url, data=bytes(data, "utf-8"), headers=headers, method="PUT"
         )
-        response = request.urlopen(  # pylint: disable=consider-using-with
+        response = request.urlopen(  # pylint: disable=consider-using-with  # noqa: S310
             req, timeout=600
         )
         logger.info(

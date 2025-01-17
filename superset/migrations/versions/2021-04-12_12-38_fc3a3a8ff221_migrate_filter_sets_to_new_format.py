@@ -197,9 +197,9 @@ def upgrade():
 
             dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
 
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()
@@ -225,9 +225,9 @@ def downgrade():
                 changed_filter_sets += 1
                 changed_filters += downgrade_filter_set(filter_set)
             dashboard.json_metadata = json.dumps(json_metadata, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for dashboard {dashboard.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()

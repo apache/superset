@@ -22,7 +22,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import { HeaderActionsDropdown } from 'src/dashboard/components/Header/HeaderActionsDropdown';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
@@ -118,10 +118,12 @@ test('is valid', () => {
 
 test('renders refresh interval modal', async () => {
   render(setup(editModeOnProps));
+
+  expect(screen.queryByText('Refresh Interval')).not.toBeInTheDocument();
   await openRefreshIntervalModal();
 
   // Assert that modal exists by checking for the modal title
-  expect(screen.getByText('Refresh interval')).toBeVisible();
+  expect(screen.getByText('Refresh interval')).toBeInTheDocument();
 });
 
 test('renders refresh interval options', async () => {

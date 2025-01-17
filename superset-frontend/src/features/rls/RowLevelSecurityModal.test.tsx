@@ -17,7 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  selectOption,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityModal, {
@@ -188,6 +193,7 @@ describe('Rule modal', () => {
 
     const name = await screen.findByTestId('rule-name-test');
     expect(name).toHaveDisplayValue('rls 1');
+    userEvent.clear(name);
     userEvent.type(name, 'rls 2');
     expect(name).toHaveDisplayValue('rls 2');
 
@@ -230,17 +236,7 @@ describe('Rule modal', () => {
 
     expect(addButton).toBeDisabled();
 
-    const getSelect = () => screen.getByRole('combobox', { name: 'Tables' });
-    const getElementByClassName = (className: string) =>
-      document.querySelector(className)! as HTMLElement;
-
-    const findSelectOption = (text: string) =>
-      waitFor(() =>
-        within(getElementByClassName('.rc-virtual-list')).getByText(text),
-      );
-    const open = () => waitFor(() => userEvent.click(getSelect()));
-    await open();
-    userEvent.click(await findSelectOption('birth_names'));
+    await selectOption('birth_names', 'Tables');
     expect(addButton).toBeDisabled();
 
     const clause = await screen.findByTestId('clause-test');
@@ -257,17 +253,7 @@ describe('Rule modal', () => {
     const nameTextBox = screen.getByTestId('rule-name-test');
     userEvent.type(nameTextBox, 'name');
 
-    const getSelect = () => screen.getByRole('combobox', { name: 'Tables' });
-    const getElementByClassName = (className: string) =>
-      document.querySelector(className)! as HTMLElement;
-
-    const findSelectOption = (text: string) =>
-      waitFor(() =>
-        within(getElementByClassName('.rc-virtual-list')).getByText(text),
-      );
-    const open = () => waitFor(() => userEvent.click(getSelect()));
-    await open();
-    userEvent.click(await findSelectOption('birth_names'));
+    await selectOption('birth_names', 'Tables');
 
     const clause = await screen.findByTestId('clause-test');
     userEvent.type(clause, 'gender="girl"');

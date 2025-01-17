@@ -23,7 +23,7 @@ import {
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { AntdSwitch } from 'src/components';
+import { Switch } from 'src/components/Switch';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { isEmpty } from 'lodash';
 import { infoTooltip, toggleStyle } from './styles';
@@ -80,7 +80,7 @@ const SSHTunnelSwitch = ({
 
   return isSSHTunnelEnabled ? (
     <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
-      <AntdSwitch
+      <Switch
         checked={isChecked}
         onChange={handleOnChange}
         data-test="ssh-tunnel-switch"

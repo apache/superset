@@ -56,7 +56,7 @@ const StyledTruncatedList = styled.div`
     width: 100%;
     display: flex;
 
-    .ant-tooltip-open {
+    .antd5-tooltip-open {
       display: inline;
     }
   }

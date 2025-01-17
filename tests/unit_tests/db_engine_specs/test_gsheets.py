@@ -22,7 +22,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -91,7 +91,7 @@ def test_validate_parameters_simple_with_in_root_catalog() -> None:
 
 
 def test_validate_parameters_catalog(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -120,58 +120,61 @@ def test_validate_parameters_catalog(
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
-    assert errors == [
-        SupersetError(
-            message=(
-                "The URL could not be identified. Please check for typos "
-                "and make sure that ‘Type of Google Sheets allowed’ "
-                "selection matches the input."
-            ),
-            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={
-                "catalog": {
-                    "idx": 0,
-                    "url": True,
+    assert (
+        errors
+        == [
+            SupersetError(
+                message=(
+                    "The URL could not be identified. Please check for typos "
+                    "and make sure that ‘Type of Google Sheets allowed’ "
+                    "selection matches the input."
+                ),
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={
+                    "catalog": {
+                        "idx": 0,
+                        "url": True,
+                    },
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                        },
+                        {
+                            "code": 1005,
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                        },
+                    ],
                 },
-                "issue_codes": [
-                    {
-                        "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
-                    },
-                    {
-                        "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
-                    },
-                ],
-            },
-        ),
-        SupersetError(
-            message=(
-                "The URL could not be identified. Please check for typos "
-                "and make sure that ‘Type of Google Sheets allowed’ "
-                "selection matches the input."
             ),
-            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-            level=ErrorLevel.WARNING,
-            extra={
-                "catalog": {
-                    "idx": 2,
-                    "url": True,
+            SupersetError(
+                message=(
+                    "The URL could not be identified. Please check for typos "
+                    "and make sure that ‘Type of Google Sheets allowed’ "
+                    "selection matches the input."
+                ),
+                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+                level=ErrorLevel.WARNING,
+                extra={
+                    "catalog": {
+                        "idx": 2,
+                        "url": True,
+                    },
+                    "issue_codes": [
+                        {
+                            "code": 1003,
+                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                        },
+                        {
+                            "code": 1005,
+                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                        },
+                    ],
                 },
-                "issue_codes": [
-                    {
-                        "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
-                    },
-                    {
-                        "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
-                    },
-                ],
-            },
-        ),
-    ]
+            ),
+        ]
+    )
 
     create_engine.assert_called_with(
         "gsheets://",
@@ -181,7 +184,7 @@ def test_validate_parameters_catalog(
 
 
 def test_validate_parameters_catalog_and_credentials(
-    mocker: MockFixture,
+    mocker: MockerFixture,
 ) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
@@ -229,11 +232,11 @@ def test_validate_parameters_catalog_and_credentials(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -247,9 +250,34 @@ def test_validate_parameters_catalog_and_credentials(
     )
 
 
+def test_mask_encrypted_extra() -> None:
+    """
+    Test that the private key is masked when the database is edited.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    config = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+    assert GSheetsEngineSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 def test_unmask_encrypted_extra() -> None:
     """
-    Test that the private key can be reused from the previous ``encrypted_extra``.
+    Test that the private key can be reused from the previous `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -270,17 +298,52 @@ def test_unmask_encrypted_extra() -> None:
         }
     )
 
-    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "SECRET",
-        },
-    }
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+
+
+def test_unmask_encrypted_extra_field_changeed() -> None:
+    """
+    Test that the private key is not reused when the field has changed.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    old = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "black-sanctum-314419",
+                "private_key": "SECRET",
+            },
+        }
+    )
+    new = json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
+
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "NEW-SECRET",
+            },
+        }
+    )
 
 
 def test_unmask_encrypted_extra_when_old_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the old field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -294,17 +357,19 @@ def test_unmask_encrypted_extra_when_old_is_none() -> None:
         }
     )
 
-    assert json.loads(str(GSheetsEngineSpec.unmask_encrypted_extra(old, new))) == {
-        "service_account_info": {
-            "project_id": "yellow-unicorn-314419",
-            "private_key": "XXXXXXXXXX",
-        },
-    }
+    assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) == json.dumps(
+        {
+            "service_account_info": {
+                "project_id": "yellow-unicorn-314419",
+                "private_key": "XXXXXXXXXX",
+            },
+        }
+    )
 
 
 def test_unmask_encrypted_extra_when_new_is_none() -> None:
     """
-    Test that a None value works for ``encrypted_extra``.
+    Test that a `None` value for the new field works for `encrypted_extra`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -321,7 +386,7 @@ def test_unmask_encrypted_extra_when_new_is_none() -> None:
     assert GSheetsEngineSpec.unmask_encrypted_extra(old, new) is None
 
 
-def test_upload_new(mocker: MockFixture) -> None:
+def test_upload_new(mocker: MockerFixture) -> None:
     """
     Test file upload when the table does not exist.
     """
@@ -350,7 +415,7 @@ def test_upload_new(mocker: MockFixture) -> None:
     )
 
 
-def test_upload_existing(mocker: MockFixture) -> None:
+def test_upload_existing(mocker: MockerFixture) -> None:
     """
     Test file upload when the table does exist.
     """
@@ -409,7 +474,7 @@ def test_upload_existing(mocker: MockFixture) -> None:
     )
 
 
-def test_get_url_for_impersonation_username(mocker: MockFixture) -> None:
+def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
     """
     Test passing a username to `get_url_for_impersonation`.
     """
@@ -440,11 +505,11 @@ def test_get_url_for_impersonation_access_token() -> None:
         url=make_url("gsheets://"),
         impersonate_user=True,
         username=None,
-        access_token="access-token",
+        access_token="access-token",  # noqa: S106
     ) == make_url("gsheets://?access_token=access-token")
 
 
-def test_is_oauth2_enabled_no_config(mocker: MockFixture) -> None:
+def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
     """
     Test `is_oauth2_enabled` when OAuth2 is not configured.
     """
@@ -458,7 +523,7 @@ def test_is_oauth2_enabled_no_config(mocker: MockFixture) -> None:
     assert GSheetsEngineSpec.is_oauth2_enabled() is False
 
 
-def test_is_oauth2_enabled_config(mocker: MockFixture) -> None:
+def test_is_oauth2_enabled_config(mocker: MockerFixture) -> None:
     """
     Test `is_oauth2_enabled` when OAuth2 is configured.
     """
@@ -497,11 +562,12 @@ def oauth2_config() -> OAuth2ClientConfig:
         "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
         "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_request_uri": "https://oauth2.googleapis.com/token",
+        "request_content_type": "json",
     }
 
 
 def test_get_oauth2_authorization_uri(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
@@ -532,7 +598,7 @@ def test_get_oauth2_authorization_uri(
 
 
 def test_get_oauth2_token(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """
@@ -570,7 +636,7 @@ def test_get_oauth2_token(
 
 
 def test_get_oauth2_fresh_token(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     oauth2_config: OAuth2ClientConfig,
 ) -> None:
     """

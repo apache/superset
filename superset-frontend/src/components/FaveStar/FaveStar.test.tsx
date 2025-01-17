@@ -37,20 +37,20 @@ test('render right content', async () => {
     screen.getByRole('img', { name: 'favorite-selected' }),
   ).toBeInTheDocument();
 
-  expect(props.saveFaveStar).toBeCalledTimes(0);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));
-  expect(props.saveFaveStar).toBeCalledTimes(1);
-  expect(props.saveFaveStar).toBeCalledWith(props.itemId, true);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, true);
 
   rerender(<FaveStar {...props} />);
   expect(
     await findByRole('img', { name: 'favorite-unselected' }),
   ).toBeInTheDocument();
 
-  expect(props.saveFaveStar).toBeCalledTimes(1);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(1);
   userEvent.click(screen.getByRole('button'));
-  expect(props.saveFaveStar).toBeCalledTimes(2);
-  expect(props.saveFaveStar).toBeCalledWith(props.itemId, false);
+  expect(props.saveFaveStar).toHaveBeenCalledTimes(2);
+  expect(props.saveFaveStar).toHaveBeenCalledWith(props.itemId, false);
 });
 
 test('render content on tooltip', async () => {
@@ -87,9 +87,9 @@ test('Call fetchFaveStar on first render and on itemId change', async () => {
   expect(
     await findByRole('img', { name: 'favorite-unselected' }),
   ).toBeInTheDocument();
-  expect(props.fetchFaveStar).toBeCalledTimes(1);
-  expect(props.fetchFaveStar).toBeCalledWith(props.itemId);
+  expect(props.fetchFaveStar).toHaveBeenCalledTimes(1);
+  expect(props.fetchFaveStar).toHaveBeenCalledWith(props.itemId);
 
   rerender(<FaveStar {...{ ...props, itemId: 2 }} />);
-  expect(props.fetchFaveStar).toBeCalledTimes(2);
+  expect(props.fetchFaveStar).toHaveBeenCalledTimes(2);
 });

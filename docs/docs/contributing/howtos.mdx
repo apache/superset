@@ -88,7 +88,7 @@ yo @superset-ui/superset
 
 After that the generator will ask a few questions (the defaults should be fine):
 
-```
+```bash
 $ yo @superset-ui/superset
      _-----_     ╭──────────────────────────╮
     |       |    │      Welcome to the      │
@@ -125,7 +125,7 @@ $ yo @superset-ui/superset
 
 To build the viz plugin, run the following commands:
 
-```
+```bash
 npm i --force
 npm run build
 ```
@@ -133,7 +133,7 @@ npm run build
 Alternatively, to run the viz plugin in development mode (=rebuilding whenever changes
 are made), start the dev server with the following command:
 
-```
+```bash
 npm run dev
 ```
 
@@ -170,31 +170,10 @@ npm run dev-server
 
 ### Python Testing
 
-All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
-a standardized testing framework.
-All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+`pytest`, backend by docker-compose is how we recommend running tests locally.
 
-```bash
-tox -e <environment>
-```
-
-For example,
-
-```bash
-tox -e py38
-```
-
-Alternatively, you can run all tests in a single file via,
-
-```bash
-tox -e <environment> -- tests/test_file.py
-```
-
-or for a specific test via,
-
-```bash
-tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
-```
+For a more complex test matrix (against different database backends, python versions, ...) you
+can rely on our GitHub Actions by simply opening a draft pull request.
 
 Note that the test environment uses a temporary directory for defining the
 SQLite databases which will be cleared each time before the group of test
@@ -246,13 +225,7 @@ npm run test -- path/to/file.js
 
 ### e2e Integration Testing
 
-We use [Cypress](https://www.cypress.io/) for end-to-end integration
-tests. One easy option to get started quickly is to leverage `tox` to
-run the whole suite in an isolated environment.
-
-```bash
-tox -e cypress
-```
+For e2e testing, we recommend that you use a `docker-compose` backed-setup
 
 Alternatively, you can go lower level and set things up in your
 development environment by following these steps:
@@ -399,7 +372,7 @@ tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      
 
 You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
 
-```
+```json
 {
     "version": "0.2.0",
     "configurations": [
@@ -426,23 +399,23 @@ VSCode will not stop on breakpoints right away. We've attached to PID 6 however 
 
 ### Debugging Server App in Kubernetes Environment
 
-To debug Flask running in POD inside kubernetes cluster. You'll need to make sure the pod runs as root and is granted the SYS_TRACE capability.These settings should not be used in production environments.
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_TRACE` capability. These settings should not be used in production environments.
 
-```
+```yaml
   securityContext:
     capabilities:
       add: ["SYS_PTRACE"]
 ```
 
-See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
 
-Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
+Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
 
-You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+You can follow the same instructions as in `docker compose`. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
 
 Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
 
-```
+```bash
 kubectl port-forward  pod/superset-<some random id> 5678:5678
 ```
 
@@ -465,6 +438,7 @@ We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate S
 In Python files, we use the following
 [translation functions](https://python-babel.github.io/flask-babel/#using-translations)
 from `Flask-Babel`:
+
 - `gettext` and `lazy_gettext` (usually aliased to `_`): for translating singular
   strings.
 - `ngettext`: for translating strings that might become plural.
@@ -519,6 +493,7 @@ easier to translate the application to your target language:
 [Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html)
 
 To create a dictionary for a new language, first make sure the necessary dependencies are installed:
+
 ```bash
 pip install -r superset/translations/requirements.txt
 ```
@@ -575,16 +550,20 @@ case of the Finnish translation, this would be `superset/translations/fi/LC_MESS
 
 To make the translations available on the frontend, we need to convert the PO file into
 a collection of JSON files. To convert all PO files to formatted JSON files you can use
-the build-translation script
+the `build-translation` script
 
 ```bash
+# Install dependencies if you haven't already
+cd superset-frontend/ && npm ci
+# Compile translations for the frontend
 npm run build-translation
 ```
 
 Finally, for the translations to take effect we need to compile translation catalogs into
-binary MO files for the backend using pybabel.
+binary MO files for the backend using `pybabel`.
 
 ```bash
+# inside the project root
 pybabel compile -d superset/translations
 ```
 
@@ -592,17 +571,24 @@ pybabel compile -d superset/translations
 
 ### Python
 
-We use [Pylint](https://pylint.org/) for linting which can be invoked via:
+We use [ruff](https://github.com/astral-sh/ruff) for linting which can be invoked via:
 
-```bash
-# for python
-tox -e pylint
+```
+# auto-reformat using ruff
+ruff format
+
+# lint check with ruff
+ruff check
+
+# lint fix with ruff
+ruff check --fix
 ```
 
-In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+Ruff configuration is located in our
+(pyproject.toml)[https://github.com/apache/superset/blob/master/pyproject.toml] file
 
-Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
-is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
+All this is configured to run in pre-commit hooks, which we encourage you to setup
+with `pre-commit install`
 
 ### TypeScript
 

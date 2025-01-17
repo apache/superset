@@ -28,7 +28,7 @@ from uuid import UUID
 import pytest
 from flask import current_app
 from freezegun import freeze_time
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -38,7 +38,7 @@ from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.sql_parse import Table
 from superset.utils import json
 from tests.unit_tests.fixtures.common import (
@@ -115,12 +115,12 @@ def test_post_with_uuid(
     payload = response.json
     assert payload["result"]["uuid"] == "7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"
 
-    database = db.session.query(Database).one()
+    database = session.query(Database).one()
     assert database.uuid == UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb")
 
 
 def test_password_mask(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -148,7 +148,7 @@ def test_password_mask(
                     "project_id": "black-sanctum-314419",
                     "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
                     "private_key": "SECRET",
-                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                     "client_id": "114567578578109757129",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
@@ -176,7 +176,7 @@ def test_password_mask(
 
 
 def test_database_connection(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -204,7 +204,7 @@ def test_database_connection(
                     "project_id": "black-sanctum-314419",
                     "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
                     "private_key": "SECRET",
-                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                     "client_id": "114567578578109757129",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                     "token_uri": "https://oauth2.googleapis.com/token",
@@ -239,9 +239,10 @@ def test_database_connection(
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
+                "supports_oauth2": True,
             },
             "expose_in_sqllab": True,
-            "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',
+            "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
             "force_ctas_schema": None,
             "id": 1,
             "impersonate_user": False,
@@ -253,7 +254,7 @@ def test_database_connection(
                         "project_id": "black-sanctum-314419",
                         "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
                         "private_key": "XXXXXXXXXX",
-                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "114567578578109757129",
                         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "token_uri": "https://oauth2.googleapis.com/token",
@@ -266,7 +267,7 @@ def test_database_connection(
                 "service_account_info": {
                     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                    "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                     "client_id": "114567578578109757129",
                     "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/google-spreadsheets-demo-servi%40black-sanctum-314419.iam.gserviceaccount.com",
                     "private_key": "XXXXXXXXXX",
@@ -311,6 +312,7 @@ def test_database_connection(
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
+                "supports_oauth2": True,
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -371,7 +373,7 @@ def test_update_with_password_mask(
     database = db.session.query(Database).one()
     assert (
         database.encrypted_extra
-        == '{"service_account_info": {"project_id": "yellow-unicorn-314419", "private_key": "SECRET"}}'
+        == '{"service_account_info": {"project_id": "yellow-unicorn-314419", "private_key": "SECRET"}}'  # noqa: E501
     )
 
 
@@ -399,7 +401,7 @@ def test_non_zip_import(client: Any, full_api_access: None) -> None:
                     "issue_codes": [
                         {
                             "code": 1010,
-                            "message": "Issue 1010 - Superset encountered an error while running a command.",
+                            "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
                         }
                     ]
                 },
@@ -409,7 +411,7 @@ def test_non_zip_import(client: Any, full_api_access: None) -> None:
 
 
 def test_delete_ssh_tunnel(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -440,7 +442,7 @@ def test_delete_ssh_tunnel(
                         "project_id": "black-sanctum-314419",
                         "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
                         "private_key": "SECRET",
-                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "SSH_TUNNEL_CREDENTIALS_CLIENT",
                         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "token_uri": "https://oauth2.googleapis.com/token",
@@ -487,7 +489,7 @@ def test_delete_ssh_tunnel(
 
 
 def test_delete_ssh_tunnel_not_found(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -518,7 +520,7 @@ def test_delete_ssh_tunnel_not_found(
                         "project_id": "black-sanctum-314419",
                         "private_key_id": "259b0d419a8f840056158763ff54d8b08f7b8173",
                         "private_key": "SECRET",
-                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",
+                        "client_email": "google-spreadsheets-demo-servi@black-sanctum-314419.iam.gserviceaccount.com",  # noqa: E501
                         "client_id": "SSH_TUNNEL_CREDENTIALS_CLIENT",
                         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "token_uri": "https://oauth2.googleapis.com/token",
@@ -563,7 +565,7 @@ def test_delete_ssh_tunnel_not_found(
 
 
 def test_apply_dynamic_database_filter(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app: Any,
     session: Session,
     client: Any,
@@ -659,7 +661,7 @@ def test_apply_dynamic_database_filter(
 
 
 def test_oauth2_happy_path(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
     client: Any,
     full_api_access: None,
@@ -721,13 +723,13 @@ def test_oauth2_happy_path(
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
     assert token.user_id == 1
     assert token.database_id == 1
-    assert token.access_token == "YYY"
+    assert token.access_token == "YYY"  # noqa: S105
     assert token.access_token_expiration == datetime(2024, 1, 1, 1, 0)
-    assert token.refresh_token == "ZZZ"
+    assert token.refresh_token == "ZZZ"  # noqa: S105
 
 
 def test_oauth2_multiple_tokens(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
     client: Any,
     full_api_access: None,
@@ -802,12 +804,12 @@ def test_oauth2_multiple_tokens(
     tokens = db.session.query(DatabaseUserOAuth2Tokens).all()
     assert len(tokens) == 1
     token = tokens[0]
-    assert token.access_token == "YYY2"
-    assert token.refresh_token == "ZZZ2"
+    assert token.access_token == "YYY2"  # noqa: S105
+    assert token.refresh_token == "ZZZ2"  # noqa: S105
 
 
 def test_oauth2_error(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     session: Session,
     client: Any,
     full_api_access: None,
@@ -930,7 +932,7 @@ def test_csv_upload(
     payload: dict[str, Any],
     upload_called_with: tuple[int, str, Any, dict[str, Any]],
     reader_called_with: dict[str, Any],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1070,7 +1072,7 @@ def test_csv_upload(
 def test_csv_upload_validation(
     payload: Any,
     expected_response: dict[str, str],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1089,7 +1091,7 @@ def test_csv_upload_validation(
 
 
 def test_csv_upload_file_size_validation(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1131,7 +1133,7 @@ def test_csv_upload_file_size_validation(
 )
 def test_csv_upload_file_extension_invalid(
     filename: str,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1167,7 +1169,7 @@ def test_csv_upload_file_extension_invalid(
 )
 def test_csv_upload_file_extension_valid(
     filename: str,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1272,7 +1274,7 @@ def test_excel_upload(
     payload: dict[str, Any],
     upload_called_with: tuple[int, str, Any, dict[str, Any]],
     reader_called_with: dict[str, Any],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1367,7 +1369,7 @@ def test_excel_upload(
 def test_excel_upload_validation(
     payload: Any,
     expected_response: dict[str, str],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1402,7 +1404,7 @@ def test_excel_upload_validation(
 )
 def test_excel_upload_file_extension_invalid(
     filename: str,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1478,7 +1480,7 @@ def test_columnar_upload(
     payload: dict[str, Any],
     upload_called_with: tuple[int, str, Any, dict[str, Any]],
     reader_called_with: dict[str, Any],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1544,7 +1546,7 @@ def test_columnar_upload(
 def test_columnar_upload_validation(
     payload: Any,
     expected_response: dict[str, str],
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1574,7 +1576,7 @@ def test_columnar_upload_validation(
 )
 def test_columnar_upload_file_extension_valid(
     filename: str,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1610,7 +1612,7 @@ def test_columnar_upload_file_extension_valid(
 )
 def test_columnar_upload_file_extension_invalid(
     filename: str,
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1630,7 +1632,9 @@ def test_columnar_upload_file_extension_invalid(
     assert response.json == {"message": {"file": ["File extension is not allowed."]}}
 
 
-def test_csv_metadata(mocker: MockFixture, client: Any, full_api_access: None) -> None:
+def test_csv_metadata(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
         "/api/v1/database/csv_metadata/",
@@ -1641,7 +1645,7 @@ def test_csv_metadata(mocker: MockFixture, client: Any, full_api_access: None) -
 
 
 def test_csv_metadata_bad_extension(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
@@ -1654,7 +1658,7 @@ def test_csv_metadata_bad_extension(
 
 
 def test_csv_metadata_validation(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(CSVReader, "file_metadata")
     response = client.post(
@@ -1667,7 +1671,7 @@ def test_csv_metadata_validation(
 
 
 def test_excel_metadata(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ExcelReader, "file_metadata")
     response = client.post(
@@ -1679,7 +1683,7 @@ def test_excel_metadata(
 
 
 def test_excel_metadata_bad_extension(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ExcelReader, "file_metadata")
     response = client.post(
@@ -1692,7 +1696,7 @@ def test_excel_metadata_bad_extension(
 
 
 def test_excel_metadata_validation(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ExcelReader, "file_metadata")
     response = client.post(
@@ -1705,7 +1709,7 @@ def test_excel_metadata_validation(
 
 
 def test_columnar_metadata(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ColumnarReader, "file_metadata")
     response = client.post(
@@ -1717,7 +1721,7 @@ def test_columnar_metadata(
 
 
 def test_columnar_metadata_bad_extension(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ColumnarReader, "file_metadata")
     response = client.post(
@@ -1730,7 +1734,7 @@ def test_columnar_metadata_bad_extension(
 
 
 def test_columnar_metadata_validation(
-    mocker: MockFixture, client: Any, full_api_access: None
+    mocker: MockerFixture, client: Any, full_api_access: None
 ) -> None:
     _ = mocker.patch.object(ColumnarReader, "file_metadata")
     response = client.post(
@@ -1743,7 +1747,7 @@ def test_columnar_metadata_validation(
 
 
 def test_table_metadata_happy_path(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1784,7 +1788,7 @@ def test_table_metadata_happy_path(
 
 
 def test_table_metadata_no_table(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1807,7 +1811,7 @@ def test_table_metadata_no_table(
                     "issue_codes": [
                         {
                             "code": 1020,
-                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",  # noqa: E501
                         }
                     ],
                 },
@@ -1817,7 +1821,7 @@ def test_table_metadata_no_table(
 
 
 def test_table_metadata_slashes(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1837,7 +1841,7 @@ def test_table_metadata_slashes(
 
 
 def test_table_metadata_invalid_database(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1858,7 +1862,7 @@ def test_table_metadata_invalid_database(
                     "issue_codes": [
                         {
                             "code": 1011,
-                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",  # noqa: E501
                         },
                         {
                             "code": 1036,
@@ -1872,7 +1876,7 @@ def test_table_metadata_invalid_database(
 
 
 def test_table_metadata_unauthorized(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1907,7 +1911,7 @@ def test_table_metadata_unauthorized(
 
 
 def test_table_extra_metadata_happy_path(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1948,7 +1952,7 @@ def test_table_extra_metadata_happy_path(
 
 
 def test_table_extra_metadata_no_table(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -1971,7 +1975,7 @@ def test_table_extra_metadata_no_table(
                     "issue_codes": [
                         {
                             "code": 1020,
-                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",
+                            "message": "Issue 1020 - The submitted payload has the incorrect schema.",  # noqa: E501
                         }
                     ],
                 },
@@ -1981,7 +1985,7 @@ def test_table_extra_metadata_no_table(
 
 
 def test_table_extra_metadata_slashes(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -2001,7 +2005,7 @@ def test_table_extra_metadata_slashes(
 
 
 def test_table_extra_metadata_invalid_database(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -2022,7 +2026,7 @@ def test_table_extra_metadata_invalid_database(
                     "issue_codes": [
                         {
                             "code": 1011,
-                            "message": "Issue 1011 - Superset encountered an unexpected error.",
+                            "message": "Issue 1011 - Superset encountered an unexpected error.",  # noqa: E501
                         },
                         {
                             "code": 1036,
@@ -2036,7 +2040,7 @@ def test_table_extra_metadata_invalid_database(
 
 
 def test_table_extra_metadata_unauthorized(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -2071,7 +2075,7 @@ def test_table_extra_metadata_unauthorized(
 
 
 def test_catalogs(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -2080,7 +2084,7 @@ def test_catalogs(
     """
     database = mocker.MagicMock()
     database.get_all_catalog_names.return_value = {"db1", "db2"}
-    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
     DatabaseDAO.find_by_id.return_value = database
 
     security_manager = mocker.patch(
@@ -2110,8 +2114,49 @@ def test_catalogs(
     )
 
 
+def test_catalogs_with_oauth2(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `catalogs` endpoint when OAuth2 is needed.
+    """
+    database = mocker.MagicMock()
+    database.get_all_catalog_names.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
+    DatabaseDAO = mocker.patch("superset.databases.api.DatabaseDAO")  # noqa: N806
+    DatabaseDAO.find_by_id.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
+
+    response = client.get("/api/v1/database/1/catalogs/")
+    assert response.status_code == 500
+    assert response.json == {
+        "errors": [
+            {
+                "message": "You don't have permission to access the data.",
+                "error_type": "OAUTH2_REDIRECT",
+                "level": "warning",
+                "extra": {
+                    "url": "url",
+                    "tab_id": "tab_id",
+                    "redirect_uri": "redirect_uri",
+                },
+            }
+        ]
+    }
+
+
 def test_schemas(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     client: Any,
     full_api_access: None,
 ) -> None:
@@ -2166,3 +2211,46 @@ def test_schemas(
         "catalog2",
         {"schema1", "schema2"},
     )
+
+
+def test_schemas_with_oauth2(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test the `schemas` endpoint when OAuth2 is needed.
+    """
+    from superset.databases.api import DatabaseRestApi
+
+    database = mocker.MagicMock()
+    database.get_all_schema_names.side_effect = OAuth2RedirectError(
+        "url",
+        "tab_id",
+        "redirect_uri",
+    )
+    datamodel = mocker.patch.object(DatabaseRestApi, "datamodel")
+    datamodel.get.return_value = database
+
+    security_manager = mocker.patch(
+        "superset.databases.api.security_manager",
+        new=mocker.MagicMock(),
+    )
+    security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
+
+    response = client.get("/api/v1/database/1/schemas/")
+    assert response.status_code == 500
+    assert response.json == {
+        "errors": [
+            {
+                "message": "You don't have permission to access the data.",
+                "error_type": "OAUTH2_REDIRECT",
+                "level": "warning",
+                "extra": {
+                    "url": "url",
+                    "tab_id": "tab_id",
+                    "redirect_uri": "redirect_uri",
+                },
+            }
+        ]
+    }

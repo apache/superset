@@ -19,7 +19,9 @@
 // A safe alternative to JS's eval
 import vm, { Context, RunningScriptOptions } from 'vm';
 import _ from 'underscore';
+/* eslint-disable-next-line no-restricted-syntax */
 import * as d3array from 'd3-array';
+/* eslint-disable-next-line no-restricted-syntax */
 import * as colors from './colors';
 
 // Objects exposed here should be treated like a public API

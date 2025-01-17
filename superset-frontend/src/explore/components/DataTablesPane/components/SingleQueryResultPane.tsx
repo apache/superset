@@ -34,6 +34,7 @@ export const SingleQueryResultPane = ({
   datasourceId,
   dataSize = 50,
   isVisible,
+  canDownload,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
 
@@ -60,6 +61,7 @@ export const SingleQueryResultPane = ({
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={false}
+        canDownload={canDownload}
       />
       <TableView
         columns={columns}

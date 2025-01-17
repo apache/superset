@@ -17,19 +17,10 @@
  * under the License.
  */
 
-/* eslint-disable sort-keys */
+import Generator from 'yeoman-generator';
+import { kebabCase, camelCase, startCase, upperFirst } from 'lodash-es';
 
-const Generator = require('yeoman-generator');
-// eslint-disable-next-line lodash/import-scope
-const kebabCase = require('lodash/kebabCase');
-// eslint-disable-next-line lodash/import-scope
-const startCase = require('lodash/startCase');
-// eslint-disable-next-line lodash/import-scope
-const camelCase = require('lodash/camelCase');
-// eslint-disable-next-line lodash/import-scope
-const upperFirst = require('lodash/upperFirst');
-
-module.exports = class extends Generator {
+export default class extends Generator {
   async prompting() {
     this.option('skipInstall');
 
@@ -121,4 +112,4 @@ module.exports = class extends Generator {
       this.fs.copy(this.templatePath(file), this.destinationPath(file));
     });
   }
-};
+}
