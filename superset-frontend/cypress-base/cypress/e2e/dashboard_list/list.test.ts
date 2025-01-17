@@ -41,6 +41,7 @@ function openMenu() {
 }
 
 function confirmDelete() {
+  cy.getBySel('delete-modal').should('be.visible');
   cy.getBySel('delete-modal-input').type('DELETE');
   cy.getBySel('modal-confirm-button').click();
 }
