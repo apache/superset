@@ -45,7 +45,6 @@ import {
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
-  getTimeOffset,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { LineStyleOption } from 'echarts/types/src/util/types';
@@ -281,30 +280,15 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  const offsetLineWidths: string[] = [];
+  let patternIncrement = 0;
 
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
-      const offset = getTimeOffset(
-        entry,
-        ensureIsArray(chartProps.rawFormData?.time_compare),
-      )!;
-      if (!offsetLineWidths.includes(offset)) {
-        offsetLineWidths.push(offset);
-        const position = offsetLineWidths.length;
-        if (position < 5) {
-          // increase the width of the line only up to 5
-          // or it gets too thick and hard to distinguish
-          lineStyle.width = position;
-          lineStyle.type = 'dashed';
-        } else {
-          // use a combination of dash and dot for the line style
-          lineStyle.width = (position % 3) + 1;
-          lineStyle.type = [(position % 5) + 1, (position % 3) + 1];
-        }
-      }
+      patternIncrement += 1;
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
       lineStyle.opacity = OpacityEnum.DerivedSeries;
     }
 
