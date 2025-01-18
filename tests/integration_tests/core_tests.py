@@ -53,7 +53,6 @@ from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from superset.views.database.views import DatabaseView
-from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -370,35 +369,6 @@ class TestCore(SupersetTestCase):
                     "viz_status": None,
                 }
             ]
-
-    @with_feature_flags(KV_STORE=False)
-    def test_kv_disabled(self):
-        self.login(ADMIN_USERNAME)
-
-        resp = self.client.get("/kv/10001/")
-        assert 404 == resp.status_code
-
-        value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))  # noqa: C408
-        assert resp.status_code == 404
-
-    @with_feature_flags(KV_STORE=True)
-    def test_kv_enabled(self):
-        self.login(ADMIN_USERNAME)
-
-        resp = self.client.get("/kv/10001/")
-        assert 404 == resp.status_code
-
-        value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))  # noqa: C408
-        assert resp.status_code == 200
-        kv = db.session.query(models.KeyValue).first()
-        kv_value = kv.value
-        assert json.loads(value) == json.loads(kv_value)
-
-        resp = self.client.get(f"/kv/{kv.id}/")
-        assert resp.status_code == 200
-        assert json.loads(value) == json.loads(resp.data.decode("utf-8"))
 
     def test_gamma(self):
         self.login(GAMMA_USERNAME)
