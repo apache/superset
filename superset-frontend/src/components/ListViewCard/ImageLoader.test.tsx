@@ -21,7 +21,7 @@ import fetchMock from 'fetch-mock';
 import ImageLoader, {
   BackgroundPosition,
 } from 'src/components/ListViewCard/ImageLoader';
-import { act, render, screen } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
 const blob = new Blob([], { type: 'image/png' });
@@ -41,26 +41,27 @@ describe('ImageLoader', () => {
     position: 'top' as BackgroundPosition,
   };
 
+  const setup = (extraProps = {}) => {
+    const props = { ...defaultProps, ...extraProps };
+    return render(<ImageLoader {...props} />);
+  };
+
   afterEach(() => fetchMock.resetHistory());
 
   it('is a valid element', async () => {
-    await act(async () => {
-      render(<ImageLoader {...defaultProps} />);
-    });
-    expect(screen.getByTestId('image-loader')).toBeVisible();
+    setup();
+    expect(await screen.findByTestId('image-loader')).toBeVisible();
   });
 
   it('fetches loads the image in the background', async () => {
-    await act(async () => {
-      render(<ImageLoader {...defaultProps} />);
-      expect(screen.getByTestId('image-loader')).toHaveAttribute(
-        'src',
-        '/fallback',
-      );
-    });
+    setup();
+    expect(screen.getByTestId('image-loader')).toHaveAttribute(
+      'src',
+      '/fallback',
+    );
     expect(fetchMock.calls(/thumbnail/)).toHaveLength(1);
     expect(global.URL.createObjectURL).toHaveBeenCalled();
-    expect(screen.getByTestId('image-loader')).toHaveAttribute(
+    expect(await screen.findByTestId('image-loader')).toHaveAttribute(
       'src',
       '/local_url',
     );
@@ -68,16 +69,13 @@ describe('ImageLoader', () => {
 
   it('displays fallback image when response is not an image', async () => {
     fetchMock.once('/thumbnail2', {});
-    await act(async () => {
-      const props = { ...defaultProps, src: '/thumbnail2' };
-      render(<ImageLoader {...props} />);
-      expect(screen.getByTestId('image-loader')).toHaveAttribute(
-        'src',
-        '/fallback',
-      );
-    });
-    expect(fetchMock.calls(/thumbnail2/)).toHaveLength(1);
+    setup({ src: '/thumbnail2' });
     expect(screen.getByTestId('image-loader')).toHaveAttribute(
+      'src',
+      '/fallback',
+    );
+    expect(fetchMock.calls(/thumbnail2/)).toHaveLength(1);
+    expect(await screen.findByTestId('image-loader')).toHaveAttribute(
       'src',
       '/fallback',
     );
