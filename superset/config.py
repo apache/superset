@@ -695,8 +695,8 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# CACHE_WARMUP_EXECUTE_AS = [ExecutorType.OWNER, FixedExecutor("admin")]
-CACHE_WARMUP_EXECUTE_AS = [ExecutorType.OWNER]
+# CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -710,8 +710,8 @@ CACHE_WARMUP_EXECUTE_AS = [ExecutorType.OWNER]
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# THUMBNAIL_EXECUTE_AS = [FixedExecutor("admin")]
-THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+# THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
+THUMBNAIL_EXECUTORS = [ExecutorType.CURRENT_USER]
 
 # By default, thumbnail digests are calculated based on various parameters in the
 # chart/dashboard metadata, and in the case of user-specific thumbnails, the
@@ -720,7 +720,7 @@ THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
 # 1. the model (dashboard or chart)
 # 2. the executor type (e.g. ExecutorType.SELENIUM)
 # 3. the executor's username (note, this is the executor as defined by
-# `THUMBNAIL_EXECUTE_AS`; the executor is only equal to the currently logged in
+# `THUMBNAIL_EXECUTORS`; the executor is only equal to the currently logged in
 # user if the executor type is equal to `ExecutorType.CURRENT_USER`)
 # and return the final digest string:
 THUMBNAIL_DASHBOARD_DIGEST_FUNC: (
@@ -1437,7 +1437,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
-# ALERT_REPORTS_EXECUTE_AS = [
+# ALERT_REPORTS_EXECUTORS = [
 #     ExecutorType.CREATOR_OWNER,
 #     ExecutorType.CREATOR,
 #     ExecutorType.MODIFIER_OWNER,
@@ -1445,7 +1445,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.OWNER,
 #     FixedExecutor("admin"),
 # ]
-ALERT_REPORTS_EXECUTE_AS: list[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTORS: list[ExecutorType] = [ExecutorType.OWNER]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())

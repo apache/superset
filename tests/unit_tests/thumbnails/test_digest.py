@@ -263,7 +263,7 @@ def test_dashboard_digest(
         patch.dict(
             app.config,
             {
-                "THUMBNAIL_EXECUTE_AS": execute_as,
+                "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_DASHBOARD_DIGEST_FUNC": func,
             },
         ),
@@ -399,7 +399,7 @@ def test_chart_digest(
         patch.dict(
             app.config,
             {
-                "THUMBNAIL_EXECUTE_AS": execute_as,
+                "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_CHART_DIGEST_FUNC": func,
             },
         ),

@@ -229,7 +229,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [FixedExecutor(ADMIN_USERNAME)],
+                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -257,7 +257,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
             ),
             patch(
@@ -307,7 +307,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [FixedExecutor(ADMIN_USERNAME)],
+                    "THUMBNAIL_EXECUTORS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -335,7 +335,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.CURRENT_USER],
+                    "THUMBNAIL_EXECUTORS": [ExecutorType.CURRENT_USER],
                 },
             ),
             patch(

@@ -69,8 +69,8 @@ def test_execute_query_as_report_executor(
     from superset.commands.report.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
-    original_config = app.config["ALERT_REPORTS_EXECUTE_AS"]
-    app.config["ALERT_REPORTS_EXECUTE_AS"] = config
+    original_config = app.config["ALERT_REPORTS_EXECUTORS"]
+    app.config["ALERT_REPORTS_EXECUTORS"] = config
     owners = [get_user(owner_name) for owner_name in owner_names]
     report_schedule = ReportSchedule(
         created_by=get_user(creator_name) if creator_name else None,
@@ -96,7 +96,7 @@ def test_execute_query_as_report_executor(
         command.run()
         assert override_user_mock.call_args[0][0].username == expected_result
 
-    app.config["ALERT_REPORTS_EXECUTE_AS"] = original_config
+    app.config["ALERT_REPORTS_EXECUTORS"] = original_config
 
 
 def test_execute_query_mutate_query_enabled(
@@ -278,7 +278,7 @@ def test_get_alert_metadata_from_object(
     from superset.commands.report.alert import AlertCommand
     from superset.reports.models import ReportSchedule
 
-    app.config["ALERT_REPORTS_EXECUTE_AS"] = [ExecutorType.OWNER]
+    app.config["ALERT_REPORTS_EXECUTORS"] = [ExecutorType.OWNER]
 
     mock_database = mocker.MagicMock()
     mock_exec_id = uuid.uuid4()
