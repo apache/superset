@@ -690,7 +690,13 @@ THEME_OVERRIDES: dict[str, Any] = {}
 EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
 # User used to execute cache warmup tasks
-CACHE_WARMUP_USERNAME: str | None = None
+# By default, the cache is warmed up using the primary owner. To fall back to using
+# a fixed user (admin in this example), use the following configuration:
+#
+# from superset.tasks.types import ExecutorType, FixedExecutor
+#
+# CACHE_WARMUP_EXECUTE_AS = [ExecutorType.OWNER, FixedExecutor("admin")]
+CACHE_WARMUP_EXECUTE_AS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
@@ -699,8 +705,10 @@ CACHE_WARMUP_USERNAME: str | None = None
 # user for anonymous users. Similar to Alerts & Reports, thumbnails
 # can be configured to always be rendered as a fixed user. See
 # `superset.tasks.types.ExecutorType` for a full list of executor options.
-# To always use a fixed user account, use the following configuration:
-# from superset.tasks.types import FixedExecutor
+# To always use a fixed user account (admin in this example, use the following
+# configuration:
+#
+# from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # THUMBNAIL_EXECUTE_AS = [FixedExecutor("admin")]
 THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
@@ -1426,7 +1434,8 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # To first try to execute as the creator in the owners list (if present), then fall
 # back to the creator, then the last modifier in the owners list (if present), then the
 # last modifier, then an owner and finally the "admin" user, set as follows:
-# from superset.tasks.types import FixedExecutor
+#
+# from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # ALERT_REPORTS_EXECUTE_AS = [
 #     ExecutorType.CREATOR_OWNER,

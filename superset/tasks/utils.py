@@ -26,7 +26,7 @@ from celery.utils.log import get_task_logger
 from flask import g
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
-from superset.tasks.types import Executor, ExecutorType, FixedExecutor
+from superset.tasks.types import ChosenExecutor, Executor, ExecutorType, FixedExecutor
 from superset.utils import json
 from superset.utils.urls import get_url_path
 
@@ -45,7 +45,7 @@ def get_executor(  # noqa: C901
     executors: list[Executor],
     model: Dashboard | ReportSchedule | Slice,
     current_user: str | None = None,
-) -> tuple[ExecutorType, str]:
+) -> ChosenExecutor:
     """
     Extract the user that should be used to execute a scheduled task. Certain executor
     types extract the user from the underlying object (e.g. CREATOR), the constant
@@ -57,7 +57,9 @@ def get_executor(  # noqa: C901
     :param current_user: The username of the user that initiated the task. For
            thumbnails this is the user that requested the thumbnail, while for alerts
            and reports this is None (=initiated by Celery).
-    :return: User to execute the report as
+    :return: User to execute the execute the async task as. The first element of the
+             tuple represents the type of the executor, and the second represents the
+             username of the executor.
     :raises ExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executors`
     """
