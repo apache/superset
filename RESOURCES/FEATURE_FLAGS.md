@@ -62,6 +62,7 @@ These features flags are **safe for production**. They have been tested and will
 [//]: # "PLEASE KEEP THESE LISTS SORTED ALPHABETICALLY"
 
 ### Flags on the path to feature launch and flag deprecation/removal
+
 - DASHBOARD_VIRTUALIZATION
 - DRILL_BY
 - DISABLE_LEGACY_DATASOURCE_EDITOR
