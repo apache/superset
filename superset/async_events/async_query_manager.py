@@ -91,7 +91,6 @@ def get_cache_backend(
         return RedisSentinelCacheBackend.from_config(cache_config)
 
     # TODO: Expand cache backend options.
-    # Removed support for deprecated 'GLOBAL_ASYNC_QUERIES_REDIS_CONFIG' as it is no longer needed.  # noqa: E501
     raise UnsupportedCacheBackendError("Unsupported cache backend configuration")
 
 
