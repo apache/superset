@@ -30,7 +30,7 @@ from superset import db, is_feature_enabled, security_manager
 from superset.extensions import machine_auth_provider_factory
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils import json
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
@@ -229,7 +229,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.FIXED_USER],
+                    "THUMBNAIL_EXECUTE_AS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(
@@ -307,7 +307,7 @@ class TestThumbnails(SupersetTestCase):
             patch.dict(
                 "superset.thumbnails.digest.current_app.config",
                 {
-                    "THUMBNAIL_EXECUTE_AS": [ExecutorType.FIXED_USER],
+                    "THUMBNAIL_EXECUTE_AS": [FixedExecutor(ADMIN_USERNAME)],
                 },
             ),
             patch(

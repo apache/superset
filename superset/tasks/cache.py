@@ -55,7 +55,7 @@ class CacheWarmupTask(TypedDict):
 
 def get_task(chart: Slice, dashboard: Optional[Dashboard] = None) -> CacheWarmupTask:
     """Return task for warming up a given chart/table cache."""
-    executors = current_app.config["CACHE_WARMUP_EXECUTORS"]
+    executors = current_app.config["CACHE_WARMUP_EXECUTE_AS"]
     payload: CacheWarmupPayload = {"chart_id": chart.id}
     if dashboard:
         payload["dashboard_id"] = dashboard.id

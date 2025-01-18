@@ -26,7 +26,7 @@ from pytest_mock import MockerFixture
 
 from superset.commands.report.exceptions import AlertQueryError
 from superset.reports.models import ReportCreationMethod, ReportScheduleType
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import ExecutorType, FixedExecutor
 from superset.utils.database import get_example_database
 from tests.integration_tests.test_app import app
 
@@ -34,7 +34,7 @@ from tests.integration_tests.test_app import app
 @pytest.mark.parametrize(
     "owner_names,creator_name,config,expected_result",
     [
-        (["gamma"], None, [ExecutorType.FIXED_USER], "admin"),
+        (["gamma"], None, [FixedExecutor("admin")], "admin"),
         (["gamma"], None, [ExecutorType.OWNER], "gamma"),
         (
             ["alpha", "gamma"],
