@@ -225,22 +225,10 @@ npm run test -- path/to/file.js
 
 ### e2e Integration Testing
 
-For e2e testing, we recommend that you use a `docker-compose` backed-setup
-
-Alternatively, you can go lower level and set things up in your
-development environment by following these steps:
-
-First set up a python/flask backend:
+For e2e testing, we recommend that you use a `docker compose` backend
 
 ```bash
-export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
-export SUPERSET_TESTENV=true
-export CYPRESS_BASE_URL="http://localhost:8081"
-superset db upgrade
-superset load_test_users
-superset init
-superset load-examples --load-test-data
-superset run --port 8081
+CYPRESS_CONFIG=true docker compose up
 ```
 
 In another terminal, prepare the frontend and run Cypress tests:
@@ -254,6 +242,9 @@ npm install
 
 # run tests via headless Chrome browser (requires Chrome 64+)
 npm run cypress-run-chrome
+
+# use interactive mode to run tests, while keeping memory usage contained (default is 50!)
+npx cypress open --config numTestsKeptInMemory=3
 
 # run tests from a specific file
 npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
