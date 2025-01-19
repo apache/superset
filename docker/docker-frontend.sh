@@ -36,7 +36,9 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
     npm install
 
     echo "Start webpack dev server"
-    npm run dev
+    # start the webpack dev server, serving dynamically at http://localhost:9000
+    # it proxies to the backend served at http://localhost:8088
+    npm run dev-server
 
 else
     echo "Skipping frontend build steps - YOU NEED TO RUN IT MANUALLY ON THE HOST!"

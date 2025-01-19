@@ -43,10 +43,12 @@ Join our growing community!
 - [Capital Service S.A.](https://capitalservice.pl) [@pkonarzewski]
 - [Clark.de](https://clark.de/)
 - [KarrotPay](https://www.daangnpay.com/)
+- [Remita](https://remita.net) [@mujibishola]
 - [Taveo](https://www.taveo.com) [@codek]
 - [Unit](https://www.unit.co/about-us) [@amitmiran137]
 - [Wise](https://wise.com) [@koszti]
 - [Xendit](https://xendit.co/) [@LieAlbertTriAdrian]
+- [Cover Genius](https://covergenius.com/)
 
 ### Gaming
 - [Popoko VM Games Studio](https://popoko.live)

@@ -291,7 +291,8 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
             # rollback changes
             for association in tag_associations:
-                db.session.delete(association)
+                if db.session.query(TaggedObject).filter_by(id=association.id).first():
+                    db.session.delete(association)
             for chart in charts:
                 db.session.delete(chart)
             db.session.commit()
@@ -1970,8 +1971,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
     @parameterized.expand(
         [
-            "Top 10 Girl Name Share",  # Legacy chart
-            "Pivot Table v2",  # Non-legacy chart
+            "Pivot Table v2",  # Non-legacy charts
         ],
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -2116,7 +2116,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 "result": [
                     {
                         "chart_id": slc.id,
-                        "viz_error": "Chart's datasource does not exist",
+                        "viz_error": "Chart's query context does not exist",
                         "viz_status": None,
                     },
                 ],

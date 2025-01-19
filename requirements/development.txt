@@ -27,7 +27,9 @@ attrs==24.2.0
     #   -c requirements/base.txt
     #   cattrs
     #   jsonschema
+    #   outcome
     #   requests-cache
+    #   trio
 babel==2.16.0
     # via
     #   -c requirements/base.txt
@@ -77,6 +79,7 @@ certifi==2024.8.30
     # via
     #   -c requirements/base.txt
     #   requests
+    #   selenium
 cffi==1.17.1
     # via
     #   -c requirements/base.txt
@@ -177,6 +180,8 @@ exceptiongroup==1.2.2
     #   -c requirements/base.txt
     #   cattrs
     #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -312,6 +317,7 @@ greenlet==3.0.3
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -323,6 +329,10 @@ gunicorn==23.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+h11==0.14.0
+    # via
+    #   -c requirements/base.txt
+    #   wsproto
 hashids==1.3.1
     # via
     #   -c requirements/base.txt
@@ -343,14 +353,19 @@ idna==3.10
     #   -c requirements/base.txt
     #   email-validator
     #   requests
+    #   trio
 importlib-metadata==8.5.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+    #   flask
+    #   markdown
+    #   shillelagh
 importlib-resources==6.4.5
     # via
     #   -c requirements/base.txt
     #   limits
+    #   matplotlib
     #   prophet
 iniconfig==2.0.0
     # via pytest
@@ -448,7 +463,7 @@ nh3==0.2.19
     #   apache-superset
 nodeenv==1.8.0
     # via pre-commit
-numpy==1.23.5
+numpy==1.26.4
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -479,6 +494,10 @@ ordered-set==4.1.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
+outcome==1.3.0.post0
+    # via
+    #   -c requirements/base.txt
+    #   trio
 packaging==24.2
     # via
     #   -c requirements/base.txt
@@ -629,6 +648,10 @@ pyrsistent==0.20.0
     # via
     #   -c requirements/base.txt
     #   jsonschema
+pysocks==1.7.1
+    # via
+    #   -c requirements/base.txt
+    #   urllib3
 pytest==7.4.4
     # via
     #   apache-superset
@@ -716,7 +739,7 @@ rsa==4.9
     #   google-auth
 ruff==0.8.0
     # via apache-superset
-selenium==3.141.0
+selenium==4.27.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -751,6 +774,14 @@ slack-sdk==3.33.4
     # via
     #   -c requirements/base.txt
     #   apache-superset
+sniffio==1.3.1
+    # via
+    #   -c requirements/base.txt
+    #   trio
+sortedcontainers==2.4.0
+    # via
+    #   -c requirements/base.txt
+    #   trio
 sqlalchemy==1.4.54
     # via
     #   -c requirements/base.txt
@@ -769,7 +800,7 @@ sqlalchemy-utils==0.38.3
     #   -c requirements/base.txt
     #   apache-superset
     #   flask-appbuilder
-sqlglot==25.24.5
+sqlglot==26.1.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -799,6 +830,15 @@ tqdm==4.67.1
     #   prophet
 trino==0.330.0
     # via apache-superset
+trio==0.28.0
+    # via
+    #   -c requirements/base.txt
+    #   selenium
+    #   trio-websocket
+trio-websocket==0.11.1
+    # via
+    #   -c requirements/base.txt
+    #   selenium
 typing-extensions==4.12.2
     # via
     #   -c requirements/base.txt
@@ -806,8 +846,10 @@ typing-extensions==4.12.2
     #   apache-superset
     #   cattrs
     #   flask-limiter
+    #   kombu
     #   limits
     #   rich
+    #   selenium
     #   shillelagh
 tzdata==2024.2
     # via
@@ -840,6 +882,10 @@ wcwidth==0.2.13
     # via
     #   -c requirements/base.txt
     #   prompt-toolkit
+websocket-client==1.8.0
+    # via
+    #   -c requirements/base.txt
+    #   selenium
 werkzeug==3.1.3
     # via
     #   -c requirements/base.txt
@@ -851,6 +897,10 @@ wrapt==1.17.0
     # via
     #   -c requirements/base.txt
     #   deprecated
+wsproto==1.2.0
+    # via
+    #   -c requirements/base.txt
+    #   trio-websocket
 wtforms==3.2.1
     # via
     #   -c requirements/base.txt
@@ -875,6 +925,7 @@ zipp==3.21.0
     # via
     #   -c requirements/base.txt
     #   importlib-metadata
+    #   importlib-resources
 zope-event==5.0
     # via gevent
 zope-interface==5.4.0
