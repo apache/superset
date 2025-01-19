@@ -25,7 +25,6 @@
     "@saucelabs/theme-github-codeblock": "^0.3.0",
     "@superset-ui/style": "^0.14.23",
     "antd": "^5.22.7",
-    "buffer": "^6.0.3",
     "docusaurus-plugin-less": "^2.0.2",
     "less": "^4.2.1",
     "less-loader": "^11.0.0",
