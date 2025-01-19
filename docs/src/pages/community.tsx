@@ -86,7 +86,7 @@ const communityLinks = [
 ];
 
 const StyledJoinCommunity = styled('section')`
-  background-color: var(--ifm-off-section-background);
+  background-color: var(--ifm-background-color);
   border-bottom: 1px solid var(--ifm-border-color);
   .list {
     max-width: 540px;
@@ -118,7 +118,7 @@ const StyledJoinCommunity = styled('section')`
   .description {
     font-size: 14px;
     line-height: 20px;
-    color: var(--ifm-secondary-text);
+    color: var(--ifm-font-base-color);
     margin-top: -8px;
     margin-bottom: 23px;
     ${mq[1]} {
@@ -140,22 +140,6 @@ const StyledCalendarIframe = styled('iframe')`
   border: 0;
   ${mq[1]} {
     width: calc(100% - 40px);
-  }
-`;
-
-const StyledNewsletterIframe = styled('iframe')`
-  display: block;
-  max-width: 1080px;
-  width: calc(100% - 40px);
-  height: 285px;
-  margin: 30px auto 20px;
-  border: 0;
-  @media (max-width: 1200px) {
-    height: 380px;
-  }
-  @media (max-width: 679px) {
-    height: 680px;
-    margin-top: 15px;
   }
 `;
 
@@ -224,8 +208,8 @@ const Community = () => {
                     </a>
                   }
                   title={
-                    <a className="title" href={url} target="_blank">
-                      {title}
+                    <a href={url} target="_blank">
+                      <p className="title" style={{marginBottom: 0}}>{title}</p>
                     </a>
                   }
                   description={<p className="description">{description}</p>}

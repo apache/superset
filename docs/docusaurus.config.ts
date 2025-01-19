@@ -200,7 +200,7 @@ const config: Config = {
       '@docusaurus/preset-classic',
       {
         docs: {
-          sidebarPath: 'sidebars.ts',
+          sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
           ({versionDocsDirPath, docPath}) => {
             if (docPath === 'intro.md') {
