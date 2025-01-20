@@ -166,8 +166,7 @@ def get_relative_base(unit: str, relative_start: str | None = None) -> str:
         return "now"
     elif unit.lower() in broad_units:
         return "today"
-    else:
-        raise ValueError(f"Unknown unit: {unit}")
+    raise ValueError(f"Unknown unit: {unit}")
 
 
 def handle_start_of(base_expression: str, unit: str) -> str:
