@@ -224,25 +224,33 @@ function SavedQueryList({
   menuData.buttons = subMenuButtons;
 
   // Action methods
-  const openInSqlLab = (id: number, openInNewWindow: boolean) => {
-    if (openInNewWindow) {
-      window.open(`/sqllab?savedQueryId=${id}`);
-    } else {
-      history.push(`/sqllab?savedQueryId=${id}`);
-    }
-  };
-
   const copyQueryLink = useCallback(
-    (id: number) => {
-      copyTextToClipboard(() =>
-        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
-      )
-        .then(() => {
-          addSuccessToast(t('Link Copied!'));
-        })
-        .catch(() => {
-          addDangerToast(t('Sorry, your browser does not support copying.'));
+    async (savedQuery: SavedQueryObject) => {
+      try {
+        const payload = {
+          dbId: savedQuery.db_id,
+          name: savedQuery.label,
+          schema: savedQuery.schema,
+          sql: savedQuery.sql,
+          autorun: false,
+          templateParams: null,
+        };
+
+        const response = await SupersetClient.post({
+          endpoint: '/api/v1/sqllab/permalink',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+
+        const { key } = response.json;
+        const permalink = `${window.location.origin}/sqllab/p/${key}`;
+
+        await navigator.clipboard.writeText(permalink);
+        addSuccessToast(t('Link Copied!'));
+      } catch (error) {
+        console.error('Error generating permalink:', error);
+        addDangerToast(t('There was an error generating the permalink.'));
+      }
     },
     [addDangerToast, addSuccessToast],
   );
@@ -393,7 +401,7 @@ function SavedQueryList({
           };
           const handleEdit = ({ metaKey }: MouseEvent) =>
             openInSqlLab(original.id, Boolean(metaKey));
-          const handleCopy = () => copyQueryLink(original.id);
+          const handleCopy = () => copyQueryLink(original);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
