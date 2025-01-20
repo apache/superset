@@ -409,7 +409,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     if time_range and separator in time_range:
         time_range_lookup = [
             (
-                r"^(start of|beginning of|end of)\s+(this|last|next|prior)\s+([0-9]+)?\s*(day|week|month|quarter|year)s?$",  # pylint: disable=line-too-long,useless-suppression  # noqa: E501
+                r"^(start of|beginning of|end of)\s+"
+                r"(this|last|next|prior)\s+"
+                r"([0-9]+)?\s*"
+                r"(day|week|month|quarter|year)s?$",  # Matches phrases like "start of next month" # pylint: disable=line-too-long,useless-suppression  # noqa: E501
                 lambda modifier, scope, delta, unit: handle_modifier_and_unit(
                     modifier,
                     scope,
@@ -419,13 +422,15 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 ),
             ),
             (
-                r"^(this|last|next|prior)\s+([0-9]+)?\s*(second|minute|day|week|month|quarter|year)s?$",
+                r"^(this|last|next|prior)\s+"
+                r"([0-9]+)?\s*"
+                r"(second|minute|day|week|month|quarter|year)s?$",  # Matches "next 5 days" or "last 2 weeks" # pylint: disable=line-too-long,useless-suppression  # noqa: E501
                 lambda scope, delta, unit: handle_scope_and_unit(
                     scope, delta, unit, get_relative_base(unit, relative_start)
                 ),
             ),
             (
-                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",
+                r"^(DATETIME.*|DATEADD.*|DATETRUNC.*|LASTDAY.*|HOLIDAY.*)$",  # Matches date-related keywords # pylint: disable=line-too-long,useless-suppression  # noqa: E501
                 lambda text: text,
             ),
         ]
