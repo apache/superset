@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import request, url_for, Response
+from flask import request, Response, url_for
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
