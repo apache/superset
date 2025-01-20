@@ -76,3 +76,13 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     fi
     echo_step "4" "Complete" "Loading examples"
 fi
+
+echo_step "5" "Executing custom DB initilization scripts"
+source docker/.env
+# Path to the SQL scripts
+SQL_SCRIPT_01_PATH="/app/docker/01-create-chart-ownership-trigger.sql"
+SQL_SCRIPT_02_PATH="/app/docker/02-set-admins-as-chart-owners.sql"
+# Execute the SQL scripts using psql
+PGPASSWORD=$DATABASE_PASSWORD psql -h $DATABASE_HOST -p $DATABASE_PORT -U $DATABASE_USER -d $DATABASE_DB -f $SQL_SCRIPT_01_PATH
+PGPASSWORD=$DATABASE_PASSWORD psql -h $DATABASE_HOST -p $DATABASE_PORT -U $DATABASE_USER -d $DATABASE_DB -f $SQL_SCRIPT_02_PATH
+echo_step "5" "Complete" "Executing custom DB initilization scripts"
