@@ -25,7 +25,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { useCallback, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
   createErrorHandler,
@@ -140,6 +140,8 @@ function SavedQueryList({
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
 
+  const history = useHistory();
+
   const openSavedQueryImportModal = () => {
     showImportModal(true);
   };
@@ -222,6 +224,14 @@ function SavedQueryList({
   menuData.buttons = subMenuButtons;
 
   // Action methods
+  const openInSqlLab = (id: number, openInNewWindow: boolean) => {
+    if (openInNewWindow) {
+      window.open(`/sqllab?savedQueryId=${id}`);
+    } else {
+      history.push(`/sqllab?savedQueryId=${id}`);
+    }
+  };
+
   const copyQueryLink = useCallback(
     async (savedQuery: SavedQueryObject) => {
       try {
@@ -396,6 +406,8 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
+          const handleEdit = ({ metaKey }: MouseEvent) =>
+            openInSqlLab(original.id, Boolean(metaKey));
           const handleCopy = () => copyQueryLink(original);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
@@ -413,6 +425,7 @@ function SavedQueryList({
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'Edit',
+              onClick: handleEdit,
             },
             {
               label: 'copy-action',
@@ -561,6 +574,7 @@ function SavedQueryList({
           onHide={() => setSavedQueryCurrentlyPreviewing(null)}
           savedQuery={savedQueryCurrentlyPreviewing}
           queries={queries}
+          openInSqlLab={openInSqlLab}
           show
         />
       )}
