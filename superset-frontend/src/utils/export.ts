@@ -28,9 +28,9 @@ export default function handleResourceExport(
   interval = 200,
 ): void {
   const token = nanoid();
-  const url = ensureBasePath(`/api/v1/${resource}/export/?q=${rison.encode(
-    ids,
-  )}&token=${token}`);
+  const url = ensureBasePath(
+    `/api/v1/${resource}/export/?q=${rison.encode(ids)}&token=${token}`,
+  );
 
   // create new iframe for export
   const iframe = document.createElement('iframe');

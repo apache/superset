@@ -497,7 +497,9 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={ensureBasePath(child.url || '')}>{menuItemDisplay}</a>
+                        <a href={ensureBasePath(child.url || '')}>
+                          {menuItemDisplay}
+                        </a>
                       )}
                     </Menu.Item>
                   );

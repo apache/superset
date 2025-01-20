@@ -22,7 +22,6 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 // eslint-disable-next-line import/no-mutable-exports
 const BOOTSTRAP_DATA = getBootstrapData();
 
-
 /**
  * Takes a string path to a static asset and prefixes it with the defined static asset prefix
  * defined in the bootstrap data

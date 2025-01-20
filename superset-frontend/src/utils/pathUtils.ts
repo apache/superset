@@ -24,7 +24,7 @@ const APPLICATION_ROOT = getBootstrapData().common.application_root;
 /**
  * @returns The configured application root
  */
-export function applicationRoot() : string {
+export function applicationRoot(): string {
   return APPLICATION_ROOT;
 }
 

@@ -142,7 +142,11 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       this.newQueryEditor();
 
       if (isNewQuery) {
-        window.history.replaceState({}, document.title, ensureBasePath(SQL_LAB_URL));
+        window.history.replaceState(
+          {},
+          document.title,
+          ensureBasePath(SQL_LAB_URL),
+        );
       }
     } else {
       const qe = this.activeQueryEditor();

@@ -90,9 +90,7 @@ const plugins = [
       const entryFiles = {};
       Object.entries(entrypoints).forEach(([entry, chunks]) => {
         entryFiles[entry] = {
-          css: chunks
-            .filter(x => x.endsWith('.css'))
-            .map(x => `${x}`),
+          css: chunks.filter(x => x.endsWith('.css')).map(x => `${x}`),
           js: chunks
             .filter(x => x.endsWith('.js') && x.match(/(?<!hot-update).js$/))
             .map(x => `${x}`),
