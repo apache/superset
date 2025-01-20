@@ -107,9 +107,7 @@ export default (props: DropDownSelectableProps) => {
   const [visible, setVisible] = useState(false);
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
 
-  const handleVisibleChange = (flag: boolean) => {
-    setVisible(flag);
-  };
+  const handleVisibleChange = setVisible;
 
   const handleMenuSelect: MenuProps['onSelect'] = info => {
     if (onSelect) {
