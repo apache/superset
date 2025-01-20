@@ -24,7 +24,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -139,7 +139,6 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
-
   const history = useHistory();
 
   const openSavedQueryImportModal = () => {
