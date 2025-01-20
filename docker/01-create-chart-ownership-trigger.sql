@@ -7,12 +7,12 @@ BEGIN
     WHERE user_id IN (
     SELECT user_id
     FROM ab_user_role
-    WHERE role_id in (SELECT id FROM ab_role WHERE name = 'Admin' OR name = 'Client_Admin'));
+    WHERE role_id in (SELECT id FROM ab_role WHERE name like '%Admin%'));
 
     INSERT INTO slice_user(user_id, slice_id)
     SELECT user_id, NEW.id
     FROM ab_user_role
-    WHERE role_id in (SELECT id FROM ab_role WHERE name = 'Admin' OR name = 'Client_Admin');
+    WHERE role_id in (SELECT id FROM ab_role WHERE name like '%Admin%');
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
