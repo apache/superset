@@ -28,11 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 def create_app(
-    superset_config_module: Optional[str] = None, app_root: str = ""
+    superset_config_module: Optional[str] = None, app_root: str = "/"
 ) -> Flask:
     app = SupersetApp(__name__)
-    if app_root:
-        app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
 
     try:
         # Allow user to override our config completely
@@ -40,7 +38,10 @@ def create_app(
             "SUPERSET_CONFIG", "superset.config"
         )
         app.config.from_object(config_module)
-        if app_root:
+
+        # Allow application to sit on a non-root path
+        if app_root != "/":
+            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
             # If not set, manually configure options that depend on the value of app_root
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
