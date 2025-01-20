@@ -24,8 +24,8 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import { useCallback, useMemo, useState, MouseEvent } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { useCallback, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
   createErrorHandler,
