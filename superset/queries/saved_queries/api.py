@@ -196,9 +196,6 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)
 
-    class SavedQueryRestApi(BaseSupersetModelRestApi):
-        datamodel = SQLAInterface(SavedQuery)
-
     @expose("/", methods=("DELETE",))
     @protect()
     @safe
