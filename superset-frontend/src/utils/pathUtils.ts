@@ -19,22 +19,20 @@
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 // eslint-disable-next-line import/no-mutable-exports
-const BOOTSTRAP_DATA = getBootstrapData();
-
-const STARTS_WITH_BASE_PATH_RE = new RegExp(`^${BOOTSTRAP_DATA.common.application_root}`, '');
+const APPLICATION_ROOT = getBootstrapData().common.application_root;
 
 /**
- * Takes a string path to a resource and prefixes it with the BASE_PATH that is
- * defined in the webpack configuration.
- * @param path A string path to a resource
+ * @returns The configured application root
  */
-export function ensureBasePath(path: string): string {
-  return `${BOOTSTRAP_DATA.common.application_root}${path.startsWith('/') ? path : `/${path}`}`;
+export function applicationRoot() : string {
+  return APPLICATION_ROOT;
 }
 
 /**
- * Strips the BASE_PATH from the given path if it exists
+ * Takes a string path to a resource and prefixes it with the application root that is
+ * defined in the application configuration.
+ * @param path A string path to a resource
  */
-export function stripBasePath(path: string): string {
-  return path.replace(STARTS_WITH_BASE_PATH_RE, '');
+export function ensureBasePath(path: string): string {
+  return `${APPLICATION_ROOT}${path.startsWith('/') ? path : `/${path}`}`;
 }

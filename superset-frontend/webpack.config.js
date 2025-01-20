@@ -50,7 +50,6 @@ const {
 } = parsedArgs;
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
-const BASE_PATH = process.env.BASE_PATH || '';
 
 const output = {
   path: BUILD_DIR,
@@ -111,7 +110,6 @@ const plugins = [
 
   // expose mode variable to other modules
   new webpack.DefinePlugin({
-    INJECTED_BASE_PATH: JSON.stringify(BASE_PATH),
     'process.env.WEBPACK_MODE': JSON.stringify(mode),
     'process.env.REDUX_DEFAULT_MIDDLEWARE':
       process.env.REDUX_DEFAULT_MIDDLEWARE,

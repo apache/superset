@@ -27,7 +27,6 @@ import {
   initFeatureFlags,
 } from '@superset-ui/core';
 import { merge } from 'lodash';
-//import { BASE_PATH } from './constants';
 import setupClient from './setup/setupClient';
 import setupColors from './setup/setupColors';
 import setupFormatters from './setup/setupFormatters';

@@ -67,8 +67,6 @@ subcommand and the [docker.yml](https://github.com/apache/superset/blob/master/.
 GitHub action.
 
 ## Key ARGs in Dockerfile
-- `BASE_PATH`: specifies the prefix path that the application is being served on by
-  a proxy server
 - `BUILD_TRANSLATIONS`: whether to build the translations into the image. For the
   frontend build this tells webpack to strip out all locales other than `en` from
   the `moment-timezone` library. For the backendthis skips compiling the

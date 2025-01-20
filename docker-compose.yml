@@ -105,7 +105,6 @@ services:
         condition: service_completed_successfully
     volumes: *superset-volumes
     environment:
-      <<: *superset-base-path
       CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
       SUPERSET_LOG_LEVEL: "${SUPERSET_LOG_LEVEL:-info}"
 

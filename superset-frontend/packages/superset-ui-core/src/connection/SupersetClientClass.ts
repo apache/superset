@@ -33,7 +33,7 @@ import {
 } from './types';
 import {
   DEFAULT_FETCH_RETRY_OPTIONS,
-  DEFAULT_BASE_PATH,
+  DEFAULT_APP_ROOT,
   DEFAULT_BASE_URL,
 } from './constants';
 
@@ -71,7 +71,7 @@ export default class SupersetClientClass {
   handleUnauthorized: () => void;
 
   constructor({
-    basePath = DEFAULT_BASE_PATH,
+    basePath = DEFAULT_APP_ROOT,
     host,
     protocol,
     headers = {},

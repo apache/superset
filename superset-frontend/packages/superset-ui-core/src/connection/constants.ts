@@ -20,7 +20,7 @@
 import { FetchRetryOptions } from './types';
 
 export const DEFAULT_BASE_URL = 'http://localhost';
-export const DEFAULT_BASE_PATH = '';
+export const DEFAULT_APP_ROOT = '/';
 
 // HTTP status codes
 export const HTTP_STATUS_OK = 200;

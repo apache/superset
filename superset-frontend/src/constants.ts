@@ -24,11 +24,6 @@ import {
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
-// Injected by webpack. See webpack.config.js
-declare let INJECTED_BASE_PATH: string;
-
-export const BASE_PATH =  typeof INJECTED_BASE_PATH === 'undefined' ? '' : INJECTED_BASE_PATH;
-
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
 export const TIME_WITH_MS = 'HH:mm:ss.SSS';
 
@@ -148,6 +143,8 @@ export const SLOW_DEBOUNCE = 500;
 export const NULL_DISPLAY = t('N/A');
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
+  application_root: "/",
+  static_assets_prefix: "",
   flash_messages: [],
   conf: {},
   locale: 'en',
