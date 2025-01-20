@@ -94,7 +94,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setFilterActive,
     filterState,
     inputRef,
-    filterBarOrientation,
+    filterBarOrientation = FilterBarOrientation.Vertical,
     isOverflowingFilterBar,
   } = props;
   const [row] = data;
@@ -162,8 +162,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleChange = (newValue: number, index: 0 | 1) => {
     const updatedValue: [number, number] = [...value];
-    console.log(newValue);
-    if (enableSingleExactValue || enableSingleMinValue) {
+
+    if (enableSingleExactValue) {
+      setValue([newValue, newValue]);
+      handleAfterChange([newValue, newValue]);
+      return;
+    }
+    if (enableSingleMinValue) {
       updatedValue[minIndex] = newValue;
       setValue(updatedValue);
       handleAfterChange(updatedValue);
@@ -194,10 +199,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
     const filterStateValue = filterState.value ?? minMax;
-    if (filterStateValue !== minMax) {
-      setValue(filterStateValue);
-      handleAfterChange(filterStateValue);
-    }
+    setValue(filterStateValue);
+    handleAfterChange(filterStateValue);
   }, [
     enableSingleMaxValue,
     enableSingleMinValue,
@@ -219,18 +222,21 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   useEffect(() => {
     if (enableSingleMaxValue) {
+      setValue([min, minMax[maxIndex]]);
       handleAfterChange([min, minMax[maxIndex]]);
     }
   }, [enableSingleMaxValue]);
 
   useEffect(() => {
     if (enableSingleMinValue) {
+      setValue([minMax[minIndex], max]);
       handleAfterChange([minMax[minIndex], max]);
     }
   }, [enableSingleMinValue]);
 
   useEffect(() => {
     if (enableSingleExactValue) {
+      setValue([minMax[minIndex], minMax[minIndex]]);
       handleAfterChange([minMax[minIndex], minMax[minIndex]]);
     }
   }, [enableSingleExactValue]);

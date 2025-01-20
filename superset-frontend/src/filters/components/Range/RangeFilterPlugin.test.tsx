@@ -135,6 +135,8 @@ describe('RangeFilterPlugin', () => {
 
     fireEvent.change(fromInput, { target: { value: 40 } });
 
+    fireEvent.blur(fromInput);
+
     expect(fromInput).toHaveValue('10');
   });
 
@@ -177,7 +179,8 @@ describe('RangeFilterPlugin', () => {
         value: [20, 100],
       },
     });
-    expect(screen.getAllByRole('spinbutton')[0]).toHaveValue('20');
+    const input = screen.getByRole('spinbutton');
+    expect(input).toHaveValue('20');
   });
 
   it('should call setDataMask with correct less than filter', () => {
@@ -200,7 +203,8 @@ describe('RangeFilterPlugin', () => {
         value: [10, 60],
       },
     });
-    expect(screen.getAllByRole('spinbutton')[1]).toHaveValue('60');
+    const input = screen.getByRole('spinbutton');
+    expect(input).toHaveValue('60');
   });
 
   it('should call setDataMask with correct exact filter', () => {
