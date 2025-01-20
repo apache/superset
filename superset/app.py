@@ -17,12 +17,13 @@
 
 import logging
 import os
-from typing import Callable, Iterable, Optional
+from typing import Iterable, Optional
+from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from flask import Flask
+from werkzeug.exceptions import NotFound
 
 from superset.initialization import SupersetAppInitializer
-from werkzeug.exceptions import NotFound
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +43,8 @@ def create_app(
         # Allow application to sit on a non-root path
         if app_root != "/":
             app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
-            # If not set, manually configure options that depend on the value of app_root
+            # If not set, manually configure options that depend on the
+            # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
                 app.config["STATIC_ASSETS_PREFIX"] = app_root
             if app.config["APPLICATION_ROOT"] == "/":
@@ -71,12 +73,16 @@ class AppRootMiddleware:
     """
 
     def __init__(
-        self, wsgi_app: Callable[[dict, Callable], Iterable[bytes]], app_root: str
+        self,
+        wsgi_app: WSGIApplication,
+        app_root: str,
     ):
         self.wsgi_app = wsgi_app
         self.app_root = app_root
 
-    def __call__(self, environ: dict, start_response: Callable) -> Iterable[bytes]:
+    def __call__(
+        self, environ: WSGIEnvironment, start_response: StartResponse
+    ) -> Iterable[bytes]:
         original_path_info = environ.get("PATH_INFO", "")
         if original_path_info.startswith(self.app_root):
             environ["PATH_INFO"] = original_path_info.removeprefix(self.app_root)
