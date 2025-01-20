@@ -31,8 +31,6 @@ ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
-ARG BASE_PATH=""               # Base path for used by reverse-proxy to application
-ENV BASE_PATH=${BASE_PATH}
 
 COPY docker/ /app/docker/
 # Arguments for build configuration
@@ -106,8 +104,6 @@ ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
-ARG BASE_PATH=""               # Base path for used by reverse-proxy to application
-ENV BASE_PATH=${BASE_PATH}
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
