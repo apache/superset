@@ -110,6 +110,10 @@ const SqlLab = lazy(
   () => import(/* webpackChunkName: "SqlLab" */ 'src/pages/SqlLab'),
 );
 
+const SqlLabPoc = lazy(
+  () => import(/* webpackChunkName: "SqlLabPoc" */ 'src/pages/SqlLabPoc'),
+);
+
 const AllEntities = lazy(
   () => import(/* webpackChunkName: "AllEntities" */ 'src/pages/AllEntities'),
 );
@@ -230,6 +234,10 @@ export const routes: Routes = [
   {
     path: '/sqllab/',
     Component: SqlLab,
+  },
+  {
+    path: '/sqllab_poc/',
+    Component: SqlLabPoc,
   },
 ];
 
