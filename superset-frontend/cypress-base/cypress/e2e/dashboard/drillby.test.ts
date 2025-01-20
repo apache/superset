@@ -58,7 +58,7 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     .first()
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
-    .contains(new RegExp(`^Drill by$`))
+    .contains(/^Drill by$/)
     .trigger('mouseover', { force: true });
 
   cy.get(
