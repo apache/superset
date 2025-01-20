@@ -65,7 +65,7 @@ const drillToDetailBy = (targetDrill: string) => {
     .first()
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
-    .contains(new RegExp(`^Drill to detail by$`))
+    .contains(/^Drill to detail by$/)
     .trigger('mouseover', { force: true });
 
   cy.get(
