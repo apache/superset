@@ -203,7 +203,7 @@ RUN rm superset/translations/*/*/*.po
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
-HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}/health"
+HEALTHCHECK CMD curl -f "http://localhost:${SUPERSET_PORT}${SUPERSET_APP_ROOT}/health"
 CMD ["/app/docker/entrypoints/run-server.sh"]
 EXPOSE ${SUPERSET_PORT}
 
