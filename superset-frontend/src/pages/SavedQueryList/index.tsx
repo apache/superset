@@ -51,7 +51,6 @@ import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
-import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { ModifiedInfo } from 'src/components/AuditInfo';
@@ -140,7 +139,6 @@ function SavedQueryList({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
-  const history = useHistory();
 
   const openSavedQueryImportModal = () => {
     showImportModal(true);
@@ -248,7 +246,6 @@ function SavedQueryList({
         await navigator.clipboard.writeText(permalink);
         addSuccessToast(t('Link Copied!'));
       } catch (error) {
-        console.error('Error generating permalink:', error);
         addDangerToast(t('There was an error generating the permalink.'));
       }
     },
@@ -399,8 +396,6 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = ({ metaKey }: MouseEvent) =>
-            openInSqlLab(original.id, Boolean(metaKey));
           const handleCopy = () => copyQueryLink(original);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
@@ -418,7 +413,6 @@ function SavedQueryList({
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'Edit',
-              onClick: handleEdit,
             },
             {
               label: 'copy-action',
@@ -567,7 +561,6 @@ function SavedQueryList({
           onHide={() => setSavedQueryCurrentlyPreviewing(null)}
           savedQuery={savedQueryCurrentlyPreviewing}
           queries={queries}
-          openInSqlLab={openInSqlLab}
           show
         />
       )}
