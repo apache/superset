@@ -17,8 +17,7 @@
  * under the License.
  */
 import Button from 'src/components/Button';
-import { PopoverProps } from 'antd/lib/popover';
-import Popover from '.';
+import Popover, { PopoverProps } from 'src/components/Popover';
 
 export default {
   title: 'Popover',
