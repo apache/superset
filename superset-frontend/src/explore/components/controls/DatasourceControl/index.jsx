@@ -343,7 +343,7 @@ class DatasourceControl extends PureComponent {
         <Menu.Item key={QUERY_PREVIEW}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('Query preview')}</span>
+              <div data-test="view-query-menu-item">{t('Query preview')}</div>
             }
             modalTitle={t('Query preview')}
             modalBody={

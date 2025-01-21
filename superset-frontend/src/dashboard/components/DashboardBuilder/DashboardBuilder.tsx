@@ -105,7 +105,7 @@ const StyledHeader = styled.div`
     grid-row: 1;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 99;
     max-width: 100vw;
 
     .empty-droptarget:before {

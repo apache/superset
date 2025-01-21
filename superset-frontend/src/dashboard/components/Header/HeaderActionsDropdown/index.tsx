@@ -195,7 +195,7 @@ export class HeaderActionsDropdown extends PureComponent<
         {editMode && (
           <Menu.Item key={MenuKeys.EditCss}>
             <CssEditor
-              triggerNode={<span>{t('Edit CSS')}</span>}
+              triggerNode={<div>{t('Edit CSS')}</div>}
               initialCss={this.state.css}
               onChange={this.changeCss}
               addDangerToast={addDangerToast}
@@ -222,7 +222,7 @@ export class HeaderActionsDropdown extends PureComponent<
               colorScheme={colorScheme}
               onSave={onSave}
               triggerNode={
-                <span data-test="save-as-menu-item">{t('Save as')}</span>
+                <div data-test="save-as-menu-item">{t('Save as')}</div>
               }
               canOverwrite={userCanEdit}
             />
@@ -242,24 +242,20 @@ export class HeaderActionsDropdown extends PureComponent<
           />
         </Menu.SubMenu>
         {userCanShare && (
-          <Menu.SubMenu
+          <ShareMenuItems
             key={MenuKeys.Share}
             data-test="share-dashboard-menu-item"
-            disabled={isLoading}
             title={t('Share')}
-          >
-            <ShareMenuItems
-              url={url}
-              copyMenuItemTitle={t('Copy permalink to clipboard')}
-              emailMenuItemTitle={t('Share permalink by email')}
-              emailSubject={emailSubject}
-              emailBody={emailBody}
-              addSuccessToast={addSuccessToast}
-              addDangerToast={addDangerToast}
-              dashboardId={dashboardId}
-              dashboardComponentId={dashboardComponentId}
-            />
-          </Menu.SubMenu>
+            url={url}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
+            emailSubject={emailSubject}
+            emailBody={emailBody}
+            addSuccessToast={addSuccessToast}
+            addDangerToast={addDangerToast}
+            dashboardId={dashboardId}
+            dashboardComponentId={dashboardComponentId}
+          />
         )}
         {!editMode && userCanCurate && (
           <Menu.Item
@@ -301,7 +297,7 @@ export class HeaderActionsDropdown extends PureComponent<
           <Menu.Item key={MenuKeys.SetFilterMapping}>
             <FilterScopeModal
               triggerNode={
-                <span className="m-r-5">{t('Set filter mapping')}</span>
+                <div className="m-r-5">{t('Set filter mapping')}</div>
               }
             />
           </Menu.Item>
@@ -316,7 +312,7 @@ export class HeaderActionsDropdown extends PureComponent<
             onChange={this.changeRefreshInterval}
             editMode={editMode}
             refreshIntervalOptions={refreshIntervalOptions}
-            triggerNode={<span>{t('Set auto-refresh interval')}</span>}
+            triggerNode={<div>{t('Set auto-refresh interval')}</div>}
           />
         </Menu.Item>
       </Menu>

@@ -16,35 +16,43 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import { Menu } from 'src/components/Menu';
-import DownloadMenuItems from '.';
+import { MainNav as Menu } from 'src/components/Menu'; // Ensure correct import path
+import LanguagePicker from './LanguagePicker'; // Ensure correct import path
 
-const createProps = () => ({
-  pdfMenuItemTitle: 'Export to PDF',
-  imageMenuItemTitle: 'Download as Image',
-  dashboardTitle: 'Test Dashboard',
-  logEvent: jest.fn(),
-  dashboardId: 123,
-});
-
-const renderComponent = () => {
-  render(
-    <Menu>
-      <DownloadMenuItems {...createProps()} />
-    </Menu>,
-    {
-      useRedux: true,
+export default {
+  title: 'Components/LanguagePicker',
+  component: LanguagePicker,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'The LanguagePicker component allows users to select a language from a dropdown.',
+      },
     },
-  );
+  },
 };
 
-test('Should render menu items', () => {
-  renderComponent();
-  expect(
-    screen.getByRole('menuitem', { name: 'Export to PDF' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download as Image' }),
-  ).toBeInTheDocument();
-});
+const mockedProps = {
+  locale: 'en',
+  languages: {
+    en: {
+      flag: 'us',
+      name: 'English',
+      url: '/lang/en',
+    },
+    it: {
+      flag: 'it',
+      name: 'Italian',
+      url: '/lang/it',
+    },
+  },
+};
+
+const Template = (args: any) => (
+  <Menu disabledOverflow>
+    <LanguagePicker {...args} />
+  </Menu>
+);
+
+export const Default = Template.bind({});
+Default.args = mockedProps;
