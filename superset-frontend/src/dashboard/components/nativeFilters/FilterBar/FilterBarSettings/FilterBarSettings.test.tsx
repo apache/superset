@@ -20,17 +20,11 @@
 import fetchMock from 'fetch-mock';
 import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
 import { FeatureFlag } from '@superset-ui/core';
 import FilterBarSettings from '.';
-
-// Mock the number formatter registration to avoid duplicate warnings
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  getNumberFormatter: jest.fn(),
-}));
 
 const initialState: { dashboardInfo: DashboardInfo } = {
   dashboardInfo: {
@@ -141,14 +135,10 @@ test('Popover opens with "Vertical" selected', async () => {
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
-
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
-
-  // Look for the check icon in a different way
-  const menuItems = screen.getAllByRole('menuitem');
   expect(
-    menuItems[2].querySelector('[aria-label="check"]'),
+    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -160,13 +150,10 @@ test('Popover opens with "Horizontal" selected', async () => {
   await setup({ filterBarOrientation: FilterBarOrientation.Horizontal });
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
-
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
-
-  const menuItems = screen.getAllByRole('menuitem');
   expect(
-    menuItems[3].querySelector('[aria-label="check"]'),
+    within(screen.getAllByRole('menuitem')[3]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -189,9 +176,10 @@ test('On selection change, send request and update checked value', async () => {
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
-  const menuItems = screen.getAllByRole('menuitem');
+  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
+  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    menuItems[2].querySelector('[aria-label="check"]'),
+    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
