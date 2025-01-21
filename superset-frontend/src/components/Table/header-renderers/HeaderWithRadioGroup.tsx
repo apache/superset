@@ -45,7 +45,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
     >
       <Popover
         trigger="click"
-        visible={popoverVisible}
+        open={popoverVisible}
         content={
           <div>
             <div
@@ -74,7 +74,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
           </div>
         }
         placement="bottomLeft"
-        arrowPointAtCenter
+        arrow={{ pointAtCenter: true }}
       >
         <Icons.SettingOutlined
           iconSize="m"

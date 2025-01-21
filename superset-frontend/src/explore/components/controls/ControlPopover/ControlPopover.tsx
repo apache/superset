@@ -21,8 +21,9 @@ import React, { FC, useCallback, useRef, useEffect, useState } from 'react';
 
 import Popover, {
   PopoverProps as BasePopoverProps,
-  TooltipPlacement,
 } from 'src/components/Popover';
+
+import { TooltipPlacement } from 'src/components/Tooltip';
 
 const sectionContainerId = 'controlSections';
 export const getSectionContainerElement = () =>

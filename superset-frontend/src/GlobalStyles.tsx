@@ -39,7 +39,7 @@ export const GlobalStyles = () => (
       .echarts-tooltip[style*='visibility: hidden'] {
         display: none !important;
       }
-      .ant-popover,
+
       .antd5-dropdown,
       .ant-dropdown,
       .ant-select-dropdown {
