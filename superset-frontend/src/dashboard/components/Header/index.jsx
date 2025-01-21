@@ -655,7 +655,7 @@ const Header = () => {
                 buttonStyle="secondary"
                 onClick={() => {
                   toggleEditMode();
-                  boundActionCreators.clearDashboardHistory(); // Resets the `past` as an empty array
+                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
                 }}
                 data-test="edit-dashboard-button"
                 className="action-button"
