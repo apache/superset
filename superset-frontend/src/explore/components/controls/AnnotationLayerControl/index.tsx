@@ -254,9 +254,9 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               '',
             )}
             title={t('Add annotation layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
+            open={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
-            onVisibleChange={visible =>
+            onOpenChange={visible =>
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }
           >
