@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { Popover } from 'antd';
+import { Popover } from 'antd-v5';
 import type ReactAce from 'react-ace';
-import type { PopoverProps } from 'antd/lib/popover';
+import type { PopoverProps } from 'antd-v5/lib/popover';
 import { CalculatorOutlined } from '@ant-design/icons';
 import { css, styled, useTheme, t } from '@superset-ui/core';
 
@@ -72,7 +72,7 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
         />
       }
       placement="bottomLeft"
-      arrowPointAtCenter
+      arrow={{ pointAtCenter: true }}
       title={t('SQL expression')}
       {...props}
     >

@@ -175,7 +175,6 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      overlayClassName="filterStatusPopover"
       overlayStyle={{
         '--antd-arrow-background-color': `${theme.colors.grayscale.dark2}cc`,
       }}
@@ -185,6 +184,7 @@ const DetailsPanelPopover = ({
       onOpenChange={handleVisibility}
       placement="bottomRight"
       trigger={['hover']}
+      data-test="filter-status-popover"
     >
       {children}
     </Popover>
