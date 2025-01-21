@@ -25,16 +25,16 @@ export function dataTestChartName(chartName: string): string {
 
 export const pageHeader = {
   logo: '.navbar-brand > img',
-  headerNavigationItem: '.ant-menu-submenu-title',
+  headerNavigationItem: '.antd5-menu-submenu-title',
   headerNavigationDropdown: "[aria-label='triangle-down']",
-  headerNavigationItemMenu: '.ant-menu-item-group-list',
-  plusIcon: ':nth-child(2) > .ant-menu-submenu-title',
+  headerNavigationItemMenu: '.antd5-menu-item-group-list',
+  plusIcon: ':nth-child(2) > .antd5-menu-submenu-title',
   plusIconMenuOptions: {
     sqlQueryOption: dataTestLocator('menu-item-SQL query'),
     chartOption: dataTestLocator('menu-item-Chart'),
     dashboardOption: dataTestLocator('menu-item-Dashboard'),
   },
-  plusMenu: '.ant-menu-submenu-popup',
+  plusMenu: '.antd5-menu-submenu-popup',
   barButtons: '[role="presentation"]',
   sqlLabMenu: '[id="item_3$Menu"]',
   dataMenu: '[id="item_4$Menu"]',

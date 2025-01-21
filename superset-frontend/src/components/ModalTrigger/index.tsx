@@ -102,9 +102,9 @@ const ModalTrigger = forwardRef(
           </Button>
         )}
         {!isButton && (
-          <span data-test="span-modal-trigger" onClick={open} role="button">
+          <div data-test="span-modal-trigger" onClick={open} role="button">
             {triggerNode}
-          </span>
+          </div>
         )}
         <Modal
           className={className}

@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactChild, useCallback } from 'react';
+import { ReactChild, RefObject, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { css, t, useTheme } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
+import ModalTrigger from 'src/components/ModalTrigger';
 
 export const ViewResultsModalTrigger = ({
   canExplore,
@@ -28,90 +28,66 @@ export const ViewResultsModalTrigger = ({
   triggerNode,
   modalTitle,
   modalBody,
-  showModal = false,
-  setShowModal,
+  modalRef,
 }: {
   canExplore?: boolean;
   exploreUrl: string;
   triggerNode: ReactChild;
-  modalTitle: ReactChild;
+  modalTitle: string;
   modalBody: ReactChild;
-  showModal: boolean;
-  setShowModal: (showModal: boolean) => void;
+  modalRef?: RefObject<any>;
 }) => {
   const history = useHistory();
   const exploreChart = () => history.push(exploreUrl);
   const theme = useTheme();
-  const openModal = useCallback(() => setShowModal(true), [setShowModal]);
-  const closeModal = useCallback(() => setShowModal(false), [setShowModal]);
-
+  const handleCloseModal = useCallback(() => {
+    modalRef?.current?.close();
+  }, [modalRef]);
   return (
-    <>
-      <span
-        data-test="span-modal-trigger"
-        onClick={openModal}
-        role="button"
-        tabIndex={0}
-      >
-        {triggerNode}
-      </span>
-      {(() => (
-        <Modal
-          css={css`
-            .antd5-modal-body {
-              display: flex;
-              flex-direction: column;
+    <ModalTrigger
+      ref={modalRef}
+      triggerNode={triggerNode}
+      modalTitle={modalTitle}
+      modalBody={modalBody}
+      responsive
+      resizable
+      resizableConfig={{
+        minHeight: theme.gridUnit * 128,
+        minWidth: theme.gridUnit * 128,
+        defaultSize: {
+          width: 'auto',
+          height: '75vh',
+        },
+      }}
+      draggable
+      destroyOnClose
+      modalFooter={
+        <>
+          <Button
+            buttonStyle="secondary"
+            buttonSize="small"
+            onClick={exploreChart}
+            disabled={!canExplore}
+            tooltip={
+              !canExplore
+                ? t('You do not have sufficient permissions to edit the chart')
+                : undefined
             }
-          `}
-          show={showModal}
-          onHide={closeModal}
-          closable
-          title={modalTitle}
-          footer={
-            <>
-              <Button
-                buttonStyle="secondary"
-                buttonSize="small"
-                onClick={exploreChart}
-                disabled={!canExplore}
-                tooltip={
-                  !canExplore
-                    ? t(
-                        'You do not have sufficient permissions to edit the chart',
-                      )
-                    : undefined
-                }
-              >
-                {t('Edit chart')}
-              </Button>
-              <Button
-                buttonStyle="primary"
-                buttonSize="small"
-                onClick={closeModal}
-                css={css`
-                  margin-left: ${theme.gridUnit * 2}px;
-                `}
-              >
-                {t('Close')}
-              </Button>
-            </>
-          }
-          responsive
-          resizable
-          resizableConfig={{
-            minHeight: theme.gridUnit * 128,
-            minWidth: theme.gridUnit * 128,
-            defaultSize: {
-              width: 'auto',
-              height: '75vh',
-            },
-          }}
-          draggable
-          destroyOnClose
-        >
-          {modalBody}
-        </Modal>
-      ))()}
-    </>
+          >
+            {t('Edit chart')}
+          </Button>
+          <Button
+            buttonStyle="primary"
+            buttonSize="small"
+            onClick={handleCloseModal}
+            css={css`
+              margin-left: ${theme.gridUnit * 2}px;
+            `}
+          >
+            {t('Close')}
+          </Button>
+        </>
+      }
+    />
   );
 };

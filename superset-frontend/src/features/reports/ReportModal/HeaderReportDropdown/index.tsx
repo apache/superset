@@ -56,7 +56,7 @@ const deleteColor = (theme: SupersetTheme) => css`
 `;
 
 const onMenuHover = (theme: SupersetTheme) => css`
-  & .ant-menu-item {
+  & .antd5-menu-item {
     padding: 5px 12px;
     margin-top: 0px;
     margin-bottom: 4px;
@@ -235,25 +235,23 @@ export default function HeaderReportDropDown({
         <Menu.Divider />
       </Menu>
     ) : (
-      isDropdownVisible && (
-        <Menu selectable={false} css={{ border: 'none' }}>
-          <Menu.Item
-            css={onMenuItemHover}
-            onClick={() => toggleActiveKey(report, !isReportActive)}
-          >
-            <MenuItemWithCheckboxContainer>
-              <Checkbox checked={isReportActive} onChange={noOp} />
-              {t('Email reports active')}
-            </MenuItemWithCheckboxContainer>
-          </Menu.Item>
-          <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
-            {t('Edit email report')}
-          </Menu.Item>
-          <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
-            {t('Delete email report')}
-          </Menu.Item>
-        </Menu>
-      )
+      <Menu selectable={false} css={{ border: 'none' }}>
+        <Menu.Item
+          css={onMenuItemHover}
+          onClick={() => toggleActiveKey(report, !isReportActive)}
+        >
+          <MenuItemWithCheckboxContainer>
+            <Checkbox checked={isReportActive} onChange={noOp} />
+            {t('Email reports active')}
+          </MenuItemWithCheckboxContainer>
+        </Menu.Item>
+        <Menu.Item css={onMenuItemHover} onClick={handleShowMenu}>
+          {t('Edit email report')}
+        </Menu.Item>
+        <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
+          {t('Delete email report')}
+        </Menu.Item>
+      </Menu>
     );
   const menu = () => (
     <Menu selectable={false} css={{ width: '200px' }}>
@@ -326,7 +324,7 @@ export default function HeaderReportDropDown({
               dashboardId ? CreationMethod.Dashboards : CreationMethod.Charts
             }
           />
-          {useTextMenu ? textMenu() : iconMenu()}
+          {isDropdownVisible ? (useTextMenu ? textMenu() : iconMenu()) : null}
           {currentReportDeleting && (
             <DeleteModal
               description={t(
