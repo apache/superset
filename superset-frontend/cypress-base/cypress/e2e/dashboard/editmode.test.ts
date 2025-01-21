@@ -18,7 +18,7 @@
  */
 import { SAMPLE_DASHBOARD_1, TABBED_DASHBOARD } from 'cypress/utils/urls';
 import { drag, resize, waitForChartLoad } from 'cypress/utils';
-import * as ace from 'brace';
+import { edit } from 'brace';
 import {
   interceptExploreUpdate,
   interceptGet,
@@ -60,7 +60,7 @@ function assertMetadata(text: string) {
 
       // cypress can read this locally, but not in ci
       // so we have to use the ace module directly to fetch the value
-      expect(ace.edit(metadata).getValue()).to.match(regex);
+      expect(edit(metadata).getValue()).to.match(regex);
     });
 }
 

@@ -80,14 +80,7 @@ const StyledMenu = styled(AntdMenu)`
       background-color: inherit;
       border-bottom: 1px solid transparent;
     }
-    &.antd5-menu-vertical {
-      box-shadow:
-        0 3px 6px -4px ${addAlpha(theme.colors.grayscale.dark2, 0.12)},
-        0 6px 16px 0
-      ${addAlpha(theme.colors.grayscale.dark2, 0.08)},
-        0 9px 28px 8px
-      ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
-    }
+    &.antd5-menu-vertical,
     &.ant-dropdown-menu {
       box-shadow:
         0 3px 6px -4px ${addAlpha(theme.colors.grayscale.dark2, 0.12)},

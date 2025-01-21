@@ -23,6 +23,8 @@ import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
+const SLICE_ID = 371;
+
 const createProps = (viz_type = VizType.Sunburst) =>
   ({
     addDangerToast: jest.fn(),
@@ -37,7 +39,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
     toggleExpandSlice: jest.fn(),
     logEvent: jest.fn(),
     slice: {
-      slice_id: 371,
+      slice_id: SLICE_ID,
       slice_url: '/explore/?form_data=%7B%22slice_id%22%3A%20371%7D',
       slice_name: 'Vaccine Candidates per Country & Stage',
       slice_description: 'Table of vaccine candidates for 100 countries',
@@ -56,7 +58,7 @@ const createProps = (viz_type = VizType.Sunburst) =>
           secondary_metric: 'metrics',
         },
         row_limit: 10000,
-        slice_id: 371,
+        slice_id: SLICE_ID,
         time_range: 'No filter',
         url_params: {},
         viz_type,
@@ -115,7 +117,7 @@ test('Should render', () => {
   expect(
     screen.getByRole('button', { name: 'More Options' }),
   ).toBeInTheDocument();
-  expect(screen.getByRole('menu')).toBeInTheDocument();
+  expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
 test('Should render default props', () => {
@@ -141,30 +143,17 @@ test('Should render default props', () => {
   delete props.isExpanded;
 
   renderWrapper(props);
-  expect(
-    screen.getByRole('menuitem', { name: 'Enter fullscreen' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: /Force refresh/ }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Show chart description' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Edit chart' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download right' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Share right' }),
-  ).toBeInTheDocument();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+  expect(screen.getByText('Show chart description')).toBeInTheDocument();
+  expect(screen.getByText('Edit chart')).toBeInTheDocument();
+  expect(screen.getByText('Download')).toBeInTheDocument();
+  expect(screen.getByText('Share')).toBeInTheDocument();
 
   expect(
     screen.getByRole('button', { name: 'More Options' }),
   ).toBeInTheDocument();
-
-  expect(screen.getByRole('menu')).toBeInTheDocument();
+  expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
 test('Should "export to CSV"', async () => {

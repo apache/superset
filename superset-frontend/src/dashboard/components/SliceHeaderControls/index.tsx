@@ -20,11 +20,9 @@ import {
   MouseEvent,
   Key,
   KeyboardEvent,
-  ReactChild,
   useState,
   useRef,
   RefObject,
-  useCallback,
 } from 'react';
 
 import { RouteComponentProps, useHistory } from 'react-router-dom';
@@ -37,7 +35,6 @@ import {
   getChartMetadataRegistry,
   styled,
   t,
-  useTheme,
   VizType,
   BinaryQueryObjectFilterClause,
   QueryFormData,
@@ -58,9 +55,8 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
-import Modal from 'src/components/Modal';
-import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
@@ -158,105 +154,9 @@ const dropdownIconsStyles = css`
   }
 `;
 
-const ViewResultsModalTrigger = ({
-  canExplore,
-  exploreUrl,
-  triggerNode,
-  modalTitle,
-  modalBody,
-  showModal = false,
-  setShowModal,
-}: {
-  canExplore?: boolean;
-  exploreUrl: string;
-  triggerNode: ReactChild;
-  modalTitle: ReactChild;
-  modalBody: ReactChild;
-  showModal: boolean;
-  setShowModal: (showModal: boolean) => void;
-}) => {
-  const history = useHistory();
-  const exploreChart = () => history.push(exploreUrl);
-  const theme = useTheme();
-  const openModal = useCallback(() => setShowModal(true), []);
-  const closeModal = useCallback(() => setShowModal(false), []);
-
-  return (
-    <>
-      <span
-        data-test="span-modal-trigger"
-        onClick={openModal}
-        role="button"
-        tabIndex={0}
-      >
-        {triggerNode}
-      </span>
-      {(() => (
-        <Modal
-          css={css`
-            .ant-modal-body {
-              display: flex;
-              flex-direction: column;
-            }
-          `}
-          show={showModal}
-          onHide={closeModal}
-          closable
-          title={modalTitle}
-          footer={
-            <>
-              <Button
-                buttonStyle="secondary"
-                buttonSize="small"
-                onClick={exploreChart}
-                disabled={!canExplore}
-                tooltip={
-                  !canExplore
-                    ? t(
-                        'You do not have sufficient permissions to edit the chart',
-                      )
-                    : undefined
-                }
-              >
-                {t('Edit chart')}
-              </Button>
-              <Button
-                buttonStyle="primary"
-                buttonSize="small"
-                onClick={closeModal}
-                css={css`
-                  margin-left: ${theme.gridUnit * 2}px;
-                `}
-              >
-                {t('Close')}
-              </Button>
-            </>
-          }
-          responsive
-          resizable
-          resizableConfig={{
-            minHeight: theme.gridUnit * 128,
-            minWidth: theme.gridUnit * 128,
-            defaultSize: {
-              width: 'auto',
-              height: '75vh',
-            },
-          }}
-          draggable
-          destroyOnClose
-        >
-          {modalBody}
-        </Modal>
-      ))()}
-    </>
-  );
-};
-
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
-  const [dropdownIsOpen, setDropdownIsOpen] = useState(props.defaultOpen);
-  const [tableModalIsOpen, setTableModalIsOpen] = useState(false);
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   // setting openKeys undefined falls back to uncontrolled behaviour
@@ -267,15 +167,7 @@ const SliceHeaderControls = (
   const history = useHistory();
 
   const queryMenuRef: RefObject<any> = useRef(null);
-  const menuRef: RefObject<any> = useRef(null);
-
-  const toggleDropdown = ({ close }: { close?: boolean } = {}) => {
-    setDropdownIsOpen(!(close || dropdownIsOpen));
-    // clear selected keys
-    setSelectedKeys([]);
-    // clear out/deselect submenus
-    // setOpenKeys([]);
-  };
+  const resultsMenuRef: RefObject<any> = useRef(null);
 
   const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
     [],
@@ -304,8 +196,6 @@ const SliceHeaderControls = (
     key: Key;
     domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
   }) => {
-    // close menu
-    toggleDropdown({ close: true });
     switch (key) {
       case MenuKeys.ForceRefresh:
         refreshChart();
@@ -377,8 +267,8 @@ const SliceHeaderControls = (
         break;
       }
       case MenuKeys.ViewResults: {
-        if (!tableModalIsOpen) {
-          setTableModalIsOpen(true);
+        if (resultsMenuRef.current && !resultsMenuRef.current.showModal) {
+          resultsMenuRef.current.open(domEvent);
         }
         break;
       }
@@ -460,7 +350,6 @@ const SliceHeaderControls = (
       onSelect={({ selectedKeys: keys }) => setSelectedKeys(keys)}
       openKeys={openKeys}
       id={`slice_${slice.slice_id}-menu`}
-      ref={menuRef}
       // submenus must be rendered for handleDropdownNavigation
       forceSubMenuRender
       {...openKeysProps}
@@ -532,8 +421,7 @@ const SliceHeaderControls = (
             triggerNode={
               <div data-test="view-query-menu-item">{t('View as table')}</div>
             }
-            setShowModal={setTableModalIsOpen}
-            showModal={tableModalIsOpen}
+            modalRef={resultsMenuRef}
             modalTitle={t('Chart Data: %s', slice.slice_name)}
             modalBody={
               <ResultsPaneOnDashboard
@@ -578,11 +466,7 @@ const SliceHeaderControls = (
       )}
 
       {props.supersetCanCSV && (
-        <Menu.SubMenu
-          title={t('Download')}
-          key={MenuKeys.Download}
-          onTitleMouseEnter={() => setOpenKeys(undefined)}
-        >
+        <Menu.SubMenu title={t('Download')} key={MenuKeys.Download}>
           <Menu.Item
             key={MenuKeys.ExportCsv}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
@@ -649,10 +533,7 @@ const SliceHeaderControls = (
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
-        open={dropdownIsOpen}
         autoFocus
-        onOpenChange={status => toggleDropdown({ close: !status })}
-        onKeyDown={() => toggleDropdown({ close: false })}
         forceRender
       >
         <span

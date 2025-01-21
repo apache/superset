@@ -52,7 +52,6 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
-    setOpenKeys,
     key,
     title,
   } = props;
@@ -97,11 +96,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <Menu.SubMenu
-      title={title}
-      key={key}
-      onTitleMouseEnter={() => setOpenKeys?.(undefined)}
-    >
+    <Menu.SubMenu title={title} key={key}>
       <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
         {copyMenuItemTitle}
       </Menu.Item>
