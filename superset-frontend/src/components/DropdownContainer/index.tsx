@@ -342,10 +342,6 @@ const DropdownContainer = forwardRef(
             <Global
               styles={css`
                 .ant-popover-inner-content {
-                  max-height: ${MAX_HEIGHT}px;
-                  overflow: ${showOverflow ? 'auto' : 'visible'};
-                  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px;
-
                   // Some OS versions only show the scroll when hovering.
                   // These settings will make the scroll always visible.
                   ::-webkit-scrollbar {
@@ -366,6 +362,11 @@ const DropdownContainer = forwardRef(
               `}
             />
             <Popover
+              overlayInnerStyle={{
+                maxHeight: `${MAX_HEIGHT}px`,
+                overflow: showOverflow ? 'auto' : 'visible',
+                padding: `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px`,
+              }}
               content={popoverContent}
               trigger="click"
               open={popoverVisible}

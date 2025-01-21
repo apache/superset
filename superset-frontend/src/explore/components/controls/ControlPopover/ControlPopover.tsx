@@ -46,14 +46,14 @@ export type PopoverProps = BasePopoverProps & {
 const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementYVisibilityRatioOnContainer,
-  visible: visibleProp,
+  open: visibleProp,
   destroyTooltipOnHide = false,
   ...props
 }) => {
   const triggerElementRef = useRef<HTMLElement>();
 
   const [visible, setVisible] = useState(
-    visibleProp === undefined ? props.defaultVisible : visibleProp,
+    visibleProp === undefined ? props.defaultOpen : visibleProp,
   );
   const [placement, setPlacement] = React.useState<TooltipPlacement>('right');
 
@@ -98,7 +98,7 @@ const ControlPopover: FC<PopoverProps> = ({
       }
 
       setVisible(!!visible);
-      props.onVisibleChange?.(!!visible);
+      props.onOpenChange?.(!!visible);
     },
     [props, changeContainerScrollStatus],
   );
@@ -107,7 +107,7 @@ const ControlPopover: FC<PopoverProps> = ({
     (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setVisible(false);
-        props.onVisibleChange?.(false);
+        props.onOpenChange?.(false);
       }
     },
     [props],
@@ -144,10 +144,10 @@ const ControlPopover: FC<PopoverProps> = ({
   return (
     <Popover
       {...props}
-      visible={visible}
-      arrowPointAtCenter
+      open={visible}
+      arrow={{ pointAtCenter: true }}
       placement={placement}
-      onVisibleChange={handleOnVisibleChange}
+      onOpenChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}
       destroyTooltipOnHide={destroyTooltipOnHide}
     />

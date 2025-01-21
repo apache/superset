@@ -656,13 +656,13 @@ const DashboardBuilder = () => {
         </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        <Global
+        {/* <Global
           styles={css`
             // @z-index-above-dashboard-header (100) + 1 = 101
             ${fullSizeChartId &&
             `div > .filterStatusPopover.ant-popover{z-index: 101}`}
           `}
-        />
+        /> */}
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (

@@ -46,10 +46,10 @@ export const FilterCard = ({
       overlayClassName="filter-card-popover"
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}
-      onVisibleChange={visible => {
+      onOpenChange={visible => {
         setInternalIsVisible(externalIsVisible && visible);
       }}
-      visible={externalIsVisible && internalIsVisible}
+      open={externalIsVisible && internalIsVisible}
       content={<FilterCardContent filter={filter} hidePopover={hidePopover} />}
       getPopupContainer={getPopupContainer ?? (() => document.body)}
     >
