@@ -18,10 +18,6 @@ apsw==3.46.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-async-timeout==4.0.3
-    # via
-    #   -c requirements/base.txt
-    #   redis
 attrs==24.2.0
     # via
     #   -c requirements/base.txt
@@ -175,13 +171,6 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
-exceptiongroup==1.2.2
-    # via
-    #   -c requirements/base.txt
-    #   cattrs
-    #   pytest
-    #   trio
-    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -201,7 +190,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.5.2
+flask-appbuilder==4.5.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -317,7 +306,6 @@ greenlet==3.0.3
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -358,14 +346,10 @@ importlib-metadata==8.5.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-    #   flask
-    #   markdown
-    #   shillelagh
 importlib-resources==6.4.5
     # via
     #   -c requirements/base.txt
     #   limits
-    #   matplotlib
     #   prophet
 iniconfig==2.0.0
     # via pytest
@@ -820,10 +804,6 @@ tabulate==0.8.10
     # via
     #   -c requirements/base.txt
     #   apache-superset
-tomli==2.2.1
-    # via
-    #   coverage
-    #   pytest
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -844,11 +824,8 @@ typing-extensions==4.12.2
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
-    #   cattrs
     #   flask-limiter
-    #   kombu
     #   limits
-    #   rich
     #   selenium
     #   shillelagh
 tzdata==2024.2
@@ -925,7 +902,6 @@ zipp==3.21.0
     # via
     #   -c requirements/base.txt
     #   importlib-metadata
-    #   importlib-resources
 zope-event==5.0
     # via gevent
 zope-interface==5.4.0
