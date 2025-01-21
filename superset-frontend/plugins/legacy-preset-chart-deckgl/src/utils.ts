@@ -25,7 +25,6 @@ import {
   QueryFormData,
   SequentialScheme,
 } from '@superset-ui/core';
-import { isNumber } from 'lodash';
 import { hexToRGB } from './utils/colors';
 
 const DEFAULT_NUM_BUCKETS = 10;
@@ -140,7 +139,7 @@ export function getBreakPointColorScaler(
   } else {
     // interpolate colors linearly
     const linearScaleDomain = extent(features, accessor);
-    if (!linearScaleDomain.some(isNumber)) {
+    if (!linearScaleDomain.some(i => typeof i === 'number')) {
       scaler = colorScheme.createLinearScale();
     } else {
       scaler = colorScheme.createLinearScale(

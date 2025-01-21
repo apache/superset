@@ -19,7 +19,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
-import { mergeWith, isArray } from 'lodash';
+import { mergeWith } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../utils';
 
 interface SafeMarkdownProps {
@@ -33,7 +33,7 @@ export function getOverrideHtmlSchema(
   htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
 ) {
   return mergeWith(originalSchema, htmlSchemaOverrides, (objValue, srcValue) =>
-    isArray(objValue) ? objValue.concat(srcValue) : undefined,
+    Array.isArray(objValue) ? objValue.concat(srcValue) : undefined,
   );
 }
 

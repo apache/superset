@@ -50,7 +50,7 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
+import { debounce, throttle, isEmpty } from 'lodash';
 import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
@@ -281,9 +281,10 @@ const SqlEditor: FC<Props> = ({
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
       latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-      hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
-        ? unsavedQueryEditor.hideLeftBar
-        : hideLeftBar;
+      hideLeftBar =
+        typeof unsavedQueryEditor.hideLeftBar === 'boolean'
+          ? unsavedQueryEditor.hideLeftBar
+          : hideLeftBar;
     }
     return {
       hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),

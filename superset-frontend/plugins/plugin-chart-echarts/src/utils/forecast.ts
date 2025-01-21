@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isNumber } from 'lodash';
 import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
 import type { OptionName } from 'echarts/types/src/util/types';
 import type { TooltipMarker } from 'echarts/types/src/util/format';
@@ -64,7 +63,7 @@ export const extractForecastValuesFromTooltipParams = (
     const { marker, seriesId, value } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
-    if (isNumber(numericValue)) {
+    if (typeof numericValue === 'number') {
       if (!(context.name in values))
         values[context.name] = {
           marker: marker || '',
@@ -97,7 +96,7 @@ export const formatForecastTooltipSeries = ({
   formatter: ValueFormatter;
 }): string[] => {
   const name = `${marker}${sanitizeHtml(seriesName)}`;
-  let value = isNumber(observation) ? formatter(observation) : '';
+  let value = typeof observation === 'number' ? formatter(observation) : '';
   if (forecastTrend || forecastLower || forecastUpper) {
     // forecast values take the form of "20, y = 30 (10, 40)"
     // where the first part is the observation, the second part is the forecast trend
