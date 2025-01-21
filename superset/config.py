@@ -752,17 +752,12 @@ SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT = int(
 # Image and file configuration
 # ---------------------------------------------------
 # The file upload folder, when using models with files
-UPLOAD_FOLDER = BASE_DIR + "/app/static/uploads/"
+UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
 
-# The image upload folder, when using models with images
-IMG_UPLOAD_FOLDER = BASE_DIR + "/app/static/uploads/"
-
-# The image upload url, when using models with images
-IMG_UPLOAD_URL = "/static/uploads/"
-# Setup image size default is (300, 200, True)
-# IMG_SIZE = (300, 200, True)
-
+# ---------------------------------------------------
+# Cache configuration
+# ---------------------------------------------------
 # Default cache timeout, applies to all cache backends unless specifically overridden in
 # each cache config.
 CACHE_DEFAULT_TIMEOUT = int(timedelta(days=1).total_seconds())
