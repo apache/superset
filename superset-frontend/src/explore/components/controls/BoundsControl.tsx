@@ -19,7 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
-import { debounce, parseInt } from 'lodash';
+import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
 type ValueType = (number | null)[];
@@ -47,7 +47,7 @@ const parseNumber = (value: undefined | number | string | null) => {
   if (
     value === null ||
     value === undefined ||
-    (typeof value === 'string' && Number.isNaN(parseInt(value)))
+    (typeof value === 'string' && Number.isNaN(Number.parseInt(value, 10)))
   ) {
     return null;
   }

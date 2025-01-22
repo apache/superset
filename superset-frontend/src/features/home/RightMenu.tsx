@@ -33,7 +33,7 @@ import {
   getExtensionsRegistry,
   useTheme,
 } from '@superset-ui/core';
-import { MainNav as Menu } from 'src/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
@@ -71,21 +71,15 @@ const StyledI = styled.div`
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
-  .ant-menu-item-active {
-    color: ${theme.colors.grayscale.light1};
-    cursor: default;
-  }
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
+  height: 100%;
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
   margin-right: ${({ theme }) => theme.gridUnit}px;
-  .ant-menu-submenu-title > svg {
-    top: ${({ theme }) => theme.gridUnit * 5.25}px;
-  }
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -112,6 +106,14 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 `;
 
 const { SubMenu } = Menu;
+
+const StyledSubMenu = styled(SubMenu)`
+  &.antd5-menu-submenu-active {
+    .antd5-menu-title-content {
+      color: ${({ theme }) => theme.colors.primary.base};
+    }
+  }
+`;
 
 const RightMenu = ({
   align,
@@ -280,11 +282,8 @@ const RightMenu = ({
     }
   }, [canDatabase, canDataset]);
 
-  const menuIconAndLabel = (menu: MenuObjectProps) => (
-    <>
-      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-      {menu.label}
-    </>
+  const menuIcon = (menu: MenuObjectProps) => (
+    <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
   );
 
   const handleMenuSelection = (itemChose: any) => {
@@ -407,10 +406,11 @@ const RightMenu = ({
         mode="horizontal"
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
+        disabledOverflow
       >
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
-          <SubMenu
+          <StyledSubMenu
             data-test="new-dropdown"
             title={
               <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
@@ -424,10 +424,11 @@ const RightMenu = ({
               if (menu.childs) {
                 if (canShowChild) {
                   return (
-                    <SubMenu
+                    <StyledSubMenu
                       key={`sub2_${menu.label}`}
                       className="data-menu"
-                      title={menuIconAndLabel(menu)}
+                      title={menu.label}
+                      icon={menuIcon(menu)}
                     >
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
@@ -437,7 +438,7 @@ const RightMenu = ({
                           </Fragment>
                         ) : null,
                       )}
-                    </SubMenu>
+                    </StyledSubMenu>
                   );
                 }
                 if (!menu.url) {
@@ -472,9 +473,9 @@ const RightMenu = ({
                 )
               );
             })}
-          </SubMenu>
+          </StyledSubMenu>
         )}
-        <SubMenu
+        <StyledSubMenu
           title={t('Settings')}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
@@ -548,7 +549,7 @@ const RightMenu = ({
               </div>
             </Menu.ItemGroup>,
           ]}
-        </SubMenu>
+        </StyledSubMenu>
         {navbarRight.show_language_picker && (
           <LanguagePicker
             locale={navbarRight.locale}

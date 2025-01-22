@@ -39,10 +39,13 @@ export const GlobalStyles = () => (
       .echarts-tooltip[style*='visibility: hidden'] {
         display: none !important;
       }
+      .ant-popover,
       .antd5-dropdown,
-      .ant-dropdown {
+      .ant-dropdown,
+      .ant-select-dropdown {
         z-index: ${theme.zIndex.max};
       }
+
       // TODO: Remove when buttons have been upgraded to Ant Design 5.
       // Check src/components/Modal for more info.
       .ant-modal-confirm {
@@ -95,6 +98,13 @@ export const GlobalStyles = () => (
           flex: 1;
           margin-right: 0;
         }
+      }
+      .ant-dropdown-menu-sub .antd5-menu.antd5-menu-vertical {
+        box-shadow: none;
+      }
+      .ant-dropdown-menu-submenu-title,
+      .ant-dropdown-menu-item {
+        line-height: 1.5em !important;
       }
     `}
   />
