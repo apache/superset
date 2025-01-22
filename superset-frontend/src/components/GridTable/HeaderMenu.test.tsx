@@ -135,7 +135,7 @@ test('renders copy data', async () => {
   });
 });
 
-test('renders buttons pinning both side', () => {
+test('renders buttons pinning both sides', () => {
   const { queryByText, getByText } = render(<HeaderMenu {...mockedProps} />);
   expect(queryByText('Pin Left')).toBeInTheDocument();
   expect(queryByText('Pin Right')).toBeInTheDocument();
