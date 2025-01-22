@@ -214,7 +214,7 @@ def prepare_datasource_mock(
             False,
             False,
             [],
-            "",
+            None,
         ),
         (
             None,
@@ -353,7 +353,7 @@ def test_dashboard_digest(
             False,
             False,
             None,
-            "",
+            None,
         ),
         (
             None,

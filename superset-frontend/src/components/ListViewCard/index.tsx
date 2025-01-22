@@ -153,7 +153,7 @@ interface CardProps {
   subtitle?: ReactNode;
   url?: string;
   linkComponent?: ComponentType<LinkProps>;
-  imgURL?: string;
+  imgURL?: string | null;
   imgFallbackURL?: string;
   imgPosition?: BackgroundPosition;
   description: string;

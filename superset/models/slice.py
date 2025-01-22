@@ -247,11 +247,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         }
 
     @property
-    def digest(self) -> str:
+    def digest(self) -> str | None:
         return get_chart_digest(self)
 
     @property
-    def thumbnail_url(self) -> str:
+    def thumbnail_url(self) -> str | None:
         """
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
@@ -259,7 +259,7 @@ class Slice(  # pylint: disable=too-many-public-methods
         if digest := self.digest:
             return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
 
-        return ""
+        return None
 
     @property
     def json_data(self) -> str:
