@@ -31,17 +31,19 @@ export default function Alert(props: AlertProps) {
     showIcon = true,
     closable = true,
     children,
+    ...rest
   } = props;
 
   return (
     <AntdAlert
       role="alert"
       aria-live={type === 'error' ? 'assertive' : 'polite'}
+      type={type}
       showIcon={showIcon}
-      closeIcon={closable}
+      closable={closable}
       message={children || 'Default message'}
       description={description}
-      {...props}
+      {...rest}
     />
   );
 }
