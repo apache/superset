@@ -17,6 +17,6 @@ specific language governing permissions and limitations
 under the License.
 -->
 <svg width="64" height="80" viewBox="0 0 64 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M53.2326 10.7391L53.2336 10.7402L63.5 21.7963V79.5H0.5V0.5H43.7811L53.2326 10.7391Z" fill="#FAFAFA" stroke="#D9D9D9"/>
-<path d="M44 0V22.4H64" stroke="#D9D9D9"/>
+<path d="M53.2326 10.7391L53.2336 10.7402L63.5 21.7963V79.5H0.5V0.5H43.7811L53.2326 10.7391Z" fill="currentColor" stroke="currentColor" fill-opacity="0.5"/>
+<path d="M44 0V22.4H64" stroke="currentColor"/>
 </svg>
