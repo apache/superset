@@ -169,7 +169,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dashboard.views import (
             Dashboard,
             DashboardModelView,
-            DashboardModelViewAsync,
         )
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
@@ -295,7 +294,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_view_no_menu(Api)
         appbuilder.add_view_no_menu(Dashboard)
-        appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
