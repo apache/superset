@@ -56,15 +56,18 @@ if TYPE_CHECKING:
 
 class BaseScreenshot:
     driver_type = current_app.config["WEBDRIVER_TYPE"]
+    url: str
+    digest: str | None
+    screenshot: bytes | None
     thumbnail_type: str = ""
     element: str = ""
     window_size: WindowSize = DEFAULT_SCREENSHOT_WINDOW_SIZE
     thumb_size: WindowSize = DEFAULT_SCREENSHOT_THUMBNAIL_SIZE
 
-    def __init__(self, url: str, digest: str):
-        self.digest: str = digest
+    def __init__(self, url: str, digest: str | None):
+        self.digest = digest
         self.url = url
-        self.screenshot: bytes | None = None
+        self.screenshot = None
 
     def driver(self, window_size: WindowSize | None = None) -> WebDriver:
         window_size = window_size or self.window_size
@@ -227,7 +230,7 @@ class ChartScreenshot(BaseScreenshot):
     def __init__(
         self,
         url: str,
-        digest: str,
+        digest: str | None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
     ):
@@ -248,7 +251,7 @@ class DashboardScreenshot(BaseScreenshot):
     def __init__(
         self,
         url: str,
-        digest: str,
+        digest: str | None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
     ):

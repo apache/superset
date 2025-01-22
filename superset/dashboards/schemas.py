@@ -212,7 +212,7 @@ class DashboardGetResponseSchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description}
     )
-    thumbnail_url = fields.String()
+    thumbnail_url = fields.String(allow_none=True)
     published = fields.Boolean()
     css = fields.String(metadata={"description": css_description})
     json_metadata = fields.String(metadata={"description": json_metadata_description})

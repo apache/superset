@@ -177,10 +177,9 @@ By default, Alerts and Reports are executed as the owner of the alert/report obj
 just change the config as follows (`admin` in this example):
 
 ```python
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import FixedExecutor
 
-THUMBNAIL_SELENIUM_USER = 'admin'
-ALERT_REPORTS_EXECUTE_AS = [ExecutorType.SELENIUM]
+ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 ```
 
 Please refer to `ExecutorType` in the codebase for other executor types.

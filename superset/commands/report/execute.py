@@ -295,7 +295,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -360,7 +360,7 @@ class BaseReportState:
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -389,7 +389,7 @@ class BaseReportState:
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -859,7 +859,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
             _, username = get_executor(
-                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,
             )
             user = security_manager.find_user(username)

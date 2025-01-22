@@ -14,22 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypedDict, Union
 from urllib import request
 from urllib.error import URLError
 
 from celery.beat import SchedulingError
 from celery.utils.log import get_task_logger
+from flask import current_app
 from sqlalchemy import and_, func
 
-from superset import app, db, security_manager
+from superset import db, security_manager
 from superset.extensions import celery_app
 from superset.models.core import Log
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import Tag, TaggedObject
-from superset.tasks.utils import fetch_csrf_token
+from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
+from superset.tasks.utils import fetch_csrf_token, get_executor
 from superset.utils import json
 from superset.utils.date_parser import parse_human_datetime
 from superset.utils.machine_auth import MachineAuthProvider
@@ -39,19 +43,38 @@ logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def get_payload(chart: Slice, dashboard: Optional[Dashboard] = None) -> dict[str, int]:
-    """Return payload for warming up a given chart/table cache."""
-    payload = {"chart_id": chart.id}
+class CacheWarmupPayload(TypedDict, total=False):
+    chart_id: int
+    dashboard_id: int | None
+
+
+class CacheWarmupTask(TypedDict):
+    payload: CacheWarmupPayload
+    username: str | None
+
+
+def get_task(chart: Slice, dashboard: Optional[Dashboard] = None) -> CacheWarmupTask:
+    """Return task for warming up a given chart/table cache."""
+    executors = current_app.config["CACHE_WARMUP_EXECUTORS"]
+    payload: CacheWarmupPayload = {"chart_id": chart.id}
     if dashboard:
         payload["dashboard_id"] = dashboard.id
-    return payload
+
+    username: str | None
+    try:
+        executor = get_executor(executors, chart)
+        username = executor[1]
+    except (ExecutorNotFoundError, InvalidExecutorError):
+        username = None
+
+    return {"payload": payload, "username": username}
 
 
 class Strategy:  # pylint: disable=too-few-public-methods
     """
     A cache warm up strategy.
 
-    Each strategy defines a `get_payloads` method that returns a list of payloads to
+    Each strategy defines a `get_tasks` method that returns a list of tasks to
     send to the `/api/v1/chart/warm_up_cache` endpoint.
 
     Strategies can be configured in `superset/config.py`:
@@ -73,8 +96,8 @@ class Strategy:  # pylint: disable=too-few-public-methods
     def __init__(self) -> None:
         pass
 
-    def get_payloads(self) -> list[dict[str, int]]:
-        raise NotImplementedError("Subclasses must implement get_payloads!")
+    def get_tasks(self) -> list[CacheWarmupTask]:
+        raise NotImplementedError("Subclasses must implement get_tasks!")
 
 
 class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -95,8 +118,8 @@ class DummyStrategy(Strategy):  # pylint: disable=too-few-public-methods
 
     name = "dummy"
 
-    def get_payloads(self) -> list[dict[str, int]]:
-        return [get_payload(chart) for chart in db.session.query(Slice).all()]
+    def get_tasks(self) -> list[CacheWarmupTask]:
+        return [get_task(chart) for chart in db.session.query(Slice).all()]
 
 
 class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-methods
@@ -124,7 +147,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         self.top_n = top_n
         self.since = parse_human_datetime(since) if since else None
 
-    def get_payloads(self) -> list[dict[str, int]]:
+    def get_tasks(self) -> list[CacheWarmupTask]:
         records = (
             db.session.query(Log.dashboard_id, func.count(Log.dashboard_id))
             .filter(and_(Log.dashboard_id.isnot(None), Log.dttm >= self.since))
@@ -139,7 +162,7 @@ class TopNDashboardsStrategy(Strategy):  # pylint: disable=too-few-public-method
         )
 
         return [
-            get_payload(chart, dashboard)
+            get_task(chart, dashboard)
             for dashboard in dashboards
             for chart in dashboard.slices
         ]
@@ -167,8 +190,8 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         super().__init__()
         self.tags = tags or []
 
-    def get_payloads(self) -> list[dict[str, int]]:
-        payloads = []
+    def get_tasks(self) -> list[CacheWarmupTask]:
+        tasks = []
         tags = db.session.query(Tag).filter(Tag.name.in_(self.tags)).all()
         tag_ids = [tag.id for tag in tags]
 
@@ -189,7 +212,7 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         )
         for dashboard in tagged_dashboards:
             for chart in dashboard.slices:
-                payloads.append(get_payload(chart))
+                tasks.append(get_task(chart))
 
         # add charts that are tagged
         tagged_objects = (
@@ -205,9 +228,9 @@ class DashboardTagsStrategy(Strategy):  # pylint: disable=too-few-public-methods
         chart_ids = [tagged_object.object_id for tagged_object in tagged_objects]
         tagged_charts = db.session.query(Slice).filter(Slice.id.in_(chart_ids))
         for chart in tagged_charts:
-            payloads.append(get_payload(chart))
+            tasks.append(get_task(chart))
 
-        return payloads
+        return tasks
 
 
 strategies = [DummyStrategy, TopNDashboardsStrategy, DashboardTagsStrategy]
@@ -284,22 +307,25 @@ def cache_warmup(
         logger.exception(message)
         return message
 
-    user = security_manager.get_user_by_username(app.config["THUMBNAIL_SELENIUM_USER"])
-    cookies = MachineAuthProvider.get_auth_cookies(user)
-    headers = {
-        "Cookie": f"session={cookies.get('session', '')}",
-        "Content-Type": "application/json",
-    }
-
     results: dict[str, list[str]] = {"scheduled": [], "errors": []}
-    for payload in strategy.get_payloads():
-        try:
-            payload = json.dumps(payload)
-            logger.info("Scheduling %s", payload)
-            fetch_url.delay(payload, headers)
-            results["scheduled"].append(payload)
-        except SchedulingError:
-            logger.exception("Error scheduling fetch_url for payload: %s", payload)
-            results["errors"].append(payload)
+    for task in strategy.get_tasks():
+        username = task["username"]
+        payload = json.dumps(task["payload"])
+        if username:
+            try:
+                user = security_manager.get_user_by_username(username)
+                cookies = MachineAuthProvider.get_auth_cookies(user)
+                headers = {
+                    "Cookie": f"session={cookies.get('session', '')}",
+                    "Content-Type": "application/json",
+                }
+                logger.info("Scheduling %s", payload)
+                fetch_url.delay(payload, headers)
+                results["scheduled"].append(payload)
+            except SchedulingError:
+                logger.exception("Error scheduling fetch_url for payload: %s", payload)
+                results["errors"].append(payload)
+        else:
+            logger.warn("Executor not found for %s", payload)
 
     return results

@@ -225,16 +225,19 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return Markup(f'<a href="{self.url}">{title}</a>')
 
     @property
-    def digest(self) -> str:
+    def digest(self) -> str | None:
         return get_dashboard_digest(self)
 
     @property
-    def thumbnail_url(self) -> str:
+    def thumbnail_url(self) -> str | None:
         """
         Returns a thumbnail URL with a HEX digest. We want to avoid browser cache
         if the dashboard has changed
         """
-        return f"/api/v1/dashboard/{self.id}/thumbnail/{self.digest}/"
+        if digest := self.digest:
+            return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
+
+        return None
 
     @property
     def changed_by_name(self) -> str:

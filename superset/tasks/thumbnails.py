@@ -55,7 +55,7 @@ def cache_chart_thumbnail(
     url = get_url_path("Superset.slice", slice_id=chart.id)
     logger.info("Caching chart: %s", url)
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executors=current_app.config["THUMBNAIL_EXECUTORS"],
         model=chart,
         current_user=current_user,
     )
@@ -92,7 +92,7 @@ def cache_dashboard_thumbnail(
 
     logger.info("Caching dashboard: %s", url)
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executors=current_app.config["THUMBNAIL_EXECUTORS"],
         model=dashboard,
         current_user=current_user,
     )
@@ -135,7 +135,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
         current_user = security_manager.get_guest_user_from_token(guest_token)
     else:
         _, exec_username = get_executor(
-            executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+            executors=current_app.config["THUMBNAIL_EXECUTORS"],
             model=dashboard,
             current_user=username,
         )
