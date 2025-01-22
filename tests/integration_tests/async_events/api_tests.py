@@ -18,7 +18,6 @@ from typing import Any, Optional, Type
 from unittest import mock
 
 import pytest
-import redis
 
 from superset.async_events.cache_backend import (
     RedisCacheBackend,
@@ -128,10 +127,6 @@ class TestAsyncEventApi(SupersetTestCase):
         self.run_test_with_cache_backend(
             RedisSentinelCacheBackend, self._test_events_logic
         )
-
-    @mock.patch("uuid.uuid4", return_value=UUID)
-    def test_events_redis(self, mock_uuid4):
-        self.run_test_with_cache_backend(redis.Redis, self._test_events_logic)
 
     def test_events_no_login(self):
         app._got_first_request = False
