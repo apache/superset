@@ -773,7 +773,7 @@ def test_email_chart_report_schedule_alpha_owner(
     ExecuteReport Command: Test chart email report schedule with screenshot
     executed as the chart owner
     """
-    config_key = "ALERT_REPORTS_EXECUTE_AS"
+    config_key = "ALERT_REPORTS_EXECUTORS"
     original_config_value = app.config[config_key]
     app.config[config_key] = [ExecutorType.OWNER]
 
