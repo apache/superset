@@ -37,6 +37,9 @@ interface ShareMenuItemProps {
   copyMenuItemRef?: RefObject<any>;
   shareByEmailMenuItemRef?: RefObject<any>;
   selectedKeys?: string[];
+  setOpenKeys?: Function;
+  key?: string;
+  title: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -49,10 +52,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
-    copyMenuItemRef,
-    shareByEmailMenuItemRef,
-    selectedKeys,
-    ...rest
+    key,
+    title,
   } = props;
   const { dataMask, activeTabs } = useSelector(
     (state: RootState) => ({
@@ -95,28 +96,14 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <Menu
-      selectable={false}
-      selectedKeys={selectedKeys}
-      onClick={e =>
-        e.key === MenuKeys.CopyLink ? onCopyLink() : onShareByEmail()
-      }
-    >
-      <Menu.Item key={MenuKeys.CopyLink} ref={copyMenuItemRef} {...rest}>
-        <div role="button" tabIndex={0}>
-          {copyMenuItemTitle}
-        </div>
+    <Menu.SubMenu title={title} key={key}>
+      <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
+        {copyMenuItemTitle}
       </Menu.Item>
-      <Menu.Item
-        key={MenuKeys.ShareByEmail}
-        ref={shareByEmailMenuItemRef}
-        {...rest}
-      >
-        <div role="button" tabIndex={0}>
-          {emailMenuItemTitle}
-        </div>
+      <Menu.Item key={MenuKeys.ShareByEmail} onClick={() => onShareByEmail()}>
+        {emailMenuItemTitle}
       </Menu.Item>
-    </Menu>
+    </Menu.SubMenu>
   );
 };
 export default ShareMenuItems;

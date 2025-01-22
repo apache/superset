@@ -55,6 +55,7 @@ import {
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
+  clearDashboardHistory,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -105,7 +106,7 @@ const StyledHeader = styled.div`
     grid-row: 1;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 99;
     max-width: 100vw;
 
     .empty-droptarget:before {
@@ -675,7 +676,10 @@ const DashboardBuilder = () => {
                 )
               }
               buttonText={canEdit && t('Edit the dashboard')}
-              buttonAction={() => dispatch(setEditMode(true))}
+              buttonAction={() => {
+                dispatch(setEditMode(true));
+                dispatch(clearDashboardHistory());
+              }}
               image="dashboard.svg"
             />
           )}
