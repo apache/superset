@@ -146,6 +146,7 @@ describe('SqlLab query panel', () => {
     cy.intercept('/api/v1/sqllab/execute/').as('queryFinished');
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.intercept('**/api/v1/chart/**').as('chart');
+    cy.intercept('**/tabstateview/**').as('tabstateview');
 
     // cypress doesn't handle opening a new tab, override window.open to open in the same tab
     cy.window().then(win => {
@@ -154,6 +155,7 @@ describe('SqlLab query panel', () => {
         win.location.href = url;
       });
     });
+    cy.wait('@tabstateview');
 
     const query = 'SELECT gender, name FROM birth_names';
 
