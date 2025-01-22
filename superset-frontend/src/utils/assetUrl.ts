@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import DOMPurify from 'dompurify';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -28,5 +28,5 @@ const BOOTSTRAP_DATA = getBootstrapData();
  * @param path A string path to a resource
  */
 export function assetUrl(path: string) {
-  return `${BOOTSTRAP_DATA.common.static_assets_prefix}${path.startsWith('/') ? path : `/${path}`}`;
+  return `${DOMPurify.sanitize(BOOTSTRAP_DATA.common.static_assets_prefix)}${path.startsWith('/') ? path : `/${path}`}`;
 }
