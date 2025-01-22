@@ -122,7 +122,7 @@ export default class SupersetClientClass {
     this.handleUnauthorized =
       unauthorizedHandler !== undefined
         ? unauthorizedHandler
-        : defaultUnauthorizedHandlerForPrefix(basePath);
+        : defaultUnauthorizedHandlerForPrefix(this.basePath);
   }
 
   async init(force = false): CsrfPromise {
