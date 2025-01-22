@@ -38,7 +38,7 @@ const templates = [
   { template_name: 'Template C', css: 'background-color: yellow;' },
 ];
 
-fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {
+fetchMock.get('glob:*/api/v1/css_template*', {
   result: templates,
 });
 
