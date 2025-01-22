@@ -242,7 +242,7 @@ const SliceHeaderControls = (
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
-          '.antd5-dropdown:not(.ant-dropdown-hidden)',
+          '.antd5-dropdown:not(.antd5-dropdown-hidden)',
         ) as HTMLElement;
         if (menu) {
           menu.style.visibility = 'hidden';
