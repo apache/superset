@@ -368,9 +368,9 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       trigger="click"
       content={overlayContent}
       title={title}
-      defaultVisible={show}
-      visible={show}
-      onVisibleChange={toggleOverlay}
+      defaultOpen={show}
+      open={show}
+      onOpenChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
       getPopupContainer={triggerNode =>
         isOverflowingFilterBar
