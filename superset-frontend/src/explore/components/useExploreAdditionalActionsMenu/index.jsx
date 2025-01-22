@@ -97,7 +97,7 @@ export const MenuTrigger = styled(Button)`
     padding: 0;
     border: 1px solid ${theme.colors.primary.dark2};
 
-    &.ant-btn > span.anticon {
+    &.antd5-btn > span.anticon {
       line-height: 0;
       transition: inherit;
     }
@@ -384,7 +384,7 @@ export const useExploreAdditionalActionsMenu = (
             <Menu.Item key={MENU_KEYS.EMBED_CODE}>
               <ModalTrigger
                 triggerNode={
-                  <span data-test="embed-code-button">{t('Embed code')}</span>
+                  <div data-test="embed-code-button">{t('Embed code')}</div>
                 }
                 modalTitle={t('Embed code')}
                 modalBody={
@@ -429,7 +429,7 @@ export const useExploreAdditionalActionsMenu = (
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View query')}</span>
+              <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
             modalBody={

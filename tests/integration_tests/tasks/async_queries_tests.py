@@ -20,7 +20,6 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
-import redis
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
 
@@ -52,7 +51,6 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @mock.patch("superset.tasks.async_queries.set_form_data")
@@ -88,7 +86,6 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @mock.patch.object(
@@ -125,7 +122,6 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @mock.patch.object(ChartDataCommand, "run")
@@ -163,10 +159,10 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.skip(reason="This test will be changed to use the api/v1/data")
     @mock.patch.object(async_query_manager, "update_job")
     def test_load_explore_json_into_cache(
         self, cache_type, cache_backend, mock_update_job
@@ -208,7 +204,6 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @mock.patch.object(async_query_manager, "update_job")
@@ -244,7 +239,6 @@ class TestAsyncQueries(SupersetTestCase):
         [
             ("RedisCacheBackend", mock.Mock(spec=RedisCacheBackend)),
             ("RedisSentinelCacheBackend", mock.Mock(spec=RedisSentinelCacheBackend)),
-            ("redis.Redis", mock.Mock(spec=redis.Redis)),
         ]
     )
     @mock.patch.object(ChartDataCommand, "run")

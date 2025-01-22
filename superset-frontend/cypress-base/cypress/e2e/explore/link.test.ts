@@ -30,7 +30,7 @@ const apiURL = (endpoint: string, queryObject: Record<string, unknown>) =>
 
 describe('Test explore links', () => {
   beforeEach(() => {
-    interceptChart({ legacy: true }).as('chartData');
+    interceptChart({ legacy: false }).as('chartData');
   });
 
   it('Open and close view query modal', () => {
@@ -52,11 +52,10 @@ describe('Test explore links', () => {
     cy.verifySliceSuccess({ waitAlias: '@chartData' });
 
     cy.get('[aria-label="Menu actions trigger"]').click();
-    cy.get('div[title="Share"]').trigger('mouseover');
-    // need to use [id= syntax, otherwise error gets triggered because of special character in id
-    cy.get('[id="share_submenu$Menu"]').within(() => {
-      cy.contains('Embed code').parent().click();
+    cy.get('div[role="menuitem"]').within(() => {
+      cy.contains('Share').parent().click();
     });
+    cy.getBySel('embed-code-button').click();
     cy.get('#embed-code-popover').within(() => {
       cy.get('textarea[name=embedCode]').contains('iframe');
     });

@@ -17,12 +17,11 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
-import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
-import { MainNav as DropdownMenu, MenuMode } from 'src/components/Menu';
+import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
@@ -99,92 +98,34 @@ const StyledHeader = styled.header`
           display: none;
         }
       }
-      .main-nav .ant-menu-submenu-title > svg {
-        top: ${theme.gridUnit * 5.25}px;
-      }
       @media (max-width: 767px) {
         .navbar-brand {
           float: none;
         }
       }
-      .ant-menu-horizontal .ant-menu-item {
-        height: 100%;
-        line-height: inherit;
-      }
-      .ant-menu > .ant-menu-item > a {
-        padding: ${theme.gridUnit * 4}px;
-      }
       @media (max-width: 767px) {
-        .ant-menu-item {
+        .antd5-menu-item {
           padding: 0 ${theme.gridUnit * 6}px 0
             ${theme.gridUnit * 3}px !important;
         }
-        .ant-menu > .ant-menu-item > a {
+        .antd5-menu > .antd5-menu-item > span > a {
           padding: 0px;
         }
-        .main-nav .ant-menu-submenu-title > svg:nth-of-type(1) {
+        .main-nav .antd5-menu-submenu-title > svg:nth-of-type(1) {
           display: none;
-        }
-        .ant-menu-item-active > a {
-          &:hover {
-            color: ${theme.colors.primary.base} !important;
-            background-color: transparent !important;
-          }
-        }
-      }
-      .ant-menu-item a {
-        &:hover {
-          color: ${theme.colors.grayscale.dark1};
-          background-color: ${theme.colors.primary.light5};
-          border-bottom: none;
-          margin: 0;
-          &:after {
-            opacity: 1;
-            width: 100%;
-          }
         }
       }
   `}
 `;
-const globalStyles = (theme: SupersetTheme) => css`
-  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light.ant-menu-submenu-placement-bottomLeft {
-    border-radius: 0px;
-  }
-  .ant-menu-submenu.ant-menu-submenu-popup.ant-menu.ant-menu-light {
-    border-radius: 0px;
-  }
-  .ant-menu-vertical > .ant-menu-submenu.data-menu > .ant-menu-submenu-title {
-    height: 28px;
-    i {
-      padding-right: ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit * 1.75}px;
-    }
-  }
-  .ant-menu-item-selected {
-    background-color: transparent;
-    &:not(.ant-menu-item-active) {
-      color: inherit;
-      border-bottom-color: transparent;
-      & > a {
-        color: inherit;
-      }
-    }
-  }
-  .ant-menu-horizontal > .ant-menu-item:has(> .is-active) {
-    color: ${theme.colors.primary.base};
-    border-bottom-color: ${theme.colors.primary.base};
-    & > a {
-      color: ${theme.colors.primary.base};
-    }
-  }
-  .ant-menu-vertical > .ant-menu-item:has(> .is-active) {
-    background-color: ${theme.colors.primary.light5};
-    & > a {
-      color: ${theme.colors.primary.base};
+const { SubMenu } = MainNav;
+
+const StyledSubMenu = styled(SubMenu)`
+  &.antd5-menu-submenu-active {
+    .antd5-menu-title-content {
+      color: ${({ theme }) => theme.colors.primary.base};
     }
   }
 `;
-const { SubMenu } = DropdownMenu;
 
 const { useBreakpoint } = Grid;
 
@@ -201,7 +142,6 @@ export function Menu({
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
   const uiConfig = useUiConfig();
-  const theme = useTheme();
 
   useEffect(() => {
     function handleResize() {
@@ -254,33 +194,33 @@ export function Menu({
   }: MenuObjectProps) => {
     if (url && isFrontendRoute) {
       return (
-        <DropdownMenu.Item key={label} role="presentation">
+        <MainNav.Item key={label} role="presentation">
           <NavLink role="button" to={url} activeClassName="is-active">
             {label}
           </NavLink>
-        </DropdownMenu.Item>
+        </MainNav.Item>
       );
     }
     if (url) {
       return (
-        <DropdownMenu.Item key={label}>
+        <MainNav.Item key={label}>
           <a href={url}>{label}</a>
-        </DropdownMenu.Item>
+        </MainNav.Item>
       );
     }
     return (
-      <SubMenu
+      <StyledSubMenu
         key={index}
         title={label}
         icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-' && label !== 'Data') {
-            return <DropdownMenu.Divider key={`$${index1}`} />;
+            return <MainNav.Divider key={`$${index1}`} />;
           }
           if (typeof child !== 'string') {
             return (
-              <DropdownMenu.Item key={`${child.label}`}>
+              <MainNav.Item key={`${child.label}`}>
                 {child.isFrontendRoute ? (
                   <NavLink
                     to={child.url || ''}
@@ -292,24 +232,23 @@ export function Menu({
                 ) : (
                   <a href={child.url}>{child.label}</a>
                 )}
-              </DropdownMenu.Item>
+              </MainNav.Item>
             );
           }
           return null;
         })}
-      </SubMenu>
+      </StyledSubMenu>
     );
   };
   return (
     <StyledHeader className="top" id="main-menu" role="navigation">
-      <Global styles={globalStyles(theme)} />
       <Row>
         <Col md={16} xs={24}>
           <Tooltip
             id="brand-tooltip"
             placement="bottomLeft"
             title={brand.tooltip}
-            arrowPointAtCenter
+            arrow={{ pointAtCenter: true }}
           >
             {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>
@@ -326,11 +265,12 @@ export function Menu({
               <span>{brand.text}</span>
             </div>
           )}
-          <DropdownMenu
+          <MainNav
             mode={showMenu}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
+            disabledOverflow
           >
             {menu.map((item, index) => {
               const props = {
@@ -351,7 +291,7 @@ export function Menu({
 
               return renderSubMenu(props);
             })}
-          </DropdownMenu>
+          </MainNav>
         </Col>
         <Col md={8} xs={24}>
           <RightMenu
