@@ -175,21 +175,21 @@ function AnnotationLayersList({
           const actions = [
             canEdit
               ? {
-                label: 'edit-action',
-                tooltip: t('Edit template'),
-                placement: 'bottom',
-                icon: 'Edit',
-                onClick: handleEdit,
-              }
+                  label: 'edit-action',
+                  tooltip: t('Edit template'),
+                  placement: 'bottom',
+                  icon: 'Edit',
+                  onClick: handleEdit,
+                }
               : null,
             canDelete
               ? {
-                label: 'delete-action',
-                tooltip: t('Delete template'),
-                placement: 'bottom',
-                icon: 'Trash',
-                onClick: handleDelete,
-              }
+                  label: 'delete-action',
+                  tooltip: t('Delete template'),
+                  placement: 'bottom',
+                  icon: 'Trash',
+                  onClick: handleDelete,
+                }
               : null,
           ].filter(item => !!item);
 
@@ -278,7 +278,9 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = ensureAppRootSanitized(`/annotationlayer/${id}/annotation`);
+    window.location.href = ensureAppRootSanitized(
+      `/annotationlayer/${id}/annotation`,
+    );
   };
 
   const onModalHide = () => {
@@ -317,13 +319,13 @@ function AnnotationLayersList({
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
             ? [
-              {
-                key: 'delete',
-                name: t('Delete'),
-                onSelect: confirmDelete,
-                type: 'danger',
-              },
-            ]
+                {
+                  key: 'delete',
+                  name: t('Delete'),
+                  onSelect: confirmDelete,
+                  type: 'danger',
+                },
+              ]
             : [];
 
           return (

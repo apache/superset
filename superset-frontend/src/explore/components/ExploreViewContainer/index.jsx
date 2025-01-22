@@ -216,7 +216,11 @@ const updateHistory = debounce(
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith(ensureAppRootUnsanitized('/explore'))) {
+      if (
+        window.location.pathname.startsWith(
+          ensureAppRootUnsanitized('/explore'),
+        )
+      ) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : null,
           {
@@ -273,9 +277,9 @@ function ExploreViewContainer(props) {
     async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId
         ? {
-          ...props.form_data,
-          dashboardId: props.dashboardId,
-        }
+            ...props.form_data,
+            dashboardId: props.dashboardId,
+          }
         : props.form_data;
       const { id: datasourceId, type: datasourceType } = props.datasource;
 
@@ -412,9 +416,9 @@ function ExploreViewContainer(props) {
     controlsChanged => {
       const newQueryFormData = controlsChanged
         ? {
-          ...props.chart.latestQueryFormData,
-          ...getFormDataFromControls(pick(props.controls, controlsChanged)),
-        }
+            ...props.chart.latestQueryFormData,
+            ...getFormDataFromControls(pick(props.controls, controlsChanged)),
+          }
         : getFormDataFromControls(props.controls);
       props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
       props.actions.renderTriggered(new Date().getTime(), props.chart.id);

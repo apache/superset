@@ -143,7 +143,10 @@ export function getExploreUrl({
   // eslint-disable-next-line no-param-reassign
   delete formData.label_colors;
 
-  let uri = getChartDataUri({ path: ensureAppRootSanitized('/'), allowDomainSharding });
+  let uri = getChartDataUri({
+    path: ensureAppRootSanitized('/'),
+    allowDomainSharding,
+  });
   if (curUrl) {
     uri = URI(URI(curUrl).search());
   }

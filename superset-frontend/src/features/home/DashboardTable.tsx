@@ -207,8 +207,8 @@ function DashboardTable({
               const target = ensureAppRootSanitized(
                 activeTab === TableTab.Favorite
                   ? `/dashboard/list/?filters=(favorite:(label:${t(
-                    'Yes',
-                  )},value:!t))`
+                      'Yes',
+                    )},value:!t))`
                   : '/dashboard/list/',
               );
               history.push(target);

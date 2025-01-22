@@ -45,11 +45,11 @@ const defaultUnauthorizedHandlerForPrefix = (basePath: string) => () => {
 
 const trimTrailingSlashes = (text: string) => {
   // codeql warned against using a regex as it reported 'Polynomial regular expression used on uncontrolled data'
-  while(text.endsWith('/')) {
+  while (text.endsWith('/')) {
     text = text.substring(0, text.length - 1);
   }
   return text;
-}
+};
 
 export default class SupersetClientClass {
   credentials: Credentials;

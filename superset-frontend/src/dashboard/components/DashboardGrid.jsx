@@ -105,15 +105,15 @@ const GridColumnGuide = styled.div`
       top: 0;
       min-height: 100%;
       background-color: ${addAlpha(
-  theme.colors.primary.base,
-  parseFloat(theme.opacity.light) / 100,
-)};
+        theme.colors.primary.base,
+        parseFloat(theme.opacity.light) / 100,
+      )};
       pointer-events: none;
       box-shadow: inset 0 0 0 1px
         ${addAlpha(
-  theme.colors.primary.base,
-  parseFloat(theme.opacity.mediumHeavy) / 100,
-)};
+          theme.colors.primary.base,
+          parseFloat(theme.opacity.mediumHeavy) / 100,
+        )};
     }
   `};
 `;

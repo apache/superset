@@ -38,6 +38,7 @@ const ICONS = {
   [WelcomeTable.SavedQueries]: 'empty-queries.svg',
 } as const;
 
+<<<<<<< HEAD
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
@@ -50,6 +51,31 @@ const REDIRECTS = {
     [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
   },
 } as const;
+||||||| parent of a9b46553d8 (Hit frontend with prettier)
+const welcomeTableWillAppear: Record<WelcomeTable, (other: string) => string> =
+{
+  [WelcomeTable.Charts]: (other: string) =>
+    t('%(other)s charts will appear here', { other }),
+  [WelcomeTable.Dashboards]: (other: string) =>
+    t('%(other)s dashboards will appear here', { other }),
+  [WelcomeTable.Recents]: (other: string) =>
+    t('%(other)s recents will appear here', { other }),
+  [WelcomeTable.SavedQueries]: (other: string) =>
+    t('%(other)s saved queries will appear here', { other }),
+};
+=======
+const welcomeTableWillAppear: Record<WelcomeTable, (other: string) => string> =
+  {
+    [WelcomeTable.Charts]: (other: string) =>
+      t('%(other)s charts will appear here', { other }),
+    [WelcomeTable.Dashboards]: (other: string) =>
+      t('%(other)s dashboards will appear here', { other }),
+    [WelcomeTable.Recents]: (other: string) =>
+      t('%(other)s recents will appear here', { other }),
+    [WelcomeTable.SavedQueries]: (other: string) =>
+      t('%(other)s saved queries will appear here', { other }),
+  };
+>>>>>>> a9b46553d8 (Hit frontend with prettier)
 
 export interface EmptyStateProps {
   tableName: WelcomeTable;
@@ -105,8 +131,44 @@ export default function EmptyState({
         size="large"
         description={t('Nothing here yet')}
       >
+<<<<<<< HEAD
         {getActionButton()}
       </EmptyStateComponent >
     </EmptyContainer >
+||||||| parent of a9b46553d8 (Hit frontend with prettier)
+        <Button
+          buttonStyle="primary"
+          onClick={() => {
+            window.location.href = ensureAppRootSanitized(favRedirects[tableName]);
+          }}
+        >
+          {t('See all %(tableName)s', {
+            tableName:
+              tableName === WelcomeTable.SavedQueries
+                ? t('SQL Lab queries')
+                : welcomeTableLabels[tableName],
+          })}
+        </Button>
+      </Empty>
+    </EmptyContainer>
+=======
+        <Button
+          buttonStyle="primary"
+          onClick={() => {
+            window.location.href = ensureAppRootSanitized(
+              favRedirects[tableName],
+            );
+          }}
+        >
+          {t('See all %(tableName)s', {
+            tableName:
+              tableName === WelcomeTable.SavedQueries
+                ? t('SQL Lab queries')
+                : welcomeTableLabels[tableName],
+          })}
+        </Button>
+      </Empty>
+    </EmptyContainer>
+>>>>>>> a9b46553d8 (Hit frontend with prettier)
   );
 }
