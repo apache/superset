@@ -1603,7 +1603,7 @@ TALISMAN_ENABLED = utils.cast_to_boolean(os.environ.get("TALISMAN_ENABLED", True
 TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
-        "default-src": ["'self'", "data:"],
+        "default-src": ["'self'"],
         "img-src": [
             "'self'",
             "blob:",
@@ -1624,6 +1624,10 @@ TALISMAN_CONFIG = {
             "'self'",
             "'unsafe-inline'",
         ],
+        "font-src": [
+            "'self'",
+            "data:"
+        ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
     "content_security_policy_nonce_in": ["script-src"],
@@ -1634,7 +1638,7 @@ TALISMAN_CONFIG = {
 TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
-        "default-src": ["'self'", "data:"],
+        "default-src": ["'self'"],
         "img-src": [
             "'self'",
             "blob:",
@@ -1654,6 +1658,10 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
+        ],
+        "font-src": [
+            "'self'",
+            "data:"
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
