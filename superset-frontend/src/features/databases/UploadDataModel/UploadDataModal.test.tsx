@@ -26,7 +26,7 @@ import { waitFor } from '@testing-library/react';
 import { UploadFile } from 'antd/lib/upload/interface';
 import { forEach } from 'lodash';
 
-// fetchMock.post('glob:*api/v1/database/1/upload/', {});
+fetchMock.post('glob:*api/v1/database/1/upload/', {});
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:eq,value:!t)),page:0,page_size:100)',
@@ -655,6 +655,8 @@ test('CSV, form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.csv');
+  // Avoid leaking fetchMock calls
+  fetchMock.resetHistory();
 });
 
 test('Excel, form post', async () => {
@@ -713,6 +715,8 @@ test('Excel, form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.xls');
+  // Avoid leaking fetchMock calls
+  fetchMock.resetHistory();
 });
 
 test('Columnar, form post', async () => {
@@ -771,6 +775,8 @@ test('Columnar, form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.parquet');
+  // Avoid leaking fetchMock calls
+  fetchMock.resetHistory();
 });
 
 test('CSV, validate file extension returns false', () => {
