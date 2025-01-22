@@ -99,6 +99,10 @@ const DetailsPanelPopover = ({
     }
   };
 
+  interface CustomCSSProperties extends React.CSSProperties {
+    '--antd-arrow-background-color'?: string;
+  }
+
   const handleVisibility = (isOpen: boolean) => {
     setPopoverVisible(isOpen);
   };
@@ -175,9 +179,11 @@ const DetailsPanelPopover = ({
 
   return (
     <Popover
-      overlayStyle={{
-        '--antd-arrow-background-color': `${theme.colors.grayscale.dark2}cc`,
-      }}
+      overlayStyle={
+        {
+          '--antd-arrow-background-color': `${theme.colors.grayscale.dark2}cc`,
+        } as CustomCSSProperties
+      }
       color={`${theme.colors.grayscale.dark2}cc`}
       content={content}
       open={popoverVisible}

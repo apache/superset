@@ -30,7 +30,6 @@ import {
   useTheme,
   useElementOnScreen,
 } from '@superset-ui/core';
-import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';

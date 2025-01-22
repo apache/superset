@@ -361,8 +361,8 @@ export default class TimeSeriesColumnControl extends Component {
           trigger="click"
           content={this.renderPopover()}
           title={t('Column Configuration')}
-          visible={this.state.popoverVisible}
-          onVisibleChange={this.onPopoverVisibleChange}
+          open={this.state.popoverVisible}
+          onOpenChange={this.onPopoverVisibleChange}
         >
           <InfoTooltipWithTrigger
             icon="edit"

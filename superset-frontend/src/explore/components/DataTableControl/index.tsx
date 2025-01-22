@@ -189,7 +189,7 @@ const DataTableTemporalHeaderCell = ({
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
           <Global
             styles={css`
-              .column-formatting-popover .ant-popover-inner-content {
+              .column-formatting-popover .antd5-popover-inner-content {
                 padding: 0;
               }
             `}
@@ -215,7 +215,7 @@ const DataTableTemporalHeaderCell = ({
         trigger="click"
         content={overlayContent}
         placement="bottomLeft"
-        arrowPointAtCenter
+        arrow={{ pointAtCenter: true }}
       >
         <Icons.SettingOutlined
           iconSize="m"
