@@ -26,9 +26,7 @@ import { waitFor } from '@testing-library/react';
 import { UploadFile } from 'antd/lib/upload/interface';
 import { forEach } from 'lodash';
 
-fetchMock.post('glob:*api/v1/database/1/csv_upload/', {});
-fetchMock.post('glob:*api/v1/database/1/excel_upload/', {});
-fetchMock.post('glob:*api/v1/database/1/columnar_upload/', {});
+// fetchMock.post('glob:*api/v1/database/1/upload/', {});
 
 fetchMock.get(
   'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:eq,value:!t)),page:0,page_size:100)',
@@ -644,13 +642,14 @@ test('CSV, form post', async () => {
   });
 
   userEvent.click(uploadButton);
-  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/csv_upload/'));
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
   // Get the matching fetch calls made
-  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/csv_upload/');
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
   const [_, options] = matchingCalls[0];
   const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('csv');
   expect(formData.get('table_name')).toBe('table1');
   expect(formData.get('schema')).toBe('public');
   expect(formData.get('table_name')).toBe('table1');
@@ -701,17 +700,14 @@ test('Excel, form post', async () => {
   });
 
   userEvent.click(uploadButton);
-  await waitFor(() =>
-    fetchMock.called('glob:*api/v1/database/1/excel_upload/'),
-  );
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
   // Get the matching fetch calls made
-  const matchingCalls = fetchMock.calls(
-    'glob:*api/v1/database/1/excel_upload/',
-  );
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
   const [_, options] = matchingCalls[0];
   const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('excel');
   expect(formData.get('table_name')).toBe('table1');
   expect(formData.get('schema')).toBe('public');
   expect(formData.get('table_name')).toBe('table1');
@@ -762,17 +758,14 @@ test('Columnar, form post', async () => {
   });
 
   userEvent.click(uploadButton);
-  await waitFor(() =>
-    fetchMock.called('glob:*api/v1/database/1/columnar_upload/'),
-  );
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
   // Get the matching fetch calls made
-  const matchingCalls = fetchMock.calls(
-    'glob:*api/v1/database/1/columnar_upload/',
-  );
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
   const [_, options] = matchingCalls[0];
   const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('columnar');
   expect(formData.get('table_name')).toBe('table1');
   expect(formData.get('schema')).toBe('public');
   expect(formData.get('table_name')).toBe('table1');
