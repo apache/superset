@@ -28,7 +28,7 @@ import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized } from 'src/utils/pathUtils';
 import {
   LocalStorageKeys,
   getItem,
@@ -102,7 +102,7 @@ const Controls = styled.div`
   `}
 `;
 
-const StyledSelect = styled(Select)<{ id?: string }>`
+const StyledSelect = styled(Select) <{ id?: string }>`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   min-width: 150px;
 `;
@@ -233,7 +233,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
       .filter(slice =>
         showOnlyMyCharts
           ? slice?.owners?.find(owner => owner.id === this.props.userId) ||
-            slice?.created_by?.id === this.props.userId
+          slice?.created_by?.id === this.props.userId
           : true,
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
@@ -361,7 +361,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             buttonSize="xsmall"
             onClick={() =>
               window.open(
-                ensureBasePath(
+                ensureAppRootSanitized(
                   `/chart/add?dashboard_id=${this.props.dashboardId}`,
                 ),
                 '_blank',

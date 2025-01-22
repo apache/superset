@@ -37,7 +37,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized } from 'src/utils/pathUtils';
 
 const PAGE_SIZE = 25;
 
@@ -175,21 +175,21 @@ function AnnotationLayersList({
           const actions = [
             canEdit
               ? {
-                  label: 'edit-action',
-                  tooltip: t('Edit template'),
-                  placement: 'bottom',
-                  icon: 'Edit',
-                  onClick: handleEdit,
-                }
+                label: 'edit-action',
+                tooltip: t('Edit template'),
+                placement: 'bottom',
+                icon: 'Edit',
+                onClick: handleEdit,
+              }
               : null,
             canDelete
               ? {
-                  label: 'delete-action',
-                  tooltip: t('Delete template'),
-                  placement: 'bottom',
-                  icon: 'Trash',
-                  onClick: handleDelete,
-                }
+                label: 'delete-action',
+                tooltip: t('Delete template'),
+                placement: 'bottom',
+                icon: 'Trash',
+                onClick: handleDelete,
+              }
               : null,
           ].filter(item => !!item);
 
@@ -278,7 +278,7 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = ensureBasePath(`/annotationlayer/${id}/annotation`);
+    window.location.href = ensureAppRootSanitized(`/annotationlayer/${id}/annotation`);
   };
 
   const onModalHide = () => {
@@ -317,13 +317,13 @@ function AnnotationLayersList({
         {confirmDelete => {
           const bulkActions: ListViewProps['bulkActions'] = canDelete
             ? [
-                {
-                  key: 'delete',
-                  name: t('Delete'),
-                  onSelect: confirmDelete,
-                  type: 'danger',
-                },
-              ]
+              {
+                key: 'delete',
+                name: t('Delete'),
+                onSelect: confirmDelete,
+                type: 'danger',
+              },
+            ]
             : [];
 
           return (

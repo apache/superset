@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import DOMPurify from 'dompurify';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 // eslint-disable-next-line import/no-mutable-exports
@@ -24,15 +25,24 @@ const APPLICATION_ROOT = getBootstrapData().common.application_root;
 /**
  * @returns The configured application root
  */
-export function applicationRoot(): string {
-  return APPLICATION_ROOT;
+export function applicationRoot(dom_sanitize: boolean = false): string {
+  return dom_sanitize ? DOMPurify.sanitize(APPLICATION_ROOT) : APPLICATION_ROOT;
 }
 
 /**
  * Takes a string path to a resource and prefixes it with the application root that is
- * defined in the application configuration.
+ * defined in the application configuration. The path is unsanitized.
  * @param path A string path to a resource
  */
-export function ensureBasePath(path: string): string {
-  return `${APPLICATION_ROOT}${path.startsWith('/') ? path : `/${path}`}`;
+export function ensureAppRootUnsanitized(path: string): string {
+  return `${applicationRoot(false)}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+/**
+ * Takes a string path to a resource and prefixes it with the application root that is
+ * defined in the application configuration. The application path is sanitized.
+ * @param path A string path to a resource
+ */
+export function ensureAppRootSanitized(path: string): string {
+  return `${applicationRoot(true)}${path.startsWith('/') ? path : `/${path}`}`;
 }

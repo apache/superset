@@ -37,7 +37,7 @@ import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized } from 'src/utils/pathUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -395,8 +395,8 @@ const RightMenu = ({
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
               : environmentTag.color
-                  .split('.')
-                  .reduce((o, i) => o[i], theme.colors)
+                .split('.')
+                .reduce((o, i) => o[i], theme.colors)
           }
         >
           <span css={tagStyles}>{environmentTag.text}</span>
@@ -462,7 +462,7 @@ const RightMenu = ({
                         {menu.label}
                       </Link>
                     ) : (
-                      <a href={ensureBasePath(menu.url || '')}>
+                      <a href={ensureAppRootSanitized(menu.url || '')}>
                         <i
                           data-test={`menu-item-${menu.label}`}
                           className={`fa ${menu.icon}`}
@@ -497,7 +497,7 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={ensureBasePath(child.url || '')}>
+                        <a href={ensureAppRootSanitized(child.url || '')}>
                           {menuItemDisplay}
                         </a>
                       )}
@@ -632,7 +632,7 @@ class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
     return { hasError: true };
   }
 
-  noop = () => {};
+  noop = () => { };
 
   render() {
     if (this.state.hasError) {

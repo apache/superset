@@ -41,7 +41,7 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized, ensureAppRootUnsanitized } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from 'src/utils/dates';
 
@@ -145,12 +145,12 @@ const legacyChartDataRequest = async (
   };
 
   return SupersetClient.post(querySettings).then(({ json, response }) =>
-    // Make the legacy endpoint return a payload that corresponds to the
-    // V1 chart data endpoint response signature.
-    ({
-      response,
-      json: { result: [json] },
-    }),
+  // Make the legacy endpoint return a payload that corresponds to the
+  // V1 chart data endpoint response signature.
+  ({
+    response,
+    json: { result: [json] },
+  }),
   );
 };
 
@@ -204,7 +204,7 @@ const v1ChartDataRequest = async (
 
 export async function getChartDataRequest({
   formData,
-  setDataMask = () => {},
+  setDataMask = () => { },
   resultFormat = 'json',
   resultType = 'full',
   force = false,
@@ -456,8 +456,8 @@ export function exploreJSON(
               viz_type: formData.viz_type,
               data_age: resultItem.is_cached
                 ? extendedDayjs(new Date()).diff(
-                    extendedDayjs.utc(resultItem.cached_dttm),
-                  )
+                  extendedDayjs.utc(resultItem.cached_dttm),
+                )
                 : null,
             }),
           ),
@@ -539,7 +539,7 @@ export function redirectSQLLab(formData, history) {
   return dispatch => {
     getChartDataRequest({ formData, resultFormat: 'json', resultType: 'query' })
       .then(({ json }) => {
-        const redirectUrl = ensureBasePath('/sqllab/');
+        const redirectUrl = ensureAppRootUnsanitized('/sqllab/');
         const payload = {
           datasourceKey: formData.datasource,
           sql: json.result[0].query,

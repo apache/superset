@@ -50,7 +50,7 @@ import {
   LOG_ACTIONS_MOUNT_EXPLORER,
   LOG_ACTIONS_CHANGE_EXPLORE_CONTROLS,
 } from 'src/logger/LogUtils';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootUnsanitized } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
@@ -216,7 +216,7 @@ const updateHistory = debounce(
         stateModifier = 'pushState';
       }
       // avoid race condition in case user changes route before explore updates the url
-      if (window.location.pathname.startsWith(ensureBasePath('/explore'))) {
+      if (window.location.pathname.startsWith(ensureAppRootUnsanitized('/explore'))) {
         const url = mountExploreUrl(
           standalone ? URL_PARAMS.standalone.name : null,
           {
@@ -273,9 +273,9 @@ function ExploreViewContainer(props) {
     async ({ isReplace = false, title } = {}) => {
       const formData = props.dashboardId
         ? {
-            ...props.form_data,
-            dashboardId: props.dashboardId,
-          }
+          ...props.form_data,
+          dashboardId: props.dashboardId,
+        }
         : props.form_data;
       const { id: datasourceId, type: datasourceType } = props.datasource;
 
@@ -412,9 +412,9 @@ function ExploreViewContainer(props) {
     controlsChanged => {
       const newQueryFormData = controlsChanged
         ? {
-            ...props.chart.latestQueryFormData,
-            ...getFormDataFromControls(pick(props.controls, controlsChanged)),
-          }
+          ...props.chart.latestQueryFormData,
+          ...getFormDataFromControls(pick(props.controls, controlsChanged)),
+        }
         : getFormDataFromControls(props.controls);
       props.actions.updateQueryFormData(newQueryFormData, props.chart.id);
       props.actions.renderTriggered(new Date().getTime(), props.chart.id);

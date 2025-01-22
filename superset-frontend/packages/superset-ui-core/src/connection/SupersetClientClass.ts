@@ -43,6 +43,14 @@ const defaultUnauthorizedHandlerForPrefix = (basePath: string) => () => {
   }
 };
 
+const trimTrailingSlashes = (text: string) => {
+  // codeql warned against using a regex as it reported 'Polynomial regular expression used on uncontrolled data'
+  while(text.endsWith('/')) {
+    text = text.substring(0, text.length - 1);
+  }
+  return text;
+}
+
 export default class SupersetClientClass {
   credentials: Credentials;
 
@@ -90,7 +98,7 @@ export default class SupersetClientClass {
         : '/',
       DEFAULT_BASE_URL,
     );
-    this.basePath = basePath.replace(/\/+$/, ''); // always strip trailing slash
+    this.basePath = trimTrailingSlashes(this.basePath);
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json

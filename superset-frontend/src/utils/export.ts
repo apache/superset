@@ -17,7 +17,7 @@
  * under the License.
  */
 import parseCookie from 'src/utils/parseCookie';
-import { ensureBasePath } from './pathUtils';
+import { ensureAppRootSanitized } from './pathUtils';
 import rison from 'rison';
 import { nanoid } from 'nanoid';
 
@@ -28,7 +28,7 @@ export default function handleResourceExport(
   interval = 200,
 ): void {
   const token = nanoid();
-  const url = ensureBasePath(
+  const url = ensureAppRootSanitized(
     `/api/v1/${resource}/export/?q=${rison.encode(ids)}&token=${token}`,
   );
 

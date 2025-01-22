@@ -43,7 +43,7 @@ import { LoadingCards } from 'src/pages/Home';
 import ChartCard from 'src/features/charts/ChartCard';
 import Chart from 'src/types/Chart';
 import handleResourceExport from 'src/utils/export';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized } from 'src/utils/pathUtils';
 import Loading from 'src/components/Loading';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import EmptyState from './EmptyState';
@@ -194,7 +194,7 @@ function ChartTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign(ensureBasePath('/chart/add'));
+              window.location.assign(ensureAppRootSanitized('/chart/add'));
             },
           },
           {
@@ -204,8 +204,8 @@ function ChartTable({
               const target =
                 activeTab === TableTab.Favorite
                   ? `/chart/list/?filters=(favorite:(label:${t(
-                      'Yes',
-                    )},value:!t))`
+                    'Yes',
+                  )},value:!t))`
                   : '/chart/list/';
               history.push(target);
             },

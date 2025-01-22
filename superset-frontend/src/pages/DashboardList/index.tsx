@@ -68,21 +68,21 @@ import DashboardCard from 'src/features/dashboards/DashboardCard';
 import { DashboardStatus } from 'src/features/dashboards/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized } from 'src/utils/pathUtils';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
-    'import them together with the dashboards. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+  'import them together with the dashboards. Please note that the ' +
+  '"Secure Extra" and "Certificate" sections of ' +
+  'the database configuration are not present in export files, and ' +
+  'should be added manually after the import if they are needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more dashboards that already exist. ' +
-    'Overwriting might cause you to lose some of your work. Are you ' +
-    'sure you want to overwrite?',
+  'Overwriting might cause you to lose some of your work. Are you ' +
+  'sure you want to overwrite?',
 );
 
 interface DashboardListProps {
@@ -542,16 +542,16 @@ function DashboardList(props: DashboardListProps) {
       },
       ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
-            {
-              Header: t('Tag'),
-              key: 'tags',
-              id: 'tags',
-              input: 'select',
-              operator: FilterOperator.DashboardTagById,
-              unfilteredLabel: t('All'),
-              fetchSelects: loadTags,
-            },
-          ]
+          {
+            Header: t('Tag'),
+            key: 'tags',
+            id: 'tags',
+            input: 'select',
+            operator: FilterOperator.DashboardTagById,
+            unfilteredLabel: t('All'),
+            fetchSelects: loadTags,
+          },
+        ]
         : []),
       {
         Header: t('Owner'),
@@ -683,7 +683,7 @@ function DashboardList(props: DashboardListProps) {
       ),
       buttonStyle: 'primary',
       onClick: () => {
-        window.location.assign(ensureBasePath('/dashboard/new'));
+        window.location.assign(ensureAppRootSanitized('/dashboard/new'));
       },
     });
 

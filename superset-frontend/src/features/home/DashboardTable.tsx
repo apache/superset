@@ -28,7 +28,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { ensureBasePath } from 'src/utils/pathUtils';
+import { ensureAppRootSanitized } from 'src/utils/pathUtils';
 import { LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,
@@ -197,18 +197,18 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign(ensureBasePath('/dashboard/new'));
+              window.location.assign(ensureAppRootSanitized('/dashboard/new'));
             },
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              const target = ensureBasePath(
+              const target = ensureAppRootSanitized(
                 activeTab === TableTab.Favorite
                   ? `/dashboard/list/?filters=(favorite:(label:${t(
-                      'Yes',
-                    )},value:!t))`
+                    'Yes',
+                  )},value:!t))`
                   : '/dashboard/list/',
               );
               history.push(target);
