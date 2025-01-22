@@ -219,20 +219,20 @@ RequestHeader set X-Forwarded-Proto "https"
 
 Superset supports running the application under a non-root path. The Flask entrypoint
 [`create_app()`](https://github.com/apache/superset/blob/master/superset/app.py#L29)
-accepts an argument `app_root` that configures the prefix for the application.
+accepts an argument `superset_app_root` that configures the prefix for the application.
 
-To configure a prefix, e.g `/analytics`, pass the `app_root` argument to
+To configure a prefix, e.g `/analytics`, pass the `superset_app_root` argument to
 `create_app` when calling flask run either through the `FLASK_APP`
 environment variable:
 
 ```sh
-FLASK_APP="superset:create_app(app_root='/analytics')"
+FLASK_APP="superset:create_app(superset_app_root='/analytics')"
 ```
 
 or as part of the `--app` argument to `flask run`:
 
 ```sh
-flask --app "superset.app:create_app(app_root='/analytics')"
+flask --app "superset.app:create_app(superset_app_root='/analytics')"
 ```
 
 

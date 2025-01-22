@@ -29,7 +29,8 @@ logger = logging.getLogger(__name__)
 
 
 def create_app(
-    superset_config_module: Optional[str] = None, app_root: str = "/"
+    superset_config_module: Optional[str] = None,
+    superset_app_root: Optional[str] = None,
 ) -> Flask:
     app = SupersetApp(__name__)
 
@@ -41,6 +42,7 @@ def create_app(
         app.config.from_object(config_module)
 
         # Allow application to sit on a non-root path
+        app_root = superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
         if app_root != "/":
             app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
             # If not set, manually configure options that depend on the
