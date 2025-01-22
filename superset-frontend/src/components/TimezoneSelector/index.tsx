@@ -112,10 +112,23 @@ export default function TimezoneSelector({
       // pre-sort timezone options by time offset
       TIMEZONE_OPTIONS.sort(TIMEZONE_OPTIONS_SORT_COMPARATOR);
 
-      const matchTimezoneToOptions = (timezone: string) =>
-        TIMEZONE_OPTIONS.find(
-          option => option.offsets === getOffsetKey(timezone),
-        )?.value || DEFAULT_TIMEZONE.value;
+      const matchTimezoneToOptions = (timezone: string) => {
+        const offsetKey = getOffsetKey(timezone);
+        let fallbackValue: string | undefined;
+
+        for (const option of TIMEZONE_OPTIONS) {
+          if (
+            option.offsets === offsetKey &&
+            option.timezoneName === timezone
+          ) {
+            return option.value;
+          }
+          if (!fallbackValue && option.offsets === offsetKey) {
+            fallbackValue = option.value;
+          }
+        }
+        return fallbackValue || DEFAULT_TIMEZONE.value;
+      };
 
       const validTimezone = matchTimezoneToOptions(
         timezone || extendedDayjs.tz.guess(),
