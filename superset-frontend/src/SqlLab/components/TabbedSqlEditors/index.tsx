@@ -27,7 +27,7 @@ import { Logger } from 'src/logger/LogUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
@@ -259,8 +259,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         tab={emptyTab}
         closable={false}
       >
-        <EmptyStateBig
+        <EmptyState
           image="empty_sql_chart.svg"
+          size="large"
           description={t('Add a new tab to create SQL Query')}
         />
       </EditableTabs.TabPane>
