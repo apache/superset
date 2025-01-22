@@ -17,7 +17,7 @@
 
 import logging
 import os
-from typing import Iterable, Optional
+from typing import cast, Iterable, Optional
 from wsgiref.types import StartResponse, WSGIApplication, WSGIEnvironment
 
 from flask import Flask
@@ -42,7 +42,9 @@ def create_app(
         app.config.from_object(config_module)
 
         # Allow application to sit on a non-root path
-        app_root = superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
+        app_root = cast(
+            str, superset_app_root or os.environ.get("SUPERSET_APP_ROOT", "/")
+        )
         if app_root != "/":
             app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
             # If not set, manually configure options that depend on the
