@@ -74,7 +74,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   };
   const preStyle = {
     whiteSpace: 'pre-wrap',
-    // fontFamily: theme.antd.fontFamilyCode,
+    fontFamily: theme.typography.families.sansSerif,
   };
   const renderDescription = () => (
     <div>
