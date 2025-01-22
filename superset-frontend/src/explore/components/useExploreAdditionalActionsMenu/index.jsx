@@ -109,7 +109,7 @@ export const MenuTrigger = styled(Button)`
 `;
 
 const iconReset = css`
-  .ant-dropdown-menu-item > & > .anticon:first-child {
+  .antd5-dropdown-menu-item > & > .anticon:first-child {
     margin-right: 0;
     vertical-align: 0;
   }

@@ -18,7 +18,7 @@
  */
 import { ReactNode, ReactElement } from 'react';
 import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
-import { AntdDropdown, AntdDropdownProps } from 'src/components';
+import { Dropdown, DropdownProps } from 'src/components/Dropdown';
 import { TooltipPlacement } from 'src/components/Tooltip';
 import {
   DynamicEditableTitle,
@@ -116,7 +116,7 @@ export type PageHeaderWithActionsProps = {
   titlePanelAdditionalItems: ReactNode;
   rightPanelAdditionalItems: ReactNode;
   additionalActionsMenu: ReactElement;
-  menuDropdownProps: Omit<AntdDropdownProps, 'overlay'>;
+  menuDropdownProps: Omit<DropdownProps, 'overlay'>;
   tooltipProps?: {
     text?: string;
     placement?: TooltipPlacement;
@@ -155,9 +155,9 @@ export const PageHeaderWithActions = ({
         {rightPanelAdditionalItems}
         <div css={additionalActionsContainerStyles}>
           {showMenuDropdown && (
-            <AntdDropdown
+            <Dropdown
               trigger={['click']}
-              overlay={additionalActionsMenu}
+              dropdownRender={() => additionalActionsMenu}
               {...menuDropdownProps}
             >
               <Button
@@ -173,7 +173,7 @@ export const PageHeaderWithActions = ({
                   iconSize="l"
                 />
               </Button>
-            </AntdDropdown>
+            </Dropdown>
           )}
         </div>
       </div>

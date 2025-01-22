@@ -18,7 +18,8 @@
  */
 import { ReactNode, ReactElement } from 'react';
 
-import { AntdDropdown, AntdTooltip } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
+import { Tooltip } from 'src/components/Tooltip';
 import { styled } from '@superset-ui/core';
 import { kebabCase } from 'lodash';
 
@@ -84,19 +85,19 @@ export const DropdownButton = ({
     } = {},
   ) => (
     <StyledDropdownButton>
-      <AntdDropdown.Button overlay={overlay} {...rest} {...props} />
+      <Dropdown.Button dropdownRender={() => overlay} {...rest} {...props} />
     </StyledDropdownButton>
   );
   if (tooltip) {
     return buildButton({
       buttonsRender: ([leftButton, rightButton]) => [
-        <AntdTooltip
+        <Tooltip
           placement={placement}
           id={`${kebabCase(tooltip)}-tooltip`}
           title={tooltip}
         >
           {leftButton}
-        </AntdTooltip>,
+        </Tooltip>,
         rightButton,
       ],
     });

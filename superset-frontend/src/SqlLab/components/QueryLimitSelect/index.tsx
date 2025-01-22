@@ -18,7 +18,7 @@
  */
 import { useDispatch } from 'react-redux';
 import { styled, useTheme, t } from '@superset-ui/core';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 import { queryEditorSetQueryLimit } from 'src/SqlLab/actions/sqlLab';
@@ -36,7 +36,7 @@ export function convertToNumWithSpaces(num: number) {
 
 const LimitSelectStyled = styled.span`
   ${({ theme }) => `
-    .ant-dropdown-trigger {
+    .antd5-dropdown-trigger {
       align-items: center;
       color: ${theme.colors.grayscale.dark2};
       display: flex;
@@ -95,8 +95,8 @@ const QueryLimitSelect = ({
 
   return (
     <LimitSelectStyled>
-      <AntdDropdown
-        overlay={renderQueryLimit(maxRow, setQueryLimit)}
+      <Dropdown
+        dropdownRender={() => renderQueryLimit(maxRow, setQueryLimit)}
         trigger={['click']}
       >
         <button type="button" onClick={e => e.preventDefault()}>
@@ -106,7 +106,7 @@ const QueryLimitSelect = ({
           </span>
           <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
         </button>
-      </AntdDropdown>
+      </Dropdown>
     </LimitSelectStyled>
   );
 };

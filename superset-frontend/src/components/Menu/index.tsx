@@ -81,7 +81,7 @@ const StyledMenu = styled(AntdMenu)`
       border-bottom: 1px solid transparent;
     }
     &.antd5-menu-vertical,
-    &.ant-dropdown-menu {
+    &.antd5-dropdown-menu {
       box-shadow:
         0 3px 6px -4px ${addAlpha(theme.colors.grayscale.dark2, 0.12)},
         0 6px 16px 0
@@ -146,8 +146,8 @@ const StyledSubMenu = styled(AntdMenu.SubMenu)`
     }
   }
 
-  .ant-dropdown-menu-submenu-arrow:before,
-  .ant-dropdown-menu-submenu-arrow:after {
+  .antd5-dropdown-menu-submenu-arrow:before,
+  .antd5-dropdown-menu-submenu-arrow:after {
     content: none !important;
   }
 `;

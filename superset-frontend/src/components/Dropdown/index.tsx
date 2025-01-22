@@ -24,13 +24,7 @@ import {
   cloneElement,
 } from 'react';
 
-import { AntdDropdown } from 'src/components';
-// TODO: @geido - Remove these after dropdown is fully migrated to Antd v5
-import {
-  Dropdown as Antd5Dropdown,
-  DropDownProps as Antd5DropdownProps,
-} from 'antd-v5';
-import { DropDownProps } from 'antd/lib/dropdown';
+import { Dropdown as AntdDropdown, DropDownProps } from 'antd-v5';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -83,7 +77,8 @@ export enum IconOrientation {
   Vertical = 'vertical',
   Horizontal = 'horizontal',
 }
-export interface DropdownProps extends DropDownProps {
+
+export interface MenuDotsDropdownProps extends DropDownProps {
   overlay: ReactElement;
   iconOrientation?: IconOrientation;
 }
@@ -100,19 +95,19 @@ const RenderIcon = (
   return component;
 };
 
-export const Dropdown = ({
+export const MenuDotsDropdown = ({
   overlay,
   iconOrientation = IconOrientation.Vertical,
   ...rest
-}: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
+}: MenuDotsDropdownProps) => (
+  <AntdDropdown dropdownRender={() => overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );
 
-export interface NoAnimationDropdownProps extends Antd5DropdownProps {
+export interface NoAnimationDropdownProps extends DropDownProps {
   children: ReactNode;
   onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
@@ -126,8 +121,13 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   });
 
   return (
-    <Antd5Dropdown overlayStyle={props.overlayStyle} {...rest}>
+    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
       {childrenWithProps}
-    </Antd5Dropdown>
+    </AntdDropdown>
   );
 };
+
+export const Dropdown = Object.assign(AntdDropdown, {
+  Button: AntdDropdown.Button,
+});
+export type DropdownProps = DropDownProps;

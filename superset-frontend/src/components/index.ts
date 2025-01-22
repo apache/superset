@@ -55,7 +55,6 @@ export {
   Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
-  Dropdown as AntdDropdown,
   Form as AntdForm,
   Input as AntdInput,
   Select as AntdSelect,

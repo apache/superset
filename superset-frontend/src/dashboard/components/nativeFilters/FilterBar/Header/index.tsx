@@ -58,7 +58,7 @@ const Wrapper = styled.div`
     padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
       theme.gridUnit
     }px;
-    .ant-dropdown-trigger span {
+    .antd5-dropdown-trigger span {
       padding-right: ${theme.gridUnit * 2}px;
     }
   `}

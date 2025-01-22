@@ -99,11 +99,11 @@ export const GlobalStyles = () => (
           margin-right: 0;
         }
       }
-      .ant-dropdown-menu-sub .antd5-menu.antd5-menu-vertical {
+      .antd5-dropdown-menu-sub .antd5-menu.antd5-menu-vertical {
         box-shadow: none;
       }
-      .ant-dropdown-menu-submenu-title,
-      .ant-dropdown-menu-item {
+      .antd5-dropdown-menu-submenu-title,
+      .antd5-dropdown-menu-item {
         line-height: 1.5em !important;
       }
     `}

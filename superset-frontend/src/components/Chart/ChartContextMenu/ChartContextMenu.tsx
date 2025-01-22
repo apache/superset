@@ -42,7 +42,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { Menu } from 'src/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
-import { AntdDropdown as Dropdown } from 'src/components/index';
+import { Dropdown } from 'src/components/Dropdown';
 import { updateDataMask } from 'src/dataMask/actions';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
@@ -115,7 +115,7 @@ const ChartContextMenu = (
 
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
 
-  const menuItems = [];
+  const menuItems: React.JSX.Element[] = [];
 
   const showDrillToDetail =
     isFeatureEnabled(FeatureFlag.DrillToDetail) &&
@@ -288,7 +288,7 @@ const ChartContextMenu = (
   return ReactDOM.createPortal(
     <>
       <Dropdown
-        overlay={
+        dropdownRender={() => (
           <Menu
             className="chart-context-menu"
             data-test="chart-context-menu"
@@ -304,15 +304,15 @@ const ChartContextMenu = (
               <Menu.Item disabled>{t('No actions')}</Menu.Item>
             )}
           </Menu>
-        }
+        )}
         trigger={['click']}
-        onVisibleChange={value => {
+        onOpenChange={value => {
           setVisible(value);
           if (!value) {
             setOpenKeys([]);
           }
         }}
-        visible={visible}
+        open={visible}
       >
         <span
           id={`hidden-span-${id}`}
