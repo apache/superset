@@ -165,6 +165,7 @@ describe('SuperChart', () => {
       const inactiveErrorHandler = jest.fn();
       const activeErrorHandler = jest.fn();
       mount(
+        // @ts-ignore
         <ErrorBoundary onError={activeErrorHandler}>
           <SuperChart
             disableErrorBoundary
