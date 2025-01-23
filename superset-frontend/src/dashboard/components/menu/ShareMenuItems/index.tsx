@@ -38,8 +38,8 @@ interface ShareMenuItemProps {
   shareByEmailMenuItemRef?: RefObject<any>;
   selectedKeys?: string[];
   setOpenKeys?: Function;
-  key?: string;
   title: string;
+  disabled?: boolean;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -52,8 +52,8 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
-    key,
     title,
+    disabled,
   } = props;
   const { dataMask, activeTabs } = useSelector(
     (state: RootState) => ({
@@ -96,7 +96,7 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <Menu.SubMenu title={title} key={key}>
+    <Menu.SubMenu title={title} key={MenuKeys.Share} disabled={disabled}>
       <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
         {copyMenuItemTitle}
       </Menu.Item>

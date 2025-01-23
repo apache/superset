@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import DownloadScreenshot from './DownloadScreenshot';
+import { Menu, MenuProps } from 'src/components/Menu';
+import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { DownloadScreenshotFormat } from './types';
 import DownloadAsPdf from './DownloadAsPdf';
 import DownloadAsImage from './DownloadAsImage';
@@ -37,45 +38,49 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     logEvent,
     dashboardId,
     dashboardTitle,
-    ...rest
   } = props;
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
     isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
-  return isWebDriverScreenshotEnabled ? (
-    <>
-      <DownloadScreenshot
-        text={pdfMenuItemTitle}
-        dashboardId={dashboardId}
-        logEvent={logEvent}
-        format={DownloadScreenshotFormat.PDF}
-        {...rest}
-      />
-      <DownloadScreenshot
-        text={imageMenuItemTitle}
-        dashboardId={dashboardId}
-        logEvent={logEvent}
-        format={DownloadScreenshotFormat.PNG}
-        {...rest}
-      />
-    </>
-  ) : (
-    <>
-      <DownloadAsPdf
-        text={pdfMenuItemTitle}
-        dashboardTitle={dashboardTitle}
-        logEvent={logEvent}
-        {...rest}
-      />
-      <DownloadAsImage
-        text={imageMenuItemTitle}
-        dashboardTitle={dashboardTitle}
-        logEvent={logEvent}
-        {...rest}
-      />
-    </>
-  );
+  const downloadScreenshot = useDownloadScreenshot(dashboardId, logEvent);
+
+  const items: MenuProps['items'] = isWebDriverScreenshotEnabled
+    ? [
+        {
+          key: DownloadScreenshotFormat.PDF,
+          onClick: () => downloadScreenshot(DownloadScreenshotFormat.PDF),
+          label: pdfMenuItemTitle,
+        },
+        {
+          key: DownloadScreenshotFormat.PNG,
+          onClick: () => downloadScreenshot(DownloadScreenshotFormat.PNG),
+          label: imageMenuItemTitle,
+        },
+      ]
+    : [
+        {
+          key: DownloadScreenshotFormat.PDF,
+          label: (
+            <DownloadAsPdf
+              text={pdfMenuItemTitle}
+              dashboardTitle={dashboardTitle}
+              logEvent={logEvent}
+            />
+          ),
+        },
+        {
+          key: DownloadScreenshotFormat.PNG,
+          label: (
+            <DownloadAsImage
+              text={imageMenuItemTitle}
+              dashboardTitle={dashboardTitle}
+              logEvent={logEvent}
+            />
+          ),
+        },
+      ];
+  return <Menu items={items} />;
 };
 
 export default DownloadMenuItems;

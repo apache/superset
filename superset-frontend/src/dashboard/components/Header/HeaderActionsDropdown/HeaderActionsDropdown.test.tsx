@@ -23,7 +23,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
-import { HeaderActionsDropdown } from '.';
+import HeaderActionsDropdown from '.';
 
 const createProps = (): HeaderDropdownProps => ({
   addSuccessToast: jest.fn(),
