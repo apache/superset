@@ -110,7 +110,7 @@ describe('RangeFilterPlugin', () => {
     expect(inputs[1]).toHaveValue('70');
   });
 
-  it('should set the "To" input to be equal to max when a lower value is entered', () => {
+  it('should set the "To" input to be equal to "From" when a lower value is entered', () => {
     getWrapper();
 
     const inputs = screen.getAllByRole('spinbutton');
@@ -121,10 +121,12 @@ describe('RangeFilterPlugin', () => {
 
     fireEvent.change(toInput, { target: { value: 10 } });
 
-    expect(toInput).toHaveValue('100');
+    fireEvent.blur(toInput);
+
+    expect(toInput).toHaveValue('20');
   });
 
-  it('should set the "From" input to be equal to MIN when a higher value is entered', () => {
+  it('should set the "From" input to be equal to "To" when a higher value is entered', () => {
     getWrapper();
 
     const inputs = screen.getAllByRole('spinbutton');
@@ -137,7 +139,7 @@ describe('RangeFilterPlugin', () => {
 
     fireEvent.blur(fromInput);
 
-    expect(fromInput).toHaveValue('10');
+    expect(fromInput).toHaveValue('30');
   });
 
   it('should call setDataMask with correct filter', () => {

@@ -184,13 +184,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    if (index === minIndex && newValue > updatedValue[maxIndex]) {
-      updatedValue[minIndex] = min;
-    } else if (index === maxIndex && newValue < updatedValue[minIndex]) {
-      updatedValue[maxIndex] = max;
-    } else {
-      updatedValue[index] = newValue;
-    }
+    updatedValue[index] = newValue;
     setValue(updatedValue);
     handleAfterChange(updatedValue);
   };
@@ -289,6 +283,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
   }, [enableSingleExactValue]);
 
+  const handleBlur = (index: 0 | 1) => {
+    if (index === minIndex && minMax[index] > minMax[maxIndex]) {
+      handleChange(minMax[maxIndex], minIndex);
+    } else if (index === maxIndex && minMax[index] < minMax[minIndex]) {
+      handleChange(minMax[minIndex], maxIndex);
+    }
+  };
+
   return (
     <FilterPluginStyle height={height} width={width}>
       {Number.isNaN(Number(min)) || Number.isNaN(Number(max)) ? (
@@ -335,6 +337,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                   min={min}
                   max={max}
                   onChange={val => handleChange(Number(val), minIndex)}
+                  onBlur={() => handleBlur(minIndex)}
                   placeholder={t('From')}
                   data-test="native-filter-from-input"
                 />
@@ -344,6 +347,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                   min={min}
                   max={max}
                   onChange={val => handleChange(Number(val), maxIndex)}
+                  onBlur={() => handleBlur(maxIndex)}
                   placeholder={t('To')}
                   data-test="native-filter-to-input"
                 />
