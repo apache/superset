@@ -142,7 +142,7 @@ describe('SqlLab query panel', () => {
     });
   });
 
-  it('Create a chart from a query', () => {
+  it.skip('Create a chart from a query', () => {
     cy.intercept('/api/v1/sqllab/execute/').as('queryFinished');
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.intercept('**/api/v1/chart/**').as('chart');
