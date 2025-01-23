@@ -431,7 +431,6 @@ function SavedQueryList({
               placement: 'bottom',
               icon: 'Copy',
               onClick: handleCopy,
-              'data-testid': 'copy-query-url',
             },
             canExport && {
               label: 'export-action',
