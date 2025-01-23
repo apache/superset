@@ -37,6 +37,7 @@ const TitleArea = styled.div`
       font-size: ${theme.typography.sizes.l}px;
       flex-grow: 1;
       font-weight: ${theme.typography.weights.bold};
+      order: -1;
     }
 
     & > div:first-of-type {
@@ -49,6 +50,13 @@ const TitleArea = styled.div`
   `}
 `;
 
+const ButtonsContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.gridUnit * 2}px;
+`;
+
 const HeaderButton = styled(Button)`
   padding: 0;
 `;
@@ -59,6 +67,7 @@ const Wrapper = styled.div`
       theme.gridUnit
     }px;
     .antd5-dropdown-trigger span {
+      margin-left: auto;
       padding-right: ${theme.gridUnit * 2}px;
     }
   `}
@@ -75,15 +84,17 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        <FilterBarSettings />
-        <HeaderButton
-          {...getFilterBarTestId('collapse-button')}
-          buttonStyle="link"
-          buttonSize="xsmall"
-          onClick={() => toggleFiltersBar(false)}
-        >
-          <Icons.Expand iconColor={theme.colors.grayscale.base} />
-        </HeaderButton>
+        <ButtonsContainer>
+          <FilterBarSettings />
+          <HeaderButton
+            {...getFilterBarTestId('collapse-button')}
+            buttonStyle="link"
+            buttonSize="xsmall"
+            onClick={() => toggleFiltersBar(false)}
+          >
+            <Icons.Expand iconColor={theme.colors.grayscale.base} />
+          </HeaderButton>
+        </ButtonsContainer>
       </TitleArea>
     </Wrapper>
   );

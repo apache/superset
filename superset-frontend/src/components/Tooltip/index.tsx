@@ -27,14 +27,12 @@ export type TooltipPlacement = AntdTooltipPlacement;
 export type TooltipProps = AntdTooltipProps;
 
 export const Tooltip = (props: TooltipProps) => (
-  <>
-    <AntdTooltip
-      overlayInnerStyle={{
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-      }}
-      color={`${supersetTheme.colors.grayscale.dark2}e6`}
-      {...props}
-    />
-  </>
+  <AntdTooltip
+    overlayInnerStyle={{
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+    }}
+    color={`${supersetTheme.colors.grayscale.dark2}e6`}
+    {...props}
+  />
 );

@@ -17,11 +17,10 @@
  * under the License.
  */
 import { addAlpha, styled, useTheme } from '@superset-ui/core';
-import { FC, RefObject, useMemo, ReactNode, useState } from 'react';
+import { RefObject, useMemo, ReactNode, useState } from 'react';
 import Icons from 'src/components/Icons';
-import { DropdownButton } from 'src/components/DropdownButton';
-import { DropdownButtonProps } from 'antd/lib/dropdown';
 import { Menu, MenuProps } from 'src/components/Menu';
+import { Dropdown } from '../Dropdown';
 
 const { SubMenu } = Menu;
 
@@ -39,27 +38,6 @@ export interface DropDownSelectableProps extends Pick<MenuProps, 'onSelect'> {
   }[];
   selectedKeys?: string[];
 }
-
-const StyledDropdownButton = styled(DropdownButton as FC<DropdownButtonProps>)`
-  button.ant-btn:first-of-type {
-    display: none;
-  }
-  > button.ant-btn:nth-of-type(2) {
-    display: inline-flex;
-    background-color: transparent !important;
-    height: unset;
-    padding: 0;
-    border: none;
-    width: auto !important;
-
-    .anticon {
-      line-height: 0;
-    }
-    &:after {
-      box-shadow: none !important;
-    }
-  }
-`;
 
 const StyledMenu = styled(Menu)`
   ${({ theme }) => `
@@ -102,7 +80,7 @@ const StyleSubmenuItem = styled.div`
   }
 `;
 
-export default (props: DropDownSelectableProps) => {
+const DropdownSelectableIcon = (props: DropDownSelectableProps) => {
   const theme = useTheme();
   const [visible, setVisible] = useState(false);
   const { icon, info, menuItems, selectedKeys, onSelect } = props;
@@ -166,12 +144,15 @@ export default (props: DropDownSelectableProps) => {
   );
 
   return (
-    <StyledDropdownButton
-      overlay={overlayMenu}
+    <Dropdown
+      dropdownRender={() => overlayMenu}
       trigger={['click']}
-      icon={icon}
-      visible={visible}
-      onVisibleChange={handleVisibleChange}
-    />
+      open={visible}
+      onOpenChange={handleVisibleChange}
+    >
+      {icon}
+    </Dropdown>
   );
 };
+
+export default DropdownSelectableIcon;
