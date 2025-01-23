@@ -45,12 +45,9 @@ const Wrapper = styled.div<{
   validateStatus?: 'error' | 'warning' | 'info';
   orientation?: FilterBarOrientation;
   isOverflowing?: boolean;
-  enableSingleValue?: boolean;
 }>`
   display: flex;
   justify-content: space-between;
-  flex-direction: ${({ enableSingleValue }) =>
-    enableSingleValue ? 'column' : 'row'};
 
   .antd5-input-number {
     width: 100%;
@@ -65,7 +62,10 @@ const getLabel = (
   upper: number | null,
   enableSingleExactValue = false,
 ): string => {
-  if (enableSingleExactValue && lower !== null) {
+  if (
+    (enableSingleExactValue && lower !== null) ||
+    (lower !== null && lower === upper)
+  ) {
     return `x = ${numberFormatter(lower)}`;
   }
   if (lower !== null && upper !== null) {
@@ -312,7 +312,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onMouseLeave={unsetHoveredFilter}
             onMouseDown={() => setFilterActive(true)}
             onMouseUp={() => setFilterActive(false)}
-            enableSingleValue={enableSingleValue !== undefined}
           >
             {enableSingleValue !== undefined ? (
               <>
