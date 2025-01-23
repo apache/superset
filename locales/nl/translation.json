@@ -19,7 +19,7 @@
     "Performance": "Performance",
     "Total no. of sales": "Totale aantal sales",
     "Total no. of products": "Totale aantal producten",
-    "Total Sales": "Totale verkoop",
+    "Total Sales": "Totale waarde verkoop",
     "Clicks": "Kliks",
     "Views": "Weergaven",
     "Conversion rate": "Conversieratio",
@@ -200,5 +200,9 @@
     "time_range_last": "",
     "time_range_custom": "",
     "time_range_advanced": "",
-    "No results were returned for this query": "Er zijn geen resultaten gevonden voor deze zoekopdracht"
+    "No results were returned for this query": "Er zijn geen resultaten gevonden voor deze zoekopdracht",
+    "Start date included in time range": "Startdatum opgenomen in tijdsbereik",
+    "End date excluded from time range": "Einddatum uitgesloten van tijdsbereik",
+    "Anchor to": "Veranker naar",
+    "Comm Type": "Commissie type"
 }

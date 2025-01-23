@@ -200,5 +200,9 @@
     "time_range_last": "",
     "time_range_custom": "",
     "time_range_advanced": "",
-    "No results were returned for this query": "Für diese Abfrage wurden keine Ergebnisse zurückgegeben"
+    "No results were returned for this query": "Für diese Abfrage wurden keine Ergebnisse zurückgegeben",
+    "Start date included in time range": "Startdatum im Zeitbereich enthalten",
+    "End date excluded from time range": "Enddatum aus dem Zeitraum ausgeschlossen",
+    "Anchor to": "Verankern mit",
+    "Comm Type": "Provisionsart"
 }

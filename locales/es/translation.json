@@ -19,7 +19,7 @@
     "Performance": "Rendimiento",
     "Total no. of sales": "N.º total de ventas",
     "Total no. of products": "N.º total de productos",
-    "Total Sales": "Total de ventas",
+    "Total Sales": "Valor total de las ventas",
     "Clicks": "Clics",
     "Views": "Visualizaciones",
     "Conversion rate": "Tasa de conversión",
@@ -200,5 +200,9 @@
     "time_range_last": "",
     "time_range_custom": "",
     "time_range_advanced": "",
-    "No results were returned for this query": ""
+    "No results were returned for this query": "",
+    "Start date included in time range": "",
+    "End date excluded from time range": "Configurar rango de tiempo personalizado",
+    "Anchor to": "",
+    "Comm Type": "Tipo de comisión"
 }

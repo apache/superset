@@ -19,7 +19,7 @@
     "Performance": "Prestazioni",
     "Total no. of sales": "N. totale di vendite",
     "Total no. of products": "N. totale di prodotti",
-    "Total Sales": "Vendite totali",
+    "Total Sales": "Valore totale vendite",
     "Clicks": "Click",
     "Views": "Visualizzazioni",
     "Conversion rate": "Tasso di conversione",
@@ -200,5 +200,9 @@
     "time_range_last": "",
     "time_range_custom": "",
     "time_range_advanced": "",
-    "No results were returned for this query": ""
+    "No results were returned for this query": "",
+    "Start date included in time range": "",
+    "End date excluded from time range": "",
+    "Anchor to": "",
+    "Comm Type": "Tipologia di commissione"
 }

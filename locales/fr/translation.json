@@ -19,7 +19,7 @@
     "Performance": "Performance",
     "Total no. of sales": "Nombre total de ventes",
     "Total no. of products": "Nombre total de produits",
-    "Total Sales": "Montant total des ventes",
+    "Total Sales": "Valeur totale des ventes",
     "Clicks": "Clics",
     "Views": "Affichages",
     "Conversion rate": "Taux de conversion",
@@ -200,5 +200,9 @@
     "time_range_last": "",
     "time_range_custom": "",
     "time_range_advanced": "",
-    "No results were returned for this query": "Aucun résultat n'a été obtenu pour cette requête"
+    "No results were returned for this query": "Aucun résultat n'a été obtenu pour cette requête",
+    "Start date included in time range": "Date de début incluse de l'intervalle de temps",
+    "End date excluded from time range": "Date de fin exclue de l'intervalle de temps",
+    "Anchor to": "Ancrer à",
+    "Comm Type": "Type de commission"
 }
