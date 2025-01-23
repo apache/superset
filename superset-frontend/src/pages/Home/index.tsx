@@ -94,9 +94,6 @@ const WelcomeContainer = styled.div`
         margin: 0px 2px;
       }
     }
-    .ant-menu.ant-menu-light.ant-menu-root.ant-menu-horizontal {
-      padding-left: ${({ theme }) => theme.gridUnit * 8}px;
-    }
     button {
       padding: 3px 21px;
     }

@@ -43,7 +43,7 @@ test('should render', async () => {
       <LanguagePicker {...mockedProps} />
     </Menu>,
   );
-  expect(await screen.findByRole('button')).toBeInTheDocument();
+  expect(await screen.findByRole('menu')).toBeInTheDocument();
   expect(container).toBeInTheDocument();
 });
 
@@ -62,7 +62,7 @@ test('should render the items', async () => {
       <LanguagePicker {...mockedProps} />
     </Menu>,
   );
-  userEvent.hover(screen.getByRole('button'));
+  userEvent.hover(screen.getByRole('menuitem'));
   expect(await screen.findByText('English')).toBeInTheDocument();
   expect(await screen.findByText('Italian')).toBeInTheDocument();
 });

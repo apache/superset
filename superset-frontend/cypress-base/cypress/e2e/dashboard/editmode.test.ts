@@ -219,12 +219,13 @@ function openExploreWithDashboardContext(chartName: string) {
   cy.get(
     `[data-test-chart-name='${chartName}'] [aria-label='More Options']`,
   ).click();
-  cy.get('.ant-dropdown')
-    .not('.ant-dropdown-hidden')
-    .find("[role='menu'] [role='menuitem']")
-    .eq(2)
-    .should('contain', 'Edit chart')
-    .click();
+  cy.get(`[data-test-edit-chart-name='${chartName}']`)
+    .should('be.visible')
+    .trigger('keydown', {
+      keyCode: 13,
+      which: 13,
+      force: true,
+    });
   cy.wait('@v1Data');
   cy.get('.chart-container').should('exist');
 }

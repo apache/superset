@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  RefObject,
   ReactElement,
   ReactNode,
   FocusEvent,
@@ -26,6 +25,11 @@ import {
 } from 'react';
 
 import { AntdDropdown } from 'src/components';
+// TODO: @geido - Remove these after dropdown is fully migrated to Antd v5
+import {
+  Dropdown as Antd5Dropdown,
+  DropDownProps as Antd5DropdownProps,
+} from 'antd-v5';
 import { DropDownProps } from 'antd/lib/dropdown';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -108,11 +112,7 @@ export const Dropdown = ({
   </AntdDropdown>
 );
 
-interface ExtendedDropDownProps extends DropDownProps {
-  ref?: RefObject<HTMLDivElement>;
-}
-
-export interface NoAnimationDropdownProps extends ExtendedDropDownProps {
+export interface NoAnimationDropdownProps extends Antd5DropdownProps {
   children: ReactNode;
   onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
@@ -126,8 +126,8 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   });
 
   return (
-    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
+    <Antd5Dropdown overlayStyle={props.overlayStyle} {...rest}>
       {childrenWithProps}
-    </AntdDropdown>
+    </Antd5Dropdown>
   );
 };
