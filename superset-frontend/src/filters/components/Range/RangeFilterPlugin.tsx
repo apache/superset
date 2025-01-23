@@ -110,7 +110,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [value, setValue] = useState<[number, number]>(
     defaultValue ?? [min, enableSingleExactValue ? min : max],
   );
-
+  const [previousMode, setPreviousMode] = useState<SingleValueType | null>(
+    null,
+  );
   const minIndex = 0;
   const maxIndex = 1;
   const minMax = value ?? [min, max];
@@ -220,24 +222,70 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return undefined;
   }, [filterState.validateMessage, filterState.validateStatus]);
 
+  const updateValue = (newValue: [number, number], mode: SingleValueType) => {
+    setValue(newValue);
+    setPreviousMode(mode);
+    handleAfterChange(newValue);
+  };
+
+  const getNewValue = (
+    currentMode: SingleValueType,
+    previousMode: SingleValueType | undefined | null,
+  ): [number, number] => {
+    switch (currentMode) {
+      case SingleValueType.Maximum:
+        return (
+          (previousMode === SingleValueType.Exact && [min, minMax[maxIndex]]) ||
+          (previousMode === SingleValueType.Minimum && [
+            min,
+            minMax[minIndex],
+          ]) || [min, minMax[maxIndex]]
+        );
+
+      case SingleValueType.Minimum:
+        return (
+          (previousMode === SingleValueType.Exact && [minMax[minIndex], max]) ||
+          (previousMode === SingleValueType.Maximum && [
+            minMax[maxIndex],
+            max,
+          ]) || [minMax[minIndex], max]
+        );
+
+      case SingleValueType.Exact:
+        return (
+          (previousMode === SingleValueType.Maximum && [
+            minMax[maxIndex],
+            minMax[maxIndex],
+          ]) ||
+          (previousMode === SingleValueType.Minimum && [
+            minMax[minIndex],
+            minMax[minIndex],
+          ]) || [minMax[minIndex], minMax[minIndex]]
+        );
+
+      default:
+        throw new Error('Invalid SingleValueType provided');
+    }
+  };
+
   useEffect(() => {
     if (enableSingleMaxValue) {
-      setValue([min, minMax[maxIndex]]);
-      handleAfterChange([min, minMax[maxIndex]]);
+      const newValue = getNewValue(SingleValueType.Maximum, previousMode);
+      updateValue(newValue, SingleValueType.Maximum);
     }
   }, [enableSingleMaxValue]);
 
   useEffect(() => {
     if (enableSingleMinValue) {
-      setValue([minMax[minIndex], max]);
-      handleAfterChange([minMax[minIndex], max]);
+      const newValue = getNewValue(SingleValueType.Minimum, previousMode);
+      updateValue(newValue, SingleValueType.Minimum);
     }
   }, [enableSingleMinValue]);
 
   useEffect(() => {
     if (enableSingleExactValue) {
-      setValue([minMax[minIndex], minMax[minIndex]]);
-      handleAfterChange([minMax[minIndex], minMax[minIndex]]);
+      const newValue = getNewValue(SingleValueType.Exact, previousMode);
+      updateValue(newValue, SingleValueType.Exact);
     }
   }, [enableSingleExactValue]);
 
