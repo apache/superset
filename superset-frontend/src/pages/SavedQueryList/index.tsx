@@ -249,8 +249,7 @@ function SavedQueryList({
           body: JSON.stringify(payload),
         });
 
-        const { key } = response.json;
-        const permalink = `${window.location.origin}/sqllab/p/${key}`;
+        const { url: permalink } = response.json;
 
         await navigator.clipboard.writeText(permalink);
         addSuccessToast(t('Link Copied!'));
@@ -432,6 +431,7 @@ function SavedQueryList({
               placement: 'bottom',
               icon: 'Copy',
               onClick: handleCopy,
+              'data-testid': 'copy-query-url',
             },
             canExport && {
               label: 'export-action',
