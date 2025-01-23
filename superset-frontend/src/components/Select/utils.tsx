@@ -186,8 +186,10 @@ export const handleFilterOptionHelper = (
     const searchValue = search.trim().toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
-        const optionProp = option?.[prop]
-          ? String(option[prop]).trim().toLowerCase()
+        const optionProp = option?.[prop as keyof LabeledValue]
+          ? String(option[prop as keyof LabeledValue])
+              .trim()
+              .toLowerCase()
           : '';
         return optionProp.includes(searchValue);
       });
@@ -200,7 +202,9 @@ export const handleFilterOptionHelper = (
 export const hasCustomLabels = (options: SelectOptionsType) =>
   options?.some(opt => !!opt?.customLabel);
 
-export const renderSelectOptions = (options: SelectOptionsType) =>
+export const renderSelectOptions = (
+  options: SelectOptionsType,
+): JSX.Element[] =>
   options.map(opt => {
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
@@ -213,7 +217,10 @@ export const renderSelectOptions = (options: SelectOptionsType) =>
     );
   });
 
-export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
+export const mapValues = (
+  values: SelectOptionsType,
+  labelInValue: boolean,
+): (Record<string, any> | any)[] =>
   labelInValue
     ? values.map(opt => ({
         key: opt.value,
@@ -222,7 +229,7 @@ export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
       }))
     : values.map(opt => opt.value);
 
-export const mapOptions = (values: SelectOptionsType) =>
+export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
   values.map(opt => ({
     children: opt.label,
     key: opt.value,
