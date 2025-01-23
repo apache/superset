@@ -98,7 +98,7 @@ export default class SupersetClientClass {
         : '/',
       DEFAULT_BASE_URL,
     );
-    this.basePath = this.basePath ? trimTrailingSlashes(this.basePath) : '';
+    this.basePath = basePath ? trimTrailingSlashes(basePath) : '';
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json
