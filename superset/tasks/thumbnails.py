@@ -50,7 +50,7 @@ def cache_chart_thumbnail(
         return None
     chart = cast(Slice, Slice.get(chart_id))
     if not chart:
-        logger.warning("No chart found, skip computing chart thumbnail")
+        logger.warning("No chart with id %s found, skip computing chart thumbnail", chart_id)
         return None
     url = get_url_path("Superset.slice", slice_id=chart.id)
     logger.info("Caching chart: %s", url)

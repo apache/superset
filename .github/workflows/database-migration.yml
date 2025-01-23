@@ -1,0 +1,184 @@
+name: GCP Database Migration
+
+# Trigger the workflow manually with input parameters
+on:
+  workflow_dispatch:
+    inputs:
+      origin_environment:
+        description: 'Origin environment'
+        required: true
+        default: 'Travcoding'
+        type: choice
+        options:
+          - January
+          - Travcoding
+          - Caliza           
+      destiny_environment:
+        description: 'Destiny environment'
+        required: true
+        default: 'Client-X'      
+        type: choice
+        options:
+          - Client-X
+          - Demo   
+
+jobs:
+  migrate-database:
+    # Run the job on the latest Ubuntu environment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write         
+
+    steps:
+    # Step to checkout the repository code
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Step to authenticate with Google Cloud using a service account
+    - name: Google Auth
+      id: auth
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}      
+
+    # Step to install the Google Cloud SDK
+    - name: Install Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        export_default_credentials: true     
+
+    # Step to set environment variables based on the selected origin environment
+    - name: Set Environment Variables for Origin
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        case "${{ github.event.inputs.origin_environment }}" in
+          January)
+            echo "Setting environment for January"
+            echo "GCE_ORIGIN_VM_NAME=january"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=january-spring-433119"  >> $GITHUB_ENV              
+            echo "ORIGIN_DIRECTORY_PATH=/home/january/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/January-Spring/BI-Tool" >> $GITHUB_ENV
+            echo "ORIGIN_TAG=latest" >> $GITHUB_ENV    
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV    
+            echo "GCE_ORIGIN_ZONE=us-central1-a" >> $GITHUB_ENV                    
+            ;;
+          Travcoding)
+            echo "Setting environment for Travcoding"
+            echo "GCE_ORIGIN_VM_NAME=travcoding"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=travcoding-430213"  >> $GITHUB_ENV
+            echo "ORIGIN_DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
+            echo "DESTINY_TAG=latest" >> $GITHUB_ENV     
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV   
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                                            
+            ;;
+          Caliza)
+            echo "Setting environment for Caliza"
+            echo "GCE_ORIGIN_VM_NAME=caliza"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=caliza-435211"  >> $GITHUB_ENV            
+            echo "ORIGIN_DIRECTORY_PATH=/home/caliza/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
+            echo "ORIGIN_TAG=latest" >> $GITHUB_ENV     
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV                    
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                           
+            ;;
+          *)
+            echo "Unknown environment"
+            exit 1
+            ;;
+        esac
+
+    # Step to set environment variables based on the selected destiny environment
+    - name: Set Environment Variables for Destiny
+      if: github.event_name == 'workflow_dispatch'
+      run: |
+        case "${{ github.event.inputs.destiny_environment }}" in
+          Demo)        
+            echo "Setting environment for Demo"
+            echo "GCE_DESTINY_VM_NAME=demo" >> $GITHUB_ENV
+            echo "GCE_DESTINY_PROJECT=reference-fact-431711-t6" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=/home/demo" >> $GITHUB_ENV
+            echo "DESTINY_INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
+            echo "DESTINY_TAG=demo" >> $GITHUB_ENV
+            echo "DESTINY_GIT_BRANCH=demo" >> $GITHUB_ENV
+            echo "GCE_DESTINY_ZONE=us-central1-c" >> $GITHUB_ENV   
+            ;;
+          Client-X)        
+            echo "Setting environment for Client-X"
+            echo "GCE_DESTINY_VM_NAME=cliente-x" >> $GITHUB_ENV
+            echo "GCE_DESTINY_PROJECT=client-x-429512" >> $GITHUB_ENV
+            echo "DESTINY_DIRECTORY_PATH=/home/clientx" >> $GITHUB_ENV
+            echo "DESTINY_INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
+            echo "DESTINY_TAG=dev" >> $GITHUB_ENV
+            echo "DESTINY_GIT_BRANCH=dev" >> $GITHUB_ENV
+            echo "GCE_DESTINY_ZONE=us-central1-c" >> $GITHUB_ENV                
+            ;;            
+          *)
+            echo "Unknown environment"
+            exit 1
+            ;;          
+        esac        
+
+    # Step to generate a database dump file on the origin VM
+    - name: Generate backup dump file on destiny VM
+      run: |
+        gcloud compute ssh ${{ env.GCE_DESTINY_VM_NAME }} --zone ${{ env.GCE_DESTINY_ZONE }} --project ${{ env.GCE_DESTINY_PROJECT }} --command "
+          cd \${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker &&
+          source .env &&
+          export PGPASSWORD=\$DATABASE_PASSWORD &&
+          if [ \"\$DATABASE_HOST\" = \"db\" ]; then
+            DATABASE_HOST=localhost
+          fi &&
+          cd backups &&
+          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > backup_database.dump
+        "
+
+    # Step to generate a database dump file on the origin VM
+    - name: Generate dump file on origin VM
+      run: |
+        gcloud compute ssh ${{ env.GCE_ORIGIN_VM_NAME }} --zone ${{ env.GCE_ORIGIN_ZONE }} --project ${{ env.GCE_ORIGIN_PROJECT }} --command "
+          cd \${{ env.ORIGIN_DIRECTORY_PATH}}/docker &&
+          source .env &&
+          export PGPASSWORD=\$DATABASE_PASSWORD &&
+          if [ \"\$DATABASE_HOST\" = \"db\" ]; then
+            DATABASE_HOST=localhost
+          fi &&
+          pg_dump -U \$DATABASE_USER -h \$DATABASE_HOST -d \$DATABASE_DB > remote_database.dump
+        "
+
+    # Step to download the dump file from the origin VM
+    - name: Download dump file from origin VM
+      run: |
+        gcloud compute scp --zone ${{env.GCE_ORIGIN_ZONE}} --project ${{env.GCE_ORIGIN_PROJECT}} ${{env.GCE_ORIGIN_VM_NAME}}:${{ env.ORIGIN_DIRECTORY_PATH}}/docker/remote_database.dump .
+
+    # Step to upload the dump file to the destiny VM
+    - name: Upload dump file to destiny VM
+      run: |
+        gcloud compute scp remote_database.dump --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} ${{env.GCE_DESTINY_VM_NAME}}:${{ env.DESTINY_DIRECTORY_PATH}}/superset/docker/docker-entrypoint-initdb.d/
+
+    # Step to update the Superset Secret Key in both Superset and the Backend
+    - name: Update Superset Secret Key in both Superset and the Backend
+      run: |
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}}  --command "INFISICAL_CLIENT_ID='${{secrets.INFISICAL_CLIENT_ID}}' INFISICAL_CLIENT_SECRET='${{secrets.INFISICAL_CLIENT_SECRET}}' INFISICAL_PROJECT_ID='${{secrets.INFISICAL_PROJECT_ID}}' ORIGIN_INFISICAL_PATH='${{env.ORIGIN_INFISICAL_PATH}}' DESTINY_DIRECTORY_PATH='${{env.DESTINY_DIRECTORY_PATH}}' bash ${{env.DESTINY_DIRECTORY_PATH}}/superset/update_secrets.sh" -- -v
+
+
+    # Step to restart Docker Compose on the destiny VM
+    - name: Restart Superset Docker Compose on destiny VM
+      run: |
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
+          cd ${{ env.DESTINY_DIRECTORY_PATH}}/superset && 
+          docker compose -f docker-compose-image-tag.yml down && 
+          docker volume rm superset_db_home && 
+          TAG=${{ env.DESTINY_TAG}} docker compose -f docker-compose-image-tag.yml up -d --force-recreate
+        "
+
+    # Step to restart Docker Compose on the destiny VM
+    - name: Restart Backend Docker Compose on destiny VM
+      run: |
+        gcloud compute ssh ${{env.GCE_DESTINY_VM_NAME}} --zone ${{env.GCE_DESTINY_ZONE}} --project ${{env.GCE_DESTINY_PROJECT}} --command "
+          cd ${{ env.DESTINY_DIRECTORY_PATH}}/product-portal-be && 
+          docker compose  down && 
+          TAG=${{ env.DESTINY_TAG}} docker compose up -d --force-recreate
+        "        

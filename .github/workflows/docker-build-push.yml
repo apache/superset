@@ -1,0 +1,90 @@
+# .github/workflows/docker-build-push.yml
+name: Build and Push to GCP Artifact Registry
+
+on:
+  push:
+    branches:
+      - master
+      - dev
+      - demo
+  # Optionally allow manual triggers
+  workflow_dispatch:
+
+env:
+  PROJECT_ID: client-x-429512
+  REGISTRY: us-central1-docker.pkg.dev
+  REPOSITORY: client-x-registry
+  IMAGE_NAME: superset
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Get short SHA
+        id: sha
+        run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+        
+      - name: Determine Image Tag
+        id: tag
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "master" ]]; then
+            echo "IMAGE_PERMANENT_TAG=latest" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+            echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "demo" ]]; then
+            echo "IMAGE_PERMANENT_TAG=demo" >> $GITHUB_ENV            
+          fi
+
+      - name: Build Superset images
+        run: |
+          export CORS_FRONTEND_ORIGIN='https://client-x-rose.vercel.app/'
+          # Set registry prefix and tag
+          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
+          # Build the main Superset image
+          docker build \
+            --target dev \
+            --cache-from apache/superset-cache:3.10-slim-bookworm \
+            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} \
+            -t ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }} \
+            .
+
+          # Tag worker and beat images from the main build
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
+          docker tag ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }} ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}
+
+      - name: Push Superset images  
+        run: |
+          # Set registry prefix and tag
+          REGISTRY_PREFIX="${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}"
+
+          # Push all Superset images
+          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset:${{ env.IMAGE_PERMANENT_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker:${{ env.IMAGE_PERMANENT_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY_PREFIX}/superset-worker-beat:${{ env.IMAGE_PERMANENT_TAG }}          

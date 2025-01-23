@@ -38,6 +38,10 @@ import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupExtensions from 'src/setup/setupExtensions';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
+import {
+  BootstrapData,
+  isUserWithPermissionsAndRoles,
+} from 'src/types/bootstrapTypes';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -68,30 +72,85 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-const App = () => (
-  <Router>
-    <ScrollToTop />
-    <LocationPathnameLogger />
-    <RootContextProviders>
-      <GlobalStyles />
-      <Menu
-        data={bootstrapData.common.menu_data}
-        isFrontendRoute={isFrontendRoute}
-      />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={bootstrapData.user} {...props} />
-              </ErrorBoundary>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
-      <ToastContainer />
-    </RootContextProviders>
-  </Router>
-);
+function hasOnlyGuestRole(data: BootstrapData) {
+  // Check if the user exists and has permissions and roles
+  if (data.user && isUserWithPermissionsAndRoles(data.user)) {
+    // Extract the roles of the user
+    const userRoles = data.user.roles;
+    // Get an array of role names
+    const roleNames = Object.keys(userRoles);
+    // Return true if there is exactly one role and it is named "Guest"
+    return roleNames.length === 1 && roleNames[0] === 'Guest';
+  }
+  // Return false if the user does not exist or does not have the required structure
+  return false;
+}
+
+const closeSession = async () => {
+  await fetch('/logout/', {
+    method: 'GET',
+    credentials: 'include',
+  });
+};
+
+const App = () => {
+  useEffect(() => {
+    const handleWindowOpen = async () => {
+      try {
+        // Check if the window was opened by another window
+        if (window.opener) {
+          // Verify if the user has only the "Guest" role
+          if (hasOnlyGuestRole(bootstrapData)) {
+            // Send a message to the opener window
+            window.opener.postMessage(
+              {
+                type: 'OAUTH2_SUCCESS',
+                data: {
+                  // Add any additional data to send
+                },
+              },
+              '*',
+            );
+          } else {
+            // Clear all cookies before proceeding
+            await closeSession();
+          }
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error('Error handling guest role:', error);
+      }
+    };
+
+    // Call the async function
+    handleWindowOpen();
+  }, []); // Empty dependency array means this runs once when component mounts
+
+  return (
+    <Router>
+      <ScrollToTop />
+      <LocationPathnameLogger />
+      <RootContextProviders>
+        <GlobalStyles />
+        <Menu
+          data={bootstrapData.common.menu_data}
+          isFrontendRoute={isFrontendRoute}
+        />
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <ErrorBoundary>
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+        <ToastContainer />
+      </RootContextProviders>
+    </Router>
+  );
+};
 
 export default hot(App);

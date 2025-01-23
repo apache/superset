@@ -1,0 +1,137 @@
+name: Execute Script on GCE VM
+
+on:
+    workflow_run:
+        workflows: ["Build and Push to GCP Artifact Registry"]
+        types:
+          - completed    
+        branches:
+          - dev
+          - demo
+    workflow_dispatch:
+      inputs:
+        environment:
+          description: 'Select environment'
+          required: true
+          default: 'Travcoding'
+          type: choice
+          options:
+            - January
+            - Travcoding
+            - Caliza
+            - PayFacto
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   
+    env:
+        # Default environment variables 
+        GCE_ZONE: "us-central1-c"         # your VM zone
+        INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
+        INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
+        INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}        
+        # Default environment variables for ClientX
+        GCE_VM_NAME: "cliente-x"          # your VM name
+        GCE_PROJECT: "client-x-429512"    # your GCP project ID        
+        DIRECTORY_PATH: '/home/clientx/superset'
+        INFISICAL_PATH: '/Client-X/BI-Tool' 
+        TAG: 'dev'  
+        GIT_BRANCH: dev  
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set Environment Variables for Demo
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'demo'
+        run: |
+          echo "Setting environment for Demo"
+          echo "GCE_VM_NAME=demo" >> $GITHUB_ENV
+          echo "GCE_PROJECT=reference-fact-431711-t6" >> $GITHUB_ENV
+          echo "DIRECTORY_PATH=/home/demo/superset" >> $GITHUB_ENV
+          echo "INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
+          echo "TAG=demo" >> $GITHUB_ENV
+          echo "GIT_BRANCH=demo" >> $GITHUB_ENV
+
+      - name: Set Environment Variables
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          case "${{ github.event.inputs.environment }}" in
+            January)
+              echo "Setting environment for January"
+              echo "GCE_VM_NAME=january"  >> $GITHUB_ENV 
+              echo "GCE_PROJECT=january-spring-433119"  >> $GITHUB_ENV              
+              echo "DIRECTORY_PATH=/home/january/superset" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/January-Spring/BI-Tool" >> $GITHUB_ENV
+              echo "TAG=latest" >> $GITHUB_ENV    
+              echo "GIT_BRANCH=master" >> $GITHUB_ENV    
+              echo "GCE_ZONE=us-central1-a" >> $GITHUB_ENV                    
+              ;;
+            Travcoding)
+              echo "Setting environment for Travcoding"
+              echo "GCE_VM_NAME=travcoding"  >> $GITHUB_ENV 
+              echo "GCE_PROJECT=travcoding-430213"  >> $GITHUB_ENV
+              echo "DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
+              echo "TAG=latest" >> $GITHUB_ENV     
+              echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
+              ;;
+            Caliza)
+              echo "Setting environment for Caliza"
+              echo "GCE_VM_NAME=caliza"  >> $GITHUB_ENV 
+              echo "GCE_PROJECT=caliza-435211"  >> $GITHUB_ENV              
+              echo "DIRECTORY_PATH=/home/caliza/superset" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/Caliza/BI-Tool" >> $GITHUB_ENV
+              echo "TAG=latest" >> $GITHUB_ENV     
+              echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
+              ;;
+            PayFacto)
+              echo "Setting environment for PayFacto"
+              echo "GCE_VM_NAME=payfacto"  >> $GITHUB_ENV 
+              echo "GCE_PROJECT=payfacto-445115"  >> $GITHUB_ENV              
+              echo "DIRECTORY_PATH=/home/payfacto/superset" >> $GITHUB_ENV
+              echo "INFISICAL_PATH=/PayFacto/BI-Tool" >> $GITHUB_ENV
+              echo "TAG=latest" >> $GITHUB_ENV     
+              echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
+              ;;              
+            *)
+              echo "Unknown environment"
+              exit 1
+              ;;
+          esac
+
+      - name: Google Auth
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}   
+
+      - name: Install Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          export_default_credentials: true
+
+      - name: Set Script Permissions on GCE VM
+        run: |
+          gcloud compute ssh ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "chmod +x $DIRECTORY_PATH/deploy_updated_version.sh"
+
+      - name: Run SSH Command on GCE VM
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}  # Store your SSH private key in GitHub Secrets
+          PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }} # You should also store the public SSH key
+        run: |
+          # Create the SSH key files
+          echo "$SSH_KEY" > id_rsa
+          echo "$PUBLIC_KEY" > id_rsa.pub
+          chmod 600 id_rsa
+          chmod 644 id_rsa.pub       
+
+          # Add the VM's public IP to known hosts to ensure SSH connects seamlessly
+          GCE_IP=$(gcloud compute instances describe ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+
+          # Execute the script on the remote instance
+          gcloud compute ssh ${{env.GCE_VM_NAME}} --zone ${{env.GCE_ZONE}} --project ${{env.GCE_PROJECT}} --ssh-key-file=id_rsa --command "GIT_BRANCH=$GIT_BRANCH TAG=$TAG DIRECTORY_PATH='$DIRECTORY_PATH' INFISICAL_PATH='$INFISICAL_PATH' INFISICAL_PROJECT_ID='$INFISICAL_PROJECT_ID' INFISICAL_CLIENT_ID='$INFISICAL_CLIENT_ID' INFISICAL_CLIENT_SECRET='$INFISICAL_CLIENT_SECRET' bash $DIRECTORY_PATH/deploy_updated_version.sh" -- -v

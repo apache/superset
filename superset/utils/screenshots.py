@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import json
 from io import BytesIO
 from typing import TYPE_CHECKING
 
@@ -76,6 +77,7 @@ class BaseScreenshot:
         window_size: bool | WindowSize | None = None,
         thumb_size: bool | WindowSize | None = None,
     ) -> str:
+        logger.info("******************* About to generate cache key with received window size %s and thumb size %s",window_size, thumb_size)        
         window_size = window_size or self.window_size
         thumb_size = thumb_size or self.thumb_size
         args = {
@@ -85,6 +87,7 @@ class BaseScreenshot:
             "window_size": window_size,
             "thumb_size": thumb_size,
         }
+        logger.info("******************* Generating cache key with args %s",json.dumps(args, indent=2))  
         return md5_sha_from_dict(args)
 
     def get_screenshot(

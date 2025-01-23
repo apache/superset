@@ -21,7 +21,7 @@
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
+x-superset-image: &superset-image us-central1-docker.pkg.dev/client-x-429512/client-x-registry/superset:${TAG:-latest}
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -32,6 +32,10 @@ x-superset-volumes:
 
 services:
   redis:
+    logging:
+      driver: gcplogs    
+      options:
+        labels: "superset_cache"        
     image: redis:7
     container_name: superset_cache
     restart: unless-stopped
@@ -39,6 +43,10 @@ services:
       - redis:/data
 
   db:
+    logging:
+      driver: gcplogs    
+      options:
+        labels: "superset_db"         
     env_file:
       - path: docker/.env # default
         required: true
@@ -47,11 +55,17 @@ services:
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
+    ports:
+      - 5432:5432    
     volumes:
       - db_home:/var/lib/postgresql/data
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
+    logging:
+      driver: gcplogs    
+      options:
+        labels: "superset_app"        
     env_file:
       - path: docker/.env # default
         required: true
@@ -69,6 +83,10 @@ services:
 
   superset-init:
     image: *superset-image
+    logging:
+      driver: gcplogs    
+      options:
+        labels: "superset_init"      
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
     env_file:
@@ -84,6 +102,10 @@ services:
 
   superset-worker:
     image: *superset-image
+    logging:
+      driver: gcplogs    
+      options:
+        labels: "superset_worker"   
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
     env_file:
@@ -104,6 +126,10 @@ services:
 
   superset-worker-beat:
     image: *superset-image
+    logging:
+      driver: gcplogs   
+      options:
+        labels: "superset_worker_beat"           
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
     env_file:

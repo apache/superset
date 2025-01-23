@@ -6,6 +6,7 @@
 #    pip-compile-multi
 #
 -e file:.
+authlib
     # via -r requirements/base.in
 alembic==1.13.1
     # via flask-migrate
@@ -257,6 +258,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.44
     # via click-repl
+PyAthena==3.9.0
 pyarrow==14.0.2
     # via apache-superset
 pyasn1==0.6.0
