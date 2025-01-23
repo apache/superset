@@ -340,6 +340,11 @@ module.exports = {
               'Please import Ant components from the index of src/components',
           },
           {
+            name: 'antd-v5',
+            message:
+              'Please import Ant v5 components from the index of src/components',
+          },
+          {
             name: '@superset-ui/core',
             importNames: ['supersetTheme'],
             message:
