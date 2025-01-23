@@ -20,9 +20,7 @@ import { FunctionComponent, useState, useRef } from 'react';
 import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {
-  FeatureFlag,
   isDefined,
-  isFeatureEnabled,
   Metric,
   styled,
   SupersetClient,
@@ -271,10 +269,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     });
   };
 
-  const showLegacyDatasourceEditor = !isFeatureEnabled(
-    FeatureFlag.DisableLegacyDatasourceEditor,
-  );
-
   return (
     <StyledDatasourceModal
       show={show}
@@ -288,20 +282,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       maskClosable={!isEditing}
       footer={
         <>
-          {showLegacyDatasourceEditor && (
-            <Button
-              buttonSize="small"
-              buttonStyle="default"
-              data-test="datasource-modal-legacy-edit"
-              className="m-r-5"
-              onClick={() => {
-                window.location.href =
-                  currentDatasource.edit_url || currentDatasource.url;
-              }}
-            >
-              {t('Use legacy datasource editor')}
-            </Button>
-          )}
           <Button
             data-test="datasource-modal-cancel"
             buttonSize="small"

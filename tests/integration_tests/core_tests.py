@@ -270,13 +270,6 @@ class TestCore(SupersetTestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
 
-    def test_get_user_slices(self):
-        self.login(ADMIN_USERNAME)
-        userid = security_manager.find_user("admin").id
-        url = f"/sliceasync/api/read?_flt_0_created_by={userid}"
-        resp = self.client.get(url)
-        assert resp.status_code == 200
-
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):  # noqa: N802
         # Add explore-v2-beta role to admin user
