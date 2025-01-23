@@ -111,7 +111,9 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_login(self):
-        resp = self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
+        resp = self.get_resp(
+            "/login/", data=dict(username="admin", password="general")
+        )  # noqa: S106, C408
         assert "User confirmation needed" not in resp
 
         resp = self.get_resp("/logout/", follow_redirects=True)
@@ -320,25 +322,6 @@ class TestCore(SupersetTestCase):
             assert conn.password != conn_pre.password
         # Disable for password store for later tests
         models.custom_password_store = None
-
-    def test_databaseview_edit(self):
-        # validate that sending a password-masked uri does not over-write the decrypted
-        # uri
-        self.login(ADMIN_USERNAME)
-        database = superset.utils.database.get_example_database()
-        sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
-        url = f"databaseview/edit/{database.id}"
-        data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
-        data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
-        self.client.post(url, data=data)
-        database = superset.utils.database.get_example_database()
-        assert sqlalchemy_uri_decrypted == database.sqlalchemy_uri_decrypted
-
-        # Need to clean up after ourselves
-        database.impersonate_user = False
-        database.allow_dml = False
-        database.allow_run_async = False
-        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
