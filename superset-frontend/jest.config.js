@@ -53,11 +53,14 @@ module.exports = {
     'dist/',
   ],
   coverageReporters: ['lcov', 'json-summary', 'html', 'text'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-  snapshotSerializers: ['@emotion/jest/enzyme-serializer'],
   transformIgnorePatterns: [
-    'node_modules/(?!d3-(interpolate|color|time)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|@rjsf/*.|sinon|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol)',
+    'node_modules/(?!d3-(interpolate|color|time)|remark-gfm|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|@rjsf/*.|sinon|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio/lib||parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak)',
   ],
+  preset: 'ts-jest',
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+  },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   globals: {
     __DEV__: true,
     caches: true,

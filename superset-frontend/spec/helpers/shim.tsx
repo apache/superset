@@ -22,7 +22,7 @@ import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import 'jest-enzyme';
 import jQuery from 'jquery';
-import { configure } from 'enzyme';
+import Enzyme from 'enzyme';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
@@ -33,7 +33,7 @@ import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
 
-configure({ adapter: new Adapter() });
+Enzyme.configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
