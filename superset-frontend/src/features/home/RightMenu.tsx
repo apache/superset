@@ -497,9 +497,7 @@ const RightMenu = ({
                       {isFrontendRoute(child.url) ? (
                         <Link to={child.url || ''}>{menuItemDisplay}</Link>
                       ) : (
-                        <a href={ensureAppRootSanitized(child.url || '')}>
-                          {menuItemDisplay}
-                        </a>
+                        <a href={child.url || ''}>{menuItemDisplay}</a>
                       )}
                     </Menu.Item>
                   );
