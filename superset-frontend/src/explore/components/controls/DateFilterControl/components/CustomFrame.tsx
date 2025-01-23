@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isInteger } from 'lodash';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Col, Row } from 'src/components';
@@ -76,7 +75,7 @@ export function CustomFrame(props: FrameComponentProps) {
     value: string | number,
   ) {
     // only positive values in grainValue controls
-    if (isInteger(value) && value > 0) {
+    if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
       props.onChange(
         customTimeRangeEncode({
           ...customRange,

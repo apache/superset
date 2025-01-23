@@ -26,7 +26,7 @@ let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 const createProps = () => ({
   dashboardId: 1,
   useTextMenu: false,
-  isDropdownVisible: false,
+  isDropdownVisible: true,
   setIsDropdownVisible: jest.fn,
   setShowReportSubMenu: jest.fn,
 });

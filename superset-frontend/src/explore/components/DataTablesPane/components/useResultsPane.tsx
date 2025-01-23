@@ -26,7 +26,7 @@ import {
   getClientErrorObject,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneProps, QueryResultInterface } from '../types';
 import { SingleQueryResultPane } from './SingleQueryResultPane';
@@ -110,7 +110,7 @@ export const useResultsPane = ({
   if (errorMessage) {
     const title = t('Run a query to display results');
     return Array(queryCount).fill(
-      <EmptyStateMedium image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} />,
     );
   }
 
@@ -136,7 +136,7 @@ export const useResultsPane = ({
   if (resultResp.length === 0) {
     const title = t('No results were returned for this query');
     return Array(queryCount).fill(
-      <EmptyStateMedium image="document.svg" title={title} />,
+      <EmptyState image="document.svg" title={title} />,
     );
   }
   return resultResp
