@@ -52,7 +52,6 @@ from superset.sql_parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
-from superset.views.database.views import DatabaseView
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -111,9 +110,7 @@ class TestCore(SupersetTestCase):
         db.session.commit()
 
     def test_login(self):
-        resp = self.get_resp(
-            "/login/", data=dict(username="admin", password="general")
-        )  # noqa: S106, C408
+        resp = self.get_resp("/login/", data=dict(username="admin", password="general"))  # noqa: S106, C408
         assert "User confirmation needed" not in resp
 
         resp = self.get_resp("/logout/", follow_redirects=True)
