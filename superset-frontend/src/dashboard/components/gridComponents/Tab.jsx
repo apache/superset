@@ -22,7 +22,7 @@ import classNames from 'classnames';
 import { useDispatch, useSelector } from 'react-redux';
 import { styled, t } from '@superset-ui/core';
 
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import EditableTitle from 'src/components/EditableTitle';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
@@ -197,7 +197,7 @@ const Tab = props => {
           </Droppable>
         )}
         {shouldDisplayEmptyState && (
-          <EmptyStateMedium
+          <EmptyState
             title={
               editMode
                 ? t('Drag and drop components to this tab')

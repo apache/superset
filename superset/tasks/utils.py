@@ -23,10 +23,10 @@ from typing import Optional, TYPE_CHECKING
 from urllib import request
 
 from celery.utils.log import get_task_logger
-from flask import current_app, g
+from flask import g
 
-from superset.tasks.exceptions import ExecutorNotFoundError
-from superset.tasks.types import ExecutorType
+from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
+from superset.tasks.types import ChosenExecutor, Executor, ExecutorType, FixedExecutor
 from superset.utils import json
 from superset.utils.urls import get_url_path
 
@@ -42,56 +42,60 @@ logger.setLevel(logging.INFO)
 
 # pylint: disable=too-many-branches
 def get_executor(  # noqa: C901
-    executor_types: list[ExecutorType],
+    executors: list[Executor],
     model: Dashboard | ReportSchedule | Slice,
     current_user: str | None = None,
-) -> tuple[ExecutorType, str]:
+) -> ChosenExecutor:
     """
     Extract the user that should be used to execute a scheduled task. Certain executor
     types extract the user from the underlying object (e.g. CREATOR), the constant
     Selenium user (SELENIUM), or the user that initiated the request.
 
-    :param executor_types: The requested executor type in descending order. When the
+    :param executors: The requested executor in descending order. When the
            first user is found it is returned.
     :param model: The underlying object
     :param current_user: The username of the user that initiated the task. For
            thumbnails this is the user that requested the thumbnail, while for alerts
            and reports this is None (=initiated by Celery).
-    :return: User to execute the report as
-    :raises ScheduledTaskExecutorNotFoundError: If no users were found in after
-            iterating through all entries in `executor_types`
+    :return: User to execute the execute the async task as. The first element of the
+             tuple represents the type of the executor, and the second represents the
+             username of the executor.
+    :raises ExecutorNotFoundError: If no users were found in after
+            iterating through all entries in `executors`
     """
     owners = model.owners
     owner_dict = {owner.id: owner for owner in owners}
-    for executor_type in executor_types:
-        if executor_type == ExecutorType.SELENIUM:
-            return executor_type, current_app.config["THUMBNAIL_SELENIUM_USER"]
-        if executor_type == ExecutorType.CURRENT_USER and current_user:
-            return executor_type, current_user
-        if executor_type == ExecutorType.CREATOR_OWNER:
+    for executor in executors:
+        if isinstance(executor, FixedExecutor):
+            return ExecutorType.FIXED_USER, executor.username
+        if executor == ExecutorType.FIXED_USER:
+            raise InvalidExecutorError()
+        if executor == ExecutorType.CURRENT_USER and current_user:
+            return executor, current_user
+        if executor == ExecutorType.CREATOR_OWNER:
             if (user := model.created_by) and (owner := owner_dict.get(user.id)):
-                return executor_type, owner.username
-        if executor_type == ExecutorType.CREATOR:
+                return executor, owner.username
+        if executor == ExecutorType.CREATOR:
             if user := model.created_by:
-                return executor_type, user.username
-        if executor_type == ExecutorType.MODIFIER_OWNER:
+                return executor, user.username
+        if executor == ExecutorType.MODIFIER_OWNER:
             if (user := model.changed_by) and (owner := owner_dict.get(user.id)):
-                return executor_type, owner.username
-        if executor_type == ExecutorType.MODIFIER:
+                return executor, owner.username
+        if executor == ExecutorType.MODIFIER:
             if user := model.changed_by:
-                return executor_type, user.username
-        if executor_type == ExecutorType.OWNER:
+                return executor, user.username
+        if executor == ExecutorType.OWNER:
             owners = model.owners
             if len(owners) == 1:
-                return executor_type, owners[0].username
+                return executor, owners[0].username
             if len(owners) > 1:
                 if modifier := model.changed_by:
                     if modifier and (user := owner_dict.get(modifier.id)):
-                        return executor_type, user.username
+                        return executor, user.username
                 if creator := model.created_by:
                     if creator and (user := owner_dict.get(creator.id)):
-                        return executor_type, user.username
-                return executor_type, owners[0].username
+                        return executor, user.username
+                return executor, owners[0].username
 
     raise ExecutorNotFoundError()
 

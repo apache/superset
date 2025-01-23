@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
 import fetchMock from 'fetch-mock';
 
 import ListViewCard from 'src/components/ListViewCard';
-import ImageLoader from 'src/components/ListViewCard/ImageLoader';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { render, screen } from 'spec/helpers/testing-library';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
 fetchMock.get('/thumbnail', { body: new Blob(), sendAsJson: false });
@@ -44,25 +42,22 @@ describe('ListViewCard', () => {
     ),
   };
 
-  let wrapper;
-  const factory = (extraProps = {}) => {
-    const props = { ...defaultProps, ...extraProps };
-    return mount(<ListViewCard {...props} />);
-  };
-  beforeEach(async () => {
-    wrapper = factory();
-    await waitForComponentToPaint(wrapper);
+  beforeEach(() => {
+    const props = { ...defaultProps };
+    render(<ListViewCard {...props} />);
   });
 
   it('is a valid element', () => {
-    expect(wrapper.find(ListViewCard)).toExist();
+    expect(screen.getByTestId('styled-card')).toBeInTheDocument();
   });
 
   it('renders Actions', () => {
-    expect(wrapper.find(ListViewCard.Actions)).toExist();
+    expect(screen.getByTestId('card-actions')).toBeVisible();
+    expect(screen.getByText('Action 1')).toBeVisible();
+    expect(screen.getByText('Action 2')).toBeVisible();
   });
 
-  it('renders and ImageLoader', () => {
-    expect(wrapper.find(ImageLoader)).toExist();
+  it('renders an ImageLoader', () => {
+    expect(screen.getByTestId('image-loader')).toBeVisible();
   });
 });
