@@ -331,7 +331,7 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
-      'warn',
+      'error',
       {
         paths: [
           {
