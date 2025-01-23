@@ -25,6 +25,7 @@ import Tag from 'src/types/TagType';
 import Owner from 'src/types/Owner';
 import { EmptyState } from 'src/components/EmptyState';
 import { NumberParam, useQueryParam } from 'use-query-params';
+import { ConfigType } from 'dayjs';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -49,12 +50,12 @@ const AllEntitiesTableContainer = styled.div`
   }
 `;
 
-interface TaggedObject {
+export interface TaggedObject {
   id: number;
   type: string;
   name: string;
   url: string;
-  changed_on: string | number | Date;
+  changed_on: ConfigType;
   created_by: number | undefined;
   creator: string;
   owners: Owner[];
