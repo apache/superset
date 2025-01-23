@@ -392,7 +392,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view(
             RowLevelSecurityView,
             "Row Level Security",
-            href="/rowlevelsecurity/list/",
+            href="RowLevelSecurityView.list",
             label=__("Row Level Security"),
             category="Security",
             category_label=__("Security"),
