@@ -238,6 +238,7 @@ function SavedQueryList({
           dbId: savedQuery.db_id,
           name: savedQuery.label,
           schema: savedQuery.schema,
+          catalog: savedQuery.catalog,
           sql: savedQuery.sql,
           autorun: false,
           templateParams: null,
