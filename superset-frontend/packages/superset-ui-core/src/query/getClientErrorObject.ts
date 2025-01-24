@@ -177,6 +177,16 @@ export function getClientErrorObject(
     }
 
     if (
+      response instanceof TypeError &&
+      response.message === 'Failed to fetch'
+    ) {
+      resolve({
+        error: t('Network error'),
+      });
+      return;
+    }
+
+    if (
       'timeout' in response &&
       'statusText' in response &&
       response.statusText === 'timeout'
