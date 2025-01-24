@@ -45,10 +45,13 @@ export default function DownloadAsImage({
   };
 
   return (
-    <Menu.Item key="download-image">
-      <div onClick={onDownloadImage} role="button" tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-image"
+      onClick={e => {
+        onDownloadImage(e.domEvent);
+      }}
+    >
+      {text}
     </Menu.Item>
   );
 }

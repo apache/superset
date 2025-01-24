@@ -45,10 +45,13 @@ export default function DownloadAsPdf({
   };
 
   return (
-    <Menu.Item key="download-pdf">
-      <div onClick={onDownloadPdf} role="button" tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-pdf"
+      onClick={e => {
+        onDownloadPdf(e.domEvent);
+      }}
+    >
+      {text}
     </Menu.Item>
   );
 }
