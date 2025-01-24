@@ -389,7 +389,7 @@ describe('RTL', () => {
     // Wait for the tooltip to pop up
     await screen.findByRole('tooltip');
 
-    // Grab and assert that "Copy Query" tooltip is in the document
+    // Grab and assert that "Copy query URl" tooltip is in the document
     const copyTooltip = screen.getByRole('tooltip', {
       name: /Copy query URL/i,
     });
