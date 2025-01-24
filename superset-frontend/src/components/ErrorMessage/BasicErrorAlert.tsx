@@ -23,15 +23,13 @@ import { Tooltip } from '../Tooltip';
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
   display: flex;
   flex-direction: row;
-  align-items: center;
   background-color: ${({ level, theme }) => theme.colors[level].light2};
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ level, theme }) => theme.colors[level].base};
   color: ${({ level, theme }) => theme.colors[level].dark2};
-  padding: ${({ theme }) => theme.gridUnit * 1}px;
+  padding: ${({ theme }) => theme.gridUnit * 2}px;
   margin-bottom: ${({ theme }) => theme.gridUnit}px;
   width: 100%;
-  min-width: max-content;
 `;
 
 const StyledContent = styled.div`
