@@ -177,31 +177,6 @@ export function getClientErrorObject(
     }
 
     if (
-      (response instanceof TypeError &&
-        response.message === 'Failed to fetch') ||
-      (response instanceof TypeError &&
-        response.message.includes('NetworkError'))
-    ) {
-      resolve({
-        error: t('Network error'),
-        message: t(
-          'Network Error when attempting to load resource. Please check your internet connection and try again.',
-        ),
-        errors: [
-          {
-            error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
-            level: 'error',
-            message: t(
-              'Network Error when attempting to load resource. Please check your internet connection and try again.',
-            ),
-            extra: {},
-          },
-        ],
-      });
-      return;
-    }
-
-    if (
       'timeout' in response &&
       'statusText' in response &&
       response.statusText === 'timeout'

@@ -18,7 +18,6 @@
  */
 import { ErrorLevel, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Tooltip } from '../Tooltip';
 
 const StyledContainer = styled.div<{ level: ErrorLevel }>`
   display: flex;
@@ -47,34 +46,15 @@ interface BasicErrorAlertProps {
   title: string;
   body: string;
   level?: ErrorLevel;
-  bodyOnTooltip?: boolean;
 }
 
 export default function BasicErrorAlert({
   body,
   level = 'error',
   title,
-  bodyOnTooltip,
 }: BasicErrorAlertProps) {
   const theme = useTheme();
   const iconColor = theme.colors[level].base;
-
-  if (bodyOnTooltip) {
-    return (
-      <Tooltip title={body}>
-        <StyledContainer level={level} role="alert">
-          {level === 'error' ? (
-            <Icons.ErrorSolid iconColor={iconColor} />
-          ) : (
-            <Icons.WarningSolid iconColor={iconColor} />
-          )}
-          <StyledContent>
-            <StyledTitle>{title}</StyledTitle>
-          </StyledContent>
-        </StyledContainer>
-      </Tooltip>
-    );
-  }
 
   return (
     <StyledContainer level={level} role="alert">

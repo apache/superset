@@ -312,7 +312,6 @@ const FilterValue: FC<FilterControlProps> = ({
             title={t('Cannot load filter')}
             body={error.error}
             level="error"
-            bodyOnTooltip
           />
         }
       />
