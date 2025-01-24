@@ -52,7 +52,6 @@ export enum FeatureFlag {
   HorizontalFilterBar = 'HORIZONTAL_FILTER_BAR',
   ListviewsDefaultCardView = 'LISTVIEWS_DEFAULT_CARD_VIEW',
   ScheduledQueries = 'SCHEDULED_QUERIES',
-  ShareQueriesViaKvStore = 'SHARE_QUERIES_VIA_KV_STORE',
   SqllabBackendPersistence = 'SQLLAB_BACKEND_PERSISTENCE',
   SqlValidatorsByEngine = 'SQL_VALIDATORS_BY_ENGINE',
   SshTunneling = 'SSH_TUNNELING',

@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import { ReactNode, RefObject, useCallback, useMemo, useState } from 'react';
+import {
+  Dispatch,
+  ReactNode,
+  SetStateAction,
+  useCallback,
+  useMemo,
+} from 'react';
 import { isEmpty } from 'lodash';
 import {
   Behavior,
@@ -33,7 +39,6 @@ import {
 import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
 import { RootState } from 'src/dashboard/types';
-import DrillDetailModal from './DrillDetailModal';
 import { getSubmenuYOffset } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
 import { MenuItemWithTruncation } from '../MenuItemWithTruncation';
@@ -90,21 +95,20 @@ const StyledFilter = styled(Filter)`
 `;
 
 export type DrillDetailMenuItemsProps = {
-  chartId: number;
   formData: QueryFormData;
   filters?: BinaryQueryObjectFilterClause[];
+  setFilters: Dispatch<SetStateAction<BinaryQueryObjectFilterClause[]>>;
   isContextMenu?: boolean;
   contextMenuY?: number;
   onSelection?: () => void;
   onClick?: (event: MouseEvent) => void;
   submenuIndex?: number;
-  showModal: boolean;
   setShowModal: (show: boolean) => void;
-  drillToDetailMenuRef?: RefObject<any>;
+  key?: string;
+  forceSubmenuRender?: boolean;
 };
 
 const DrillDetailMenuItems = ({
-  chartId,
   formData,
   filters = [],
   isContextMenu = false,
@@ -112,18 +116,14 @@ const DrillDetailMenuItems = ({
   onSelection = () => null,
   onClick = () => null,
   submenuIndex = 0,
-  showModal,
+  setFilters,
   setShowModal,
-  drillToDetailMenuRef,
+  key,
   ...props
 }: DrillDetailMenuItemsProps) => {
   const drillToDetailDisabled = useSelector<RootState, boolean | undefined>(
     ({ datasources }) =>
       datasources[formData.datasource]?.database?.disable_drill_to_detail,
-  );
-
-  const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
-    [],
   );
 
   const openModal = useCallback(
@@ -135,10 +135,6 @@ const DrillDetailMenuItems = ({
     },
     [onClick, onSelection],
   );
-
-  const closeModal = useCallback(() => {
-    setShowModal(false);
-  }, []);
 
   // Check for Behavior.DRILL_TO_DETAIL to tell if plugin handles the `contextmenu`
   // event for dimensions.  If it doesn't, tell the user that drill to detail by
@@ -196,7 +192,6 @@ const DrillDetailMenuItems = ({
       {...props}
       key="drill-to-detail"
       onClick={openModal.bind(null, [])}
-      ref={drillToDetailMenuRef}
     >
       {DRILL_TO_DETAIL}
     </Menu.Item>
@@ -213,6 +208,7 @@ const DrillDetailMenuItems = ({
       popupOffset={[0, submenuYOffset]}
       popupClassName="chart-context-submenu"
       title={DRILL_TO_DETAIL_BY}
+      key={key}
     >
       <div data-test="drill-to-detail-by-submenu">
         {filters.map((filter, i) => (
@@ -246,13 +242,6 @@ const DrillDetailMenuItems = ({
     <>
       {drillToDetailMenuItem}
       {isContextMenu && drillToDetailByMenuItem}
-      <DrillDetailModal
-        chartId={chartId}
-        formData={formData}
-        initialFilters={modalFilters}
-        showModal={showModal}
-        onHideModal={closeModal}
-      />
     </>
   );
 };

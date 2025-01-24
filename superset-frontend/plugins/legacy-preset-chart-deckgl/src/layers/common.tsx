@@ -11,15 +11,22 @@
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS
+ * OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 import { ReactNode } from 'react';
-import d3array, {
+import {
   ascending as d3ascending,
   quantile as d3quantile,
+  sum as d3sum,
+  mean as d3mean,
+  min as d3min,
+  max as d3max,
+  median as d3median,
+  variance as d3variance,
+  deviation as d3deviation,
 } from 'd3-array';
 import { JsonObject, JsonValue, QueryFormData } from '@superset-ui/core';
 import sandboxedEval from '../utils/sandbox';
@@ -79,6 +86,17 @@ const percentiles = {
   p99: 0.99,
 };
 
+/* Supported d3-array functions */
+const d3functions: Record<string, any> = {
+  sum: d3sum,
+  min: d3min,
+  max: d3max,
+  mean: d3mean,
+  median: d3median,
+  variance: d3variance,
+  deviation: d3deviation,
+};
+
 /* Get a stat function that operates on arrays, aligns with control=js_agg_function  */
 export function getAggFunc(
   type = 'sum',
@@ -87,10 +105,12 @@ export function getAggFunc(
   if (type === 'count') {
     return (arr: number[]) => arr.length;
   }
+
   let d3func: (
     iterable: Array<unknown>,
     accessor?: (object: JsonObject) => number | undefined,
   ) => number[] | number | undefined;
+
   if (type in percentiles) {
     d3func = (arr, acc: (object: JsonObject) => number | undefined) => {
       let sortedArr;
@@ -104,12 +124,15 @@ export function getAggFunc(
 
       return d3quantile(sortedArr, percentiles[type], acc);
     };
+  } else if (type in d3functions) {
+    d3func = d3functions[type];
   } else {
-    d3func = d3array[type];
-  }
-  if (!accessor) {
-    return (arr: JsonObject[]) => d3func(arr);
+    throw new Error(`Unsupported aggregation type: ${type}`);
   }
 
-  return (arr: JsonObject[]) => d3func(arr.map(x => accessor(x)));
+  if (!accessor) {
+    return (arr: number[]) => d3func(arr);
+  }
+
+  return (arr: number[]) => d3func(arr.map(x => accessor(x)));
 }

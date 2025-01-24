@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Menu } from 'src/components/Menu';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import DownloadScreenshot from './DownloadScreenshot';
 import { DownloadScreenshotFormat } from './types';
@@ -44,42 +43,38 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
     isFeatureEnabled(FeatureFlag.EnableDashboardDownloadWebDriverScreenshot);
 
-  return (
-    <Menu selectable={false}>
-      {isWebDriverScreenshotEnabled ? (
-        <>
-          <DownloadScreenshot
-            text={pdfMenuItemTitle}
-            dashboardId={dashboardId}
-            logEvent={logEvent}
-            format={DownloadScreenshotFormat.PDF}
-            {...rest}
-          />
-          <DownloadScreenshot
-            text={imageMenuItemTitle}
-            dashboardId={dashboardId}
-            logEvent={logEvent}
-            format={DownloadScreenshotFormat.PNG}
-            {...rest}
-          />
-        </>
-      ) : (
-        <>
-          <DownloadAsPdf
-            text={pdfMenuItemTitle}
-            dashboardTitle={dashboardTitle}
-            logEvent={logEvent}
-            {...rest}
-          />
-          <DownloadAsImage
-            text={imageMenuItemTitle}
-            dashboardTitle={dashboardTitle}
-            logEvent={logEvent}
-            {...rest}
-          />
-        </>
-      )}
-    </Menu>
+  return isWebDriverScreenshotEnabled ? (
+    <>
+      <DownloadScreenshot
+        text={pdfMenuItemTitle}
+        dashboardId={dashboardId}
+        logEvent={logEvent}
+        format={DownloadScreenshotFormat.PDF}
+        {...rest}
+      />
+      <DownloadScreenshot
+        text={imageMenuItemTitle}
+        dashboardId={dashboardId}
+        logEvent={logEvent}
+        format={DownloadScreenshotFormat.PNG}
+        {...rest}
+      />
+    </>
+  ) : (
+    <>
+      <DownloadAsPdf
+        text={pdfMenuItemTitle}
+        dashboardTitle={dashboardTitle}
+        logEvent={logEvent}
+        {...rest}
+      />
+      <DownloadAsImage
+        text={imageMenuItemTitle}
+        dashboardTitle={dashboardTitle}
+        logEvent={logEvent}
+        {...rest}
+      />
+    </>
   );
 };
 

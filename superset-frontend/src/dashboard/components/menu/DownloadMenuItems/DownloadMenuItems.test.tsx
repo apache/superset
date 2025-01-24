@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import { Menu } from 'src/components/Menu';
 import DownloadMenuItems from '.';
 
 const createProps = () => ({
@@ -28,9 +29,14 @@ const createProps = () => ({
 });
 
 const renderComponent = () => {
-  render(<DownloadMenuItems {...createProps()} />, {
-    useRedux: true,
-  });
+  render(
+    <Menu>
+      <DownloadMenuItems {...createProps()} />
+    </Menu>,
+    {
+      useRedux: true,
+    },
+  );
 };
 
 test('Should render menu items', () => {

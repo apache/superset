@@ -16,172 +16,96 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Link } from 'react-router-dom';
 import Button from 'src/components/Button';
-import { Empty } from 'src/components/EmptyState/Empty';
+import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';
 
-const welcomeTableLabels: Record<WelcomeTable, string> = {
-  [WelcomeTable.Charts]: t('charts'),
-  [WelcomeTable.Dashboards]: t('dashboards'),
-  [WelcomeTable.Recents]: t('recents'),
-  [WelcomeTable.SavedQueries]: t('saved queries'),
-};
+const EmptyContainer = styled.div`
+  min-height: 200px;
+  display: flex;
+  color: ${({ theme }) => theme.colors.grayscale.light2};
+  flex-direction: column;
+  justify-content: space-around;
+`;
 
-const welcomeTableEmpty: Record<WelcomeTable, string> = {
-  [WelcomeTable.Charts]: t('No charts yet'),
-  [WelcomeTable.Dashboards]: t('No dashboards yet'),
-  [WelcomeTable.Recents]: t('No recents yet'),
-  [WelcomeTable.SavedQueries]: t('No saved queries yet'),
-};
+const ICONS = {
+  [WelcomeTable.Charts]: 'empty-charts.svg',
+  [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
+  [WelcomeTable.Recents]: 'union.svg',
+  [WelcomeTable.SavedQueries]: 'empty-queries.svg',
+} as const;
 
-const welcomeTableWillAppear: Record<WelcomeTable, (other: string) => string> =
-  {
-    [WelcomeTable.Charts]: (other: string) =>
-      t('%(other)s charts will appear here', { other }),
-    [WelcomeTable.Dashboards]: (other: string) =>
-      t('%(other)s dashboards will appear here', { other }),
-    [WelcomeTable.Recents]: (other: string) =>
-      t('%(other)s recents will appear here', { other }),
-    [WelcomeTable.SavedQueries]: (other: string) =>
-      t('%(other)s saved queries will appear here', { other }),
-  };
+const REDIRECTS = {
+  create: {
+    [WelcomeTable.Charts]: '/chart/add',
+    [WelcomeTable.Dashboards]: '/dashboard/new',
+    [WelcomeTable.SavedQueries]: '/sqllab?new=true',
+  },
+  viewAll: {
+    [WelcomeTable.Charts]: '/chart/list',
+    [WelcomeTable.Dashboards]: '/dashboard/list/',
+    [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
+  },
+} as const;
 
 export interface EmptyStateProps {
   tableName: WelcomeTable;
   tab?: string;
   otherTabTitle?: string;
 }
-const EmptyContainer = styled.div`
-  min-height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-`;
-const ButtonContainer = styled.div`
-  Button {
-    svg {
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-    }
-  }
-`;
-
-type Redirects = Record<
-  WelcomeTable.Charts | WelcomeTable.Dashboards | WelcomeTable.SavedQueries,
-  string
->;
 
 export default function EmptyState({
   tableName,
   tab,
   otherTabTitle,
 }: EmptyStateProps) {
-  const mineRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/chart/add',
-    [WelcomeTable.Dashboards]: '/dashboard/new',
-    [WelcomeTable.SavedQueries]: '/sqllab?new=true',
-  };
-  const favRedirects: Redirects = {
-    [WelcomeTable.Charts]: '/chart/list',
-    [WelcomeTable.Dashboards]: '/dashboard/list/',
-    [WelcomeTable.SavedQueries]: '/savedqueryview/list/',
-  };
-  const tableIcon: Record<WelcomeTable, string> = {
-    [WelcomeTable.Charts]: 'empty-charts.svg',
-    [WelcomeTable.Dashboards]: 'empty-dashboard.svg',
-    [WelcomeTable.Recents]: 'union.svg',
-    [WelcomeTable.SavedQueries]: 'empty-queries.svg',
-  };
-  const mine = <span>{welcomeTableEmpty[tableName]}</span>;
-  const recent = (
-    <span className="no-recents">
-      {(() => {
-        if (tab === TableTab.Viewed) {
-          return t(
-            `Recently viewed charts, dashboards, and saved queries will appear here`,
-          );
-        }
-        if (tab === TableTab.Created) {
-          return t(
-            'Recently created charts, dashboards, and saved queries will appear here',
-          );
-        }
-        if (tab === TableTab.Other) {
-          const other = otherTabTitle || t('Other');
-          return welcomeTableWillAppear[tableName](other);
-        }
-        if (tab === TableTab.Edited) {
-          return t(
-            `Recently edited charts, dashboards, and saved queries will appear here`,
-          );
-        }
-        return null;
-      })()}
-    </span>
-  );
+  const getActionButton = () => {
+    if (tableName === WelcomeTable.Recents) {
+      return null;
+    }
 
-  // Mine and Recent Activity(all tabs) tab empty state
-  if (
-    tab === TableTab.Mine ||
-    tableName === WelcomeTable.Recents ||
-    tab === TableTab.Other
-  ) {
+    const isFavorite = tab === TableTab.Favorite;
+    const buttonText =
+      tableName === WelcomeTable.SavedQueries
+        ? isFavorite
+          ? t('SQL Lab queries')
+          : t('SQL query')
+        : isFavorite
+          ? t(tableName.toLowerCase())
+          : tableName.slice(0, -1);
+
+    const url = isFavorite
+      ? REDIRECTS.viewAll[tableName]
+      : REDIRECTS.create[tableName];
+
     return (
-      <EmptyContainer>
-        <Empty
-          image={`/static/assets/images/${tableIcon[tableName]}`}
-          description={
-            tableName === WelcomeTable.Recents || tab === TableTab.Other
-              ? recent
-              : mine
-          }
-        >
-          {tableName !== WelcomeTable.Recents && (
-            <ButtonContainer>
-              <Link to={mineRedirects[tableName]}>
-                <Button buttonStyle="primary">
-                  <i className="fa fa-plus" />
-                  {tableName === WelcomeTable.SavedQueries
-                    ? t('SQL query')
-                    : tableName
-                        .split('')
-                        .slice(0, tableName.length - 1)
-                        .join('')}
-                </Button>
-              </Link>
-            </ButtonContainer>
-          )}
-        </Empty>
-      </EmptyContainer>
+      <Button
+        buttonStyle="default"
+        onClick={() => {
+          window.location.href = url;
+        }}
+      >
+        {isFavorite
+          ? t('See all %(tableName)s', { tableName: buttonText })
+          : buttonText}
+      </Button>
     );
-  }
-  // Favorite tab empty state
+  };
+
+  const image =
+    tab === TableTab.Favorite ? 'star-circle.svg' : ICONS[tableName];
+
   return (
     <EmptyContainer>
-      <Empty
-        image="/static/assets/images/star-circle.svg"
-        description={
-          <span className="no-favorites">
-            {t("You don't have any favorites yet!")}
-          </span>
-        }
+      <EmptyStateComponent
+        image={image}
+        size="large"
+        description={t('Nothing here yet')}
       >
-        <Button
-          buttonStyle="primary"
-          onClick={() => {
-            window.location.href = favRedirects[tableName];
-          }}
-        >
-          {t('See all %(tableName)s', {
-            tableName:
-              tableName === WelcomeTable.SavedQueries
-                ? t('SQL Lab queries')
-                : welcomeTableLabels[tableName],
-          })}
-        </Button>
-      </Empty>
+        {getActionButton()}
+      </EmptyStateComponent>
     </EmptyContainer>
   );
 }

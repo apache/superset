@@ -20,7 +20,7 @@ import { PureComponent, Fragment } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -205,11 +205,12 @@ class DashboardGrid extends PureComponent {
       shouldDisplayEmptyState && gridComponent.type === TAB_TYPE;
 
     const dashboardEmptyState = editMode && (
-      <EmptyStateBig
+      <EmptyState
         title={t('Drag and drop components and charts to the dashboard')}
         description={t(
           'You can create a new chart or use existing ones from the panel on the right',
         )}
+        size="large"
         buttonText={
           <>
             <i className="fa fa-plus" />
@@ -228,8 +229,9 @@ class DashboardGrid extends PureComponent {
     );
 
     const topLevelTabEmptyState = editMode ? (
-      <EmptyStateBig
+      <EmptyState
         title={t('Drag and drop components to this tab')}
+        size="large"
         description={t(
           `You can create a new chart or use existing ones from the panel on the right`,
         )}
@@ -249,8 +251,9 @@ class DashboardGrid extends PureComponent {
         image="chart.svg"
       />
     ) : (
-      <EmptyStateBig
+      <EmptyState
         title={t('There are no components added to this tab')}
+        size="large"
         description={
           canEdit && t('You can add the components in the edit mode.')
         }

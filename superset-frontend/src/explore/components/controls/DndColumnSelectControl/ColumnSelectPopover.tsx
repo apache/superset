@@ -43,7 +43,7 @@ import { Select } from 'src/components';
 import { Form, FormItem } from 'src/components/Form';
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { SQLEditor } from 'src/components/AsyncAceEditor';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
 import {
@@ -334,8 +334,9 @@ const ColumnSelectPopover = ({
               />
             </FormItem>
           ) : datasourceType === DatasourceType.Table ? (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={
                 isTemporal
                   ? t('No temporal columns found')
@@ -352,8 +353,9 @@ const ColumnSelectPopover = ({
               }
             />
           ) : (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={
                 isTemporal
                   ? t('No temporal columns found')
@@ -393,8 +395,9 @@ const ColumnSelectPopover = ({
           disabled={disabledTabs.has('simple')}
         >
           {isTemporal && simpleColumns.length === 0 ? (
-            <EmptyStateSmall
+            <EmptyState
               image="empty.svg"
+              size="small"
               title={t('No temporal columns found')}
               description={
                 datasourceType === DatasourceType.Table ? (
