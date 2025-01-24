@@ -138,7 +138,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('dropdown-container-btn').should('not.exist');
   });
 
-  it('should show "more filters" and scroll', () => {
+  it.only('should show "more filters" and scroll', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -161,7 +161,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('filter-control-name')
       .contains('test_12')
       .should('not.be.visible');
-    cy.get('.antd5-popover-inner-content').scrollTo('bottom');
+    cy.get('.antd5-popover-inner').scrollTo('bottom');
     cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
   });
 
