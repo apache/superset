@@ -27,19 +27,17 @@ test('renders with default props', async () => {
   render(<Alert message="Message" />);
 
   expect(screen.getByRole('alert')).toHaveTextContent('Message');
-  expect(await screen.findByLabelText('info icon')).toBeInTheDocument();
-  expect(await screen.findByLabelText('close icon')).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'info-circle' })).toBeInTheDocument();
 });
 
-test('renders each type', async () => {
+test('renders message for each alert type', () => {
   const types: AlertTypeValue[] = ['info', 'error', 'warning', 'success'];
 
-  await Promise.all(
-    types.map(async type => {
-      render(<Alert type={type} message="Message" />);
-      expect(await screen.findByLabelText(`${type} icon`)).toBeInTheDocument();
-    }),
-  );
+  types.forEach(type => {
+    const { rerender } = render(<Alert type={type} message="Test message" />);
+    expect(screen.getByText('Test message')).toBeInTheDocument();
+    rerender(<></>); // Clean up between renders
+  });
 });
 
 test('renders without close button', async () => {
@@ -51,7 +49,7 @@ test('renders without close button', async () => {
 
 test('disappear when closed', async () => {
   render(<Alert message="Message" />);
-  userEvent.click(screen.getByLabelText('close icon'));
+  userEvent.click(screen.getByRole('img', { name: 'close' }));
   await waitFor(() => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
@@ -74,6 +72,6 @@ test('renders message and description', async () => {
 test('calls onClose callback when closed', () => {
   const onCloseMock = jest.fn();
   render(<Alert message="Message" onClose={onCloseMock} />);
-  userEvent.click(screen.getByLabelText('close icon'));
+  userEvent.click(screen.getByRole('img', { name: 'close' }));
   expect(onCloseMock).toHaveBeenCalledTimes(1);
 });

@@ -98,13 +98,6 @@ const defaultTheme = {
       light2: '#FAEDEE',
     },
     warning: {
-      base: '#FF7F44',
-      dark1: '#BF5E33',
-      dark2: '#7F3F21',
-      light1: '#FEC0A1',
-      light2: '#FFF2EC',
-    },
-    alert: {
       base: '#FCC700',
       dark1: '#BC9501',
       dark2: '#7D6300',

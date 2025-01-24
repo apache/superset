@@ -169,7 +169,7 @@ Cypress.Commands.add('login', () => {
   }).then(response => {
     if (response.status === 302) {
       // If there's a redirect, follow it manually
-      const redirectUrl = response.headers['location'];
+      const redirectUrl = response.headers.location;
       cy.request({
         method: 'GET',
         url: redirectUrl,
