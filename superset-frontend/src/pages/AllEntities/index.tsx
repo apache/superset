@@ -140,7 +140,7 @@ function AllEntities() {
       return;
     }
     fetchObjectsByTagIds(
-      { tagIds: tag ? [tag.id] : '', types: null },
+      { tagIds: [tag?.id], types: null },
       (data: TaggedObject[]) => {
         const objects = {
           dashboard: [],
