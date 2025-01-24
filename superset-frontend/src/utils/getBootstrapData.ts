@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import DOMPurify from 'dompurify';
 
 import { BootstrapData } from 'src/types/bootstrapTypes';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
@@ -24,4 +25,18 @@ export default function getBootstrapData(): BootstrapData {
   const appContainer = document.getElementById('app');
   const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
   return dataBootstrap ? JSON.parse(dataBootstrap) : DEFAULT_BOOTSTRAP_DATA;
+}
+
+// eslint-disable-next-line import/no-mutable-exports
+const _APPLICATION_ROOT_NO_TRAILING_SLASH =
+  getBootstrapData().common.application_root.replace(/\/$/, '');
+
+/**
+ * @param dom_sanitize If true, run the application root through dompurify before returning
+ * @returns The configured application root
+ */
+export function applicationRoot(dom_sanitize: boolean = false): string {
+  return dom_sanitize
+    ? DOMPurify.sanitize(_APPLICATION_ROOT_NO_TRAILING_SLASH)
+    : _APPLICATION_ROOT_NO_TRAILING_SLASH;
 }

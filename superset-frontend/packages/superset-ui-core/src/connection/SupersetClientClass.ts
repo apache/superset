@@ -31,24 +31,12 @@ import {
   RequestConfig,
   ParseMethod,
 } from './types';
-import {
-  DEFAULT_FETCH_RETRY_OPTIONS,
-  DEFAULT_APP_ROOT,
-  DEFAULT_BASE_URL,
-} from './constants';
+import { DEFAULT_FETCH_RETRY_OPTIONS, DEFAULT_APP_ROOT } from './constants';
 
-const defaultUnauthorizedHandlerForPrefix = (basePath: string) => () => {
-  if (!window.location.pathname.startsWith(`${basePath}/login`)) {
-    window.location.href = `${basePath}/login?next=${window.location.href}`;
+const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
+  if (!window.location.pathname.startsWith(`${appRoot}/login`)) {
+    window.location.href = `${appRoot}/login?next=${window.location.href}`;
   }
-};
-
-const trimTrailingSlashes = (text: string) => {
-  // codeql warned against using a regex as it reported 'Polynomial regular expression used on uncontrolled data'
-  while (text.endsWith('/')) {
-    text = text.substring(0, text.length - 1);
-  }
-  return text;
 };
 
 export default class SupersetClientClass {
@@ -64,7 +52,7 @@ export default class SupersetClientClass {
 
   fetchRetryOptions?: FetchRetryOptions;
 
-  basePath: string;
+  appRoot?: string;
 
   protocol: Protocol;
 
@@ -79,9 +67,9 @@ export default class SupersetClientClass {
   handleUnauthorized: () => void;
 
   constructor({
-    basePath = DEFAULT_APP_ROOT,
     host,
     protocol,
+    appRoot = DEFAULT_APP_ROOT,
     headers = {},
     fetchRetryOptions = {},
     mode = 'same-origin',
@@ -92,13 +80,8 @@ export default class SupersetClientClass {
     guestTokenHeaderName = 'X-GuestToken',
     unauthorizedHandler = undefined,
   }: ClientConfig = {}) {
-    const url = new URL(
-      host || protocol
-        ? `${protocol || 'https:'}//${host || 'localhost'}`
-        : '/',
-      DEFAULT_BASE_URL,
-    );
-    this.basePath = basePath ? trimTrailingSlashes(basePath) : '';
+    const url = new URL(`${protocol || 'https:'}//${host || 'localhost'}`);
+    this.appRoot = appRoot;
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json
@@ -122,7 +105,7 @@ export default class SupersetClientClass {
     this.handleUnauthorized =
       unauthorizedHandler !== undefined
         ? unauthorizedHandler
-        : defaultUnauthorizedHandlerForPrefix(this.basePath);
+        : defaultUnauthorizedHandlerForPrefix(this.appRoot);
   }
 
   async init(force = false): CsrfPromise {
@@ -284,7 +267,7 @@ export default class SupersetClientClass {
     const host = inputHost ?? this.host;
     const cleanHost = host.slice(-1) === '/' ? host.slice(0, -1) : host; // no backslash
 
-    return `${this.protocol}//${cleanHost}${this.basePath}/${
+    return `${this.protocol}//${cleanHost}${this.appRoot}/${
       endpoint[0] === '/' ? endpoint.slice(1) : endpoint
     }`;
   }

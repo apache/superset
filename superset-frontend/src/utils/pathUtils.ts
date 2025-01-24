@@ -16,18 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import DOMPurify from 'dompurify';
-import getBootstrapData from 'src/utils/getBootstrapData';
-
-// eslint-disable-next-line import/no-mutable-exports
-const APPLICATION_ROOT = getBootstrapData().common.application_root;
-
-/**
- * @returns The configured application root
- */
-export function applicationRoot(dom_sanitize: boolean = false): string {
-  return dom_sanitize ? DOMPurify.sanitize(APPLICATION_ROOT) : APPLICATION_ROOT;
-}
+import { applicationRoot } from 'src/utils/getBootstrapData';
 
 /**
  * Takes a string path to a resource and prefixes it with the application root that is
