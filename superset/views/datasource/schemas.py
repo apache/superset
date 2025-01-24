@@ -80,6 +80,7 @@ class SamplesPayloadSchema(Schema):
         metadata={"description": "Extra parameters to add to the query."},
         allow_none=True,
     )
+    url_params = fields.Dict(keys=fields.Str(), values=fields.Raw(), required=False)
 
     @pre_load
     # pylint: disable=unused-argument

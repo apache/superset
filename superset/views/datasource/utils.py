@@ -82,6 +82,12 @@ def get_samples(  # pylint: disable=too-many-arguments
             queries=[{**payload, **limit_clause}],
             result_type=ChartDataResultType.DRILL_DETAIL,
             force=force,
+            form_data={
+                'url_params': {
+                    **(payload.get('url_params') or {})
+                }
+            }
+
         )
 
     # constructing count(*) query
@@ -102,6 +108,11 @@ def get_samples(  # pylint: disable=too-many-arguments
         queries=[{**payload, **count_star_metric} if payload else count_star_metric],
         result_type=ChartDataResultType.FULL,
         force=force,
+        form_data={
+            'url_params': {
+                **(payload.get('url_params') or {})
+            }
+        }
     )
 
     try:
