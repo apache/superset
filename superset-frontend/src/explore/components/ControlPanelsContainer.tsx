@@ -587,7 +587,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
@@ -747,7 +747,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = dataTabHasHadNoErrors.current
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     return (
       <>
@@ -777,7 +777,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   }, [
     colors.error.base,
-    colors.alert.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);
