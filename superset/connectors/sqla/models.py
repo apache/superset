@@ -359,12 +359,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     @property
     def verbose_map(self) -> dict[str, str]:
         verb_map = {"__timestamp": "Time"}
-        verb_map.update(
-            {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
-        )
-        verb_map.update(
-            {o.column_name: o.verbose_name or o.column_name for o in self.columns}
-        )
+
+        for o in self.metrics:
+            if o.metric_name not in verb_map:
+                verb_map[o.metric_name] = o.verbose_name or o.metric_name
+
+        for o in self.columns:
+            if o.column_name not in verb_map:
+                verb_map[o.column_name] = o.verbose_name or o.column_name
+
         return verb_map
 
     @property
