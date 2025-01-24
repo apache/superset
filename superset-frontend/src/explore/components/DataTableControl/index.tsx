@@ -212,6 +212,9 @@ const DataTableTemporalHeaderCell = ({
     <span>
       <Popover
         overlayClassName="column-formatting-popover"
+        overlayInnerStyle={{
+          padding: 0,
+        }}
         trigger="click"
         content={overlayContent}
         placement="bottomLeft"
