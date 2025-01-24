@@ -20,7 +20,7 @@
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import NetworkErrorMessage from './NetworkErrorMessage';
+import FrontendNetworkErrorMessage from './FrontendNetworkErrorMessage';
 
 jest.mock(
   'src/components/Icons/Icon',
@@ -49,13 +49,14 @@ test('should render', () => {
       extra: null,
     },
   };
-  const { container } = render(<NetworkErrorMessage {...nullExtraProps} />);
+  const { container } = render(
+    <FrontendNetworkErrorMessage {...nullExtraProps} />,
+  );
   expect(container).toBeInTheDocument();
 });
 
 test('should render the error message', () => {
-  render(<NetworkErrorMessage {...mockedProps} />, { useRedux: true });
-  const button = screen.getByText('See more');
-  userEvent.click(button);
+  render(<FrontendNetworkErrorMessage {...mockedProps} />, { useRedux: true });
+  userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });

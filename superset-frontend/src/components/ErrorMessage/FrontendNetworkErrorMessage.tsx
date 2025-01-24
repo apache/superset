@@ -27,7 +27,12 @@ function FrontendNetworkErrorMessage({
 }: ErrorMessageComponentProps) {
   const { level, message } = error;
   return (
-    <ErrorAlert errorType={t('Network Error')} message={message} type={level} />
+    <ErrorAlert
+      compact
+      errorType={t('Network Error')}
+      message={message}
+      type={level}
+    />
   );
 }
 export default FrontendNetworkErrorMessage;

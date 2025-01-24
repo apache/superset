@@ -168,9 +168,5 @@ export default function setupErrorMessages() {
     ErrorTypeEnum.RESULT_TOO_LARGE_ERROR,
     DatabaseErrorMessage,
   );
-  errorMessageComponentRegistry.registerValue(
-    ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
-    NetworkErrorMessage,
-  );
   setupErrorMessagesExtra();
 }
