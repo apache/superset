@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from typing import Any
+from collections import defaultdict
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -319,6 +320,21 @@ class DashboardDAO(BaseDAO[Dashboard]):
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
         return dash
+    
+    @classmethod
+    def get_native_filter_configuration(cls, id: int):
+        dashboard = cls.get_by_id_or_slug(id)
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        native_filter_configuration = metadata.get(
+            "native_filter_configuration", []
+        )
+
+        tab_filters = defaultdict(list)
+        for filter in native_filter_configuration:
+            for tab_key in filter.get("tabsInScope", []):
+                tab_filters[tab_key].append(filter)
+
+        return tab_filters
 
     @classmethod
     def update_native_filters_config(

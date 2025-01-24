@@ -452,6 +452,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
+  const [nativeFilterOptions, setNativeFilterOptions] = useState<object>([]);
+
+  console.log('nativeFilters', nativeFilterOptions);
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -823,16 +826,24 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          console.log(response.json.result);
+          const { tab_tree: tabTree, all_tabs: allTabs, native_filters: nativeFilters } = response.json.result;
           tabTree.push({
             title: 'All Tabs',
             // select tree only works with string value
             value: JSON.stringify(Object.keys(allTabs)),
           });
           setTabOptions(tabTree);
-
+          // console.log('setting native filters', nativeFilters);
+          // setNativeFilterOptions(nativeFilters);
+          
           const anchor = currentAlert?.extra?.dashboard?.anchor;
+          console.log('anchor', anchor);
           if (anchor) {
+              // const nativeFiltersOptions = nativeFilters[anchor].map((filter: any) => {value: filter.id, label: filter.name})
+              console.log('nativeFiltersOptions', nativeFilters[anchor]);
+              setNativeFilterOptions(nativeFilters[anchor].map((filter: any) => ({value: filter.id, label: filter.name})));
+            
             try {
               const parsedAnchor = JSON.parse(anchor);
               if (Array.isArray(parsedAnchor)) {
@@ -876,6 +887,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         return SupersetClient.get({
           endpoint: `/api/v1/report/related/dashboard?q=${query}`,
         }).then(response => {
+          console.log('dashboards', response.json.result);
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
               value: item.value,
@@ -1049,6 +1061,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('chart', null);
     if (tabsEnabled) {
       setTabOptions([]);
+      setNativeFilterOptions([]);
       updateAnchorState('');
     }
   };
@@ -1764,9 +1777,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 />
               </>
               <>
+              <div className="control-label">{t('Select Dashboard Filter')}</div>
                 <Select 
                   ariaLabel={t('Select Filter')}
-                  value={"name"}
+                  value={"test"}
+                  // options={[{value: "test", label: "test"}, {value: "test2", label: "test2"}]}
+                  options={nativeFilterOptions}
                 />
                 <Select 
                   ariaLabel={t('Select Value')}
