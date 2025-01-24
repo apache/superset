@@ -306,6 +306,7 @@ const FilterValue: FC<FilterControlProps> = ({
     return (
       <ErrorMessageWithStackTrace
         error={error.errors?.[0]}
+        compact
         fallback={
           <BasicErrorAlert
             title={t('Cannot load filter')}
