@@ -66,16 +66,6 @@ export const chartHeaderStyles = (theme: SupersetTheme) => css`
 `;
 
 export const filterCardPopoverStyle = (theme: SupersetTheme) => css`
-  .filter-card-popover {
-    width: 240px;
-    padding: 0;
-    border-radius: 4px;
-
-    .antd5-popover-arrow {
-      display: none;
-    }
-  }
-
   .filter-card-tooltip {
     &.antd5-tooltip-placement-bottom {
       padding-top: 0;
