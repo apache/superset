@@ -42,5 +42,5 @@ export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
     extra: { ...error.extra, owners },
   };
 
-  return <ErrorMessageWithStackTrace compact {...props} error={ownedError} />;
+  return <ErrorMessageWithStackTrace {...props} error={ownedError} />;
 };

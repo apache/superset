@@ -60,6 +60,7 @@ import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
 import { useFilterDependencies } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
+import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 
 const HEIGHT = 32;
 
@@ -308,10 +309,11 @@ const FilterValue: FC<FilterControlProps> = ({
         error={error.errors?.[0]}
         compact
         fallback={
-          <BasicErrorAlert
-            title={t('Cannot load filter')}
-            body={error.error}
-            level="error"
+          <ErrorAlert
+            errorType={t('Network error')}
+            message={t('Network error while attempting to fetch resource')}
+            type="error"
+            compact
           />
         }
       />
