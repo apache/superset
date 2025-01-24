@@ -30,7 +30,10 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import {
+  ensureAppRootSanitized,
+  ensureAppRootUnsanitized,
+} from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
@@ -144,7 +147,7 @@ export function getExploreUrl({
   delete formData.label_colors;
 
   let uri = getChartDataUri({
-    path: ensureAppRootSanitized('/'),
+    path: '/',
     allowDomainSharding,
   });
   if (curUrl) {
