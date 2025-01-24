@@ -41,7 +41,7 @@ describe('makeApi()', () => {
       method: 'GET',
       endpoint: '/test-custom-client',
     });
-    const client = new SupersetClientClass({ basePath: '/foo' });
+    const client = new SupersetClientClass({ appRoot: '/foo' });
     const mockResponse = { yes: 'ok' };
     const mockRequest = jest.fn(() =>
       Promise.resolve(
