@@ -127,7 +127,7 @@ const publishDataMask = debounce(
       // double it up.
       const appRoot = applicationRoot();
       let replacement_pathname = window.location.pathname;
-      if (appRoot != '/' && replacement_pathname.startsWith(appRoot)) {
+      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
         replacement_pathname = replacement_pathname.substring(appRoot.length);
       }
       history.location.pathname = replacement_pathname;

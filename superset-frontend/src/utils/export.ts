@@ -17,9 +17,9 @@
  * under the License.
  */
 import parseCookie from 'src/utils/parseCookie';
-import { ensureAppRootSanitized } from './pathUtils';
 import rison from 'rison';
 import { nanoid } from 'nanoid';
+import { ensureAppRootSanitized } from './pathUtils';
 
 export default function handleResourceExport(
   resource: string,

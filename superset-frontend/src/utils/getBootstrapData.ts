@@ -28,15 +28,15 @@ export default function getBootstrapData(): BootstrapData {
 }
 
 // eslint-disable-next-line import/no-mutable-exports
-const _APPLICATION_ROOT_NO_TRAILING_SLASH =
+const APPLICATION_ROOT_NO_TRAILING_SLASH =
   getBootstrapData().common.application_root.replace(/\/$/, '');
 
 /**
  * @param dom_sanitize If true, run the application root through dompurify before returning
  * @returns The configured application root
  */
-export function applicationRoot(dom_sanitize: boolean = false): string {
+export function applicationRoot(dom_sanitize = false): string {
   return dom_sanitize
-    ? DOMPurify.sanitize(_APPLICATION_ROOT_NO_TRAILING_SLASH)
-    : _APPLICATION_ROOT_NO_TRAILING_SLASH;
+    ? DOMPurify.sanitize(APPLICATION_ROOT_NO_TRAILING_SLASH)
+    : APPLICATION_ROOT_NO_TRAILING_SLASH;
 }
