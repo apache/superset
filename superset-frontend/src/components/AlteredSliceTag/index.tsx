@@ -221,7 +221,7 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
         <Label
           icon={<Icons.Warning iconSize="m" />}
           className="label"
-          type="alert"
+          type="warning"
           onClick={() => {}}
         >
           {t('Altered')}
