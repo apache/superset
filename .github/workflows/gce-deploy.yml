@@ -8,7 +8,7 @@ on:
         branches:
           - dev
           - demo
-          - feat/DP-420-pgrade-superset-to-v4-1-1
+          - upgrade
     workflow_dispatch:
       inputs:
         environment:
@@ -58,7 +58,7 @@ jobs:
           echo "GIT_BRANCH=demo" >> $GITHUB_ENV
 
       - name: Set Environment Variables for Upgrade
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'feat/DP-420-pgrade-superset-to-v4-1-1'
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'upgrade'
         run: |
           echo "Setting environment for Upgrade"
           echo "GCE_VM_NAME=cliente-x" >> $GITHUB_ENV

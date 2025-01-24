@@ -7,7 +7,7 @@ on:
       - master
       - dev
       - demo
-      - feat/DP-420-pgrade-superset-to-v4-1-1
+      - upgrade
   # Optionally allow manual triggers
   workflow_dispatch:
 
@@ -56,7 +56,7 @@ jobs:
             echo "IMAGE_PERMANENT_TAG=dev" >> $GITHUB_ENV
           elif [[ "${GITHUB_REF##*/}" == "demo" ]]; then
             echo "IMAGE_PERMANENT_TAG=demo" >> $GITHUB_ENV  
-          elif [[ "${GITHUB_REF##*/}" == "feat/DP-420-pgrade-superset-to-v4-1-1" ]]; then
+          elif [[ "${GITHUB_REF##*/}" == "upgrade" ]]; then
             echo "IMAGE_PERMANENT_TAG=upgrade" >> $GITHUB_ENV              
           fi
 
