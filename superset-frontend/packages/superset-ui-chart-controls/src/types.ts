@@ -363,6 +363,13 @@ export type CustomControlItem = {
   config: BaseControlConfig<any, any, any>;
 };
 
+export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
+  typeof obj === 'object' &&
+  obj !== null &&
+  typeof (obj as CustomControlItem).name === 'string' &&
+  typeof (obj as CustomControlItem).config === 'object' &&
+  (obj as CustomControlItem).config !== null;
+
 // use ReactElement instead of ReactNode because `string`, `number`, etc. may
 // interfere with other ControlSetItem types
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
