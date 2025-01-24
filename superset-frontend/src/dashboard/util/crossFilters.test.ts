@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon, { SinonStub } from 'sinon';
-import { Behavior, FeatureFlag } from '@superset-ui/core';
-import * as core from '@superset-ui/core';
+import {
+  Behavior,
+  FeatureFlag,
+  getChartMetadataRegistry,
+  VizType,
+} from '@superset-ui/core';
 import { getCrossFiltersConfiguration } from './crossFilters';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
@@ -56,7 +59,7 @@ const CHARTS = {
     id: 1,
     form_data: {
       datasource: '2__table',
-      viz_type: core.VizType.Line,
+      viz_type: VizType.Line,
       slice_id: 1,
       color_scheme: 'supersetColors',
     },
@@ -68,7 +71,7 @@ const CHARTS = {
     latestQueryFormData: {},
     sliceFormData: {
       datasource: '2__table',
-      viz_type: core.VizType.Line,
+      viz_type: VizType.Line,
     },
     queryController: null,
     queriesResponse: [{}],
@@ -79,7 +82,7 @@ const CHARTS = {
     form_data: {
       color_scheme: 'supersetColors',
       datasource: '2__table',
-      viz_type: core.VizType.Line,
+      viz_type: VizType.Line,
       slice_id: 2,
     },
     chartAlert: null,
@@ -90,7 +93,7 @@ const CHARTS = {
     latestQueryFormData: {},
     sliceFormData: {
       datasource: '2__table',
-      viz_type: core.VizType.Line,
+      viz_type: VizType.Line,
     },
     queryController: null,
     queriesResponse: [{}],
@@ -128,21 +131,24 @@ const CHART_CONFIG_METADATA = {
   global_chart_configuration: GLOBAL_CHART_CONFIG,
 };
 
-let metadataRegistryStub: SinonStub;
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: jest.fn(),
+}));
+
+const mockedGetChartMetadataRegistry = getChartMetadataRegistry as jest.Mock;
 
 beforeEach(() => {
-  metadataRegistryStub = sinon
-    .stub(core, 'getChartMetadataRegistry')
-    .callsFake(() => ({
-      // @ts-ignore
-      get: () => ({
-        behaviors: [Behavior.InteractiveChart],
-      }),
-    }));
+  mockedGetChartMetadataRegistry.mockImplementation(() => ({
+    // @ts-ignore
+    get: () => ({
+      behaviors: [Behavior.InteractiveChart],
+    }),
+  }));
 });
 
 afterEach(() => {
-  metadataRegistryStub.restore();
+  mockedGetChartMetadataRegistry.mockRestore();
 });
 
 test('Generate correct cross filters configuration without initial configuration', () => {
@@ -266,7 +272,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
           form_data: {
             slice_id: 3,
             datasource: '3__table',
-            viz_type: core.VizType.Line,
+            viz_type: VizType.Line,
             color_scheme: 'supersetColors',
           },
           chartAlert: null,
@@ -277,7 +283,7 @@ test('Recalculate charts in global filter scope when charts change', () => {
           latestQueryFormData: {},
           sliceFormData: {
             datasource: '3__table',
-            viz_type: core.VizType.Line,
+            viz_type: VizType.Line,
           },
           queryController: null,
           queriesResponse: [{}],

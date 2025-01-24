@@ -18,10 +18,8 @@
  */
 import userEvent from '@testing-library/user-event';
 import { render, screen, act } from 'spec/helpers/testing-library';
-import * as featureFlags from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import HeaderReportDropdown, { HeaderReportProps } from '.';
-
-let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
 const createProps = () => ({
   dashboardId: 1,
@@ -126,18 +124,22 @@ function setup(props: HeaderReportProps, initialState = {}) {
   );
 }
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
 describe('Header Report Dropdown', () => {
   beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(featureFlags, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: featureFlags.FeatureFlag) =>
-          featureFlag === featureFlags.FeatureFlag.AlertReports,
-      );
+    mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.AlertReports,
+    );
   });
 
   afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
   it('renders correctly', () => {

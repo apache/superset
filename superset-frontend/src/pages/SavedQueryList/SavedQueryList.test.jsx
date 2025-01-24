@@ -27,7 +27,7 @@ import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
-import * as uiCore from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
 import SavedQueryList from 'src/pages/SavedQueryList';
 import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
@@ -154,6 +154,11 @@ fetchMock.get(queriesDistinctEndpoint, {
 
 // Mock utils module
 jest.mock('src/views/CRUD/utils');
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 describe('SavedQueryList', () => {
   const wrapper = mount(
@@ -332,17 +337,14 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
+    isFeatureEnabled.mockImplementation(() => true);
     await renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
-    isFeatureEnabledMock.mockRestore();
+    isFeatureEnabled.mockRestore();
   });
   it('renders an export button in the bulk actions', () => {
     // Grab and click the "Bulk Select" button to expose checkboxes

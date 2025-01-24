@@ -17,8 +17,6 @@
  * under the License.
  */
 
-import displayTimeRelatedControls from './displayTimeRelatedControls';
-
 export * from './checkColumnType';
 export * from './selectOptions';
 export * from './D3Formatting';
@@ -29,5 +27,5 @@ export { default as columnChoices, columnsByType } from './columnChoices';
 export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
 export * from './getTemporalColumns';
+export * from './displayTimeRelatedControls';
 export * from './colorControls';
-export { displayTimeRelatedControls };
