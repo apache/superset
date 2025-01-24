@@ -17,7 +17,7 @@
 import builtins
 from typing import Callable, Union
 
-from flask import g, redirect, url_for, Response
+from flask import g, redirect, Response, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -39,9 +39,7 @@ from superset.views.base import (
 from superset.views.dashboard.mixin import DashboardMixin
 
 
-class DashboardModelView(
-    DashboardMixin, SupersetModelView, DeleteMixin
-):  # pylint: disable=too-many-ancestors
+class DashboardModelView(DashboardMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
     route_base = "/dashboard"
     datamodel = SQLAInterface(DashboardModel)
     # TODO disable api_read and api_delete (used by cypress)
