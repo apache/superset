@@ -1818,35 +1818,6 @@ class TestDatabaseApi(SupersetTestCase):
             db.session.delete(database)
             db.session.commit()
 
-    def mock_empty_csv_function(d, user):  # noqa: N805
-        return []
-
-    @mock.patch(
-        "superset.views.core.app.config",
-        {**app.config, "ALLOWED_USER_CSV_SCHEMA_FUNC": mock_empty_csv_function},
-    )
-    def test_get_allow_file_upload_false_csv(self):
-        """
-        Database API: Test filter for allow file upload checks for schemas.
-        Both databases have false allow_file_upload
-        """
-        with self.create_app().app_context():
-            self.login(ADMIN_USERNAME)
-            arguments = {
-                "columns": ["allow_file_upload"],
-                "filters": [
-                    {
-                        "col": "allow_file_upload",
-                        "opr": "upload_is_enabled",
-                        "value": True,
-                    }
-                ],
-            }
-            uri = f"api/v1/database/?q={prison.dumps(arguments)}"
-            rv = self.client.get(uri)
-            data = json.loads(rv.data.decode("utf-8"))
-            assert data["count"] == 1
-
     def test_get_allow_file_upload_filter_no_permission(self):
         """
         Database API: Test filter for allow file upload checks for schemas

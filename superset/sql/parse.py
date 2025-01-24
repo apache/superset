@@ -410,7 +410,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return self._fallback_formatting()
 
-    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @deprecated(deprecated_in="4.0")
     def _fallback_formatting(self) -> str:
         """
         Format SQL without a specific dialect.

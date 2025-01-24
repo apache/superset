@@ -80,7 +80,6 @@ describe('SqlLab query panel', () => {
 
   it.skip('successfully saves a query', () => {
     cy.intercept('api/v1/database/**/tables/**').as('getTables');
-    cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';

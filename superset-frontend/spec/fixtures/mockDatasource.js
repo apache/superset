@@ -199,6 +199,5 @@ export default {
       ['["num_girls", false]', 'num_girls [desc]'],
     ],
     type: 'table',
-    edit_url: '/tablemodelview/edit/7',
   },
 };
