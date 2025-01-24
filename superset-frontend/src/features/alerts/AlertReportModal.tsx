@@ -189,6 +189,8 @@ const FORMAT_OPTIONS = {
   },
 };
 
+type FORMAT_OPTIONS_KEY = keyof typeof FORMAT_OPTIONS;
+
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
@@ -1738,12 +1740,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={reportFormat}
                   options={
                     contentType === ContentType.Dashboard
-                      ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
+                      ? ['pdf', 'png'].map(
+                          key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                        )
                       : /* If chart is of text based viz type: show text
                   format option */
                         TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
                         ? Object.values(FORMAT_OPTIONS)
-                        : ['pdf', 'png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                        : ['pdf', 'png', 'csv'].map(
+                            key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                          )
                   }
                   placeholder={t('Select format')}
                 />

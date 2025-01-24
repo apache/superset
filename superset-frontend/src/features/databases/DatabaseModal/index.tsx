@@ -68,6 +68,7 @@ import {
   Engines,
   ExtraJson,
   CustomTextType,
+  DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
@@ -364,19 +365,26 @@ export function dbReducer(
         // Formatting wrapping google sheets table catalog
         const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
         const idx = action.payload.type?.split('-')[1];
-        const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
-        catalogToUpdate[action.payload.name] = action.payload.value;
+        const catalogToUpdate: CatalogObject =
+          catalogCopy[parseInt(idx, 10)] || {};
+        if (action.payload.value !== undefined) {
+          catalogToUpdate[action.payload.name as keyof CatalogObject] =
+            action.payload.value;
+        }
 
         // insert updated catalog to existing state
         catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
 
         // format catalog for state
         // eslint-disable-next-line array-callback-return
-        parametersCatalog = catalogCopy.reduce((obj, item: any) => {
-          const catalog = { ...obj };
-          catalog[item.name] = item.value;
-          return catalog;
-        }, {});
+        parametersCatalog = catalogCopy.reduce(
+          (obj, item: CatalogObject) => {
+            const catalog = { ...obj };
+            catalog[item.name as keyof CatalogObject] = item.value;
+            return catalog;
+          },
+          {} as Record<string, string>,
+        );
 
         return {
           ...trimmedState,
@@ -838,20 +846,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
          */
         if (
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
-          dbToUpdate.parameters?.[paramConfig]
+          dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters]
         ) {
-          if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
+          if (
+            typeof dbToUpdate.parameters?.[
+              paramConfig as keyof DatabaseParameters
+            ] === 'object'
+          ) {
             // add new encrypted extra to masked_encrypted_extra object
             additionalEncryptedExtra[paramConfig] =
-              dbToUpdate.parameters?.[paramConfig];
+              dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters];
             // The backend expects `masked_encrypted_extra` as a string for historical
             // reasons.
-            dbToUpdate.parameters[paramConfig] = JSON.stringify(
-              dbToUpdate.parameters[paramConfig],
-            );
+            dbToUpdate.parameters[paramConfig as keyof DatabaseParameters] =
+              JSON.stringify(
+                dbToUpdate.parameters[paramConfig as keyof DatabaseParameters],
+              );
           } else {
             additionalEncryptedExtra[paramConfig] = JSON.parse(
-              dbToUpdate.parameters?.[paramConfig] || '{}',
+              dbToUpdate.parameters?.[
+                paramConfig as keyof DatabaseParameters
+              ] || '{}',
             );
           }
         }
@@ -1544,12 +1559,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             type="info"
             showIcon
             message={
-              engineSpecificAlertMapping[db.engine]?.message ||
-              connectionAlert?.DEFAULT?.message
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.message || connectionAlert?.DEFAULT?.message
             }
             description={
-              engineSpecificAlertMapping[db.engine]?.description ||
-              connectionAlert?.DEFAULT?.description + ipAlert
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.description || connectionAlert?.DEFAULT?.description + ipAlert
             }
           />
         </StyledAlertMargin>

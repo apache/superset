@@ -40,6 +40,13 @@ interface AnnotationModalProps {
   show: boolean;
 }
 
+type ChangedAnnotationDataKey =
+  | 'end_dttm'
+  | 'start_dttm'
+  | 'changed_on_delta_humanized'
+  | 'json_metadata'
+  | 'long_descr';
+
 const StyledAnnotationTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
     ${({ theme }) => theme.gridUnit * 4}px auto;
@@ -183,7 +190,8 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       start_dttm: currentAnnotation ? currentAnnotation.start_dttm : '',
     };
 
-    data[target.name] = target.value;
+    // Remember to continously omit non-string attributes in `data` object
+    data[target.name as ChangedAnnotationDataKey] = target.value;
     setCurrentAnnotation(data);
   };
 

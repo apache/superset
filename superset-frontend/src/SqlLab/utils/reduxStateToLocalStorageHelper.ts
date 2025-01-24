@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { QueryResponse } from '@superset-ui/core';
+import type {
+  InnerQueryResults,
+  Query,
+  QueryResponse,
+  QueryResults,
+} from '@superset-ui/core';
 import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
 import type { ThunkDispatch } from 'redux-thunk';
 import { pick } from 'lodash';
@@ -71,6 +76,20 @@ export function emptyTablePersistData(tables: Table[]) {
     .filter(({ queryEditorId }) => Boolean(queryEditorId));
 }
 
+type InnerEmptyQueryResults = {
+  [key in string]: Query &
+    QueryResults & {
+      inLocalStorage?: boolean;
+    };
+};
+
+type EmptyQueryResults = Record<
+  string,
+  InnerEmptyQueryResults & {
+    results: InnerQueryResults | {};
+  }
+>;
+
 export function emptyQueryResults(
   queries: SqlLabRootState['sqlLab']['queries'],
 ) {
@@ -86,7 +105,7 @@ export function emptyQueryResults(
       [key]: query,
     };
     return updatedQueries;
-  }, {});
+  }, {} as EmptyQueryResults);
 }
 
 export function clearQueryEditors(queryEditors: QueryEditor[]) {
@@ -97,9 +116,9 @@ export function clearQueryEditors(queryEditors: QueryEditor[]) {
       .reduce(
         (accumulator, key) => ({
           ...accumulator,
-          [key]: editor[key],
+          [key]: editor[key as keyof QueryEditor],
         }),
-        {},
+        {} as Record<string, string>,
       ),
   );
 }
