@@ -64,8 +64,6 @@ These features flags are **safe for production**. They have been tested and will
 ### Flags on the path to feature launch and flag deprecation/removal
 
 - DASHBOARD_VIRTUALIZATION
-- DRILL_BY
-- DISABLE_LEGACY_DATASOURCE_EDITOR
 
 ### Flags retained for runtime configuration
 
@@ -79,6 +77,7 @@ independently. This new framework will also allow for non-boolean configurations
 - ALLOW_ADHOC_SUBQUERY
 - DASHBOARD_RBAC [(docs)](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard#manage-access-to-dashboards)
 - DATAPANEL_CLOSED_BY_DEFAULT
+- DRILL_BY
 - DRUID_JOINS
 - EMBEDDABLE_CHARTS
 - EMBEDDED_SUPERSET

@@ -462,10 +462,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
-    # With Superset 2.0, we are updating the default so that the legacy datasource
-    # editor no longer shows. Currently this is set to false so that the editor
-    # option does show, but we will be depreciating it.
-    "DISABLE_LEGACY_DATASOURCE_EDITOR": True,
     "ENABLE_TEMPLATE_PROCESSING": False,
     # Allow for javascript controls components
     # this enables programmers to customize certain charts (like the
