@@ -197,23 +197,20 @@ const HeaderActionsDropdown: React.FC<HeaderDropdownProps> = props => {
           />
         </Menu.Item>
       )}
-      <Menu.SubMenu
-        key={MenuKeys.Download}
+      <DownloadMenuItems
+        submenuKey={MenuKeys.Download}
         title={t('Download')}
         disabled={isLoading}
-      >
-        <DownloadMenuItems
-          data-test="download-menu"
-          pdfMenuItemTitle={t('Export to PDF')}
-          imageMenuItemTitle={t('Download as Image')}
-          dashboardTitle={dashboardTitle}
-          dashboardId={dashboardId}
-          logEvent={props.logEvent}
-        />
-      </Menu.SubMenu>
+        data-test="download-menu"
+        pdfMenuItemTitle={t('Export to PDF')}
+        imageMenuItemTitle={t('Download as Image')}
+        dashboardTitle={dashboardTitle}
+        dashboardId={dashboardId}
+        logEvent={props.logEvent}
+      />
       {userCanShare && (
         <ShareMenuItems
-          key={MenuKeys.Share}
+          submenuKey={MenuKeys.Share}
           disabled={isLoading}
           data-test="share-dashboard-menu-item"
           title={t('Share')}

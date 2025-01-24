@@ -17,18 +17,23 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { Menu, MenuProps } from 'src/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
+import { ComponentProps } from 'react';
 import { DownloadScreenshotFormat } from './types';
 import DownloadAsPdf from './DownloadAsPdf';
 import DownloadAsImage from './DownloadAsImage';
 
-export interface DownloadMenuItemProps {
+export interface DownloadMenuItemProps
+  extends ComponentProps<typeof Menu.SubMenu> {
   pdfMenuItemTitle: string;
   imageMenuItemTitle: string;
   dashboardTitle: string;
   logEvent?: Function;
   dashboardId: number;
+  title: string;
+  disabled?: boolean;
+  submenuKey: string;
 }
 
 const DownloadMenuItems = (props: DownloadMenuItemProps) => {
@@ -38,6 +43,10 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
     logEvent,
     dashboardId,
     dashboardTitle,
+    submenuKey,
+    disabled,
+    title,
+    ...rest
   } = props;
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
@@ -45,42 +54,35 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
 
   const downloadScreenshot = useDownloadScreenshot(dashboardId, logEvent);
 
-  const items: MenuProps['items'] = isWebDriverScreenshotEnabled
-    ? [
-        {
-          key: DownloadScreenshotFormat.PDF,
-          onClick: () => downloadScreenshot(DownloadScreenshotFormat.PDF),
-          label: pdfMenuItemTitle,
-        },
-        {
-          key: DownloadScreenshotFormat.PNG,
-          onClick: () => downloadScreenshot(DownloadScreenshotFormat.PNG),
-          label: imageMenuItemTitle,
-        },
-      ]
-    : [
-        {
-          key: DownloadScreenshotFormat.PDF,
-          label: (
-            <DownloadAsPdf
-              text={pdfMenuItemTitle}
-              dashboardTitle={dashboardTitle}
-              logEvent={logEvent}
-            />
-          ),
-        },
-        {
-          key: DownloadScreenshotFormat.PNG,
-          label: (
-            <DownloadAsImage
-              text={imageMenuItemTitle}
-              dashboardTitle={dashboardTitle}
-              logEvent={logEvent}
-            />
-          ),
-        },
-      ];
-  return <Menu items={items} />;
+  return isWebDriverScreenshotEnabled ? (
+    <Menu.SubMenu key={submenuKey} title={title} disabled={disabled} {...rest}>
+      <Menu.Item
+        key={DownloadScreenshotFormat.PDF}
+        onClick={() => downloadScreenshot(DownloadScreenshotFormat.PDF)}
+      >
+        {pdfMenuItemTitle}
+      </Menu.Item>
+      <Menu.Item
+        key={DownloadScreenshotFormat.PNG}
+        onClick={() => downloadScreenshot(DownloadScreenshotFormat.PNG)}
+      >
+        {imageMenuItemTitle}
+      </Menu.Item>
+    </Menu.SubMenu>
+  ) : (
+    <Menu.SubMenu key={submenuKey} title={title} disabled={disabled} {...rest}>
+      <DownloadAsPdf
+        text={pdfMenuItemTitle}
+        dashboardTitle={dashboardTitle}
+        logEvent={logEvent}
+      />
+      <DownloadAsImage
+        text={imageMenuItemTitle}
+        dashboardTitle={dashboardTitle}
+        logEvent={logEvent}
+      />
+    </Menu.SubMenu>
+  );
 };
 
 export default DownloadMenuItems;

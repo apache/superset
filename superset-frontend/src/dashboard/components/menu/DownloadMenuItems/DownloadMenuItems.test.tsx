@@ -26,6 +26,8 @@ const createProps = () => ({
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
   dashboardId: 123,
+  title: 'Download',
+  submenuKey: 'download',
 });
 
 const renderComponent = () => {

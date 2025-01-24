@@ -18,6 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import { logging, t } from '@superset-ui/core';
+import { Menu } from 'src/components/Menu';
 import { LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -44,8 +45,10 @@ export default function DownloadAsImage({
   };
 
   return (
-    <div onClick={onDownloadImage} role="button" tabIndex={0}>
-      {text}
-    </div>
+    <Menu.Item key="download-image">
+      <div onClick={onDownloadImage} role="button" tabIndex={0}>
+        {text}
+      </div>
+    </Menu.Item>
   );
 }

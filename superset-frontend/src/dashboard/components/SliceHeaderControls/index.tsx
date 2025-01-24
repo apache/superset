@@ -461,7 +461,7 @@ const SliceHeaderControls = (
           addDangerToast={addDangerToast}
           setOpenKeys={setOpenKeys}
           title={t('Share')}
-          key={MenuKeys.Share}
+          submenuKey={MenuKeys.Share}
         />
       )}
 
