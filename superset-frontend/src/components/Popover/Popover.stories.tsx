@@ -65,6 +65,9 @@ const TRIGGERS = {
 InteractivePopover.args = {
   content: 'Popover sample content',
   title: 'Popover title',
+  arrow: true,
+  open: false,
+  color: '#fff',
 };
 
 InteractivePopover.argTypes = {
@@ -77,5 +80,20 @@ InteractivePopover.argTypes = {
     name: TRIGGERS.label,
     control: { type: 'select' },
     options: TRIGGERS.options,
+  },
+  arrow: {
+    name: 'arrow',
+    control: { type: 'boolean' },
+    description: "Change arrow's visible state",
+  },
+  color: {
+    name: 'color',
+    control: { type: 'color' },
+    description: 'The background color of the popover.',
+  },
+  open: {
+    name: 'open',
+    control: { type: 'boolean' },
+    description: 'Whether the floating tooltip card is open or not.',
   },
 };
