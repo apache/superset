@@ -52,14 +52,6 @@ repos:
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
-  - repo: local
-    hooks:
-      - id: eslint
-        name: eslint
-        entry: bash -c 'cd superset-frontend && npm run eslint -- $(echo "$@" | sed "s|superset-frontend/||g")'
-        language: system
-        pass_filenames: true
-        files: \.(js|jsx|ts|tsx)$
   - repo: https://github.com/pre-commit/mirrors-prettier
     rev: v4.0.0-alpha.8 # Use the sha or tag you want to point at
     hooks:
@@ -68,6 +60,14 @@ repos:
           - prettier@3.3.3
         args: ["--ignore-path=./superset-frontend/.prettierignore"]
         files: "superset-frontend"
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd superset-frontend && npm run eslint -- $(echo "$@" | sed "s|superset-frontend/||g")'
+        language: system
+        pass_filenames: true
+        files: \.(js|jsx|ts|tsx)$
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
