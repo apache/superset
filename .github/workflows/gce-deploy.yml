@@ -8,6 +8,7 @@ on:
         branches:
           - dev
           - demo
+          - upgrade
     workflow_dispatch:
       inputs:
         environment:
@@ -55,6 +56,17 @@ jobs:
           echo "INFISICAL_PATH=/Demo/BI-Tool" >> $GITHUB_ENV
           echo "TAG=demo" >> $GITHUB_ENV
           echo "GIT_BRANCH=demo" >> $GITHUB_ENV
+
+      - name: Set Environment Variables for Upgrade
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_branch == 'upgrade'
+        run: |
+          echo "Setting environment for Upgrade"
+          echo "GCE_VM_NAME=cliente-x" >> $GITHUB_ENV
+          echo "GCE_PROJECT=client-x-429512" >> $GITHUB_ENV
+          echo "DIRECTORY_PATH=/home/clientx/superset" >> $GITHUB_ENV
+          echo "INFISICAL_PATH=/Client-X/BI-Tool" >> $GITHUB_ENV
+          echo "TAG=upgrade" >> $GITHUB_ENV
+          echo "GIT_BRANCH=upgrade" >> $GITHUB_ENV                   
 
       - name: Set Environment Variables
         if: github.event_name == 'workflow_dispatch'
