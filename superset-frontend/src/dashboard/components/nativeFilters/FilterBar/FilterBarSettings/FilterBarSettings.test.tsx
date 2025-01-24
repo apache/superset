@@ -206,19 +206,21 @@ test('On selection change, send request and update checked value', async () => {
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
-  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
-  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+  const verticalItem = await screen.findByText('Vertical (Left)');
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
 
-  // 1st check - checkmark appears immediately after click
+  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.hover(screen.getByText('Orientation of filter bar'));
+
+  const horizontalItem = await screen.findByText('Horizontal (Top)');
   expect(
-    await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
+    within(horizontalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
-  // successful query
+
   await waitFor(() =>
     expect(fetchMock.lastCall()?.[1]?.body).toEqual(
       JSON.stringify({
@@ -229,17 +231,16 @@ test('On selection change, send request and update checked value', async () => {
       }),
     ),
   );
-  await waitFor(() => {
-    const menuitems = screen.getAllByRole('menuitem');
-    expect(menuitems.length).toBeGreaterThanOrEqual(3);
-  });
 
-  // 2nd check - checkmark stays after successful query
+  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.hover(screen.getByText('Orientation of filter bar'));
+
+  const updatedHorizontalItem = await screen.findByText('Horizontal (Top)');
   expect(
-    await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
+    within(updatedHorizontalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
+    within(verticalItem.closest('li')!).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   fetchMock.reset();
