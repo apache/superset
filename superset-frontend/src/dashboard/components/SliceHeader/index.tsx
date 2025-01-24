@@ -270,7 +270,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
             {!uiConfig.hideChartControls && (
               <FiltersBadge chartId={slice.slice_id} />
             )}
-            <div
+            {/* <div
               role="button"
               tabIndex={0}
               style={{ display: 'inline-block', cursor: 'pointer' }}
@@ -295,7 +295,7 @@ const SliceHeader: FC<SliceHeaderProps> = ({
                   chartStatus,
                 },
               }}
-            />
+            /> */}
             {!uiConfig.hideChartControls && (
               <SliceHeaderControls
                 slice={slice}
