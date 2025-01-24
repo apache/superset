@@ -57,16 +57,16 @@ function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
     .trigger('mouseover');
 
   if (orientation === 'vertical') {
-    cy.get('.ant-dropdown-menu-item-selected')
+    cy.get('.antd5-menu-item-selected')
       .contains('Horizontal (Top)')
       .should('exist');
-    cy.get('.ant-dropdown-menu-item').contains('Vertical (Left)').click();
+    cy.get('.antd5-menu-item').contains('Vertical (Left)').click();
     cy.getBySel('dashboard-filters-panel').should('exist');
   } else {
-    cy.get('.ant-dropdown-menu-item-selected')
+    cy.get('.antd5-menu-item-selected')
       .contains('Vertical (Left)')
       .should('exist');
-    cy.get('.ant-dropdown-menu-item').contains('Horizontal (Top)').click();
+    cy.get('.antd5-menu-item').contains('Horizontal (Top)').click();
     cy.getBySel('loading-indicator').should('exist');
     cy.getBySel('filter-bar').should('exist');
     cy.getBySel('dashboard-filters-panel').should('not.exist');

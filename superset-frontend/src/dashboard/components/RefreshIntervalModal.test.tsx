@@ -23,6 +23,9 @@ import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import { HeaderActionsDropdown } from 'src/dashboard/components/Header/HeaderActionsDropdown';
+import { Provider } from 'react-redux';
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
@@ -81,10 +84,15 @@ const editModeOnProps = {
   editMode: true,
 };
 
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
 const setup = (overrides?: any) => (
-  <div className="dashboard-header">
-    <HeaderActionsDropdown {...editModeOnProps} {...overrides} />
-  </div>
+  <Provider store={store}>
+    <div className="dashboard-header">
+      <HeaderActionsDropdown {...editModeOnProps} {...overrides} />
+    </div>
+  </Provider>
 );
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});

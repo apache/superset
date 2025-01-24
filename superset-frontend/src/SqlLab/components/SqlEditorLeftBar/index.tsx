@@ -41,7 +41,7 @@ import { TableSelectorMultiple } from 'src/components/TableSelector';
 import { IconTooltip } from 'src/components/IconTooltip';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import type { DatabaseObject } from 'src/components/DatabaseSelector';
-import { emptyStateComponent } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import {
   getItem,
   LocalStorageKeys,
@@ -113,7 +113,7 @@ const SqlEditorLeftBar = ({
     'schema',
   ]);
 
-  const [emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
+  const [_emptyResultsWithSearch, setEmptyResultsWithSearch] = useState(false);
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
@@ -249,7 +249,7 @@ const SqlEditorLeftBar = ({
     <LeftBarStyles data-test="sql-editor-left-bar">
       <TableSelectorMultiple
         onEmptyResults={onEmptyResults}
-        emptyState={emptyStateComponent(emptyResultsWithSearch)}
+        emptyState={<EmptyState />}
         database={userSelectedDb}
         getDbList={handleDbList}
         handleError={handleError}

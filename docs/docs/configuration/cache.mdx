@@ -94,10 +94,9 @@ By default thumbnails are rendered per user, and will fall back to the Selenium 
 To always render thumbnails as a fixed user (`admin` in this example), use the following configuration:
 
 ```python
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import FixedExecutor
 
-THUMBNAIL_SELENIUM_USER = "admin"
-THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+THUMBNAIL_EXECUTORS = [FixedExecutor("admin")]
 ```
 
 
@@ -130,8 +129,6 @@ def init_thumbnail_cache(app: Flask) -> S3Cache:
 
 
 THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
-# Async selenium thumbnail task will use the following user
-THUMBNAIL_SELENIUM_USER = "Admin"
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can

@@ -54,6 +54,7 @@ import {
 import {
   deleteTopLevelTabs,
   handleComponentDrop,
+  clearDashboardHistory,
 } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -63,7 +64,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import Loading from 'src/components/Loading';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
@@ -104,7 +105,7 @@ const StyledHeader = styled.div`
     grid-row: 1;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 99;
     max-width: 100vw;
 
     .empty-droptarget:before {
@@ -665,8 +666,9 @@ const DashboardBuilder = () => {
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (
-            <EmptyStateBig
+            <EmptyState
               title={t('There are no charts added to this dashboard')}
+              size="large"
               description={
                 canEdit &&
                 t(
@@ -674,7 +676,10 @@ const DashboardBuilder = () => {
                 )
               }
               buttonText={canEdit && t('Edit the dashboard')}
-              buttonAction={() => dispatch(setEditMode(true))}
+              buttonAction={() => {
+                dispatch(setEditMode(true));
+                dispatch(clearDashboardHistory());
+              }}
               image="dashboard.svg"
             />
           )}

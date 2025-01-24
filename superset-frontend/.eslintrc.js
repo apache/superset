@@ -331,13 +331,18 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
-      'warn',
+      'error',
       {
         paths: [
           {
             name: 'antd',
             message:
               'Please import Ant components from the index of src/components',
+          },
+          {
+            name: 'antd-v5',
+            message:
+              'Please import Ant v5 components from the index of src/components',
           },
           {
             name: '@superset-ui/core',
