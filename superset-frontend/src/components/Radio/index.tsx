@@ -19,6 +19,7 @@
 import { Radio as Antd5Radio } from 'antd-v5';
 import React from 'react';
 import type { RadioChangeEvent, RadioGroupProps, RadioProps } from 'antd-v5';
+import type { CheckboxGroupProps } from 'antd-v5/es/checkbox';
 
 const verticalStyle: React.CSSProperties = {
   display: 'flex',
@@ -32,7 +33,7 @@ const VerticalGroup = (props: RadioGroupProps) => {
     <Antd5Radio.Group {...props} style={{ ...verticalStyle, ...props.style }} />)
 }
 
-export type { RadioChangeEvent, RadioGroupProps, RadioProps };
+export type { RadioChangeEvent, RadioGroupProps, RadioProps, CheckboxGroupProps };
 export const Radio = Object.assign(Antd5Radio, {
   Group: Antd5Radio.Group,
   Button: Antd5Radio.Button,

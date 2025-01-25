@@ -19,49 +19,44 @@
 
 import { useMemo, useState } from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import { Radio } from 'src/components/Radio';
+import { Radio, CheckboxGroupProps } from 'src/components/Radio';
 import { DrillByType } from '../types';
 
 export const useDisplayModeToggle = () => {
   const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
     DrillByType.Chart,
   );
-
-  const displayModeToggle = useMemo(
+const customButtons: CheckboxGroupProps<number>['options'] = [
+  { label: t('Chart'), value: DrillByType.Chart },
+  { label: t('Table'), value: DrillByType.Table },
+];
+    const displayModeToggle = useMemo(
     () => (
       <div
         css={(theme: SupersetTheme) => css`
           margin-bottom: ${theme.gridUnit * 6}px;
-          .ant-radio-button-wrapper-checked:not(
+          .antd5-radio-button-wrapper-checked:not(
               .ant-radio-button-wrapper-disabled
             ):focus-within {
             box-shadow: none;
           }
         `}
         data-test="drill-by-display-toggle"
-      >
+      > 
         <Radio.Group
           onChange={({ target: { value } }) => {
             setDrillByDisplayMode(value);
           }}
-          defaultValue={DrillByType.Chart}
-        >
-          <Radio.Button
-            value={DrillByType.Chart}
-            data-test="drill-by-chart-radio"
-          >
-            {t('Chart')}
-          </Radio.Button>
-          <Radio.Button
-            value={DrillByType.Table}
-            data-test="drill-by-table-radio"
-          >
-            {t('Table')}
-          </Radio.Button>
-        </Radio.Group>
+        defaultValue={DrillByType.Chart}
+        options={customButtons}
+        value={drillByDisplayMode}
+        optionType="button"
+        buttonStyle="outline"
+      />
       </div>
     ),
-    [],
+    [drillByDisplayMode],
   );
   return { displayModeToggle, drillByDisplayMode };
 };
+
