@@ -46,17 +46,6 @@ export const AlertGallery = () => (
             message={smallText}
             description={bigText}
             closable
-            closeIcon={
-              <span
-                aria-label="close icon"
-                style={{
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                }}
-              >
-                x
-              </span>
-            }
           />
         </div>
       </div>

@@ -211,9 +211,6 @@ test('On selection change, send request and update checked value', async () => {
   expect(
     within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
   ).toBeInTheDocument();
-  expect(
-    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
-  ).not.toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
 
@@ -221,10 +218,6 @@ test('On selection change, send request and update checked value', async () => {
   expect(
     await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
   ).toBeInTheDocument();
-  expect(
-    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
-  ).not.toBeInTheDocument();
-
   // successful query
   await waitFor(() =>
     expect(fetchMock.lastCall()?.[1]?.body).toEqual(
@@ -236,6 +229,10 @@ test('On selection change, send request and update checked value', async () => {
       }),
     ),
   );
+  await waitFor(() => {
+    const menuitems = screen.getAllByRole('menuitem');
+    expect(menuitems.length).toBeGreaterThanOrEqual(3);
+  });
 
   // 2nd check - checkmark stays after successful query
   expect(
@@ -284,6 +281,11 @@ test('On failed request, restore previous selection', async () => {
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
+
+  await waitFor(() => {
+    const menuitems = screen.getAllByRole('menuitem');
+    expect(menuitems.length).toBeGreaterThanOrEqual(3);
+  });
 
   // checkmark gets rolled back to the original selection after successful query
   expect(

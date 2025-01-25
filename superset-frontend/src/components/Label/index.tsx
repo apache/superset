@@ -31,7 +31,6 @@ import PublishedLabel from 'src/components/Label/reusable/PublishedLabel';
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
 export type Type =
-  | 'alert'
   | 'success'
   | 'warning'
   | 'danger'
@@ -64,16 +63,8 @@ export default function Label(props: LabelProps) {
     icon,
     ...rest
   } = props;
-  const {
-    alert,
-    primary,
-    secondary,
-    grayscale,
-    success,
-    warning,
-    error,
-    info,
-  } = colors;
+  const { primary, secondary, grayscale, success, warning, error, info } =
+    colors;
 
   let baseColor;
   if (type === 'primary') {
@@ -82,8 +73,6 @@ export default function Label(props: LabelProps) {
     baseColor = secondary;
   } else if (type === 'success') {
     baseColor = success;
-  } else if (type === 'alert') {
-    baseColor = alert;
   } else if (type === 'warning') {
     baseColor = warning;
   } else if (type === 'danger') {
