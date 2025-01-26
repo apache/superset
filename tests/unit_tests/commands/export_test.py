@@ -101,7 +101,7 @@ def test_export_assets_command(mocker: MockerFixture) -> None:
 
 @pytest.fixture
 def mock_export_tags_command_charts_dashboards(mocker):
-    export_tags = mocker.patch("superset.commands.tag.export.export_tags")
+    export_tags = mocker.patch("superset.commands.tag.export.ExportTagsCommand")
 
     def _mock_export(dashboard_ids=None, chart_ids=None):
         if not feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
