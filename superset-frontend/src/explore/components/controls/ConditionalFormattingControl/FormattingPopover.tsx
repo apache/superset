@@ -39,7 +39,7 @@ export const FormattingPopover = ({
     },
     [onChange],
   );
-
+console.log(columns, "columns")
   return (
     <Popover
       title={title}

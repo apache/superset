@@ -1,5 +1,6 @@
 {
   "name": "superset",
+  "private": true,
   "version": "0.0.0-dev",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "keywords": [
@@ -87,6 +88,7 @@
     "@emotion/styled": "^11.3.0",
     "@fontsource/fira-code": "^5.0.18",
     "@fontsource/inter": "^5.0.20",
+    "@react-spring/web": "^9.7.5",
     "@reduxjs/toolkit": "^1.9.3",
     "@rjsf/core": "^5.21.1",
     "@rjsf/utils": "^5.19.3",
@@ -146,6 +148,7 @@
     "geostyler-openlayers-parser": "^4.3.0",
     "geostyler-style": "^7.5.0",
     "geostyler-wfs-parser": "^2.0.3",
+    "global-box": "^2.0.2",
     "googleapis": "^130.0.0",
     "html-webpack-plugin": "^5.6.3",
     "immer": "^10.1.1",
@@ -373,7 +376,6 @@
     "yosay": {
       "ansi-regex": "^4.1.1"
     },
-    "puppeteer": "^22.4.1",
     "@types/react": "^16.9.53",
     "underscore": "^1.13.7",
     "fast-glob": {

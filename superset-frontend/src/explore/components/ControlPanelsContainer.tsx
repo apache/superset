@@ -526,7 +526,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         return true;
       };
     }
-
+// console.log(`control-${name}`, restProps)
+// console.log("querySections,", customizeSections)
     return (
       <StashFormDataContainer
         shouldStash={isVisible === false && disableStash !== true}
@@ -557,6 +558,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     section: ExpandedControlPanelSectionConfig,
   ) => {
     const { controls } = props;
+
+    console.log(section, "section", controls)
     const { label, description, visibility } = section;
 
     // Section label can be a ReactNode but in some places we want to

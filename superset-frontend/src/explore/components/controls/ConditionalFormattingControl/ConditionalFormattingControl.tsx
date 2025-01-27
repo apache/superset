@@ -138,6 +138,8 @@ const ConditionalFormattingControl = ({
         return `${columnName} ${operator} ${targetValue}`;
     }
   };
+  // console.log(props, "props")??
+  // console.log(conditionalFormattingConfigs, "conditionalFormattingConfigs", value)
 
   return (
     <div>

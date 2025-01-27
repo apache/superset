@@ -350,7 +350,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       },
     ];
   }
-
+console.log("WELCOMEE",SubmenuExtension,WelcomeMessageExtension,(!WelcomeTopExtension || !WelcomeMainExtension))
   return (
     <>
       {SubmenuExtension ? (

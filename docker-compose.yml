@@ -84,6 +84,7 @@ services:
         required: false
     build:
       <<: *common-build
+    image: apache/superset:4.1.1  # Указываем стабильную версию
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
