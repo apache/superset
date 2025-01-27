@@ -175,7 +175,7 @@ def get_form_data(
         # request params can overwrite the body
         if request_args_data:
             form_data.update(loads_request_json(request_args_data))
-        if request.json and request.json.get('url_params'):
+        if request.is_json and "url_params" in request.json:
             form_data["url_params"] = request.json["url_params"]
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
