@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { PureComponent } from 'react';
 import { isEmpty } from 'lodash';
 import { connect } from 'react-redux';
+import { t } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { URL_PARAMS } from 'src/constants';
 import ShareMenuItems from 'src/dashboard/components/menu/ShareMenuItems';
@@ -35,70 +36,65 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
-import { t } from '@superset-ui/core';
 
 const mapStateToProps = (state: RootState) => ({
   directPathToChild: state.dashboardState.directPathToChild,
 });
 
-const HeaderActionsDropdown: React.FC<HeaderDropdownProps> = props => {
-  const [css, setCss] = useState(props.customCss || '');
-  const [showReportSubMenu, setShowReportSubMenu] = useState<boolean | null>(
-    null,
-  );
+interface HeaderActionsDropdownState {
+  css: string;
+  showReportSubMenu: boolean | null;
+}
 
-  const {
-    dashboardTitle,
-    dashboardId,
-    dashboardInfo,
-    refreshFrequency,
-    shouldPersistRefreshFrequency,
-    editMode,
-    customCss,
-    colorNamespace,
-    colorScheme,
-    layout,
-    expandedSlices,
-    onSave,
-    userCanEdit,
-    userCanShare,
-    userCanSave,
-    userCanCurate,
-    isLoading,
-    refreshLimit,
-    refreshWarning,
-    lastModifiedTime,
-    addSuccessToast,
-    addDangerToast,
-    setIsDropdownVisible,
-    isDropdownVisible,
-    directPathToChild,
-    ...rest
-  } = props;
-
-  const changeCss = (newCss: string) => {
-    props.onChange();
-    props.updateCss(newCss);
-    setCss(newCss);
-    injectCustomCss(newCss);
+export class HeaderActionsDropdown extends PureComponent<
+  HeaderDropdownProps,
+  HeaderActionsDropdownState
+> {
+  static defaultProps = {
+    colorNamespace: undefined,
+    colorScheme: undefined,
+    refreshLimit: 0,
+    refreshWarning: null,
   };
 
-  const changeRefreshInterval = (
-    refreshInterval: number,
-    isPersistent: boolean,
-  ) => {
-    props.setRefreshFrequency(refreshInterval, isPersistent);
-    props.startPeriodicRender(refreshInterval * 1000);
+  constructor(props: HeaderDropdownProps) {
+    super(props);
+    this.state = {
+      css: props.customCss || '',
+      showReportSubMenu: null,
+    };
+  }
+
+  UNSAFE_componentWillReceiveProps(nextProps: HeaderDropdownProps) {
+    if (this.props.customCss !== nextProps.customCss) {
+      this.setState({ css: nextProps.customCss }, () => {
+        injectCustomCss(nextProps.customCss);
+      });
+    }
+  }
+
+  setShowReportSubMenu = (show: boolean) => {
+    this.setState({ showReportSubMenu: show });
   };
 
-  const handleMenuClick = ({ key }: Record<string, any>) => {
+  changeCss = (css: string) => {
+    this.props.onChange();
+    this.props.updateCss(css);
+  };
+
+  changeRefreshInterval = (refreshInterval: number, isPersistent: boolean) => {
+    this.props.setRefreshFrequency(refreshInterval, isPersistent);
+    this.props.startPeriodicRender(refreshInterval * 1000);
+  };
+
+  handleMenuClick = ({ key }: Record<string, any>) => {
     switch (key) {
       case MenuKeys.RefreshDashboard:
-        props.forceRefreshAllCharts();
-        props.addSuccessToast(t('Refreshing charts'));
+        this.props.forceRefreshAllCharts();
+        this.props.addSuccessToast(t('Refreshing charts'));
         break;
       case MenuKeys.EditProperties:
-        props.showPropertiesModal();
+        this.props.showPropertiesModal();
         break;
       case MenuKeys.ToggleFullscreen: {
         const url = getDashboardUrl({
@@ -110,176 +106,216 @@ const HeaderActionsDropdown: React.FC<HeaderDropdownProps> = props => {
         window.location.replace(url);
         break;
       }
-      case MenuKeys.ManageEmbedded:
-        props.manageEmbedded();
+      case MenuKeys.ManageEmbedded: {
+        this.props.manageEmbedded();
         break;
+      }
       default:
         break;
     }
   };
 
-  const emailTitle = t('Superset dashboard');
-  const emailSubject = `${emailTitle} ${dashboardTitle}`;
-  const emailBody = t('Check out this dashboard: ');
+  render() {
+    const {
+      dashboardTitle,
+      dashboardId,
+      dashboardInfo,
+      refreshFrequency,
+      shouldPersistRefreshFrequency,
+      editMode,
+      customCss,
+      colorNamespace,
+      colorScheme,
+      layout,
+      expandedSlices,
+      onSave,
+      userCanEdit,
+      userCanShare,
+      userCanSave,
+      userCanCurate,
+      isLoading,
+      refreshLimit,
+      refreshWarning,
+      lastModifiedTime,
+      addSuccessToast,
+      addDangerToast,
+      setIsDropdownVisible,
+      isDropdownVisible,
+      directPathToChild,
+      ...rest
+    } = this.props;
 
-  const isEmbedded = !dashboardInfo?.userId;
-  const url = getDashboardUrl({
-    pathname: window.location.pathname,
-    filters: getActiveFilters(),
-    hash: window.location.hash,
-  });
+    const emailTitle = t('Superset dashboard');
+    const emailSubject = `${emailTitle} ${dashboardTitle}`;
+    const emailBody = t('Check out this dashboard: ');
 
-  const refreshIntervalOptions =
-    dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
-  const dashboardComponentId = [...(directPathToChild || [])].pop();
-  return (
-    <Menu
-      mode="vertical"
-      selectable={false}
-      data-test="header-actions-menu"
-      {...rest}
-    >
-      {!editMode && (
-        <Menu.Item
-          key={MenuKeys.RefreshDashboard}
-          data-test="refresh-dashboard-menu-item"
+    const isEmbedded = !dashboardInfo?.userId;
+
+    const url = getDashboardUrl({
+      pathname: window.location.pathname,
+      filters: getActiveFilters(),
+      hash: window.location.hash,
+    });
+
+    const refreshIntervalOptions =
+      dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS;
+
+    const dashboardComponentId = [...(directPathToChild || [])].pop();
+
+    return (
+      <Menu selectable={false} data-test="header-actions-menu" {...rest}>
+        {!editMode && (
+          <Menu.Item
+            key={MenuKeys.RefreshDashboard}
+            data-test="refresh-dashboard-menu-item"
+            disabled={isLoading}
+            onClick={this.handleMenuClick}
+          >
+            {t('Refresh dashboard')}
+          </Menu.Item>
+        )}
+        {!editMode && !isEmbedded && (
+          <Menu.Item
+            key={MenuKeys.ToggleFullscreen}
+            onClick={this.handleMenuClick}
+          >
+            {getUrlParam(URL_PARAMS.standalone)
+              ? t('Exit fullscreen')
+              : t('Enter fullscreen')}
+          </Menu.Item>
+        )}
+        {editMode && (
+          <Menu.Item
+            key={MenuKeys.EditProperties}
+            onClick={this.handleMenuClick}
+          >
+            {t('Edit properties')}
+          </Menu.Item>
+        )}
+        {editMode && (
+          <Menu.Item key={MenuKeys.EditCss}>
+            <CssEditor
+              triggerNode={<div>{t('Edit CSS')}</div>}
+              initialCss={this.state.css}
+              onChange={this.changeCss}
+              addDangerToast={addDangerToast}
+            />
+          </Menu.Item>
+        )}
+        <Menu.Divider />
+        {userCanSave && (
+          <Menu.Item key={MenuKeys.SaveModal}>
+            <SaveModal
+              addSuccessToast={addSuccessToast}
+              addDangerToast={addDangerToast}
+              dashboardId={dashboardId}
+              dashboardTitle={dashboardTitle}
+              dashboardInfo={dashboardInfo}
+              saveType={SAVE_TYPE_NEWDASHBOARD}
+              layout={layout}
+              expandedSlices={expandedSlices}
+              refreshFrequency={refreshFrequency}
+              shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
+              lastModifiedTime={lastModifiedTime}
+              customCss={customCss}
+              colorNamespace={colorNamespace}
+              colorScheme={colorScheme}
+              onSave={onSave}
+              triggerNode={
+                <div data-test="save-as-menu-item">{t('Save as')}</div>
+              }
+              canOverwrite={userCanEdit}
+            />
+          </Menu.Item>
+        )}
+        <DownloadMenuItems
+          submenuKey={MenuKeys.Download}
           disabled={isLoading}
-          onClick={handleMenuClick}
-        >
-          {t('Refresh dashboard')}
-        </Menu.Item>
-      )}
-      {!editMode && !isEmbedded && (
-        <Menu.Item key={MenuKeys.ToggleFullscreen} onClick={handleMenuClick}>
-          {getUrlParam(URL_PARAMS.standalone)
-            ? t('Exit fullscreen')
-            : t('Enter fullscreen')}
-        </Menu.Item>
-      )}
-      {editMode && (
-        <Menu.Item key={MenuKeys.EditProperties} onClick={handleMenuClick}>
-          {t('Edit properties')}
-        </Menu.Item>
-      )}
-      {editMode && (
-        <Menu.Item key={MenuKeys.EditCss}>
-          <CssEditor
-            triggerNode={<div>{t('Edit CSS')}</div>}
-            initialCss={css}
-            onChange={changeCss}
-            addDangerToast={addDangerToast}
-          />
-        </Menu.Item>
-      )}
-      <Menu.Divider />
-      {userCanSave && (
-        <Menu.Item key={MenuKeys.SaveModal}>
-          <SaveModal
+          title={t('Download')}
+          pdfMenuItemTitle={t('Export to PDF')}
+          imageMenuItemTitle={t('Download as Image')}
+          dashboardTitle={dashboardTitle}
+          dashboardId={dashboardId}
+          logEvent={this.props.logEvent}
+        />
+        {userCanShare && (
+          <ShareMenuItems
+            submenuKey={MenuKeys.Share}
+            disabled={isLoading}
+            data-test="share-dashboard-menu-item"
+            title={t('Share')}
+            url={url}
+            copyMenuItemTitle={t('Copy permalink to clipboard')}
+            emailMenuItemTitle={t('Share permalink by email')}
+            emailSubject={emailSubject}
+            emailBody={emailBody}
             addSuccessToast={addSuccessToast}
             addDangerToast={addDangerToast}
             dashboardId={dashboardId}
-            dashboardTitle={dashboardTitle}
-            dashboardInfo={dashboardInfo}
-            saveType={SAVE_TYPE_NEWDASHBOARD}
-            layout={layout}
-            expandedSlices={expandedSlices}
-            refreshFrequency={refreshFrequency}
-            shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
-            lastModifiedTime={lastModifiedTime}
-            customCss={customCss}
-            colorNamespace={colorNamespace}
-            colorScheme={colorScheme}
-            onSave={onSave}
-            triggerNode={
-              <div data-test="save-as-menu-item">{t('Save as')}</div>
-            }
-            canOverwrite={userCanEdit}
+            dashboardComponentId={dashboardComponentId}
           />
-        </Menu.Item>
-      )}
-      <DownloadMenuItems
-        submenuKey={MenuKeys.Download}
-        title={t('Download')}
-        disabled={isLoading}
-        data-test="download-menu"
-        pdfMenuItemTitle={t('Export to PDF')}
-        imageMenuItemTitle={t('Download as Image')}
-        dashboardTitle={dashboardTitle}
-        dashboardId={dashboardId}
-        logEvent={props.logEvent}
-      />
-      {userCanShare && (
-        <ShareMenuItems
-          submenuKey={MenuKeys.Share}
-          disabled={isLoading}
-          data-test="share-dashboard-menu-item"
-          title={t('Share')}
-          url={url}
-          copyMenuItemTitle={t('Copy permalink to clipboard')}
-          emailMenuItemTitle={t('Share permalink by email')}
-          emailSubject={emailSubject}
-          emailBody={emailBody}
-          addSuccessToast={addSuccessToast}
-          addDangerToast={addDangerToast}
-          dashboardId={dashboardId}
-          dashboardComponentId={dashboardComponentId}
-        />
-      )}
-      {!editMode && userCanCurate && (
-        <Menu.Item key={MenuKeys.ManageEmbedded} onClick={handleMenuClick}>
-          {t('Embed dashboard')}
-        </Menu.Item>
-      )}
-      <Menu.Divider />
-      {!editMode ? (
-        showReportSubMenu ? (
-          <>
-            <Menu.SubMenu title={t('Manage email report')}>
+        )}
+        {!editMode && userCanCurate && (
+          <Menu.Item
+            key={MenuKeys.ManageEmbedded}
+            onClick={this.handleMenuClick}
+          >
+            {t('Embed dashboard')}
+          </Menu.Item>
+        )}
+        <Menu.Divider />
+        {!editMode ? (
+          this.state.showReportSubMenu ? (
+            <>
+              <Menu.SubMenu title={t('Manage email report')}>
+                <HeaderReportDropdown
+                  dashboardId={dashboardInfo.id}
+                  setShowReportSubMenu={this.setShowReportSubMenu}
+                  showReportSubMenu={this.state.showReportSubMenu}
+                  setIsDropdownVisible={setIsDropdownVisible}
+                  isDropdownVisible={isDropdownVisible}
+                  useTextMenu
+                />
+              </Menu.SubMenu>
+              <Menu.Divider />
+            </>
+          ) : (
+            <Menu>
               <HeaderReportDropdown
                 dashboardId={dashboardInfo.id}
-                setShowReportSubMenu={setShowReportSubMenu}
-                showReportSubMenu={showReportSubMenu}
+                setShowReportSubMenu={this.setShowReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}
                 useTextMenu
               />
-            </Menu.SubMenu>
-            <Menu.Divider />
-          </>
-        ) : (
-          <Menu>
-            <HeaderReportDropdown
-              dashboardId={dashboardInfo.id}
-              setShowReportSubMenu={setShowReportSubMenu}
-              setIsDropdownVisible={setIsDropdownVisible}
-              isDropdownVisible={isDropdownVisible}
-              useTextMenu
+            </Menu>
+          )
+        ) : null}
+        {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
+          <Menu.Item key={MenuKeys.SetFilterMapping}>
+            <FilterScopeModal
+              triggerNode={
+                <div className="m-r-5">{t('Set filter mapping')}</div>
+              }
             />
-          </Menu>
-        )
-      ) : null}
-      {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (
-        <Menu.Item key={MenuKeys.SetFilterMapping}>
-          <FilterScopeModal
-            triggerNode={<div className="m-r-5">{t('Set filter mapping')}</div>}
+          </Menu.Item>
+        )}
+
+        <Menu.Item key={MenuKeys.AutorefreshModal}>
+          <RefreshIntervalModal
+            addSuccessToast={addSuccessToast}
+            refreshFrequency={refreshFrequency}
+            refreshLimit={refreshLimit}
+            refreshWarning={refreshWarning}
+            onChange={this.changeRefreshInterval}
+            editMode={editMode}
+            refreshIntervalOptions={refreshIntervalOptions}
+            triggerNode={<div>{t('Set auto-refresh interval')}</div>}
           />
         </Menu.Item>
-      )}
-
-      <Menu.Item key={MenuKeys.AutorefreshModal}>
-        <RefreshIntervalModal
-          addSuccessToast={addSuccessToast}
-          refreshFrequency={refreshFrequency}
-          refreshLimit={refreshLimit}
-          refreshWarning={refreshWarning}
-          onChange={changeRefreshInterval}
-          editMode={editMode}
-          refreshIntervalOptions={refreshIntervalOptions}
-          triggerNode={<div>{t('Set auto-refresh interval')}</div>}
-        />
-      </Menu.Item>
-    </Menu>
-  );
-};
+      </Menu>
+    );
+  }
+}
 
 export default connect(mapStateToProps)(HeaderActionsDropdown);

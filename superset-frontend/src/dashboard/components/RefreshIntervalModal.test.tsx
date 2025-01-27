@@ -85,7 +85,11 @@ const editModeOnProps = {
 };
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({
+  dashboardState: {
+    dashboardInfo: createProps().dashboardInfo,
+  },
+});
 
 const setup = (overrides?: any) => (
   <Provider store={store}>
