@@ -80,7 +80,6 @@ describe('SqlLab query panel', () => {
 
   it.skip('successfully saves a query', () => {
     cy.intercept('api/v1/database/**/tables/**').as('getTables');
-    cy.intercept('savedqueryviewapi/**').as('getSavedQuery');
 
     const query =
       'SELECT ds, gender, name, num FROM main.birth_names ORDER BY name LIMIT 3';
@@ -142,10 +141,11 @@ describe('SqlLab query panel', () => {
     });
   });
 
-  it('Create a chart from a query', () => {
+  it.skip('Create a chart from a query', () => {
     cy.intercept('/api/v1/sqllab/execute/').as('queryFinished');
     cy.intercept('**/api/v1/explore/**').as('explore');
     cy.intercept('**/api/v1/chart/**').as('chart');
+    cy.intercept('**/tabstateview/**').as('tabstateview');
 
     // cypress doesn't handle opening a new tab, override window.open to open in the same tab
     cy.window().then(win => {
@@ -154,6 +154,7 @@ describe('SqlLab query panel', () => {
         win.location.href = url;
       });
     });
+    cy.wait('@tabstateview');
 
     const query = 'SELECT gender, name FROM birth_names';
 

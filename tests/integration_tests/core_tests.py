@@ -52,7 +52,6 @@ from superset.sql_parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
-from superset.views.database.views import DatabaseView
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -270,13 +269,6 @@ class TestCore(SupersetTestCase):
         resp = self.client.get(url)
         assert resp.status_code == 200
 
-    def test_get_user_slices(self):
-        self.login(ADMIN_USERNAME)
-        userid = security_manager.find_user("admin").id
-        url = f"/sliceasync/api/read?_flt_0_created_by={userid}"
-        resp = self.client.get(url)
-        assert resp.status_code == 200
-
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     def test_slices_V2(self):  # noqa: N802
         # Add explore-v2-beta role to admin user
@@ -327,25 +319,6 @@ class TestCore(SupersetTestCase):
             assert conn.password != conn_pre.password
         # Disable for password store for later tests
         models.custom_password_store = None
-
-    def test_databaseview_edit(self):
-        # validate that sending a password-masked uri does not over-write the decrypted
-        # uri
-        self.login(ADMIN_USERNAME)
-        database = superset.utils.database.get_example_database()
-        sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
-        url = f"databaseview/edit/{database.id}"
-        data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
-        data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
-        self.client.post(url, data=data)
-        database = superset.utils.database.get_example_database()
-        assert sqlalchemy_uri_decrypted == database.sqlalchemy_uri_decrypted
-
-        # Need to clean up after ourselves
-        database.impersonate_user = False
-        database.allow_dml = False
-        database.allow_run_async = False
-        db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:

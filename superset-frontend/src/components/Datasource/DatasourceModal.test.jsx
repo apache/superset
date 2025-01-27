@@ -101,11 +101,6 @@ describe('DatasourceModal', () => {
     expect(screen.getByTestId('datasource-editor')).toBeInTheDocument();
   });
 
-  it('renders a legacy data source btn', () => {
-    const button = screen.getByTestId('datasource-modal-legacy-edit');
-    expect(button).toBeInTheDocument();
-  });
-
   it('disables the save button when the datasource is managed externally', () => {
     // the render is currently in a before operation, so it needs to be cleaned up
     // we could alternatively move all the renders back into the tests or find a better

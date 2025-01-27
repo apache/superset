@@ -24,8 +24,8 @@ import pytest
 from flask_appbuilder.security.sqla.models import User
 
 from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.tasks.exceptions import ExecutorNotFoundError
-from superset.tasks.types import ExecutorType
+from superset.tasks.exceptions import InvalidExecutorError
+from superset.tasks.types import Executor, ExecutorType, FixedExecutor
 from superset.utils.core import DatasourceType, override_user
 
 if TYPE_CHECKING:
@@ -81,7 +81,7 @@ def prepare_datasource_mock(
     [
         (
             None,
-            [ExecutorType.SELENIUM],
+            [FixedExecutor("admin")],
             False,
             False,
             [],
@@ -214,13 +214,21 @@ def prepare_datasource_mock(
             False,
             False,
             [],
-            ExecutorNotFoundError(),
+            None,
+        ),
+        (
+            None,
+            [ExecutorType.FIXED_USER],
+            False,
+            False,
+            [],
+            InvalidExecutorError(),
         ),
     ],
 )
 def test_dashboard_digest(
     dashboard_overrides: dict[str, Any] | None,
-    execute_as: list[ExecutorType],
+    execute_as: list[Executor],
     has_current_user: bool,
     use_custom_digest: bool,
     rls_datasources: list[dict[str, Any]],
@@ -255,7 +263,7 @@ def test_dashboard_digest(
         patch.dict(
             app.config,
             {
-                "THUMBNAIL_EXECUTE_AS": execute_as,
+                "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_DASHBOARD_DIGEST_FUNC": func,
             },
         ),
@@ -282,7 +290,7 @@ def test_dashboard_digest(
     [
         (
             None,
-            [ExecutorType.SELENIUM],
+            [FixedExecutor("admin")],
             False,
             False,
             None,
@@ -345,13 +353,21 @@ def test_dashboard_digest(
             False,
             False,
             None,
-            ExecutorNotFoundError(),
+            None,
+        ),
+        (
+            None,
+            [ExecutorType.FIXED_USER],
+            False,
+            False,
+            None,
+            InvalidExecutorError(),
         ),
     ],
 )
 def test_chart_digest(
     chart_overrides: dict[str, Any] | None,
-    execute_as: list[ExecutorType],
+    execute_as: list[Executor],
     has_current_user: bool,
     use_custom_digest: bool,
     rls_datasource: dict[str, Any] | None,
@@ -383,7 +399,7 @@ def test_chart_digest(
         patch.dict(
             app.config,
             {
-                "THUMBNAIL_EXECUTE_AS": execute_as,
+                "THUMBNAIL_EXECUTORS": execute_as,
                 "THUMBNAIL_CHART_DIGEST_FUNC": func,
             },
         ),

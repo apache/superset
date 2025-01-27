@@ -882,7 +882,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_table_access
     @safe
     @statsd_metrics
-    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".table_extra_metadata_deprecated",

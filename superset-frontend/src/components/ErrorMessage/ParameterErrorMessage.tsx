@@ -107,18 +107,13 @@ function ParameterErrorMessage({
     </>
   );
 
-  const copyText = `${message}
-${triggerMessage}
-${extra.issue_codes.map(issueCode => issueCode.message).join('\n')}`;
-
   return (
     <ErrorAlert
-      title={t('Parameter error')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      copyText={copyText}
-      body={body}
+      errorType={t('Parameter error')}
+      type={level}
+      message={message}
+      description={subtitle}
+      descriptionDetails={body}
     />
   );
 }

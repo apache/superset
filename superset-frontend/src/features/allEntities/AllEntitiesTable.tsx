@@ -23,7 +23,7 @@ import { TagsList } from 'src/components/Tags';
 import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
 import Owner from 'src/types/Owner';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { NumberParam, useQueryParam } from 'use-query-params';
 
 const MAX_TAGS_TO_SHOW = 3;
@@ -160,8 +160,9 @@ export default function AllEntitiesTable({
           {renderTable('query')}
         </>
       ) : (
-        <EmptyStateBig
+        <EmptyState
           image="dashboard.svg"
+          size="large"
           title={t('No entities have this tag currently assigned')}
           buttonAction={() => setShowTagModal(true)}
           buttonText={t('Add tag to entities')}

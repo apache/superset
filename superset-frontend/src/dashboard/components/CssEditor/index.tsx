@@ -18,6 +18,7 @@
  */
 import { Key, ReactNode, PureComponent } from 'react';
 import { Dropdown } from 'src/components/Dropdown';
+import rison from 'rison';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
@@ -73,8 +74,8 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
 
   componentDidMount() {
     AceCssEditor.preload();
-
-    SupersetClient.get({ endpoint: '/csstemplateasyncmodelview/api/read' })
+    const query = rison.encode({ columns: ['template_name', 'css'] });
+    SupersetClient.get({ endpoint: `/api/v1/css_template/?q=${query}` })
       .then(({ json }) => {
         const templates = json.result.map(
           (row: { template_name: string; css: string }) => ({

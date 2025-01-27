@@ -131,8 +131,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.charts.data.api import ChartDataRestApi
         from superset.connectors.sqla.views import (
             RowLevelSecurityView,
-            SqlMetricInlineView,
-            TableColumnInlineView,
             TableModelView,
         )
         from superset.css_templates.api import CssTemplateRestApi
@@ -163,16 +161,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
         from superset.views.api import Api
-        from superset.views.chart.views import SliceAsync, SliceModelView
+        from superset.views.chart.views import SliceModelView
         from superset.views.core import Superset
-        from superset.views.css_templates import (
-            CssTemplateAsyncModelView,
-            CssTemplateModelView,
-        )
+        from superset.views.css_templates import CssTemplateModelView
         from superset.views.dashboard.views import (
             Dashboard,
             DashboardModelView,
-            DashboardModelViewAsync,
         )
         from superset.views.database.views import DatabaseView
         from superset.views.datasource.views import DatasetEditor, Datasource
@@ -183,7 +177,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.log.views import LogModelView
         from superset.views.sql_lab.views import (
             SavedQueryView,
-            SavedQueryViewApi,
             TableSchemaView,
             TabStateView,
         )
@@ -297,21 +290,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Setup views with no menu
         #
         appbuilder.add_view_no_menu(Api)
-        appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(Dashboard)
-        appbuilder.add_view_no_menu(DashboardModelViewAsync)
         appbuilder.add_view_no_menu(Datasource)
         appbuilder.add_view_no_menu(DatasetEditor)
         appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
         appbuilder.add_view_no_menu(SavedQueryView)
-        appbuilder.add_view_no_menu(SavedQueryViewApi)
-        appbuilder.add_view_no_menu(SliceAsync)
         appbuilder.add_view_no_menu(SqllabView)
-        appbuilder.add_view_no_menu(SqlMetricInlineView)
         appbuilder.add_view_no_menu(Superset)
-        appbuilder.add_view_no_menu(TableColumnInlineView)
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)

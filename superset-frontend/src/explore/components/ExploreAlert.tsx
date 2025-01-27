@@ -58,16 +58,16 @@ const AlertContainer = styled.div`
     }
 
     &.alert-type-warning {
-      border-color: ${theme.colors.alert.base};
-      background-color: ${theme.colors.alert.light2};
+      border-color: ${theme.colors.warning.base};
+      background-color: ${theme.colors.warning.light2};
 
       p {
-        color: ${theme.colors.alert.dark2};
+        color: ${theme.colors.warning.dark2};
       }
 
       & a:hover,
       & span[role='button']:hover {
-        color: ${theme.colors.alert.dark1};
+        color: ${theme.colors.warning.dark1};
       }
     }
   `}
