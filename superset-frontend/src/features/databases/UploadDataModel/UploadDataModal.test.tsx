@@ -605,7 +605,7 @@ test('form without required fields', async () => {
   await waitFor(() => screen.getByText('Table name is required'));
 });
 
-test('CSV, form post', async () => {
+test('CSV form post', async () => {
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -627,15 +627,15 @@ test('CSV, form post', async () => {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
-  await waitFor(() => screen.getByText('database1'));
-  await waitFor(() => screen.getByText('database2'));
+  await screen.findByText('database1');
+  await screen.findByText('database2');
 
   screen.getByText('database1').click();
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getAllByText('public'));
+  await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
   // Fill out form fields
@@ -653,7 +653,7 @@ test('CSV, form post', async () => {
   // Get the matching fetch calls made
   const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
-  const [_, options] = matchingCalls[0];
+  const [, options] = matchingCalls[0];
   const formData = options?.body as FormData;
   expect(formData.get('type')).toBe('csv');
   expect(formData.get('table_name')).toBe('table1');
@@ -663,7 +663,7 @@ test('CSV, form post', async () => {
   expect(fileData.name).toBe('test.csv');
 });
 
-test('Excel, form post', async () => {
+test('Excel form post', async () => {
   render(<UploadDataModal {...excelProps} />, {
     useRedux: true,
   });
@@ -685,15 +685,15 @@ test('Excel, form post', async () => {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
-  await waitFor(() => screen.getByText('database1'));
-  await waitFor(() => screen.getByText('database2'));
+  await screen.findByText('database1');
+  await screen.findByText('database2');
 
   screen.getByText('database1').click();
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getAllByText('public'));
+  await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
   // Fill out form fields
@@ -711,7 +711,7 @@ test('Excel, form post', async () => {
   // Get the matching fetch calls made
   const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
-  const [_, options] = matchingCalls[0];
+  const [, options] = matchingCalls[0];
   const formData = options?.body as FormData;
   expect(formData.get('type')).toBe('excel');
   expect(formData.get('table_name')).toBe('table1');
@@ -721,7 +721,7 @@ test('Excel, form post', async () => {
   expect(fileData.name).toBe('test.xls');
 });
 
-test('Columnar, form post', async () => {
+test('Columnar form post', async () => {
   render(<UploadDataModal {...columnarProps} />, {
     useRedux: true,
   });
@@ -743,15 +743,15 @@ test('Columnar, form post', async () => {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
-  await waitFor(() => screen.getByText('database1'));
-  await waitFor(() => screen.getByText('database2'));
+  await screen.findByText('database1');
+  await screen.findByText('database2');
 
   screen.getByText('database1').click();
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getAllByText('public'));
+  await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
   // Fill out form fields
@@ -769,7 +769,7 @@ test('Columnar, form post', async () => {
   // Get the matching fetch calls made
   const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
-  const [_, options] = matchingCalls[0];
+  const [, options] = matchingCalls[0];
   const formData = options?.body as FormData;
   expect(formData.get('type')).toBe('columnar');
   expect(formData.get('table_name')).toBe('table1');
