@@ -107,6 +107,12 @@ describe('DatasourceControl', () => {
       expect(screen.queryAllByRole('menuitem')).toHaveLength(3);
     });
 
+    // Close the menu
+    userEvent.click(document.body);
+    await waitFor(() => {
+      expect(screen.queryAllByRole('menuitem')).toHaveLength(0);
+    });
+
     rerender(<DatasourceControl {...{ ...props, isEditable: false }} />, {
       useRedux: true,
       useRouter: true,
