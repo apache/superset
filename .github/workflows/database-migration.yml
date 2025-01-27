@@ -11,7 +11,8 @@ on:
         type: choice
         options:
           - January
-          - Caliza           
+          - Caliza
+          - PayFacto
       destiny_environment:
         description: 'Destiny environment'
         required: true
@@ -73,6 +74,16 @@ jobs:
             echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV                    
             echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                           
             ;;
+          PayFacto)
+            echo "Setting environment for PayFacto"
+            echo "GCE_ORIGIN_VM_NAME=payfacto"  >> $GITHUB_ENV 
+            echo "GCE_ORIGIN_PROJECT=payfacto-445115"  >> $GITHUB_ENV              
+            echo "ORIGIN_DIRECTORY_PATH=/home/payfacto/superset" >> $GITHUB_ENV
+            echo "ORIGIN_INFISICAL_PATH=/PayFacto/BI-Tool" >> $GITHUB_ENV
+            echo "ORIGIN_TAG=latest" >> $GITHUB_ENV     
+            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV               
+            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                               
+            ;;              
           *)
             echo "Unknown environment"
             exit 1
