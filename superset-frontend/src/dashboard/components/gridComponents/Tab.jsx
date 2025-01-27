@@ -312,8 +312,8 @@ const Tab = props => {
           ref={dragSourceRef}
         >
           <EditableTitle
-            title={component.meta.text}
-            defaultTitle={component.meta.defaultText}
+            title={t(component.meta.text)}
+            defaultTitle={t(component.meta.defaultText)}
             placeholder={component.meta.placeholder}
             canEdit={editMode && isFocused}
             onSaveTitle={handleChangeText}

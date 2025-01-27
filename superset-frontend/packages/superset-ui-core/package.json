@@ -34,6 +34,7 @@
     "d3-time-format": "^4.1.0",
     "fetch-retry": "^6.0.0",
     "jed": "^1.1.1",
+    "locale-currency": "^0.0.2",
     "lodash": "^4.17.21",
     "math-expression-evaluator": "^2.0.6",
     "pretty-ms": "^9.2.0",

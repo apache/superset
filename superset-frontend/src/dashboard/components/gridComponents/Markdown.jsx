@@ -294,13 +294,15 @@ class Markdown extends PureComponent {
   renderPreviewMode() {
     const { hasError } = this.state;
 
+    const translatedMarkdownSource = t(
+      hasError
+        ? MARKDOWN_ERROR_MESSAGE
+        : this.state.markdownSource || MARKDOWN_PLACE_HOLDER,
+    );
+
     return (
       <SafeMarkdown
-        source={
-          hasError
-            ? MARKDOWN_ERROR_MESSAGE
-            : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
-        }
+        source={translatedMarkdownSource}
         htmlSanitization={this.props.htmlSanitization}
         htmlSchemaOverrides={this.props.htmlSchemaOverrides}
       />
