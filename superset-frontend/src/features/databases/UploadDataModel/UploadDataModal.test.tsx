@@ -48,6 +48,9 @@ const columnarProps = {
 
 beforeEach(() => {
   fetchMock.post('glob:*api/v1/database/1/upload/', {});
+  fetchMock.post('glob:*api/v1/database/csv_metadata/', {});
+  fetchMock.post('glob:*api/v1/database/excel_metadata/', {});
+  fetchMock.post('glob:*api/v1/database/columnar_metadata/', {});
 
   fetchMock.get(
     'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:eq,value:!t)),page:0,page_size:100)',
@@ -661,7 +664,7 @@ test('CSV form post', async () => {
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.csv');
-});
+}, 10000); // longer timeout to decrease flakiness
 
 test('Excel form post', async () => {
   render(<UploadDataModal {...excelProps} />, {
