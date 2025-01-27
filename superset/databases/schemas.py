@@ -20,7 +20,6 @@
 from __future__ import annotations
 
 import inspect
-import os
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -1233,16 +1232,6 @@ class CSVUploadPostSchema(BaseUploadPostSchema):
                     "Invalid JSON format for column_data_types"
                 ) from ex
         return data
-
-    @validates("file")
-    def validate_file_size(self, file: FileStorage) -> None:
-        file.flush()
-        size = os.fstat(file.fileno()).st_size
-        if (
-            current_app.config["CSV_UPLOAD_MAX_SIZE"] is not None
-            and size > current_app.config["CSV_UPLOAD_MAX_SIZE"]
-        ):
-            raise ValidationError([_("File size exceeds the maximum allowed size.")])
 
 
 class ExcelUploadPostSchema(BaseUploadPostSchema):
