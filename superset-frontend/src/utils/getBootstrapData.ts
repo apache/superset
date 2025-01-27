@@ -29,5 +29,6 @@ export default function getBootstrapData(): BootstrapData {
       ? JSON.parse(dataBootstrap)
       : DEFAULT_BOOTSTRAP_DATA;
   }
-  return cachedBootstrapData;
+  // Add a fallback to ensure the returned value is always of type BootstrapData
+  return cachedBootstrapData ?? DEFAULT_BOOTSTRAP_DATA;
 }
