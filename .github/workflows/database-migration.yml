@@ -7,11 +7,10 @@ on:
       origin_environment:
         description: 'Origin environment'
         required: true
-        default: 'Travcoding'
+        default: 'January'
         type: choice
         options:
           - January
-          - Travcoding
           - Caliza           
       destiny_environment:
         description: 'Destiny environment'
@@ -63,16 +62,6 @@ jobs:
             echo "ORIGIN_TAG=latest" >> $GITHUB_ENV    
             echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV    
             echo "GCE_ORIGIN_ZONE=us-central1-a" >> $GITHUB_ENV                    
-            ;;
-          Travcoding)
-            echo "Setting environment for Travcoding"
-            echo "GCE_ORIGIN_VM_NAME=travcoding"  >> $GITHUB_ENV 
-            echo "GCE_ORIGIN_PROJECT=travcoding-430213"  >> $GITHUB_ENV
-            echo "ORIGIN_DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
-            echo "ORIGIN_INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
-            echo "DESTINY_TAG=latest" >> $GITHUB_ENV     
-            echo "ORIGIN_GIT_BRANCH=master" >> $GITHUB_ENV   
-            echo "GCE_ORIGIN_ZONE=us-central1-c" >> $GITHUB_ENV                                            
             ;;
           Caliza)
             echo "Setting environment for Caliza"

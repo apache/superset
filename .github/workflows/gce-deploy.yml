@@ -14,11 +14,10 @@ on:
         environment:
           description: 'Select environment'
           required: true
-          default: 'Travcoding'
+          default: 'January'
           type: choice
           options:
             - January
-            - Travcoding
             - Caliza
             - PayFacto
 
@@ -81,15 +80,6 @@ jobs:
               echo "TAG=latest" >> $GITHUB_ENV    
               echo "GIT_BRANCH=master" >> $GITHUB_ENV    
               echo "GCE_ZONE=us-central1-a" >> $GITHUB_ENV                    
-              ;;
-            Travcoding)
-              echo "Setting environment for Travcoding"
-              echo "GCE_VM_NAME=travcoding"  >> $GITHUB_ENV 
-              echo "GCE_PROJECT=travcoding-430213"  >> $GITHUB_ENV
-              echo "DIRECTORY_PATH=/home/travcoding/superset" >> $GITHUB_ENV
-              echo "INFISICAL_PATH=/Travcoding/BI-Tool" >> $GITHUB_ENV
-              echo "TAG=latest" >> $GITHUB_ENV     
-              echo "GIT_BRANCH=master" >> $GITHUB_ENV                               
               ;;
             Caliza)
               echo "Setting environment for Caliza"
