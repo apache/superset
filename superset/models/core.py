@@ -72,13 +72,18 @@ from superset.extensions import (
     security_manager,
     ssh_manager_factory,
 )
-from superset.models.helpers import AuditMixinNullable, ImportExportMixin
+from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
 from superset.result_set import SupersetResultSet
+from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
-from superset.superset_typing import OAuth2ClientConfig, ResultSetColumnType
+from superset.superset_typing import (
+    DbapiDescription,
+    OAuth2ClientConfig,
+    ResultSetColumnType,
+)
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
-from superset.utils.core import DatasourceName, get_username
+from superset.utils.core import get_username
 from superset.utils.oauth2 import get_oauth2_access_token, OAuth2ClientConfigSchema
 
 config = app.config
@@ -103,7 +108,7 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     value = Column(utils.MediumText(), nullable=False)
 
 
-class CssTemplate(Model, AuditMixinNullable):
+class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     """CSS templates for dashboards"""
 
     __tablename__ = "css_templates"
@@ -454,7 +459,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     sqlalchemy_uri=sqlalchemy_uri,
                 )
 
-    def _get_sqla_engine(  # pylint: disable=too-many-locals
+    def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
         catalog: str | None = None,
         schema: str | None = None,
@@ -580,7 +585,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         ) as engine:
             try:
                 with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected schema and, in the
+                    # pre-session queries are used to set the selected schema and, in the  # noqa: E501
                     # future, the selected catalog
                     for prequery in self.db_engine_spec.get_prequeries(
                         database=self,
@@ -622,7 +627,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         can change the default schema on a per-query basis; in other DB engine specs the
         default schema is defined in the SQLAlchemy URI; and in others the default schema
         might be determined by the database itself (like `public` for Postgres).
-        """
+        """  # noqa: E501
         return self.db_engine_spec.get_default_schema_for_query(self, query)
 
     @staticmethod
@@ -657,7 +662,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
           sql is broken down into smaller queries. If False, the SQL query mutator applies
           on the group of queries as a whole. Here the called passes the context
           as to whether the SQL is split or already.
-        """
+        """  # noqa: E501
         sql_mutator = config["SQL_QUERY_MUTATOR"]
         if sql_mutator and (is_split == config["MUTATE_AFTER_SPLIT"]):
             return sql_mutator(
@@ -667,7 +672,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             )
         return sql_
 
-    def get_df(  # pylint: disable=too-many-locals
+    def get_df(
         self,
         sql: str,
         catalog: str | None = None,
@@ -700,26 +705,43 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     object_ref=__name__,
                 ):
                     self.db_engine_spec.execute(cursor, sql_, self)
-                    if i < len(sqls) - 1:
-                        # If it's not the last, we don't keep the results
-                        cursor.fetchall()
-                    else:
-                        # Last query, fetch and process the results
-                        data = self.db_engine_spec.fetch_data(cursor)
-                        result_set = SupersetResultSet(
-                            data, cursor.description, self.db_engine_spec
-                        )
-                        df = result_set.to_pandas_df()
+
+                rows = self.fetch_rows(cursor, i == len(sqls) - 1)
+                if rows is not None:
+                    df = self.load_into_dataframe(cursor.description, rows)
+
             if mutator:
                 df = mutator(df)
 
             return self.post_process_df(df)
+
+    @event_logger.log_this
+    def fetch_rows(self, cursor: Any, last: bool) -> list[tuple[Any, ...]] | None:
+        if not last:
+            cursor.fetchall()
+            return None
+
+        return self.db_engine_spec.fetch_data(cursor)
+
+    @event_logger.log_this
+    def load_into_dataframe(
+        self,
+        description: DbapiDescription,
+        data: list[tuple[Any, ...]],
+    ) -> pd.DataFrame:
+        result_set = SupersetResultSet(
+            data,
+            description,
+            self.db_engine_spec,
+        )
+        return result_set.to_pandas_df()
 
     def compile_sqla_query(
         self,
         qry: Select,
         catalog: str | None = None,
         schema: str | None = None,
+        is_virtual: bool = False,
     ) -> str:
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
@@ -727,6 +749,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             # pylint: disable=protected-access
             if engine.dialect.identifier_preparer._double_percents:  # noqa
                 sql = sql.replace("%%", "%")
+
+        # for nwo we only optimize queries on virtual datasources, since the only
+        # optimization available is predicate pushdown
+        if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
+            script = SQLScript(sql, self.db_engine_spec.engine).optimize()
+            sql = script.format()
 
         return sql
 
@@ -763,14 +791,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return self.sqlalchemy_uri
 
     @cache_util.memoized_func(
-        key="db:{self.id}:schema:{schema}:table_list",
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:table_list",
         cache=cache_manager.cache,
     )
     def get_all_table_names_in_schema(
         self,
         catalog: str | None,
         schema: str,
-    ) -> set[DatasourceName]:
+    ) -> set[tuple[str, str, str | None]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -786,7 +814,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         try:
             with self.get_inspector(catalog=catalog, schema=schema) as inspector:
                 return {
-                    DatasourceName(table, schema, catalog)
+                    (table, schema, catalog)
                     for table in self.db_engine_spec.get_table_names(
                         database=self,
                         inspector=inspector,
@@ -797,14 +825,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 
     @cache_util.memoized_func(
-        key="db:{self.id}:schema:{schema}:view_list",
+        key="db:{self.id}:catalog:{catalog}:schema:{schema}:view_list",
         cache=cache_manager.cache,
     )
     def get_all_view_names_in_schema(
         self,
         catalog: str | None,
         schema: str,
-    ) -> set[DatasourceName]:
+    ) -> set[tuple[str, str, str | None]]:
         """Parameters need to be passed as keyword arguments.
 
         For unused parameters, they are referenced in
@@ -820,7 +848,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         try:
             with self.get_inspector(catalog=catalog, schema=schema) as inspector:
                 return {
-                    DatasourceName(view, schema, catalog)
+                    (view, schema, catalog)
                     for view in self.db_engine_spec.get_view_names(
                         database=self,
                         inspector=inspector,
@@ -845,7 +873,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             yield sqla.inspect(engine)
 
     @cache_util.memoized_func(
-        key="db:{self.id}:schema_list",
+        key="db:{self.id}:catalog:{catalog}:schema_list",
         cache=cache_manager.cache,
     )
     def get_all_schema_names(
@@ -1049,7 +1077,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         return f"[{self.database_name}].(id:{self.id})"
 
     @perm.expression  # type: ignore
-    def perm(cls) -> str:  # pylint: disable=no-self-argument
+    def perm(cls) -> str:  # pylint: disable=no-self-argument  # noqa: N805
         return (
             "[" + cls.database_name + "].(id:" + expression.cast(cls.id, String) + ")"
         )
@@ -1207,7 +1235,7 @@ class FavStarClassName(StrEnum):
     DASHBOARD = "Dashboard"
 
 
-class FavStar(Model):  # pylint: disable=too-few-public-methods
+class FavStar(UUIDMixin, Model):
     __tablename__ = "favstar"
 
     id = Column(Integer, primary_key=True)

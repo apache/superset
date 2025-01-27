@@ -19,7 +19,7 @@
 import { FC } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
 import Alert from 'src/components/Alert';
-import { EmptyStateMedium } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
@@ -37,7 +37,7 @@ type Props = {
 
 const StyledEmptyStateWrapper = styled.div`
   height: 100%;
-  .ant-empty-image img {
+  .antd5-empty-image img {
     margin-right: 28px;
   }
 
@@ -67,7 +67,7 @@ const Results: FC<Props> = ({
   ) {
     return (
       <StyledEmptyStateWrapper>
-        <EmptyStateMedium
+        <EmptyState
           title={t('Run a query to display results')}
           image="document.svg"
         />

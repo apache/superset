@@ -21,7 +21,7 @@ import { forwardRef, useState, ReactNode, MouseEvent } from 'react';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
-interface ModalTriggerProps {
+export interface ModalTriggerProps {
   dialogClassName?: string;
   triggerNode: ReactNode;
   modalTitle?: string;
@@ -102,9 +102,9 @@ const ModalTrigger = forwardRef(
           </Button>
         )}
         {!isButton && (
-          <span data-test="span-modal-trigger" onClick={open} role="button">
+          <div data-test="span-modal-trigger" onClick={open} role="button">
             {triggerNode}
-          </span>
+          </div>
         )}
         <Modal
           className={className}

@@ -35,7 +35,7 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -50,7 +50,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { SelectValue } from 'antd/lib/select';
-import { isEmpty, isString } from 'lodash';
+import { isEmpty } from 'lodash';
 
 interface QueryDatabase {
   id?: number;
@@ -164,7 +164,7 @@ export const SaveDatasetModal = ({
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${dayjs().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SaveNew,
@@ -280,7 +280,7 @@ export const SaveDatasetModal = ({
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     let templateParams;
-    if (isString(datasource?.templateParams)) {
+    if (typeof datasource?.templateParams === 'string') {
       const p = JSON.parse(datasource.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {

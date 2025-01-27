@@ -31,6 +31,10 @@ export function interceptDelete() {
   cy.intercept('DELETE', `/api/v1/chart/*`).as('delete');
 }
 
+export function interceptFavoriteStatus() {
+  cy.intercept('GET', '/api/v1/chart/favorite_status/*').as('favoriteStatus');
+}
+
 export function interceptUpdate() {
   cy.intercept('PUT', `/api/v1/chart/*`).as('update');
 }
@@ -68,7 +72,10 @@ export function saveChartToDashboard(dashboardName: string) {
   interceptUpdate();
   interceptExploreGet();
 
-  cy.getBySel('query-save-button').click();
+  cy.getBySel('query-save-button')
+    .should('be.enabled')
+    .should('not.be.disabled')
+    .click();
   cy.getBySelLike('chart-modal').should('be.visible');
   cy.get(
     '[data-test="save-chart-modal-select-dashboard-form"] [aria-label="Select a dashboard"]',
@@ -77,7 +84,7 @@ export function saveChartToDashboard(dashboardName: string) {
     .click();
   cy.get(
     '.ant-select-selection-search-input[aria-label="Select a dashboard"]',
-  ).type(dashboardName.slice(0, 3), { force: true });
+  ).type(dashboardName, { force: true });
   cy.get(`.ant-select-item-option[title="${dashboardName}"]`).click();
   cy.getBySel('btn-modal-save').click();
 

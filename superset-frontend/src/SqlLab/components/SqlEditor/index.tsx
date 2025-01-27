@@ -50,7 +50,7 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
-import { debounce, throttle, isBoolean, isEmpty } from 'lodash';
+import { debounce, throttle, isEmpty } from 'lodash';
 import Modal from 'src/components/Modal';
 import Mousetrap from 'mousetrap';
 import Button from 'src/components/Button';
@@ -100,7 +100,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import Alert from 'src/components/Alert';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
@@ -281,9 +281,10 @@ const SqlEditor: FC<Props> = ({
     if (unsavedQueryEditor?.id === queryEditor.id) {
       dbId = unsavedQueryEditor.dbId || dbId;
       latestQueryId = unsavedQueryEditor.latestQueryId || latestQueryId;
-      hideLeftBar = isBoolean(unsavedQueryEditor.hideLeftBar)
-        ? unsavedQueryEditor.hideLeftBar
-        : hideLeftBar;
+      hideLeftBar =
+        typeof unsavedQueryEditor.hideLeftBar === 'boolean'
+          ? unsavedQueryEditor.hideLeftBar
+          : hideLeftBar;
     }
     return {
       hasSqlStatement: Boolean(queryEditor.sql?.trim().length > 0),
@@ -967,8 +968,9 @@ const SqlEditor: FC<Props> = ({
           <Skeleton active />
         </div>
       ) : showEmptyState && !hasSqlStatement ? (
-        <EmptyStateBig
+        <EmptyState
           image="vector.svg"
+          size="large"
           title={t('Select a database to write a query')}
           description={t(
             'Choose one of the available databases from the panel on the left.',

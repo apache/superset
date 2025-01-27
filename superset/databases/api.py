@@ -405,7 +405,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> FlaskResponse:
+    def post(self) -> FlaskResponse:  # noqa: C901
         """Create a new database.
         ---
         post:
@@ -882,7 +882,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_table_access
     @safe
     @statsd_metrics
-    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".table_extra_metadata_deprecated",
@@ -1632,10 +1632,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     )
     @requires_form_data
     def csv_metadata(self) -> Response:
-        """Upload an CSV file and returns file metadata.
+        """Upload a CSV file and returns file metadata.
         ---
         post:
-          summary: Upload an CSV file and returns file metadata
+          summary: Upload a CSV file and returns file metadata
           requestBody:
             required: true
             content:
@@ -2076,7 +2076,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if (
                 hasattr(engine_spec, "parameters_json_schema")
                 and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
-                and getattr(engine_spec, "default_driver") in drivers
+                and engine_spec.default_driver in drivers
             ):
                 payload["parameters"] = engine_spec.parameters_json_schema()
                 payload["sqlalchemy_uri_placeholder"] = (
@@ -2260,7 +2260,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         database = DatabaseDAO.find_by_id(pk)
         if not database:
             return self.response_404()

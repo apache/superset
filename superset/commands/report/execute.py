@@ -207,7 +207,7 @@ class BaseReportState:
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
-            return self._get_tab_url(dashboard_state)
+            return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
 
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
@@ -226,7 +226,7 @@ class BaseReportState:
     ) -> list[str]:
         """
         Retrieve the URL for the dashboard tabs, or return the dashboard URL if no tabs are available.
-        """
+        """  # noqa: E501
         force = "true" if self._report_schedule.force_screenshot else "false"
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
@@ -234,7 +234,7 @@ class BaseReportState:
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list: list[str] = json.loads(anchor)
-                    return self._get_tabs_urls(anchor_list)
+                    return self._get_tabs_urls(anchor_list, user_friendly=user_friendly)
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
             return [self._get_tab_url(dashboard_state)]
@@ -254,7 +254,9 @@ class BaseReportState:
             )
         ]
 
-    def _get_tab_url(self, dashboard_state: DashboardPermalinkState) -> str:
+    def _get_tab_url(
+        self, dashboard_state: DashboardPermalinkState, user_friendly: bool = False
+    ) -> str:
         """
         Get one tab url
         """
@@ -262,9 +264,15 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
-        return get_url_path("Superset.dashboard_permalink", key=permalink_key)
+        return get_url_path(
+            "Superset.dashboard_permalink",
+            key=permalink_key,
+            user_friendly=user_friendly,
+        )
 
-    def _get_tabs_urls(self, tab_anchors: list[str]) -> list[str]:
+    def _get_tabs_urls(
+        self, tab_anchors: list[str], user_friendly: bool = False
+    ) -> list[str]:
         """
         Get multple tabs urls
         """
@@ -275,7 +283,8 @@ class BaseReportState:
                     "dataMask": None,
                     "activeTabs": None,
                     "urlParams": None,
-                }
+                },
+                user_friendly=user_friendly,
             )
             for tab_anchor in tab_anchors
         ]
@@ -286,7 +295,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -351,7 +360,7 @@ class BaseReportState:
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -380,7 +389,7 @@ class BaseReportState:
         """
         url = self._get_url(result_format=ChartDataResultFormat.JSON)
         _, username = get_executor(
-            executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+            executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
         )
         user = security_manager.find_user(username)
@@ -455,7 +464,7 @@ class BaseReportState:
         }
         return log_data
 
-    def _get_notification_content(self) -> NotificationContent:
+    def _get_notification_content(self) -> NotificationContent:  # noqa: C901
         """
         Gets a notification content, this is composed by a title and a screenshot
 
@@ -689,7 +698,7 @@ class ReportNotTriggeredErrorState(BaseReportState):
         try:
             # If it's an alert check if the alert is triggered
             if self._report_schedule.type == ReportScheduleType.ALERT:
-                if not AlertCommand(self._report_schedule).run():
+                if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             self.send()
@@ -773,7 +782,7 @@ class ReportSuccessState(BaseReportState):
                 return
             self.update_report_schedule_and_log(ReportState.WORKING)
             try:
-                if not AlertCommand(self._report_schedule).run():
+                if not AlertCommand(self._report_schedule, self._execution_id).run():
                     self.update_report_schedule_and_log(ReportState.NOOP)
                     return
             except Exception as ex:
@@ -850,7 +859,7 @@ class AsyncExecuteReportScheduleCommand(BaseCommand):
             if not self._model:
                 raise ReportScheduleExecuteUnexpectedError()
             _, username = get_executor(
-                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._model,
             )
             user = security_manager.find_user(username)

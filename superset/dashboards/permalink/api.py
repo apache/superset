@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import request, Response
+from flask import request, Response, url_for
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
@@ -98,8 +98,7 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                 dashboard_id=pk,
                 state=state,
             ).run()
-            http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/superset/dashboard/p/{key}/"
+            url = url_for("Superset.dashboard_permalink", key=key, _external=True)
             return self.response(201, key=key, url=url)
         except (ValidationError, DashboardPermalinkInvalidStateError) as ex:
             return self.response(400, message=str(ex))

@@ -21,6 +21,7 @@ import { DashboardComponentMetadata, JsonObject, t } from '@superset-ui/core';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import cx from 'classnames';
 import { shallowEqual, useSelector } from 'react-redux';
+import { ResizeCallback, ResizeStartCallback } from 're-resizable';
 import { Draggable } from '../dnd/DragDroppable';
 import { COLUMN_TYPE, ROW_TYPE } from '../../util/componentTypes';
 import WithPopoverMenu from '../menu/WithPopoverMenu';
@@ -45,9 +46,9 @@ type FilterSummaryType = {
   editMode: boolean;
   columnWidth: number;
   availableColumnCount: number;
-  onResizeStart: Function;
-  onResizeStop: Function;
-  onResize: Function;
+  onResizeStart: ResizeStartCallback;
+  onResizeStop: ResizeCallback;
+  onResize: ResizeCallback;
   deleteComponent: Function;
   updateComponents: Function;
   parentId: number;
@@ -140,6 +141,7 @@ const DynamicComponent: FC<FilterSummaryType> = ({
           >
             <ResizableContainer
               id={component.id}
+              editMode={editMode}
               adjustableWidth={parentComponent.type === ROW_TYPE}
               widthStep={columnWidth}
               widthMultiple={widthMultiple}

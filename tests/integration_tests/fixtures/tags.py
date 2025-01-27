@@ -24,7 +24,6 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
-@pytest.mark.usefixtures("app_context")
 def with_tagging_system_feature():
     is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
     if not is_enabled:
@@ -50,7 +49,7 @@ def create_custom_tags():
 
         yield tags
 
-        for tags in tags:
+        for tags in tags:  # noqa: B020
             db.session.delete(tags)
         db.session.commit()
 

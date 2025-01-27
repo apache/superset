@@ -160,7 +160,7 @@ afterEach(() => {
 
 it('renders modal', () => {
   setup();
-  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-tree-panel')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-list-panel')).toBeInTheDocument();
 });

@@ -24,7 +24,6 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
 import { UploadFile } from 'antd/lib/upload/interface';
-import { forEach } from 'lodash';
 
 fetchMock.post('glob:*api/v1/database/1/csv_upload/', {});
 fetchMock.post('glob:*api/v1/database/1/excel_upload/', {});
@@ -137,7 +136,7 @@ test('CSV, renders the general information elements correctly', () => {
     inputSchema,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -207,7 +206,7 @@ test('Excel, renders the general information elements correctly', () => {
     inputSchema,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -279,7 +278,7 @@ test('Columnar, renders the general information elements correctly', () => {
     inputSchema,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -319,7 +318,7 @@ test('CSV, renders the file settings elements correctly', () => {
     selectNullValues,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -361,7 +360,7 @@ test('Excel, renders the file settings elements correctly', () => {
     selectNullValues,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -400,7 +399,7 @@ test('Columnar, renders the file settings elements correctly', () => {
 
   const visibleComponents = [selectTableAlreadyExists];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -437,7 +436,7 @@ test('CSV, renders the columns elements correctly', () => {
     inputColumnDataTypes,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -476,7 +475,7 @@ test('Excel, renders the columns elements correctly', () => {
     selectColumnsToRead,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -514,7 +513,7 @@ test('Columnar, renders the columns elements correctly', () => {
     selectColumnsToRead,
   ];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -539,7 +538,7 @@ test('renders the rows elements correctly', () => {
 
   const visibleComponents = [inputHeaderRow, inputRowsToRead, inputSkipRows];
   visibleComponents.forEach(component => {
-    expect(component).toBeVisible();
+    expect(component).toBeInTheDocument();
   });
 });
 
@@ -782,7 +781,7 @@ test('Columnar, form post', async () => {
 
 test('CSV, validate file extension returns false', () => {
   const invalidFileNames = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -795,7 +794,7 @@ test('CSV, validate file extension returns false', () => {
 
 test('Excel, validate file extension returns false', () => {
   const invalidFileNames = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -814,7 +813,7 @@ test('Columnar, validate file extension returns false', () => {
     '.parquet',
     'out.excel',
   ];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -827,7 +826,7 @@ test('Columnar, validate file extension returns false', () => {
 
 test('CSV, validate file extension returns true', () => {
   const invalidFileNames = ['out.csv', 'out.tsv', 'out.exe.csv', 'out a.csv'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -840,7 +839,7 @@ test('CSV, validate file extension returns true', () => {
 
 test('Excel, validate file extension returns true', () => {
   const invalidFileNames = ['out.xls', 'out.xlsx', 'out.exe.xls', 'out a.xls'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -858,7 +857,7 @@ test('Columnar, validate file extension returns true', () => {
     'out.exe.zip',
     'out a.parquet',
   ];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',

@@ -18,6 +18,7 @@
  */
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
+import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -242,6 +243,55 @@ describe('SavedQueryList', () => {
     expect(fetchMock.calls(/saved_query\/0/, 'DELETE')).toHaveLength(1);
   });
 
+  it('copies a query link when the API succeeds', async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn(),
+      },
+    });
+
+    fetchMock.get('glob:*/api/v1/saved_query', {
+      result: [
+        {
+          id: 1,
+          label: 'Test Query',
+          db_id: 1,
+          schema: 'public',
+          sql: 'SELECT * FROM table',
+        },
+      ],
+      count: 1,
+    });
+    fetchMock.post('glob:*/api/v1/sqllab/permalink', {
+      body: { url: 'http://example.com/permalink' },
+      status: 200,
+    });
+
+    render(
+      <Provider store={store}>
+        <BrowserRouter>
+          <QueryParamProvider>
+            <SavedQueryList />
+          </QueryParamProvider>
+        </BrowserRouter>
+      </Provider>,
+    );
+
+    const copyActionButton = await waitFor(
+      () => screen.getAllByTestId('copy-action')[0],
+    );
+    userEvent.hover(copyActionButton);
+
+    userEvent.click(copyActionButton);
+    await waitFor(() => {
+      expect(fetchMock.calls('glob:*/api/v1/sqllab/permalink').length).toBe(1);
+    });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'http://example.com/permalink',
+    );
+  });
+
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
     const button = wrapper.find(Button).at(0);
     act(() => {
@@ -331,6 +381,21 @@ describe('RTL', () => {
     expect(exportTooltip).toBeInTheDocument();
   });
 
+  it('renders a copy button in the actions bar', async () => {
+    // Grab copy action button and mock mouse hovering over it
+    const copyActionButton = screen.getAllByTestId('copy-action')[0];
+    userEvent.hover(copyActionButton);
+
+    // Wait for the tooltip to pop up
+    await screen.findByRole('tooltip');
+
+    // Grab and assert that "Copy query URl" tooltip is in the document
+    const copyTooltip = screen.getByRole('tooltip', {
+      name: /Copy query URL/i,
+    });
+    expect(copyTooltip).toBeInTheDocument();
+  });
+
   it('renders an import button in the submenu', async () => {
     // Grab and assert that import saved query button is visible
     const importButton = await screen.findByTestId('import-button');
@@ -352,6 +417,9 @@ describe('RTL', () => {
 
   it('renders an import modal when import button is clicked', async () => {
     // Grab and click import saved query button to reveal modal
+    expect(
+      screen.queryByRole('heading', { name: 'Import queries' }),
+    ).not.toBeInTheDocument();
     const importButton = await screen.findByTestId('import-button');
     userEvent.click(importButton);
 
@@ -359,7 +427,7 @@ describe('RTL', () => {
     const importSavedQueryModalHeading = screen.getByRole('heading', {
       name: 'Import queries',
     });
-    expect(importSavedQueryModalHeading).toBeVisible();
+    expect(importSavedQueryModalHeading).toBeInTheDocument();
   });
 
   it('imports a saved query', async () => {

@@ -18,7 +18,6 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import moment from 'moment';
 import {
   formatNumber,
   formatTime,
@@ -35,6 +34,7 @@ import {
   XYChart,
   buildChartTheme,
 } from '@visx/xychart';
+import { extendedDayjs } from 'src/utils/dates';
 
 interface Props {
   ariaLabel: string;
@@ -223,7 +223,7 @@ const SparklineCell = ({
                   {idx !== undefined &&
                     formatTime(
                       dateFormat,
-                      moment.utc(entries[idx].time).toDate(),
+                      extendedDayjs.utc(entries[idx].time).toDate(),
                     )}
                 </div>
               </div>

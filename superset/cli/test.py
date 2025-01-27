@@ -76,5 +76,5 @@ def load_test_users() -> None:
                     "user",
                     username + "@fab.org",
                     sm.find_role(role),
-                    password="general",
+                    password="general",  # noqa: S106
                 )

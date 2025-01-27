@@ -20,9 +20,11 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'react-dom/test-utils';
 import { QueryParamProvider } from 'use-query-params';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
 
 import Button from 'src/components/Button';
-import { Empty } from 'src/components';
+import { Empty } from 'src/components/EmptyState/Empty';
 import CardCollection from 'src/components/ListView/CardCollection';
 import { CardSortSelect } from 'src/components/ListView/CardSortSelect';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
@@ -33,6 +35,10 @@ import TableCollection from 'src/components/TableCollection';
 import Pagination from 'src/components/Pagination/Wrapper';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
+import { Provider } from 'react-redux';
+
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
 
 function makeMockLocation(query) {
   const queryStr = encodeURIComponent(query);
@@ -125,12 +131,15 @@ const mockedProps = {
 
 const factory = (props = mockedProps) =>
   mount(
-    <QueryParamProvider location={makeMockLocation()}>
-      <ListView {...props} />
-    </QueryParamProvider>,
+    <Provider store={mockStore()}>
+      <QueryParamProvider location={makeMockLocation()}>
+        <ListView {...props} />
+      </QueryParamProvider>
+    </Provider>,
     {
       wrappingComponent: ThemeProvider,
       wrappingComponentProps: { theme: supersetTheme },
+      useRedux: true,
     },
   );
 

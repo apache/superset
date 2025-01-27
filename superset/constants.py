@@ -27,7 +27,7 @@ USER_AGENT = "Apache Superset"
 NULL_STRING = "<NULL>"
 EMPTY_STRING = "<empty string>"
 
-CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"
+CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 
 # UUID for the examples database
 EXAMPLES_DB_UUID = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
@@ -174,6 +174,7 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "csv_metadata": "csv_upload",
     "slack_channels": "write",
     "put_filters": "write",
+    "put_colors": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

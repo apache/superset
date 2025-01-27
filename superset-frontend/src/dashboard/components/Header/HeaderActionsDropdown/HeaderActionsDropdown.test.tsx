@@ -120,7 +120,9 @@ test('should render', () => {
 test('should render the Download dropdown button when not in edit mode', () => {
   const mockedProps = createProps();
   setup(mockedProps);
-  expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('menuitem', { name: 'Download' }),
+  ).toBeInTheDocument();
 });
 
 test('should render the menu items', async () => {
@@ -194,7 +196,7 @@ test('should render the "Refresh dashboard" menu item as disabled when loading',
     isLoading: true,
   };
   setup(loadingProps);
-  expect(screen.getByText('Refresh dashboard')).toHaveClass(
+  expect(screen.getByText('Refresh dashboard').parentElement).toHaveClass(
     'ant-menu-item-disabled',
   );
 });

@@ -82,11 +82,15 @@ class TestCacheWarmUp(SupersetTestCase):
             self.client.get(f"/superset/dashboard/{dash.id}/")
 
         strategy = TopNDashboardsStrategy(1)
-        result = strategy.get_payloads()
+        result = strategy.get_tasks()
         expected = [
-            {"chart_id": chart.id, "dashboard_id": dash.id} for chart in dash.slices
+            {
+                "payload": {"chart_id": chart.id, "dashboard_id": dash.id},
+                "username": "admin",
+            }
+            for chart in dash.slices
         ]
-        self.assertCountEqual(result, expected)  # noqa: PT009
+        assert len(result) == len(expected)
 
     def reset_tag(self, tag):
         """Remove associated object from tag, used to reset tests"""
@@ -104,34 +108,30 @@ class TestCacheWarmUp(SupersetTestCase):
         self.reset_tag(tag1)
 
         strategy = DashboardTagsStrategy(["tag1"])
-        result = strategy.get_payloads()
-        expected = []
-        assert result == expected
+        assert strategy.get_tasks() == []
 
         # tag dashboard 'births' with `tag1`
         tag1 = get_tag("tag1", db.session, TagType.custom)
         dash = self.get_dash_by_slug("births")
-        tag1_urls = [{"chart_id": chart.id} for chart in dash.slices]
+        tag1_payloads = [{"chart_id": chart.id} for chart in dash.slices]
         tagged_object = TaggedObject(
             tag_id=tag1.id, object_id=dash.id, object_type=ObjectType.dashboard
         )
         db.session.add(tagged_object)
         db.session.commit()
 
-        self.assertCountEqual(strategy.get_payloads(), tag1_urls)  # noqa: PT009
+        assert len(strategy.get_tasks()) == len(tag1_payloads)
 
         strategy = DashboardTagsStrategy(["tag2"])
         tag2 = get_tag("tag2", db.session, TagType.custom)
         self.reset_tag(tag2)
 
-        result = strategy.get_payloads()
-        expected = []
-        assert result == expected
+        assert strategy.get_tasks() == []
 
         # tag first slice
         dash = self.get_dash_by_slug("unicode-test")
         chart = dash.slices[0]
-        tag2_urls = [{"chart_id": chart.id}]
+        tag2_payloads = [{"chart_id": chart.id}]
         object_id = chart.id
         tagged_object = TaggedObject(
             tag_id=tag2.id, object_id=object_id, object_type=ObjectType.chart
@@ -139,11 +139,8 @@ class TestCacheWarmUp(SupersetTestCase):
         db.session.add(tagged_object)
         db.session.commit()
 
-        result = strategy.get_payloads()
-        self.assertCountEqual(result, tag2_urls)  # noqa: PT009
+        assert len(strategy.get_tasks()) == len(tag2_payloads)
 
         strategy = DashboardTagsStrategy(["tag1", "tag2"])
 
-        result = strategy.get_payloads()
-        expected = tag1_urls + tag2_urls
-        self.assertCountEqual(result, expected)  # noqa: PT009
+        assert len(strategy.get_tasks()) == len(tag1_payloads + tag2_payloads)

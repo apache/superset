@@ -41,6 +41,7 @@ import ListView, {
   Filters,
   FilterOperator,
 } from 'src/components/ListView';
+import { DatasetTypeLabel } from 'src/components/Label';
 import Loading from 'src/components/Loading';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Owner from 'src/types/Owner';
@@ -93,8 +94,7 @@ const Actions = styled.div`
       }
     }
     color: ${({ theme }) => theme.colors.grayscale.light1};
-    .ant-menu-item:hover {
-      color: ${({ theme }) => theme.colors.grayscale.light1};
+    .antd5-menu-item:hover {
       cursor: default;
     }
     &::after {
@@ -279,24 +279,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => {
-          if (kind === 'physical') {
-            return (
-              <Tooltip
-                id="physical-dataset-tooltip"
-                title={t('Physical dataset')}
-              >
-                <Icons.DatasetPhysical />
-              </Tooltip>
-            );
-          }
-
-          return (
-            <Tooltip id="virtual-dataset-tooltip" title={t('Virtual dataset')}>
-              <Icons.DatasetVirtual />
-            </Tooltip>
-          );
-        },
+        }: any) => null,
         accessor: 'kind_icon',
         disableSortBy: true,
         size: 'xs',
@@ -360,7 +343,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           row: {
             original: { kind },
           },
-        }: any) => (kind === 'physical' ? t('Physical') : t('Virtual')),
+        }: any) => <DatasetTypeLabel datasetType={kind} />,
         Header: t('Type'),
         accessor: 'kind',
         disableSortBy: true,

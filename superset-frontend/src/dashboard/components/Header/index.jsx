@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   styled,
@@ -66,6 +66,7 @@ import {
   redoLayoutAction,
   undoLayoutAction,
   updateDashboardTitle,
+  clearDashboardHistory,
 } from '../../actions/dashboardLayout';
 import {
   fetchCharts,
@@ -221,6 +222,7 @@ const Header = () => {
           addWarningToast,
           onUndo: undoLayoutAction,
           onRedo: redoLayoutAction,
+          clearDashboardHistory,
           setEditMode,
           setUnsavedChanges,
           fetchFaveStar,
@@ -258,7 +260,9 @@ const Header = () => {
         if (predefinedValue) {
           intervalMessage = t(predefinedValue[1]);
         } else {
-          intervalMessage = moment.duration(interval, 'millisecond').humanize();
+          intervalMessage = extendedDayjs
+            .duration(interval, 'millisecond')
+            .humanize();
         }
       }
 
@@ -649,7 +653,10 @@ const Header = () => {
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
-                onClick={toggleEditMode}
+                onClick={() => {
+                  toggleEditMode();
+                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
+                }}
                 data-test="edit-dashboard-button"
                 className="action-button"
                 css={editButtonStyle}
@@ -666,6 +673,7 @@ const Header = () => {
       NavExtension,
       boundActionCreators.onRedo,
       boundActionCreators.onUndo,
+      boundActionCreators.clearDashboardHistory,
       editMode,
       emphasizeRedo,
       emphasizeUndo,

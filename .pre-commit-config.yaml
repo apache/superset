@@ -38,20 +38,17 @@ repos:
             types-paramiko,
             types-Markdown,
           ]
-  - repo: https://github.com/peterdemin/pip-compile-multi
-    rev: v2.6.4
-    hooks:
-      - id: pip-compile-multi-verify
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
       - id: check-docstring-first
       - id: check-added-large-files
-        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*
+        exclude: ^.*\.(geojson)$|^docs/static/img/screenshots/.*|^superset-frontend/CHANGELOG\.md$
       - id: check-yaml
         exclude: ^helm/superset/templates/
       - id: debug-statements
       - id: end-of-file-fixer
+        exclude: .*/lerna\.json$
       - id: trailing-whitespace
         exclude: ^.*\.(snap)
         args: ["--markdown-linebreak-ext=md"]
@@ -63,6 +60,14 @@ repos:
           - prettier@3.3.3
         args: ["--ignore-path=./superset-frontend/.prettierignore"]
         files: "superset-frontend"
+  - repo: local
+    hooks:
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd superset-frontend && npm run eslint -- $(echo "$@" | sed "s|superset-frontend/||g")'
+        language: system
+        pass_filenames: true
+        files: \.(js|jsx|ts|tsx)$
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
@@ -80,17 +85,3 @@ repos:
       - id: ruff
         args: [ --fix ]
       - id: ruff-format
-  - repo: local
-    hooks:
-      - id: pylint
-        name: pylint
-        entry: pylint
-        language: system
-        types: [python]
-        exclude: ^(tests/|superset/migrations/|scripts/|RELEASING/|docker/)
-        args:
-          [
-            "-rn", # Only display messages
-            "-sn", # Don't display the score
-            "--rcfile=.pylintrc",
-          ]
