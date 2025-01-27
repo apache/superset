@@ -41,8 +41,11 @@ export function CommonFrame(props: FrameComponentProps) {
       <div className="section-title" data-test={DateFilterTestKey.CommonFrame}>
         {t('Configure Time Range: Last...')}
       </div>
-      <Radio.VerticalGroup
+      <Radio.GroupWrapper
+        useSpace
         size="large"
+        direction="vertical"
+        spaceSize={15}
         value={commonRange}
         onChange={(e: any) => props.onChange(e.target.value)}
         options={COMMON_RANGE_OPTIONS}

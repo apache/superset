@@ -1106,7 +1106,7 @@ const FiltersConfigForm = (
                       initialValue={sort}
                       label={<StyledLabel>{t('Sort type')}</StyledLabel>}
                     >
-                      <Radio.Group
+                      <Radio.GroupWrapper
                         onChange={value => {
                           onSortChanged(value.target.value);
                           formChanged();
@@ -1114,7 +1114,7 @@ const FiltersConfigForm = (
                       >
                         <Radio value>{t('Sort ascending')}</Radio>
                         <Radio value={false}>{t('Sort descending')}</Radio>
-                      </Radio.Group>
+                      </Radio.GroupWrapper>
                     </StyledRowFormItem>
                     {hasMetrics && (
                       <StyledRowSubFormItem
@@ -1181,7 +1181,7 @@ const FiltersConfigForm = (
                         <StyledLabel>{t('Single value type')}</StyledLabel>
                       }
                     >
-                      <Radio.Group
+                      <Radio.GroupWrapper
                         onChange={value => {
                           onEnableSingleValueChanged(value.target.value);
                           formChanged();
@@ -1196,7 +1196,7 @@ const FiltersConfigForm = (
                         <Radio value={SingleValueType.Maximum}>
                           {t('Maximum')}
                         </Radio>
-                      </Radio.Group>
+                      </Radio.GroupWrapper>
                     </StyledRowFormItem>
                   </CollapsibleControl>
                 </CleanFormItem>

@@ -19,14 +19,14 @@
 
 import { useMemo, useState } from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import { Radio, CheckboxGroupProps } from 'src/components/Radio';
+import { Radio, CheckboxOptionType } from 'src/components/Radio';
 import { DrillByType } from '../types';
 
 export const useDisplayModeToggle = () => {
   const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
     DrillByType.Chart,
   );
-  const customButtons: CheckboxGroupProps<number>['options'] = [
+  const customButtons: CheckboxOptionType[] = [
     { label: t('Chart'), value: DrillByType.Chart },
     { label: t('Table'), value: DrillByType.Table },
   ];
@@ -35,15 +35,10 @@ export const useDisplayModeToggle = () => {
       <div
         css={(theme: SupersetTheme) => css`
           margin-bottom: ${theme.gridUnit * 6}px;
-          .antd5-radio-button-wrapper-checked:not(
-              .ant-radio-button-wrapper-disabled
-            ):focus-within {
-            box-shadow: none;
-          }
         `}
         data-test="drill-by-display-toggle"
       >
-        <Radio.Group
+        <Radio.GroupWrapper
           onChange={({ target: { value } }) => {
             setDrillByDisplayMode(value);
           }}

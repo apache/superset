@@ -17,35 +17,59 @@
  * under the License.
  */
 import { Radio as Antd5Radio } from 'antd-v5';
-import React from 'react';
 import type {
   RadioChangeEvent,
-  RadioGroupProps,
   RadioProps,
+  RadioGroupProps,
   CheckboxOptionType,
 } from 'antd-v5';
-import type { CheckboxGroupProps } from 'antd-v5/es/checkbox';
+import { Space, SpaceProps } from 'src/components/Space';
 
-const verticalStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: '15px',
+export type RadioGroupWrapperProps = RadioGroupProps & {
+  useSpace?: boolean;
+  direction?: SpaceProps['direction'];
+  spaceSize?: SpaceProps['size'];
+  align?: SpaceProps['align'];
+  options?: CheckboxOptionType[];
+  children?: React.ReactNode;
 };
 
-// Wrapper for GroupVertical
-const VerticalGroup = (props: RadioGroupProps) => (
-  <Antd5Radio.Group {...props} style={{ ...verticalStyle, ...props.style }} />
-);
+const RadioGroup = ({
+  useSpace,
+  direction,
+  spaceSize,
+  options,
+  children,
+  ...props
+}: RadioGroupWrapperProps) => {
+  const content = options
+    ? options.map((option: CheckboxOptionType) => (
+        <Radio key={option.value} value={option.value}>
+          {option.label}
+        </Radio>
+      ))
+    : children;
+
+  return (
+    <Radio.Group {...props}>
+      {useSpace ? (
+        <Space direction={direction} size={spaceSize}>
+          {content}
+        </Space>
+      ) : (
+        content
+      )}
+    </Radio.Group>
+  );
+};
 
 export type {
   RadioChangeEvent,
   RadioGroupProps,
   RadioProps,
-  CheckboxGroupProps,
   CheckboxOptionType,
 };
 export const Radio = Object.assign(Antd5Radio, {
-  Group: Antd5Radio.Group,
+  GroupWrapper: RadioGroup,
   Button: Antd5Radio.Button,
-  VerticalGroup,
 });

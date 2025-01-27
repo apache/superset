@@ -42,13 +42,7 @@ describe('CalendarFrame', () => {
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(CALENDAR_RANGE_OPTIONS.length);
     CALENDAR_RANGE_OPTIONS.forEach(option => {
-      if (
-        typeof option === 'object' &&
-        'label' in option &&
-        typeof option.label === 'string'
-      ) {
-        expect(screen.getByText(option.label)).toBeInTheDocument();
-      }
+      expect(screen.getByText(option.label as string)).toBeInTheDocument();
     });
   });
 
