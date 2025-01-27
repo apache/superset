@@ -102,11 +102,7 @@ Handlebars.registerHelper(
 // usage: {{parseJson jsonString}}
 Handlebars.registerHelper('parseJson', (jsonString: string) => {
   try {
-    const parsed = JSON.parse(jsonString);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-    throw new Error('Parsed value is not an array.');
+    return JSON.parse(jsonString);
   } catch (error) {
     throw new Error(`Invalid JSON string: ${error.message}`);
   }
