@@ -58,19 +58,15 @@ jobs:
             return pr.data;
 
       - name: Check if a commit was pushed after PR was labeled
+        id: get-sha
         env:
           COMMENT_AT: ${{ github.event.pull_request.updated_at }}
-          PUSHED_AT: ${{ fromJSON(steps.get-pr-info.outputs.result).pushedAt }}
+          PUSHED_AT: ${{ fromJSON(steps.get-pr-info.outputs.result).pushed_at }}
         run: |
           if [[ $(date -d "$PUSHED_AT" +%s) -gt $(date -d "$COMMENT_AT" +%s) ]]; then
            echo "Commit was pushed after the PR was updated."
            exit 1
           fi
-          echo "sha=${{ fromJSON(steps.get-pr-info.outputs.result).headSha }}" >> $GITHUB_OUTPUT
-
-      - name: Debug
-        id: get-sha
-        run: |
           echo "sha=${{ fromJSON(steps.get-pr-info.outputs.result).head.sha }}" >> $GITHUB_OUTPUT
 
       - name: Looking for feature flags in PR description
