@@ -58,7 +58,7 @@ test('Should call download pdf on click', async () => {
     expect(mockAddDangerToast).toHaveBeenCalledTimes(0);
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Export as PDF' }));
+  userEvent.click(screen.getByRole('menuitem', { name: 'Export as PDF' }));
 
   await waitFor(() => {
     expect(downloadAsPdf).toHaveBeenCalledTimes(1);
@@ -66,8 +66,8 @@ test('Should call download pdf on click', async () => {
   });
 });
 
-test('Component is rendered with role="button"', async () => {
+test('Component is rendered with role="menuitem"', async () => {
   renderComponent();
-  const button = screen.getByRole('button', { name: 'Export as PDF' });
+  const button = screen.getByRole('menuitem', { name: 'Export as PDF' });
   expect(button).toBeInTheDocument();
 });
