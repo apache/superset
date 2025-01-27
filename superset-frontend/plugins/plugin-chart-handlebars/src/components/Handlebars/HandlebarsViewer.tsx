@@ -104,7 +104,11 @@ Handlebars.registerHelper('parseJson', (jsonString: string) => {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    throw new Error(`Invalid JSON string: ${error.message}`);
+    if (error instanceof Error) {
+      error.message = `Invalid JSON string: ${error.message}`;
+      throw error;
+    }
+    throw new Error(`Invalid JSON string: ${String(error)}`);
   }
 });
 
