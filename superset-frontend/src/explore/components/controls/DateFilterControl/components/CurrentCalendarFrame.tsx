@@ -42,7 +42,7 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
         {t('Configure Time Range: Current...')}
       </div>
       <Radio.VerticalGroup
-        size='large'
+        size="large"
         value={value}
         onChange={(e: any) => {
           let newValue = e.target.value;

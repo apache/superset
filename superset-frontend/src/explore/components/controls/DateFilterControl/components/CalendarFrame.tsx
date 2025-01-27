@@ -45,12 +45,12 @@ export function CalendarFrame({ onChange, value }: FrameComponentProps) {
       <div className="section-title">
         {t('Configure Time Range: Previous...')}
       </div>
-        <Radio.VerticalGroup
-          size='large'
-          value={value}
-          onChange={(e: any) => onChange(e.target.value)}
-          options={CALENDAR_RANGE_OPTIONS}
-        />
+      <Radio.VerticalGroup
+        size="large"
+        value={value}
+        onChange={(e: any) => onChange(e.target.value)}
+        options={CALENDAR_RANGE_OPTIONS}
+      />
     </>
   );
 }

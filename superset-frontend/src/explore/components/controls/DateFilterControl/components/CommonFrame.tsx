@@ -42,7 +42,7 @@ export function CommonFrame(props: FrameComponentProps) {
         {t('Configure Time Range: Last...')}
       </div>
       <Radio.VerticalGroup
-        size='large'
+        size="large"
         value={commonRange}
         onChange={(e: any) => props.onChange(e.target.value)}
         options={COMMON_RANGE_OPTIONS}

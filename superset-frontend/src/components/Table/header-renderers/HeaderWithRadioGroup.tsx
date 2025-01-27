@@ -21,6 +21,7 @@ import { css, useTheme } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
 import Icons from 'src/components/Icons';
 import Popover from 'src/components/Popover';
+
 export interface HeaderWithRadioGroupProps {
   headerTitle: string;
   groupTitle: string;

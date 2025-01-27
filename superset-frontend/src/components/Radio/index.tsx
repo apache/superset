@@ -18,25 +18,34 @@
  */
 import { Radio as Antd5Radio } from 'antd-v5';
 import React from 'react';
-import type { RadioChangeEvent, RadioGroupProps, RadioProps } from 'antd-v5';
+import type {
+  RadioChangeEvent,
+  RadioGroupProps,
+  RadioProps,
+  CheckboxOptionType,
+} from 'antd-v5';
 import type { CheckboxGroupProps } from 'antd-v5/es/checkbox';
 
 const verticalStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: '15px'
-}
+  gap: '15px',
+};
 
 // Wrapper for GroupVertical
-const VerticalGroup = (props: RadioGroupProps) => { 
-  return (
-    <Antd5Radio.Group {...props} style={{ ...verticalStyle, ...props.style }} />)
-}
+const VerticalGroup = (props: RadioGroupProps) => (
+  <Antd5Radio.Group {...props} style={{ ...verticalStyle, ...props.style }} />
+);
 
-export type { RadioChangeEvent, RadioGroupProps, RadioProps, CheckboxGroupProps };
+export type {
+  RadioChangeEvent,
+  RadioGroupProps,
+  RadioProps,
+  CheckboxGroupProps,
+  CheckboxOptionType,
+};
 export const Radio = Object.assign(Antd5Radio, {
   Group: Antd5Radio.Group,
   Button: Antd5Radio.Button,
-  VerticalGroup: VerticalGroup
+  VerticalGroup,
 });
-

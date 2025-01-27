@@ -26,11 +26,11 @@ export const useDisplayModeToggle = () => {
   const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
     DrillByType.Chart,
   );
-const customButtons: CheckboxGroupProps<number>['options'] = [
-  { label: t('Chart'), value: DrillByType.Chart },
-  { label: t('Table'), value: DrillByType.Table },
-];
-    const displayModeToggle = useMemo(
+  const customButtons: CheckboxGroupProps<number>['options'] = [
+    { label: t('Chart'), value: DrillByType.Chart },
+    { label: t('Table'), value: DrillByType.Table },
+  ];
+  const displayModeToggle = useMemo(
     () => (
       <div
         css={(theme: SupersetTheme) => css`
@@ -42,21 +42,20 @@ const customButtons: CheckboxGroupProps<number>['options'] = [
           }
         `}
         data-test="drill-by-display-toggle"
-      > 
+      >
         <Radio.Group
           onChange={({ target: { value } }) => {
             setDrillByDisplayMode(value);
           }}
-        defaultValue={DrillByType.Chart}
-        options={customButtons}
-        value={drillByDisplayMode}
-        optionType="button"
-        buttonStyle="outline"
-      />
+          defaultValue={DrillByType.Chart}
+          options={customButtons}
+          value={drillByDisplayMode}
+          optionType="button"
+          buttonStyle="outline"
+        />
       </div>
     ),
     [drillByDisplayMode],
   );
   return { displayModeToggle, drillByDisplayMode };
 };
-
