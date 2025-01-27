@@ -35,6 +35,7 @@ module.exports = {
   testEnvironment: 'jsdom',
   modulePathIgnorePatterns: ['<rootDir>/packages/generator-superset'],
   setupFilesAfterEnv: ['<rootDir>/spec/helpers/setup.ts'],
+  snapshotSerializers: ['@emotion/jest/serializer'],
   testEnvironmentOptions: {
     url: 'http://localhost',
   },

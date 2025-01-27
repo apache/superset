@@ -130,7 +130,9 @@ test('saveDataset handles success', async () => {
 test('updateSlice with add to existing dashboard handles failure', async () => {
   fetchMock.reset();
   const sampleError = new Error('sampleError');
-  mockedGetClientErrorObject.mockImplementation();
+  mockedGetClientErrorObject.mockImplementation(() =>
+    Promise.resolve(sampleError),
+  );
   fetchMock.post(saveDatasetEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
 

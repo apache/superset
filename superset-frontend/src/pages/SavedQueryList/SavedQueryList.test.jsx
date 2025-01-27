@@ -322,46 +322,31 @@ describe('SavedQueryList', () => {
 });
 
 describe('RTL', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      render(
-        <BrowserRouter>
-          <QueryParamProvider>
-            <SavedQueryList />
-          </QueryParamProvider>
-        </BrowserRouter>,
-        { useRedux: true },
-      );
+  function renderAndWait() {
+    return render(<SavedQueryList />, {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
     });
-
-    return mounted;
   }
 
   beforeEach(async () => {
     isFeatureEnabled.mockImplementation(() => true);
-    await renderAndWait();
+    renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
     isFeatureEnabled.mockRestore();
   });
-  it('renders an export button in the bulk actions', () => {
-    // Grab and click the "Bulk Select" button to expose checkboxes
+  it('renders an export button in the bulk actions', async () => {
     const bulkSelectButton = screen.getByRole('button', {
       name: /bulk select/i,
     });
     userEvent.click(bulkSelectButton);
+    const checkbox = await screen.findByTestId('header-toggle-all');
+    userEvent.click(checkbox);
 
-    // Grab and click the "toggle all" checkbox to expose export button
-    const selectAllCheckbox = screen
-      .getAllByRole('checkbox', {
-        name: '',
-      })
-      .find(checkbox => checkbox.getAttribute('name') === 'header-toggle-all');
-    userEvent.click(selectAllCheckbox);
-
-    // Grab and assert that export button is visible
     const exportButton = screen.getByRole('button', {
       name: /export/i,
     });
@@ -405,16 +390,13 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Saved Query" tooltip under import button', async () => {
-    const importButton = await screen.findByTestId('import-button');
+    const importButton = await screen.findByTestId('import-icon');
     userEvent.hover(importButton);
 
-    waitFor(() => {
-      screen.findByTestId('import-tooltip-test');
-      const importTooltip = screen.getByRole('tooltip', {
-        name: 'Import queries',
-      });
-      expect(importTooltip).toBeVisible();
+    const importTooltip = await screen.findByRole('tooltip', {
+      name: 'Import queries',
     });
+    expect(importTooltip).toBeInTheDocument();
   });
 
   it('renders an import modal when import button is clicked', async () => {
