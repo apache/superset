@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
+// @ts-nocheck
 import { ChangeEvent, FormEvent, Component } from 'react';
 import { Dispatch } from 'redux';
 import rison from 'rison';

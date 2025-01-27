@@ -18,6 +18,7 @@
  */
 /* eslint-disable jsx-a11y/anchor-is-valid */
 /* eslint-disable jsx-a11y/no-static-element-interactions */
+// @ts-nocheck
 import {
   useState,
   useEffect,

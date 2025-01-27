@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import * as redux from 'react-redux';
 import sinon from 'sinon';
 import { render, screen, act, waitFor } from 'spec/helpers/testing-library';

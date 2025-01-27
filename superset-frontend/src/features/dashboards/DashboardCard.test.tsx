@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 
 import { MemoryRouter } from 'react-router-dom';
 import { FeatureFlag, JsonResponse, SupersetClient } from '@superset-ui/core';

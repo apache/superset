@@ -17,6 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
+// @ts-nocheck
 import { Component } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';

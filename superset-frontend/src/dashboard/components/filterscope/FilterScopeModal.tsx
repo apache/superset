@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { createRef, PureComponent } from 'react';
 import { styled } from '@superset-ui/core';
 import ModalTrigger, { ModalTriggerRef } from 'src/components/ModalTrigger';

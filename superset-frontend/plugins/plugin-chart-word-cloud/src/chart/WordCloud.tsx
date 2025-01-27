@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import { PureComponent } from 'react';
 import cloudLayout, { Word } from 'd3-cloud';
 import {

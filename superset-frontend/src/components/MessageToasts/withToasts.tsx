@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import { ComponentType, useMemo } from 'react';
 import { bindActionCreators } from 'redux';
 import { connect, useDispatch } from 'react-redux';

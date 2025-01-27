@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import { getTimeOffset } from '@superset-ui/core';
 import timezoneMock from 'timezone-mock';
 

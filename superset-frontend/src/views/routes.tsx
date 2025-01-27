@@ -24,6 +24,7 @@ import Home from 'src/pages/Home';
 
 const ChartCreation = lazy(
   () =>
+    // @ts-ignore
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 

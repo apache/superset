@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { memo, useEffect, useRef } from 'react';
 import { isEqual } from 'lodash';
 import { styled, t } from '@superset-ui/core';

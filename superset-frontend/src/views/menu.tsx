@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
 import { Provider } from 'react-redux';

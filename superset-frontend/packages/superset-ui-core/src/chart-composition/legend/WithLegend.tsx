@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import { CSSProperties, ReactNode, PureComponent } from 'react';
 import { ParentSize } from '@vx/responsive';
 

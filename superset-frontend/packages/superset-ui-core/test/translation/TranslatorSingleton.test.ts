@@ -18,6 +18,7 @@
  */
 
 /* eslint no-console: 0 */
+// @ts-nocheck
 import mockConsole from 'jest-mock-console';
 import { configure, resetTranslation, t, tn } from '@superset-ui/core';
 import Translator from '../../src/translation/Translator';

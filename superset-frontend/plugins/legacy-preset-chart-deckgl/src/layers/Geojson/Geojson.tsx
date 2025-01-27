@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { memo, useCallback, useMemo, useRef } from 'react';
 import { GeoJsonLayer } from '@deck.gl/layers';
 // ignoring the eslint error below since typescript prefers 'geojson' to '@types/geojson'

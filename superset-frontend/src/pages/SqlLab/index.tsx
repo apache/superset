@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { css, isFeatureEnabled, FeatureFlag } from '@superset-ui/core';

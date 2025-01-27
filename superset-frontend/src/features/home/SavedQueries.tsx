@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';

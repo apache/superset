@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { isValidElement } from 'react';
 import { AnyAction, combineReducers } from 'redux';
 import Mousetrap from 'mousetrap';

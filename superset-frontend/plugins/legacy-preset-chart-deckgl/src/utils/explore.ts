@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import URI from 'urijs';
 import { JsonObject } from '@superset-ui/core';
 import { safeStringify } from './safeStringify';

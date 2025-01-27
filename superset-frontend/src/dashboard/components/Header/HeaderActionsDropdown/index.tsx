@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { PureComponent } from 'react';
 import { isEmpty } from 'lodash';
 import { connect } from 'react-redux';

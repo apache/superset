@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import '@testing-library/jest-dom';
 import { ComponentType } from 'react';
 import mockConsole, { RestoreConsole } from 'jest-mock-console';

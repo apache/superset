@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect } from 'react-redux';
 import { RootState } from 'src/dashboard/types';

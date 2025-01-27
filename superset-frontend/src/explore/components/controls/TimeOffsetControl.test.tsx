@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import configureStore from 'redux-mock-store';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';

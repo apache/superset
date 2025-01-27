@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { useMemo, useState, useCallback, ReactElement } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {

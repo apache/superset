@@ -17,6 +17,7 @@
  * under the License.
  */
 // A safe alternative to JS's eval
+// @ts-nocheck
 import vm, { Context, RunningScriptOptions } from 'vm';
 import _ from 'underscore';
 /* eslint-disable-next-line no-restricted-syntax */

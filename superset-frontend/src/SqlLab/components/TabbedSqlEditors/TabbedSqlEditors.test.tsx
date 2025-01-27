@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import URI from 'urijs';

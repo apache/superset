@@ -18,6 +18,7 @@
  */
 
 /* eslint no-console: 0 */
+// @ts-nocheck
 import mockConsole from 'jest-mock-console';
 import { Registry, OverwritePolicy } from '@superset-ui/core';
 

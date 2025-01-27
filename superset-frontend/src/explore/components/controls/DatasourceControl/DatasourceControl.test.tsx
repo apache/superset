@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';

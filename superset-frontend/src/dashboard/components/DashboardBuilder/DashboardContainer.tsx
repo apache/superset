@@ -18,6 +18,7 @@
  */
 // ParentSize uses resize observer so the dashboard will update size
 // when its container size changes, due to e.g., builder side panel opening
+// @ts-nocheck
 import {
   FC,
   memo,

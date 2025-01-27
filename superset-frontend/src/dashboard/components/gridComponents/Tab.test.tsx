@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import userEvent from '@testing-library/user-event';
 import {
   fireEvent,

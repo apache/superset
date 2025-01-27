@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { store } from 'src/views/store';

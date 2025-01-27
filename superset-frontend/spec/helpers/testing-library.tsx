@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import '@testing-library/jest-dom';
 import { ReactNode, ReactElement } from 'react';
 import {

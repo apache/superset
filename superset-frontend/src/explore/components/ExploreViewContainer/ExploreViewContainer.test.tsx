@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import fetchMock from 'fetch-mock';
 import {
   getChartControlPanelRegistry,

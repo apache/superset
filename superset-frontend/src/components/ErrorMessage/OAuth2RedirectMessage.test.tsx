@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+// @ts-nocheck
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';

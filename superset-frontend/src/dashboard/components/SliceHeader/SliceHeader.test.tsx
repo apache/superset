@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';

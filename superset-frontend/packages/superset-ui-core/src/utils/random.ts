@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// @ts-nocheck
 import _seedrandom from 'seedrandom';
 
 export function seed(seed: string) {

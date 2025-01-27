@@ -133,6 +133,8 @@
     "chrono-node": "^2.7.6",
     "classnames": "^2.2.5",
     "core-js": "^3.38.1",
+    "currency-formatter": "^1.5.9",
+    "currencyformatter.js": "^2.2.0",
     "d3-scale": "^2.1.2",
     "dayjs": "^1.11.13",
     "dom-to-image-more": "^3.2.0",
