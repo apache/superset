@@ -28,6 +28,7 @@ import { bindActionCreators } from 'redux';
 import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
+import { Layout } from 'src/components';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -82,9 +83,13 @@ const App = () => (
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
           <Route path={path} key={path}>
             <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={bootstrapData.user} {...props} />
-              </ErrorBoundary>
+              <Layout.Content>
+                <div style={{ padding: '16px' }}>
+                  <ErrorBoundary>
+                    <Component user={bootstrapData.user} {...props} />
+                  </ErrorBoundary>
+                </div>
+              </Layout.Content>
             </Suspense>
           </Route>
         ))}

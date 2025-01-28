@@ -60,6 +60,7 @@ Join our growing community!
 - [Dropit Shopping](https://www.dropit.shop/) [@dropit-dev]
 - [Fanatics](https://www.fanatics.com/) [@coderfender]
 - [Fordeal](https://www.fordeal.com) [@Renkai]
+- [Fynd](https://www.fynd.com/) [@darpanjain07]
 - [GFG - Global Fashion Group](https://global-fashion-group.com) [@ksaagariconic]
 - [GoTo/Gojek](https://www.gojek.io/) [@gwthm-in]
 - [HuiShouBao](https://www.huishoubao.com/) [@Yukinoshita-Yukino]
