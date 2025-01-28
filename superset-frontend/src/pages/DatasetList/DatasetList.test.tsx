@@ -22,10 +22,9 @@ import fetchMock from 'fetch-mock';
 import { Provider } from 'react-redux';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import { FeatureFlag } from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
-import * as uiCore from '@superset-ui/core';
 
 import DatasetList from 'src/pages/DatasetList';
 import ListView from 'src/components/ListView';
@@ -35,6 +34,13 @@ import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { act } from 'react-dom/test-utils';
 import SubMenu from 'src/features/home/SubMenu';
 import * as reactRedux from 'react-redux';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 // store needed for withToasts(DatasetList)
 const mockStore = configureStore([thunk]);
@@ -257,17 +263,14 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock: jest.SpyInstance<boolean, [feature: FeatureFlag]>;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
+    mockedIsFeatureEnabled.mockReturnValue(true);
     await renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
-    isFeatureEnabledMock.mockRestore();
+    mockedIsFeatureEnabled.mockRestore();
   });
 
   it('renders an "Import Dataset" tooltip under import button', async () => {

@@ -17,8 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { FeatureFlag, QueryState } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, QueryState } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import QueryHistory from 'src/SqlLab/components/QueryHistory';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -67,6 +66,13 @@ const fakeApiResult = {
   ],
 };
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
 const setup = (overrides = {}) => (
   <QueryHistory {...mockedProps} {...overrides} />
 );
@@ -82,11 +88,9 @@ test('Renders an empty state for query history', () => {
 });
 
 test('fetches the query history when the persistence mode is enabled', async () => {
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(
-      featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
-    );
+  const isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+    featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+  );
 
   const editorQueryApiRoute = `glob:*/api/v1/query/?q=*`;
   fetchMock.get(editorQueryApiRoute, fakeApiResult);
