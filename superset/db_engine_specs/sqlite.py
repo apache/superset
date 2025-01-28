@@ -91,7 +91,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         TimeGrain.WEEK_STARTING_SUNDAY: "DATETIME({col}, 'start of day', \
             -strftime('%w', {col}) || ' days')",
         TimeGrain.WEEK_STARTING_MONDAY: "DATETIME({col}, 'start of day', '-' || \
-            ((strftime('%w', {col}) + 6) % 7) || ' days')"
+            ((strftime('%w', {col}) + 6) % 7) || ' days')",
     }
     # not sure why these are different
     _time_grain_expressions.update(
