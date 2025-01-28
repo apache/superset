@@ -29,7 +29,6 @@ import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
 import { Layout } from 'src/components';
-import { useTheme } from '@superset-ui/core';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
@@ -70,36 +69,32 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
-const App = () => {
-  const theme = useTheme();
-
-  return (
-    <Router>
-      <ScrollToTop />
-      <LocationPathnameLogger />
-      <RootContextProviders>
-        <GlobalStyles />
-        <Menu
-          data={bootstrapData.common.menu_data}
-          isFrontendRoute={isFrontendRoute}
-        />
-        <Switch>
-          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-            <Route path={path} key={path}>
-              <Suspense fallback={<Fallback />}>
-                <Layout.Content>
-                  <ErrorBoundary style={{ margin: theme.sizeUnit * 4 }}>
-                    <Component user={bootstrapData.user} {...props} />
-                  </ErrorBoundary>
-                </Layout.Content>
-              </Suspense>
-            </Route>
-          ))}
-        </Switch>
-        <ToastContainer />
-      </RootContextProviders>
-    </Router>
-  );
-};
+const App = () => (
+  <Router>
+    <ScrollToTop />
+    <LocationPathnameLogger />
+    <RootContextProviders>
+      <GlobalStyles />
+      <Menu
+        data={bootstrapData.common.menu_data}
+        isFrontendRoute={isFrontendRoute}
+      />
+      <Switch>
+        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+          <Route path={path} key={path}>
+            <Suspense fallback={<Fallback />}>
+              <Layout.Content>
+                <ErrorBoundary style={{ margin: '16px' }}>
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
+              </Layout.Content>
+            </Suspense>
+          </Route>
+        ))}
+      </Switch>
+      <ToastContainer />
+    </RootContextProviders>
+  </Router>
+);
 
 export default hot(App);
