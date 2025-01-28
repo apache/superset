@@ -433,10 +433,8 @@ export function saveDashboardRequest(data, id, saveType) {
     if (
       [SAVE_TYPE_OVERWRITE, SAVE_TYPE_OVERWRITE_CONFIRMED].includes(saveType)
     ) {
-      let chartConfiguration = {};
-      let globalChartConfiguration = {};
-      ({ chartConfiguration, globalChartConfiguration } =
-        handleChartConfiguration());
+      const { chartConfiguration, globalChartConfiguration } =
+        handleChartConfiguration();
       const updatedDashboard =
         saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
           ? data
