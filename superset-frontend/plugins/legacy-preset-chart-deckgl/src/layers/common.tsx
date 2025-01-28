@@ -122,7 +122,11 @@ export function getAggFunc(
         sortedArr = arr.sort(d3ascending);
       }
 
-      return d3quantile(sortedArr, percentiles[type], acc);
+      return d3quantile(
+        sortedArr,
+        percentiles[type as keyof typeof percentiles],
+        acc,
+      );
     };
   } else if (type in d3functions) {
     d3func = d3functions[type];

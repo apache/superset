@@ -30,6 +30,7 @@ import {
 import { RootState } from 'src/dashboard/types';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
+import { Divider, Filter } from '@superset-ui/core';
 
 type Props = { dashboardPageId: string };
 
@@ -66,10 +67,13 @@ const selectDashboardContextForExplore = createSelector(
     (state: RootState) => state.dataMask,
   ],
   (metadata, dashboardId, colorScheme, filters, dataMask) => {
-    const nativeFilters = Object.keys(filters).reduce((acc, key) => {
-      acc[key] = pick(filters[key], ['chartsInScope']);
-      return acc;
-    }, {});
+    const nativeFilters = Object.keys(filters).reduce(
+      (acc, key) => {
+        acc[key] = pick(filters[key], ['chartsInScope']);
+        return acc;
+      },
+      {} as Record<string, Pick<Filter | Divider, 'chartsInScope'>>,
+    );
 
     return {
       labelsColor: metadata?.label_colors || EMPTY_OBJECT,

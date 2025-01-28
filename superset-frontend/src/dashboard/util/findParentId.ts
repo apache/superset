@@ -48,7 +48,8 @@ function findParentId(structure: IStructure): string | null {
   return parentId;
 }
 
-const cache = {};
+const cache = {} as Record<string, string | null>;
+
 export default function findParentIdWithCache(
   structure: IStructure,
 ): string | null {

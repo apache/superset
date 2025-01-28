@@ -26,6 +26,7 @@ import {
   isCrossFilterScopeGlobal,
   GlobalChartCrossFilterConfig,
   GLOBAL_SCOPE_POINTER,
+  ChartCrossFiltersConfig,
 } from 'src/dashboard/types';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
@@ -39,22 +40,25 @@ const getUpdatedGloballyScopedChartsInScope = (
   configs: ChartConfiguration,
   globalChartsInScope: number[],
 ) =>
-  Object.entries(configs).reduce((acc, [id, config]) => {
-    if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
-      acc[id] = {
-        id: Number(config.id),
-        crossFilters: {
-          scope: GLOBAL_SCOPE_POINTER,
-          chartsInScope: globalChartsInScope.filter(
-            chartId => chartId !== Number(config.id),
-          ),
-        },
-      };
-    } else {
-      acc[id] = config;
-    }
-    return acc;
-  }, {});
+  Object.entries(configs).reduce(
+    (acc, [id, config]) => {
+      if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
+        acc[id] = {
+          id: Number(config.id),
+          crossFilters: {
+            scope: GLOBAL_SCOPE_POINTER,
+            chartsInScope: globalChartsInScope.filter(
+              chartId => chartId !== Number(config.id),
+            ),
+          },
+        };
+      } else {
+        acc[id] = config;
+      }
+      return acc;
+    },
+    {} as Record<string, { id: number; crossFilters: ChartCrossFiltersConfig }>,
+  );
 
 const getActualScopeFromGlobalScope = (
   chartId: number,

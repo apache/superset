@@ -43,10 +43,6 @@ import { areObjectsEqual } from '../reduxUtils';
 
 export function getInitialDataMask(
   id?: string | number,
-  moreProps?: DataMask,
-): DataMask;
-export function getInitialDataMask(
-  id: string | number,
   moreProps: DataMask = {},
 ): DataMaskWithId {
   let otherProps = {};
@@ -134,7 +130,7 @@ function updateDataMaskForFilterChanges(
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
-    const cleanState = {};
+    const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
       case CLEAR_DATA_MASK_STATE:
         return cleanState;

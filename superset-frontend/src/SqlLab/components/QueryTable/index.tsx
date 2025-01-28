@@ -223,6 +223,17 @@ const QueryTable = ({
           label: t('Unknown Status'),
         },
       },
+      started: {
+        config: {
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
+          ),
+          label: t('Started'),
+        },
+      },
     };
 
     return queries

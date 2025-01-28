@@ -60,6 +60,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import Loading from 'src/components/Loading';
 import { isEmpty, pick } from 'lodash';
+import { OnlyKeyWithType } from 'src/utils/types';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -642,7 +643,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
   const hasAlert =
-    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
+    connectionAlert ||
+    !!(
+      db?.engine &&
+      engineSpecificAlertMapping[
+        db.engine as keyof typeof engineSpecificAlertMapping
+      ]
+    );
   const useSqlAlchemyForm =
     db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -858,14 +865,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters];
             // The backend expects `masked_encrypted_extra` as a string for historical
             // reasons.
-            dbToUpdate.parameters[paramConfig as keyof DatabaseParameters] =
-              JSON.stringify(
-                dbToUpdate.parameters[paramConfig as keyof DatabaseParameters],
-              );
+            dbToUpdate.parameters[
+              paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+            ] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig as keyof DatabaseParameters],
+            );
           } else {
             additionalEncryptedExtra[paramConfig] = JSON.parse(
               dbToUpdate.parameters?.[
-                paramConfig as keyof DatabaseParameters
+                paramConfig as OnlyKeyWithType<DatabaseParameters, string>
               ] || '{}',
             );
           }

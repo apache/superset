@@ -26,6 +26,7 @@ import {
 } from '@superset-ui/core';
 import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 import {
+  ChartConfiguration,
   ChartsState,
   DashboardInfo,
   DashboardLayout,
@@ -73,7 +74,7 @@ export const getCrossFiltersConfiguration = (
 
   // If user just added cross filter to dashboard it's not saving its scope on server,
   // so we tweak it until user will update scope and will save it in server
-  const chartConfiguration = {};
+  const chartConfiguration: ChartConfiguration = {};
   chartLayoutItems.forEach(layoutItem => {
     const chartId = layoutItem.meta?.chartId;
 
@@ -99,6 +100,7 @@ export const getCrossFiltersConfiguration = (
           id: chartId,
           crossFilters: {
             scope: GLOBAL_SCOPE_POINTER,
+            chartsInScope: [],
           },
         };
       }

@@ -194,7 +194,10 @@ export function fetchObjects(
 }
 
 export function fetchObjectsByTagIds(
-  { tagIds = [], types }: { tagIds: number[] | string; types: string | null },
+  {
+    tagIds = [],
+    types,
+  }: { tagIds: (number | undefined)[] | string; types: string | null },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {

@@ -16,27 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { LayoutItem } from '../types';
 
-/**
- * @param key The name of the row's attribute used to compare values for alphabetical sorting
- * @param a First row object to compare
- * @param b Second row object to compare
- * @returns number
- */
-export const alphabeticalSort = (
-  key: string,
-  a: Record<PropertyKey, string>,
-  b: Record<PropertyKey, string>,
-): number => a?.[key]?.localeCompare?.(b?.[key]);
+const findTabIndexByComponentId = ({
+  currentComponent,
+  directPathToChild = [],
+}: {
+  currentComponent: LayoutItem;
+  directPathToChild: string[];
+}): number => {
+  if (
+    !currentComponent ||
+    directPathToChild.length === 0 ||
+    directPathToChild.indexOf(currentComponent.id) === -1
+  ) {
+    return -1;
+  }
 
-/**
- * @param key The name of the row's attribute used to compare values for numerical sorting
- * @param a First row object to compare
- * @param b Second row object to compare
- * @returns number
- */
-export const numericalSort = (
-  key: string,
-  a: Record<PropertyKey, number>,
-  b: Record<PropertyKey, number>,
-): number => a?.[key] - b?.[key];
+  const currentComponentIdx = directPathToChild.findIndex(
+    id => id === currentComponent.id,
+  );
+  const nextParentId = directPathToChild[currentComponentIdx + 1];
+  if (currentComponent.children.indexOf(nextParentId) >= 0) {
+    return currentComponent.children.findIndex(
+      childId => childId === nextParentId,
+    );
+  }
+  return -1;
+};
+
+export default findTabIndexByComponentId;

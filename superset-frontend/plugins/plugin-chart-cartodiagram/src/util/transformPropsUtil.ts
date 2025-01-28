@@ -208,7 +208,7 @@ export const stripGeomColumnFromLabelMap = (
   labelMap: { [key: string]: string[] },
   geomColumn: string,
 ) => {
-  const newLabelMap = {};
+  const newLabelMap: Record<string, string[]> = {};
   Object.entries(labelMap).forEach(([key, value]) => {
     if (key === geomColumn) {
       return;

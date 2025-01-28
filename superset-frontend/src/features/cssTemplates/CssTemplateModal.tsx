@@ -27,6 +27,7 @@ import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
 
 interface CssTemplateModalProps {
@@ -36,6 +37,11 @@ interface CssTemplateModalProps {
   onHide: () => void;
   show: boolean;
 }
+
+type CssTemplateStringKeys = keyof Pick<
+  TemplateObject,
+  OnlyKeyWithType<TemplateObject, String>
+>;
 
 const StyledCssTemplateTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
@@ -146,7 +152,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       css: currentCssTemplate ? currentCssTemplate.css : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as CssTemplateStringKeys] = target.value;
     setCurrentCssTemplate(data);
   };
 

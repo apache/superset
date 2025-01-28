@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export const caches = {};
+export const caches: Record<string, Record<string, Response>> = {};
 
 export default class Cache {
-  cache: object;
+  cache: Record<string, Response>;
 
   constructor(key: string) {
     caches[key] = caches[key] || {};

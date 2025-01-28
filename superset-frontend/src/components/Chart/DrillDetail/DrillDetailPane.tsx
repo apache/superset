@@ -90,7 +90,9 @@ export default function DrillDetailPane({
   const [resultsPages, setResultsPages] = useState<Map<number, ResultsPage>>(
     new Map(),
   );
-  const [timeFormatting, setTimeFormatting] = useState({});
+  const [timeFormatting, setTimeFormatting] = useState<
+    Record<string, TimeFormatting>
+  >({});
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>
@@ -140,7 +142,10 @@ export default function DrillDetailPane({
                   : TimeFormatting.Formatted
               }
               onChange={value =>
-                setTimeFormatting(state => ({ ...state, [column]: value }))
+                setTimeFormatting(state => ({
+                  ...state,
+                  [column]: parseInt(value, 10) as TimeFormatting,
+                }))
               }
             />
           ) : (

@@ -42,7 +42,7 @@ export enum KeyboardShortcut {
   CtrlRight = 'ctrl+]',
 }
 
-export const KEY_MAP = {
+export const KEY_MAP: Record<KeyboardShortcut, string | undefined> = {
   [KeyboardShortcut.CtrlR]: t('Run query'),
   [KeyboardShortcut.CtrlEnter]: t('Run query'),
   [KeyboardShortcut.AltEnter]: t('Run query'),

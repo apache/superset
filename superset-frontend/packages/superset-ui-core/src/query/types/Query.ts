@@ -349,15 +349,17 @@ export type Query = {
 };
 
 export type QueryResults = {
-  results: {
-    displayLimitReached: boolean;
-    columns: QueryColumn[];
-    data: Record<string, unknown>[];
-    expanded_columns: QueryColumn[];
-    selected_columns: QueryColumn[];
-    query: { limit: number };
-    query_id?: number;
-  };
+  results: InnerQueryResults;
+};
+
+export type InnerQueryResults = {
+  displayLimitReached: boolean;
+  columns: QueryColumn[];
+  data: Record<string, unknown>[];
+  expanded_columns: QueryColumn[];
+  selected_columns: QueryColumn[];
+  query: { limit: number };
+  query_id?: number;
 };
 
 export type QueryResponse = Query & QueryResults;

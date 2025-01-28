@@ -40,9 +40,10 @@ const exposedProperties = ['window', 'navigator', 'document'];
 const { defaultView } = document;
 if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
-    if (typeof global[property] === 'undefined') {
+    if (typeof global[property as keyof typeof global] === 'undefined') {
       exposedProperties.push(property);
-      global[property] = defaultView[property];
+      // @ts-ignore due to string-type index signature doesn't apply for `typeof globalThis`.
+      global[property] = defaultView[property as keyof typeof defaultView];
     }
   });
 }

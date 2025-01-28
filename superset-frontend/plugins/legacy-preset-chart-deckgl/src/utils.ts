@@ -172,8 +172,11 @@ export function getBuckets(
 ) {
   const breakPoints = getBreakPoints(fd, features, accessor);
   const colorScaler = getBreakPointColorScaler(fd, features, accessor);
-  const buckets = {};
-  breakPoints.slice(1).forEach((value, i) => {
+  const buckets: Record<
+    string,
+    { color: [number, number, number, number] | undefined; enabled: boolean }
+  > = {};
+  breakPoints.slice(1).forEach((_, i) => {
     const range = `${breakPoints[i]} - ${breakPoints[i + 1]}`;
     const mid =
       0.5 * (parseFloat(breakPoints[i]) + parseFloat(breakPoints[i + 1]));
