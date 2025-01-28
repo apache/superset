@@ -3818,6 +3818,12 @@ msgstr ""
 msgid "Description"
 msgstr ""
 
+msgid "Description EN"
+msgstr ""
+
+msgid "Description RU"
+msgstr ""
+
 msgid "Description (this can be seen in the list)"
 msgstr ""
 

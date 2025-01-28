@@ -835,6 +835,10 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     python_date_format = Column(String(255))
     extra = Column(Text)
 
+    # описание данных в туллтипе
+    description_EN = Column(utils.MediumText(), nullable=True)
+    description_RU = Column(utils.MediumText(), nullable=True)
+
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="columns",
@@ -852,6 +856,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         "filterable",
         "expression",
         "description",
+        "description_EN",  # описание данных в туллтипе
+        "description_RU",  # описание данных в туллтипе
         "python_date_format",
         "extra",
     ]
@@ -1011,6 +1017,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "certified_by",
             "column_name",
             "description",
+            "description_EN",  # описание данных в туллтипе
+            "description_RU",  # описание данных в туллтипе
             "expression",
             "filterable",
             "groupby",
@@ -1045,6 +1053,10 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     expression = Column(utils.MediumText(), nullable=False)
     extra = Column(Text)
 
+    #  описание данных в туллтипе
+    description_EN = Column(utils.MediumText(), nullable=True)
+    description_RU = Column(utils.MediumText(), nullable=True)
+
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="metrics",
@@ -1057,6 +1069,8 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         "table_id",
         "expression",
         "description",
+        "description_EN",  # описание данных в туллтипе
+        "description_RU",  # описание данных в туллтипе
         "d3format",
         "currency",
         "extra",
@@ -1112,6 +1126,8 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
             "currency",
             "d3format",
             "description",
+            "description_EN",  # описание данных в туллтипе
+            "description_RU",  # описание данных в туллтипе
             "expression",
             "id",
             "is_certified",
