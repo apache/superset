@@ -1112,33 +1112,6 @@ def test_csv_upload_validation(
     assert response.json == expected_response
 
 
-def test_csv_upload_file_size_validation(
-    mocker: MockerFixture,
-    client: Any,
-    full_api_access: None,
-) -> None:
-    """
-    Test CSV Upload validation fails.
-    """
-    _ = mocker.patch.object(UploadCommand, "run")
-    current_app.config["CSV_UPLOAD_MAX_SIZE"] = 5
-    response = client.post(
-        "/api/v1/database/1/upload/",
-        data={
-            "type": "csv",
-            "file": (create_csv_file(), "out.csv"),
-            "table_name": "table1",
-            "delimiter": ",",
-        },
-        content_type="multipart/form-data",
-    )
-    assert response.status_code == 400
-    assert response.json == {
-        "message": {"file": ["File size exceeds the maximum allowed size."]}
-    }
-    current_app.config["CSV_UPLOAD_MAX_SIZE"] = None
-
-
 @pytest.mark.parametrize(
     "filename",
     [

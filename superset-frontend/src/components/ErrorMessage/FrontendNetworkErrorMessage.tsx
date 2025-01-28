@@ -16,49 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { t } from '@superset-ui/core';
+
 import { ErrorMessageComponentProps } from './types';
 import ErrorAlert from './ErrorAlert';
 
-interface SupersetParseErrorExtra {
-  sql: string;
-  engine: string | null;
-  line: number | null;
-  column: number | null;
-}
-
-/*
- * Component for showing syntax errors in SQL Lab.
- */
-function InvalidSQLErrorMessage({
+function FrontendNetworkErrorMessage({
   error,
-  source,
   subtitle,
-}: ErrorMessageComponentProps<SupersetParseErrorExtra>) {
-  const { extra, level } = error;
-
-  const { sql, line, column } = extra;
-  const lines = sql.split('\n');
-  let errorLine;
-  if (line !== null) errorLine = lines[line - 1];
-  else if (lines.length > 0) {
-    errorLine = lines[0];
-  }
-  const body = errorLine && (
-    <>
-      <pre>{errorLine}</pre>
-      {column !== null && <pre>{' '.repeat(column - 1)}^</pre>}
-    </>
-  );
+}: ErrorMessageComponentProps) {
+  const { level, message } = error;
   return (
-    <ErrorAlert
-      errorType={t('Unable to parse SQL')}
-      message={subtitle}
-      type={level}
-      description={body}
-    />
+    <ErrorAlert errorType={t('Network Error')} message={message} type={level} />
   );
 }
-
-export default InvalidSQLErrorMessage;
+export default FrontendNetworkErrorMessage;
