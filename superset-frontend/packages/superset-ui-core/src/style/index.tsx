@@ -27,6 +27,7 @@ export {
   ThemeProvider,
   CacheProvider as EmotionCacheProvider,
   withTheme,
+  type SerializedStyles,
 } from '@emotion/react';
 export { default as createEmotionCache } from '@emotion/cache';
 
