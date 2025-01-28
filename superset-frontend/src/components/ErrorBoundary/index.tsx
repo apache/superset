@@ -24,6 +24,7 @@ export interface ErrorBoundaryProps {
   children: ReactNode;
   onError?: (error: Error, info: ErrorInfo) => void;
   showMessage?: boolean;
+  className?: string;
 }
 
 interface ErrorBoundaryState {
@@ -51,14 +52,16 @@ export default class ErrorBoundary extends Component<
 
   render() {
     const { error, info } = this.state;
+    const { showMessage, className } = this.props;
     if (error) {
       const firstLine = error.toString().split('\n')[0];
-      if (this.props.showMessage) {
+      if (showMessage) {
         return (
           <ErrorAlert
             errorType={t('Unexpected error')}
             message={firstLine}
             descriptionDetails={info?.componentStack}
+            className={className}
           />
         );
       }

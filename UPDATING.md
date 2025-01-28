@@ -24,6 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
+- [31959](https://github.com/apache/superset/pull/31959) Removes the following endpoints from data uploads: /api/v1/database/<id>/<file type>_upload and /api/v1/database/<file type>_metadata, in favour of new one (Details on the PR). And simplifies permissions.
 - [31844](https://github.com/apache/superset/pull/31844) The `ALERT_REPORTS_EXECUTE_AS` and `THUMBNAILS_EXECUTE_AS` config parameters have been renamed to `ALERT_REPORTS_EXECUTORS` and `THUMBNAILS_EXECUTORS` respectively. A new config flag `CACHE_WARMUP_EXECUTORS` has also been introduced to be able to control which user is used to execute cache warmup tasks. Finally, the config flag `THUMBNAILS_SELENIUM_USER` has been removed. To use a fixed executor for async tasks, use the new `FixedExecutor` class. See the config and docs for more info on setting up different executor profiles.
 - [31894](https://github.com/apache/superset/pull/31894) Domain sharding is deprecated in favor of HTTP2. The `SUPERSET_WEBSERVER_DOMAINS` configuration will be removed in the next major version (6.0)
 - [31774](https://github.com/apache/superset/pull/31774): Fixes the spelling of the `USE-ANALAGOUS-COLORS` feature flag. Please update any scripts/configuration item to use the new/corrected `USE-ANALOGOUS-COLORS` flag spelling.
@@ -40,6 +41,7 @@ assists people when migrating to a new version.
 - [29163](https://github.com/apache/superset/pull/29163) Removed the `SHARE_QUERIES_VIA_KV_STORE` and `KV_STORE` feature flags and changed the way Superset shares SQL Lab queries to use permalinks. The legacy `/kv` API was removed but we still support legacy links in 5.0. In 6.0, only permalinks will be supported.
 - [25166](https://github.com/apache/superset/pull/25166) Changed the default configuration of `UPLOAD_FOLDER` from `/app/static/uploads/` to `/static/uploads/`. It also removed the unused `IMG_UPLOAD_FOLDER` and `IMG_UPLOAD_URL` configuration options.
 - [30284](https://github.com/apache/superset/pull/30284) Deprecated GLOBAL_ASYNC_QUERIES_REDIS_CONFIG in favor of the new GLOBAL_ASYNC_QUERIES_CACHE_BACKEND configuration. To leverage Redis Sentinel, set CACHE_TYPE to RedisSentinelCache, or use RedisCache for standalone Redis
+- [31961](https://github.com/apache/superset/pull/31961) Upgraded React from version 16.13.1 to 17.0.2. If you are using custom frontend extensions or plugins, you may need to update them to be compatible with React 17.
 
 
 ### Potential Downtime

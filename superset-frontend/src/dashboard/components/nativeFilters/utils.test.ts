@@ -16,24 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, FeatureFlag } from '@superset-ui/core';
-import * as uiCore from '@superset-ui/core';
+import { Behavior, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
-let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 describe('nativeFilterGate', () => {
   describe('with all feature flags disabled', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
+      mockedIsFeatureEnabled.mockImplementation(() => false);
     });
 
     afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
+      mockedIsFeatureEnabled.mockRestore();
     });
 
     it('should return true for regular chart', () => {
@@ -57,15 +59,13 @@ describe('nativeFilterGate', () => {
 
   describe('with cross filters and experimental feature flag enabled', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation((featureFlag: FeatureFlag) =>
-          [FeatureFlag.DashboardCrossFilters].includes(featureFlag),
-        );
+      mockedIsFeatureEnabled.mockImplementation((featureFlag: FeatureFlag) =>
+        [FeatureFlag.DashboardCrossFilters].includes(featureFlag),
+      );
     });
 
     afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
+      mockedIsFeatureEnabled.mockRestore();
     });
 
     it('should return true for regular chart', () => {
