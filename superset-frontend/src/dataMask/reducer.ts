@@ -152,7 +152,7 @@ const dataMaskReducer = produce(
             action.data.dashboardInfo?.metadata?.chart_configuration,
           ).forEach(id => {
             cleanState[id] = {
-              ...getInitialDataMask(id), // take initial data
+              ...(getInitialDataMask(id) as DataMaskWithId), // take initial data
             };
           });
         }

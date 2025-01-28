@@ -56,8 +56,9 @@ export default function findParentIdWithCache(
   let parentId = null;
   if (structure) {
     const { childId, layout = {} } = structure;
-    if (cache[childId]) {
-      const lastParent = layout?.[cache[childId]] || {};
+    const cachedValue = cache[childId];
+    if (cachedValue) {
+      const lastParent = layout?.[cachedValue] || {};
       if (lastParent?.children && lastParent?.children?.includes?.(childId)) {
         return lastParent.id;
       }
