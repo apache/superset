@@ -29,7 +29,6 @@ const CONTEXT_MENU_TEST_ID = 'chart-context-menu';
 
 // @ts-ignore
 global.featureFlags = {
-  [FeatureFlag.DashboardCrossFilters]: true,
   [FeatureFlag.DrillToDetail]: true,
   [FeatureFlag.DrillBy]: true,
 };

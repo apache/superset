@@ -314,15 +314,12 @@ const databaseFixture: DatabaseObject = {
 };
 
 describe('DatabaseModal', () => {
-  const renderAndWait = async () => {
-    const mounted = act(async () => {
+  const renderAndWait = async () =>
+    waitFor(() =>
       render(<DatabaseModal {...dbProps} />, {
         useRedux: true,
-      });
-    });
-
-    return mounted;
-  };
+      }),
+    );
 
   beforeEach(async () => {
     await renderAndWait();
