@@ -35,6 +35,7 @@ export interface ErrorAlertProps {
   children?: React.ReactNode; // Additional content to show in the modal
   closable?: boolean; // Show close button, default true
   showIcon?: boolean; // Show icon, default true
+  style?: React.CSSProperties;
 }
 
 const ErrorAlert: React.FC<ErrorAlertProps> = ({
@@ -49,6 +50,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
   children,
   closable = true,
   showIcon = true,
+  style,
 }) => {
   const [isDescriptionVisible, setIsDescriptionVisible] = useState(
     !descriptionDetailsCollapsed,
@@ -107,6 +109,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
       type={type}
       showIcon
       closable={closable}
+      style={style}
     >
       <strong>{errorType}</strong>
       {message && (
