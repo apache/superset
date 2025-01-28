@@ -28,7 +28,7 @@ describe('SqlLab query panel', () => {
     cy.visit('/sqllab');
   });
 
-  it.skip('supports entering and running a query', () => {
+  it('supports entering and running a query', () => {
     // row limit has to be < ~10 for us to be able to determine how many rows
     // are fetched below (because React _Virtualized_ does not render all rows)
     let clockTime = 0;
