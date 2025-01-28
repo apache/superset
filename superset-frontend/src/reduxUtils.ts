@@ -125,7 +125,7 @@ export function extendArr(
       el.id = nanoid();
     }
   });
-  const newState = {} as Record<string, any[]>;
+  const newState: Record<string, any[]> = {};
   if (prepend) {
     newState[arrKey] = [...newArr, ...state[arrKey]];
   } else {

@@ -378,13 +378,13 @@ export function dbReducer(
 
         // format catalog for state
         // eslint-disable-next-line array-callback-return
-        parametersCatalog = catalogCopy.reduce(
+        parametersCatalog = catalogCopy.reduce<Record<string, string>>(
           (obj, item: CatalogObject) => {
             const catalog = { ...obj };
             catalog[item.name as keyof CatalogObject] = item.value;
             return catalog;
           },
-          {} as Record<string, string>,
+          {},
         );
 
         return {

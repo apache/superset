@@ -595,12 +595,12 @@ export function useFavoriteStatus(
     }
     favoriteApis[type](ids).then(
       ({ result }) => {
-        const update = result.reduce(
+        const update = result.reduce<Record<string, boolean>>(
           (acc, element) => {
             acc[element.id] = element.value;
             return acc;
           },
-          {} as Record<string, boolean>,
+          {},
         );
         updateFavoriteStatus(update);
       },

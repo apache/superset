@@ -81,7 +81,7 @@ const getParsedExploreURLSearchParams = (
   search: string,
 ): Record<string, any> => {
   const urlSearchParams = new URLSearchParams(search);
-  return Array.from(urlSearchParams.keys()).reduce(
+  return Array.from(urlSearchParams.keys()).reduce<Record<string, any>>(
     (acc, currentParam) => {
       const paramValue = urlSearchParams.get(currentParam);
       if (paramValue === null) {
@@ -108,7 +108,7 @@ const getParsedExploreURLSearchParams = (
         [key]: parsedParamValue,
       };
     },
-    {} as Record<string, any>,
+    {},
   );
 };
 

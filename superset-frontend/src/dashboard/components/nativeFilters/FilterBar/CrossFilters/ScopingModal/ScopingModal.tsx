@@ -40,25 +40,24 @@ const getUpdatedGloballyScopedChartsInScope = (
   configs: ChartConfiguration,
   globalChartsInScope: number[],
 ) =>
-  Object.entries(configs).reduce(
-    (acc, [id, config]) => {
-      if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
-        acc[id] = {
-          id: Number(config.id),
-          crossFilters: {
-            scope: GLOBAL_SCOPE_POINTER,
-            chartsInScope: globalChartsInScope.filter(
-              chartId => chartId !== Number(config.id),
-            ),
-          },
-        };
-      } else {
-        acc[id] = config;
-      }
-      return acc;
-    },
-    {} as Record<string, { id: number; crossFilters: ChartCrossFiltersConfig }>,
-  );
+  Object.entries(configs).reduce<
+    Record<string, { id: number; crossFilters: ChartCrossFiltersConfig }>
+  >((acc, [id, config]) => {
+    if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
+      acc[id] = {
+        id: Number(config.id),
+        crossFilters: {
+          scope: GLOBAL_SCOPE_POINTER,
+          chartsInScope: globalChartsInScope.filter(
+            chartId => chartId !== Number(config.id),
+          ),
+        },
+      };
+    } else {
+      acc[id] = config;
+    }
+    return acc;
+  }, {});
 
 const getActualScopeFromGlobalScope = (
   chartId: number,

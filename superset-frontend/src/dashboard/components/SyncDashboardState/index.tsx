@@ -67,13 +67,12 @@ const selectDashboardContextForExplore = createSelector(
     (state: RootState) => state.dataMask,
   ],
   (metadata, dashboardId, colorScheme, filters, dataMask) => {
-    const nativeFilters = Object.keys(filters).reduce(
-      (acc, key) => {
-        acc[key] = pick(filters[key], ['chartsInScope']);
-        return acc;
-      },
-      {} as Record<string, Pick<Filter | Divider, 'chartsInScope'>>,
-    );
+    const nativeFilters = Object.keys(filters).reduce<
+      Record<string, Pick<Filter | Divider, 'chartsInScope'>>
+    >((acc, key) => {
+      acc[key] = pick(filters[key], ['chartsInScope']);
+      return acc;
+    }, {});
 
     return {
       labelsColor: metadata?.label_colors || EMPTY_OBJECT,

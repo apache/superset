@@ -91,12 +91,12 @@ const selectIndicatorValue = (
       (columnKey === TIME_FILTER_MAP.time_grain_sqla
         ? datasource.time_grain_sqla
         : datasource.granularity) || []
-    ).reduce(
+    ).reduce<Record<string, string>>(
       (map, [key, value]) => ({
         ...map,
         [key]: value,
       }),
-      {} as Record<string, string>,
+      {},
     );
 
     return arrValues.map(value => timeGranularityMap[value] || value);

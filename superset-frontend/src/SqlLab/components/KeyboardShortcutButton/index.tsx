@@ -62,15 +62,14 @@ export const KEY_MAP: Record<KeyboardShortcut, string | undefined> = {
   [KeyboardShortcut.CtrlH]: userOS !== 'MacOS' ? t('Replace') : undefined,
 };
 
-const KeyMapByCommand = Object.entries(KEY_MAP).reduce(
-  (acc, [shortcut, command]) => {
-    if (command) {
-      acc[command] = [...(acc[command] || []), shortcut];
-    }
-    return acc;
-  },
-  {} as Record<string, string[]>,
-);
+const KeyMapByCommand = Object.entries(KEY_MAP).reduce<
+  Record<string, string[]>
+>((acc, [shortcut, command]) => {
+  if (command) {
+    acc[command] = [...(acc[command] || []), shortcut];
+  }
+  return acc;
+}, {});
 
 const ShortcutDescription = styled.span`
   font-size: ${({ theme }) => theme.typography.sizes.m}px;

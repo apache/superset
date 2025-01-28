@@ -22,7 +22,12 @@ import type {
   QueryResponse,
   QueryResults,
 } from '@superset-ui/core';
-import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
+import type {
+  CursorPosition,
+  QueryEditor,
+  SqlLabRootState,
+  Table,
+} from 'src/SqlLab/types';
 import type { ThunkDispatch } from 'redux-thunk';
 import { pick } from 'lodash';
 import { tableApiUtil } from 'src/hooks/apiResources/tables';
@@ -113,12 +118,17 @@ export function clearQueryEditors(queryEditors: QueryEditor[]) {
     // only return selected keys
     Object.keys(editor)
       .filter(key => PERSISTENT_QUERY_EDITOR_KEYS.has(key))
-      .reduce(
+      .reduce<
+        Record<
+          string,
+          string | number | boolean | CursorPosition | null | undefined
+        >
+      >(
         (accumulator, key) => ({
           ...accumulator,
           [key]: editor[key as keyof QueryEditor],
         }),
-        {} as Record<string, string | number | boolean>,
+        {},
       ),
   );
 }

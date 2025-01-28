@@ -225,7 +225,7 @@ export default function DrillByModal({
 
   const getFormDataChangesFromConfigs = useCallback(
     (configs: DrillByConfigs) =>
-      configs.reduce(
+      configs.reduce<Record<string, any>>(
         (acc, config) => {
           if (config?.groupbyFieldName && config.column) {
             acc.formData[config.groupbyFieldName] = getNewGroupby(
@@ -250,25 +250,22 @@ export default function DrillByModal({
           formData: {} as Record<string, string | string[] | Set<string>>,
           overriddenGroupbyFields: new Set<string>(),
           overriddenAdhocFilterFields: new Set<string>(),
-        } as Record<string, any>,
+        },
       ),
     [getNewGroupby],
   );
 
   const getFiltersFromConfigsByFieldName = useCallback(
     () =>
-      drillByConfigs.reduce(
-        (acc, config) => {
-          const adhocFilterFieldName =
-            config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
-          acc[adhocFilterFieldName] = [
-            ...(acc[adhocFilterFieldName] || []),
-            ...config.filters.map(filter => simpleFilterToAdhoc(filter)),
-          ];
-          return acc;
-        },
-        {} as Record<string, AdhocFilter[]>,
-      ),
+      drillByConfigs.reduce<Record<string, AdhocFilter[]>>((acc, config) => {
+        const adhocFilterFieldName =
+          config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
+        acc[adhocFilterFieldName] = [
+          ...(acc[adhocFilterFieldName] || []),
+          ...config.filters.map(filter => simpleFilterToAdhoc(filter)),
+        ];
+        return acc;
+      }, {}),
     [drillByConfigs],
   );
 

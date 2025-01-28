@@ -35,13 +35,10 @@ const getFontSizeMapping = (
   proportionValues: number[],
   actualSizes: number[],
 ) =>
-  proportionValues.reduce(
-    (acc, value, index) => {
-      acc[value] = actualSizes[index] ?? actualSizes[actualSizes.length - 1];
-      return acc;
-    },
-    {} as Record<number, number>,
-  );
+  proportionValues.reduce<Record<number, number>>((acc, value, index) => {
+    acc[value] = actualSizes[index] ?? actualSizes[actualSizes.length - 1];
+    return acc;
+  }, {});
 
 const headerFontSizesMapping = getFontSizeMapping(
   headerProportionValues,
