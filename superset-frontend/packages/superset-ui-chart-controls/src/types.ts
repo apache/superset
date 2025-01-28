@@ -366,8 +366,8 @@ export type CustomControlItem = {
 export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
   typeof obj === 'object' &&
   obj !== null &&
-  typeof (obj as CustomControlItem).name === 'string' &&
-  typeof (obj as CustomControlItem).config === 'object' &&
+  typeof ('name' in obj && obj.name) === 'string' &&
+  typeof ('config' in obj && obj.config) === 'object' &&
   (obj as CustomControlItem).config !== null;
 
 // use ReactElement instead of ReactNode because `string`, `number`, etc. may
