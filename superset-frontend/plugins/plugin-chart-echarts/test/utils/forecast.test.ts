@@ -17,6 +17,7 @@
  * under the License.
  */
 import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
+import { SeriesOption } from 'echarts';
 import {
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
@@ -25,7 +26,6 @@ import {
   reorderForecastSeries,
 } from '../../src/utils/forecast';
 import { ForecastSeriesEnum } from '../../src/types';
-import { SeriesOption } from 'echarts';
 
 describe('extractForecastSeriesContext', () => {
   it('should extract the correct series name and type', () => {
