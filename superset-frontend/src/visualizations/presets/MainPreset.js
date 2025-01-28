@@ -70,6 +70,7 @@ import {
   EchartsHeatmapChartPlugin,
 } from '@superset-ui/plugin-chart-echarts';
 import {
+  AdhocFilterPlugin,
   SelectFilterPlugin,
   RangeFilterPlugin,
   TimeFilterPlugin,
@@ -185,7 +186,11 @@ export default class MainPreset extends Preset {
           ],
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
-      ],
+      ].concat(
+        isFeatureEnabled(FeatureFlag.AdhocDashboardNativeFilters)
+          ? [new AdhocFilterPlugin().configure({ key: 'filter_adhoc' })]
+          : [],
+      ),
     });
   }
 }
