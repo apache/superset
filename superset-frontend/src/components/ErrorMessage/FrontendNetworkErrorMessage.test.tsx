@@ -57,7 +57,6 @@ test('should render', () => {
 
 test('should render the error message', () => {
   render(<FrontendNetworkErrorMessage {...mockedProps} />, { useRedux: true });
-  // userEvent.click(screen.getByRole('button'));
   expect(screen.getByText('Error message')).toBeInTheDocument();
 });
 
