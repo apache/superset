@@ -18,9 +18,12 @@
 
 set -eo pipefail
 
+# Ensure the temporary directory exists
+mkdir -p /tmp/superset_temp
+
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
-    if command -v uv > /dev/null 2>&1; then
+    if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
       echo "Reinstalling the app in editable mode"
       uv pip install -e .
     fi
@@ -34,7 +37,8 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
     export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
     PORT=8081
 fi
-if [[ "$DATABASE_DIALECT" == postgres* ]] ; then
+if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ]; then
+    # older images may not have the postgres dev requirements installed
     echo "Installing postgres requirements"
     if command -v uv > /dev/null 2>&1; then
         # Use uv in newer images

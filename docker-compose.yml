@@ -27,12 +27,13 @@ x-superset-volumes: &superset-volumes
   - ./docker:/app/docker
   - ./superset:/app/superset
   - ./superset-frontend:/app/superset-frontend
-  - superset_home:/app/superset_home
   - ./tests:/app/tests
+  #- superset_home:/app/superset_home
 
 x-common-build: &common-build
   context: .
-  target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
+  #target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
+  target: ci
   cache_from:
     - apache/superset-cache:3.10-slim-bookworm
   args:
