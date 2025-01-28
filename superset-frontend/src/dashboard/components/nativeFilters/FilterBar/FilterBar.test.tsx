@@ -20,9 +20,8 @@
 import { render, screen, act } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import * as mockCore from '@superset-ui/core';
 import { testWithId } from 'src/utils/testUtils';
-import { Preset } from '@superset-ui/core';
+import { Preset, makeApi } from '@superset-ui/core';
 import { TimeFilterPlugin, SelectFilterPlugin } from 'src/filters/components';
 import fetchMock from 'fetch-mock';
 import { FilterBarOrientation } from 'src/dashboard/types';
@@ -31,8 +30,13 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 
 jest.useFakeTimers();
-// @ts-ignore
-mockCore.makeApi = jest.fn();
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  makeApi: jest.fn(),
+}));
+
+const mockedMakeApi = makeApi as jest.Mock;
 
 class MainPreset extends Preset {
   constructor() {
@@ -153,8 +157,7 @@ describe('FilterBar', () => {
       { overwriteRoutes: true },
     );
 
-    // @ts-ignore
-    mockCore.makeApi = jest.fn(() => mockApi);
+    mockedMakeApi.mockReturnValue(mockApi);
   });
 
   const renderWrapper = (props = closedBarProps, state?: object) =>

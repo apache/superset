@@ -21,7 +21,7 @@ import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
 
-import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
+import { DragDroppable } from 'src/dashboard/components/dnd/DragDroppable';
 import { NEW_COMPONENTS_SOURCE_ID } from 'src/dashboard/util/constants';
 import { NEW_COMPONENT_SOURCE_TYPE } from 'src/dashboard/util/componentTypes';
 

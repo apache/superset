@@ -86,7 +86,7 @@ export interface Props {
   jsonValue: CellDataType;
 }
 
-const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
+export const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
   const jsonTreeTheme = useJsonTreeTheme();
 
   return (
@@ -108,5 +108,3 @@ const JsonModal: FC<Props> = ({ modalTitle, jsonObject, jsonValue }) => {
     />
   );
 };
-
-export default JsonModal;

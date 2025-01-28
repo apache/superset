@@ -21,9 +21,21 @@ import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';
 import * as ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import * as SupersetCore from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
 import PropertiesModal from '.';
 
-const spyIsFeatureEnabled = jest.spyOn(SupersetCore, 'isFeatureEnabled');
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+  getCategoricalSchemeRegistry: jest.fn(() => ({
+    keys: () => ['supersetColors'],
+    get: () => ['#FFFFFF', '#000000'],
+    getDefaultKey: () => 'supersetColors',
+  })),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
 const spyColorSchemeControlWrapper = jest.spyOn(
   ColorSchemeControlWrapper,
   'default',
@@ -150,7 +162,7 @@ afterAll(() => {
 });
 
 test('should render - FeatureFlag disabled', async () => {
-  spyIsFeatureEnabled.mockReturnValue(false);
+  mockedIsFeatureEnabled.mockReturnValue(false);
   const props = createProps();
   render(<PropertiesModal {...props} />, {
     useRedux: true,
@@ -188,7 +200,7 @@ test('should render - FeatureFlag disabled', async () => {
 });
 
 test('should render - FeatureFlag enabled', async () => {
-  spyIsFeatureEnabled.mockReturnValue(true);
+  mockedIsFeatureEnabled.mockReturnValue(true);
   const props = createProps();
   render(<PropertiesModal {...props} />, {
     useRedux: true,
@@ -229,7 +241,7 @@ test('should render - FeatureFlag enabled', async () => {
 });
 
 test('should open advance', async () => {
-  spyIsFeatureEnabled.mockReturnValue(true);
+  mockedIsFeatureEnabled.mockReturnValue(true);
   const props = createProps();
   render(<PropertiesModal {...props} />, {
     useRedux: true,
@@ -246,7 +258,7 @@ test('should open advance', async () => {
 });
 
 test('should close modal', async () => {
-  spyIsFeatureEnabled.mockReturnValue(true);
+  mockedIsFeatureEnabled.mockReturnValue(true);
   const props = createProps();
   render(<PropertiesModal {...props} />, {
     useRedux: true,
@@ -264,14 +276,6 @@ test('should close modal', async () => {
 
 test('submitting with onlyApply:false', async () => {
   const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
-  const spyGetCategoricalSchemeRegistry = jest.spyOn(
-    SupersetCore,
-    'getCategoricalSchemeRegistry',
-  );
-  spyGetCategoricalSchemeRegistry.mockReturnValue({
-    keys: () => ['supersetColors'],
-    get: () => ['#FFFFFF', '#000000'],
-  } as any);
   put.mockResolvedValue({
     json: {
       result: {
@@ -283,7 +287,7 @@ test('submitting with onlyApply:false', async () => {
       },
     },
   } as any);
-  spyIsFeatureEnabled.mockReturnValue(false);
+  mockedIsFeatureEnabled.mockReturnValue(false);
   const props = createProps();
   props.onlyApply = false;
   render(<PropertiesModal {...props} />, {
@@ -314,15 +318,7 @@ test('submitting with onlyApply:false', async () => {
 });
 
 test('submitting with onlyApply:true', async () => {
-  const spyGetCategoricalSchemeRegistry = jest.spyOn(
-    SupersetCore,
-    'getCategoricalSchemeRegistry',
-  );
-  spyGetCategoricalSchemeRegistry.mockReturnValue({
-    keys: () => ['supersetColors'],
-    get: () => ['#FFFFFF', '#000000'],
-  } as any);
-  spyIsFeatureEnabled.mockReturnValue(false);
+  mockedIsFeatureEnabled.mockReturnValue(false);
   const props = createProps();
   props.onlyApply = true;
   render(<PropertiesModal {...props} />, {
@@ -357,7 +353,7 @@ test('Empty "Certified by" should clear "Certification details"', async () => {
 });
 
 test('should show all roles', async () => {
-  spyIsFeatureEnabled.mockReturnValue(true);
+  mockedIsFeatureEnabled.mockReturnValue(true);
 
   const props = createProps();
   const propsWithDashboardInfo = { ...props, dashboardInfo };
@@ -390,7 +386,7 @@ test('should show all roles', async () => {
 });
 
 test('should show active owners with dashboard rbac', async () => {
-  spyIsFeatureEnabled.mockReturnValue(true);
+  mockedIsFeatureEnabled.mockReturnValue(true);
 
   const props = createProps();
   const propsWithDashboardInfo = { ...props, dashboardInfo };
@@ -423,7 +419,7 @@ test('should show active owners with dashboard rbac', async () => {
 });
 
 test('should show active owners without dashboard rbac', async () => {
-  spyIsFeatureEnabled.mockReturnValue(false);
+  mockedIsFeatureEnabled.mockReturnValue(false);
 
   const props = createProps();
   const propsWithDashboardInfo = { ...props, dashboardInfo };

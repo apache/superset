@@ -20,8 +20,12 @@ import URI from 'urijs';
 import fetchMock from 'fetch-mock';
 import sinon from 'sinon';
 
-import * as chartlib from '@superset-ui/core';
-import { FeatureFlag, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  SupersetClient,
+  getChartMetadataRegistry,
+  getChartBuildQueryRegistry,
+} from '@superset-ui/core';
 import { LOG_EVENT } from 'src/logger/actions';
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as actions from 'src/components/Chart/chartAction';
@@ -49,13 +53,17 @@ const mockGetState = () => ({
   },
 });
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getChartMetadataRegistry: jest.fn(),
+  getChartBuildQueryRegistry: jest.fn(),
+}));
+
 describe('chart actions', () => {
   const MOCK_URL = '/mockURL';
   let dispatch;
   let getExploreUrlStub;
   let getChartDataUriStub;
-  let metadataRegistryStub;
-  let buildQueryRegistryStub;
   let waitForAsyncDataStub;
   let fakeMetadata;
 
@@ -78,18 +86,16 @@ describe('chart actions', () => {
       .stub(exploreUtils, 'getChartDataUri')
       .callsFake(({ qs }) => URI(MOCK_URL).query(qs));
     fakeMetadata = { useLegacyApi: true };
-    metadataRegistryStub = sinon
-      .stub(chartlib, 'getChartMetadataRegistry')
-      .callsFake(() => ({ get: () => fakeMetadata }));
-    buildQueryRegistryStub = sinon
-      .stub(chartlib, 'getChartBuildQueryRegistry')
-      .callsFake(() => ({
-        get: () => () => ({
-          some_param: 'fake query!',
-          result_type: 'full',
-          result_format: 'json',
-        }),
-      }));
+    getChartMetadataRegistry.mockImplementation(() => ({
+      get: () => fakeMetadata,
+    }));
+    getChartBuildQueryRegistry.mockImplementation(() => ({
+      get: () => () => ({
+        some_param: 'fake query!',
+        result_type: 'full',
+        result_format: 'json',
+      }),
+    }));
     waitForAsyncDataStub = sinon
       .stub(asyncEvent, 'waitForAsyncData')
       .callsFake(data => Promise.resolve(data));
@@ -99,8 +105,6 @@ describe('chart actions', () => {
     getExploreUrlStub.restore();
     getChartDataUriStub.restore();
     fetchMock.resetHistory();
-    metadataRegistryStub.restore();
-    buildQueryRegistryStub.restore();
     waitForAsyncDataStub.restore();
 
     global.featureFlags = {

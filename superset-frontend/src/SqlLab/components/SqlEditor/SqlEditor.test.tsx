@@ -17,8 +17,12 @@
  * under the License.
  */
 import { FocusEventHandler } from 'react';
-import * as uiCore from '@superset-ui/core';
 import { act } from 'react-dom/test-utils';
+import {
+  isFeatureEnabled,
+  getExtensionsRegistry,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import reducers from 'spec/helpers/reducerIndex';
@@ -32,7 +36,6 @@ import {
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { getExtensionsRegistry, FeatureFlag } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
@@ -101,6 +104,12 @@ const mockInitialState = {
     },
   },
 };
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const setup = (props: Props, store: Store) =>
   render(<SqlEditor {...props} />, {
@@ -317,19 +326,13 @@ describe('SqlEditor', () => {
   });
 
   describe('with EstimateQueryCost enabled', () => {
-    let isFeatureEnabledMock: jest.MockInstance<
-      boolean,
-      [feature: FeatureFlag]
-    >;
     beforeEach(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          featureFlag => featureFlag === uiCore.FeatureFlag.EstimateQueryCost,
-        );
+      mockIsFeatureEnabled.mockImplementation(
+        featureFlag => featureFlag === FeatureFlag.EstimateQueryCost,
+      );
     });
     afterEach(() => {
-      isFeatureEnabledMock.mockClear();
+      mockIsFeatureEnabled.mockClear();
     });
 
     it('sends the catalog and schema to the endpoint', async () => {
@@ -399,20 +402,13 @@ describe('SqlEditor', () => {
   });
 
   describe('with SqllabBackendPersistence enabled', () => {
-    let isFeatureEnabledMock: jest.MockInstance<
-      boolean,
-      [feature: FeatureFlag]
-    >;
     beforeEach(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          featureFlag =>
-            featureFlag === uiCore.FeatureFlag.SqllabBackendPersistence,
-        );
+      mockIsFeatureEnabled.mockImplementation(
+        featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+      );
     });
     afterEach(() => {
-      isFeatureEnabledMock.mockClear();
+      mockIsFeatureEnabled.mockClear();
     });
 
     it('should render loading state when its Editor is not loaded', async () => {

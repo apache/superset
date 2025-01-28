@@ -92,7 +92,7 @@ export default function URLShortLinkButton({
             }
           />
           &nbsp;&nbsp;
-          <a href={emailLink}>
+          <a href={emailLink} aria-label="Email link">
             <i className="fa fa-envelope" />
           </a>
         </div>
@@ -106,6 +106,7 @@ export default function URLShortLinkButton({
           e.stopPropagation();
           getCopyUrl();
         }}
+        aria-label={t('Copy URL')}
       >
         <i className="short-link-trigger fa fa-link" />
         &nbsp;

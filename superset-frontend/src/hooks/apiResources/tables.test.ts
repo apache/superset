@@ -71,11 +71,9 @@ const expectedHasMoreData = {
 };
 
 describe('useTables hook', () => {
-  afterEach(() => {
+  beforeEach(() => {
     fetchMock.reset();
-    act(() => {
-      store.dispatch(api.util.resetApiState());
-    });
+    store.dispatch(api.util.resetApiState());
   });
 
   test('returns api response mapping json options', async () => {
@@ -219,6 +217,16 @@ describe('useTables hook', () => {
         }),
       },
     );
+    console.log(
+      'Called URLs:',
+      fetchMock.calls().map(call => call[0]),
+    );
+
+    // Add a catch-all mock to see if any unmocked requests are being made
+    fetchMock.mock('*', url => {
+      console.log('Unmocked request to:', url);
+      return 404;
+    });
     await waitFor(() => expect(fetchMock.calls(tableApiRoute).length).toBe(1));
     rerender();
     await waitFor(() => expect(result.current.data).toEqual(expectedData));

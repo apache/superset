@@ -39,7 +39,7 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
 };
 
-export default function ControlHeader({
+export function ControlHeader({
   name,
   description,
   label,

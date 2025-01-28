@@ -28,7 +28,7 @@ export type TooltipProps = BaseTooltipProps;
 export type TooltipPlacement = BaseTooltipPlacement;
 
 export const Tooltip = ({
-  overlayStyle,
+  overlayStyle = {},
   color,
   ...props
 }: BaseTooltipProps) => {
@@ -36,12 +36,14 @@ export const Tooltip = ({
   const defaultColor = `${theme.colors.grayscale.dark2}e6`;
   return (
     <BaseTooltip
-      overlayStyle={{
-        fontSize: theme.typography.sizes.s,
-        lineHeight: '1.6',
-        maxWidth: theme.gridUnit * 62,
-        minWidth: theme.gridUnit * 30,
-        ...overlayStyle,
+      styles={{
+        root: {
+          fontSize: theme.typography.sizes.s,
+          lineHeight: '1.6',
+          maxWidth: theme.gridUnit * 62,
+          minWidth: theme.gridUnit * 30,
+          ...overlayStyle,
+        },
       }}
       // make the tooltip display closer to the label
       align={{ offset: [0, 1] }}

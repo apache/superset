@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatasourceType } from '@superset-ui/core';
+import { DatasourceType, getClientErrorObject } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
 import {
   setDatasource,
   changeDatasource,
@@ -27,6 +26,13 @@ import {
 import sinon from 'sinon';
 import datasourcesReducer from '../reducers/datasourcesReducer';
 import { updateFormDataByDatasource } from './exploreActions';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getClientErrorObject: jest.fn(),
+}));
+
+const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 const CURRENT_DATASOURCE = {
   id: 1,
@@ -124,9 +130,11 @@ test('saveDataset handles success', async () => {
 test('updateSlice with add to existing dashboard handles failure', async () => {
   fetchMock.reset();
   const sampleError = new Error('sampleError');
+  mockedGetClientErrorObject.mockImplementation(() =>
+    Promise.resolve(sampleError),
+  );
   fetchMock.post(saveDatasetEndpoint, { throws: sampleError });
   const dispatch = sinon.spy();
-  const errorSpy = jest.spyOn(uiCore, 'getClientErrorObject');
 
   let caughtError;
   try {
@@ -137,5 +145,5 @@ test('updateSlice with add to existing dashboard handles failure', async () => {
 
   expect(caughtError).toEqual(sampleError);
   expect(fetchMock.calls(saveDatasetEndpoint)).toHaveLength(4);
-  expect(errorSpy).toHaveBeenCalledWith(sampleError);
+  expect(mockedGetClientErrorObject).toHaveBeenCalledWith(sampleError);
 });
