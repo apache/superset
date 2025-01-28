@@ -56,7 +56,7 @@ function normalizeSymbolSize(
       return null;
     },
   );
-  if (bubbleMinValue && bubbleMaxValue) {
+  if (bubbleMinValue !== undefined && bubbleMaxValue !== undefined) {
     const nodeSpread = bubbleMaxValue - bubbleMinValue;
     nodes.forEach(node => {
       const tmpValue = node.data?.[0];

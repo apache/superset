@@ -24,6 +24,7 @@ const ColorSchemeControlWrapper = ({
   colorScheme,
   labelMargin = 0,
   hasCustomLabelsColor = false,
+  hovered = false,
   onChange = () => {},
 }) => {
   // Registry initialization
@@ -42,6 +43,7 @@ const ColorSchemeControlWrapper = ({
       value={colorScheme}
       choices={choices}
       clearable
+      hovered={hovered}
       schemes={schemes}
       hasCustomLabelsColor={hasCustomLabelsColor}
     />

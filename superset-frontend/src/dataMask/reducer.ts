@@ -44,15 +44,17 @@ import { areObjectsEqual } from '../reduxUtils';
 export function getInitialDataMask(
   id?: string | number,
   moreProps: DataMask = {},
-): DataMaskWithId {
-  let otherProps = {};
-  if (id) {
-    otherProps = {
-      id,
-    };
+): DataMask | DataMaskWithId {
+  if (id === undefined) {
+    return {
+      extraFormData: {},
+      filterState: {},
+      ownState: {},
+      ...moreProps,
+    } as DataMask;
   }
   return {
-    ...otherProps,
+    id,
     extraFormData: {},
     filterState: {},
     ownState: {},

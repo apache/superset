@@ -118,7 +118,7 @@ export function clearQueryEditors(queryEditors: QueryEditor[]) {
           ...accumulator,
           [key]: editor[key as keyof QueryEditor],
         }),
-        {} as Record<string, string>,
+        {} as Record<string, string | number | boolean>,
       ),
   );
 }

@@ -89,7 +89,10 @@ export const propertyComparator =
     if (typeof propertyA === 'string' && typeof propertyB === 'string') {
       return propertyA.localeCompare(propertyB);
     }
-    return Number(propertyA) - Number(propertyB);
+    if (typeof propertyA === 'number' && typeof propertyB === 'number') {
+      return propertyA - propertyB;
+    }
+    return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };
 
 export const sortSelectedFirstHelper = (

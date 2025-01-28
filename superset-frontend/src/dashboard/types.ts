@@ -209,7 +209,7 @@ type ActiveFilter = {
   filterType?: string;
   targets: number[] | [Partial<NativeFilterTarget>];
   scope: number[];
-  values?: ExtraFormData;
+  values: ExtraFormData;
 };
 
 export type ActiveFilters = {
