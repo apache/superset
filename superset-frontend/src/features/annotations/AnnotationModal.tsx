@@ -28,6 +28,7 @@ import { StyledIcon } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -39,13 +40,6 @@ interface AnnotationModalProps {
   onHide: () => void;
   show: boolean;
 }
-
-type ChangedAnnotationDataKey =
-  | 'end_dttm'
-  | 'start_dttm'
-  | 'changed_on_delta_humanized'
-  | 'json_metadata'
-  | 'long_descr';
 
 const StyledAnnotationTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
@@ -190,8 +184,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       start_dttm: currentAnnotation ? currentAnnotation.start_dttm : '',
     };
 
-    // Remember to continously omit non-string attributes in `data` object
-    data[target.name as ChangedAnnotationDataKey] = target.value;
+    data[target.name as OnlyKeyWithType<typeof data, string>] = target.value;
     setCurrentAnnotation(data);
   };
 
