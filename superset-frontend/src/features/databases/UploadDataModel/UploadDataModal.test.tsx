@@ -48,9 +48,12 @@ const columnarProps = {
 
 beforeEach(() => {
   fetchMock.post('glob:*api/v1/database/1/upload/', {});
+
+  // 4 mocks below are not necessary
   fetchMock.post('glob:*api/v1/database/csv_metadata/', {});
   fetchMock.post('glob:*api/v1/database/excel_metadata/', {});
   fetchMock.post('glob:*api/v1/database/columnar_metadata/', {});
+  fetchMock.post('glob:*api/v1/database/upload_metadata/', {});
 
   fetchMock.get(
     'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:eq,value:!t)),page:0,page_size:100)',
@@ -83,7 +86,6 @@ beforeEach(() => {
 
 afterEach(() => {
   fetchMock.restore();
-  fetchMock.resetHistory();
 });
 
 test('CSV, renders the general information elements correctly', () => {
