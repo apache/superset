@@ -141,8 +141,8 @@ const FormatPicker = ({
   value: FormatPickerValue;
 }) => (
   <Radio.GroupWrapper
-    useSpace
-    direction="vertical"
+    spaceConfig={{ direction: 'vertical', size: 15 }}
+    size="large"
     value={value}
     onChange={onChange}
   >

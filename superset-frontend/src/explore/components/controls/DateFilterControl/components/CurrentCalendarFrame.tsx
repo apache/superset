@@ -42,10 +42,8 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
         {t('Configure Time Range: Current...')}
       </div>
       <Radio.GroupWrapper
-        useSpace
+        spaceConfig={{ direction: 'vertical', size: 15 }}
         size="large"
-        direction="vertical"
-        spaceSize={15}
         onChange={(e: any) => {
           let newValue = e.target.value;
           newValue = newValue.trim();

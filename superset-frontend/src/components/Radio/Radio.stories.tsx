@@ -41,28 +41,31 @@ const RadioArgsType = {
 const radioGroupWrapperArgsType = {
   onChange: { action: 'changed' },
   disabled: { control: 'boolean' },
-  direction: {
-    control: 'select',
-    options: ['horizontal', 'vertical'],
-  },
   size: {
     control: 'select',
     options: ['small', 'middle', 'large'],
   },
-  spaceSize: {
-    control: 'select',
-    options: ['small', 'middle', 'large', 'custom'],
-  },
-  customSpaceSize: {
-    control: 'number',
-    if: { arg: 'spaceSize', eq: 'custom' },
-    defaultValue: 8,
-  },
-  useSpace: { control: 'boolean' },
   options: { control: 'object' },
+  'spaceConfig.direction': {
+    control: 'select',
+    options: ['horizontal', 'vertical'],
+    description: 'Direzione del layout Space',
+    if: { arg: 'enableSpaceConfig', truthy: true },
+  },
+  'spaceConfig.size': {
+    control: 'select',
+    options: ['small', 'middle', 'large'],
+    description: 'Dimensione del layout Space',
+    if: { arg: 'enableSpaceConfig', truthy: true },
+  },
+  'spaceConfig.align': {
+    control: 'select',
+    options: ['start', 'center', 'end'],
+    description: 'Allineamento del layout Space',
+    if: { arg: 'enableSpaceConfig', truthy: true },
+  },
 };
 
-// Radio story
 export const RadioStory = {
   args: {
     children: 'Radio',
@@ -73,7 +76,6 @@ export const RadioStory = {
   argTypes: RadioArgsType,
 };
 
-// Radio Button story
 export const RadioButtonStory = (args: RadioProps) => (
   <Radio.Button {...args}>Radio Button</Radio.Button>
 );
@@ -84,7 +86,6 @@ RadioButtonStory.args = {
 };
 RadioButtonStory.argTypes = RadioArgsType;
 
-// Radio Group with Custom Radio story
 export const RadioGroupWithCustomRadioStory = (
   args: RadioGroupWrapperProps,
 ) => (
@@ -95,22 +96,17 @@ export const RadioGroupWithCustomRadioStory = (
   </Radio.GroupWrapper>
 );
 RadioGroupWithCustomRadioStory.args = {
-  useSpace: true,
-  direction: 'vertical',
-  spaceSize: 'middle',
+  spaceConfig: { direction: 'vertical', size: 'middle', align: 'center' },
   size: 'middle',
-  options: undefined,
   disabled: false,
 };
 RadioGroupWithCustomRadioStory.argTypes = radioGroupWrapperArgsType;
 
-// Radio Group with Options story
 export const RadioGroupWithOptionsStory = (args: RadioGroupWrapperProps) => (
   <Radio.GroupWrapper {...args} />
 );
 RadioGroupWithOptionsStory.args = {
-  useSpace: false,
-  direction: 'horizontal',
+  spaceConfig: { direction: 'vertical', size: 'middle', align: 'center' },
   size: 'middle',
   options: [
     {

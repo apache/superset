@@ -46,10 +46,8 @@ export function CalendarFrame({ onChange, value }: FrameComponentProps) {
         {t('Configure Time Range: Previous...')}
       </div>
       <Radio.GroupWrapper
-        useSpace
+        spaceConfig={{ direction: 'vertical', size: 15 }}
         size="large"
-        direction="vertical"
-        spaceSize={15}
         value={value}
         onChange={(e: any) => onChange(e.target.value)}
         options={CALENDAR_RANGE_OPTIONS}

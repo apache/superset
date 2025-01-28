@@ -56,9 +56,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
               {groupTitle}
             </div>
             <Radio.GroupWrapper
-              useSpace
-              direction="vertical"
-              spaceSize={4}
+              spaceConfig={{ direction: 'vertical', size: 4 }}
               value={value}
               onChange={e => {
                 onChange(e.target.value);

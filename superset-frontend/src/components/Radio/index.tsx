@@ -26,18 +26,18 @@ import type {
 import { Space, SpaceProps } from 'src/components/Space';
 
 export type RadioGroupWrapperProps = RadioGroupProps & {
-  useSpace?: boolean;
-  direction?: SpaceProps['direction'];
-  spaceSize?: SpaceProps['size'];
-  align?: SpaceProps['align'];
+  spaceConfig?: {
+    direction?: SpaceProps['direction'];
+    size?: SpaceProps['size'];
+    align?: SpaceProps['align'];
+    wrap?: SpaceProps['wrap'];
+  };
   options?: CheckboxOptionType[];
   children?: React.ReactNode;
 };
 
 const RadioGroup = ({
-  useSpace,
-  direction,
-  spaceSize,
+  spaceConfig = { direction: 'horizontal', size: 'middle', align: 'center', wrap: false },
   options,
   children,
   ...props
@@ -52,13 +52,7 @@ const RadioGroup = ({
 
   return (
     <Radio.Group {...props}>
-      {useSpace ? (
-        <Space direction={direction} size={spaceSize}>
-          {content}
-        </Space>
-      ) : (
-        content
-      )}
+      {spaceConfig ? <Space {...spaceConfig}>{content}</Space> : content}
     </Radio.Group>
   );
 };
