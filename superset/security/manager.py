@@ -270,8 +270,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ALPHA_ONLY_PMVS = {
-        ("can_csv_upload", "Database"),
-        ("can_excel_upload", "Database"),
+        ("can_upload", "Database"),
     }
 
     ADMIN_ONLY_PERMISSIONS = {

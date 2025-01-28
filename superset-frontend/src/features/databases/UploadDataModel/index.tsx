@@ -230,19 +230,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
 
-  const createTypeToEndpointMap = (
-    databaseId: number,
-  ): { [key: string]: string } => ({
-    csv: `/api/v1/database/${databaseId}/csv_upload/`,
-    excel: `/api/v1/database/${databaseId}/excel_upload/`,
-    columnar: `/api/v1/database/${databaseId}/columnar_upload/`,
-  });
-
-  const typeToFileMetadataEndpoint = {
-    csv: '/api/v1/database/csv_metadata/',
-    excel: '/api/v1/database/excel_metadata/',
-    columnar: '/api/v1/database/columnar_metadata/',
-  };
+  const createTypeToEndpointMap = (databaseId: number) =>
+    `/api/v1/database/${databaseId}/upload/`;
 
   const nullValuesOptions = [
     {
@@ -389,9 +378,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (type === 'csv') {
       formData.append('delimiter', mergedValues.delimiter);
     }
+    formData.append('type', type);
     setFileLoading(true);
     return SupersetClient.post({
-      endpoint: typeToFileMetadataEndpoint[type],
+      endpoint: '/api/v1/database/upload_metadata/',
       body: formData,
       headers: { Accept: 'application/json' },
     })
@@ -472,7 +462,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
     appendFormData(formData, mergedValues);
     setIsLoading(true);
-    const endpoint = createTypeToEndpointMap(currentDatabaseId)[type];
+    const endpoint = createTypeToEndpointMap(currentDatabaseId);
+    formData.append('type', type);
     return SupersetClient.post({
       endpoint,
       body: formData,
