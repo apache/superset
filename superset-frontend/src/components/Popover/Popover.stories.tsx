@@ -66,7 +66,6 @@ InteractivePopover.args = {
   content: 'Popover sample content',
   title: 'Popover title',
   arrow: true,
-  open: false,
   color: '#fff',
 };
 
@@ -90,10 +89,5 @@ InteractivePopover.argTypes = {
     name: 'color',
     control: { type: 'color' },
     description: 'The background color of the popover.',
-  },
-  open: {
-    name: 'open',
-    control: { type: 'boolean' },
-    description: 'Whether the floating tooltip card is open or not.',
   },
 };

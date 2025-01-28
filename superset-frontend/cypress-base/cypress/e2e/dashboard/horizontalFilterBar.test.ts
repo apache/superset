@@ -226,7 +226,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('slice-header').within(() => {
       cy.get('.filter-counts').trigger('mouseover');
     });
-    cy.get('[data-test="filter-status-popover"]').contains('test_9').click();
+    cy.getBySel('filter-status-popover').contains('test_9').click();
     cy.getBySel('dropdown-content').should('be.visible');
     cy.get('.ant-select-focused').should('be.visible');
   });

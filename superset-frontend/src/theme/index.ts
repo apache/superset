@@ -181,7 +181,6 @@ const baseConfig: ThemeConfig = {
     },
     Popover: {
       colorBgElevated: supersetTheme.colors.grayscale.light5,
-      zIndexPopup: supersetTheme.zIndex.max,
     },
     Slider: {
       trackBgDisabled: supersetTheme.colors.grayscale.light1,
