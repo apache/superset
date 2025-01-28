@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  Behavior,
-  FeatureFlag,
-  getChartMetadataRegistry,
-  VizType,
-} from '@superset-ui/core';
+import { Behavior, getChartMetadataRegistry, VizType } from '@superset-ui/core';
 import { getCrossFiltersConfiguration } from './crossFilters';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
 
@@ -153,11 +148,6 @@ afterEach(() => {
 
 test('Generate correct cross filters configuration without initial configuration', () => {
   // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
-
-  // @ts-ignore
   expect(getCrossFiltersConfiguration(DASHBOARD_LAYOUT, {}, CHARTS)).toEqual({
     chartConfiguration: {
       '1': {
@@ -186,11 +176,6 @@ test('Generate correct cross filters configuration without initial configuration
 });
 
 test('Generate correct cross filters configuration with initial configuration', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
-
   expect(
     getCrossFiltersConfiguration(
       DASHBOARD_LAYOUT,
@@ -227,25 +212,7 @@ test('Generate correct cross filters configuration with initial configuration', 
   });
 });
 
-test('Return undefined if DASHBOARD_CROSS_FILTERS feature flag is disabled', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: false,
-  };
-  expect(
-    getCrossFiltersConfiguration(
-      DASHBOARD_LAYOUT,
-      CHART_CONFIG_METADATA,
-      CHARTS,
-    ),
-  ).toEqual(undefined);
-});
-
 test('Recalculate charts in global filter scope when charts change', () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
   expect(
     getCrossFiltersConfiguration(
       {

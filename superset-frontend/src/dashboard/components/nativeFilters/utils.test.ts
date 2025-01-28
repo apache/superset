@@ -16,75 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { Behavior } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
 
-jest.mock('@superset-ui/core', () => ({
-  ...jest.requireActual('@superset-ui/core'),
-  isFeatureEnabled: jest.fn(),
-}));
-
-const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
-
 describe('nativeFilterGate', () => {
-  describe('with all feature flags disabled', () => {
-    beforeAll(() => {
-      mockedIsFeatureEnabled.mockImplementation(() => false);
-    });
-
-    afterAll(() => {
-      mockedIsFeatureEnabled.mockRestore();
-    });
-
-    it('should return true for regular chart', () => {
-      expect(nativeFilterGate([])).toEqual(true);
-    });
-
-    it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
-    });
-
-    it('should return false for native filter chart with cross filter support', () => {
-      expect(
-        nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
-      ).toEqual(false);
-    });
-
-    it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
-    });
+  it('should return true for regular chart', () => {
+    expect(nativeFilterGate([])).toEqual(true);
   });
 
-  describe('with cross filters and experimental feature flag enabled', () => {
-    beforeAll(() => {
-      mockedIsFeatureEnabled.mockImplementation((featureFlag: FeatureFlag) =>
-        [FeatureFlag.DashboardCrossFilters].includes(featureFlag),
-      );
-    });
+  it('should return true for cross filter chart', () => {
+    expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
+  });
 
-    afterAll(() => {
-      mockedIsFeatureEnabled.mockRestore();
-    });
+  it('should return true for native filter chart with cross filter support', () => {
+    expect(
+      nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
+    ).toEqual(true);
+  });
 
-    it('should return true for regular chart', () => {
-      expect(nativeFilterGate([])).toEqual(true);
-    });
-
-    it('should return true for cross filter chart', () => {
-      expect(nativeFilterGate([Behavior.InteractiveChart])).toEqual(true);
-    });
-
-    it('should return true for native filter chart with cross filter support', () => {
-      expect(
-        nativeFilterGate([Behavior.NativeFilter, Behavior.InteractiveChart]),
-      ).toEqual(true);
-    });
-
-    it('should return false for native filter behavior', () => {
-      expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
-    });
+  it('should return false for native filter behavior', () => {
+    expect(nativeFilterGate([Behavior.NativeFilter])).toEqual(false);
   });
 });
 

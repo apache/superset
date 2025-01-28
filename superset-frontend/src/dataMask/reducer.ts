@@ -24,8 +24,6 @@ import {
   DataMask,
   DataMaskStateWithId,
   DataMaskWithId,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   FilterConfiguration,
   Filters,
@@ -148,16 +146,14 @@ const dataMaskReducer = produce(
       // TODO: update hydrate to .ts
       // @ts-ignore
       case HYDRATE_DASHBOARD:
-        if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-          Object.keys(
-            // @ts-ignore
-            action.data.dashboardInfo?.metadata?.chart_configuration,
-          ).forEach(id => {
-            cleanState[id] = {
-              ...getInitialDataMask(id), // take initial data
-            };
-          });
-        }
+        Object.keys(
+          // @ts-ignore
+          action.data.dashboardInfo?.metadata?.chart_configuration,
+        ).forEach(id => {
+          cleanState[id] = {
+            ...getInitialDataMask(id), // take initial data
+          };
+        });
         fillNativeFilters(
           // @ts-ignore
           action.data.dashboardInfo?.metadata?.native_filter_configuration ??

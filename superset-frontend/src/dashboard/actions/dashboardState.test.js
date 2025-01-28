@@ -61,6 +61,7 @@ describe('dashboardState actions', () => {
       present: mockDashboardData.positions,
       future: {},
     },
+    charts: {},
   };
   const newDashboardData = mockDashboardData;
 

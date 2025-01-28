@@ -35,6 +35,9 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
       initialState: {
+        dashboardState: {
+          sliceIds: [],
+        },
         dashboardInfo: {
           dash_edit_perm: true,
         },
