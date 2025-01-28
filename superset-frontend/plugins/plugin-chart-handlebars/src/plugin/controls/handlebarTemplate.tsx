@@ -20,8 +20,9 @@ import {
   ControlSetItem,
   CustomControlConfig,
   sharedControls,
+  InfoTooltipWithTrigger,
 } from '@superset-ui/chart-controls';
-import { t, validateNonEmpty } from '@superset-ui/core';
+import { t, validateNonEmpty, useTheme, SafeMarkdown } from '@superset-ui/core';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
@@ -33,13 +34,32 @@ interface HandlebarsCustomControlProps {
 const HandlebarsTemplateControl = (
   props: CustomControlConfig<HandlebarsCustomControlProps>,
 ) => {
+  const theme = useTheme();
+
   const val = String(
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
 
+  const helpersDescription = `
+Available Handlebars Helpers in Superset:
+
+- **dateFormat**: Formats a date using a specified format.
+- **stringify**: Converts an object to a JSON string.
+- **formatNumber**: Formats a number using locale-specific formatting.
+- **parseJson**: Parses a JSON string into a JavaScript object.
+`;
+
   return (
     <div>
-      <ControlHeader>{props.label}</ControlHeader>
+      <ControlHeader>
+        <div>
+          {props.label}
+          <InfoTooltipWithTrigger
+            iconsStyle={{ marginLeft: theme.gridUnit }}
+            tooltip={<SafeMarkdown source={helpersDescription} />}
+          />
+        </div>
+      </ControlHeader>
       <CodeEditor
         theme="dark"
         value={val}
