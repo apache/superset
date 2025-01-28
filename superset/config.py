@@ -1624,10 +1624,6 @@ TALISMAN_CONFIG = {
             "'self'",
             "'unsafe-inline'",
         ],
-        "font-src": [
-            "'self'",
-            "data:"
-        ],
         "script-src": ["'self'", "'strict-dynamic'"],
     },
     "content_security_policy_nonce_in": ["script-src"],
@@ -1658,10 +1654,6 @@ TALISMAN_DEV_CONFIG = {
         "style-src": [
             "'self'",
             "'unsafe-inline'",
-        ],
-        "font-src": [
-            "'self'",
-            "data:"
         ],
         "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
     },
