@@ -37,7 +37,12 @@ export type RadioGroupWrapperProps = RadioGroupProps & {
 };
 
 const RadioGroup = ({
-  spaceConfig = { direction: 'horizontal', size: 'middle', align: 'center', wrap: false },
+  spaceConfig = {
+    direction: 'horizontal',
+    size: 'middle',
+    align: 'center',
+    wrap: false,
+  },
   options,
   children,
   ...props
