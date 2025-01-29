@@ -39,6 +39,7 @@ import {
   FetchDataConfig,
   Filter,
   FilterValue,
+  InnerFilterValue,
   InternalFilter,
   SortColumn,
   ViewModeType,
@@ -138,7 +139,7 @@ export function convertFiltersRison(
   list: Filter[],
 ): FilterValue[] {
   const filters: FilterValue[] = [];
-  const refs = {};
+  const refs: Record<string, FilterValue> = {};
 
   Object.keys(filterObj).forEach(id => {
     const filter: FilterValue = {
@@ -300,7 +301,7 @@ export function useListViewState({
 
   useEffect(() => {
     // From internalFilters, produce a simplified obj
-    const filterObj = {};
+    const filterObj: Record<string, InnerFilterValue> = {};
 
     internalFilters.forEach(filter => {
       if (

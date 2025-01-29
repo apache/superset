@@ -28,7 +28,7 @@ export default {
   component: Icon,
 };
 
-const palette = { Default: null };
+const palette: Record<string, string | null> = { Default: null };
 Object.entries(supersetTheme.colors).forEach(([familyName, family]) => {
   Object.entries(family).forEach(([colorName, colorValue]) => {
     palette[`${familyName} / ${colorName}`] = colorValue;

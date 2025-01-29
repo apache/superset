@@ -34,7 +34,6 @@ import {
 } from '@superset-ui/core';
 import { defaultStore as store } from 'spec/helpers/testing-library';
 import { DatasourceModal } from 'src/components/Datasource';
-import * as uiCore from '@superset-ui/core';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 
 // Define your constants here
@@ -55,7 +54,6 @@ const mockedProps = {
 };
 
 let container;
-let isFeatureEnabledMock;
 
 async function renderAndWait(props = mockedProps) {
   const { container: renderedContainer } = render(
@@ -72,16 +70,11 @@ async function renderAndWait(props = mockedProps) {
 beforeEach(() => {
   fetchMock.reset();
   cleanup();
-  isFeatureEnabledMock = jest.spyOn(uiCore, 'isFeatureEnabled');
   renderAndWait();
   fetchMock.post(SAVE_ENDPOINT, SAVE_PAYLOAD);
   fetchMock.put(SAVE_DATASOURCE_ENDPOINT, {});
   fetchMock.get(GET_DATASOURCE_ENDPOINT, { result: {} });
   fetchMock.get(GET_DATABASE_ENDPOINT, { result: [] });
-});
-
-afterEach(() => {
-  isFeatureEnabledMock.mockRestore();
 });
 
 describe('DatasourceModal', () => {
@@ -99,11 +92,6 @@ describe('DatasourceModal', () => {
 
   it('renders a DatasourceEditor', async () => {
     expect(screen.getByTestId('datasource-editor')).toBeInTheDocument();
-  });
-
-  it('renders a legacy data source btn', () => {
-    const button = screen.getByTestId('datasource-modal-legacy-edit');
-    expect(button).toBeInTheDocument();
   });
 
   it('disables the save button when the datasource is managed externally', () => {

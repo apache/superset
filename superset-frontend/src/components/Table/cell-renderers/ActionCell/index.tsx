@@ -95,7 +95,7 @@ function ActionMenu(props: ActionMenuProps) {
   const { menuOptions, setVisible } = props;
   const handleClick: MenuProps['onClick'] = ({ key }) => {
     setVisible?.(false);
-    const menuItem = menuOptions[key];
+    const menuItem = menuOptions[parseInt(key, 10)];
     if (menuItem) {
       menuItem?.onClick?.(menuItem);
     }

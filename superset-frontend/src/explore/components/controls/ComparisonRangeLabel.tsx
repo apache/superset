@@ -83,7 +83,8 @@ export const ComparisonRangeLabel = ({
     if (!formData?.time_compare) {
       const previousTimeComparison = formData.time_comparison || '';
       if (oldChoices.hasOwnProperty(previousTimeComparison)) {
-        const previousChoice = oldChoices[previousTimeComparison];
+        const previousChoice =
+          oldChoices[previousTimeComparison as keyof typeof oldChoices];
         return [previousChoice];
       }
     }

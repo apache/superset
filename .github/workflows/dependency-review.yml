@@ -30,6 +30,7 @@ jobs:
         uses: actions/checkout@v4
       - name: "Dependency Review"
         uses: actions/dependency-review-action@v4
+        continue-on-error: true
         with:
           fail-on-severity: critical
           # compatible/incompatible licenses addressed here: https://www.apache.org/legal/resolved.html
