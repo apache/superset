@@ -115,7 +115,7 @@ export const formatValueHandler = (
       })
       .join(', ');
   }
-  if (controlsMap[key]?.type === 'BoundsControl') {
+  if (controlsMap[key]?.type === 'BoundsControl' && Array.isArray(value)) {
     return `Min: ${value[0]}, Max: ${value[1]}`;
   }
   if (controlsMap[key]?.type === 'CollectionControl' && Array.isArray(value)) {
@@ -221,7 +221,7 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
         <Label
           icon={<Icons.Warning iconSize="m" />}
           className="label"
-          type="alert"
+          type="warning"
           onClick={() => {}}
         >
           {t('Altered')}

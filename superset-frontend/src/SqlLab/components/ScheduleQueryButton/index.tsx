@@ -68,10 +68,10 @@ const getValidator = () => {
   const rules: any = getValidationRules();
   return (formData: Record<string, any>, errors: FormValidation) => {
     rules.forEach((rule: any) => {
-      const test = validators[rule.name];
+      const test = validators[rule.name as keyof typeof validators];
       const args = rule.arguments.map((name: string) => formData[name]);
       const container = rule.container || rule.arguments.slice(-1)[0];
-      if (!test(...args)) {
+      if (!test(args[0], args[1])) {
         errors[container]?.addError(rule.message);
       }
     });

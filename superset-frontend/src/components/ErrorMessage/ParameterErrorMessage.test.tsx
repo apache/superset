@@ -51,7 +51,7 @@ const mockedProps = {
     message: 'Error message',
   },
   source: 'dashboard' as ErrorSource,
-  subtitle: 'Error message',
+  subtitle: 'Error message subtitle',
 };
 
 test('should render', () => {

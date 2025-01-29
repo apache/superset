@@ -198,7 +198,9 @@ const ContourPopoverControl = ({
 
   const containsErrors = () => {
     const keys = Object.keys(validationErrors);
-    return keys.some(key => validationErrors[key].length > 0);
+    return keys.some(
+      key => validationErrors[key as keyof ErrorMapType].length > 0,
+    );
   };
 
   const handleSave = () => {

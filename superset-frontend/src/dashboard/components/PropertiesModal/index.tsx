@@ -463,7 +463,6 @@ const PropertiesModal = ({
             hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
             colorScheme={colorScheme}
-            labelMargin={4}
           />
         </Col>
       </Row>
@@ -532,7 +531,6 @@ const PropertiesModal = ({
               hasCustomLabelsColor={hasCustomLabelsColor}
               onChange={onColorSchemeChange}
               colorScheme={colorScheme}
-              labelMargin={4}
             />
           </Col>
         </Row>

@@ -23,12 +23,7 @@ import { FallbackPropsWithDimension } from './SuperChart';
 
 export type Props = FallbackPropsWithDimension;
 
-export default function FallbackComponent({
-  componentStack,
-  error,
-  height,
-  width,
-}: Props) {
+export default function FallbackComponent({ error, height, width }: Props) {
   return (
     <div
       css={(theme: SupersetTheme) => ({
@@ -45,16 +40,6 @@ export default function FallbackComponent({
         </div>
         <code>{error ? error.toString() : 'Unknown Error'}</code>
       </div>
-      {componentStack && (
-        <div>
-          <b>{t('Stack Trace:')}</b>
-          <code>
-            {componentStack.split('\n').map((row: string) => (
-              <div key={row}>{row}</div>
-            ))}
-          </code>
-        </div>
-      )}
     </div>
   );
 }

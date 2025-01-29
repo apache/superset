@@ -22,9 +22,9 @@ import TableView, { EmptyWrapperType } from 'src/components/TableView';
 import { TagsList } from 'src/components/Tags';
 import FacePile from 'src/components/FacePile';
 import Tag from 'src/types/TagType';
-import Owner from 'src/types/Owner';
 import { EmptyState } from 'src/components/EmptyState';
 import { NumberParam, useQueryParam } from 'use-query-params';
+import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 
 const MAX_TAGS_TO_SHOW = 3;
 const PAGE_SIZE = 10;
@@ -48,24 +48,6 @@ const AllEntitiesTableContainer = styled.div`
     margin: ${({ theme }) => theme.gridUnit * 4}px 0;
   }
 `;
-
-interface TaggedObject {
-  id: number;
-  type: string;
-  name: string;
-  url: string;
-  changed_on: string | number | Date;
-  created_by: number | undefined;
-  creator: string;
-  owners: Owner[];
-  tags: Tag[];
-}
-
-export interface TaggedObjects {
-  dashboard: TaggedObject[];
-  chart: TaggedObject[];
-  query: TaggedObject[];
-}
 
 interface AllEntitiesTableProps {
   search?: string;

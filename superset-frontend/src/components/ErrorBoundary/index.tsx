@@ -18,12 +18,13 @@
  */
 import { Component, ErrorInfo, ReactNode } from 'react';
 import { t } from '@superset-ui/core';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import ErrorAlert from 'src/components/ErrorMessage/ErrorAlert';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
   onError?: (error: Error, info: ErrorInfo) => void;
   showMessage?: boolean;
+  className?: string;
 }
 
 interface ErrorBoundaryState {
@@ -51,24 +52,16 @@ export default class ErrorBoundary extends Component<
 
   render() {
     const { error, info } = this.state;
+    const { showMessage, className } = this.props;
     if (error) {
-      const firstLine = error.toString();
-      const messageString = `${t('Unexpected error')}${
-        firstLine ? `: ${firstLine}` : ''
-      }`;
-      const messageElement = (
-        <span>
-          <strong>{t('Unexpected error')}</strong>
-          {firstLine ? `: ${firstLine}` : ''}
-        </span>
-      );
-
-      if (this.props.showMessage) {
+      const firstLine = error.toString().split('\n')[0];
+      if (showMessage) {
         return (
-          <ErrorMessageWithStackTrace
-            subtitle={messageElement}
-            copyText={messageString}
-            stackTrace={info?.componentStack}
+          <ErrorAlert
+            errorType={t('Unexpected error')}
+            message={firstLine}
+            descriptionDetails={info?.componentStack}
+            className={className}
           />
         );
       }

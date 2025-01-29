@@ -50,8 +50,8 @@ export function getValue(
 }
 
 export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
-  const actualA = isObject(a) && key in a ? a[key] : a;
-  const actualB = isObject(b) && key in b ? b[key] : b;
+  const actualA = isObject(a) && key in a ? a[key as keyof LabeledValue] : a;
+  const actualB = isObject(b) && key in b ? b[key as keyof LabeledValue] : b;
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
@@ -84,10 +84,15 @@ export function hasOption(
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-      return a[property].localeCompare(b[property]);
+    const propertyA = a[property as keyof LabeledValue];
+    const propertyB = b[property as keyof LabeledValue];
+    if (typeof propertyA === 'string' && typeof propertyB === 'string') {
+      return propertyA.localeCompare(propertyB);
     }
-    return (a[property] as number) - (b[property] as number);
+    if (typeof propertyA === 'number' && typeof propertyB === 'number') {
+      return propertyA - propertyB;
+    }
+    return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };
 
 export const sortSelectedFirstHelper = (
