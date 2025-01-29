@@ -313,7 +313,9 @@ describe('should collect control values and create SFD', () => {
     const { formData } = sfd.transform('target_viz', sourceMockStore);
     Object.entries(publicControlsFormData).forEach(([key, value]) => {
       expect(formData).toHaveProperty(key);
-      expect(value).toEqual(publicControlsFormData[key]);
+      expect(value).toEqual(
+        publicControlsFormData[key as keyof typeof publicControlsFormData],
+      );
     });
     expect(formData.columns).toEqual([
       'c1',

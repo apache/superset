@@ -28,6 +28,7 @@ import {
   t,
   useTheme,
   ContextMenuFilters,
+  AdhocFilter,
 } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
@@ -224,7 +225,7 @@ export default function DrillByModal({
 
   const getFormDataChangesFromConfigs = useCallback(
     (configs: DrillByConfigs) =>
-      configs.reduce(
+      configs.reduce<Record<string, any>>(
         (acc, config) => {
           if (config?.groupbyFieldName && config.column) {
             acc.formData[config.groupbyFieldName] = getNewGroupby(
@@ -246,7 +247,7 @@ export default function DrillByModal({
           return acc;
         },
         {
-          formData: {},
+          formData: {} as Record<string, string | string[] | Set<string>>,
           overriddenGroupbyFields: new Set<string>(),
           overriddenAdhocFilterFields: new Set<string>(),
         },
@@ -256,7 +257,7 @@ export default function DrillByModal({
 
   const getFiltersFromConfigsByFieldName = useCallback(
     () =>
-      drillByConfigs.reduce((acc, config) => {
+      drillByConfigs.reduce<Record<string, AdhocFilter[]>>((acc, config) => {
         const adhocFilterFieldName =
           config.adhocFilterFieldName || DEFAULT_ADHOC_FILTER_FIELD_NAME;
         acc[adhocFilterFieldName] = [
@@ -295,7 +296,7 @@ export default function DrillByModal({
           ...formData,
           ...overrideFormData,
         };
-        overriddenAdhocFilterFields.forEach(adhocFilterField => ({
+        overriddenAdhocFilterFields.forEach((adhocFilterField: string) => ({
           ...newFormData,
           [adhocFilterField]: [
             ...formData[adhocFilterField],

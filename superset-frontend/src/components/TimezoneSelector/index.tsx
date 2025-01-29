@@ -70,8 +70,8 @@ export default function TimezoneSelector({
         const offsets = getOffsetKey(name);
         return (
           (isDST(currentDate.tz(name), name)
-            ? offsetsToName[offsets]?.[1]
-            : offsetsToName[offsets]?.[0]) || name
+            ? offsetsToName[offsets as keyof typeof offsetsToName]?.[1]
+            : offsetsToName[offsets as keyof typeof offsetsToName]?.[0]) || name
         );
       };
 

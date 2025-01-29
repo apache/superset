@@ -16,21 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cloneDeep } from 'lodash';
+import { LayoutItem } from '../types';
 
-function processObject(object: Object) {
-  const result = object;
-  Object.keys(result).forEach(key => {
-    if (result[key] === undefined) {
-      result[key] = null;
-    } else if (result[key] !== null && typeof result[key] === 'object') {
-      result[key] = processObject(result[key]);
-    }
-  });
-  return result;
-}
+const findTabIndexByComponentId = ({
+  currentComponent,
+  directPathToChild = [],
+}: {
+  currentComponent: LayoutItem;
+  directPathToChild: string[];
+}): number => {
+  if (
+    !currentComponent ||
+    directPathToChild.length === 0 ||
+    directPathToChild.indexOf(currentComponent.id) === -1
+  ) {
+    return -1;
+  }
 
-export default function replaceUndefinedByNull(object: Object) {
-  const copy = cloneDeep(object);
-  return processObject(copy);
-}
+  const currentComponentIdx = directPathToChild.findIndex(
+    id => id === currentComponent.id,
+  );
+  const nextParentId = directPathToChild[currentComponentIdx + 1];
+  if (currentComponent.children.indexOf(nextParentId) >= 0) {
+    return currentComponent.children.findIndex(
+      childId => childId === nextParentId,
+    );
+  }
+  return -1;
+};
+
+export default findTabIndexByComponentId;
