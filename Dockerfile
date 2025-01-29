@@ -124,7 +124,7 @@ FROM python-base AS python-translation-compiler
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/translations.txt requirements/
-RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+RUN --mount=type=cache,target=/root/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/translations.txt
 
 COPY superset/translations/ /app/translations_mo/
