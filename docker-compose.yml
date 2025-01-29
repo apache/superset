@@ -21,7 +21,7 @@
 # create you own docker environment file (docker/.env) with your own
 # unique random secure passwords and SECRET_KEY.
 # -----------------------------------------------------------------------
-x-superset-user: &superset-user superset
+x-superset-user: &superset-user root
 x-superset-volumes: &superset-volumes
   # /app/pythonpath_docker will be appended to the PYTHONPATH in the final container
   - ./docker:/app/docker
