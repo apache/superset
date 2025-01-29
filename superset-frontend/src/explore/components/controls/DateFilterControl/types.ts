@@ -26,6 +26,7 @@ export type FrameType =
   | 'Calendar'
   | 'Custom'
   | 'Advanced'
+  | 'Custom Calendar'
   | 'No filter';
 
 export type DateTimeGrainType =

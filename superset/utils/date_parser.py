@@ -206,6 +206,134 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
     ):
         time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"  # pylint: disable=line-too-long,useless-suppression
 
+    # Custom time ranges
+    # Today
+    if (
+        time_range
+        and time_range.startswith("Today")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), DAY) : DATEADD(DATETRUNC(DATETIME('today'), DAY), 1, DAY)"
+    # Current Week
+    if (
+        time_range
+        and time_range.startswith("Current Week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), WEEK) : DATEADD(DATETRUNC(DATETIME('today'), WEEK), 1, WEEK)"
+    # Current Month
+    if (
+        time_range
+        and time_range.startswith("Current Month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), MONTH) : DATEADD(DATETRUNC(DATETIME('today'), MONTH), 1, MONTH)"
+    # Current Quarter
+    if (
+        time_range
+        and time_range.startswith("Current Quarter")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), QUARTER) : DATEADD(DATETRUNC(DATETIME('today'), QUARTER), 1, QUARTER)"
+    # Current Year
+    if (
+        time_range
+        and time_range.startswith("Current Year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), YEAR) : DATEADD(DATETRUNC(DATETIME('today'), YEAR), 1, YEAR)"
+    # Week-to-Date
+    if (
+        time_range
+        and time_range.startswith("Week-to-Date")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), WEEK) : DATETIME('today')"
+    # Month-to-Date
+    if (
+        time_range
+        and time_range.startswith("Month-to-Date")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), MONTH) : DATETIME('today')"
+    # Quarter-to-Date
+    if (
+        time_range
+        and time_range.startswith("Quarter-to-Date")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), QUARTER) : DATETIME('today')"
+    # Year-to-Date
+    if (
+        time_range
+        and time_range.startswith("Year-to-Date")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATETIME('today'), YEAR) : DATETIME('today')"
+    # Previous Day
+    if (
+        time_range
+        and time_range.startswith("Yesterday")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, DAY), DAY) : DATETRUNC(DATETIME('today'), DAY)"
+    # Previous Week
+    if (
+        time_range
+        and time_range.startswith("Previous Week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, WEEK), WEEK) : DATETRUNC(DATETIME('today'), WEEK)"
+    # Previous Month
+    if (
+        time_range
+        and time_range.startswith("Previous Month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"
+    # Previous Quarter
+    if (
+        time_range
+        and time_range.startswith("Previous Quarter")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, QUARTER), QUARTER) : DATETRUNC(DATETIME('today'), QUARTER)"
+    # Previous Year
+    if (
+        time_range
+        and time_range.startswith("Previous Year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"
+    # Last Day
+    if (
+        time_range
+        and time_range.startswith("Last Week")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -7, DAY), DAY) : DATETRUNC(DATETIME('today'), DAY)"
+    # Last Month
+    if (
+        time_range
+        and time_range.startswith("Last Month")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"
+    # Last Quarter
+    if (
+        time_range
+        and time_range.startswith("Last Quarter")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -3, MONTH), MONTH) : DATETRUNC(DATETIME('today'), MONTH)"
+    # Last Year
+    if (
+        time_range
+        and time_range.startswith("Last Year")
+        and separator not in time_range
+    ):
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, YEAR), YEAR) : DATETRUNC(DATETIME('today'), YEAR)"
+
     if time_range and separator in time_range:
         time_range_lookup = [
             (
