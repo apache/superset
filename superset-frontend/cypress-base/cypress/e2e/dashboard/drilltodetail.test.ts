@@ -62,7 +62,6 @@ const drillToDetailBy = (targetDrill: string) => {
   interceptSamples();
 
   cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
-    .first()
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill to detail by$/)
