@@ -55,7 +55,6 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
   }
 
   cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
-    .first()
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill by$/)
