@@ -41,7 +41,7 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import LabeledErrorBoundInput from 'src/components/Form/LabeledErrorBoundInput';
 import Icons from 'src/components/Icons';
 import { CronError } from 'src/components/CronPicker';
-import { RadioChangeEvent } from 'src/components';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
 import { Input } from 'src/components/Input';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { ChartState } from 'src/explore/types';
@@ -68,8 +68,6 @@ import {
   TimezoneHeaderStyle,
   SectionHeaderStyle,
   StyledMessageContentTitle,
-  StyledRadio,
-  StyledRadioGroup,
 } from './styles';
 
 interface ReportProps {
@@ -257,24 +255,25 @@ function ReportModal({
         <h4>{t('Message content')}</h4>
       </StyledMessageContentTitle>
       <div className="inline-container">
-        <StyledRadioGroup
+        <Radio.GroupWrapper
+          spaceConfig={{ direction: 'vertical', size: 'middle' }}
           onChange={(event: RadioChangeEvent) => {
             setCurrentReport({ report_format: event.target.value });
           }}
           value={currentReport.report_format || defaultNotificationFormat}
         >
           {isTextBasedChart && (
-            <StyledRadio value={NotificationFormats.Text}>
+            <Radio value={NotificationFormats.Text}>
               {t('Text embedded in email')}
-            </StyledRadio>
+            </Radio>
           )}
-          <StyledRadio value={NotificationFormats.PNG}>
+          <Radio value={NotificationFormats.PNG}>
             {t('Image (PNG) embedded in email')}
-          </StyledRadio>
-          <StyledRadio value={NotificationFormats.CSV}>
+          </Radio>
+          <Radio value={NotificationFormats.CSV}>
             {t('Formatted CSV attached in email')}
-          </StyledRadio>
-        </StyledRadioGroup>
+          </Radio>
+        </Radio.GroupWrapper>
       </div>
     </>
   );
