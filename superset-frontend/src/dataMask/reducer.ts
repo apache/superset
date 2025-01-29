@@ -43,21 +43,13 @@ export function getInitialDataMask(
   id?: string | number,
   moreProps: DataMask = {},
 ): DataMask | DataMaskWithId {
-  if (id === undefined) {
-    return {
-      extraFormData: {},
-      filterState: {},
-      ownState: {},
-      ...moreProps,
-    } as DataMask;
-  }
   return {
-    id,
+    ...(id !== undefined ? { id } : {}),
     extraFormData: {},
     filterState: {},
     ownState: {},
     ...moreProps,
-  } as DataMaskWithId;
+  } as DataMask | DataMaskWithId;
 }
 
 function fillNativeFilters(
