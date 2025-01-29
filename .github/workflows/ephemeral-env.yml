@@ -4,7 +4,7 @@ name: Ephemeral env workflow
 # gh workflow run ephemeral-env.yml --ref fix_ephemerals --field label_name="testenv-up" --field issue_number=666
 
 on:
-  pull_request:
+  pull_request_target:
     types:
       - labeled
   workflow_dispatch:
