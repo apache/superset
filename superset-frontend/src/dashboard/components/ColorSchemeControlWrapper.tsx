@@ -18,29 +18,40 @@
  */
 /* eslint-env browser */
 import { getCategoricalSchemeRegistry, t } from '@superset-ui/core';
+import { useEffect, useState } from 'react';
 import ColorSchemeControl from 'src/explore/components/controls/ColorSchemeControl';
+
+interface ColorSchemeControlWrapperProps {
+  colorScheme?: string;
+  hasCustomLabelsColor: boolean;
+  hovered?: boolean;
+  onChange: () => void;
+}
 
 const ColorSchemeControlWrapper = ({
   colorScheme,
-  labelMargin = 0,
   hasCustomLabelsColor = false,
   hovered = false,
   onChange = () => {},
-}) => {
-  // Registry initialization
-  const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
-  const choices = categoricalSchemeRegistry.keys().map(s => [s, s]);
-  const schemes = categoricalSchemeRegistry.getMap();
+}: ColorSchemeControlWrapperProps) => {
+  const [choices, setChoices] = useState<string[][]>([]);
+  const [schemes, setSchemes] = useState({});
+
+  useEffect(() => {
+    // Registry initialization
+    const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
+    setChoices(categoricalSchemeRegistry.keys().map(s => [s, s]));
+    setSchemes(categoricalSchemeRegistry.getMap());
+  }, []); // Empty dependency array ensures this runs only once
 
   return (
     <ColorSchemeControl
       description={t(
         "Any color palette selected here will override the colors applied to this dashboard's individual charts",
       )}
-      labelMargin={labelMargin}
       name="color_scheme"
       onChange={onChange}
-      value={colorScheme}
+      value={colorScheme ?? ''}
       choices={choices}
       clearable
       hovered={hovered}
