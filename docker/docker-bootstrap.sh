@@ -18,9 +18,6 @@
 
 set -eo pipefail
 
-# Ensure the temporary directory exists
-mkdir -p /tmp/superset_temp
-
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
