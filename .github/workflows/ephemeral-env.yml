@@ -53,7 +53,7 @@ jobs:
             exit 1
           fi
 
-      - name: Check if a commit was pushed after PR was labeled
+      - name: Get event SHA
         id: get-sha
         run: |
           echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
