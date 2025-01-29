@@ -53,6 +53,7 @@ const isDevServer = process.argv[1].includes('webpack-dev-server');
 
 const output = {
   path: BUILD_DIR,
+  publicPath: `/static/assets/`,
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -77,6 +78,7 @@ const plugins = [
 
   // creates a manifest.json mapping of name to hashed output used in template files
   new WebpackManifestPlugin({
+    publicPath: output.publicPath,
     seed: { app: 'superset' },
     // This enables us to include all relevant files for an entry
     generate: (seed, files, entrypoints) => {
@@ -90,10 +92,12 @@ const plugins = [
       const entryFiles = {};
       Object.entries(entrypoints).forEach(([entry, chunks]) => {
         entryFiles[entry] = {
-          css: chunks.filter(x => x.endsWith('.css')).map(x => `${x}`),
+          css: chunks
+            .filter(x => x.endsWith('.css'))
+            .map(x => `${output.publicPath}${x}`),
           js: chunks
             .filter(x => x.endsWith('.js') && x.match(/(?<!hot-update).js$/))
-            .map(x => `${x}`),
+            .map(x => `${output.publicPath}${x}`),
         };
       });
       return {
