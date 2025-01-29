@@ -460,7 +460,7 @@ export const CredentialInfoForm = styled.div`
       justify-content: space-between;
     }
     .input-upload-btn {
-      width: ${({ theme }) => theme.gridUnit * 32}px
+      width: ${({ theme }) => theme.gridUnit * 36}px
     }
   }`;
 
