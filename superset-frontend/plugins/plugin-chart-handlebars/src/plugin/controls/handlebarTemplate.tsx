@@ -40,13 +40,21 @@ const HandlebarsTemplateControl = (
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
 
-  const helpersDescription = `
-Available Handlebars Helpers in Superset:
+  const helperDescriptionsHeader = t('Available Handlebars Helpers in Superset:');
 
-- **dateFormat**: Formats a date using a specified format.
-- **stringify**: Converts an object to a JSON string.
-- **formatNumber**: Formats a number using locale-specific formatting.
-- **parseJson**: Parses a JSON string into a JavaScript object.
+  const helperDescriptions = [
+    { key: 'dateFormat', descKey: 'Formats a date using a specified format.' },
+    { key: 'stringify', descKey: 'Converts an object to a JSON string.' },
+    { key: 'formatNumber', descKey: 'Formats a number using locale-specific formatting.' },
+    { key: 'parseJson', descKey: 'Parses a JSON string into a JavaScript object.' },
+  ];
+
+  const helpersTooltipContent = `
+${helperDescriptionsHeader}
+
+${helperDescriptions
+  .map(({ key, descKey }) => `- **${key}**: ${t(descKey)}`)
+  .join('\n')}
 `;
 
   return (
@@ -56,7 +64,7 @@ Available Handlebars Helpers in Superset:
           {props.label}
           <InfoTooltipWithTrigger
             iconsStyle={{ marginLeft: theme.gridUnit }}
-            tooltip={<SafeMarkdown source={helpersDescription} />}
+            tooltip={<SafeMarkdown source={helpersTooltipContent} />}
           />
         </div>
       </ControlHeader>
