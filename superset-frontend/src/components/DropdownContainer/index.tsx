@@ -181,11 +181,13 @@ const DropdownContainer = forwardRef(
     );
 
     useLayoutEffect(() => {
+      if (popoverVisible) {
+        return;
+      }
       const container = current?.children.item(0);
       if (container) {
         const { children } = container;
         const childrenArray = Array.from(children);
-
         // If items length change, add all items to the container
         // and recalculate the widths
         if (itemsWidth.length !== items.length) {
@@ -365,7 +367,6 @@ const DropdownContainer = forwardRef(
               overlayInnerStyle={{
                 maxHeight: `${MAX_HEIGHT}px`,
                 overflow: showOverflow ? 'auto' : 'visible',
-                padding: `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px`,
               }}
               content={popoverContent}
               trigger="click"
