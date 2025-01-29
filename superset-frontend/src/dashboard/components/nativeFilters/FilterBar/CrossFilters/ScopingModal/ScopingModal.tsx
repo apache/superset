@@ -26,6 +26,7 @@ import {
   isCrossFilterScopeGlobal,
   GlobalChartCrossFilterConfig,
   GLOBAL_SCOPE_POINTER,
+  ChartCrossFiltersConfig,
 } from 'src/dashboard/types';
 import { getChartIdsInFilterScope } from 'src/dashboard/util/getChartIdsInFilterScope';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
@@ -39,7 +40,9 @@ const getUpdatedGloballyScopedChartsInScope = (
   configs: ChartConfiguration,
   globalChartsInScope: number[],
 ) =>
-  Object.entries(configs).reduce((acc, [id, config]) => {
+  Object.entries(configs).reduce<
+    Record<string, { id: number; crossFilters: ChartCrossFiltersConfig }>
+  >((acc, [id, config]) => {
     if (isCrossFilterScopeGlobal(config.crossFilters.scope)) {
       acc[id] = {
         id: Number(config.id),

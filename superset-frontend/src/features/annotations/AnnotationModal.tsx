@@ -28,6 +28,7 @@ import { StyledIcon } from 'src/views/CRUD/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { JsonEditor } from 'src/components/AsyncAceEditor';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationObject } from './types';
 
 interface AnnotationModalProps {
@@ -183,7 +184,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       start_dttm: currentAnnotation ? currentAnnotation.start_dttm : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as OnlyKeyWithType<typeof data, string>] = target.value;
     setCurrentAnnotation(data);
   };
 

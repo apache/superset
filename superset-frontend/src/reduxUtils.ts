@@ -103,7 +103,7 @@ export function addToArr(
   if (!newObj.id) {
     newObj.id = nanoid();
   }
-  const newState = {};
+  const newState: Record<string, any[]> = {};
   if (prepend) {
     newState[arrKey] = [newObj, ...state[arrKey]];
   } else {
@@ -125,7 +125,7 @@ export function extendArr(
       el.id = nanoid();
     }
   });
-  const newState = {};
+  const newState: Record<string, any[]> = {};
   if (prepend) {
     newState[arrKey] = [...newArr, ...state[arrKey]];
   } else {
@@ -143,11 +143,13 @@ export function initEnhancer(
   const composeEnhancers =
     process.env.WEBPACK_MODE === 'development' && disableDebugger !== true
       ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
-        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']
+        window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__' as keyof typeof window]
         ? /* eslint-disable-next-line no-underscore-dangle, dot-notation */
-          window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__']({
-            trace: true,
-          })
+          window['__REDUX_DEVTOOLS_EXTENSION_COMPOSE__' as keyof typeof window](
+            {
+              trace: true,
+            },
+          )
         : compose
       : compose;
 

@@ -699,7 +699,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           defaultActiveKey={Sections.Category}
         >
           {Object.keys(sectionMap).map(sectionId => {
-            const section = sectionMap[sectionId];
+            const section = sectionMap[sectionId as keyof typeof sectionMap];
 
             return (
               <AntdCollapse.Panel

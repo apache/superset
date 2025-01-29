@@ -1,5 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -16,23 +15,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
 
-import mockDatasource from 'spec/fixtures/mockDatasource';
-import CollectionTable from './CollectionTable';
-
-const props = {
-  collection: mockDatasource['7__table'].columns,
-  tableColumns: ['column_name', 'type', 'groupby'],
+// Create a new type by picking only the keys with V type from T
+export type OnlyKeyWithType<T, V> = keyof {
+  [K in keyof T as NonNullable<T[K]> extends V ? K : never]: T[K];
 };
 
-test('renders a table', () => {
-  const { length } = mockDatasource['7__table'].columns;
-  const { getByRole } = render(<CollectionTable {...props} />);
-  expect(getByRole('table')).toBeInTheDocument();
-  expect(
-    getByRole('table')
-      .getElementsByTagName('tbody')[0]
-      .getElementsByClassName('row'),
-  ).toHaveLength(length);
-});
+export const isIterable = (obj: any): obj is Iterable<any> =>
+  obj != null && typeof obj[Symbol.iterator] === 'function';

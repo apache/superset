@@ -59,7 +59,7 @@ export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
   position?: null | 'tl' | 'tr' | 'bl' | 'br';
-  categories: Record<string, { enabled: boolean; color: number[] }>;
+  categories: Record<string, { enabled: boolean; color: number[] | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
 };
@@ -101,7 +101,7 @@ const Legend = ({
   }
 
   const categories = Object.entries(categoriesObject).map(([k, v]) => {
-    const style = { color: `rgba(${v.color.join(', ')})` };
+    const style = { color: `rgba(${v.color?.join(', ')})` };
     const icon = v.enabled ? '\u25FC' : '\u25FB';
 
     return (

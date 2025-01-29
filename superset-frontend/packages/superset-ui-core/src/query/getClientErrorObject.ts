@@ -105,7 +105,7 @@ export function parseStringResponse(str: string): string {
 }
 
 export function getErrorFromStatusCode(status: number): string | null {
-  return ERROR_CODE_LOOKUP[status] || null;
+  return ERROR_CODE_LOOKUP[status as keyof typeof ERROR_CODE_LOOKUP] || null;
 }
 
 export function retrieveErrorMessage(

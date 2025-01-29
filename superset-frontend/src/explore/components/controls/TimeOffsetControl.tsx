@@ -148,7 +148,7 @@ export default function TimeOffsetControls({
       ).then(res => {
         const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
         const [startDate, endDate] = dates ?? [];
-        customTimeRange(`${startDate} : ${endDate}` ?? '');
+        customTimeRange(`${startDate} : ${endDate}`);
         setFormatedFilterDate(extendedDayjs(parseDttmToDate(startDate)));
       });
     } else {

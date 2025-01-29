@@ -23,22 +23,11 @@ export default {
   component: SliderControl,
 };
 
-const options = {
-  value: {
-    value: 25,
-  },
-  default: {
-    default: 50,
-  },
-};
-
 export const SliderControlGallery = () => (
   <>
-    {Object.keys(options).map(name => (
-      <>
-        <h4>{name}</h4>
-        <SliderControl {...options[name]} />
-      </>
-    ))}
+    <h4>value</h4>
+    <SliderControl value={25} onChange={() => {}} />
+    <h4>default</h4>
+    <SliderControl default={50} value={25} onChange={() => {}} />
   </>
 );

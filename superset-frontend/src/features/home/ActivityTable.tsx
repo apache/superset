@@ -177,11 +177,12 @@ export default function ActivityTable({
       },
     });
   }
-  const renderActivity = () =>
-    (activeChild === TableTab.Edited
-      ? editedCards
-      : activityData[activeChild]
-    ).map((entity: ActivityObject) => {
+  const renderActivity = () => {
+    const activities =
+      (activeChild === TableTab.Edited
+        ? editedCards
+        : activityData[activeChild as keyof ActivityData]) ?? [];
+    return activities.map((entity: ActivityObject) => {
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
       return (
@@ -199,6 +200,7 @@ export default function ActivityTable({
         </CardStyles>
       );
     });
+  };
 
   if ((isFetchingEditedCards && !editedCards) || isFetchingActivityData) {
     return <LoadingCards />;
@@ -206,7 +208,7 @@ export default function ActivityTable({
   return (
     <Styles>
       <SubMenu activeChild={activeChild} tabs={tabs} />
-      {activityData[activeChild]?.length > 0 ||
+      {Number(activityData[activeChild as keyof ActivityData]?.length) > 0 ||
       (activeChild === TableTab.Edited && editedCards?.length) ? (
         <CardContainer className="recentCards">
           {renderActivity()}

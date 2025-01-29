@@ -469,7 +469,7 @@ describe('Does transformProps transform series correctly', () => {
     (totals, currentStack) => {
       const total = Object.keys(currentStack).reduce((stackSum, key) => {
         if (key === '__timestamp') return stackSum;
-        return stackSum + currentStack[key];
+        return stackSum + currentStack[key as keyof typeof currentStack];
       }, 0);
       totals.push(total);
       return totals;

@@ -22,7 +22,7 @@ import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import { get, isEmpty } from 'lodash';
 
 import {
   t,
@@ -393,9 +393,7 @@ const RightMenu = ({
           color={
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
-              : environmentTag.color
-                  .split('.')
-                  .reduce((o, i) => o[i], theme.colors)
+              : get(theme.colors, environmentTag.color)
           }
         >
           <span css={tagStyles}>{environmentTag.text}</span>

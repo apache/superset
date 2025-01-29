@@ -147,7 +147,7 @@ export default function getInitialState({
     }),
   };
 
-  const destroyedQueryEditors = {};
+  const destroyedQueryEditors: Record<string, number> = {};
 
   /**
    * If the `SQLLAB_BACKEND_PERSISTENCE` feature flag is off, or if the user

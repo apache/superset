@@ -20,7 +20,6 @@ import { t, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
-import { alphabeticalSort } from 'src/components/Table/sorters';
 // @ts-ignore
 import LOADING_GIF from 'src/assets/images/loading.gif';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
@@ -184,16 +183,14 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     title: 'Column Name',
     dataIndex: 'name',
     key: 'name',
-    sorter: (a: ITableColumn, b: ITableColumn) =>
-      alphabeticalSort('name', a, b),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
   },
   {
     title: 'Datatype',
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) =>
-      alphabeticalSort('type', a, b),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
   },
 ];
 
@@ -261,7 +258,7 @@ const DatasetPanel = ({
   datasets,
 }: IDatasetPanelProps) => {
   const theme = useTheme();
-  const hasColumns = columnList?.length > 0 ?? false;
+  const hasColumns = Boolean(columnList?.length > 0);
   const datasetNames = datasets?.map(dataset => dataset.table_name);
   const tableWithDataset = datasets?.find(
     dataset => dataset.table_name === tableName,

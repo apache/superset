@@ -17,16 +17,17 @@
  * under the License.
  */
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
+import { LayoutItem, LayoutItemMeta } from '../types';
 
 describe('findTabIndexByComponentId', () => {
-  const topLevelTabsComponent = {
+  const topLevelTabsComponent: LayoutItem = {
     children: ['TAB-0g-5l347I2', 'TAB-qrwN_9VB5'],
     id: 'TABS-MNQQSW-kyd',
-    meta: {},
+    meta: {} as LayoutItemMeta,
     parents: ['ROOT_ID'],
     type: 'TABS',
   };
-  const rowLevelTabsComponent = {
+  const rowLevelTabsComponent: LayoutItem = {
     children: [
       'TAB-TwyUUGp2Bg',
       'TAB-Zl1BQAUvN',
@@ -34,7 +35,7 @@ describe('findTabIndexByComponentId', () => {
       'TAB---e53RNei',
     ],
     id: 'TABS-Oduxop1L7I',
-    meta: {},
+    meta: {} as LayoutItemMeta,
     parents: ['ROOT_ID', 'TABS-MNQQSW-kyd', 'TAB-qrwN_9VB5'],
     type: 'TABS',
   };

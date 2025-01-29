@@ -49,9 +49,6 @@
     "esModuleInterop": false,
     "forceConsistentCasingInFileNames": true,
 
-    /* Backwards Compatibility */
-    "suppressImplicitAnyIndexErrors": true,
-
     /* Language and Environment */
     "target": "esnext",
     "jsx": "preserve",

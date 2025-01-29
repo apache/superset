@@ -320,7 +320,7 @@ export const useTableColumns = (
               return {
                 // react-table requires a non-empty id, therefore we introduce a fallback value in case the key is empty
                 id: key || index,
-                accessor: row => row[key],
+                accessor: (row: Record<string, any>) => row[key],
                 Header:
                   colType === GenericDataType.Temporal &&
                   typeof firstValue !== 'string' ? (

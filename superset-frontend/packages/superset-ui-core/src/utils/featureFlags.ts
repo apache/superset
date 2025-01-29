@@ -93,7 +93,7 @@ export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
 
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
-    return !!window.featureFlags[feature];
+    return !!window.featureFlags[feature as keyof FeatureFlagMap];
   } catch (error) {
     logger.error(`Failed to query feature flag ${feature}`);
   }

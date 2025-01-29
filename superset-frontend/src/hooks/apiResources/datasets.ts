@@ -21,7 +21,7 @@ import { Column, Metric, ensureIsArray } from '@superset-ui/core';
 import { Dataset } from 'src/components/Chart/types';
 
 export const useVerboseMap = (dataset?: Dataset) => {
-  const verbose_map = {};
+  const verbose_map: Record<string, string> = {};
   ensureIsArray(dataset?.columns).forEach((column: Column) => {
     verbose_map[column.column_name] = column.verbose_name || column.column_name;
   });

@@ -103,7 +103,9 @@ const QueryTable = ({
       columns.map(column => ({
         accessor: column,
         Header:
-          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[column] || setHeaders(column),
+          QUERY_HISTORY_TABLE_HEADERS_LOCALIZED[
+            column as keyof typeof QUERY_HISTORY_TABLE_HEADERS_LOCALIZED
+          ] || setHeaders(column),
         disableSortBy: true,
       })),
     [columns],
@@ -219,6 +221,17 @@ const QueryTable = ({
             <Icons.Error iconColor={theme.colors.error.base} iconSize="m" />
           ),
           label: t('Unknown Status'),
+        },
+      },
+      started: {
+        config: {
+          icon: (
+            <Icons.LoadingOutlined
+              iconColor={theme.colors.primary.base}
+              iconSize="m"
+            />
+          ),
+          label: t('Started'),
         },
       },
     };

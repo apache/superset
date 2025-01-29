@@ -19,7 +19,7 @@
 
 import { forwardRef, RefObject, MouseEvent } from 'react';
 import { css, styled } from '@superset-ui/core';
-import Button from 'src/components/Button';
+import Button, { ButtonStyle } from 'src/components/Button';
 
 interface ControlPanelAlertProps {
   title: string;
@@ -88,6 +88,8 @@ const Title = styled.p`
 const typeChart = {
   warning: 'warning',
   danger: 'danger',
+  error: 'primary',
+  info: 'primary',
 };
 
 export const ExploreAlert = forwardRef(
@@ -119,7 +121,7 @@ export const ExploreAlert = forwardRef(
             </Button>
           )}
           <Button
-            buttonStyle={type in typeChart ? typeChart[type] : 'primary'}
+            buttonStyle={typeChart[type] as ButtonStyle}
             buttonSize="small"
             onClick={primaryButtonAction}
           >

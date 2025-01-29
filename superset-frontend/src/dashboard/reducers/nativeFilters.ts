@@ -27,6 +27,7 @@ import {
   UPDATE_CASCADE_PARENT_IDS,
 } from 'src/dashboard/actions/nativeFilters';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
   NativeFiltersState,
@@ -41,7 +42,7 @@ export function getInitialState({
   state?: NativeFiltersState;
 }): NativeFiltersState {
   const state: Partial<NativeFiltersState> = {};
-  const filters = {};
+  const filters: Record<string, Filter | Divider> = {};
   if (filterConfig) {
     filterConfig.forEach(filter => {
       const { id } = filter;

@@ -161,7 +161,7 @@ const TagModal: FC<TagModalProps> = ({
     const { result, count } = json;
 
     return {
-      data: result.map((item: { id: number }) => ({
+      data: result.map((item: Record<string, any> & { id: number }) => ({
         value: item.id,
         label: item[filterColumn],
       })),

@@ -71,7 +71,7 @@ export const selectedChartMutator = (
     return [];
   }
 
-  const data: Record<string, any> = [];
+  const data: any[] = [];
   if (value && typeof value === 'string') {
     const parsedValue = JSON.parse(value);
     let itemFound = false;

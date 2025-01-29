@@ -112,12 +112,15 @@ export default {
                   Array.isArray(colnames) && Array.isArray(coltypes)
                     ? colnames
                         .filter(
-                          (colname: string, index: number) =>
+                          (_: string, index: number) =>
                             coltypes[index] === GenericDataType.Numeric,
                         )
-                        .map(colname => ({
+                        .map((colname: string | number) => ({
                           value: colname,
-                          label: verboseMap[colname] ?? colname,
+                          label:
+                            (Array.isArray(verboseMap)
+                              ? verboseMap[colname as number]
+                              : verboseMap[colname as string]) ?? colname,
                         }))
                     : [];
                 return {

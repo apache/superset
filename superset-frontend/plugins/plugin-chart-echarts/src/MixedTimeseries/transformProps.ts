@@ -518,7 +518,9 @@ export default function transformProps(
       minorTick: { show: minorTicks },
       minInterval:
         xAxisType === AxisType.Time && timeGrainSqla
-          ? TIMEGRAIN_TO_TIMESTAMP[timeGrainSqla]
+          ? TIMEGRAIN_TO_TIMESTAMP[
+              timeGrainSqla as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+            ]
           : 0,
       ...getMinAndMaxFromBounds(
         xAxisType,

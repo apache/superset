@@ -48,10 +48,16 @@ const documentationLink = (engine: string | undefined) => {
     return supersetTextDocs[engine] || supersetTextDocs.default;
   }
 
-  if (!irregularDocumentationLinks[engine]) {
+  if (
+    !irregularDocumentationLinks[
+      engine as keyof typeof irregularDocumentationLinks
+    ]
+  ) {
     return `https://superset.apache.org/docs/databases/${engine}`;
   }
-  return irregularDocumentationLinks[engine];
+  return irregularDocumentationLinks[
+    engine as keyof typeof irregularDocumentationLinks
+  ];
 };
 
 const ModalHeader = ({

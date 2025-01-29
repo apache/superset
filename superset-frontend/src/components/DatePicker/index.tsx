@@ -19,4 +19,8 @@
 import { DatePicker as AntdDatePicker } from 'antd-v5';
 
 export const DatePicker = AntdDatePicker;
-export const { RangePicker } = AntdDatePicker;
+
+// Disable ESLint rule to allow tsc to infer proper type for RangePicker.
+// eslint-disable-next-line prefer-destructuring
+export const RangePicker: typeof AntdDatePicker.RangePicker =
+  AntdDatePicker.RangePicker;
