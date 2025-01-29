@@ -253,7 +253,7 @@ export const DrillByMenuItems = ({
 
   if (!handlesDimensionContextMenu || !hasDrillBy) {
     return (
-      <Menu.Item key="drill-by-disabled" disabled {...rest}>
+      <Menu.Item key="drill-by-disabled" disabled>
         <div>
           {t('Drill by')}
           <MenuItemTooltip title={tooltip} />
@@ -275,11 +275,11 @@ export const DrillByMenuItems = ({
     const column = columns[index];
     return (
       <MenuItemWithTruncation
-        key={`drill-by-item-${column.column_name}`}
+        menuKey={`drill-by-item-${column.column_name}`}
         tooltipText={column.verbose_name || column.column_name}
-        {...rest}
         onClick={e => handleSelection(e, column)}
         style={style}
+        {...rest}
       >
         {column.verbose_name || column.column_name}
       </MenuItemWithTruncation>
@@ -289,6 +289,7 @@ export const DrillByMenuItems = ({
   return (
     <>
       <Menu.SubMenu
+        key="drill-by-submenu"
         title={t('Drill by')}
         popupClassName="chart-context-submenu"
         popupOffset={[0, submenuYOffset]}
@@ -343,7 +344,7 @@ export const DrillByMenuItems = ({
               {Row}
             </List>
           ) : (
-            <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
+            <Menu.Item disabled key="no-drill-by-columns-found">
               {t('No columns found')}
             </Menu.Item>
           )}

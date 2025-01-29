@@ -183,22 +183,18 @@ const DrillDetailMenuItems = ({
   }
 
   const drillToDetailMenuItem = drillDisabled ? (
-    <DisabledMenuItem {...props} key="drill-to-detail-disabled">
+    <DisabledMenuItem key="drill-to-detail-disabled">
       {DRILL_TO_DETAIL}
       <MenuItemTooltip title={drillDisabled} />
     </DisabledMenuItem>
   ) : (
-    <Menu.Item
-      {...props}
-      key="drill-to-detail"
-      onClick={openModal.bind(null, [])}
-    >
+    <Menu.Item key="drill-to-detail" onClick={openModal.bind(null, [])}>
       {DRILL_TO_DETAIL}
     </Menu.Item>
   );
 
   const drillToDetailByMenuItem = drillByDisabled ? (
-    <DisabledMenuItem {...props} key="drill-to-detail-by-disabled">
+    <DisabledMenuItem key="drill-to-detail-by-disabled">
       {DRILL_TO_DETAIL_BY}
       <MenuItemTooltip title={drillByDisabled} />
     </DisabledMenuItem>
@@ -213,9 +209,8 @@ const DrillDetailMenuItems = ({
       <div data-test="drill-to-detail-by-submenu">
         {filters.map((filter, i) => (
           <MenuItemWithTruncation
-            {...props}
             tooltipText={`${DRILL_TO_DETAIL_BY} ${filter.formattedVal}`}
-            key={`drill-detail-filter-${i}`}
+            menuKey={`drill-detail-filter-${i}`}
             onClick={openModal.bind(null, [filter])}
           >
             {`${DRILL_TO_DETAIL_BY} `}
@@ -224,7 +219,6 @@ const DrillDetailMenuItems = ({
         ))}
         {filters.length > 1 && (
           <Menu.Item
-            {...props}
             key="drill-detail-filter-all"
             onClick={openModal.bind(null, filters)}
           >
