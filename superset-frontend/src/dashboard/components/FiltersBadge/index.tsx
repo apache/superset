@@ -175,10 +175,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       setDashboardIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
-        chart?.queriesResponse?.rejected_filters !==
-          prevChart?.queriesResponse?.rejected_filters ||
-        chart?.queriesResponse?.applied_filters !==
-          prevChart?.queriesResponse?.applied_filters ||
+        chart?.queriesResponse?.[0]?.rejected_filters !==
+          prevChart?.queriesResponse?.[0]?.rejected_filters ||
+        chart?.queriesResponse?.[0]?.applied_filters !==
+          prevChart?.queriesResponse?.[0]?.applied_filters ||
         dashboardFilters !== prevDashboardFilters ||
         datasources !== prevDatasources
       ) {
@@ -215,10 +215,10 @@ export const FiltersBadge = ({ chartId }: FiltersBadgeProps) => {
       setNativeIndicators(indicatorsInitialState);
     } else if (prevChartStatus !== 'success') {
       if (
-        chart?.queriesResponse?.rejected_filters !==
-          prevChart?.queriesResponse?.rejected_filters ||
-        chart?.queriesResponse?.applied_filters !==
-          prevChart?.queriesResponse?.applied_filters ||
+        chart?.queriesResponse?.[0]?.rejected_filters !==
+          prevChart?.queriesResponse?.[0]?.rejected_filters ||
+        chart?.queriesResponse?.[0]?.applied_filters !==
+          prevChart?.queriesResponse?.[0]?.applied_filters ||
         nativeFilters !== prevNativeFilters ||
         chartLayoutItems !== prevChartLayoutItems ||
         dataMask !== prevDataMask ||
