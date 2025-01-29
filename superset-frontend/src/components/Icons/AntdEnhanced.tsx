@@ -127,6 +127,8 @@ const AntdEnhancedIcons = Object.keys(AntdIcons)
   .map(k => ({
     [k]: (props: IconType) => {
       const whatRole = props?.onClick ? 'button' : 'img';
+      // @ts-ignore TODO(hainenber): fix the type compatiblity between
+      // StyledIcon component prop and AntdIcon values
       return <StyledIcon component={AntdIcons[k]} role={whatRole} {...props} />;
     },
   }))

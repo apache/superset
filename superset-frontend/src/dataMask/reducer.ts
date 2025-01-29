@@ -24,8 +24,6 @@ import {
   DataMask,
   DataMaskStateWithId,
   DataMaskWithId,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   FilterConfiguration,
   Filters,
@@ -43,25 +41,15 @@ import { areObjectsEqual } from '../reduxUtils';
 
 export function getInitialDataMask(
   id?: string | number,
-  moreProps?: DataMask,
-): DataMask;
-export function getInitialDataMask(
-  id: string | number,
   moreProps: DataMask = {},
-): DataMaskWithId {
-  let otherProps = {};
-  if (id) {
-    otherProps = {
-      id,
-    };
-  }
+): DataMask | DataMaskWithId {
   return {
-    ...otherProps,
+    ...(id !== undefined ? { id } : {}),
     extraFormData: {},
     filterState: {},
     ownState: {},
     ...moreProps,
-  } as DataMaskWithId;
+  } as DataMask | DataMaskWithId;
 }
 
 function fillNativeFilters(
@@ -134,7 +122,7 @@ function updateDataMaskForFilterChanges(
 
 const dataMaskReducer = produce(
   (draft: DataMaskStateWithId, action: AnyDataMaskAction) => {
-    const cleanState = {};
+    const cleanState: DataMaskStateWithId = {};
     switch (action.type) {
       case CLEAR_DATA_MASK_STATE:
         return cleanState;
@@ -148,16 +136,14 @@ const dataMaskReducer = produce(
       // TODO: update hydrate to .ts
       // @ts-ignore
       case HYDRATE_DASHBOARD:
-        if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-          Object.keys(
-            // @ts-ignore
-            action.data.dashboardInfo?.metadata?.chart_configuration,
-          ).forEach(id => {
-            cleanState[id] = {
-              ...getInitialDataMask(id), // take initial data
-            };
-          });
-        }
+        Object.keys(
+          // @ts-ignore
+          action.data.dashboardInfo?.metadata?.chart_configuration,
+        ).forEach(id => {
+          cleanState[id] = {
+            ...(getInitialDataMask(id) as DataMaskWithId), // take initial data
+          };
+        });
         fillNativeFilters(
           // @ts-ignore
           action.data.dashboardInfo?.metadata?.native_filter_configuration ??

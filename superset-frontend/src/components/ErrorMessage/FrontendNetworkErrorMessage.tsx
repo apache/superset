@@ -24,10 +24,16 @@ import ErrorAlert from './ErrorAlert';
 function FrontendNetworkErrorMessage({
   error,
   subtitle,
+  compact,
 }: ErrorMessageComponentProps) {
   const { level, message } = error;
   return (
-    <ErrorAlert errorType={t('Network Error')} message={message} type={level} />
+    <ErrorAlert
+      compact={compact}
+      errorType={t('Network Error')}
+      message={message}
+      type={level}
+    />
   );
 }
 export default FrontendNetworkErrorMessage;

@@ -48,6 +48,7 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isCustomControlItem,
   isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
@@ -678,8 +679,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     return controlItem;
                   }
                   if (
-                    controlItem.name &&
-                    controlItem.config &&
+                    isCustomControlItem(controlItem) &&
                     controlItem.name !== 'datasource'
                   ) {
                     return renderControl(controlItem);

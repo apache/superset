@@ -34,6 +34,11 @@ class SqlLabPermalinkSchema(Schema):
         allow_none=True,
         metadata={"description": "The schema name of the query"},
     )
+    catalog = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The catalog name of the query"},
+    )
     sql = fields.String(
         required=True,
         allow_none=False,

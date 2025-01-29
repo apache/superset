@@ -25,6 +25,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
+import { css } from '@superset-ui/core';
 import { GlobalStyles } from 'src/GlobalStyles';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import Loading from 'src/components/Loading';
@@ -83,12 +84,19 @@ const App = () => (
         {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
           <Route path={path} key={path}>
             <Suspense fallback={<Fallback />}>
-              <Layout.Content>
-                <div style={{ padding: '16px' }}>
-                  <ErrorBoundary>
-                    <Component user={bootstrapData.user} {...props} />
-                  </ErrorBoundary>
-                </div>
+              <Layout.Content
+                css={css`
+                  display: flex;
+                  flex-direction: column;
+                `}
+              >
+                <ErrorBoundary
+                  css={css`
+                    margin: 16px;
+                  `}
+                >
+                  <Component user={bootstrapData.user} {...props} />
+                </ErrorBoundary>
               </Layout.Content>
             </Suspense>
           </Route>

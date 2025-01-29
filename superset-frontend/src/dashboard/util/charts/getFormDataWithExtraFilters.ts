@@ -17,8 +17,10 @@
  * under the License.
  */
 import {
+  DataMask,
   DataMaskStateWithId,
   DataRecordFilters,
+  DataRecordValue,
   JsonObject,
   PartialFilters,
 } from '@superset-ui/core';
@@ -29,10 +31,36 @@ import { isEqual } from 'lodash';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
 import { getAllActiveFilters } from '../activeAllDashboardFilters';
 
+interface CachedFormData {
+  extra_form_data?: JsonObject;
+  extra_filters: {
+    col: string;
+    op: string;
+    val: DataRecordValue[];
+  }[];
+  own_color_scheme?: string;
+  color_scheme?: string;
+  color_namespace?: string;
+  chart_id: number;
+  label_colors?: Record<string, string>;
+  shared_label_colors?: string[];
+  map_label_colors?: Record<string, string>;
+}
+
+export type CachedFormDataWithExtraControls = CachedFormData & {
+  [key: string]: any;
+};
+
 // We cache formData objects so that our connected container components don't always trigger
 // render cascades. we cannot leverage the reselect library because our cache size is >1
-const cachedFiltersByChart = {};
-const cachedFormdataByChart = {};
+const cachedFiltersByChart: Record<number, DataRecordFilters> = {};
+const cachedFormdataByChart: Record<
+  number,
+  CachedFormData & {
+    dataMask: DataMask;
+    extraControls: Record<string, string | boolean | null>;
+  }
+> = {};
 
 export interface GetFormDataWithExtraFiltersArguments {
   chartConfiguration: ChartConfiguration;
@@ -113,7 +141,7 @@ export default function getFormDataWithExtraFilters({
     };
   }
 
-  const formData = {
+  const formData: CachedFormDataWithExtraControls = {
     ...chart.form_data,
     chart_id: chart.id,
     label_colors: labelsColor,

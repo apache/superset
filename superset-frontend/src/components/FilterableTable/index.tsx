@@ -95,7 +95,7 @@ const FilterableTable = ({
 }: FilterableTableProps) => {
   const formatTableData = (data: Record<string, unknown>[]): Datum[] =>
     data.map(row => {
-      const newRow = {};
+      const newRow: Record<string, any> = {};
       Object.entries(row).forEach(([key, val]) => {
         if (['string', 'number'].indexOf(typeof val) >= 0) {
           newRow[key] = val;
@@ -116,7 +116,7 @@ const FilterableTable = ({
 
   const getWidthsForColumns = () => {
     const PADDING = 50; // accounts for cell padding and width of sorting icon
-    const widthsByColumnKey = {};
+    const widthsByColumnKey: Record<string, number> = {};
     const cellContent = ([] as string[]).concat(
       ...orderedColumnKeys.map(key => {
         const cellContentList = list.map((data: Datum) =>
