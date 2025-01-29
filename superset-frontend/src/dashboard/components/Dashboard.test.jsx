@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { shallow } from 'enzyme';
-import sinon from 'sinon';
+import { render } from '@testing-library/react';
+import '@testing-library/jest-dom/extend-expect';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
@@ -66,13 +66,13 @@ describe('Dashboard', () => {
 
   const ChildrenComponent = () => <div>Test</div>;
 
-  function setup(overrideProps) {
-    const wrapper = shallow(
+  function setup(overrideProps = {}) {
+    const { container } = render(
       <Dashboard {...props} {...overrideProps}>
         <ChildrenComponent />
       </Dashboard>,
     );
-    return wrapper;
+    return container;
   }
 
   // activeFilters map use id_column) as key
@@ -84,8 +84,8 @@ describe('Dashboard', () => {
   };
 
   it('should render the children component', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ChildrenComponent)).toExist();
+    const container = setup();
+    expect(container.querySelector('div')).toHaveTextContent('Test');
   });
 
   describe('UNSAFE_componentWillReceiveProps', () => {
@@ -95,41 +95,41 @@ describe('Dashboard', () => {
     };
 
     it('should call addSliceToDashboard if a new slice is added to the layout', () => {
-      const wrapper = setup();
-      const spy = sinon.spy(props.actions, 'addSliceToDashboard');
-      wrapper.instance().UNSAFE_componentWillReceiveProps({
+      const container = setup();
+      const addSliceToDashboardMock = jest.spyOn(props.actions, 'addSliceToDashboard');
+      container.firstChild.UNSAFE_componentWillReceiveProps({
         ...props,
         layout: layoutWithExtraChart,
       });
-      spy.restore();
-      expect(spy.callCount).toBe(1);
+      addSliceToDashboardMock.mockRestore();
+      expect(addSliceToDashboardMock).toHaveBeenCalledTimes(1);
     });
 
     it('should call removeSliceFromDashboard if a slice is removed from the layout', () => {
-      const wrapper = setup({ layout: layoutWithExtraChart });
-      const spy = sinon.spy(props.actions, 'removeSliceFromDashboard');
+      const container = setup({ layout: layoutWithExtraChart });
+      const removeSliceFromDashboardMock = jest.spyOn(props.actions, 'removeSliceFromDashboard');
       const nextLayout = { ...layoutWithExtraChart };
       delete nextLayout[1001];
 
-      wrapper.instance().UNSAFE_componentWillReceiveProps({
+      container.firstChild.UNSAFE_componentWillReceiveProps({
         ...props,
         layout: nextLayout,
       });
-      spy.restore();
-      expect(spy.callCount).toBe(1);
+      removeSliceFromDashboardMock.mockRestore();
+      expect(removeSliceFromDashboardMock).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('componentDidUpdate', () => {
-    let wrapper;
+    let container;
     let prevProps;
     let refreshSpy;
 
     beforeEach(() => {
-      wrapper = setup({ activeFilters: OVERRIDE_FILTERS });
-      wrapper.instance().appliedFilters = OVERRIDE_FILTERS;
-      prevProps = wrapper.instance().props;
-      refreshSpy = sinon.spy(wrapper.instance(), 'refreshCharts');
+      container = setup({ activeFilters: OVERRIDE_FILTERS });
+      container.firstChild.appliedFilters = OVERRIDE_FILTERS;
+      prevProps = container.firstChild.props;
+      refreshSpy = jest.spyOn(container.firstChild, 'refreshCharts');
     });
 
     afterEach(() => {
@@ -138,28 +138,101 @@ describe('Dashboard', () => {
     });
 
     it('should not call refresh when is editMode', () => {
-      wrapper.setProps({
+      render(<Dashboard {...props} activeFilters={OVERRIDE_FILTERS} dashboardState={{ ...dashboardState, editMode: true }} />);
+      container.firstChild.componentDidUpdate(prevProps);
+      expect(refreshSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not call refresh when there is no change', () => {
+      render(<Dashboard {...props} activeFilters={OVERRIDE_FILTERS} />);
+      container.firstChild.componentDidUpdate(prevProps);
+      expect(refreshSpy).not.toHaveBeenCalled();
+      expect(container.firstChild.appliedFilters).toBe(OVERRIDE_FILTERS);
+    });
+
+    it('should call refresh when native filters changed', () => {
+      getRelatedCharts.mockReturnValue([230]);
+      render(<Dashboard {...props} activeFilters={{
         dashboardState: {
           ...dashboardState,
           editMode: true,
         },
       });
-      wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshSpy.callCount).toBe(0);
+      container.firstChild.componentDidUpdate(prevProps);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
     });
 
     it('should not call refresh when there is no change', () => {
-      wrapper.setProps({
+      render(<Dashboard {...props} activeFilters={{
         activeFilters: OVERRIDE_FILTERS,
       });
       wrapper.instance().componentDidUpdate(prevProps);
       expect(refreshSpy.callCount).toBe(0);
-      expect(wrapper.instance().appliedFilters).toBe(OVERRIDE_FILTERS);
+      expect(container.firstChild.appliedFilters).toEqual({
     });
 
     it('should call refresh when native filters changed', () => {
       getRelatedCharts.mockReturnValue([230]);
-      wrapper.setProps({
+      render(<Dashboard {...props} activeFilters={newFilter} />);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(container.firstChild.appliedFilters).toEqual(newFilter);
+    });
+
+    it('should call refresh if a filter is removed', () => {
+      getRelatedCharts.mockReturnValue([]);
+      render(<Dashboard {...props} activeFilters={{}} />);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(container.firstChild.appliedFilters).toEqual({});
+    });
+
+    it('should call refresh if a filter is changed', () => {
+      getRelatedCharts.mockReturnValue([1]);
+      const newFilters = {
+        ...OVERRIDE_FILTERS,
+        '1_region': { values: ['Canada'], scope: [1] },
+      };
+      render(<Dashboard {...props} activeFilters={newFilters} />);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(container.firstChild.appliedFilters).toEqual(newFilters);
+      expect(refreshSpy).toHaveBeenCalledWith([1]);
+    });
+
+    it('should call refresh with multiple chart ids', () => {
+      getRelatedCharts.mockReturnValue([1, 2]);
+      const newFilters = {
+        ...OVERRIDE_FILTERS,
+        '2_country_name': { values: ['New Country'], scope: [1, 2] },
+      };
+      render(<Dashboard {...props} activeFilters={newFilters} />);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(container.firstChild.appliedFilters).toEqual(newFilters);
+      expect(refreshSpy).toHaveBeenCalledWith([1, 2]);
+    });
+
+    it('should call refresh if a filter scope is changed', () => {
+      const newFilters = {
+        ...OVERRIDE_FILTERS,
+        '3_country_name': { values: ['USA'], scope: [2] },
+      };
+
+      render(<Dashboard {...props} activeFilters={newFilters} />);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(refreshSpy).toHaveBeenCalledWith([2]);
+    });
+
+    it('should call refresh with empty [] if a filter is changed but scope is not applicable', () => {
+      getRelatedCharts.mockReturnValue([]);
+      const newFilters = {
+        ...OVERRIDE_FILTERS,
+        '3_country_name': { values: ['CHINA'], scope: [] },
+      };
+
+      render(<Dashboard {...props} activeFilters={newFilters} />);
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(refreshSpy).toHaveBeenCalledWith([]);
+    });
+  });
+});
         activeFilters: {
           ...OVERRIDE_FILTERS,
           ...getAllActiveFilters({
@@ -170,8 +243,8 @@ describe('Dashboard', () => {
         },
       });
       wrapper.instance().componentDidUpdate(prevProps);
-      expect(refreshSpy.callCount).toBe(1);
-      expect(wrapper.instance().appliedFilters).toEqual({
+      expect(refreshSpy).toHaveBeenCalledTimes(1);
+      expect(container.firstChild.appliedFilters).toEqual({
         ...OVERRIDE_FILTERS,
         [NATIVE_FILTER_ID]: {
           scope: [230],
