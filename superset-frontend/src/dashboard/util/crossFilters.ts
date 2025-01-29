@@ -19,10 +19,8 @@
 import { cloneDeep } from 'lodash';
 import {
   Behavior,
-  FeatureFlag,
   getChartMetadataRegistry,
   isDefined,
-  isFeatureEnabled,
 } from '@superset-ui/core';
 import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 import {
@@ -38,8 +36,7 @@ import { CHART_TYPE } from './componentTypes';
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
-  isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-  (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);
+  metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled;
 
 export const getCrossFiltersConfiguration = (
   dashboardLayout: DashboardLayout,
@@ -49,10 +46,6 @@ export const getCrossFiltersConfiguration = (
   >,
   charts: ChartsState,
 ) => {
-  if (!isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-    return undefined;
-  }
-
   const chartLayoutItems = Object.values(dashboardLayout).filter(
     item => item?.type === CHART_TYPE,
   );

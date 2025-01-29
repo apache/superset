@@ -39,7 +39,6 @@
     "lodash": "^4.17.21",
     "mousetrap": "^1.6.5",
     "prop-types": "^15.8.1",
-    "react-bootstrap-slider": "3.0.0",
     "underscore": "^1.13.7",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"
@@ -53,8 +52,8 @@
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
     "mapbox-gl": "*",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "react-map-gl": "^6.1.19"
   },
   "publishConfig": {

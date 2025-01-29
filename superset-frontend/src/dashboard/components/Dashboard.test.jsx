@@ -61,6 +61,7 @@ describe('Dashboard', () => {
     userId: dashboardInfo.userId,
     impressionId: 'id',
     loadStats: {},
+    chartConfiguration: {},
   };
 
   const ChildrenComponent = () => <div>Test</div>;

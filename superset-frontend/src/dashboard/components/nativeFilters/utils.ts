@@ -23,8 +23,6 @@ import {
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
@@ -150,8 +148,7 @@ export function getExtraFormData(
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
     !behaviors.includes(Behavior.NativeFilter) ||
-    (isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-      behaviors.includes(Behavior.InteractiveChart))
+    behaviors.includes(Behavior.InteractiveChart)
   );
 }
 

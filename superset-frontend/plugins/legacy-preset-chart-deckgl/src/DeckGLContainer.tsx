@@ -113,7 +113,6 @@ export const DeckGLContainer = memo(
             height={height}
             layers={layers()}
             viewState={viewState}
-            glOptions={{ preserveDrawingBuffer: true }}
             onViewStateChange={onViewStateChange}
           >
             <StaticMap
