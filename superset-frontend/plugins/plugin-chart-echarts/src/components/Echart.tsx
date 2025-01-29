@@ -63,14 +63,14 @@ import {
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 
-// Define this interface here to avoid creating a dependency back to superset-frontend, 
+// Define this interface here to avoid creating a dependency back to superset-frontend,
 // and to appease the compiler.
 // ref: superset-frontend/src/explore/types
 interface ExplorePageState {
   common: {
     locale: string;
   };
-};
+}
 
 const Styles = styled.div<EchartsStylesProps>`
   height: ${({ height }) => height};
