@@ -30,7 +30,7 @@ import {
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_NEWDASHBOARD,
 } from 'src/dashboard/util/constants';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 type SaveType = typeof SAVE_TYPE_OVERWRITE | typeof SAVE_TYPE_NEWDASHBOARD;
 
@@ -155,7 +155,7 @@ class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
     } else {
       this.onSave(data, dashboardId, saveType).then((resp: JsonResponse) => {
         if (saveType === SAVE_TYPE_NEWDASHBOARD && resp.json?.result?.id) {
-          window.location.href = ensureAppRootSanitized(
+          window.location.href = ensureAppRoot(
             `/superset/dashboard/${resp.json.result.id}/`,
           );
         }

@@ -20,18 +20,9 @@ import { applicationRoot } from 'src/utils/getBootstrapData';
 
 /**
  * Takes a string path to a resource and prefixes it with the application root that is
- * defined in the application configuration. The path is unsanitized.
- * @param path A string path to a resource
- */
-export function ensureAppRootUnsanitized(path: string): string {
-  return `${applicationRoot(false)}${path.startsWith('/') ? path : `/${path}`}`;
-}
-
-/**
- * Takes a string path to a resource and prefixes it with the application root that is
  * defined in the application configuration. The application path is sanitized.
  * @param path A string path to a resource
  */
-export function ensureAppRootSanitized(path: string): string {
-  return `${applicationRoot(true)}${path.startsWith('/') ? path : `/${path}`}`;
+export function ensureAppRoot(path: string): string {
+  return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
 }

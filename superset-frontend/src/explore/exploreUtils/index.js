@@ -30,10 +30,7 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import {
-  ensureAppRootSanitized,
-  ensureAppRootUnsanitized,
-} from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { URL_PARAMS } from 'src/constants';
 import {
   MULTI_OPERATORS,
@@ -72,7 +69,7 @@ export function getAnnotationJsonUrl(slice_id, force) {
 
   const uri = URI(window.location.search);
   return uri
-    .pathname(ensureAppRootUnsanitized('/api/v1/chart/data'))
+    .pathname(ensureAppRoot('/api/v1/chart/data'))
     .search({
       form_data: safeStringify({ slice_id }),
       force,
@@ -87,9 +84,9 @@ export function getURIDirectory(endpointType = 'base') {
       endpointType,
     )
   ) {
-    return ensureAppRootSanitized('/superset/explore_json/');
+    return ensureAppRoot('/superset/explore_json/');
   }
-  return ensureAppRootSanitized('/explore/');
+  return ensureAppRoot('/explore/');
 }
 
 export function mountExploreUrl(endpointType, extraSearch = {}, force = false) {
@@ -116,7 +113,7 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     protocol: window.location.protocol.slice(0, -1),
     hostname: getHostName(allowDomainSharding),
     port: window.location.port ? window.location.port : '',
-    path: ensureAppRootSanitized(path),
+    path: ensureAppRoot(path),
   });
   if (qs) {
     uri = uri.search(qs);

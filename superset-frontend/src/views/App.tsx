@@ -71,7 +71,7 @@ const LocationPathnameLogger = () => {
 };
 
 const App = () => (
-  <Router basename={applicationRoot(false)}>
+  <Router basename={applicationRoot()}>
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>

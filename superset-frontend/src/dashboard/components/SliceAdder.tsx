@@ -28,7 +28,7 @@ import { Select } from 'src/components';
 import Loading from 'src/components/Loading';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import {
   LocalStorageKeys,
   getItem,
@@ -361,7 +361,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             buttonSize="xsmall"
             onClick={() =>
               window.open(
-                ensureAppRootSanitized(
+                ensureAppRoot(
                   `/chart/add?dashboard_id=${this.props.dashboardId}`,
                 ),
                 '_blank',

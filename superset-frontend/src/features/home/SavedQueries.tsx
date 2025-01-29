@@ -40,7 +40,7 @@ import {
   shortenSQL,
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -266,9 +266,7 @@ const SavedQueries = ({
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              window.location.href = ensureAppRootSanitized(
-                '/savedqueryview/list',
-              );
+              window.location.href = ensureAppRoot('/savedqueryview/list');
             },
           },
         ]}
@@ -279,7 +277,7 @@ const SavedQueries = ({
             <CardStyles key={q.id}>
               <ListViewCard
                 imgURL=""
-                url={ensureAppRootSanitized(`/sqllab?savedQueryId=${q.id}`)}
+                url={ensureAppRoot(`/sqllab?savedQueryId=${q.id}`)}
                 title={q.label}
                 imgFallbackURL={assetUrl(
                   '/static/assets/images/empty-query.svg',

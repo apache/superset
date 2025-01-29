@@ -18,7 +18,7 @@
  */
 import Button from 'src/components/Button';
 import { EmptyState as EmptyStateComponent } from 'src/components/EmptyState';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { TableTab } from 'src/views/CRUD/types';
 import { styled, t } from '@superset-ui/core';
 import { WelcomeTable } from './types';
@@ -85,7 +85,7 @@ export default function EmptyState({
       <Button
         buttonStyle="default"
         onClick={() => {
-          window.location.href = ensureAppRootSanitized(url);
+          window.location.href = ensureAppRoot(url);
         }}
       >
         {isFavorite

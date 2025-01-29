@@ -37,7 +37,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 const PAGE_SIZE = 25;
 
@@ -278,9 +278,7 @@ function AnnotationLayersList({
   };
 
   const onLayerAdd = (id?: number) => {
-    window.location.href = ensureAppRootSanitized(
-      `/annotationlayer/${id}/annotation`,
-    );
+    window.location.href = ensureAppRoot(`/annotationlayer/${id}/annotation`);
   };
 
   const onModalHide = () => {

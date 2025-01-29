@@ -28,7 +28,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { LoadingCards } from 'src/pages/Home';
 import {
   CardContainer,
@@ -197,14 +197,14 @@ function DashboardTable({
             ),
             buttonStyle: 'tertiary',
             onClick: () => {
-              window.location.assign(ensureAppRootSanitized('/dashboard/new'));
+              window.location.assign(ensureAppRoot('/dashboard/new'));
             },
           },
           {
             name: t('View All »'),
             buttonStyle: 'link',
             onClick: () => {
-              const target = ensureAppRootSanitized(
+              const target = ensureAppRoot(
                 activeTab === TableTab.Favorite
                   ? `/dashboard/list/?filters=(favorite:(label:${t(
                       'Yes',

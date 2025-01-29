@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getChartDataUri } from '.';
 
 jest.mock('src/utils/pathUtils');
 
 describe('Get ChartUri', () => {
-  (ensureAppRootSanitized as jest.Mock).mockImplementation(
+  (ensureAppRoot as jest.Mock).mockImplementation(
     (path: string) => `/prefix${path}`,
   );
 

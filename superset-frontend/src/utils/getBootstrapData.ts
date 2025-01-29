@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import DOMPurify from 'dompurify';
-
 import { BootstrapData } from 'src/types/bootstrapTypes';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
 
@@ -32,11 +30,8 @@ const APPLICATION_ROOT_NO_TRAILING_SLASH =
   getBootstrapData().common.application_root.replace(/\/$/, '');
 
 /**
- * @param dom_sanitize If true, run the application root through dompurify before returning
  * @returns The configured application root
  */
-export function applicationRoot(dom_sanitize = false): string {
-  return dom_sanitize
-    ? DOMPurify.sanitize(APPLICATION_ROOT_NO_TRAILING_SLASH)
-    : APPLICATION_ROOT_NO_TRAILING_SLASH;
+export function applicationRoot(): string {
+  return APPLICATION_ROOT_NO_TRAILING_SLASH;
 }

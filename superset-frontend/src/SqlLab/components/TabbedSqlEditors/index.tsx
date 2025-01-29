@@ -26,7 +26,7 @@ import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
 import { Logger } from 'src/logger/LogUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
-import { ensureAppRootSanitized } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -145,7 +145,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         window.history.replaceState(
           {},
           document.title,
-          ensureAppRootSanitized(SQL_LAB_URL),
+          ensureAppRoot(SQL_LAB_URL),
         );
       }
     } else {

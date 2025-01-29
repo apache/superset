@@ -53,7 +53,7 @@ if (typeof window !== 'undefined') {
 initFeatureFlags(bootstrapData.common.feature_flags);
 
 // Setup SupersetClient
-setupClient({ appRoot: applicationRoot(false) });
+setupClient({ appRoot: applicationRoot() });
 
 setupColors(
   bootstrapData.common.extra_categorical_color_schemes,
