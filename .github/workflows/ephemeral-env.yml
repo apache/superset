@@ -136,7 +136,7 @@ jobs:
 
   ephemeral-docker-build:
     concurrency:
-      group: ${{ github.workflow }}-${{ github.event.inputs.issue_number || github.event.issue.number || github.run_id }}-build
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}-build
       cancel-in-progress: true
     needs: ephemeral-env-label
     if: needs.ephemeral-env-label.outputs.slash-command == 'up'
