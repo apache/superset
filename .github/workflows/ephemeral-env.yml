@@ -53,27 +53,6 @@ jobs:
             exit 1
           fi
 
-      - name: Get PR Info
-        uses: actions/github-script@v7
-        id: get-pr-info
-        with:
-          script: |
-            const pull_number = context.payload.pull_request
-              ? context.payload.pull_request.number
-              : context.payload.inputs.issue_number;
-
-            if (!pull_number) {
-              throw new Error("Pull request number is not available.");
-            }
-
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number,
-            });
-
-            return pr.data;
-
       - name: Check if a commit was pushed after PR was labeled
         id: get-sha
         run: |
