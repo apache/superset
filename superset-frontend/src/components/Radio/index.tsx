@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Radio as Antd5Radio } from 'antd-v5';
+import { Radio as Antd5Radio, CheckboxOptionType } from 'antd-v5';
 import type {
   RadioChangeEvent,
   RadioProps,
   RadioGroupProps,
-  CheckboxOptionType,
-} from 'antd-v5';
+} from 'antd-v5/lib/radio';
+
 import { Space, SpaceProps } from 'src/components/Space';
 
 export type RadioGroupWrapperProps = RadioGroupProps & {

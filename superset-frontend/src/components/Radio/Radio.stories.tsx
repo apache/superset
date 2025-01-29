@@ -49,19 +49,19 @@ const radioGroupWrapperArgsType = {
   'spaceConfig.direction': {
     control: 'select',
     options: ['horizontal', 'vertical'],
-    description: 'Direzione del layout Space',
+    description: 'Direction of the Space layout',
     if: { arg: 'enableSpaceConfig', truthy: true },
   },
   'spaceConfig.size': {
     control: 'select',
     options: ['small', 'middle', 'large'],
-    description: 'Dimensione del layout Space',
+    description: 'Layout size Space',
     if: { arg: 'enableSpaceConfig', truthy: true },
   },
   'spaceConfig.align': {
     control: 'select',
     options: ['start', 'center', 'end'],
-    description: 'Allineamento del layout Space',
+    description: 'Alignment of the Space layout',
     if: { arg: 'enableSpaceConfig', truthy: true },
   },
 };
