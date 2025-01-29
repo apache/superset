@@ -138,7 +138,7 @@ function AllEntities() {
       return;
     }
     fetchObjectsByTagIds(
-      { tagIds: [tag?.id], types: null },
+      { tagIds: tag?.id !== undefined ? [tag.id] : '', types: null },
       (data: TaggedObject[]) => {
         const objects: TaggedObjects = { dashboard: [], chart: [], query: [] };
         data.forEach(function (object) {
