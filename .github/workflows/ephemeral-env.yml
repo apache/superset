@@ -76,15 +76,8 @@ jobs:
 
       - name: Check if a commit was pushed after PR was labeled
         id: get-sha
-        env:
-          COMMENT_AT: ${{ github.event.pull_request.updated_at }}
-          PUSHED_AT: ${{ fromJSON(steps.get-pr-info.outputs.result).pushed_at }}
         run: |
-          if [[ $(date -d "$PUSHED_AT" +%s) -gt $(date -d "$COMMENT_AT" +%s) ]]; then
-           echo "Commit was pushed after the PR was updated."
-           exit 1
-          fi
-          echo "sha=${{ fromJSON(steps.get-pr-info.outputs.result).head.sha }}" >> $GITHUB_OUTPUT
+          echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
 
       - name: Looking for feature flags in PR description
         uses: actions/github-script@v7
@@ -306,7 +299,7 @@ jobs:
               issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '@${{ context.actor }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are `admin`/`admin`. Please allow several minutes for bootstrapping and startup.'
+              body: '@${{ github.actor }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are `admin`/`admin`. Please allow several minutes for bootstrapping and startup.'
             })
       - name: Comment (failure)
         if: ${{ failure() }}
