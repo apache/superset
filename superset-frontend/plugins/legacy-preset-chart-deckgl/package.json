@@ -35,7 +35,7 @@
     "bootstrap-slider": "^11.0.2",
     "d3-array": "^1.2.4",
     "d3-color": "^1.4.1",
-    "d3-scale": "^3.0.0",
+    "d3-scale": "^4.0.2",
     "lodash": "^4.17.21",
     "mousetrap": "^1.6.5",
     "prop-types": "^15.8.1",
