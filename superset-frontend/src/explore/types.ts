@@ -55,7 +55,7 @@ export interface ChartState {
   latestQueryFormData: Partial<QueryFormData>;
   sliceFormData: QueryFormData | null;
   queryController: AbortController | null;
-  queriesResponse: QueryData | null;
+  queriesResponse: QueryData[] | null;
   triggerQuery: boolean;
 }
 
