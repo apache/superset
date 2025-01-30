@@ -126,10 +126,14 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
 
 const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
   const dispatch = useDispatch();
-  const [databaseName, backend] = useSelector<SqlLabRootState, string[]>(
+  const [databaseName, backend, disableDataPreview] = useSelector<
+    SqlLabRootState,
+    string[]
+  >(
     ({ sqlLab: { databases } }) => [
       databases[dbId]?.database_name,
       databases[dbId]?.backend,
+      databases[dbId]?.disable_data_preview,
     ],
     shallowEqual,
   );
@@ -361,7 +365,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
                       orderedColumnKeys={columns}
                     />
                   </Tabs.TabPane>
-                  {tableData?.selectStar && (
+                  {tableData?.selectStar && !disableDataPreview && (
                     <Tabs.TabPane tab={t('Data preview')} key="sample">
                       {previewQueryId && (
                         <ResultSet
