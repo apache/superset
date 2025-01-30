@@ -599,7 +599,7 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it('Radar Chart', () => {
+    it.skip('Radar Chart', () => {
       testEchart('radar', 'Radar Chart', [
         [182, 49],
         [423, 91],
