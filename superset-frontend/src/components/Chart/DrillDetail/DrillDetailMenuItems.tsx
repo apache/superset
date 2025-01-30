@@ -63,11 +63,12 @@ const DISABLED_REASONS = {
 const DisabledMenuItem = ({
   children,
   menuKey,
+  ...rest
 }: {
   children: ReactNode;
   menuKey: string;
 }) => (
-  <Menu.Item disabled key={menuKey}>
+  <Menu.Item disabled key={menuKey} {...rest}>
     <div
       css={css`
         white-space: normal;
@@ -200,17 +201,17 @@ const DrillDetailMenuItems = ({
   );
 
   const drillToDetailByMenuItem = drillByDisabled ? (
-    <DisabledMenuItem key="drill-to-detail-by-disabled">
+    <DisabledMenuItem menuKey="drill-to-detail-by-disabled" {...props}>
       {DRILL_TO_DETAIL_BY}
       <MenuItemTooltip title={drillByDisabled} />
     </DisabledMenuItem>
   ) : (
     <Menu.SubMenu
-      {...props}
       popupOffset={[0, submenuYOffset]}
       popupClassName="chart-context-submenu"
       title={DRILL_TO_DETAIL_BY}
       key={key}
+      {...props}
     >
       <div data-test="drill-to-detail-by-submenu">
         {filters.map((filter, i) => (
