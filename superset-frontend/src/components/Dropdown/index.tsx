@@ -103,11 +103,7 @@ export const MenuDotsDropdown = ({
   iconOrientation = IconOrientation.Vertical,
   ...rest
 }: MenuDotsDropdownProps) => (
-  <AntdDropdown
-    dropdownRender={() => overlay}
-    getPopupContainer={() => document.body}
-    {...rest}
-  >
+  <AntdDropdown dropdownRender={() => overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
@@ -128,23 +124,13 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   });
 
   return (
-    <AntdDropdown
-      overlayStyle={props.overlayStyle}
-      getPopupContainer={() => document.body}
-      {...rest}
-    >
+    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
       {childrenWithProps}
     </AntdDropdown>
   );
 };
 
-const DropdownInParent = ({ children, ...rest }: AntdDropdownProps) => (
-  <AntdDropdown getPopupContainer={() => document.body} {...rest}>
-    {children}
-  </AntdDropdown>
-);
-
-export const Dropdown = Object.assign(DropdownInParent, {
+export const Dropdown = Object.assign(AntdDropdown, {
   Button: AntdDropdown.Button,
 });
 export type DropdownProps = AntdDropdownProps;

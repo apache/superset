@@ -250,7 +250,6 @@ const FilterBarSettings = () => {
           selectedKeys: [selectedFilterBarOrientation],
         }}
         trigger={['click']}
-        getPopupContainer={() => document.body}
       >
         <Button type="link">
           <Icons.Gear
