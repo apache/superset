@@ -43,7 +43,6 @@ export const GlobalStyles = () => (
       // TODO: Remove z-indexes when Ant Design is fully upgraded to v5
       // Prefer vanilla Ant Design z-indexes that should work out of the box
       .ant-popover,
-      .antd5-dropdown,
       .ant-select-dropdown,
       .antd5-modal-wrap,
       .antd5-modal-mask {
@@ -102,13 +101,6 @@ export const GlobalStyles = () => (
           flex: 1;
           margin-right: 0;
         }
-      }
-      .antd5-dropdown-menu-sub .antd5-menu.antd5-menu-vertical {
-        box-shadow: none;
-      }
-      .antd5-dropdown-menu-submenu-title,
-      .antd5-dropdown-menu-item {
-        line-height: 1.5em !important;
       }
     `}
   />
