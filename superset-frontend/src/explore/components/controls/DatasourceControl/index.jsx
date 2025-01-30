@@ -84,10 +84,6 @@ const Styles = styled.div`
   }
   .antd5-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
-    box-shadow: none;
-    &:active {
-      box-shadow: none;
-    }
   }
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
