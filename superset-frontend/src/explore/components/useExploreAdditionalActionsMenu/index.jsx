@@ -108,13 +108,6 @@ export const MenuTrigger = styled(Button)`
   `}
 `;
 
-const iconReset = css`
-  .antd5-dropdown-menu-item > & > .anticon:first-child {
-    margin-right: 0;
-    vertical-align: 0;
-  }
-`;
-
 export const useExploreAdditionalActionsMenu = (
   latestQueryFormData,
   canDownloadCSV,
@@ -330,14 +323,14 @@ export const useExploreAdditionalActionsMenu = (
             <>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV}
-                icon={<Icons.FileOutlined css={iconReset} />}
+                icon={<Icons.FileOutlined />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to original .CSV')}
               </Menu.Item>
               <Menu.Item
                 key={MENU_KEYS.EXPORT_TO_CSV_PIVOTED}
-                icon={<Icons.FileOutlined css={iconReset} />}
+                icon={<Icons.FileOutlined />}
                 disabled={!canDownloadCSV}
               >
                 {t('Export to pivoted .CSV')}
@@ -346,7 +339,7 @@ export const useExploreAdditionalActionsMenu = (
           ) : (
             <Menu.Item
               key={MENU_KEYS.EXPORT_TO_CSV}
-              icon={<Icons.FileOutlined css={iconReset} />}
+              icon={<Icons.FileOutlined />}
               disabled={!canDownloadCSV}
             >
               {t('Export to .CSV')}
@@ -354,20 +347,20 @@ export const useExploreAdditionalActionsMenu = (
           )}
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_JSON}
-            icon={<Icons.FileOutlined css={iconReset} />}
+            icon={<Icons.FileOutlined />}
             disabled={!canDownloadCSV}
           >
             {t('Export to .JSON')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
-            icon={<Icons.FileImageOutlined css={iconReset} />}
+            icon={<Icons.FileImageOutlined />}
           >
             {t('Download as image')}
           </Menu.Item>
           <Menu.Item
             key={MENU_KEYS.EXPORT_TO_XLSX}
-            icon={<Icons.FileOutlined css={iconReset} />}
+            icon={<Icons.FileOutlined />}
             disabled={!canDownloadCSV}
           >
             {t('Export to Excel')}
