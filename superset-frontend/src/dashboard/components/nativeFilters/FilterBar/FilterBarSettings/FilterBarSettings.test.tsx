@@ -250,9 +250,8 @@ test('On failed request, restore previous selection', async () => {
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
-  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
-
   await waitFor(() => {
+    expect(screen.getByText('Vertical (Left)')).toBeInTheDocument();
     const menuitems = screen.getAllByRole('menuitem');
     expect(menuitems.length).toBeGreaterThanOrEqual(6);
   });
