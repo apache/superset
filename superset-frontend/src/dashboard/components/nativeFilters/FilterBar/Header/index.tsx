@@ -50,13 +50,6 @@ const TitleArea = styled.div`
   `}
 `;
 
-const ButtonsContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${({ theme }) => theme.gridUnit * 2}px;
-`;
-
 const HeaderButton = styled(Button)`
   padding: 0;
 `;
@@ -66,10 +59,6 @@ const Wrapper = styled.div`
     padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 2}px ${
       theme.gridUnit
     }px;
-    .antd5-dropdown-trigger span {
-      margin-left: auto;
-      padding-right: ${theme.gridUnit * 2}px;
-    }
   `}
 `;
 
@@ -84,7 +73,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
     <Wrapper>
       <TitleArea>
         <span>{t('Filters')}</span>
-        <ButtonsContainer>
+        <>
           <FilterBarSettings />
           <HeaderButton
             {...getFilterBarTestId('collapse-button')}
@@ -94,7 +83,7 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           >
             <Icons.Expand iconColor={theme.colors.grayscale.base} />
           </HeaderButton>
-        </ButtonsContainer>
+        </>
       </TitleArea>
     </Wrapper>
   );
