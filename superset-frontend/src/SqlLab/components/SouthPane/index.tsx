@@ -111,19 +111,28 @@ const SouthPane = ({
       ),
     [queryEditorId, tables],
   );
+  const pinnedTableKeys = useMemo(
+    () =>
+      Object.fromEntries(
+        pinnedTables.map(({ id, dbId, catalog, schema, name }) => [
+          id,
+          [dbId, catalog, schema, name].join(':'),
+        ]),
+      ),
+    [pinnedTables],
+  );
   const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
   };
   const removeTable = useCallback(
-    (tableId, action) => {
+    (key, action) => {
       if (action === 'remove') {
-        const table = {
-          id: tableId,
-          initialized: true,
-          queryEditorId,
-        };
+        const table = pinnedTables.find(
+          ({ dbId, catalog, schema, name }) =>
+            [dbId, catalog, schema, name].join(':') === key,
+        );
         dispatch(removeTables([table]));
       }
     },
@@ -143,7 +152,7 @@ const SouthPane = ({
     >
       <Tabs
         type="editable-card"
-        activeKey={activeSouthPaneTab}
+        activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"
         onChange={switchTab}
         id={nanoid(11)}
@@ -181,7 +190,7 @@ const SouthPane = ({
                 {`${schema}.${decodeURIComponent(name)}`}
               </>
             }
-            key={id}
+            key={pinnedTableKeys[id]}
           >
             <TablePreview
               dbId={dbId}
