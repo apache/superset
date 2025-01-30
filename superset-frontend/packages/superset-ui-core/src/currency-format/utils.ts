@@ -29,9 +29,9 @@ import {
 import localeCurrency from 'locale-currency';
 
 const getCurrencyForLocale = (locale: string): string => {
-  const currency = localeCurrency.getCurrency(locale);
-  return currency || 'USD'; // default value
+  return localeCurrency.getCurrency(locale) || 'USD'; // fallback to USD if not found
 };
+
 export const buildCustomFormatters = (
   metrics: QueryFormMetric | QueryFormMetric[] | undefined,
   savedCurrencyFormats: Record<string, Currency>,
@@ -84,9 +84,14 @@ export const getValueFormatter = (
   key?: string,
 ): ValueFormatter => {
   const urlParams = new URLSearchParams(window.location.search);
-  // get urlParam locale
   const urlLocale = urlParams.get('locale');
-  if (!urlLocale) {
+  const currencySymbol = urlParams.get('currencySymbol');
+
+  // ✅ Vérifier si on est dans un embedding
+  const isEmbedding = !!(urlLocale || currencySymbol);
+
+  // ✅ Si pas d'embedding et Superset standard, garder le comportement d'origine
+  if (!isEmbedding) {
     if (currencyFormat?.symbol) {
       return new CurrencyFormatter({ currency: currencyFormat, d3Format });
     }
@@ -94,20 +99,29 @@ export const getValueFormatter = (
   }
 
   try {
-    const currency = getCurrencyForLocale(urlLocale);
-    const formatter = new Intl.NumberFormat(urlLocale, {
+    const currencyCode = getCurrencyForLocale(urlLocale || 'en-US');
+    const formatter = new Intl.NumberFormat(urlLocale || 'en-US', {
       style: 'currency',
-      currency,
+      currency: currencyCode,
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+
     return new NumberFormatter({
-      id: `currency-${currency}`,
-      formatFunc: (value: number) => formatter.format(value),
-      label: `Currency (${currency})`,
-      description: `Formats numbers as currency in ${currency}`,
+      id: `currency-${currencyCode}`,
+      formatFunc: (value: number) => {
+        let formattedValue = formatter.format(value);
+        if (currencySymbol) {
+          formattedValue = formattedValue.replace(/\p{Sc}|\b[A-Z]{3}\b/gu, currencySymbol);
+        }
+        return formattedValue;
+      },
+      label: `Currency (${currencySymbol || currencyCode})`,
+      description: `Formats numbers as currency in ${currencySymbol || currencyCode}`,
     });
   } catch (error) {
+    console.error('Error creating number formatter:', error);
     return getNumberFormatter(d3Format);
   }
 };
+

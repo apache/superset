@@ -115,6 +115,10 @@ export const URL_PARAMS = {
     name: 'locale',
     type: 'string',
   },
+  currencySymbol: {
+    name: 'currencySymbol',
+    type: 'string',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
