@@ -113,6 +113,9 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         $ref: '#/components/schemas/EmbeddedDashboardResponseSchema'
+                text/html:
+                    schema:
+                        type: string
             401:
               $ref: '#/components/responses/401'
             404:
