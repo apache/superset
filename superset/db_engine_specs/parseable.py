@@ -1,3 +1,5 @@
+# In superset/db_engine_specs/parseable.py
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -16,6 +18,7 @@ class ParseableEngineSpec(BaseEngineSpec):
     engine = "parseable"
     engine_name = "Parseable"
 
+    # Use same expressions as SQLAlchemy dialect for consistency
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "date_trunc('second', {col})",
@@ -47,8 +50,19 @@ class ParseableEngineSpec(BaseEngineSpec):
         return None
 
     @classmethod
-    
     def alter_new_orm_column(cls, orm_col: TableColumn) -> None:
+        """Handle p_timestamp column specifically for Parseable."""
         if orm_col.column_name == "p_timestamp":
             orm_col.python_date_format = "epoch_ms"
             orm_col.is_dttm = True
+
+    @classmethod
+    def get_extra_params(cls, database: "Database") -> dict[str, Any]:
+        """Additional parameters for Parseable connections."""
+        return {
+            "engine_params": {
+                "connect_args": {
+                    "timeout": 300,  # 5 minutes timeout
+                }
+            }
+        }
