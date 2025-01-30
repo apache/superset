@@ -79,7 +79,9 @@ const QueryLimitSelect = ({
     >
       <Button size="small" showMarginRight={false} type="link">
         <span>{t('LIMIT')}:</span>
-        <span>{convertToNumWithSpaces(queryLimit)}</span>
+        <span className="limitDropdown">
+          {convertToNumWithSpaces(queryLimit)}
+        </span>
         <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
       </Button>
     </Dropdown>
