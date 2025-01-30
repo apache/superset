@@ -27,6 +27,7 @@ import {
   initialState,
   defaultQueryEditor,
   extraQueryEditor1,
+  extraQueryEditor2,
 } from 'src/SqlLab/fixtures';
 import type { RootState } from 'src/views/store';
 import type { Store } from 'redux';
@@ -206,13 +207,13 @@ test('should toggle the table when the header is clicked', async () => {
 });
 
 test('When changing database the schema and table list must be updated', async () => {
-  const { rerender } = await renderAndWait(mockedProps, undefined, {
+  const reduxState = {
     ...initialState,
     sqlLab: {
       ...initialState.sqlLab,
       unsavedQueryEditor: {
         id: defaultQueryEditor.id,
-        schema: 'new_schema',
+        schema: 'db1_schema',
       },
       queryEditors: [
         defaultQueryEditor,
@@ -223,16 +224,22 @@ test('When changing database the schema and table list must be updated', async (
         },
       ],
       tables: [
-        table,
+        {
+          ...table,
+          dbId: defaultQueryEditor.dbId,
+          schema: 'db1_schema',
+        },
         {
           ...table,
           dbId: 2,
+          schema: 'new_schema',
           name: 'new_table',
           queryEditorId: extraQueryEditor1.id,
         },
       ],
     },
-  });
+  };
+  const { rerender } = await renderAndWait(mockedProps, undefined, reduxState);
 
   expect(screen.getAllByText(/main/i)[0]).toBeInTheDocument();
   expect(screen.getAllByText(/ab_user/i)[0]).toBeInTheDocument();
@@ -250,30 +257,60 @@ test('When changing database the schema and table list must be updated', async (
   );
   const updatedDbSelector = await screen.findAllByText(/new_db/i);
   expect(updatedDbSelector[0]).toBeInTheDocument();
-  const updatedTableSelector = await screen.findAllByText(/new_table/i);
-  expect(updatedTableSelector[0]).toBeInTheDocument();
 
   const select = screen.getByRole('combobox', {
     name: 'Select schema or type to search schemas',
   });
   userEvent.click(select);
+
   expect(
     await screen.findByRole('option', { name: 'main' }),
   ).toBeInTheDocument();
   expect(
     await screen.findByRole('option', { name: 'new_schema' }),
   ).toBeInTheDocument();
-  rerender(
-    <SqlEditorLeftBar
-      {...mockedProps}
-      database={{
+
+  userEvent.click(screen.getAllByText('new_schema')[1]);
+
+  const updatedTableSelector = await screen.findAllByText(/new_table/i);
+  expect(updatedTableSelector[0]).toBeInTheDocument();
+});
+
+test('display no compatible schema found when schema api throws errors', async () => {
+  const reduxState = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      queryEditors: [
+        {
+          ...extraQueryEditor2,
+          dbId: 3,
+          schema: undefined,
+        },
+      ],
+    },
+  };
+  await renderAndWait(
+    {
+      ...mockedProps,
+      queryEditorId: extraQueryEditor2.id,
+      database: {
         id: 3,
         database_name: 'unauth_db',
         backend: 'minervasql',
-      }}
-      queryEditorId={extraQueryEditor1.id}
-    />,
+      },
+    },
+    undefined,
+    reduxState,
   );
+  await waitFor(() =>
+    expect(fetchMock.calls('glob:*/api/v1/database/3/schemas/?*')).toHaveLength(
+      1,
+    ),
+  );
+  const select = screen.getByRole('combobox', {
+    name: 'Select schema or type to search schemas',
+  });
   userEvent.click(select);
   expect(
     await screen.findByText('No compatible schema found'),
