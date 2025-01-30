@@ -45,8 +45,8 @@ export function CurrentCalendarFrame({ onChange, value }: FrameComponentProps) {
         spaceConfig={{
           direction: 'vertical',
           size: 15,
-          align: 'center',
-          wrap: false,
+          align: 'start',
+          wrap: true,
         }}
         size="large"
         onChange={(e: any) => {

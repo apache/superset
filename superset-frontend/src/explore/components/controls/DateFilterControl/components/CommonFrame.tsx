@@ -45,7 +45,7 @@ export function CommonFrame(props: FrameComponentProps) {
         spaceConfig={{
           direction: 'vertical',
           size: 15,
-          align: 'center',
+          align: 'start',
           wrap: false,
         }}
         size="large"

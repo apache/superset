@@ -259,7 +259,7 @@ function ReportModal({
           spaceConfig={{
             direction: 'vertical',
             size: 'middle',
-            align: 'center',
+            align: 'start',
             wrap: false,
           }}
           onChange={(event: RadioChangeEvent) => {

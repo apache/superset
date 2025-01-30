@@ -143,8 +143,8 @@ const FormatPicker = ({
   <Radio.GroupWrapper
     spaceConfig={{
       direction: 'vertical',
+      align: 'start',
       size: 15,
-      align: 'center',
       wrap: false,
     }}
     size="large"

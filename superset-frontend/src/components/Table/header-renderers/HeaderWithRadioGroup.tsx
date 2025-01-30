@@ -60,7 +60,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
                 direction: 'vertical',
                 size: 4,
                 wrap: false,
-                align: 'center',
+                align: 'start',
               }}
               value={value}
               onChange={e => {

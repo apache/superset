@@ -49,7 +49,7 @@ export function CalendarFrame({ onChange, value }: FrameComponentProps) {
         spaceConfig={{
           direction: 'vertical',
           size: 15,
-          align: 'center',
+          align: 'start',
           wrap: false,
         }}
         size="large"
