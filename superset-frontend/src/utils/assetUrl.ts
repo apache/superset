@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import DOMPurify from 'dompurify';
-import getBootstrapData from 'src/utils/getBootstrapData';
-
-// eslint-disable-next-line import/no-mutable-exports
-const BOOTSTRAP_DATA = getBootstrapData();
+import { staticAssetsPrefix } from 'src/utils/getBootstrapData';
 
 /**
  * Takes a string path to a static asset and prefixes it with the defined static asset prefix
@@ -28,5 +24,5 @@ const BOOTSTRAP_DATA = getBootstrapData();
  * @param path A string path to a resource
  */
 export function assetUrl(path: string) {
-  return `${DOMPurify.sanitize(BOOTSTRAP_DATA.common.static_assets_prefix)}${path.startsWith('/') ? path : `/${path}`}`;
+  return `${staticAssetsPrefix()}${path.startsWith('/') ? path : `/${path}`}`;
 }
