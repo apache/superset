@@ -24,7 +24,10 @@ import {
   cloneElement,
 } from 'react';
 
-import { Dropdown as AntdDropdown, DropDownProps } from 'antd-v5';
+import {
+  Dropdown as AntdDropdown,
+  DropdownProps as AntdDropdownProps,
+} from 'antd-v5';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -78,7 +81,7 @@ export enum IconOrientation {
   Horizontal = 'horizontal',
 }
 
-export interface MenuDotsDropdownProps extends DropDownProps {
+export interface MenuDotsDropdownProps extends AntdDropdownProps {
   overlay: ReactElement;
   iconOrientation?: IconOrientation;
 }
@@ -100,14 +103,18 @@ export const MenuDotsDropdown = ({
   iconOrientation = IconOrientation.Vertical,
   ...rest
 }: MenuDotsDropdownProps) => (
-  <AntdDropdown dropdownRender={() => overlay} {...rest}>
+  <AntdDropdown
+    dropdownRender={() => overlay}
+    getPopupContainer={trigger => trigger.parentElement || document.body}
+    {...rest}
+  >
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );
 
-export interface NoAnimationDropdownProps extends DropDownProps {
+export interface NoAnimationDropdownProps extends AntdDropdownProps {
   children: ReactNode;
   onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
@@ -121,13 +128,26 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   });
 
   return (
-    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
+    <AntdDropdown
+      overlayStyle={props.overlayStyle}
+      getPopupContainer={trigger => trigger.parentElement || document.body}
+      {...rest}
+    >
       {childrenWithProps}
     </AntdDropdown>
   );
 };
 
-export const Dropdown = Object.assign(AntdDropdown, {
+const DropdownInParent = ({ children, ...rest }: AntdDropdownProps) => (
+  <AntdDropdown
+    getPopupContainer={trigger => trigger.parentElement || document.body}
+    {...rest}
+  >
+    {children}
+  </AntdDropdown>
+);
+
+export const Dropdown = Object.assign(DropdownInParent, {
   Button: AntdDropdown.Button,
 });
-export type DropdownProps = DropDownProps;
+export type DropdownProps = AntdDropdownProps;

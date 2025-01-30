@@ -55,6 +55,7 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
+import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
@@ -535,19 +536,14 @@ const SliceHeaderControls = (
         autoFocus
         forceRender
       >
-        <span
-          css={() => css`
-            display: flex;
-            align-items: center;
-          `}
+        <Button
+          type="link"
           id={`slice_${slice.slice_id}-controls`}
-          role="button"
           aria-label="More Options"
           aria-haspopup="true"
-          tabIndex={0}
         >
           <VerticalDotsTrigger />
-        </span>
+        </Button>
       </NoAnimationDropdown>
       <DrillDetailModal
         formData={props.formData}
