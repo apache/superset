@@ -32,10 +32,18 @@ export default {
 };
 
 const RadioArgsType = {
-  onChange: { action: 'changed' },
-  checked: { control: 'boolean' },
-  disabled: { control: 'boolean' },
-  defaultChecked: { control: 'boolean' },
+  value: {
+    control: 'text',
+    description: 'The value of the radio button.',
+  },
+  disabled: {
+    control: 'boolean',
+    description: 'Whether the radio button is disabled or not.',
+  },
+  checked: {
+    control: 'boolean',
+    description: 'The checked state of the radio button.',
+  },
 };
 
 const radioGroupWrapperArgsType = {
@@ -64,14 +72,20 @@ const radioGroupWrapperArgsType = {
     description: 'Alignment of the Space layout',
     if: { arg: 'enableSpaceConfig', truthy: true },
   },
+  'spaceConfig.wrap': {
+    control: 'boolean',
+    description:
+      'Controls whether the items inside the Space component should wrap to the next line when space is insufficient',
+    if: { arg: 'enableSpaceConfig', truthy: true },
+  },
 };
 
 export const RadioStory = {
   args: {
-    children: 'Radio',
     value: 'radio1',
     disabled: false,
     checked: false,
+    children: 'Radio',
   },
   argTypes: RadioArgsType,
 };
@@ -86,27 +100,16 @@ RadioButtonStory.args = {
 };
 RadioButtonStory.argTypes = RadioArgsType;
 
-export const RadioGroupWithCustomRadioStory = (
-  args: RadioGroupWrapperProps,
-) => (
-  <Radio.GroupWrapper {...args}>
-    <Radio value="option1">Custom Option 1</Radio>
-    <Radio value="option2">Custom Option 2</Radio>
-    <Radio value="option3">Custom Option 3</Radio>
-  </Radio.GroupWrapper>
-);
-RadioGroupWithCustomRadioStory.args = {
-  spaceConfig: { direction: 'vertical', size: 'middle', align: 'center' },
-  size: 'middle',
-  disabled: false,
-};
-RadioGroupWithCustomRadioStory.argTypes = radioGroupWrapperArgsType;
-
 export const RadioGroupWithOptionsStory = (args: RadioGroupWrapperProps) => (
   <Radio.GroupWrapper {...args} />
 );
 RadioGroupWithOptionsStory.args = {
-  spaceConfig: { direction: 'vertical', size: 'middle', align: 'center' },
+  spaceConfig: {
+    direction: 'vertical',
+    size: 'middle',
+    align: 'center',
+    wrap: false,
+  },
   size: 'middle',
   options: [
     {

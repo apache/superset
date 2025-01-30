@@ -239,17 +239,14 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row align="middle">
               <Col>
                 <Radio.GroupWrapper
+                  options={[
+                    { value: 'now', label: t('Now') },
+                    { value: 'specific', label: t('Date/Time') },
+                  ]}
                   onChange={onAnchorMode}
                   defaultValue="now"
                   value={anchorMode}
-                >
-                  <Radio key="now" value="now">
-                    {t('NOW')}
-                  </Radio>
-                  <Radio key="specific" value="specific">
-                    {t('Date/Time')}
-                  </Radio>
-                </Radio.GroupWrapper>
+                />
               </Col>
               {anchorMode !== 'now' && (
                 <Col>

@@ -141,14 +141,20 @@ const FormatPicker = ({
   value: FormatPickerValue;
 }) => (
   <Radio.GroupWrapper
-    spaceConfig={{ direction: 'vertical', size: 15 }}
+    spaceConfig={{
+      direction: 'vertical',
+      size: 15,
+      align: 'center',
+      wrap: false,
+    }}
     size="large"
     value={value}
     onChange={onChange}
-  >
-    <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
-    <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
-  </Radio.GroupWrapper>
+    options={[
+      { label: t('Formatted date'), value: FormatPickerValue.Formatted },
+      { label: t('Original value'), value: FormatPickerValue.Original },
+    ]}
+  />
 );
 
 const FormatPickerContainer = styled.div`

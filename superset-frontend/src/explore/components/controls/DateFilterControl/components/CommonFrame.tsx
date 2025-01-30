@@ -42,7 +42,12 @@ export function CommonFrame(props: FrameComponentProps) {
         {t('Configure Time Range: Last...')}
       </div>
       <Radio.GroupWrapper
-        spaceConfig={{ direction: 'vertical', size: 15 }}
+        spaceConfig={{
+          direction: 'vertical',
+          size: 15,
+          align: 'center',
+          wrap: false,
+        }}
         size="large"
         value={commonRange}
         onChange={(e: any) => props.onChange(e.target.value)}

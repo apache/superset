@@ -256,24 +256,31 @@ function ReportModal({
       </StyledMessageContentTitle>
       <div className="inline-container">
         <Radio.GroupWrapper
-          spaceConfig={{ direction: 'vertical', size: 'middle' }}
+          spaceConfig={{
+            direction: 'vertical',
+            size: 'middle',
+            align: 'center',
+            wrap: false,
+          }}
           onChange={(event: RadioChangeEvent) => {
             setCurrentReport({ report_format: event.target.value });
           }}
           value={currentReport.report_format || defaultNotificationFormat}
-        >
-          {isTextBasedChart && (
-            <Radio value={NotificationFormats.Text}>
-              {t('Text embedded in email')}
-            </Radio>
-          )}
-          <Radio value={NotificationFormats.PNG}>
-            {t('Image (PNG) embedded in email')}
-          </Radio>
-          <Radio value={NotificationFormats.CSV}>
-            {t('Formatted CSV attached in email')}
-          </Radio>
-        </Radio.GroupWrapper>
+          options={[
+            {
+              label: t('Text embedded in email'),
+              value: NotificationFormats.Text,
+            },
+            {
+              label: t('Image (PNG) embedded in email'),
+              value: NotificationFormats.PNG,
+            },
+            {
+              label: t('Formatted CSV attached in email'),
+              value: NotificationFormats.CSV,
+            },
+          ]}
+        />
       </div>
     </>
   );

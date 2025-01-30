@@ -19,17 +19,14 @@
 
 import { useMemo, useState } from 'react';
 import { css, SupersetTheme, t } from '@superset-ui/core';
-import { Radio, CheckboxOptionType } from 'src/components/Radio';
+import { Radio } from 'src/components/Radio';
 import { DrillByType } from '../types';
 
 export const useDisplayModeToggle = () => {
   const [drillByDisplayMode, setDrillByDisplayMode] = useState<DrillByType>(
     DrillByType.Chart,
   );
-  const customButtons: CheckboxOptionType[] = [
-    { label: t('Chart'), value: DrillByType.Chart },
-    { label: t('Table'), value: DrillByType.Table },
-  ];
+
   const displayModeToggle = useMemo(
     () => (
       <div
@@ -43,14 +40,16 @@ export const useDisplayModeToggle = () => {
             setDrillByDisplayMode(value);
           }}
           defaultValue={DrillByType.Chart}
-          options={customButtons}
-          value={drillByDisplayMode}
+          options={[
+            { label: t('Chart'), value: DrillByType.Chart },
+            { label: t('Table'), value: DrillByType.Table },
+          ]}
           optionType="button"
           buttonStyle="outline"
         />
       </div>
     ),
-    [drillByDisplayMode],
+    [],
   );
   return { displayModeToggle, drillByDisplayMode };
 };

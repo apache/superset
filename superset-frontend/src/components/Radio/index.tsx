@@ -32,36 +32,25 @@ export type RadioGroupWrapperProps = RadioGroupProps & {
     align?: SpaceProps['align'];
     wrap?: SpaceProps['wrap'];
   };
-  options?: CheckboxOptionType[];
-  children?: React.ReactNode;
+  options: CheckboxOptionType[];
 };
 
 const RadioGroup = ({
-  spaceConfig = {
-    direction: 'horizontal',
-    size: 'middle',
-    align: 'center',
-    wrap: false,
-  },
+  spaceConfig,
   options,
-  children,
   ...props
 }: RadioGroupWrapperProps) => {
-  const content = options
-    ? options.map((option: CheckboxOptionType) => (
-        <Radio key={option.value} value={option.value}>
-          {option.label}
-        </Radio>
-      ))
-    : children;
-
+  const content = options.map((option: CheckboxOptionType) => (
+    <Radio key={option.value} value={option.value}>
+      {option.label}
+    </Radio>
+  ));
   return (
     <Radio.Group {...props}>
       {spaceConfig ? <Space {...spaceConfig}>{content}</Space> : content}
     </Radio.Group>
   );
 };
-
 export type {
   RadioChangeEvent,
   RadioGroupProps,
