@@ -66,5 +66,4 @@ export {
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
-export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';
