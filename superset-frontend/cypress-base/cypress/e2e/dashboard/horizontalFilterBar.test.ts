@@ -176,7 +176,7 @@ describe('Horizontal FilterBar', () => {
     validateFilterNameOnDashboard(testItems.topTenChart.filterColumn);
   });
 
-  it.skip('should spot changes in "more filters" and apply their values', () => {
+  it('should spot changes in "more filters" and apply their values', () => {
     cy.intercept(`/api/v1/chart/data?form_data=**`).as('chart');
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
@@ -204,7 +204,7 @@ describe('Horizontal FilterBar', () => {
     );
   });
 
-  it.skip('should focus filter and open "more filters" programmatically', () => {
+  it('should focus filter and open "more filters" programmatically', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
       { name: 'test_2', column: 'country_code', datasetId: 2 },
@@ -231,7 +231,7 @@ describe('Horizontal FilterBar', () => {
     cy.get('.ant-select-focused').should('be.visible');
   });
 
-  it.skip('should show tag count and one plain tag on focus and only count on blur in select ', () => {
+  it('should show tag count and one plain tag on focus and only count on blur in select ', () => {
     prepareDashboardFilters([
       { name: 'test_1', column: 'country_name', datasetId: 2 },
     ]);
