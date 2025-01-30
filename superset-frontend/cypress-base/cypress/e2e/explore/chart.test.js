@@ -99,7 +99,7 @@ describe('Cross-referenced dashboards', () => {
     cy.wait('@filtering');
   });
 
-  it.only('should show the cross-referenced dashboards', () => {
+  it('should show the cross-referenced dashboards', () => {
     visitSampleChartFromList('1 - Sample chart');
 
     cy.getBySel('metadata-bar').contains('Not added to any dashboard');

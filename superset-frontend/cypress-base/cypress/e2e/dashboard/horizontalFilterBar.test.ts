@@ -74,7 +74,7 @@ function setFilterBarOrientation(orientation: 'vertical' | 'horizontal') {
 }
 
 describe('Horizontal FilterBar', () => {
-  it.only('should go from vertical to horizontal and the opposite', () => {
+  it('should go from vertical to horizontal and the opposite', () => {
     visitDashboard();
     openVerticalFilterBar();
     setFilterBarOrientation('horizontal');
