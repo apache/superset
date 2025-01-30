@@ -50,7 +50,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
     class_permission_name = "EmbeddedDashboard"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
-    resource_name = "embedded_dashboard"
+    resource_name = "embedded"
     allow_browser_login = True
 
     openapi_spec_tag = "Embedded Dashboard"
@@ -71,13 +71,38 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
         """Get the dashboard's embedded configuration.
         ---
         get:
-          summary: Get the dashboard's embedded configuration
+          summary: Get the dashboard's embedded configuration this endpoint is also used to embed dashboards.
           parameters:
           - in: path
             schema:
               type: string
             name: uuid
             description: The embedded configuration uuid
+          - in: query
+            schema:
+              type: number
+            name: uiConfig
+            description: The ui config of embedded dashboard (optional).
+          - in: query
+            schema:
+              type: boolean
+            name: show_filters
+            description: Show filters (optional).
+          - in: query
+            schema:
+              type: boolean
+            name: expand_filters
+            description: Expand filters (optional).
+          - in: query
+            schema:
+              type: string
+            name: native_filters_key
+            description: Native filters key to apply filters. (optional).
+          - in: query
+            schema:
+              type: string
+            name: permalink_key
+            description: Permalink key to apply filters. (optional).
           responses:
             200:
               description: Result contains the embedded dashboard configuration
