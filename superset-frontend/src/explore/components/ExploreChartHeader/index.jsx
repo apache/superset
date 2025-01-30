@@ -229,8 +229,8 @@ export const ExploreChartHeader = ({
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
-          visible: isDropdownVisible,
-          onVisibleChange: setIsDropdownVisible,
+          open: isDropdownVisible,
+          onOpenChange: setIsDropdownVisible,
         }}
       />
       {isPropertiesModalOpen && (

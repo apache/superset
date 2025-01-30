@@ -40,6 +40,7 @@ import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
+import { Space } from 'src/components/Space';
 
 type SelectedKey = FilterBarOrientation | string | number;
 
@@ -132,7 +133,7 @@ const FilterBarSettings = () => {
     [dispatch, filterBarOrientation],
   );
 
-  const handleSelect = useCallback(
+  const handleClick = useCallback(
     (
       selection: Parameters<
         Required<Pick<MenuProps, 'onSelect'>>['onSelect']
@@ -205,17 +206,30 @@ const FilterBarSettings = () => {
         children: [
           {
             key: FilterBarOrientation.Vertical,
-            label: t('Vertical (Left)'),
+            label: (
+              <Space>
+                {t('Vertical (Left)')}
+                {selectedFilterBarOrientation ===
+                  FilterBarOrientation.Vertical && <Icons.Check />}
+              </Space>
+            ),
           },
           {
             key: FilterBarOrientation.Horizontal,
-            label: t('Horizontal (Top)'),
+            label: (
+              <Space>
+                {t('Horizontal (Top)')}
+                {selectedFilterBarOrientation ===
+                  FilterBarOrientation.Horizontal && <Icons.Check />}
+              </Space>
+            ),
           },
         ],
       });
     }
     return items;
   }, [
+    selectedFilterBarOrientation,
     canEdit,
     canSetHorizontalFilterBar,
     crossFiltersMenuItem,
@@ -231,7 +245,7 @@ const FilterBarSettings = () => {
     <>
       <Dropdown
         menu={{
-          onClick: handleSelect,
+          onClick: handleClick,
           items: menuItems,
           selectedKeys: [selectedFilterBarOrientation],
         }}

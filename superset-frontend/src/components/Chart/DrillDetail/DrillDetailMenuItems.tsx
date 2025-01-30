@@ -60,8 +60,14 @@ const DISABLED_REASONS = {
   ),
 };
 
-const DisabledMenuItem = ({ children, ...props }: { children: ReactNode }) => (
-  <Menu.Item disabled {...props}>
+const DisabledMenuItem = ({
+  children,
+  menuKey,
+}: {
+  children: ReactNode;
+  menuKey: string;
+}) => (
+  <Menu.Item disabled key={menuKey}>
     <div
       css={css`
         white-space: normal;
@@ -183,7 +189,7 @@ const DrillDetailMenuItems = ({
   }
 
   const drillToDetailMenuItem = drillDisabled ? (
-    <DisabledMenuItem key="drill-to-detail-disabled">
+    <DisabledMenuItem menuKey="drill-to-detail-disabled" {...props}>
       {DRILL_TO_DETAIL}
       <MenuItemTooltip title={drillDisabled} />
     </DisabledMenuItem>

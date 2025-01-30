@@ -253,7 +253,7 @@ export const DrillByMenuItems = ({
 
   if (!handlesDimensionContextMenu || !hasDrillBy) {
     return (
-      <Menu.Item key="drill-by-disabled" disabled>
+      <Menu.Item key="drill-by-disabled" disabled {...rest}>
         <div>
           {t('Drill by')}
           <MenuItemTooltip title={tooltip} />
@@ -344,7 +344,7 @@ export const DrillByMenuItems = ({
               {Row}
             </List>
           ) : (
-            <Menu.Item disabled key="no-drill-by-columns-found">
+            <Menu.Item disabled key="no-drill-by-columns-found" {...rest}>
               {t('No columns found')}
             </Menu.Item>
           )}
