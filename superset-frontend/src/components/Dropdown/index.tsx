@@ -105,7 +105,7 @@ export const MenuDotsDropdown = ({
 }: MenuDotsDropdownProps) => (
   <AntdDropdown
     dropdownRender={() => overlay}
-    getPopupContainer={trigger => trigger.parentElement || document.body}
+    getPopupContainer={() => document.body}
     {...rest}
   >
     <MenuDotsWrapper data-test="dropdown-trigger">
@@ -130,7 +130,7 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   return (
     <AntdDropdown
       overlayStyle={props.overlayStyle}
-      getPopupContainer={trigger => trigger.parentElement || document.body}
+      getPopupContainer={() => document.body}
       {...rest}
     >
       {childrenWithProps}
@@ -139,10 +139,7 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
 };
 
 const DropdownInParent = ({ children, ...rest }: AntdDropdownProps) => (
-  <AntdDropdown
-    getPopupContainer={trigger => trigger.parentElement || document.body}
-    {...rest}
-  >
+  <AntdDropdown getPopupContainer={() => document.body} {...rest}>
     {children}
   </AntdDropdown>
 );
