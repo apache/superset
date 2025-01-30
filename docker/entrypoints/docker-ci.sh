@@ -23,4 +23,4 @@
 export SERVER_THREADS_AMOUNT=8
 # start up the web server
 
-/usr/bin/run-server.sh
+/app/docker/entrypoints/run-server.sh
