@@ -17,7 +17,7 @@
  * under the License.
  */
 import _JSONbig from 'json-bigint';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo, memo } from 'react';
 import { getMultipleTextDimensions, styled } from '@superset-ui/core';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { useCellContentParser } from './useCellContentParser';
@@ -272,4 +272,4 @@ const FilterableTable = ({
   );
 };
 
-export default FilterableTable;
+export default memo(FilterableTable);
