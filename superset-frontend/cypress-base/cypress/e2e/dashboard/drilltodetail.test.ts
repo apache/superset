@@ -335,7 +335,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe.skip('Bar Chart', () => {
+    describe('Bar Chart', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -373,7 +373,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe.skip('Area Chart', () => {
+    describe('Area Chart', () => {
       it('opens the modal with the correct filters', () => {
         testTimeChart('echarts_area');
       });
@@ -407,7 +407,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe.skip('World Map', () => {
+    describe('World Map', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
@@ -567,7 +567,7 @@ describe('Drill to detail modal', () => {
       });
     });
 
-    describe.skip('Radar Chart', () => {
+    describe('Radar Chart', () => {
       it('opens the modal with the correct filters', () => {
         interceptSamples();
 
