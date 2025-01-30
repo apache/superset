@@ -167,7 +167,7 @@ export const ExploreChartHeader = ({
     <>
       <PageHeaderWithActions
         editableTitleProps={{
-          title: sliceName,
+          title: sliceName ?? '',
           canEdit:
             !slice ||
             canOverwrite ||
