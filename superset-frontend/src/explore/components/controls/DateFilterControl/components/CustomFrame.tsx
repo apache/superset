@@ -132,7 +132,6 @@ export function CustomFrame(props: FrameComponentProps) {
             {sinceMode === 'specific' && (
               <Row>
                 <DatePicker
-                  style={{ width: '100%' }}
                   showTime
                   defaultValue={dttmToDayjs(sinceDatetime)}
                   onChange={(datetime: Dayjs) =>
@@ -192,7 +191,6 @@ export function CustomFrame(props: FrameComponentProps) {
             {untilMode === 'specific' && (
               <Row>
                 <DatePicker
-                  style={{ width: '100%' }}
                   showTime
                   defaultValue={dttmToDayjs(untilDatetime)}
                   onChange={(datetime: Dayjs) =>
@@ -256,7 +254,6 @@ export function CustomFrame(props: FrameComponentProps) {
               {anchorMode !== 'now' && (
                 <Col>
                   <DatePicker
-                    style={{ width: '100%' }}
                     showTime
                     defaultValue={dttmToDayjs(anchorValue)}
                     onChange={(datetime: Dayjs) =>
