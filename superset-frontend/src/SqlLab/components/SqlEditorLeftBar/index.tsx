@@ -101,7 +101,7 @@ const SqlEditorLeftBar = ({
   queryEditorId,
   height = 500,
 }: SqlEditorLeftBarProps) => {
-  const tables = useSelector<SqlLabRootState, Table[]>(
+  const allSelectedTables = useSelector<SqlLabRootState, Table[]>(
     ({ sqlLab }) =>
       sqlLab.tables.filter(table => table.queryEditorId === queryEditorId),
     shallowEqual,
@@ -117,7 +117,14 @@ const SqlEditorLeftBar = ({
   const [userSelectedDb, setUserSelected] = useState<DatabaseObject | null>(
     null,
   );
-  const { catalog, schema } = queryEditor;
+  const { dbId, catalog, schema } = queryEditor;
+  const tables = useMemo(
+    () =>
+      allSelectedTables.filter(
+        table => table.dbId === dbId && table.schema === schema,
+      ),
+    [allSelectedTables, dbId, schema],
+  );
 
   useEffect(() => {
     const bool = querystring.parse(window.location.search).db;
