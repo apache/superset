@@ -1075,6 +1075,23 @@ The connection string is formatted as follows:
 oracle://<username>:<password>@<hostname>:<port>
 ```
 
+#### Parseable
+
+[Parseable](https://www.parseable.io) is a distributed log analytics database that provides SQL-like query interface for log data. The recommended connector library is [sqlalchemy-parseable](https://github.com/parseablehq/sqlalchemy-parseable).
+
+The connection string is formatted as follows:
+
+```
+parseable://<username>:<password>@<hostname>:<port>/<stream_name>
+```
+
+For example:
+
+```
+parseable://admin:admin@demo.parseable.com:443/ingress-nginx
+```
+
+Note: The stream_name in the URI represents the Parseable logstream you want to query. You can use both HTTP (port 80) and HTTPS (port 443) connections.
 
 
 #### Apache Pinot
