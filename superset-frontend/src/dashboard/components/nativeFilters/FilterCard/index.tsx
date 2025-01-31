@@ -47,7 +47,7 @@ export const FilterCard = ({
       overlayStyle={{
         width: '240px',
         padding: 0,
-        borderRadius: `${theme.gridUnit}px`,
+        borderRadius: theme.borderRadius,
       }}
       mouseEnterDelay={0.2}
       mouseLeaveDelay={0.2}
