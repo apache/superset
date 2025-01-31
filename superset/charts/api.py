@@ -621,7 +621,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task() or force:
+        if cache_payload.should_trigger_task(force):
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload())
             cache_chart_thumbnail.delay(

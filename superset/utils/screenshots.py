@@ -106,15 +106,17 @@ class ScreenshotCachePayload:
     def get_status(self) -> str:
         return self.status.value
 
-    def should_trigger_task(self) -> bool:
-        def is_error_cache_ttl_expired() -> bool:
-            error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
-            return (
-                datetime.now() - datetime.fromisoformat(self.get_timestamp())
-            ).total_seconds() > error_cache_ttl
+    def is_error_cache_ttl_expired(self) -> bool:
+        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        return (
+            datetime.now() - datetime.fromisoformat(self.get_timestamp())
+        ).total_seconds() > error_cache_ttl
 
-        return self.status == StatusValues.PENDING or (
-            self.status == StatusValues.ERROR and is_error_cache_ttl_expired()
+    def should_trigger_task(self, force: bool = False) -> bool:
+        return (
+            force
+            or self.status == StatusValues.PENDING
+            or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
         )
 
 
