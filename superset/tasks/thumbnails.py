@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 def cache_chart_thumbnail(
     current_user: Optional[str],
     chart_id: int,
-    force: bool = False,
+    force: bool,
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
@@ -64,10 +64,9 @@ def cache_chart_thumbnail(
         screenshot = ChartScreenshot(url, chart.digest)
         screenshot.compute_and_cache(
             user=user,
-            cache=thumbnail_cache,
-            force=force,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
         )
     return None
 
@@ -76,7 +75,7 @@ def cache_chart_thumbnail(
 def cache_dashboard_thumbnail(
     current_user: Optional[str],
     dashboard_id: int,
-    force: bool = False,
+    force: bool,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
 ) -> None:
@@ -101,10 +100,9 @@ def cache_dashboard_thumbnail(
         screenshot = DashboardScreenshot(url, dashboard.digest)
         screenshot.compute_and_cache(
             user=user,
-            cache=thumbnail_cache,
-            force=force,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
         )
 
 
@@ -113,7 +111,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
     username: str,
     dashboard_id: int,
     dashboard_url: str,
-    force: bool = True,
+    force: bool,
     cache_key: Optional[str] = None,
     guest_token: Optional[GuestToken] = None,
     thumb_size: Optional[WindowSize] = None,
@@ -145,9 +143,8 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
         screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
         screenshot.compute_and_cache(
             user=current_user,
-            cache=thumbnail_cache,
-            force=force,
             window_size=window_size,
             thumb_size=thumb_size,
             cache_key=cache_key,
+            force=force,
         )
