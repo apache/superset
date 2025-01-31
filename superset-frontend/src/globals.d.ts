@@ -16,9 +16,4 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'src/public-path';
-
-import './assets/stylesheets/superset.less';
-
-// Importing Antd under its own stylesheet to prevent unintentional theming
-import './assets/stylesheets/antd/index.less';
+declare var __webpack_public_path__: string;
