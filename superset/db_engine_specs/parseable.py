@@ -26,13 +26,15 @@ from superset.db_engine_specs.base import BaseEngineSpec
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
+    from superset.models.core import Database
 
 
 class ParseableEngineSpec(BaseEngineSpec):
+    """Engine spec for Parseable log analytics database."""
+
     engine = "parseable"
     engine_name = "Parseable"
 
-    # Use same expressions as SQLAlchemy dialect for consistency
     _time_grain_expressions = {
         None: "{col}",
         TimeGrain.SECOND: "date_trunc('second', {col})",
@@ -71,7 +73,7 @@ class ParseableEngineSpec(BaseEngineSpec):
             orm_col.is_dttm = True
 
     @classmethod
-    def get_extra_params(cls, database: "Database") -> dict[str, Any]:
+    def get_extra_params(cls, database: Database) -> dict[str, Any]:
         """Additional parameters for Parseable connections."""
         return {
             "engine_params": {

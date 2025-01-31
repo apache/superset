@@ -72,6 +72,6 @@ def test_convert_dttm(
     """
     DB Eng Specs (parseable): Test conversion to date time
     """
-    from superset.db_engine_specs.parseable import ParseableEngineSpec as spec
+    from superset.db_engine_specs.parseable import ParseableEngineSpec
 
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
+    assert_convert_dttm(ParseableEngineSpec, target_type, expected_result, dttm)
