@@ -693,8 +693,8 @@ const Header = () => {
     () => ({
       getPopupContainer: triggerNode =>
         triggerNode.closest('.header-with-actions'),
-      visible: isDropdownVisible,
-      onVisibleChange: setDropdownVisible,
+      open: isDropdownVisible,
+      onOpenChange: setDropdownVisible,
     }),
     [isDropdownVisible, setDropdownVisible],
   );
