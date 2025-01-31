@@ -487,7 +487,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_CROSS_FILTERS": True,  # deprecated
     "DASHBOARD_VIRTUALIZATION": True,
     # This feature flag is stil in beta and is not recommended for production use.
     "GLOBAL_ASYNC_QUERIES": False,
@@ -560,6 +559,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # If on, you'll want to add "https://avatars.slack-edge.com" to the list of allowed
     # domains in your TALISMAN_CONFIG
     "SLACK_ENABLE_AVATARS": False,
+    # Allow users to optionally specify date formats in email subjects, which will be parsed if enabled. # noqa: E501
+    "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
 }
 
 # ------------------------------
@@ -848,9 +849,6 @@ EXCEL_EXTENSIONS = {"xlsx", "xls"}
 CSV_EXTENSIONS = {"csv", "tsv", "txt"}
 COLUMNAR_EXTENSIONS = {"parquet", "zip"}
 ALLOWED_EXTENSIONS = {*EXCEL_EXTENSIONS, *CSV_EXTENSIONS, *COLUMNAR_EXTENSIONS}
-
-# Optional maximum file size in bytes when uploading a CSV
-CSV_UPLOAD_MAX_SIZE = None
 
 # CSV Options: key/value pairs that will be passed as argument to DataFrame.to_csv
 # method.
@@ -1905,6 +1903,15 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
+
+# The migrations that add catalog permissions might take a considerably long time
+# to execute as it has to create permissions to all schemas and catalogs from all
+# other catalogs accessible by the credentials. This flag allows to skip the
+# creation of these secondary perms, and focus only on permissions for the default
+# catalog. These secondary permissions can be created later by editing the DB
+# connection via the UI (without downtime).
+CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
 
 # -------------------------------------------------------------------

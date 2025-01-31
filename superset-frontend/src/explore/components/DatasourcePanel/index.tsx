@@ -277,7 +277,8 @@ export default function DataSourcePanel({
   };
 
   const datasourceIsSaveable =
-    datasource.type && saveableDatasets[datasource.type];
+    datasource.type &&
+    saveableDatasets[datasource.type as keyof typeof saveableDatasets];
 
   const mainBody = useMemo(
     () => (

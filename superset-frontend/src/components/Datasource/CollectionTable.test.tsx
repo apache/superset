@@ -16,26 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function findTabIndexByComponentId({
-  currentComponent,
-  directPathToChild = [],
-}) {
-  if (
-    !currentComponent ||
-    directPathToChild.length === 0 ||
-    directPathToChild.indexOf(currentComponent.id) === -1
-  ) {
-    return -1;
-  }
+import { render } from 'spec/helpers/testing-library';
 
-  const currentComponentIdx = directPathToChild.findIndex(
-    id => id === currentComponent.id,
-  );
-  const nextParentId = directPathToChild[currentComponentIdx + 1];
-  if (currentComponent.children.indexOf(nextParentId) >= 0) {
-    return currentComponent.children.findIndex(
-      childId => childId === nextParentId,
-    );
-  }
-  return -1;
-}
+import mockDatasource from 'spec/fixtures/mockDatasource';
+import CollectionTable from './CollectionTable';
+
+const props = {
+  collection: mockDatasource['7__table'].columns,
+  tableColumns: ['column_name', 'type', 'groupby'],
+  sortColumns: [],
+};
+
+test('renders a table', () => {
+  const { length } = mockDatasource['7__table'].columns;
+  const { getByRole } = render(<CollectionTable {...props} />);
+  expect(getByRole('table')).toBeInTheDocument();
+  expect(
+    getByRole('table')
+      .getElementsByTagName('tbody')[0]
+      .getElementsByClassName('row'),
+  ).toHaveLength(length);
+});

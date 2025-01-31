@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
-import type { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
 import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
   ForecastSeriesContext,
@@ -147,5 +147,36 @@ export function rebaseForecastDatum(
     });
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return newRow;
+  });
+}
+
+// For Confidence Bands, forecast series on mixed charts require the series sent in the following sortOrder:
+export function reorderForecastSeries(row: SeriesOption[]): SeriesOption[] {
+  const sortOrder = {
+    [ForecastSeriesEnum.ForecastLower]: 1,
+    [ForecastSeriesEnum.ForecastUpper]: 2,
+    [ForecastSeriesEnum.ForecastTrend]: 3,
+    [ForecastSeriesEnum.Observation]: 4,
+  };
+
+  // Check if any item needs reordering
+  if (
+    !row.some(
+      item =>
+        item.id &&
+        sortOrder.hasOwnProperty(extractForecastSeriesContext(item.id).type),
+    )
+  ) {
+    return row;
+  }
+
+  return row.sort((a, b) => {
+    const aOrder =
+      sortOrder[extractForecastSeriesContext(a.id ?? '').type] ??
+      Number.MAX_SAFE_INTEGER;
+    const bOrder =
+      sortOrder[extractForecastSeriesContext(b.id ?? '').type] ??
+      Number.MAX_SAFE_INTEGER;
+    return aOrder - bOrder;
   });
 }

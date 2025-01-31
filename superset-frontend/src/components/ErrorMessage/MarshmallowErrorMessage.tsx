@@ -52,7 +52,10 @@ const collapseStyle = (theme: SupersetTheme) => css`
 const extractInvalidValues = (messages: object, payload: object): string[] => {
   const invalidValues: string[] = [];
 
-  const recursiveExtract = (messages: object, payload: object) => {
+  const recursiveExtract = (
+    messages: Record<string, any>,
+    payload: Record<string, any>,
+  ) => {
     Object.keys(messages).forEach(key => {
       const value = payload[key];
       const message = messages[key];
@@ -66,7 +69,10 @@ const extractInvalidValues = (messages: object, payload: object): string[] => {
       }
     });
   };
-  recursiveExtract(messages, payload);
+  recursiveExtract(
+    messages as Record<string, any>,
+    payload as Record<string, any>,
+  );
   return invalidValues;
 };
 

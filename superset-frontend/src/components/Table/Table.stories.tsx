@@ -46,7 +46,7 @@ export default {
   argTypes: { onClick: { action: 'clicked' } },
 } as Meta<typeof Table>;
 
-export interface BasicData {
+interface BasicData {
   name: string;
   category: string;
   price: number;
@@ -54,7 +54,7 @@ export interface BasicData {
   key: number;
 }
 
-export interface RendererData {
+interface RendererData {
   key: number;
   buttonCell: string;
   textCell: string;
@@ -62,7 +62,7 @@ export interface RendererData {
   dollarCell: number;
 }
 
-export interface ExampleData {
+interface ExampleData {
   title: string;
   name: string;
   age: number;
@@ -71,8 +71,8 @@ export interface ExampleData {
   key: number;
 }
 
-function generateValues(amount: number, row = 0): object {
-  const cells = {};
+function generateValues(amount: number, row = 0): Record<string, number> {
+  const cells: Record<string, number> = {};
   for (let i = 0; i < amount; i += 1) {
     cells[`col-${i}`] = i * row * 0.75;
   }
@@ -94,7 +94,12 @@ function generateColumns(amount: number): ColumnsType<ExampleData>[] {
           locale={LocaleCode.en_US}
         />
       ),
-      sorter: (a: BasicData, b: BasicData) => numericalSort(`col-${i}`, a, b),
+      sorter: (a: BasicData, b: BasicData) =>
+        numericalSort(
+          `col-${i}`,
+          a as Record<PropertyKey, any>,
+          b as Record<PropertyKey, any>,
+        ),
     });
   }
   return newCols as ColumnsType<ExampleData>[];
@@ -168,19 +173,34 @@ const basicColumns: ColumnsType<BasicData> = [
     dataIndex: 'name',
     key: 'name',
     width: 100,
-    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('name', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      alphabeticalSort(
+        'name',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
   },
   {
     title: 'Category',
     dataIndex: 'category',
     key: 'category',
-    sorter: (a: BasicData, b: BasicData) => alphabeticalSort('category', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      alphabeticalSort(
+        'category',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
   },
   {
     title: 'Price',
     dataIndex: 'price',
     key: 'price',
-    sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      numericalSort(
+        'price',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
     width: 100,
   },
   {
@@ -201,7 +221,12 @@ const bigColumns: ColumnsType<ExampleData> = [
     title: 'Age',
     dataIndex: 'age',
     key: 'age',
-    sorter: (a: ExampleData, b: ExampleData) => numericalSort('age', a, b),
+    sorter: (a: ExampleData, b: ExampleData) =>
+      numericalSort(
+        'age',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
     width: 75,
   },
   {
@@ -381,7 +406,12 @@ const paginationColumns: ColumnsType<BasicData> = [
         locale={LocaleCode.en_US}
       />
     ),
-    sorter: (a: BasicData, b: BasicData) => numericalSort('price', a, b),
+    sorter: (a: BasicData, b: BasicData) =>
+      numericalSort(
+        'price',
+        a as Record<PropertyKey, any>,
+        b as Record<PropertyKey, any>,
+      ),
   },
   {
     title: 'Description',

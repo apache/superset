@@ -22,7 +22,7 @@ import { Button, AntdSelect } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
-import { FieldPropTypes } from '../../types';
+import { DatabaseParameters, FieldPropTypes } from '../../types';
 import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
@@ -56,8 +56,11 @@ export const EncryptedField = ({
   const showCredentialsInfo =
     db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
   const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
-  const encryptedField = db?.engine && encryptedCredentialsMap[db.engine];
-  const paramValue = db?.parameters?.[encryptedField];
+  const encryptedField =
+    db?.engine &&
+    encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
+  const paramValue =
+    db?.parameters?.[encryptedField as keyof DatabaseParameters];
   const encryptedValue =
     paramValue && typeof paramValue === 'object'
       ? JSON.stringify(paramValue)
@@ -116,7 +119,11 @@ export const EncryptedField = ({
           <textarea
             className="input-form"
             name={encryptedField}
-            value={encryptedValue}
+            value={
+              typeof encryptedValue === 'boolean'
+                ? String(encryptedValue)
+                : encryptedValue
+            }
             onChange={changeMethods.onParametersChange}
             placeholder={t(
               'Paste content of service credentials JSON file here',

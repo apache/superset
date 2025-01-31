@@ -40,6 +40,30 @@ export type SSHTunnelObject = {
   private_key_password?: string;
 };
 
+export type DatabaseParameters = {
+  access_token?: string;
+  database_name?: string;
+  host?: string;
+  port?: number;
+  database?: string;
+  default_catalog?: string;
+  default_schema?: string;
+  http_path_field?: string;
+  username?: string;
+  password?: string;
+  encryption?: boolean;
+  credentials_info?: string;
+  service_account_info?: string;
+  query?: Record<string, string>;
+  catalog?: Record<string, string | undefined>;
+  properties?: Record<string, any>;
+  warehouse?: string;
+  role?: string;
+  account?: string;
+  ssh?: boolean;
+  project_id?: string;
+};
+
 export type DatabaseObject = {
   // Connection + general
   backend?: string;
@@ -57,29 +81,7 @@ export type DatabaseObject = {
   paramProperties?: Record<string, any>;
   sqlalchemy_uri?: string;
   sqlalchemy_uri_placeholder?: string;
-  parameters?: {
-    access_token?: string;
-    database_name?: string;
-    host?: string;
-    port?: number;
-    database?: string;
-    default_catalog?: string;
-    default_schema?: string;
-    http_path_field?: string;
-    username?: string;
-    password?: string;
-    encryption?: boolean;
-    credentials_info?: string;
-    service_account_info?: string;
-    query?: Record<string, string>;
-    catalog?: Record<string, string | undefined>;
-    properties?: Record<string, any>;
-    warehouse?: string;
-    role?: string;
-    account?: string;
-    ssh?: boolean;
-    project_id?: string;
-  };
+  parameters?: DatabaseParameters;
 
   // Performance
   cache_timeout?: string;

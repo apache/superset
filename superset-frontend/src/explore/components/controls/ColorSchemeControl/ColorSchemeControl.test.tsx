@@ -31,7 +31,6 @@ const defaultProps = () => ({
   hasCustomLabelsColor: false,
   sharedLabelsColors: [],
   label: 'Color scheme',
-  labelMargin: 0,
   name: 'color',
   value: 'supersetDefault',
   clearable: true,
