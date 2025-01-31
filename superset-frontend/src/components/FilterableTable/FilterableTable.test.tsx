@@ -38,7 +38,7 @@ describe('FilterableTable', () => {
     const { getByRole, getByText } = render(
       <FilterableTable {...mockedProps} />,
     );
-    expect(getByRole('table')).toBeInTheDocument();
+    expect(getByRole('treegrid')).toBeInTheDocument();
     mockedProps.data.forEach(({ b: columnBContent }) => {
       expect(getByText(columnBContent)).toBeInTheDocument();
     });
@@ -78,11 +78,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...stringProps} />);
 
-    const stringColumn = within(screen.getByRole('table'))
+    const stringColumn = within(screen.getByRole('treegrid'))
       .getByText('columnA')
-      .closest('th');
-    // Antd 4.x Table does not follow the table role structure. Need a hacky selector to point the cell item
-    const gridCells = screen.getByTitle('Bravo').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('Bravo').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
@@ -124,10 +123,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...integerProps} />);
 
-    const integerColumn = within(screen.getByRole('table'))
+    const integerColumn = within(screen.getByRole('treegrid'))
       .getByText('columnB')
-      .closest('th');
-    const gridCells = screen.getByTitle('21').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('21').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(['21', '0', '623'].join(''));
@@ -159,10 +158,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...floatProps} />);
 
-    const floatColumn = within(screen.getByRole('table'))
+    const floatColumn = within(screen.getByRole('treegrid'))
       .getByText('columnC')
-      .closest('th');
-    const gridCells = screen.getByTitle('45.67').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('45.67').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
@@ -214,10 +213,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...mixedFloatProps} />);
 
-    const mixedFloatColumn = within(screen.getByRole('table'))
+    const mixedFloatColumn = within(screen.getByRole('treegrid'))
       .getByText('columnD')
-      .closest('th');
-    const gridCells = screen.getByTitle('48710.92').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('48710.92').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
@@ -312,10 +311,10 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...dsProps} />);
 
-    const dsColumn = within(screen.getByRole('table'))
+    const dsColumn = within(screen.getByRole('treegrid'))
       .getByText('columnDS')
-      .closest('th');
-    const gridCells = screen.getByTitle('2021-01-01').closest('.virtual-grid');
+      .closest('[role=button]');
+    const gridCells = screen.getByText('2021-01-01').closest('[role=rowgroup]');
 
     // Original order
     expect(gridCells?.textContent).toEqual(
