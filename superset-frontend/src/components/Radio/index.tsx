@@ -16,46 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@superset-ui/core';
-import { Radio as AntdRadio } from 'antd';
+import { Radio as Antd5Radio, CheckboxOptionType } from 'antd-v5';
+import type {
+  RadioChangeEvent,
+  RadioProps,
+  RadioGroupProps,
+} from 'antd-v5/lib/radio';
 
-const StyledRadio = styled(AntdRadio)`
-  .ant-radio-inner {
-    top: -1px;
-    left: 2px;
-    width: ${({ theme }) => theme.gridUnit * 4}px;
-    height: ${({ theme }) => theme.gridUnit * 4}px;
-    border-width: 2px;
-    border-color: ${({ theme }) => theme.colors.grayscale.light2};
-  }
+import { Space, SpaceProps } from 'src/components/Space';
 
-  .ant-radio.ant-radio-checked {
-    .ant-radio-inner {
-      border-width: ${({ theme }) => theme.gridUnit + 1}px;
-      border-color: ${({ theme }) => theme.colors.primary.base};
-    }
+export type RadioGroupWrapperProps = RadioGroupProps & {
+  spaceConfig?: {
+    direction?: SpaceProps['direction'];
+    size?: SpaceProps['size'];
+    align?: SpaceProps['align'];
+    wrap?: SpaceProps['wrap'];
+  };
+  options: CheckboxOptionType[];
+};
 
-    .ant-radio-inner::after {
-      background-color: ${({ theme }) => theme.colors.grayscale.light5};
-      top: 0;
-      left: 0;
-      width: ${({ theme }) => theme.gridUnit + 2}px;
-      height: ${({ theme }) => theme.gridUnit + 2}px;
-    }
-  }
-
-  .ant-radio:hover,
-  .ant-radio:focus {
-    .ant-radio-inner {
-      border-color: ${({ theme }) => theme.colors.primary.dark1};
-    }
-  }
-`;
-const StyledGroup = styled(AntdRadio.Group)`
-  font-size: inherit;
-`;
-
-export const Radio = Object.assign(StyledRadio, {
-  Group: StyledGroup,
-  Button: AntdRadio.Button,
+const RadioGroup = ({
+  spaceConfig,
+  options,
+  ...props
+}: RadioGroupWrapperProps) => {
+  const content = options.map((option: CheckboxOptionType) => (
+    <Radio key={option.value} value={option.value}>
+      {option.label}
+    </Radio>
+  ));
+  return (
+    <Radio.Group {...props}>
+      {spaceConfig ? <Space {...spaceConfig}>{content}</Space> : content}
+    </Radio.Group>
+  );
+};
+export type {
+  RadioChangeEvent,
+  RadioGroupProps,
+  RadioProps,
+  CheckboxOptionType,
+};
+export const Radio = Object.assign(Antd5Radio, {
+  GroupWrapper: RadioGroup,
+  Button: Antd5Radio.Button,
 });

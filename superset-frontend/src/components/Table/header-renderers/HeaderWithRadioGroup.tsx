@@ -19,7 +19,6 @@
 import { useState } from 'react';
 import { css, useTheme } from '@superset-ui/core';
 import { Radio } from 'src/components/Radio';
-import { Space } from 'src/components/Space';
 import Icons from 'src/components/Icons';
 import Popover from 'src/components/Popover';
 
@@ -56,21 +55,20 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
             >
               {groupTitle}
             </div>
-            <Radio.Group
+            <Radio.GroupWrapper
+              spaceConfig={{
+                direction: 'vertical',
+                size: 4,
+                wrap: false,
+                align: 'start',
+              }}
               value={value}
               onChange={e => {
                 onChange(e.target.value);
                 setPopoverVisible(false);
               }}
-            >
-              <Space direction="vertical">
-                {groupOptions.map(option => (
-                  <Radio key={option.value} value={option.value}>
-                    {option.label}
-                  </Radio>
-                ))}
-              </Space>
-            </Radio.Group>
+              options={groupOptions}
+            />
           </div>
         }
         placement="bottomLeft"

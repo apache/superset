@@ -167,8 +167,8 @@ test('renders anchor with now option', async () => {
   );
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getByText('Anchor to')).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'NOW' })).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'Date/Time' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Now')).toBeInTheDocument();
+  expect(screen.getByLabelText('Date/Time')).toBeInTheDocument();
   expect(screen.queryByPlaceholderText('Select date')).not.toBeInTheDocument();
 });
 
@@ -180,8 +180,8 @@ test('renders anchor with date/time option', async () => {
   );
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getByText('Anchor to')).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'NOW' })).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: 'Date/Time' })).toBeInTheDocument();
+  expect(screen.getByLabelText('Now')).toBeInTheDocument();
+  expect(screen.getByLabelText('Date/Time')).toBeInTheDocument();
   expect(screen.getByPlaceholderText('Select date')).toBeInTheDocument();
 });
 
