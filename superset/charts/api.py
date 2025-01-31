@@ -621,14 +621,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        error_cache_ttl = config["THUMBNAIL_ERROR_CACHE_TTL"]
-        error_cache_expired = (
-            datetime.now()
-            - datetime.strptime(cache_payload.get_timestamp(), "%Y/%m/%d-%H:%M:%S")
-        ).total_seconds() > error_cache_ttl
         if (
             cache_payload.status == StatusValues.PENDING
-            or (cache_payload.status == StatusValues.ERROR and error_cache_expired)
+            or cache_payload.is_error_cache_ttl_expired()
             or force
         ):
             logger.info("Triggering screenshot ASYNC")

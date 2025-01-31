@@ -24,7 +24,7 @@ from typing import TYPE_CHECKING
 
 from flask import current_app
 
-from superset import feature_flag_manager, thumbnail_cache
+from superset import app, feature_flag_manager, thumbnail_cache
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.extensions import event_logger
 from superset.utils.hashing import md5_sha_from_dict
@@ -105,6 +105,17 @@ class ScreenshotCachePayload:
 
     def get_status(self) -> str:
         return self.status.value
+
+    def is_error_cache_ttl_expired(self) -> bool:
+        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        return (
+            self.status == StatusValues.ERROR
+            and (
+                datetime.now()
+                - datetime.strptime(self.get_timestamp(), "%Y/%m/%d-%H:%M:%S")
+            ).total_seconds()
+            > error_cache_ttl
+        )
 
 
 class BaseScreenshot:
