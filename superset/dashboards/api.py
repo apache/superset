@@ -116,7 +116,6 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
     ScreenshotCachePayload,
-    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -1114,11 +1113,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if (
-            cache_payload.status == StatusValues.PENDING
-            or cache_payload.is_error_cache_ttl_expired()
-            or force
-        ):
+        if cache_payload.should_trigger_task() or force:
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload())
             cache_dashboard_screenshot.delay(
@@ -1295,7 +1290,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             "DashboardRestApi.thumbnail", pk=dashboard.id, digest=cache_key
         )
 
-        if cache_payload.status in [StatusValues.PENDING, StatusValues.ERROR]:
+        if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (dashboard id: %s) ASYNC",

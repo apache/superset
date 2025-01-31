@@ -621,11 +621,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if (
-            cache_payload.status == StatusValues.PENDING
-            or cache_payload.is_error_cache_ttl_expired()
-            or force
-        ):
+        if cache_payload.should_trigger_task() or force:
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload())
             cache_chart_thumbnail.delay(
@@ -754,7 +750,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
         )
 
-        if cache_payload.status in [StatusValues.PENDING, StatusValues.ERROR]:
+        if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
                 "Triggering thumbnail compute (chart id: %s) ASYNC", str(chart.id)

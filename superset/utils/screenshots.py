@@ -66,13 +66,13 @@ class StatusValues(Enum):
 class ScreenshotCachePayload:
     def __init__(self, image: bytes | None = None):
         self._image = image
-        self._timestamp = datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
+        self._timestamp = datetime.now().isoformat()
         self.status = StatusValues.PENDING
         if image:
             self.status = StatusValues.UPDATED
 
     def update_timestamp(self) -> None:
-        self._timestamp = datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
+        self._timestamp = datetime.now().isoformat()
 
     def pending(self) -> None:
         self.update_timestamp()
@@ -106,15 +106,15 @@ class ScreenshotCachePayload:
     def get_status(self) -> str:
         return self.status.value
 
-    def is_error_cache_ttl_expired(self) -> bool:
-        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
-        return (
-            self.status == StatusValues.ERROR
-            and (
-                datetime.now()
-                - datetime.strptime(self.get_timestamp(), "%Y/%m/%d-%H:%M:%S")
-            ).total_seconds()
-            > error_cache_ttl
+    def should_trigger_task(self) -> bool:
+        def is_error_cache_ttl_expired() -> bool:
+            error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+            return (
+                datetime.now() - datetime.fromisoformat(self.get_timestamp())
+            ).total_seconds() > error_cache_ttl
+
+        return self.status == StatusValues.PENDING or (
+            self.status == StatusValues.ERROR and is_error_cache_ttl_expired()
         )
 
 
