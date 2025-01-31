@@ -42,7 +42,7 @@ describe('CalendarFrame', () => {
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(CALENDAR_RANGE_OPTIONS.length);
     CALENDAR_RANGE_OPTIONS.forEach(option => {
-      expect(screen.getByText(option.label)).toBeInTheDocument();
+      expect(screen.getByText(option.label as string)).toBeInTheDocument();
     });
   });
 
@@ -56,7 +56,7 @@ describe('CalendarFrame', () => {
     );
 
     const secondOption = CALENDAR_RANGE_OPTIONS[1];
-    const radio = screen.getByLabelText(secondOption.label);
+    const radio = screen.getByLabelText(secondOption.label as string);
     fireEvent.click(radio);
 
     expect(mockOnChange).toHaveBeenCalledWith(secondOption.value);
@@ -85,6 +85,8 @@ describe('CalendarFrame', () => {
     const thirdOption = CALENDAR_RANGE_OPTIONS[2];
     expect(thirdOption.value).toBe(PreviousCalendarQuarter);
 
-    expect(screen.getByLabelText(thirdOption.label)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(thirdOption.label as string),
+    ).toBeInTheDocument();
   });
 });

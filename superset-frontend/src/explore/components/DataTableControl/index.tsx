@@ -30,7 +30,6 @@ import {
 import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { Space } from 'src/components/Space';
 import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
@@ -141,12 +140,21 @@ const FormatPicker = ({
   onChange: any;
   value: FormatPickerValue;
 }) => (
-  <Radio.Group value={value} onChange={onChange}>
-    <Space direction="vertical">
-      <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
-      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
-    </Space>
-  </Radio.Group>
+  <Radio.GroupWrapper
+    spaceConfig={{
+      direction: 'vertical',
+      align: 'start',
+      size: 15,
+      wrap: false,
+    }}
+    size="large"
+    value={value}
+    onChange={onChange}
+    options={[
+      { label: t('Formatted date'), value: FormatPickerValue.Formatted },
+      { label: t('Original value'), value: FormatPickerValue.Original },
+    ]}
+  />
 );
 
 const FormatPickerContainer = styled.div`

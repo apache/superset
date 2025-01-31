@@ -87,12 +87,6 @@ const ContentStyleWrapper = styled.div`
       margin: 8px 0;
     }
 
-    .vertical-radio {
-      display: block;
-      height: 40px;
-      line-height: 40px;
-    }
-
     .section-title {
       font-style: normal;
       font-weight: ${theme.typography.weights.bold};

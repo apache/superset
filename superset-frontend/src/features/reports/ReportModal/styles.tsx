@@ -108,10 +108,6 @@ export const StyledRadio = styled(Radio)`
   line-height: ${({ theme }) => theme.gridUnit * 8}px;
 `;
 
-export const StyledRadioGroup = styled(Radio.Group)`
-  margin-left: ${({ theme }) => theme.gridUnit * 0.5}px;
-`;
-
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.gridUnit * 4}px;
   margin-top: 0;
