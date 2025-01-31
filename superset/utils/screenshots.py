@@ -20,7 +20,7 @@ import logging
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from flask import current_app
 
@@ -64,7 +64,7 @@ class StatusValues(Enum):
 
 
 class ScreenshotCachePayload:
-    def __init__(self, image: Optional[bytes] = None):
+    def __init__(self, image: bytes | None = None):
         self._image = image
         self._timestamp = datetime.now().strftime("%Y/%m/%d-%H:%M:%S")
         self.status = StatusValues.PENDING

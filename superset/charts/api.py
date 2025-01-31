@@ -576,7 +576,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     schema:
                       $ref: "#/components/schemas/ChartCacheScreenshotResponseSchema"
             202:
-              description: Chart async created
+              description: Chart async task created
               content:
                 application/json:
                   schema:
@@ -617,11 +617,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 cache_key=cache_key,
                 chart_url=chart_url,
                 image_url=image_url,
-                updated_at=cache_payload.get_timestamp(),
-                update_status=cache_payload.get_status(),
+                task_updated_at=cache_payload.get_timestamp(),
+                task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.status in [StatusValues.PENDING, StatusValues.ERROR] or force:
+        error_cache_ttl = config["THUMBNAIL_ERROR_CACHE_TTL"]
+        error_cache_expired = (
+            datetime.now()
+            - datetime.strptime(cache_payload.get_timestamp(), "%Y/%m/%d-%H:%M:%S")
+        ).total_seconds() > error_cache_ttl
+        if (
+            cache_payload.status == StatusValues.PENDING
+            or (cache_payload.status == StatusValues.ERROR and error_cache_expired)
+            or force
+        ):
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload())
             cache_chart_thumbnail.delay(
@@ -763,8 +772,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             )
             return self.response(
                 202,
-                updated_at=cache_payload.get_timestamp(),
-                update_status=cache_payload.get_status(),
+                task_updated_at=cache_payload.get_timestamp(),
+                task_status=cache_payload.get_status(),
             )
         self.incr_stats("from_cache", self.thumbnail.__name__)
         return Response(

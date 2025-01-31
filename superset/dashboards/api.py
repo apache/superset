@@ -1110,8 +1110,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 cache_key=cache_key,
                 dashboard_url=dashboard_url,
                 image_url=image_url,
-                updated_at=cache_payload.get_timestamp(),
-                update_status=cache_payload.get_status(),
+                task_updated_at=cache_payload.get_timestamp(),
+                task_status=cache_payload.get_status(),
             )
 
         if cache_payload.status in [StatusValues.PENDING, StatusValues.ERROR] or force:
@@ -1308,8 +1308,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 cache_key=cache_key,
                 dashboard_url=dashboard_url,
                 image_url=image_url,
-                updated_at=cache_payload.get_timestamp(),
-                update_status=cache_payload.get_status(),
+                task_updated_at=cache_payload.get_timestamp(),
+                task_status=cache_payload.get_status(),
             )
 
         self.incr_stats("from_cache", self.thumbnail.__name__)

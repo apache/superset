@@ -3151,7 +3151,6 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        print(dashboard.id)
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
         cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]

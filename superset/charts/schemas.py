@@ -304,19 +304,19 @@ class ChartCacheScreenshotResponseSchema(Schema):
     image_url = fields.String(
         metadata={"description": "The url to fetch the screenshot"}
     )
-    update_status = fields.String(
+    task_status = fields.String(
         metadata={"description": "The status of the async screenshot"}
     )
-    updated_at = fields.String(
+    task_updated_at = fields.String(
         metadata={"description": "The timestamp of the last change in status"}
     )
 
 
 class ChartGetCachedScreenshotResponseSchema(Schema):
-    update_status = fields.String(
+    task_status = fields.String(
         metadata={"description": "The status of the async screenshot"}
     )
-    updated_at = fields.String(
+    task_updated_at = fields.String(
         metadata={"description": "The timestamp of the last change in status"}
     )
 
