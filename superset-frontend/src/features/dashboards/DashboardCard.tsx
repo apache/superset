@@ -134,7 +134,7 @@ function DashboardCard({
             onClick={() => onDelete(dashboard)}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.Trash iconSize="l" /> {t('Delete')}
+            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
           </div>
         </Menu.Item>
       )}

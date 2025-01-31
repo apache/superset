@@ -63,7 +63,6 @@ const IconFileNames = [
   'components',
   'copy',
   'cursor_target',
-  'database',
   'dataset_physical',
   'dataset_virtual_greyscale',
   'dataset_virtual',
@@ -106,7 +105,6 @@ const IconFileNames = [
   'layers',
   'lightbulb',
   'line-chart-tile',
-  'link',
   'list',
   'list_view',
   'location',
@@ -146,10 +144,7 @@ const IconFileNames = [
   'sort_asc',
   'sort_desc',
   'sort',
-  'table',
   'table-chart-tile',
-  'tag',
-  'trash',
   'triangle_change',
   'triangle_down',
   'triangle_up',
@@ -164,6 +159,10 @@ const IconFileNames = [
   'category',
   'undo',
   'redo',
+  // to remove
+  'database',
+  'table',
+  'tag',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

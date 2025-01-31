@@ -389,7 +389,7 @@ function AlertList({
                   label: 'delete-action',
                   tooltip: t('Delete'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,

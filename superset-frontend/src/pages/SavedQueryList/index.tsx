@@ -444,7 +444,7 @@ function SavedQueryList({
               label: 'delete-action',
               tooltip: t('Delete query'),
               placement: 'bottom',
-              icon: 'Trash',
+              icon: 'DeleteOutlined',
               onClick: handleDelete,
             },
           ].filter(item => !!item);

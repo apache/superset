@@ -186,7 +186,7 @@ function AnnotationLayersList({
                   label: 'delete-action',
                   tooltip: t('Delete template'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,

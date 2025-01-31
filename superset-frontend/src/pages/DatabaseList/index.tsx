@@ -444,7 +444,7 @@ function DatabaseList({
                     title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined />
                   </Tooltip>
                 </span>
               )}

@@ -100,7 +100,7 @@ export default function ChartCard({
                 className="action-button"
                 onClick={confirmDelete}
               >
-                <Icons.Trash iconSize="l" /> {t('Delete')}
+                <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>

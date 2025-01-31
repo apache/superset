@@ -207,7 +207,7 @@ function AnnotationList({
               label: 'delete-action',
               tooltip: t('Delete annotation'),
               placement: 'bottom',
-              icon: 'Trash',
+              icon: 'DeleteOutlined',
               onClick: handleDelete,
             },
           ];

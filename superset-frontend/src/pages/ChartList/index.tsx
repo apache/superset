@@ -485,7 +485,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash />
+                        <Icons.DeleteOutlined />
                       </span>
                     </Tooltip>
                   )}

@@ -36,16 +36,6 @@ interface ShareSqlLabQueryProps {
   addDangerToast: (msg: string) => void;
 }
 
-const StyledIcon = styled(Icons.Link)`
-  &:first-of-type {
-    margin: 0;
-    display: flex;
-    svg {
-      margin: 0;
-    }
-  }
-`;
-
 const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
@@ -86,7 +76,10 @@ const ShareSqlLabQuery = ({
     const tooltip = t('Copy query link to your clipboard');
     return (
       <Button buttonSize="small" tooltip={tooltip}>
-        <StyledIcon iconColor={theme.colors.primary.base} iconSize="xl" />
+        <Icons.LinkOutlined
+          iconColor={theme.colors.primary.base}
+          iconSize="xl"
+        />
         {t('Copy link')}
       </Button>
     );

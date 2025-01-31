@@ -193,7 +193,7 @@ function RowLevelSecurityList(props: RLSProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash data-test="rls-list-trash-icon" />
+                        <Icons.DeleteOutlined data-test="rls-list-trash-icon" />
                       </span>
                     </Tooltip>
                   )}

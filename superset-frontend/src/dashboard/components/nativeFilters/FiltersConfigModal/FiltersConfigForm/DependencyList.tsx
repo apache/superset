@@ -53,7 +53,7 @@ const AddFilter = styled.div`
   `}
 `;
 
-const DeleteFilter = styled(Icons.Trash)`
+const DeleteFilter = styled(Icons.DeleteOutlined)`
   ${({ theme }) => `
     cursor: pointer;
     margin-left: ${theme.gridUnit * 2}px;

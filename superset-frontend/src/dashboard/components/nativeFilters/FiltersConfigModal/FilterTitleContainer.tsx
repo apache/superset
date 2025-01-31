@@ -18,7 +18,7 @@
  */
 import { forwardRef, ReactNode } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { FilterRemoval } from './types';
 import DraggableFilter from './DraggableFilter';
@@ -49,10 +49,6 @@ export const FilterTitle = styled.div`
         color: ${theme.colors.error.base};
       }
   `}
-`;
-
-const StyledTrashIcon = styled(Icons.Trash)`
-  color: ${({ theme }) => theme.colors.grayscale.light3};
 `;
 
 const StyledWarning = styled(Icons.Warning)`
@@ -95,6 +91,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
     ref,
   ) => {
     const renderComponent = (id: string) => {
+      const theme = useTheme();
       const isRemoved = !!removedFilters[id];
       const isErrored = erroredFilters.includes(id);
       const isActive = currentFilterId === id;
@@ -142,7 +139,8 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
           </div>
           <div css={{ alignSelf: 'flex-start', marginLeft: 'auto' }}>
             {isRemoved ? null : (
-              <StyledTrashIcon
+              <Icons.DeleteOutlined
+                iconColor={theme.colors.grayscale.light3}
                 onClick={event => {
                   event.stopPropagation();
                   onRemove(id);

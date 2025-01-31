@@ -421,7 +421,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDelete}
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined />
                   </span>
                 </Tooltip>
               )}

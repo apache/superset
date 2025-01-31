@@ -71,15 +71,13 @@ const ScopingTitle = ({
       onClick={() => onClick(id)}
     >
       {label}
-      <Icons.Trash
+      <Icons.DeleteOutlined
         iconColor={theme.colors.grayscale.light3}
+        iconSize="xl"
         onClick={event => {
           event.stopPropagation();
           onRemove(id);
         }}
-        css={css`
-          margin-left: auto;
-        `}
       />
     </FilterTitle>
   );

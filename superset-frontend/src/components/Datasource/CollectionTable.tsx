@@ -425,7 +425,7 @@ export default class CRUDCollection extends PureComponent<
           data-test="crud-delete-option"
           className="text-primary"
         >
-          <Icons.Trash
+          <Icons.DeleteOutlined
             aria-label="Delete item"
             className="pointer"
             data-test="crud-delete-icon"
