@@ -200,56 +200,27 @@ class CategoricalColorScale extends ExtensibleFunction {
       this.colors.map(color => [color, this.getColorUsageCount(color)]),
     );
 
-    // Get an ordered array of labels from the map
-    const orderedLabels = Array.from(this.chartLabelsColorMap.keys());
-    const currentLabelIndex = orderedLabels.indexOf(currentLabel);
-
-    // Helper to infer "previous" and "next" labels based on index
-    const getAdjacentLabelsColors = (): string[] => {
-      const previousLabel =
-        currentLabelIndex > 0 ? orderedLabels[currentLabelIndex - 1] : null;
-      const nextLabel =
-        currentLabelIndex < orderedLabels.length - 1
-          ? orderedLabels[currentLabelIndex + 1]
-          : null;
-
-      const previousColor = previousLabel
-        ? this.chartLabelsColorMap.get(previousLabel)
-        : null;
-      const nextColor = nextLabel
-        ? this.chartLabelsColorMap.get(nextLabel)
-        : null;
-
-      return [previousColor, nextColor].filter(color => color) as string[];
-    };
-
-    const adjacentColors = getAdjacentLabelsColors();
-
-    // Determine adjusted score (usage count + penalties)
-    const calculateScore = (color: string): number => {
-      /* istanbul ignore next */
-      const usageCount = colorUsageCounts.get(color) || 0;
-      const adjacencyPenalty = adjacentColors.includes(color) ? 100 : 0;
-      return usageCount + adjacencyPenalty;
-    };
-
-    // If there is any color that has never been used, prioritize it
-    const unusedColor = this.colors.find(
-      color => (colorUsageCounts.get(color) || 0) === 0,
+    const equallyUsed = Array.from(colorUsageCounts.values()).every(
+      count => count === colorUsageCounts.values().next().value,
     );
-    if (unusedColor) {
-      return unusedColor;
+
+    // avoid color if it is already used by previous label (could be a forced color)
+    const previousLabelColor = [...this.chartLabelsColorMap.values()].pop();
+    if (previousLabelColor && previousLabelColor === currentColor) {
+      // return the least used color that is not the current color
+      return this.colors.reduce((prev, color) => {
+        const usageCount = colorUsageCounts.get(color) || 0;
+        const prevUsageCount = colorUsageCounts.get(prev) || 0;
+        return usageCount < prevUsageCount ? color : prev;
+      }, currentColor);
     }
 
-    // If all colors are used, calculate scores and choose the best one
-    const otherColors = this.colors.filter(color => color !== currentColor);
+    // restart from the first color if all colors are equally used
+    if (equallyUsed && colorUsageCounts.size === this.colors.length) {
+      return this.colors[0];
+    }
 
-    // Find the color with the minimum score, defaulting to currentColor
-    return otherColors.reduce((bestColor, color) => {
-      const bestScore = calculateScore(bestColor);
-      const currentScore = calculateScore(color);
-      return currentScore < bestScore ? color : bestColor;
-    }, currentColor);
+    return currentColor;
   }
 
   /**

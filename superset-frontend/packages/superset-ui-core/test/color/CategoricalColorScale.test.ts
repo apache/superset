@@ -141,7 +141,6 @@ describe('CategoricalColorScale', () => {
       expect(c3).not.toBe(c1);
     });
     it('recycles colors when number of items exceed available colors', () => {
-      const colorSet: { [key: string]: number } = {};
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       const colors = [
         scale.getColor('pig'),
@@ -151,17 +150,7 @@ describe('CategoricalColorScale', () => {
         scale.getColor('donkey'),
         scale.getColor('goat'),
       ];
-      colors.forEach(color => {
-        if (colorSet[color]) {
-          colorSet[color] += 1;
-        } else {
-          colorSet[color] = 1;
-        }
-      });
-      expect(Object.keys(colorSet)).toHaveLength(3);
-      ['blue', 'red', 'green'].forEach(color => {
-        expect(colorSet[color]).toBe(2);
-      });
+      expect(colors).toEqual(['blue', 'red', 'green', 'blue', 'red', 'green']);
     });
     it('get analogous colors when number of items exceed available colors', () => {
       window.featureFlags = {
@@ -318,9 +307,10 @@ describe('CategoricalColorScale', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
       scale.getColor('cat');
       scale.getColor('dog');
+      scale.getColor('pet');
 
-      // Since 'green' hasn't been used, it's considered the least used.
-      expect(scale.getNextAvailableColor('fish', 'blue')).toBe('green');
+      // All colors used equally, so the function should return the current color
+      expect(scale.getNextAvailableColor('fish', 'blue')).toBe('blue');
     });
 
     it('returns the least used color among all', () => {
@@ -332,25 +322,6 @@ describe('CategoricalColorScale', () => {
       scale.getColor('teddy'); // red
       // All colors used, so the function should return least used
       expect(scale.getNextAvailableColor('darling', 'red')).toBe('green');
-    });
-
-    it('returns the least used color accurately even when some colors are used more frequently', () => {
-      const scale = new CategoricalColorScale([
-        'blue',
-        'red',
-        'green',
-        'yellow',
-      ]);
-      scale.getColor('cat'); // blue
-      scale.getColor('dog'); // red
-      scale.getColor('frog'); // green
-      scale.getColor('fish'); // yellow
-      scale.getColor('goat'); // blue
-      scale.getColor('horse'); // red
-      scale.getColor('pony'); // green
-
-      // Yellow is the least used color, so it should be returned.
-      expect(scale.getNextAvailableColor('pony', 'blue')).toBe('yellow');
     });
     it('does not return adjacent colors if a non-adjacent color is equally used', () => {
       const scale = new CategoricalColorScale(['blue', 'red', 'green']);
@@ -389,18 +360,6 @@ describe('CategoricalColorScale', () => {
 
       // "green" has never been used, so usageCount for "green" should fallback to 0
       expect(scale.getNextAvailableColor('label2', 'red')).toBe('green');
-    });
-    it('handles a color with an explicit usage count of 0', () => {
-      const scale = new CategoricalColorScale(['blue', 'red', 'green']);
-
-      // Mock or override getColorUsageCount to return 0 for "blue"
-      jest.spyOn(scale, 'getColorUsageCount').mockImplementation(color => {
-        if (color === 'blue') return 0; // Explicitly return 0 for "blue"
-        return 1; // Return 1 for other colors
-      });
-
-      // "blue" should still be a valid option with a usage count of 0
-      expect(scale.getNextAvailableColor('label1', 'red')).toBe('blue');
     });
   });
 
