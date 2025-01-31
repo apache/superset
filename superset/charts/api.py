@@ -576,7 +576,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     schema:
                       $ref: "#/components/schemas/ChartCacheScreenshotResponseSchema"
             202:
-              description: Chart async task created
+              description: Chart screenshot task created
               content:
                 application/json:
                   schema:
