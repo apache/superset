@@ -62,7 +62,7 @@ class TablesDatabaseCommand(BaseCommand):
                 datasource_names=sorted(
                     # get_all_table_names_in_schema may return raw (unserialized) cached
                     # results, so we wrap them as DatasourceName objects here instead of
-                    # directly in the method ensure consistency.
+                    # directly in the method to ensure consistency.
                     DatasourceName(*datasource_name)
                     for datasource_name in self._model.get_all_table_names_in_schema(
                         catalog=self._catalog_name,
@@ -81,7 +81,7 @@ class TablesDatabaseCommand(BaseCommand):
                 datasource_names=sorted(
                     # get_all_view_names_in_schema may return raw (unserialized) cached
                     # results, so we wrap them as DatasourceName objects here instead of
-                    # directly in the method ensure consistency.
+                    # directly in the method to ensure consistency.
                     DatasourceName(*datasource_name)
                     for datasource_name in self._model.get_all_view_names_in_schema(
                         catalog=self._catalog_name,
