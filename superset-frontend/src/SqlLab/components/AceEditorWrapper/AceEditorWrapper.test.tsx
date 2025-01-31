@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { render, waitFor, createStore } from 'spec/helpers/testing-library';
 import { QueryEditor } from 'src/SqlLab/types';
@@ -33,9 +31,6 @@ import {
   queryEditorSetDb,
 } from 'src/SqlLab/actions/sqlLab';
 import fetchMock from 'fetch-mock';
-
-const middlewares = [thunk];
-const mockStore = configureStore(middlewares);
 
 fetchMock.get('glob:*/api/v1/database/*/function_names/', {
   function_names: [],
@@ -79,7 +74,8 @@ describe('AceEditorWrapper', () => {
   });
 
   it('renders ace editor including sql value', async () => {
-    const { getByTestId } = setup(defaultQueryEditor, mockStore(initialState));
+    const store = createStore(initialState, reducerIndex);
+    const { getByTestId } = setup(defaultQueryEditor, store);
     await waitFor(() => expect(getByTestId('react-ace')).toBeInTheDocument());
 
     expect(getByTestId('react-ace')).toHaveTextContent(
@@ -89,9 +85,8 @@ describe('AceEditorWrapper', () => {
 
   it('renders current sql for unrelated unsaved changes', () => {
     const expectedSql = 'SELECT updated_column\nFROM updated_table\nWHERE';
-    const { getByTestId } = setup(
-      defaultQueryEditor,
-      mockStore({
+    const store = createStore(
+      {
         ...initialState,
         sqlLab: {
           ...initialState.sqlLab,
@@ -100,8 +95,10 @@ describe('AceEditorWrapper', () => {
             sql: expectedSql,
           },
         },
-      }),
+      },
+      reducerIndex,
     );
+    const { getByTestId } = setup(defaultQueryEditor, store);
 
     expect(getByTestId('react-ace')).not.toHaveTextContent(
       JSON.stringify({ value: expectedSql }).slice(1, -1),
@@ -122,7 +119,7 @@ describe('AceEditorWrapper', () => {
       queryEditorSetCursorPosition(defaultQueryEditor, updatedCursorPosition),
     );
     expect(FullSQLEditor).toHaveBeenCalledTimes(renderCount);
-    store.dispatch(queryEditorSetDb(defaultQueryEditor, 1));
+    store.dispatch(queryEditorSetDb(defaultQueryEditor, 2));
     expect(FullSQLEditor).toHaveBeenCalledTimes(renderCount + 1);
   });
 });
