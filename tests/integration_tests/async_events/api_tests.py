@@ -21,10 +21,9 @@ from superset.async_events.cache_backend import (
     RedisCacheBackend,
     RedisSentinelCacheBackend,
 )
-from superset.extensions import async_query_manager
+from superset.extensions import async_query_manager, async_query_manager_factory
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app
 
@@ -39,7 +38,7 @@ class TestAsyncEventApi(SupersetTestCase):
 
     def run_test_with_cache_backend(self, cache_backend_cls: Type[Any], test_func):
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
 
         # Create a mock cache backend instance
         mock_cache = mock.Mock(spec=cache_backend_cls)
@@ -116,26 +115,22 @@ class TestAsyncEventApi(SupersetTestCase):
         }
         assert response == expected
 
-    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_redis_cache_backend(self, mock_uuid4):
         self.run_test_with_cache_backend(RedisCacheBackend, self._test_events_logic)
 
-    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     @mock.patch("uuid.uuid4", return_value=UUID)
     def test_events_redis_sentinel_cache_backend(self, mock_uuid4):
         self.run_test_with_cache_backend(
             RedisSentinelCacheBackend, self._test_events_logic
         )
 
-    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     def test_events_no_login(self):
         app._got_first_request = False
-        async_query_manager.init_app(app)
+        async_query_manager_factory.init_app(app)
         rv = self.fetch_events()
         assert rv.status_code == 401
 
-    @with_feature_flags(GLOBAL_ASYNC_QUERIES=True)
     def test_events_no_token(self):
         self.login(ADMIN_USERNAME)
         self.client.set_cookie(app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME"], "")
