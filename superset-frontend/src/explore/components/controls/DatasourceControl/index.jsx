@@ -114,6 +114,7 @@ const Styles = styled.div`
     overflow: hidden;
   }
   .datasource-svg {
+    color: ${({ theme }) => theme.colors.grayscale.base};
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
@@ -140,7 +141,7 @@ export const datasourceIconLookup = {
   [DatasourceType.Query]: (
     <Icons.ConsoleSqlOutlined className="datasource-svg" />
   ),
-  [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+  [DatasourceType.Table]: <Icons.TableOutlined  className="datasource-svg" />,
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH

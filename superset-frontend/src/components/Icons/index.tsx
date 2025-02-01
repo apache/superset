@@ -144,7 +144,6 @@ const IconFileNames = [
   'sort_asc',
   'sort_desc',
   'sort',
-  'table-chart-tile',
   'triangle_change',
   'triangle_down',
   'triangle_up',
@@ -160,9 +159,6 @@ const IconFileNames = [
   'undo',
   'redo',
   // to remove
-  'database',
-  'table',
-  'tag',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

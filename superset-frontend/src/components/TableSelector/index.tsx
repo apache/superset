@@ -127,7 +127,7 @@ export const TableOption = ({ table }: { table: Table }) => {
       {type === 'view' ? (
         <Icons.Eye iconSize="m" />
       ) : (
-        <Icons.Table iconSize="m" />
+        <Icons.DeleteOutlined iconSize="m" />
       )}
       {extra?.certification && (
         <CertifiedBadge
