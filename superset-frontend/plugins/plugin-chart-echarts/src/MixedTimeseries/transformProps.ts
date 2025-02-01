@@ -19,7 +19,6 @@
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
-  AdhocMetric,
   AnnotationLayer,
   AxisType,
   buildCustomFormatters,
@@ -28,6 +27,7 @@ import {
   ensureIsArray,
   GenericDataType,
   getCustomFormatter,
+  getMetricLabel,
   getNumberFormatter,
   getXAxisLabel,
   isDefined,
@@ -293,16 +293,12 @@ export default function transformProps(
     stack,
   });
 
-  const metricMapFunc = (metric: string | AdhocMetric) => {
-    if (metric.hasOwnProperty('label')) {
-      return (metric as AdhocMetric).label;
-    }
-    return verboseMap[metric as string] || metric;
-  };
   const metricsLabels = metrics
-    .map(metricMapFunc)
+    .map(metric => getMetricLabel(metric, undefined, undefined, verboseMap))
     .filter((label): label is string => label !== undefined);
-  const metricsLabelsB = metricsB.map(metricMapFunc);
+  const metricsLabelsB = metricsB.map((metric: QueryFormMetric) =>
+    getMetricLabel(metric, undefined, undefined, verboseMap),
+  );
 
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedDataA,
