@@ -17,7 +17,7 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@algolia/client-search": "^5.18.0",
+    "@algolia/client-search": "^5.20.0",
     "@ant-design/icons": "^5.5.2",
     "@docsearch/react": "^3.8.2",
     "@docusaurus/core": "^3.5.2",
