@@ -1,5 +1,6 @@
 # TDengine driver for Apache SuperSet
 from superset.db_engine_specs.base import  BaseEngineSpec
+from urllib import parse
 
 class TDengineEngineSpec(BaseEngineSpec):
     engine = "taosws"
@@ -17,3 +18,16 @@ class TDengineEngineSpec(BaseEngineSpec):
         "P1D":  "TIMETRUNCATE({col}, 1d, 0)",
         "P1W":  "TIMETRUNCATE({col}, 1w, 0)",
     }
+
+    @classmethod
+    def get_schema_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> Optional[str]:
+        """
+        Return the configured schema.
+
+        A TDengine database is a SQLAlchemy schema.
+        """
+        return parse.unquote(sqlalchemy_uri.database)
