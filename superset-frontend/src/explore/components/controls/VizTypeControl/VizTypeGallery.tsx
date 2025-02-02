@@ -618,7 +618,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       },
       [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags iconSize="m" />,
+        icon: <Icons.NumberOutlined iconSize="m" />,
         selectors: tags,
       },
     }),

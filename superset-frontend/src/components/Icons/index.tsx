@@ -31,7 +31,6 @@ const IconFileNames = [
   'bar-chart-tile',
   'big-number-chart-tile',
   'binoculars',
-  'bolt',
   'bolt_small',
   'bolt_small_run',
   'calendar',
@@ -153,12 +152,13 @@ const IconFileNames = [
   'warning_solid',
   'x-large',
   'x-small',
-  'tags',
   'ballot',
   'category',
   'undo',
   'redo',
   // to remove
+  'tags',
+  'bolt',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

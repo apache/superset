@@ -47,7 +47,8 @@ export const NameRow = ({
       `}
     >
       <InternalRow>
-        <Icons.FilterSmall
+        <Icons.FilterOutlined
+          iconSize="s"
           css={(theme: SupersetTheme) => css`
             margin-right: ${theme.gridUnit}px;
           `}

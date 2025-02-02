@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  styled,
   t,
   useTheme,
   getClientErrorObject,

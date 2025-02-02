@@ -334,7 +334,7 @@ const DatasetPanel = ({
             title={tableName || ''}
           >
             {tableName && (
-              <Icons.DatasetPanel iconColor={theme.colors.grayscale.base} />
+              <Icons.TableOutlined iconColor={theme.colors.grayscale.base} />
             )}
             {tableName}
           </StyledHeader>

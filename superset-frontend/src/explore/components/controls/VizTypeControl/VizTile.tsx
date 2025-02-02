@@ -122,13 +122,13 @@ export const VizTile = ({
           `}
         `}
       >
-        <span 
-        css={
-          css`
-           padding:0px ${theme.gridUnit}px;
-          `
-        }
-        >{vizMeta.icon}</span>
+        <span
+          css={css`
+            padding: 0px ${theme.gridUnit}px;
+          `}
+        >
+          {vizMeta.icon}
+        </span>
         <span
           css={css`
             overflow: hidden;

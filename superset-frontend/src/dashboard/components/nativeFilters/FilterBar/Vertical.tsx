@@ -30,7 +30,7 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyState } from 'src/components/EmptyState';
@@ -104,10 +104,6 @@ const StyledCollapseIcon = styled(Icons.Collapse)`
   `}
 `;
 
-const StyledFilterIcon = styled(Icons.Filter)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 8}px;
 `;
@@ -132,6 +128,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   toggleFiltersBar,
   width,
 }) => {
+  const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
@@ -209,7 +206,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             {...getFilterBarTestId('expand-button')}
             iconSize="l"
           />
-          <StyledFilterIcon
+          <Icons.FilterOutlined
+            iconColor={theme.colors.grayscale.base}
             {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />

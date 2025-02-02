@@ -78,6 +78,9 @@ import {
   UserOutlined,
   VerticalLeftOutlined,
   VerticalRightOutlined,
+  NumberOutlined,
+  ThunderboltOutlined,
+  FilterOutlined,
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -142,6 +145,9 @@ const AntdIcons = {
   UserOutlined,
   VerticalLeftOutlined,
   VerticalRightOutlined,
+  NumberOutlined,
+  ThunderboltOutlined,
+  FilterOutlined,
 };
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)

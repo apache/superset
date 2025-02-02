@@ -30,7 +30,7 @@ export const FEATURED_CHARTS: VizMeta[] = [
     icon: <Icons.BarChartTile />,
   },
   { name: VizType.Area, icon: <Icons.AreaChartTile /> },
-  { name: VizType.Table, icon: <Icons.TableOutlined iconSize='l' /> },
+  { name: VizType.Table, icon: <Icons.TableOutlined iconSize="l" /> },
   {
     name: VizType.BigNumberTotal,
     icon: <Icons.BigNumberChartTile />,
