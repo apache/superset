@@ -10,7 +10,7 @@ class TDengineEngineSpec(BaseEngineSpec):
     engine_name = "TDengine"
     max_column_name_length = 64
     default_driver = "taosws"
-    sqlalchemy_uri_placeholder = ("taosws://user:password@host:port/dbname[?key=value&key=value...]")
+    sqlalchemy_uri_placeholder = ("taosws://user:******@host:port/dbname[?key=value&key=value...]")
     
     # time grain
     _time_grain_expressions = {
