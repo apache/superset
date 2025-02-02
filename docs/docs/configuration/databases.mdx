@@ -1339,16 +1339,10 @@ StarRocks maintains their Superset docuementation [here](https://docs.starrocks.
 
 #### TDengine
 
-The recommended connector library for TDengine is
-[taospy](https://pypi.org/project/taospy/).
-You need to install the extras as well for this library.
-We recommend adding something like the following
-text to your requirements file:
+[TDengine](https://www.tdengine.com) is a High-Performance, Scalable Time-Series Database for Industrial IoT and provides SQL-like query interface.     
 
-```
-taospy>=2.7.19
-taos-ws-py>=0.3.5
-```
+The recommended connector library for TDengine is [taospy](https://pypi.org/project/taospy/) and [taos-ws-py](https://pypi.org/project/taos-ws-py/)
+
 
 The expected connection string is formatted as follows:
 
@@ -1356,6 +1350,11 @@ The expected connection string is formatted as follows:
 taosws://<user>:<password>@<host>:<port>
 ```
 
+For example:
+
+```
+taosws://root:taosdata@127.0.0.1:6041
+```
 
 #### Teradata
 
