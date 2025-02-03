@@ -50,17 +50,45 @@ jobs:
             echo "result=up" >> $GITHUB_OUTPUT
           else
             echo "result=noop" >> $GITHUB_OUTPUT
-            exit 1
           fi
 
       - name: Get event SHA
         id: get-sha
-        run: |
-          echo "sha=${{ github.event.pull_request.head.sha }}" >> $GITHUB_OUTPUT
+        if: steps.eval-label.outputs.result == 'up'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let prSha;
+
+            // If event is workflow_dispatch, use the issue_number from inputs
+            if (context.eventName === "workflow_dispatch") {
+              const prNumber = "${{ github.event.inputs.issue_number }}";
+              if (!prNumber) {
+                console.log("No PR number found.");
+                return;
+              }
+
+              // Fetch PR details using the provided issue_number
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber
+              });
+
+              prSha = pr.head.sha;
+            } else {
+              // If it's not workflow_dispatch, use the PR head sha from the event
+              prSha = context.payload.pull_request.head.sha;
+            }
+
+            console.log(`PR SHA: ${prSha}`);
+            core.setOutput("sha", prSha);
 
       - name: Looking for feature flags in PR description
         uses: actions/github-script@v7
         id: eval-feature-flags
+        if: steps.eval-label.outputs.result == 'up'
         with:
           script: |
             const description = context.payload.pull_request
@@ -81,6 +109,7 @@ jobs:
 
       - name: Reply with confirmation comment
         uses: actions/github-script@v7
+        if: steps.eval-label.outputs.result == 'up'
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -274,20 +303,22 @@ jobs:
         with:
           github-token: ${{github.token}}
           script: |
+            const issue_number = context.payload.inputs?.issue_number || context.issue.number;
             github.rest.issues.createComment({
-              issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
+              issue_number: issue_number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '@${{ github.actor }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are `admin`/`admin`. Please allow several minutes for bootstrapping and startup.'
-            })
+              body: `@${{ github.actor }} Ephemeral environment spinning up at http://${{ steps.get-ip.outputs.ip }}:8080. Credentials are 'admin'/'admin'. Please allow several minutes for bootstrapping and startup.`
+            });
       - name: Comment (failure)
         if: ${{ failure() }}
         uses: actions/github-script@v7
         with:
           github-token: ${{github.token}}
           script: |
+            const issue_number = context.payload.inputs?.issue_number || context.issue.number;
             github.rest.issues.createComment({
-              issue_number: ${{ github.event.inputs.issue_number || github.event.issue.number }},
+              issue_number: issue_number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: '@${{ github.event.inputs.user_login || github.event.comment.user.login }} Ephemeral environment creation failed. Please check the Actions logs for details.'
