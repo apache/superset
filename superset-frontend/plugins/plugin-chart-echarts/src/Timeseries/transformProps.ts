@@ -622,6 +622,7 @@ export default function transformProps(
         theme,
         zoomable,
         legendState,
+        padding,
       ),
       data: legendData as string[],
     },
