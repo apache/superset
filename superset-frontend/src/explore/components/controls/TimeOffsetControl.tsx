@@ -23,7 +23,6 @@ import {
   parseDttmToDate,
   BinaryAdhocFilter,
   SimpleAdhocFilter,
-  css,
   customTimeRangeDecode,
   computeCustomDateTime,
   fetchTimeRange,
@@ -223,9 +222,6 @@ export default function TimeOffsetControls({
     <div>
       <ControlHeader {...props} />
       <DatePicker
-        css={css`
-          width: 100%;
-        `}
         onChange={(datetime: Dayjs) =>
           onChange(datetime ? datetime.format(DAYJS_FORMAT) : '')
         }
