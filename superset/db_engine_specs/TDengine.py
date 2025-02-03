@@ -42,7 +42,7 @@ class TDengineEngineSpec(BaseEngineSpec):
     def get_schema_from_engine_params(
         cls,
         sqlalchemy_uri: URL,
-        connect_args: dict[str, Any],
+        connect_args,
     ) -> Optional[str]:
         """
         Return the configured schema.
