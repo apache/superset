@@ -459,9 +459,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilterOptions, setNativeFilterOptions] = useState<object>([]);
   const [nativeFilterValues, setNativeFilterValues] = useState<object>([]);
 
-  const [nativeFilterOptionsTwo, setNativeFilterOptionsTwo] = useState<object>([]);
-
-  console.log('nativeFilters', nativeFilterOptions);
+  // todo(hughhh): refactor to handle multiple native filters
+  const [nativeFilter, setSelectedNativeFilter] = useState<object>({});
+  const [nativeFilters, setGlobalNativeFilters] = useState<object>({});
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -673,6 +673,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
+
+
+    // todo(hughhh): refactor to handle multiple native filters
+    currentAlert.extra.nativeFilter = nativeFilter
+
     const data: any = {
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
@@ -842,7 +847,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           });
           setTabOptions(tabTree);
           // console.log('setting native filters', nativeFilters);
-          // setNativeFilterOptions(nativeFilters);
+          setGlobalNativeFilters(nativeFilters);
 
           // const dashboardId = dashboard.value;
           // const newFormData = getFormData({
@@ -893,11 +898,15 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           if (anchor) {
               // const nativeFiltersOptions = nativeFilters[anchor].map((filter: any) => {value: filter.id, label: filter.name})
               console.log('nativeFiltersOptions', nativeFilters[anchor]);
-              setNativeFilterOptions(nativeFilters[anchor].map((filter: any) => ({value: filter.id, label: filter.name})));
-              getChartDataRequest(chartDataExample).then(response => {
-                console.log('hello', response)
-                setNativeFilterValues(response.json.result[0].data.map((item: any) => ({value: item.clinical_stage, label: item.clinical_stage})))
-              });
+            setNativeFilterOptions(
+              nativeFilters[anchor].map((filter: any) => ({
+                value: filter.id,
+                label: filter.name,
+              }))
+              // getChartDataRequest(chartDataExample).then(response => {
+              //   console.log('hello', response)
+              //   setNativeFilterValues(response.json.result[0].data.map((item: any) => ({value: item.clinical_stage, label: item.clinical_stage})))
+              // });
             
             try {
               const parsedAnchor = JSON.parse(anchor);
@@ -1179,6 +1188,58 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onChangeDashboardFilter = (value: any) => {
     console.log('dashboardFilter', value);
+    // set dashboardFilter
+    const anchor = currentAlert?.extra?.dashboard?.anchor
+    const inScopeFilters = nativeFilters[anchor];
+    const filter = inScopeFilters.filter((f: any) => f.id === value)[0]
+    console.log(filter) // use filter to grab values from API
+    console.log('about to get filter values', value);
+    
+    const datasetId = filter.targets[0].datasetId;
+    const columnName = filter.targets[0].column.name;
+    const dashboardId = currentAlert?.dashboard?.value;
+  
+    // Get values tied to the selected filter
+    const filterValues = {
+      formData: {
+        // enableEmptyFilter: false,
+        // defaultToFirstItem: false,
+        // multiSelect: true,
+        // searchAllOptions: false,
+        // inverseSelection: false,
+        datasource: `${datasetId}__table`,
+        groupby: [columnName],
+        // adhoc_filters: [],
+        // extra_filters: [],
+        // extra_form_data: {},
+        metrics: ["count"],
+        row_limit: 1000,
+        showSearch: true,
+        // url_params: {
+        //   native_filters_key: "0ktJOz1FTTo"
+        // },
+        // inView: true,
+        viz_type: "filter_select",
+        // type: "NATIVE_FILTER",
+        dashboardId: dashboardId,
+        // native_filter_id: "NATIVE_FILTER-8jS1fx4hl"
+      },
+      force: false,
+      ownState: {}
+    }
+    
+    getChartDataRequest(filterValues).then(response => {
+      setNativeFilterValues(response.json.result[0].data.map((item: any) => ({value: item[columnName], label: item[columnName]})))
+    });
+
+  }
+
+  const onChangeDashboardFilterValue = (value: any) => {
+    console.log('dashboardValue', value);
+    // set dashboardValue
+    setSelectedNativeFilter({...nativeFilter, nativeFilterValue: value});
+
+    
   }
 
   // Make sure notification settings has the required info
@@ -1844,15 +1905,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <Select 
                   disabled={nativeFilterOptions?.length < 1}
                   ariaLabel={t('Select Filter')}
-                  value={"value"}
+                  value={nativeFilter.nativeFilter}
                   options={nativeFilterOptions}
+                  onChange={onChangeDashboardFilter}
                 />
                 <div className="control-label">{t('Select Dashboard Value')}</div>
                 <Select 
                   ariaLabel={t('Value')}
-                  value={"value"}
+                  value={nativeFilter.nativeFilterValue}
                   options={nativeFilterValues}
-                  onChange={onChangeDashboardFilter}
+                  onChange={onChangeDashboardFilterValue}
                 />
               </div>
             </StyledInputContainer>

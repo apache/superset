@@ -69,6 +69,7 @@ are compatible with Superset.
 | [MySQL](/docs/configuration/databases#mysql)                            | `pip install mysqlclient`                                                          | `mysql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
 | [OceanBase](/docs/configuration/databases#oceanbase)                    | `pip install oceanbase_py`                                                         | `oceanbase://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                      |
 | [Oracle](/docs/configuration/databases#oracle)                          | `pip install cx_Oracle`                                                            | `oracle://`                                                                                                                                            |
+| [Parseable](/docs/configuration/databases#parseable)                    | `pip install sqlalchemy-parseable`                                                 | `parseable://<UserName>:<DBPassword>@<Database Host>/<Stream Name>`                                                                                    |
 | [PostgreSQL](/docs/configuration/databases#postgres)                    | `pip install psycopg2`                                                             | `postgresql://<UserName>:<DBPassword>@<Database Host>/<Database Name>`                                                                                 |
 | [Presto](/docs/configuration/databases#presto)                          | `pip install pyhive`                                                               | `presto://`                                                                                                                                            |
 | [Rockset](/docs/configuration/databases#rockset)                        | `pip install rockset-sqlalchemy`                                                   | `rockset://<api_key>:@<api_server>`                                                                                                                    |
@@ -1074,6 +1075,23 @@ The connection string is formatted as follows:
 oracle://<username>:<password>@<hostname>:<port>
 ```
 
+#### Parseable
+
+[Parseable](https://www.parseable.io) is a distributed log analytics database that provides SQL-like query interface for log data. The recommended connector library is [sqlalchemy-parseable](https://github.com/parseablehq/sqlalchemy-parseable).
+
+The connection string is formatted as follows:
+
+```
+parseable://<username>:<password>@<hostname>:<port>/<stream_name>
+```
+
+For example:
+
+```
+parseable://admin:admin@demo.parseable.com:443/ingress-nginx
+```
+
+Note: The stream_name in the URI represents the Parseable logstream you want to query. You can use both HTTP (port 80) and HTTPS (port 443) connections.
 
 
 #### Apache Pinot

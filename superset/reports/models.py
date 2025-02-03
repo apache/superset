@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
+import prison
 
 from cron_descriptor import get_description
 from flask_appbuilder import Model
@@ -34,6 +35,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import backref, relationship
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy_utils import UUIDType
+from typing import Optional
 
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -43,6 +45,7 @@ from superset.models.slice import Slice
 from superset.reports.types import ReportScheduleExtra
 from superset.utils.backports import StrEnum
 from superset.utils.core import MediumText
+
 
 metadata = Model.metadata  # pylint: disable=no-member
 
@@ -182,6 +185,37 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     @renders("crontab")
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
+    
+    def get_native_filters_params(self) -> Optional[str]:
+        params = None
+        if self.extra and self.extra.get("native_filters"):
+            filter = self.extra.get("native_filters", {})
+            params = self._generate_native_filter(filter.get("id"), filter.get("column"), filter.get("value"))
+        return prison.dumps(params)
+    
+    def _generate_native_filter(native_filter_id: str, column: str, value: str) -> dict:
+        return { 
+            "native_filters": {
+                native_filter_id: {
+                    "id": native_filter_id,
+                    "extraFormData": {
+                        "filters": [
+                            {
+                                "col": column,
+                                "op": "IN",
+                                "val": [value]
+                            }
+                        ]
+                    },
+                    "filterState": {
+                        "label": column, # pretty name but still works without this value
+                        "validateStatus": False,
+                        "value": [value]
+                    },
+                    "ownState": {}
+                }
+            }
+        }        
 
 
 class ReportRecipients(Model, AuditMixinNullable):
