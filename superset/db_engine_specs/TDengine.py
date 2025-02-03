@@ -1,4 +1,3 @@
-# TDengine driver for Apache SuperSet
 from superset.db_engine_specs.base import  BaseEngineSpec
 from urllib import parse
 from typing import Any
