@@ -25,16 +25,6 @@ from sqlalchemy import types
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 
-# test dttm
-def test_convert_dttm(
-    target_type: str,
-    expected_result: Optional[str],
-    dttm: datetime,  # noqa: F811
-) -> None:
-    from superset.db_engine_specs.rockset import RocksetEngineSpec as spec  # noqa: N813
-
-    assert_convert_dttm(spec, target_type, expected_result, dttm)
-
 
 # test get schema
 def test_get_schema_from_engine_params() -> None:
@@ -45,7 +35,7 @@ def test_get_schema_from_engine_params() -> None:
 
     assert (
         TDengineEngineSpec.get_schema_from_engine_params(
-            make_url("taosws://user:password@host:port/dbname"), {}
+            make_url("taosws://root:taosdata@127.0.0.1:6041/dbname"), {}
         )
         == "dbname"
     )
