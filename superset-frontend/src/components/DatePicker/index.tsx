@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DatePicker as AntdDatePicker } from 'antd-v5';
+import { DatePicker as AntdDatePicker, DatePickerProps } from 'antd-v5';
+import { css } from '@superset-ui/core';
 
-export const DatePicker = AntdDatePicker;
+export const DatePicker = (props: DatePickerProps) => (
+  <AntdDatePicker
+    css={css`
+      width: 100%;
+    `}
+    {...props}
+  />
+);
 
 // Disable ESLint rule to allow tsc to infer proper type for RangePicker.
 // eslint-disable-next-line prefer-destructuring
