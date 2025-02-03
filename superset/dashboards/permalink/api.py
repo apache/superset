@@ -72,7 +72,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                 examples:
                   time_grain_filter:
                     summary: "Time Grain Filter"
-                    description: "This body should be stringified and put into the value field."
                     value:
                       dataMask:
                         id: NATIVE_FILTER_ID
@@ -84,7 +83,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                             - "P1W/1970-01-03T00:00:00Z"
                   timecolumn_filter:
                     summary: "Time Column Filter"
-                    description: "This body should be stringified and put into the value field."
                     value:
                       dataMask:
                         id: NATIVE_FILTER_ID
@@ -95,7 +93,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                             - "order_date"
                   time_range_filter:
                     summary: "Time Range Filter"
-                    description: "This body should be stringified and put into the value field."
                     value:
                       dataMask:
                         id: NATIVE_FILTER_ID
@@ -105,7 +102,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                           value: 'DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day) : 2025-01-16T00:00:00'
                   numerical_range_filter:
                     summary: "Numerical Range Filter"
-                    description: "This body should be stringified and put into the value field."
                     value:
                       dataMask:
                         id: NATIVE_FILTER_ID
@@ -126,7 +122,6 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                           label: "1000 <= x <= 200"
                   value_filter:
                     summary: "Value Filter"
-                    description: "This body should be stringified and put into the value field."
                     value:
                       dataMask:
                         id: NATIVE_FILTER_ID
