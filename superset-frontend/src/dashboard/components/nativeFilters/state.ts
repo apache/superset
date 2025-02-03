@@ -135,7 +135,7 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
       filters.forEach(filter => {
         const filterInScope = isFilterInScope(filter);
 
-        if (filterInScope) {
+        if (filterInScope || filter.scope?.rootPath?.length) {
           filtersInScope.push(filter);
         } else {
           filtersOutOfScope.push(filter);
