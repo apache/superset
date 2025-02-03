@@ -23,8 +23,6 @@ from unittest.mock import Mock, patch
 import pytest
 from sqlalchemy import types
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
-from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-
 
 # test get schema
 def test_get_schema_from_engine_params() -> None:
