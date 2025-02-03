@@ -17,9 +17,15 @@
  * under the License.
  */
 import { DatePicker as AntdDatePicker, DatePickerProps } from 'antd-v5';
+import { css } from '@superset-ui/core';
 
 export const DatePicker = (props: DatePickerProps) => (
-  <AntdDatePicker style={{ width: '100%' }} {...props} />
+  <AntdDatePicker
+    css={css`
+      width: 100%;
+    `}
+    {...props}
+  />
 );
 
 // Disable ESLint rule to allow tsc to infer proper type for RangePicker.
