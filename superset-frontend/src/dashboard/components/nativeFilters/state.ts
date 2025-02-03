@@ -147,5 +147,5 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
       });
     }
     return [filtersInScope, filtersOutOfScope];
-  }, [dashboardHasTabs, filters, isFilterInScope, activeTabs.length]);
+  }, [dashboardHasTabs, filters, isFilterInScope, activeTabs]);
 }
