@@ -129,6 +129,7 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
     let filtersInScope: (Filter | Divider)[] = [];
     const filtersOutOfScope: (Filter | Divider)[] = [];
 
+    // we check native filters scopes only on dashboards with tabs
     if (!dashboardHasTabs) {
       filtersInScope = filters;
     } else {
