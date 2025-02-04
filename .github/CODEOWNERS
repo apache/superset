@@ -1,6 +1,5 @@
  Notify all committers of DB migration changes, per SIP-59
- 
-/superset/migrations/ 
+ /superset/migrations/ 
 
 # Notify Preset team when ephemeral env settings are changed
 .github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch @hundredthousandath
