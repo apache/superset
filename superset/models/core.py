@@ -451,13 +451,20 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
             engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
-                yield self._get_sqla_engine(
-                    catalog=catalog,
-                    schema=schema,
-                    nullpool=nullpool,
-                    source=source,
-                    sqlalchemy_uri=sqlalchemy_uri,
-                )
+                try:
+                    yield self._get_sqla_engine(
+                        catalog=catalog,
+                        schema=schema,
+                        nullpool=nullpool,
+                        source=source,
+                        sqlalchemy_uri=sqlalchemy_uri,
+                    )
+                except Exception as ex:
+                    if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(
+                        ex
+                    ):
+                        self.db_engine_spec.start_oauth2_dance(self)
+                    raise
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -583,24 +590,18 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             nullpool=nullpool,
             source=source,
         ) as engine:
-            try:
-                with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected schema and, in the  # noqa: E501
-                    # future, the selected catalog
-                    for prequery in self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
-                    ):
-                        cursor = conn.cursor()
-                        cursor.execute(prequery)
+            with closing(engine.raw_connection()) as conn:
+                # pre-session queries are used to set the selected schema and, in the
+                # future, the selected catalog
+                for prequery in self.db_engine_spec.get_prequeries(
+                    database=self,
+                    catalog=catalog,
+                    schema=schema,
+                ):
+                    cursor = conn.cursor()
+                    cursor.execute(prequery)
 
-                    yield conn
-
-            except Exception as ex:
-                if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                    self.db_engine_spec.start_oauth2_dance(self)
-                raise
+                yield conn
 
     def get_default_catalog(self) -> str | None:
         """
