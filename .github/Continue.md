@@ -1,17 +1,10 @@
-<!---
-Please write the PR title following the conventions at https://www.conventionalcommits.org/en/v1.0.0/
-Example:
+untracked files:
+Example: Gitlab.dev
 fix(dashboard): load charts correctly
 -->
 
-### SUMMARY
-<!--- Describe the change below, including rationale and design decisions -->
+### TEST ENVIROMENT
 
-### BEFORE/AFTER SCREENSHOTS OR ANIMATED GIF
-<!--- Skip this if not applicable -->
-
-### TESTING INSTRUCTIONS
-<!--- Required! What steps can be taken to manually verify the changes? -->
 
 ### ADDITIONAL INFORMATION
 <!--- Check any relevant boxes with "x" -->
