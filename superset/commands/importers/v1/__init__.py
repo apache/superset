@@ -48,6 +48,7 @@ class ImportModelsCommand(BaseCommand):
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.passwords: dict[str, str] = kwargs.get("passwords") or {}
+        self.encrypted_extras: dict[str, Schema] = kwargs.get("encrypted_extras") or {}
         self.ssh_tunnel_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_passwords") or {}
         )
@@ -96,6 +97,7 @@ class ImportModelsCommand(BaseCommand):
             self.contents,
             self.schemas,
             self.passwords,
+            self.encrypted_extras,
             exceptions,
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,

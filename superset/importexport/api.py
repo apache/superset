@@ -123,6 +123,14 @@ class ImportExportRestApi(BaseSupersetApi):
                         in the following format:
                         `{"databases/MyDatabase.yaml": "my_password"}`.
                       type: string
+                    encrypted_extras:
+                      description: >-
+                        JSON map of encrypted_extras for each featured database in the
+                        ZIP file. If the ZIP includes a database config in the path
+                        `databases/MyDatabase.yaml`, the encrypted_extra should be
+                        provided in the following format:
+                        `{"databases/MyDatabase.yaml": {"key": "value"}}`.
+                      type: string
                     ssh_tunnel_passwords:
                       description: >-
                         JSON map of passwords for each ssh_tunnel associated to a
@@ -183,6 +191,11 @@ class ImportExportRestApi(BaseSupersetApi):
             if "passwords" in request.form
             else None
         )
+        encrypted_extras = (
+            json.loads(request.form["encrypted_extras"])
+            if "encrypted_extras" in request.form
+            else None
+        )
         ssh_tunnel_passwords = (
             json.loads(request.form["ssh_tunnel_passwords"])
             if "ssh_tunnel_passwords" in request.form
@@ -202,6 +215,7 @@ class ImportExportRestApi(BaseSupersetApi):
         command = ImportAssetsCommand(
             contents,
             passwords=passwords,
+            encrypted_extras=encrypted_extras,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
