@@ -84,7 +84,11 @@ from superset.superset_typing import (
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_username
-from superset.utils.oauth2 import get_oauth2_access_token, OAuth2ClientConfigSchema
+from superset.utils.oauth2 import (
+    check_for_oauth2,
+    get_oauth2_access_token,
+    OAuth2ClientConfigSchema,
+)
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -451,7 +455,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
             engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
-                try:
+                with check_for_oauth2(self):
                     yield self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
@@ -459,12 +463,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
                     )
-                except Exception as ex:
-                    if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(
-                        ex
-                    ):
-                        self.db_engine_spec.start_oauth2_dance(self)
-                    raise
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -590,18 +588,18 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             nullpool=nullpool,
             source=source,
         ) as engine:
-            with closing(engine.raw_connection()) as conn:
-                # pre-session queries are used to set the selected schema and, in the
-                # future, the selected catalog
-                for prequery in self.db_engine_spec.get_prequeries(
-                    database=self,
-                    catalog=catalog,
-                    schema=schema,
-                ):
-                    cursor = conn.cursor()
-                    cursor.execute(prequery)
+            with check_for_oauth2(self):
+                with closing(engine.raw_connection()) as conn:
+                    # pre-session queries are used to set the selected catalog/schema
+                    for prequery in self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    ):
+                        cursor = conn.cursor()
+                        cursor.execute(prequery)
 
-                yield conn
+                    yield conn
 
     def get_default_catalog(self) -> str | None:
         """
