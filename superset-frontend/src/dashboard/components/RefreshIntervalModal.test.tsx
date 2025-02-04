@@ -22,10 +22,10 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import HeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { useHeaderActionsMenu } from './Header/useHeaderActionsDropdownMenu';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
@@ -91,10 +91,16 @@ const store = mockStore({
   },
 });
 
+const HeaderActionsMenu = (props: any) => {
+  const [menu] = useHeaderActionsMenu(props);
+
+  return <>{menu}</>;
+};
+
 const setup = (overrides?: any) => (
   <Provider store={store}>
     <div className="dashboard-header">
-      <HeaderActionsDropdown {...editModeOnProps} {...overrides} />
+      <HeaderActionsMenu {...editModeOnProps} {...overrides} />
     </div>
   </Provider>
 );
