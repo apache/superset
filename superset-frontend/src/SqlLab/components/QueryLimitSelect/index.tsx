@@ -104,7 +104,7 @@ const QueryLimitSelect = ({
           <span className="limitDropdown">
             {convertToNumWithSpaces(queryLimit)}
           </span>
-          <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
+          <Icons.CaretDownOutlined iconSize='m' iconColor={theme.colors.grayscale.base} />
         </button>
       </AntdDropdown>
     </LimitSelectStyled>

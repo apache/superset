@@ -65,7 +65,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
           <StyledFlag className={`flag ${languages[locale].flag}`} />
         </div>
       }
-      icon={<Icons.TriangleDown />}
+      icon={<Icons.CaretDownOutlined />}
       {...rest}
     >
       {Object.keys(languages).map(langKey => (

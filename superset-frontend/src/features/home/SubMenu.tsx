@@ -234,7 +234,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               <SubMenu
                 key={i}
                 title={link.label}
-                icon={<Icons.TriangleDown />}
+                icon={<Icons.CaretDownOutlined />}
                 popupOffset={[10, 20]}
                 className="dropdown-menu-links"
               >

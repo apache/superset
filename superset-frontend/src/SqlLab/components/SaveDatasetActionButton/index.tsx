@@ -49,8 +49,7 @@ const SaveDatasetActionButton = ({
       }
     }
     span[name='caret-down'] {
-      margin-left: ${theme.gridUnit * 1}px;
-      color: ${theme.colors.primary.dark2};
+      margin-left: ${theme.gridUnit * 1.5}px;
     }
   `;
 
@@ -63,7 +62,8 @@ const SaveDatasetActionButton = ({
       onClick={() => setShowSave(true)}
       overlay={overlayMenu}
       icon={
-        <Icons.CaretDown
+        <Icons.CaretDownOutlined
+          iconSize='xl'
           iconColor={theme.colors.grayscale.light5}
           name="caret-down"
         />

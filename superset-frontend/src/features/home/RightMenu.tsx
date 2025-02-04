@@ -65,9 +65,6 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
   font-size: ${theme.typography.sizes.xs}px;
   white-space: nowrap;
 `;
-const StyledI = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
@@ -411,9 +408,9 @@ const RightMenu = ({
           <StyledSubMenu
             data-test="new-dropdown"
             title={
-              <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
+              <Icons.PlusOutlined iconColor={theme.colors.primary.dark1} data-test="new-dropdown-icon" />
             }
-            icon={<Icons.TriangleDown />}
+            icon={<Icons.CaretDownOutlined />}
           >
             {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
@@ -474,8 +471,8 @@ const RightMenu = ({
           </StyledSubMenu>
         )}
         <StyledSubMenu
-          title={t('Settings')}
-          icon={<Icons.TriangleDown iconSize="xl" />}
+          title={t('Setting')}
+          icon={<Icons.CaretDownOutlined />}
         >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>

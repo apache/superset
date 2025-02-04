@@ -254,7 +254,7 @@ const SavedQueries = ({
           {
             name: (
               <Link to="/sqllab?new=true">
-                <i className="fa fa-plus" />
+                <Icons.PlusOutlined css={{marginRight: theme.gridUnit * 0.5, verticalAlign: 'baseline'}} iconSize='s' iconColor={theme.colors.primary.dark1}/> 
                 {t('SQL Query')}
               </Link>
             ),

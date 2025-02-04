@@ -212,7 +212,7 @@ export function Menu({
       <StyledSubMenu
         key={index}
         title={label}
-        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
+        icon={showMenu === 'inline' ? <></> : <Icons.CaretDownOutlined />}
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-' && label !== 'Data') {

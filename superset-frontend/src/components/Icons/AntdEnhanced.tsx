@@ -23,13 +23,16 @@ import {
   AlignLeftOutlined,
   AlignRightOutlined,
   ApartmentOutlined,
+  AppstoreOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
-  CaretDownOutlined,
-  CalendarOutlined,
   CaretUpOutlined,
+  CaretDownOutlined,
+  CaretLeftOutlined,
+  CaretRightOutlined,
+  CalendarOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
@@ -55,6 +58,7 @@ import {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   InfoCircleOutlined,
+  InsertRowAboveOutlined,
   InsertRowBelowOutlined,
   LineChartOutlined,
   LinkOutlined,
@@ -73,6 +77,7 @@ import {
   TagOutlined,
   TagsOutlined,
   TableOutlined,
+  LockOutlined,
   UnlockOutlined,
   UpOutlined,
   UserOutlined,
@@ -81,6 +86,7 @@ import {
   NumberOutlined,
   ThunderboltOutlined,
   FilterOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -90,13 +96,16 @@ const AntdIcons = {
   AlignLeftOutlined,
   AlignRightOutlined,
   ApartmentOutlined,
+  AppstoreOutlined,
   ArrowRightOutlined,
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
-  CaretDownOutlined,
-  CalendarOutlined,
   CaretUpOutlined,
+  CaretDownOutlined,
+  CaretLeftOutlined,
+  CaretRightOutlined,
+  CalendarOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
@@ -122,6 +131,7 @@ const AntdIcons = {
   FullscreenOutlined,
   FundProjectionScreenOutlined,
   InfoCircleOutlined,
+  InsertRowAboveOutlined,
   InsertRowBelowOutlined,
   LineChartOutlined,
   LinkOutlined,
@@ -140,6 +150,7 @@ const AntdIcons = {
   TagOutlined,
   TagsOutlined,
   TableOutlined,
+  LockOutlined,
   UnlockOutlined,
   UpOutlined,
   UserOutlined,
@@ -148,7 +159,8 @@ const AntdIcons = {
   NumberOutlined,
   ThunderboltOutlined,
   FilterOutlined,
-};
+  UnorderedListOutlined
+}
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
   .filter(k => !k.includes('TwoTone'))
