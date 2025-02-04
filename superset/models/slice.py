@@ -380,9 +380,7 @@ def event_after_chart_changed(
     _mapper: Mapper, _connection: Connection, target: Slice
 ) -> None:
     cache_chart_thumbnail.delay(
-        current_user=get_current_user(),
-        chart_id=target.id,
-        force=True,
+        current_user=get_current_user(), chart_id=target.id, force=True
     )
 
 

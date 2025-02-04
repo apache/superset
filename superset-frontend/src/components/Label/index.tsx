@@ -123,10 +123,11 @@ export default function Label(props: LabelProps) {
       borderColor: borderColorHover,
       opacity: 1,
     },
+    ...(monospace
+      ? { 'font-family': theme.typography.families.monospace }
+      : {}),
   };
-  if (monospace) {
-    css['font-family'] = theme.typography.families.monospace;
-  }
+
   return (
     <Tag
       onClick={onClick}

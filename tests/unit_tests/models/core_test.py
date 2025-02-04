@@ -768,3 +768,59 @@ FROM (
 WHERE
   TRUE AND TRUE"""
     )
+
+
+def test_get_all_table_names_in_schema(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    mocker.patch.object(database, "get_inspector")
+    get_table_names = mocker.patch(
+        "superset.db_engine_specs.postgres.PostgresEngineSpec.get_table_names"
+    )
+    get_table_names.return_value = {"first_table", "second_table", "third_table"}
+
+    tables_list = database.get_all_table_names_in_schema(
+        catalog="examples",
+        schema="public",
+    )
+    assert sorted(tables_list) == sorted(
+        {
+            ("first_table", "public", "examples"),
+            ("second_table", "public", "examples"),
+            ("third_table", "public", "examples"),
+        }
+    )
+
+
+def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    mocker.patch.object(database, "get_inspector")
+    get_view_names = mocker.patch(
+        "superset.db_engine_specs.base.BaseEngineSpec.get_view_names"
+    )
+    get_view_names.return_value = {"first_view", "second_view", "third_view"}
+
+    views_list = database.get_all_view_names_in_schema(
+        catalog="examples",
+        schema="public",
+    )
+    assert sorted(views_list) == sorted(
+        {
+            ("first_view", "public", "examples"),
+            ("second_view", "public", "examples"),
+            ("third_view", "public", "examples"),
+        }
+    )

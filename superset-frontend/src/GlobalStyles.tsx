@@ -45,7 +45,8 @@ export const GlobalStyles = () => (
       .ant-popover,
       .ant-select-dropdown,
       .antd5-modal-wrap,
-      .antd5-modal-mask {
+      .antd5-modal-mask,
+      .antd5-picker-dropdown {
         z-index: ${theme.zIndex.max} !important;
       }
 

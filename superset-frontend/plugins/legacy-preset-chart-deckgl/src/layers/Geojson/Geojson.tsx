@@ -59,7 +59,7 @@ const alterProps = (props: JsonObject, propOverrides: JsonObject) => {
   const newProps: JsonObject = {};
   Object.keys(props).forEach(k => {
     if (k in propertyMap) {
-      newProps[propertyMap[k]] = props[k];
+      newProps[propertyMap[k as keyof typeof propertyMap]] = props[k];
     } else {
       newProps[k] = props[k];
     }

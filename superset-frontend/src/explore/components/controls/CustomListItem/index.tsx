@@ -26,7 +26,7 @@ export interface CustomListItemProps extends ListItemProps {
 export default function CustomListItem(props: CustomListItemProps) {
   const { selectable, children, ...rest } = props;
   const theme = useTheme();
-  const css = {
+  const css: Record<string, Record<string, Record<string, number> | string>> = {
     '&.antd5-list-item': {
       ':first-of-type': {
         borderTopLeftRadius: theme.gridUnit,
