@@ -1,6 +1,7 @@
 untracked files:
-Example: Gitlab.dev
-fix(dashboard): load charts correctly
+
+Sample: Github.dev
+dev load charts correctly start with ' not block
 -->
 
 ### TEST ENVIROMENT
