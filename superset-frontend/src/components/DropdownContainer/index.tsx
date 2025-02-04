@@ -137,7 +137,6 @@ const DropdownContainer = forwardRef(
     const { current } = ref;
     const [itemsWidth, setItemsWidth] = useState<number[]>([]);
     const [popoverVisible, setPopoverVisible] = useState(false);
-
     // We use React.useState to be able to mock the state in Jest
     const [overflowingIndex, setOverflowingIndex] = useState<number>(-1);
 
