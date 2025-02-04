@@ -1,11 +1,12 @@
  Notify all committers of DB migration changes, per SIP-59
  
-/superset/migrations/ @kernelset
+/superset/migrations/ 
 
 # Notify Preset team when ephemeral env settings are changed
-.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
-.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch
+.github/workflows/ecs-task-definition.json @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch @hundredthousandath
+.github/workflows/docker-ephemeral-env.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch @hundredthousandath
+.github/workflows/ephemeral*.yml @robdiciuccio @craig-rueda @rusackas @eschutho @dpgaspar @nytai @mistercrunch @hundredthousandath
 
 # Notify some committers of changes in the Select component
-/superset-frontend/src/components/Select/ @michael-s-molina @geido
+/superset-frontend/src/components/Select/  @geido @hundredthousandath
+/superset-backend/src/components/Select/ @geido @hundredthousandath
