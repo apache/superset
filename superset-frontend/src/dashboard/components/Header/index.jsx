@@ -40,7 +40,6 @@ import { Button } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
-import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -88,6 +87,7 @@ import { dashboardInfoChanged } from '../../actions/dashboardInfo';
 import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
+import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -160,7 +160,6 @@ const Header = () => {
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
@@ -347,10 +346,6 @@ const Header = () => {
     },
     [boundActionCreators, dashboardTitle],
   );
-
-  const setDropdownVisible = useCallback(visible => {
-    setIsDropdownVisible(visible);
-  }, []);
 
   const handleCtrlY = useCallback(() => {
     boundActionCreators.onRedo();
@@ -689,92 +684,40 @@ const Header = () => {
     ],
   );
 
-  const menuDropdownProps = useMemo(
-    () => ({
-      getPopupContainer: triggerNode =>
-        triggerNode.closest('.header-with-actions'),
-      open: isDropdownVisible,
-      onOpenChange: setDropdownVisible,
-    }),
-    [isDropdownVisible, setDropdownVisible],
-  );
-
-  const additionalActionsMenu = useMemo(
-    () => (
-      <ConnectedHeaderActionsDropdown
-        addSuccessToast={boundActionCreators.addSuccessToast}
-        addDangerToast={boundActionCreators.addDangerToast}
-        dashboardId={dashboardInfo.id}
-        dashboardTitle={dashboardTitle}
-        dashboardInfo={dashboardInfo}
-        dataMask={dataMask}
-        layout={layout}
-        expandedSlices={expandedSlices}
-        customCss={customCss}
-        colorNamespace={colorNamespace}
-        colorScheme={colorScheme}
-        onSave={boundActionCreators.onSave}
-        onChange={boundActionCreators.onChange}
-        forceRefreshAllCharts={forceRefresh}
-        startPeriodicRender={startPeriodicRender}
-        refreshFrequency={refreshFrequency}
-        shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
-        setRefreshFrequency={boundActionCreators.setRefreshFrequency}
-        updateCss={boundActionCreators.updateCss}
-        editMode={editMode}
-        hasUnsavedChanges={hasUnsavedChanges}
-        userCanEdit={userCanEdit}
-        userCanShare={userCanShare}
-        userCanSave={userCanSaveAs}
-        userCanCurate={userCanCurate}
-        isLoading={isLoading}
-        showPropertiesModal={showPropertiesModal}
-        manageEmbedded={showEmbedModal}
-        refreshLimit={refreshLimit}
-        refreshWarning={refreshWarning}
-        lastModifiedTime={actualLastModifiedTime}
-        isDropdownVisible={isDropdownVisible}
-        setIsDropdownVisible={setDropdownVisible}
-        logEvent={boundActionCreators.logEvent}
-      />
-    ),
-    [
-      actualLastModifiedTime,
-      boundActionCreators.addDangerToast,
-      boundActionCreators.addSuccessToast,
-      boundActionCreators.logEvent,
-      boundActionCreators.onChange,
-      boundActionCreators.onSave,
-      boundActionCreators.setRefreshFrequency,
-      boundActionCreators.updateCss,
-      colorNamespace,
-      colorScheme,
-      customCss,
-      dashboardInfo,
-      dashboardTitle,
-      dataMask,
-      editMode,
-      expandedSlices,
-      forceRefresh,
-      hasUnsavedChanges,
-      isDropdownVisible,
-      isLoading,
-      layout,
-      refreshFrequency,
-      refreshLimit,
-      refreshWarning,
-      setDropdownVisible,
-      shouldPersistRefreshFrequency,
-      showEmbedModal,
-      showPropertiesModal,
-      startPeriodicRender,
-      userCanCurate,
-      userCanEdit,
-      userCanSaveAs,
-      userCanShare,
-    ],
-  );
-
+  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+    addSuccessToast: boundActionCreators.addSuccessToast,
+    addDangerToast: boundActionCreators.addDangerToast,
+    dashboardInfo,
+    dashboardId: dashboardInfo.id,
+    dashboardTitle,
+    dataMask,
+    layout,
+    expandedSlices,
+    customCss,
+    colorNamespace,
+    colorScheme,
+    onSave: boundActionCreators.onSave,
+    onChange: boundActionCreators.onChange,
+    forceRefreshAllCharts: forceRefresh,
+    startPeriodicRender,
+    refreshFrequency,
+    shouldPersistRefreshFrequency,
+    setRefreshFrequency: boundActionCreators.setRefreshFrequency,
+    updateCss: boundActionCreators.updateCss,
+    editMode,
+    hasUnsavedChanges,
+    userCanEdit,
+    userCanShare,
+    userCanSaveAs,
+    userCanCurate,
+    isLoading,
+    showPropertiesModal,
+    manageEmbedded: showEmbedModal,
+    refreshLimit,
+    refreshWarning,
+    lastModifiedTime: actualLastModifiedTime,
+    logEvent: boundActionCreators.logEvent,
+  });
   return (
     <div
       css={headerContainerStyle}
@@ -788,8 +731,11 @@ const Header = () => {
         faveStarProps={faveStarProps}
         titlePanelAdditionalItems={titlePanelAdditionalItems}
         rightPanelAdditionalItems={rightPanelAdditionalItems}
-        menuDropdownProps={menuDropdownProps}
-        additionalActionsMenu={additionalActionsMenu}
+        menuDropdownProps={{
+          open: isDropdownVisible,
+          onOpenChange: setIsDropdownVisible,
+        }}
+        additionalActionsMenu={menu}
         showFaveStar={user?.userId && dashboardInfo?.id}
         showTitlePanelItems
       />
