@@ -34,6 +34,8 @@ export type MenuItemWithTruncationProps = {
 export const MenuItemWithTruncation = ({
   tooltipText,
   children,
+  onClick,
+  style,
   menuKey,
 }: MenuItemWithTruncationProps) => {
   const [itemRef, itemIsTruncated] = useCSSTextTruncation<HTMLDivElement>();
@@ -45,6 +47,8 @@ export const MenuItemWithTruncation = ({
         line-height: 1.5em;
       `}
       eventKey={menuKey}
+      onClick={onClick}
+      style={style}
     >
       <Tooltip title={itemIsTruncated ? tooltipText : null}>
         <div

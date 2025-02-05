@@ -532,7 +532,6 @@ const SliceHeaderControls = (
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
-        autoFocus
         forceRender
       >
         <Button
