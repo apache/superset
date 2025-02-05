@@ -104,7 +104,7 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
   ${({ stickyHeader }) =>
     stickyHeader &&
     `
-      height: 350px;
+      min-height: 350px;
       overflow-y: auto;
       overflow-x: auto;
 
