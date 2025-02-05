@@ -317,6 +317,14 @@ const DropdownContainer = forwardRef(
       };
     }, [popoverVisible]);
 
+    const handleChange = (visible: boolean) => {
+      if (visible) {
+        setPopoverVisible(true);
+      } else if (!document.querySelector('.time-range-popover')) {
+        setPopoverVisible(false);
+      }
+    };
+
     return (
       <div
         ref={ref}
@@ -370,7 +378,7 @@ const DropdownContainer = forwardRef(
               content={popoverContent}
               trigger="click"
               open={popoverVisible}
-              onOpenChange={visible => setPopoverVisible(visible)}
+              onOpenChange={visible => handleChange(visible)}
               placement="bottom"
               forceRender={forceRender}
             >
