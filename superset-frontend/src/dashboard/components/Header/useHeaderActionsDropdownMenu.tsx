@@ -263,28 +263,25 @@ export const useHeaderActionsMenu = ({
         {!editMode ? (
           showReportSubMenu ? (
             <>
-              <Menu.SubMenu title={t('Manage email report')}>
-                <HeaderReportDropdown
-                  dashboardId={dashboardInfo.id}
-                  setShowReportSubMenu={setShowReportSubMenu}
-                  showReportSubMenu={showReportSubMenu}
-                  setIsDropdownVisible={setIsDropdownVisible}
-                  isDropdownVisible={isDropdownVisible}
-                  useTextMenu
-                />
-              </Menu.SubMenu>
-              <Menu.Divider />
-            </>
-          ) : (
-            <Menu>
               <HeaderReportDropdown
+                submenuTitle={t('Manage email report')}
                 dashboardId={dashboardInfo.id}
                 setShowReportSubMenu={setShowReportSubMenu}
+                showReportSubMenu={showReportSubMenu}
                 setIsDropdownVisible={setIsDropdownVisible}
                 isDropdownVisible={isDropdownVisible}
                 useTextMenu
               />
-            </Menu>
+              <Menu.Divider />
+            </>
+          ) : (
+            <HeaderReportDropdown
+              dashboardId={dashboardInfo.id}
+              setShowReportSubMenu={setShowReportSubMenu}
+              setIsDropdownVisible={setIsDropdownVisible}
+              isDropdownVisible={isDropdownVisible}
+              useTextMenu
+            />
           )
         ) : null}
         {editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes) && (

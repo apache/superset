@@ -130,5 +130,7 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   );
 };
 
-export const Dropdown = AntdDropdown;
 export type DropdownProps = AntdDropdownProps;
+export const Dropdown = (props: DropdownProps) => (
+  <AntdDropdown autoFocus destroyPopupOnHide {...props} />
+);

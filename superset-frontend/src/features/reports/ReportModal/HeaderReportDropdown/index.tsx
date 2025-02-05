@@ -102,6 +102,7 @@ export interface HeaderReportProps {
   setIsDropdownVisible?: (visible: boolean) => void;
   isDropdownVisible?: boolean;
   showReportSubMenu?: boolean;
+  submenuTitle?: string;
 }
 
 // Same instance to be used in useEffects
@@ -114,6 +115,7 @@ export default function HeaderReportDropDown({
   setShowReportSubMenu,
   setIsDropdownVisible,
   isDropdownVisible,
+  submenuTitle,
   ...rest
 }: HeaderReportProps) {
   const dispatch = useDispatch();
@@ -221,7 +223,7 @@ export default function HeaderReportDropDown({
 
   const textMenu = () =>
     isEmpty(report) ? (
-      <Menu selectable={false} {...rest} css={onMenuHover}>
+      <Menu.SubMenu title={submenuTitle} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
@@ -233,9 +235,9 @@ export default function HeaderReportDropDown({
           )}
         </Menu.Item>
         <Menu.Divider />
-      </Menu>
+      </Menu.SubMenu>
     ) : (
-      <Menu selectable={false} css={{ border: 'none' }}>
+      <Menu.SubMenu title={submenuTitle} css={{ border: 'none' }}>
         <Menu.Item
           css={onMenuItemHover}
           onClick={() => toggleActiveKey(report, !isReportActive)}
@@ -251,10 +253,10 @@ export default function HeaderReportDropDown({
         <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
           {t('Delete email report')}
         </Menu.Item>
-      </Menu>
+      </Menu.SubMenu>
     );
   const menu = () => (
-    <Menu selectable={false} css={{ width: '200px' }}>
+    <Menu.SubMenu title={submenuTitle} css={{ width: '200px' }}>
       <Menu.Item>
         {t('Email reports active')}
         <Switch
@@ -274,7 +276,7 @@ export default function HeaderReportDropDown({
       >
         {t('Delete email report')}
       </Menu.Item>
-    </Menu>
+    </Menu.SubMenu>
   );
 
   const iconMenu = () =>
@@ -291,7 +293,7 @@ export default function HeaderReportDropDown({
     ) : (
       <>
         <NoAnimationDropdown
-          overlay={menu()}
+          dropdownRender={() => menu()}
           overlayStyle={dropdownOverlayStyle}
           trigger={['click']}
           getPopupContainer={(triggerNode: any) =>

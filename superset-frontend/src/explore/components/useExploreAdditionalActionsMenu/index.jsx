@@ -396,28 +396,25 @@ export const useExploreAdditionalActionsMenu = (
         <Menu.Divider />
         {showReportSubMenu ? (
           <>
-            <Menu.SubMenu title={t('Manage email report')}>
-              <HeaderReportDropDown
-                chart={chart}
-                setShowReportSubMenu={setShowReportSubMenu}
-                showReportSubMenu={showReportSubMenu}
-                setIsDropdownVisible={setIsDropdownVisible}
-                isDropdownVisible={isDropdownVisible}
-                useTextMenu
-              />
-            </Menu.SubMenu>
-            <Menu.Divider />
-          </>
-        ) : (
-          <Menu>
             <HeaderReportDropDown
+              submenuTitle={t('Manage email report')}
               chart={chart}
               setShowReportSubMenu={setShowReportSubMenu}
+              showReportSubMenu={showReportSubMenu}
               setIsDropdownVisible={setIsDropdownVisible}
               isDropdownVisible={isDropdownVisible}
               useTextMenu
             />
-          </Menu>
+            <Menu.Divider />
+          </>
+        ) : (
+          <HeaderReportDropDown
+            chart={chart}
+            setShowReportSubMenu={setShowReportSubMenu}
+            setIsDropdownVisible={setIsDropdownVisible}
+            isDropdownVisible={isDropdownVisible}
+            useTextMenu
+          />
         )}
         <Menu.Item key={MENU_KEYS.VIEW_QUERY}>
           <ModalTrigger
