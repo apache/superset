@@ -105,10 +105,10 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Get chart's permanent link state.
+        """Get permanent link state for SQLLab editor.
         ---
         get:
-          summary: Get chart's permanent link state
+          summary: Get permanent link state for SQLLab editor.
           parameters:
           - in: path
             schema:
