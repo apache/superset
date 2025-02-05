@@ -27,6 +27,8 @@ const createProps = () => ({
   isDropdownVisible: true,
   setIsDropdownVisible: jest.fn,
   setShowReportSubMenu: jest.fn,
+  showReportModal: jest.fn,
+  setCurrentReportDeleting: jest.fn,
 });
 
 const stateWithOnlyUser = {

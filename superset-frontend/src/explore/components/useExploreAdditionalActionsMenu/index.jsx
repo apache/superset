@@ -117,6 +117,7 @@ export const useExploreAdditionalActionsMenu = (
   ownState,
   dashboards,
   showReportModal,
+  setCurrentReportDeleting,
   ...rest
 ) => {
   const theme = useTheme();
@@ -403,6 +404,7 @@ export const useExploreAdditionalActionsMenu = (
               setShowReportSubMenu={setShowReportSubMenu}
               showReportSubMenu={showReportSubMenu}
               showReportModal={showReportModal}
+              setCurrentReportDeleting={setCurrentReportDeleting}
               useTextMenu
             />
             <Menu.Divider />
@@ -412,6 +414,7 @@ export const useExploreAdditionalActionsMenu = (
             chart={chart}
             setShowReportSubMenu={setShowReportSubMenu}
             showReportModal={showReportModal}
+            setCurrentReportDeleting={setCurrentReportDeleting}
             useTextMenu
           />
         )}

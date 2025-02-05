@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { isEmpty } from 'lodash';
 import {
@@ -37,13 +37,11 @@ import { Menu } from 'src/components/Menu';
 import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
 import { NoAnimationDropdown } from 'src/components/Dropdown';
-import DeleteModal from 'src/components/DeleteModal';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   fetchUISpecificReport,
   toggleActive,
-  deleteActiveReport,
 } from 'src/features/reports/ReportModal/actions';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
@@ -101,6 +99,7 @@ export interface HeaderReportProps {
   showReportSubMenu?: boolean;
   submenuTitle?: string;
   showReportModal: () => void;
+  setCurrentReportDeleting: (report: AlertObject | null) => void;
 }
 
 // Same instance to be used in useEffects
@@ -113,6 +112,7 @@ export default function HeaderReportDropDown({
   setShowReportSubMenu,
   submenuTitle,
   showReportModal,
+  setCurrentReportDeleting,
 }: HeaderReportProps) {
   const dispatch = useDispatch();
   const report = useSelector<any, AlertObject>(state => {
@@ -154,19 +154,12 @@ export default function HeaderReportDropDown({
     return permissions.some(permission => permission.length > 0);
   };
 
-  const [currentReportDeleting, setCurrentReportDeleting] =
-    useState<AlertObject | null>(null);
   const theme = useTheme();
   const prevDashboard = usePrevious(dashboardId);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       dispatch(toggleActive(data, checked));
     }
-  };
-
-  const handleReportDelete = async (report: AlertObject) => {
-    await dispatch(deleteActiveReport(report));
-    setCurrentReportDeleting(null);
   };
 
   const shouldFetch =
@@ -300,29 +293,5 @@ export default function HeaderReportDropDown({
       </>
     );
 
-  return (
-    <>
-      {canAddReports() && (
-        <>
-          {useTextMenu ? textMenu() : iconMenu()}
-          {currentReportDeleting && (
-            <DeleteModal
-              description={t(
-                'This action will permanently delete %s.',
-                currentReportDeleting?.name,
-              )}
-              onConfirm={() => {
-                if (currentReportDeleting) {
-                  handleReportDelete(currentReportDeleting);
-                }
-              }}
-              onHide={() => setCurrentReportDeleting(null)}
-              open
-              title={t('Delete Report?')}
-            />
-          )}
-        </>
-      )}
-    </>
-  );
+  return canAddReports() && useTextMenu ? textMenu() : iconMenu();
 }

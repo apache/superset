@@ -53,6 +53,8 @@ import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
 import ReportModal from 'src/features/reports/ReportModal';
+import DeleteModal from 'src/components/DeleteModal';
+import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
@@ -163,6 +165,7 @@ const Header = () => {
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
   const [showingReportModal, setShowingReportModal] = useState(false);
+  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
   const undoLength = useSelector(state => state.dashboardLayout.past.length);
@@ -694,6 +697,11 @@ const Header = () => {
     ],
   );
 
+  const handleReportDelete = async report => {
+    await dispatch(deleteActiveReport(report));
+    setCurrentReportDeleting(null);
+  };
+
   const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
     addSuccessToast: boundActionCreators.addSuccessToast,
     addDangerToast: boundActionCreators.addDangerToast,
@@ -723,6 +731,7 @@ const Header = () => {
     isLoading,
     showReportModal,
     showPropertiesModal,
+    setCurrentReportDeleting,
     manageEmbedded: showEmbedModal,
     refreshLimit,
     refreshWarning,
@@ -763,14 +772,29 @@ const Header = () => {
         />
       )}
 
-      {showingReportModal && (
-        <ReportModal
-          userId={user.userId}
-          show={showReportModal}
-          onHide={hideReportModal}
-          userEmail={user.email}
-          dashboardId={dashboardInfo.id}
-          creationMethod="dashboards"
+      <ReportModal
+        userId={user.userId}
+        show={showingReportModal}
+        onHide={hideReportModal}
+        userEmail={user.email}
+        dashboardId={dashboardInfo.id}
+        creationMethod="dashboards"
+      />
+
+      {currentReportDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentReportDeleting?.name,
+          )}
+          onConfirm={() => {
+            if (currentReportDeleting) {
+              handleReportDelete(currentReportDeleting);
+            }
+          }}
+          onHide={() => setCurrentReportDeleting(null)}
+          open
+          title={t('Delete Report?')}
         />
       )}
 

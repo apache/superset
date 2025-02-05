@@ -18,7 +18,7 @@
  */
 import { type ComponentProps } from 'react';
 
-import { Dropdown } from 'src/components/Dropdown';
+import { Dropdown } from 'antd-v5';
 import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { kebabCase } from 'lodash';
 

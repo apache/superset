@@ -27,9 +27,7 @@ import DownloadMenuItems from 'src/dashboard/components/menu/DownloadMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
-import HeaderReportDropdown, {
-  CreationMethod,
-} from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import HeaderReportDropdown from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
@@ -38,8 +36,6 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
-import ReportModal from 'src/features/reports/ReportModal';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -73,6 +69,7 @@ export const useHeaderActionsMenu = ({
   setRefreshFrequency,
   dashboardTitle,
   logEvent,
+  setCurrentReportDeleting,
 }: HeaderDropdownProps) => {
   const [css, setCss] = useState(customCss || '');
   const [showReportSubMenu, setShowReportSubMenu] = useState<boolean | null>(
@@ -273,6 +270,7 @@ export const useHeaderActionsMenu = ({
                 setShowReportSubMenu={setShowReportSubMenu}
                 showReportModal={showReportModal}
                 showReportSubMenu={showReportSubMenu}
+                setCurrentReportDeleting={setCurrentReportDeleting}
                 useTextMenu
               />
               <Menu.Divider />
@@ -282,6 +280,7 @@ export const useHeaderActionsMenu = ({
               dashboardId={dashboardInfo.id}
               setShowReportSubMenu={setShowReportSubMenu}
               showReportModal={showReportModal}
+              setCurrentReportDeleting={setCurrentReportDeleting}
               useTextMenu
             />
           )
