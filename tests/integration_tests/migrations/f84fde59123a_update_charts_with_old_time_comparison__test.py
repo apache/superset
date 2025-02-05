@@ -229,3 +229,15 @@ def test_downgrade_chart_params_other_than_custom_false():
     original_params = deepcopy(params_v2_other_than_custom_false)
     downgraded_params = downgrade_comparison_params(original_params)
     assert downgraded_params == params_v1_other_than_custom_false
+
+
+def test_upgrade_chart_params_empty():
+    """
+    Ensure that the migration does not fail when params is None or empty.
+    """
+    assert upgrade_comparison_params(None) == {}
+    assert upgrade_comparison_params({}) == {}
+    assert upgrade_comparison_params("") == {}
+    assert downgrade_comparison_params(None) == {}
+    assert downgrade_comparison_params({}) == {}
+    assert downgrade_comparison_params("") == {}
