@@ -36,18 +36,13 @@ params:
       operator: <=
       sqlExpression: null
       subject: last_yr_income
-  all_columns_x:
-    - last_yr_income
+  column: last_yr_income
   color_scheme: supersetColors
   datasource: 42__table
-  granularity_sqla: time_start
   groupby: []
   label_colors: {}
   link_length: "10"
-  queryFields:
-    groupby: groupby
   row_limit: null
-  time_range: No filter
   url_params: {}
   viz_type: histogram_v2
 cache_timeout: null

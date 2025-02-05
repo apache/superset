@@ -21,7 +21,6 @@
 *.swp
 __pycache__
 
-.aider.*
 .local
 .cache
 .bento*
