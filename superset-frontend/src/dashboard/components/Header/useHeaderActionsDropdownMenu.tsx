@@ -240,7 +240,6 @@ export const useHeaderActionsMenu = ({
         />
         {userCanShare && (
           <ShareMenuItems
-            submenuKey={MenuKeys.Share}
             disabled={isLoading}
             data-test="share-dashboard-menu-item"
             title={t('Share')}

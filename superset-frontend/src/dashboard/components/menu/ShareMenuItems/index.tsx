@@ -40,7 +40,6 @@ interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   setOpenKeys?: Function;
   title: string;
   disabled?: boolean;
-  submenuKey: string;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -55,7 +54,6 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     dashboardComponentId,
     title,
     disabled,
-    submenuKey,
     ...rest
   } = props;
   const { dataMask, activeTabs } = useSelector(
@@ -99,7 +97,12 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <Menu.SubMenu title={title} key={submenuKey} disabled={disabled} {...rest}>
+    <Menu.SubMenu
+      title={title}
+      key={MenuKeys.Share}
+      disabled={disabled}
+      {...rest}
+    >
       <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
         {copyMenuItemTitle}
       </Menu.Item>
