@@ -127,7 +127,7 @@ class DashboardFilterStateRestApi(TemporaryCacheRestApi):
                         value:
                           - 1000
                           - 2000
-                        label: "1000 <= x <= 200"
+                        label: "1000 <= x <= 2000"
                   value_filter:
                     summary: "Value Filter"
                     description: "**This body should be stringified and put into the
