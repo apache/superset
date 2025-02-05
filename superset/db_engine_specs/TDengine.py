@@ -14,10 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
 
 from superset.db_engine_specs.base import  BaseEngineSpec
 from urllib import parse
-from typing import Any, Optional
+from typing import Any
 from sqlalchemy import types
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
 
