@@ -109,7 +109,7 @@ function TagCard({
             }}
           >
             <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+                 <Icons.MoreOutlined iconSize='xl' iconColor={theme.colors.grayscale.base} />
             </AntdDropdown>
           </ListViewCard.Actions>
         }

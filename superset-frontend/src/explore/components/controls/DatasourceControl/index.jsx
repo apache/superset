@@ -420,7 +420,9 @@ class DatasourceControl extends PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Icons.MoreVert
+            <Icons.MoreOutlined
+              IconSize='xl'
+              iconColor={theme.colors.primary.base}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />

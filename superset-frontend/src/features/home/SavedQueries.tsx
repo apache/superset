@@ -323,7 +323,8 @@ const SavedQueries = ({
                       }}
                     >
                       <AntdDropdown overlay={renderMenu(q)}>
-                        <Icons.MoreVert
+                        <Icons.MoreOutlined
+                          iconSize='xl'
                           iconColor={theme.colors.grayscale.base}
                         />
                       </AntdDropdown>

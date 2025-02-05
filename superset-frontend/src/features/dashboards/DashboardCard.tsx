@@ -134,7 +134,7 @@ function DashboardCard({
             onClick={() => onDelete(dashboard)}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
+            <Icons.DeleteOutlined css={{verticalAlign:'baseline'}} iconSize="l" /> {t('Delete')}
           </div>
         </Menu.Item>
       )}
@@ -180,7 +180,7 @@ function DashboardCard({
               />
             )}
             <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+                <Icons.MoreOutlined iconSize='xl' iconColor={theme.colors.grayscale.base} />
             </AntdDropdown>
           </ListViewCard.Actions>
         }
