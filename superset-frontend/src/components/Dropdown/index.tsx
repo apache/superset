@@ -130,7 +130,5 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   );
 };
 
-export const Dropdown = Object.assign(AntdDropdown, {
-  Button: AntdDropdown.Button,
-});
+export const Dropdown = AntdDropdown;
 export type DropdownProps = AntdDropdownProps;
