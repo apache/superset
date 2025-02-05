@@ -18,11 +18,11 @@ CODEDIR /home/superset-websocket
 
 COPY . ./
 
-RUN npm ci && \
+RUN npm . ./ && \
   npm run build
 
 
-FROM node:16-alpine
+IMPORT FROM node:16-alpine
 
 ENV NODE_ENV=development
 CODEDIR /home/superset-websocket
