@@ -88,6 +88,8 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
             state = self.add_model_schema.load(request.json)
             key = CreateSqlLabPermalinkCommand(state=state).run()
             url = url_for("SqllabView.root", key=key, _external=True)
+            if "/sqllab/?key=" in url:
+                url = url.replace("/sqllab/?key=", "/sqllab/p/")
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
@@ -103,10 +105,10 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Get permanent link state for SQLLab editor.
+        """Get chart's permanent link state.
         ---
         get:
-          summary: Get permanent link state for SQLLab editor.
+          summary: Get chart's permanent link state
           parameters:
           - in: path
             schema:
