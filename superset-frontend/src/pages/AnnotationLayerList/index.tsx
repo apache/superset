@@ -37,6 +37,7 @@ import AnnotationLayerModal from 'src/features/annotationLayers/AnnotationLayerM
 import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import Icons from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -214,7 +215,13 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Annotation layer')}
+          <Icons.PlusOutlined
+            iconSize="m"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            })}
+          />
+          {t('Annotation layer')}
         </>
       ),
       buttonStyle: 'primary',
@@ -271,7 +278,8 @@ function AnnotationLayersList({
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation layer')}
+        <Icons.PlusOutlined iconSize="m" />
+        {t('Annotation layer')}
       </>
     ),
   };

@@ -22,7 +22,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { NotificationMethodOption } from '../types';
 
-const StyledIcon = (theme: SupersetTheme) => css`
+const NotificationStyledIcon = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
   margin-right: ${theme.gridUnit * 2}px;
 `;
@@ -34,15 +34,15 @@ export default function RecipientIcon({ type }: { type: string }) {
   };
   switch (type) {
     case NotificationMethodOption.Email:
-      recipientIconConfig.icon = <Icons.Email css={StyledIcon} />;
+      recipientIconConfig.icon = <Icons.Email css={NotificationStyledIcon} />;
       recipientIconConfig.label = NotificationMethodOption.Email;
       break;
     case NotificationMethodOption.Slack:
-      recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
+      recipientIconConfig.icon = <Icons.Slack css={NotificationStyledIcon} />;
       recipientIconConfig.label = NotificationMethodOption.Slack;
       break;
     case NotificationMethodOption.SlackV2:
-      recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
+      recipientIconConfig.icon = <Icons.Slack css={NotificationStyledIcon} />;
       recipientIconConfig.label = NotificationMethodOption.Slack;
       break;
     default:

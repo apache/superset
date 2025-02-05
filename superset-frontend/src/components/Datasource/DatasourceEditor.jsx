@@ -1052,9 +1052,21 @@ class DatasourceEditor extends PureComponent {
         <EditLockContainer>
           <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
             {this.state.isEditMode ? (
-              <Icons.UnlockOutlined iconSize='xl' iconColor={theme.colors.grayscale.base} />
+              <Icons.UnlockOutlined
+                iconSize="xl"
+                iconColor={theme.colors.grayscale.base}
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit}px auto 0`,
+                })}
+              />
             ) : (
-              <Icons.LockOutlined iconSize='xl' iconColor={theme.colors.grayscale.base} />
+              <Icons.LockOutlined
+                iconSize="xl"
+                iconColor={theme.colors.grayscale.base}
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit}px auto 0`,
+                })}
+              />
             )}
           </span>
           {!this.state.isEditMode && (

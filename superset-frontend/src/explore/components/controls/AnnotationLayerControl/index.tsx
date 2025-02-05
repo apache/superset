@@ -36,6 +36,7 @@ import CustomListItem from 'src/explore/components/controls/CustomListItem';
 import { ChartState, ExplorePageState } from 'src/explore/types';
 import { AnyAction } from 'redux';
 import { ThunkDispatch } from 'redux-thunk';
+import Icons from 'src/components/Icons';
 import ControlPopover, {
   getSectionContainerElement,
 } from '../ControlPopover/ControlPopover';
@@ -261,11 +262,15 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
             }
           >
             <CustomListItem selectable>
-              <i
+              <Icons.PlusOutlined
+                iconSize="m"
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit * 2}px auto 0`,
+                  verticalAlign: 'baseline',
+                })}
                 data-test="add-annotation-layer-button"
-                className="fa fa-plus"
-              />{' '}
-              &nbsp; {t('Add annotation layer')}
+              />
+              {t('Add annotation layer')}
             </CustomListItem>
           </ControlPopover>
         </List>

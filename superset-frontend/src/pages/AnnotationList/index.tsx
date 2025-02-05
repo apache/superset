@@ -40,6 +40,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
+import Icons from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -226,7 +227,14 @@ function AnnotationList({
   subMenuButtons.push({
     name: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation')}
+        <Icons.PlusOutlined
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+        />
+        {t('Annotation')}
       </>
     ),
     buttonStyle: 'primary',
@@ -259,7 +267,14 @@ function AnnotationList({
     },
     buttonText: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation')}
+        <Icons.PlusOutlined
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+        />
+        {t('Annotation')}
       </>
     ),
   };

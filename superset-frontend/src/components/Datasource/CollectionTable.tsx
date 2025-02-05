@@ -484,7 +484,10 @@ export default class CRUDCollection extends PureComponent<
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >
-                <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
+                <Icons.PlusOutlined
+                  iconSize="m"
+                  data-test="crud-add-table-item"
+                />
                 {t('Add item')}
               </Button>
             </StyledButtonWrapper>

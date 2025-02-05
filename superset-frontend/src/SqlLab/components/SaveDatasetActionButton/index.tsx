@@ -63,7 +63,7 @@ const SaveDatasetActionButton = ({
       overlay={overlayMenu}
       icon={
         <Icons.CaretDownOutlined
-          iconSize='xl'
+          iconSize="xl"
           iconColor={theme.colors.grayscale.light5}
           name="caret-down"
         />

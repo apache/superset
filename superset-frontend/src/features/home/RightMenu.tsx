@@ -408,7 +408,10 @@ const RightMenu = ({
           <StyledSubMenu
             data-test="new-dropdown"
             title={
-              <Icons.PlusOutlined iconColor={theme.colors.primary.dark1} data-test="new-dropdown-icon" />
+              <Icons.PlusOutlined
+                iconColor={theme.colors.primary.dark1}
+                data-test="new-dropdown-icon"
+              />
             }
             icon={<Icons.CaretDownOutlined />}
           >
@@ -470,10 +473,7 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        <StyledSubMenu
-          title={t('Setting')}
-          icon={<Icons.CaretDownOutlined />}
-        >
+        <StyledSubMenu title={t('Setting')} icon={<Icons.CaretDownOutlined />}>
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {

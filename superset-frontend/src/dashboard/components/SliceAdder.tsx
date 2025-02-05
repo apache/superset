@@ -366,7 +366,12 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
               )
             }
           >
-            <Icons.PlusSmall />
+            <Icons.PlusOutlined
+              css={theme => ({
+                margin: `auto -${theme.gridUnit * 2}px auto 0 !important`,
+              })}
+              iconSize="s"
+            />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>

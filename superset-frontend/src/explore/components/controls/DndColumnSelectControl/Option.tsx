@@ -77,7 +77,11 @@ export default function Option({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRightOutlined iconSize='l' css={{marginTop: theme.gridUnit * 1}} iconColor={theme.colors.grayscale.light1} />
+          <Icons.CaretRightOutlined
+            iconSize="l"
+            css={{ marginTop: theme.gridUnit * 1 }}
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

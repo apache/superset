@@ -119,10 +119,6 @@ const IconFileNames = [
   'paperclip',
   'pie-chart-tile',
   'placeholder',
-  'plus',
-  'plus_large',
-  'plus_small',
-  'plus_solid',
   'queued',
   'refresh',
   'running',
@@ -161,6 +157,10 @@ const IconFileNames = [
   'table',
   'triangle_down',
   'triangle_up',
+  'plus',
+  'plus_large',
+  'plus_small',
+  'plus_solid',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

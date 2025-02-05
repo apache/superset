@@ -134,7 +134,7 @@ export const ChartsScopingListPanel = ({
           buttonSize="xsmall"
           onClick={addNewCustomScope}
         >
-          <Icons.PlusSmall /> {t('Add custom scoping')}
+          <Icons.PlusOutlined iconSize="s" /> {t('Add custom scoping')}
         </Button>
       </AddButtonContainer>
       <FilterTitle

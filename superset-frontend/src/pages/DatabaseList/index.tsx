@@ -312,7 +312,14 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <i className="fa fa-plus" /> {t('Database')}{' '}
+            <Icons.PlusOutlined
+              iconSize="s"
+              css={theme => ({
+                margin: `auto ${theme.gridUnit * 2}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
+            />
+            {t('Database')}
           </>
         ),
         buttonStyle: 'primary',

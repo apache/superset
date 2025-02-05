@@ -760,7 +760,14 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Chart')}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {t('Chart')}
         </>
       ),
       buttonStyle: 'primary',

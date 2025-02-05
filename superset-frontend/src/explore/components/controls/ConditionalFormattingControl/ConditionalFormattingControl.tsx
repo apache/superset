@@ -22,8 +22,6 @@ import { Comparator } from '@superset-ui/chart-controls';
 import Icons from 'src/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { FormattingPopover } from './FormattingPopover';
-import { marginBottom } from '../../../../features/databases/DatabaseModal/styles';
-import { theme } from '../../../../preamble';
 import {
   ConditionalFormattingConfig,
   ConditionalFormattingControlProps,
@@ -163,7 +161,11 @@ const ConditionalFormattingControl = ({
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRightOutlined iconSize='l' css={{marginTop: theme.gridUnit * 1}} iconColor={theme.colors.grayscale.light1} />
+                  <Icons.CaretRightOutlined
+                    iconSize="l"
+                    css={{ marginTop: theme.gridUnit }}
+                    iconColor={theme.colors.grayscale.light1}
+                  />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>
@@ -177,7 +179,10 @@ const ConditionalFormattingControl = ({
           extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
-            <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+            <Icons.PlusOutlined
+              iconSize="xs"
+              iconColor={theme.colors.grayscale.light1}
+            />
             {t('Add new color formatter')}
           </AddControlLabel>
         </FormattingPopover>

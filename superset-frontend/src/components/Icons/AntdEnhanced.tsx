@@ -86,7 +86,7 @@ import {
   NumberOutlined,
   ThunderboltOutlined,
   FilterOutlined,
-  UnorderedListOutlined
+  UnorderedListOutlined,
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -159,8 +159,8 @@ const AntdIcons = {
   NumberOutlined,
   ThunderboltOutlined,
   FilterOutlined,
-  UnorderedListOutlined
-}
+  UnorderedListOutlined,
+};
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
   .filter(k => !k.includes('TwoTone'))

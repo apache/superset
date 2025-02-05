@@ -134,8 +134,15 @@ function TagList(props: TagListProps) {
     buttonAction: () => setShowTagModal(true),
     buttonText: (
       <>
-        <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
-        {'Create a new Tag'}{' '}
+        <Icons.PlusOutlined
+          iconSize="m"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+          data-test="add-rule-empty"
+        />
+        Create a new Tag
       </>
     ),
   };
@@ -321,7 +328,7 @@ function TagList(props: TagListProps) {
   subMenuButtons.push({
     name: (
       <>
-        <i className="fa fa-plus" /> {t('Tag')}
+        <Icons.PlusOutlined iconSize="m" css={{ margin: 0 }} /> {t('Tag')}
       </>
     ),
     buttonStyle: 'primary',

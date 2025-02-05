@@ -90,8 +90,8 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
     },
     ref,
   ) => {
+    const theme = useTheme();
     const renderComponent = (id: string) => {
-      const theme = useTheme();
       const isRemoved = !!removedFilters[id];
       const isErrored = erroredFilters.includes(id);
       const isActive = currentFilterId === id;

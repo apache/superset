@@ -37,6 +37,7 @@ import CssTemplateModal from 'src/features/cssTemplates/CssTemplateModal';
 import { TemplateObject } from 'src/features/cssTemplates/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import Icons from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -196,7 +197,14 @@ function CssTemplatesList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('CSS template')}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {t('CSS template')}
         </>
       ),
       buttonStyle: 'primary',

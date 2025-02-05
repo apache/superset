@@ -21,6 +21,7 @@ import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyState } from 'src/components/EmptyState';
+import Icons from 'src/components/Icons';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -213,7 +214,7 @@ class DashboardGrid extends PureComponent {
         size="large"
         buttonText={
           <>
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined iconSize="m" />
             {t('Create a new chart')}
           </>
         }
@@ -237,7 +238,7 @@ class DashboardGrid extends PureComponent {
         )}
         buttonText={
           <>
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined iconSize="m" />
             {t('Create a new chart')}
           </>
         }

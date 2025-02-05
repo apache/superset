@@ -196,7 +196,14 @@ function SavedQueryList({
   subMenuButtons.push({
     name: (
       <Link to="/sqllab?new=true">
-        <i className="fa fa-plus" /> {t('Query')}
+        <Icons.PlusOutlined
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+        />
+        {t('Query')}
       </Link>
     ),
     buttonStyle: 'primary',

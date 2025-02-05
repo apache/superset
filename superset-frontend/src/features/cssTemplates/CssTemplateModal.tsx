@@ -18,11 +18,10 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
-import { StyledIcon } from 'src/views/CRUD/utils';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
@@ -81,6 +80,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   show,
   cssTemplate = null,
 }) => {
+  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentCssTemplate, setCurrentCssTemplate] =
     useState<TemplateObject | null>(null);
@@ -230,9 +230,16 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       title={
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
+            <Icons.EditAlt
+              iconColor={theme.colors.grayscale.base}
+              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            />
           ) : (
-            <Icons.PlusLarge css={StyledIcon} />
+            <Icons.PlusOutlined
+              iconSize="l"
+              iconColor={theme.colors.grayscale.base}
+              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            />
           )}
           {isEditMode
             ? t('Edit CSS template properties')

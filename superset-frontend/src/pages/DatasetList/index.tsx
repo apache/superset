@@ -624,7 +624,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     buttonArr.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Dataset')}{' '}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {t('Dataset')}
         </>
       ),
       onClick: () => {

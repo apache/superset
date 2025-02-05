@@ -30,6 +30,7 @@ import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
+import Icons from 'src/components/Icons';
 import SqlEditor from '../SqlEditor';
 import SqlEditorTabHeader from '../SqlEditorTabHeader';
 
@@ -247,7 +248,11 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
               : t('New tab (Ctrl + t)')
           }
         >
-          <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+          <Icons.PlusCircleOutlined
+            iconSize="s"
+            css={{ verticalAlign: 'middle', margin: '0!important' }}
+            data-test="add-tab-icon"
+          />
         </Tooltip>
       </StyledTab>
     );
@@ -289,7 +294,11 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
-            <i data-test="add-tab-icon" className="fa fa-plus-circle" />
+            <Icons.PlusCircleOutlined
+              iconSize="l"
+              css={{ verticalAlign: 'middle' }}
+              data-test="add-tab-icon"
+            />
           </Tooltip>
         }
       >

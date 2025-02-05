@@ -17,13 +17,7 @@
  * under the License.
  */
 
-import {
-  css,
-  styled,
-  SupersetClient,
-  SupersetTheme,
-  t,
-} from '@superset-ui/core';
+import { css, styled, SupersetClient, useTheme, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icons from 'src/components/Icons';
@@ -52,11 +46,6 @@ const StyledModal = styled(Modal)`
   .antd5-modal-footer {
     white-space: nowrap;
   }
-`;
-
-const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
-  color: ${theme.colors.grayscale.base};
 `;
 
 const StyledSectionContainer = styled.div`
@@ -130,6 +119,7 @@ const DEFAULT_RULE = {
 };
 
 function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
+  const theme = useTheme();
   const { rule, addDangerToast, addSuccessToast, onHide, show } = props;
 
   const [currentRule, setCurrentRule] = useState<RLSObject>({
@@ -342,9 +332,16 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       title={
         <h4 data-test="rls-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
+            <Icons.EditAlt
+              iconColor={theme.colors.grayscale.base}
+              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            />
           ) : (
-            <Icons.PlusLarge css={StyledIcon} />
+            <Icons.PlusOutlined
+              iconSize="xl"
+              iconColor={theme.colors.grayscale.base}
+              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            />
           )}
           {isEditMode ? t('Edit Rule') : t('Add Rule')}
         </h4>
