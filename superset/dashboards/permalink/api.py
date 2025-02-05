@@ -97,9 +97,13 @@ class DashboardPermalinkRestApi(BaseSupersetApi):
                       dataMask:
                         id: NATIVE_FILTER_ID
                         extraFormData:
-                          time_range: 'DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day) : 2025-01-16T00:00:00'
+                          time_range: >-
+                            DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day)
+                            : 2025-01-16T00:00:00
                         filterState:
-                          value: 'DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day) : 2025-01-16T00:00:00'
+                          value: >-
+                            DATEADD(DATETIME("2025-01-16T00:00:00"), -7, day)
+                            : 2025-01-16T00:00:00
                   numerical_range_filter:
                     summary: "Numerical Range Filter"
                     value:

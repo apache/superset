@@ -71,7 +71,9 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
         """Get the dashboard's embedded configuration.
         ---
         get:
-          summary: Get the dashboard's embedded configuration this endpoint is also used to embed dashboards.
+          summary: >-
+            Get the dashboard's embedded configuration this endpoint is also used
+            to embed dashboards.
           parameters:
           - in: path
             schema:
