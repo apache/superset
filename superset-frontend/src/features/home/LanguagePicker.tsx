@@ -58,7 +58,7 @@ const StyledFlag = styled.i`
 export default function LanguagePicker(props: LanguagePickerProps) {
   const { locale, languages, ...rest } = props;
   return (
-    //TODO remove TriangleDown with ANTD5 icon
+    // TODO remove TriangleDown with ANTD5 icon
     <SubMenu
       aria-label="Languages"
       title={

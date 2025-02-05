@@ -49,7 +49,7 @@ const TextStyles = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const Refresh = styled(Icons.Refresh)`
+const RefreshIcon = styled(Icons.SyncOutlined)`
   color: ${({ theme }) => theme.colors.primary.base};
   width: auto;
   height: ${({ theme }) => theme.gridUnit * 5}px;
@@ -81,7 +81,13 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   return (
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
-      {update && <Refresh onClick={update} />}
+      {update && (
+        <RefreshIcon
+          iconSize="l"
+          css={{ verticalAlign: 'text-bottom' }}
+          onClick={update}
+        />
+      )}
     </TextStyles>
   );
 };

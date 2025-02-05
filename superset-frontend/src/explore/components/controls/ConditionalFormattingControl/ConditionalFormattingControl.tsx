@@ -183,9 +183,9 @@ const ConditionalFormattingControl = ({
               iconSize="xs"
               iconColor={theme.colors.grayscale.light1}
               css={theme => ({
-                  margin: `auto ${theme.gridUnit * 2}px auto 0`,
-                  verticalAlign: 'baseline',
-                })}
+                margin: `auto ${theme.gridUnit * 2}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
             />
             {t('Add new color formatter')}
           </AddControlLabel>
