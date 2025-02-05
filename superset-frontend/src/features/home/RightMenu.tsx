@@ -413,7 +413,7 @@ const RightMenu = ({
                 data-test="new-dropdown-icon"
               />
             }
-            icon={<Icons.CaretDownOutlined />}
+            icon={<Icons.TriangleDown  />}
           >
             {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
@@ -473,7 +473,8 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        <StyledSubMenu title={t('Setting')} icon={<Icons.CaretDownOutlined />}>
+         {/* TODO replace TriangleDown with ANTD5 icons */ }
+        <StyledSubMenu title={t('Setting')} icon={<Icons.TriangleDown  />}>
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {

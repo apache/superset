@@ -104,7 +104,7 @@ const QueryLimitSelect = ({
           <span className="limitDropdown">
             {convertToNumWithSpaces(queryLimit)}
           </span>
-          <Icons.DownOutlined
+          <Icons.CaretDownOutlined
             iconSize="m"
             iconColor={theme.colors.grayscale.base}
           />

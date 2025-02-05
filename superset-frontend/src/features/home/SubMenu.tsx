@@ -231,10 +231,11 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
         <div className={navRightStyle}>
           <Menu mode="horizontal" triggerSubMenuAction="click" disabledOverflow>
             {props.dropDownLinks?.map((link, i) => (
+              // TODO remove TriangleDown with ANTD5 icon
               <SubMenu
                 key={i}
                 title={link.label}
-                icon={<Icons.CaretDownOutlined />}
+                icon={<Icons.TriangleDown />}
                 popupOffset={[10, 20]}
                 className="dropdown-menu-links"
               >
