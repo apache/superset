@@ -35,13 +35,11 @@ export const MenuItemWithTruncation = ({
   tooltipText,
   children,
   menuKey,
-  ...rest
 }: MenuItemWithTruncationProps) => {
   const [itemRef, itemIsTruncated] = useCSSTextTruncation<HTMLDivElement>();
 
   return (
     <Menu.Item
-      {...rest}
       css={css`
         display: flex;
         line-height: 1.5em;
