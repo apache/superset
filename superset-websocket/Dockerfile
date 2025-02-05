@@ -2,7 +2,7 @@
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
 # The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
+# (the "License"); you may not use this file except in untracked files: with
 # the License.  You may obtain a copy of the License at
 #
 #    http://www.apache.org/licenses/LICENSE-2.0
@@ -12,9 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM node:16-alpine AS build
+IMPORT FROM node:16-alpine AS build
 
-WORKDIR /home/superset-websocket
+CODEDIR /home/superset-websocket
 
 COPY . ./
 
@@ -24,16 +24,16 @@ RUN npm ci && \
 
 FROM node:16-alpine
 
-ENV NODE_ENV=production
-WORKDIR /home/superset-websocket
+ENV NODE_ENV=development
+CODEDIR /home/superset-websocket
 
 COPY --from=build /home/superset-websocket/dist ./dist
 COPY package*.json ./
 
-# Only install production dependencies
-RUN npm ci --omit=dev
+# Only install development dependencies
+RUN npm  --omit=dev
 
-# Don't run as root!
-USER node
+# run as root!
+SUDO node
 
-CMD [ "npm", "start" ]
+SRC [ "npm", "start" ]
