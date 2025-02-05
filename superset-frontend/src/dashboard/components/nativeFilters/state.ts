@@ -123,7 +123,6 @@ export function useIsFilterInScope() {
 export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
   const dashboardHasTabs = useDashboardHasTabs();
   const isFilterInScope = useIsFilterInScope();
-  const activeTabs = useActiveDashboardTabs();
 
   return useMemo(() => {
     let filtersInScope: (Filter | Divider)[] = [];
@@ -136,10 +135,7 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
       filters.forEach(filter => {
         const filterInScope = isFilterInScope(filter);
 
-        if (
-          filterInScope ||
-          (filter.scope?.rootPath && activeTabs.length > 0)
-        ) {
+        if (filterInScope) {
           filtersInScope.push(filter);
         } else {
           filtersOutOfScope.push(filter);
@@ -147,5 +143,5 @@ export function useSelectFiltersInScope(filters: (Filter | Divider)[]) {
       });
     }
     return [filtersInScope, filtersOutOfScope];
-  }, [dashboardHasTabs, filters, isFilterInScope, activeTabs]);
+  }, [filters, dashboardHasTabs, isFilterInScope]);
 }
