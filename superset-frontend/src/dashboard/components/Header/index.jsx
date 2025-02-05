@@ -52,6 +52,7 @@ import {
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
+import ReportModal from 'src/features/reports/ReportModal';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
@@ -161,6 +162,7 @@ const Header = () => {
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
+  const [showingReportModal, setShowingReportModal] = useState(false);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
   const undoLength = useSelector(state => state.dashboardLayout.past.length);
@@ -470,6 +472,14 @@ const Header = () => {
     setShowingEmbedModal(false);
   }, []);
 
+  const showReportModal = useCallback(() => {
+    setShowingReportModal(true);
+  }, []);
+
+  const hideReportModal = useCallback(() => {
+    setShowingReportModal(false);
+  }, []);
+
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
 
   const userCanEdit =
@@ -711,6 +721,7 @@ const Header = () => {
     userCanSaveAs,
     userCanCurate,
     isLoading,
+    showReportModal,
     showPropertiesModal,
     manageEmbedded: showEmbedModal,
     refreshLimit,
@@ -749,6 +760,17 @@ const Header = () => {
           colorScheme={colorScheme}
           onSubmit={handleOnPropertiesChange}
           onlyApply
+        />
+      )}
+
+      {showingReportModal && (
+        <ReportModal
+          userId={user.userId}
+          show={showReportModal}
+          onHide={hideReportModal}
+          userEmail={user.email}
+          dashboardId={dashboardInfo.id}
+          creationMethod="dashboards"
         />
       )}
 

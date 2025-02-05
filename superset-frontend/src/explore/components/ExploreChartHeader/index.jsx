@@ -33,6 +33,7 @@ import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalAction
 import { applyColors, resetColors } from 'src/utils/colorScheme';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
+import ReportModal from 'src/features/reports/ReportModal';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -86,6 +87,7 @@ export const ExploreChartHeader = ({
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const updateCategoricalNamespace = async () => {
     const { dashboards } = metadata || {};
     const dashboard =
@@ -128,6 +130,14 @@ export const ExploreChartHeader = ({
     setIsPropertiesModalOpen(false);
   };
 
+  const showReportModal = () => {
+    setIsReportModalOpen(true);
+  };
+
+  const closeReportModal = () => {
+    setIsReportModalOpen(false);
+  };
+
   const showModal = useCallback(() => {
     dispatch(setSaveChartModalVisibility(true));
   }, [dispatch]);
@@ -158,6 +168,7 @@ export const ExploreChartHeader = ({
       openPropertiesModal,
       ownState,
       metadata?.dashboards,
+      showReportModal,
     );
 
   const metadataBar = useExploreMetadataBar(metadata, slice);
@@ -239,6 +250,16 @@ export const ExploreChartHeader = ({
           onHide={closePropertiesModal}
           onSave={updateSlice}
           slice={slice}
+        />
+      )}
+      {isReportModalOpen && (
+        <ReportModal
+          userId={user.userId}
+          show={showReportModal}
+          onHide={closeReportModal}
+          userEmail={user.email}
+          dashboardId={dashboardId}
+          creationMethod="charts"
         />
       )}
     </>

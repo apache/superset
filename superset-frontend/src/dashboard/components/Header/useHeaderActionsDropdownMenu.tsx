@@ -27,7 +27,9 @@ import DownloadMenuItems from 'src/dashboard/components/menu/DownloadMenuItems';
 import CssEditor from 'src/dashboard/components/CssEditor';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import SaveModal from 'src/dashboard/components/SaveModal';
-import HeaderReportDropdown from 'src/features/reports/ReportModal/HeaderReportDropdown';
+import HeaderReportDropdown, {
+  CreationMethod,
+} from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
@@ -36,6 +38,8 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
+import ReportModal from 'src/features/reports/ReportModal';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
 export const useHeaderActionsMenu = ({
   customCss,
@@ -61,6 +65,7 @@ export const useHeaderActionsMenu = ({
   addDangerToast,
   forceRefreshAllCharts,
   showPropertiesModal,
+  showReportModal,
   manageEmbedded,
   onChange,
   updateCss,
@@ -77,7 +82,6 @@ export const useHeaderActionsMenu = ({
   const directPathToChild = useSelector(
     (state: RootState) => state.dashboardState.directPathToChild,
   );
-
   useEffect(() => {
     if (customCss !== css) {
       setCss(customCss || '');
@@ -267,9 +271,8 @@ export const useHeaderActionsMenu = ({
                 submenuTitle={t('Manage email report')}
                 dashboardId={dashboardInfo.id}
                 setShowReportSubMenu={setShowReportSubMenu}
+                showReportModal={showReportModal}
                 showReportSubMenu={showReportSubMenu}
-                setIsDropdownVisible={setIsDropdownVisible}
-                isDropdownVisible={isDropdownVisible}
                 useTextMenu
               />
               <Menu.Divider />
@@ -278,8 +281,7 @@ export const useHeaderActionsMenu = ({
             <HeaderReportDropdown
               dashboardId={dashboardInfo.id}
               setShowReportSubMenu={setShowReportSubMenu}
-              setIsDropdownVisible={setIsDropdownVisible}
-              isDropdownVisible={isDropdownVisible}
+              showReportModal={showReportModal}
               useTextMenu
             />
           )

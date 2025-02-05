@@ -116,6 +116,7 @@ export const useExploreAdditionalActionsMenu = (
   onOpenPropertiesModal,
   ownState,
   dashboards,
+  showReportModal,
   ...rest
 ) => {
   const theme = useTheme();
@@ -401,8 +402,7 @@ export const useExploreAdditionalActionsMenu = (
               chart={chart}
               setShowReportSubMenu={setShowReportSubMenu}
               showReportSubMenu={showReportSubMenu}
-              setIsDropdownVisible={setIsDropdownVisible}
-              isDropdownVisible={isDropdownVisible}
+              showReportModal={showReportModal}
               useTextMenu
             />
             <Menu.Divider />
@@ -411,8 +411,7 @@ export const useExploreAdditionalActionsMenu = (
           <HeaderReportDropDown
             chart={chart}
             setShowReportSubMenu={setShowReportSubMenu}
-            setIsDropdownVisible={setIsDropdownVisible}
-            isDropdownVisible={isDropdownVisible}
+            showReportModal={showReportModal}
             useTextMenu
           />
         )}

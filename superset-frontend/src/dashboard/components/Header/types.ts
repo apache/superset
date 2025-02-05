@@ -65,6 +65,7 @@ export interface HeaderDropdownProps {
   refreshLimit: number;
   refreshWarning: string;
   directPathToChild: string[];
+  showReportModal: () => void;
 }
 
 export interface HeaderProps {
