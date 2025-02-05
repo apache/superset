@@ -50,7 +50,7 @@ class EmbeddedDashboardRestApi(BaseSupersetModelRestApi):
     class_permission_name = "EmbeddedDashboard"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
-    resource_name = "embedded"
+    resource_name = "embedded_dashboard"
     allow_browser_login = True
 
     openapi_spec_tag = "Embedded Dashboard"
