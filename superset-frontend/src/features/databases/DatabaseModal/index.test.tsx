@@ -26,7 +26,6 @@ import {
   screen,
   within,
   cleanup,
-  act,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -321,14 +320,14 @@ describe('DatabaseModal', () => {
       }),
     );
 
-  beforeEach(async () => {
-    await renderAndWait();
+  afterEach(() => {
+    cleanup();
   });
 
-  afterEach(cleanup);
-
   describe('Visual: New database connection', () => {
-    test('renders the initial load of Step 1 correctly', () => {
+    test('renders the initial load of Step 1 correctly', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // <TabHeader> - AntD header
       const closeButton = screen.getByLabelText('Close');
@@ -420,6 +419,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
+      await renderAndWait();
+
       // On step 1, click dbButton to access SQL Alchemy form
       userEvent.click(
         screen.getByRole('button', {
@@ -528,6 +529,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the unexpanded "Advanced" tab correctly', async () => {
+      await renderAndWait();
+
       // On step 1, click dbButton to access step 2
       userEvent.click(
         screen.getByRole('button', {
@@ -627,6 +630,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the "Advanced" - SQL LAB tab correctly (unexpanded)', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -789,6 +794,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the "Advanced" - PERFORMANCE tab correctly', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -852,6 +859,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the "Advanced" - SECURITY tab correctly', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -936,6 +945,8 @@ describe('DatabaseModal', () => {
     });
 
     it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -1022,6 +1033,8 @@ describe('DatabaseModal', () => {
     });
 
     test('renders the "Advanced" - OTHER tab correctly', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -1093,6 +1106,8 @@ describe('DatabaseModal', () => {
     });
 
     test('Dynamic form', async () => {
+      await renderAndWait();
+
       // ---------- Components ----------
       // On step 1, click dbButton to access step 2
       userEvent.click(
@@ -1108,6 +1123,8 @@ describe('DatabaseModal', () => {
 
   describe('Functional: Create new database', () => {
     test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
+      await renderAndWait();
+
       // ---------- Dynamic example (3-step form)
       // Click the PostgreSQL button to enter the dynamic form
       const postgreSQLButton = screen.getByRole('button', {
@@ -1140,6 +1157,8 @@ describe('DatabaseModal', () => {
 
     describe('SQL Alchemy form flow', () => {
       test('enters step 2 of 2 when proper database is selected', async () => {
+        await renderAndWait();
+
         userEvent.click(
           screen.getByRole('button', {
             name: /sqlite/i,
@@ -1168,6 +1187,8 @@ describe('DatabaseModal', () => {
 
       describe('step 2 component interaction', () => {
         test('properly interacts with textboxes', async () => {
+          await renderAndWait();
+
           userEvent.click(
             screen.getByRole('button', {
               name: /sqlite/i,
@@ -1212,6 +1233,8 @@ describe('DatabaseModal', () => {
 
       describe('SSH Tunnel Form interaction', () => {
         test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
+          await renderAndWait();
+
           userEvent.click(
             screen.getByRole('button', {
               name: /postgresql/i,
@@ -1247,6 +1270,8 @@ describe('DatabaseModal', () => {
         });
 
         test('properly interacts with SSH Tunnel form textboxes', async () => {
+          await renderAndWait();
+
           userEvent.click(
             screen.getByRole('button', {
               name: /sqlite/i,
@@ -1283,6 +1308,8 @@ describe('DatabaseModal', () => {
         });
 
         test('if the SSH Tunneling toggle is not true, no inputs are displayed', async () => {
+          await renderAndWait();
+
           userEvent.click(
             screen.getByRole('button', {
               name: /sqlite/i,
@@ -1311,6 +1338,8 @@ describe('DatabaseModal', () => {
         });
 
         test('If user changes the login method, the inputs change', async () => {
+          await renderAndWait();
+
           userEvent.click(
             screen.getByRole('button', {
               name: /sqlite/i,
@@ -1349,6 +1378,8 @@ describe('DatabaseModal', () => {
 
     describe('Dynamic form flow', () => {
       test('enters step 2 of 3 when proper database is selected', async () => {
+        await renderAndWait();
+
         expect(await screen.findByText(/step 1 of 3/i)).toBeInTheDocument();
         userEvent.click(
           screen.getByRole('button', {
@@ -1362,6 +1393,8 @@ describe('DatabaseModal', () => {
       });
 
       test('enters form credentials and runs fetchResource when "Connect" is clicked', async () => {
+        await renderAndWait();
+
         userEvent.click(
           screen.getByRole('button', {
             name: /postgresql/i,
@@ -1404,6 +1437,8 @@ describe('DatabaseModal', () => {
 
     describe('Import database flow', () => {
       test('imports a file', async () => {
+        await renderAndWait();
+
         const importDbButton = screen.getByTestId(
           'import-database-btn',
         ) as HTMLInputElement;
@@ -1424,21 +1459,15 @@ describe('DatabaseModal', () => {
   });
 
   describe('DatabaseModal w/ Deeplinking Engine', () => {
-    const renderAndWait = async () => {
-      const mounted = act(async () => {
+    const renderAndWait = async () =>
+      waitFor(() =>
         render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
           useRedux: true,
-        });
-      });
+        }),
+      );
 
-      return mounted;
-    };
-
-    beforeEach(async () => {
+    test('enters step 2 of 3 when proper database is selected', async () => {
       await renderAndWait();
-    });
-
-    test('enters step 2 of 3 when proper database is selected', () => {
       const step2of3text = screen.getByText(/step 2 of 3/i);
       expect(step2of3text).toBeInTheDocument();
     });
@@ -1451,25 +1480,22 @@ describe('DatabaseModal', () => {
         database_name: 'my database',
         sqlalchemy_uri: 'gsheets://',
       };
-      const mounted = act(async () => {
+      return waitFor(() =>
         render(<DatabaseModal {...dbProps} dbEngine="Google Sheets" />, {
           useRedux: true,
-        });
-      });
-
-      return mounted;
+        }),
+      );
     };
 
-    beforeEach(async () => {
+    it('enters step 2 of 2 when proper database is selected', async () => {
       await renderAndWait();
-    });
-
-    it('enters step 2 of 2 when proper database is selected', () => {
       const step2of2text = screen.getByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
     it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+      await renderAndWait();
+
       // Click the "Advanced" tab
       userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "Security" tab
@@ -1510,6 +1536,8 @@ describe('DatabaseModal', () => {
     });
 
     it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+      await renderAndWait();
+
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
       expect(SSHTunnelingToggle).not.toBeInTheDocument();
       const SSHTunnelServerAddressInput = screen.queryByTestId(
@@ -1537,21 +1565,15 @@ describe('DatabaseModal', () => {
       useSingleViewResource: jest.fn(),
     }));
 
-    const renderAndWait = async () => {
-      const mounted = act(async () => {
+    const renderAndWait = async () =>
+      waitFor(() =>
         render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
           useRedux: true,
-        });
-      });
-
-      return mounted;
-    };
-
-    beforeEach(async () => {
-      await renderAndWait();
-    });
+        }),
+      );
 
     test('Error displays when it is an object', async () => {
+      await renderAndWait();
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorSection = screen.getByText(/Database Creation Error/i);
       expect(step2of3text).toBeInTheDocument();
@@ -1582,21 +1604,16 @@ describe('DatabaseModal', () => {
       setResource: jest.fn(),
     });
 
-    const renderAndWait = async () => {
-      const mounted = act(async () => {
+    const renderAndWait = async () =>
+      waitFor(() =>
         render(<DatabaseModal {...dbProps} dbEngine="PostgreSQL" />, {
           useRedux: true,
-        });
-      });
-
-      return mounted;
-    };
-
-    beforeEach(async () => {
-      await renderAndWait();
-    });
+        }),
+      );
 
     test('Error displays when it is a string', async () => {
+      await renderAndWait();
+
       const step2of3text = screen.getByText(/step 2 of 3/i);
       const errorTitleMessage = screen.getByText(/Database Creation Error/i);
       const button = screen.getByText('See more');
@@ -1609,7 +1626,14 @@ describe('DatabaseModal', () => {
   });
 
   describe('DatabaseModal w Extensions', () => {
-    const renderAndWait = async () => {
+    const renderAndWait = async () =>
+      waitFor(() =>
+        render(<DatabaseModal {...dbProps} dbEngine="SQLite" />, {
+          useRedux: true,
+        }),
+      );
+
+    beforeAll(() => {
       const extensionsRegistry = getExtensionsRegistry();
 
       extensionsRegistry.set('ssh_tunnel.form.switch', () => (
@@ -1617,21 +1641,10 @@ describe('DatabaseModal', () => {
       ));
 
       setupExtensions();
-
-      const mounted = act(async () => {
-        render(<DatabaseModal {...dbProps} dbEngine="SQLite" />, {
-          useRedux: true,
-        });
-      });
-
-      return mounted;
-    };
-
-    beforeEach(async () => {
-      await renderAndWait();
     });
 
-    test('should render an extension component if one is supplied', () => {
+    test('should render an extension component if one is supplied', async () => {
+      await renderAndWait();
       expect(
         screen.getByText('ssh_tunnel.form.switch extension component'),
       ).toBeInTheDocument();
