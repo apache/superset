@@ -1335,7 +1335,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (importingModal) {
       document
-        .getElementsByClassName('ant-upload-list-item-name')[0]
+        ?.getElementsByClassName('ant-upload-list-item-name')[0]
         .scrollIntoView();
     }
   }, [importingModal]);
