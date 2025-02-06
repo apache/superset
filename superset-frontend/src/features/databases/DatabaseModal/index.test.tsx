@@ -376,7 +376,8 @@ describe('DatabaseModal', () => {
         hidden: true,
       });
 
-      const footer = document.getElementsByClassName('ant-modal-footer');
+      const modal = screen.getByRole('dialog');
+      const footer = modal.querySelector('.ant-modal-footer');
       // ---------- TODO (lyndsiWilliams): Selector options, can't seem to get these to render properly.
 
       // renderAvailableSelector() => <Alert> - Supported databases alert
@@ -415,7 +416,7 @@ describe('DatabaseModal', () => {
         expect(component).toBeInTheDocument();
       });
       // there should be a footer but it should not have any buttons in it
-      expect(footer[0]).toBeEmptyDOMElement();
+      expect(footer).toBeEmptyDOMElement();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
