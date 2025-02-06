@@ -60,7 +60,6 @@ def run_cypress_for_test_file(
                 f"--browser {browser} "
                 f"--record --group {group_id} --tag {REPO},{GITHUB_EVENT_NAME} "
                 f"--ci-build-id {build_id} "
-                f"--wait-for-missing-groups "
                 f"-- {chrome_flags}"
             )
         else:
