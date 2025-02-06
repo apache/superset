@@ -379,7 +379,10 @@ export const OptionControlLabel = ({
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+        <Icons.CloseOutlined
+          iconSize="xs"
+          iconColor={theme.colors.grayscale.light1}
+        />
       </CloseContainer>
       <Label data-test="control-label">
         {isFunction && <Icons.FieldDerived />}

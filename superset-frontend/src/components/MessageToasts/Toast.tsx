@@ -31,6 +31,11 @@ const ToastContainer = styled.div`
   span {
     padding: 0 11px;
   }
+
+  .toast__close,
+  .toast__close span {
+    padding: 0 !important;
+  }
 `;
 
 const NotificationStyledIcon = (theme: SupersetTheme) => css`
@@ -100,8 +105,9 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     >
       {icon}
       <Interweave content={toast.text} noHtml={!toast.allowHtml} />
-      <i
-        className="fa fa-close pull-right pointer"
+      <Icons.CloseOutlined
+        iconSize="m"
+        className="toast__close pointer"
         role="button"
         tabIndex={0}
         onClick={handleClosePress}

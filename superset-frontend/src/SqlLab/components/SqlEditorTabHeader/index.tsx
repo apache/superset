@@ -31,6 +31,7 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import Icons from 'src/components/Icons';
 import TabStatusIcon from '../TabStatusIcon';
 
 const TabTitleWrapper = styled.div`
@@ -99,7 +100,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="close-tab-menu-option"
             >
               <IconContainer>
-                <i className="fa fa-close" />
+                <Icons.CloseOutlined
+                  iconSize="xs"
+                  css={{ verticalAlign: 'middle' }}
+                />
               </IconContainer>
               {t('Close tab')}
             </Menu.Item>

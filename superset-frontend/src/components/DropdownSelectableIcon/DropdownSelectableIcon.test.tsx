@@ -33,7 +33,7 @@ const mockedProps = {
     },
   ],
   selectedKeys: [],
-  icon: <Icons.Gear name="gear" />,
+  icon: <Icons.SettingOutlined iconSize="xl" name="gear" />,
 };
 
 const asyncRender = (props: DropDownSelectableProps) =>

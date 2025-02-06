@@ -229,7 +229,8 @@ const FilterBarSettings = () => {
       <DropdownSelectableIcon
         onSelect={handleSelect}
         icon={
-          <Icons.Gear
+          <Icons.SettingOutlined
+            iconSize="xl"
             name="gear"
             iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"

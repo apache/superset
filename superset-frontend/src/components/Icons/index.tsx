@@ -120,7 +120,6 @@ const IconFileNames = [
   'pie-chart-tile',
   'placeholder',
   'queued',
-  'refresh',
   'running',
   'save',
   'sql',
@@ -161,6 +160,7 @@ const IconFileNames = [
   'plus_large',
   'plus_small',
   'plus_solid',
+  'refresh',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

@@ -17,6 +17,7 @@
  * under the License.
  */
 import Icons from 'src/components/Icons';
+import { useTheme } from '@superset-ui/core';
 import DropdownSelectableIcon, { DropDownSelectableProps } from '.';
 
 export default {
@@ -24,13 +25,21 @@ export default {
   component: DropdownSelectableIcon,
 };
 
-export const Component = (props: DropDownSelectableProps) => (
-  <DropdownSelectableIcon
-    {...props}
-    icon={<Icons.Gear name="gear" iconColor="#000000" />}
-  />
-);
-
+export const Component = (props: DropDownSelectableProps) => {
+  const theme = useTheme();
+  return (
+    <DropdownSelectableIcon
+      {...props}
+      icon={
+        <Icons.SettingOutlined
+          iconSize="xl"
+          name="gear"
+          iconColor={theme.colors.grayscale.dark2}
+        />
+      }
+    />
+  );
+};
 Component.args = {
   info: 'Info go here',
   selectedKeys: ['vertical'],

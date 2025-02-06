@@ -146,7 +146,10 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+              <Icons.CloseOutlined
+                iconSize="xs"
+                iconColor={theme.colors.grayscale.light1}
+              />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
