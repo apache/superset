@@ -173,6 +173,10 @@ spark = [
     "tableschema",
     "thrift>=0.14.1, <1",
 ]
+tdengine = [
+    "taospy>=2.7.21",
+    "taos-ws-py>=0.3.8"
+]
 teradata = ["teradatasql>=16.20.0.23"]
 thumbnails = ["Pillow>=10.0.1, <11"]
 vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
