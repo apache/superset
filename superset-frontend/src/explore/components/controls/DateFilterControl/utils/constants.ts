@@ -130,7 +130,7 @@ export const CURRENT_CALENDAR_RANGE_SET: Set<CurrentRangeType> = new Set([
   CurrentYear,
 ]);
 
-export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ss';
+export const MOMENT_FORMAT = 'YYYY-MM-DD[T]HH:mm:ssZ';
 export const SEVEN_DAYS_AGO = moment()
   .utc()
   .startOf('day')

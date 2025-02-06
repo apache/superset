@@ -45,11 +45,13 @@ export const dttmToMoment = (dttm: string): Moment => {
   if (dttm === 'today') {
     return moment().utc().startOf('day');
   }
-  return moment(dttm);
+  return moment.parseZone(dttm);
 };
 
-export const dttmToString = (dttm: string): string =>
-  dttmToMoment(dttm).format(MOMENT_FORMAT);
+export const dttmToString = (dttm: string): string => {
+  console.log('dttmToString', dttm, dttmToMoment(dttm).format(MOMENT_FORMAT));
+  return dttmToMoment(dttm).format(MOMENT_FORMAT);
+};
 
 export const customTimeRangeEncode = (customRange: CustomRangeType): string => {
   const {

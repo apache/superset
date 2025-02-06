@@ -68,18 +68,28 @@ const noopReducer =
 const bootstrapData = getBootstrapData();
 
 export const USER_LOADED = 'USER_LOADED';
+export const USER_UPDATED = 'USER_UPDATED';
 
 export type UserLoadedAction = {
   type: typeof USER_LOADED;
   user: UserWithPermissionsAndRoles;
 };
 
+export type UpdateUserAction = {
+  type: typeof USER_UPDATED;
+  user: Partial<UserWithPermissionsAndRoles>;
+};
+
 export const userReducer = (
   user = bootstrapData.user || {},
-  action: UserLoadedAction,
+  action: UserLoadedAction | UpdateUserAction,
 ): BootstrapUser | UndefinedUser => {
   if (action.type === USER_LOADED) {
     return action.user;
+  }
+  if (action.type === USER_UPDATED) {
+    console.log('userReducer', { ...user, ...action.user });
+    return { ...user, ...action.user };
   }
   return user;
 };

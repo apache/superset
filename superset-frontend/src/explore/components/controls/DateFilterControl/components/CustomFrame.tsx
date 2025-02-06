@@ -18,7 +18,7 @@
  */
 import { useSelector } from 'react-redux';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
-import { Moment } from 'moment';
+import moment, { Moment } from 'moment';
 import { isInteger } from 'lodash';
 // @ts-ignore
 import { locales } from 'antd/dist/antd-with-locales';
@@ -44,6 +44,7 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
+import { useLocation } from 'react-router-dom';
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -118,6 +119,21 @@ export function CustomFrame(props: FrameComponentProps) {
   const datePickerLocale =
     locales[LOCALE_MAPPING[localFromFlaskBabel]]?.DatePicker;
 
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const timezone_from_url = params.get('tz');
+  const timezone_from_user = useSelector(
+    (state: ExplorePageState) => state?.user?.timezone,
+  );
+  const timezone = timezone_from_url || timezone_from_user || 'UTC';
+  console.log(
+    'timezone from ',
+    timezone_from_url,
+    timezone_from_user,
+    'is',
+    timezone,
+  );
+
   return (
     <div data-test="custom-frame">
       <div className="section-title">{t('Configure custom time range')}</div>
@@ -140,10 +156,16 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row>
               <DatePicker
                 showTime
-                defaultValue={dttmToMoment(sinceDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
-                }
+                defaultValue={moment(sinceDatetime).tz(timezone)}
+                onChange={(datetime: Moment) => {
+                  onChange(
+                    'sinceDatetime',
+                    moment(datetime)
+                      .tz(timezone, true)
+                      .utc()
+                      .format(MOMENT_FORMAT),
+                  );
+                }}
                 allowClear={false}
                 locale={datePickerLocale}
               />
@@ -193,10 +215,16 @@ export function CustomFrame(props: FrameComponentProps) {
             <Row>
               <DatePicker
                 showTime
-                defaultValue={dttmToMoment(untilDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
-                }
+                defaultValue={moment(untilDatetime).tz(timezone)}
+                onChange={(datetime: Moment) => {
+                  onChange(
+                    'untilDatetime',
+                    moment(datetime)
+                      .tz(timezone, true)
+                      .utc()
+                      .format(MOMENT_FORMAT),
+                  );
+                }}
                 allowClear={false}
                 locale={datePickerLocale}
               />

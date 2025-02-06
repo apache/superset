@@ -37,6 +37,8 @@ import { Tooltip } from 'src/components/Tooltip';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { SLOW_DEBOUNCE } from 'src/constants';
 import { noOp } from 'src/utils/common';
+import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import ControlPopover from '../ControlPopover/ControlPopover';
 
 import { DateFilterControlProps, FrameType } from './types';
@@ -54,6 +56,9 @@ import {
   DateLabel,
 } from './components';
 import { CurrentCalendarFrame } from './components/CurrentCalendarFrame';
+import TimezoneSelector from '../../../../components/TimezoneSelector';
+import { store, USER_UPDATED } from '../../../../views/store';
+import { ExplorePageState } from '../../../types';
 
 const StyledRangeType = styled(Select)`
   width: 272px;
@@ -121,9 +126,11 @@ const IconWrapper = styled.span`
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     vertical-align: middle;
   }
+
   .text {
     vertical-align: middle;
   }
+
   .error {
     color: ${({ theme }) => theme.colors.error.base};
   }
@@ -164,6 +171,25 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const value = props.value ?? defaultTimeFilter;
   const [actualTimeRange, setActualTimeRange] = useState<string>(value);
 
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const timezone_from_url = params.get('tz');
+  const timezone_from_user = useSelector(
+    (state: ExplorePageState) => state?.user?.timezone,
+  );
+  const [timezone, setTimezone] = useState<string>(
+    timezone_from_url || timezone_from_user || 'UTC',
+  );
+
+  const onTimezoneChange = (value: string) => {
+    setTimezone(value);
+    // moment.tz.setDefault(value);
+    store.dispatch({
+      type: USER_UPDATED,
+      user: { timezone: value },
+    });
+  };
+
   const [show, setShow] = useState<boolean>(false);
   const guessedFrame = useMemo(() => guessFrame(value), [value]);
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
@@ -174,6 +200,8 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+
+  console.log(timeRangeValue, timezone);
 
   useEffect(() => {
     if (value === NO_TIME_RANGE) {
@@ -291,7 +319,15 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         value={frame}
         onChange={onChangeFrame}
       />
-      {frame !== 'No filter' && <Divider />}
+      {frame !== 'No filter' && (
+        <>
+          <Divider />
+          <TimezoneSelector
+            timezone={timezone}
+            onTimezoneChange={onTimezoneChange}
+          />
+        </>
+      )}
       {frame === 'Common' && (
         <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
       )}

@@ -39,6 +39,7 @@ export type User = {
   lastName: string;
   userId?: number; // optional because guest user doesn't have a user id
   username: string;
+  timezone?: string; // optional because I don't know how to set a default value on the backend
 };
 
 export type UserRoles = Record<string, [string, string][]>;
