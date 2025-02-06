@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { isEmpty } from 'lodash';
 import {
@@ -24,7 +24,6 @@ import {
   SupersetTheme,
   css,
   styled,
-  useTheme,
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
@@ -36,7 +35,6 @@ import { AlertObject } from 'src/features/alerts/types';
 import { Menu } from 'src/components/Menu';
 import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
@@ -154,7 +152,6 @@ export default function HeaderReportDropDown({
     return permissions.some(permission => permission.length > 0);
   };
 
-  const theme = useTheme();
   const prevDashboard = usePrevious(dashboardId);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
@@ -180,12 +177,6 @@ export default function HeaderReportDropDown({
   }, []);
 
   const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
-
-  // @z-index-below-dashboard-header (100) - 1 = 99
-  const dropdownOverlayStyle = {
-    zIndex: 99,
-    animationDuration: '0s',
-  };
 
   useEffect(() => {
     if (showReportSubMenu) {
@@ -219,7 +210,12 @@ export default function HeaderReportDropDown({
         <Menu.Divider />
       </Menu.SubMenu>
     ) : (
-      <Menu.SubMenu title={submenuTitle} css={{ border: 'none' }}>
+      <Menu.SubMenu
+        title={submenuTitle}
+        css={css`
+          border: none;
+        `}
+      >
         <Menu.Item
           css={onMenuItemHover}
           onClick={() => toggleActiveKey(report, !isReportActive)}
@@ -237,8 +233,13 @@ export default function HeaderReportDropDown({
         </Menu.Item>
       </Menu.SubMenu>
     );
-  const menu = () => (
-    <Menu.SubMenu title={submenuTitle} css={{ width: '200px' }}>
+  const menu = (title: ReactNode) => (
+    <Menu.SubMenu
+      title={title}
+      css={css`
+        width: 200px;
+      `}
+    >
       <Menu.Item>
         {t('Email reports active')}
         <Switch
@@ -246,7 +247,9 @@ export default function HeaderReportDropDown({
           checked={isReportActive}
           onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
-          css={{ marginLeft: theme.gridUnit * 2 }}
+          css={theme => css`
+            margin-left: ${theme.gridUnit * 2}px;
+          `}
         />
       </Menu.Item>
       <Menu.Item onClick={() => showReportModal()}>
@@ -273,25 +276,7 @@ export default function HeaderReportDropDown({
         <Icons.Calendar />
       </span>
     ) : (
-      <>
-        <NoAnimationDropdown
-          dropdownRender={() => menu()}
-          overlayStyle={dropdownOverlayStyle}
-          trigger={['click']}
-          getPopupContainer={(triggerNode: any) =>
-            triggerNode.closest('.action-button')
-          }
-        >
-          <span
-            role="button"
-            className="action-button action-schedule-report"
-            tabIndex={0}
-          >
-            <Icons.Calendar />
-          </span>
-        </NoAnimationDropdown>
-      </>
+      menu(<Icons.Calendar />)
     );
-
   return canAddReports() && useTextMenu ? textMenu() : iconMenu();
 }
