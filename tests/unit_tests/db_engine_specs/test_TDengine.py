@@ -15,14 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from datetime import datetime
-from decimal import Decimal
-from typing import Any, Optional
-from unittest.mock import Mock, patch
 
-import pytest
-from sqlalchemy import types
 from sqlalchemy.engine.url import make_url, URL  # noqa: F401
+
 
 # test get schema
 def test_get_schema_from_engine_params() -> None:
