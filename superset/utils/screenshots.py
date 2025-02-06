@@ -20,7 +20,7 @@ import logging
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import TYPE_CHECKING, TypedDict
+from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app
 
@@ -73,7 +73,7 @@ class ScreenshotCachePayload:
     def __init__(
         self,
         image: bytes | None = None,
-        status: str = StatusValues.PENDING,
+        status: StatusValues = StatusValues.PENDING,
         timestamp: str = "",
     ):
         self._image = image
@@ -209,6 +209,7 @@ class BaseScreenshot:
             elif isinstance(payload, ScreenshotCachePayload):
                 pass
             elif isinstance(payload, dict):
+                payload = cast(ScreenshotCachePayloadType, payload)
                 payload = ScreenshotCachePayload.from_dict(payload)
             return payload
         logger.info("Failed at getting from cache: %s", cache_key)
