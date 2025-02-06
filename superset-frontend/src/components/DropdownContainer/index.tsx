@@ -317,14 +317,6 @@ const DropdownContainer = forwardRef(
       };
     }, [popoverVisible]);
 
-    const handleChange = (visible: boolean) => {
-      if (visible) {
-        setPopoverVisible(true);
-      } else if (!document.querySelector('.time-range-popover')) {
-        setPopoverVisible(false);
-      }
-    };
-
     return (
       <div
         ref={ref}
@@ -370,6 +362,7 @@ const DropdownContainer = forwardRef(
                 }
               `}
             />
+
             <Popover
               overlayInnerStyle={{
                 maxHeight: `${MAX_HEIGHT}px`,
@@ -378,7 +371,7 @@ const DropdownContainer = forwardRef(
               content={popoverContent}
               trigger="click"
               open={popoverVisible}
-              onOpenChange={visible => handleChange(visible)}
+              onOpenChange={visible => setPopoverVisible(visible)}
               placement="bottom"
               forceRender={forceRender}
             >

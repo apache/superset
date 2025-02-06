@@ -363,6 +363,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   );
   const popoverContent = (
     <ControlPopover
+      autoAdjustOverflow={false}
       trigger="click"
       placement="right"
       content={overlayContent}
@@ -372,6 +373,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       onOpenChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
       destroyTooltipOnHide
+      getPopupContainer={nodeTrigger =>
+        isOverflowingFilterBar
+          ? (nodeTrigger.parentNode as HTMLElement)
+          : document.body
+      }
       overlayClassName="time-range-popover"
     >
       <Tooltip placement="top" title={tooltipTitle}>
