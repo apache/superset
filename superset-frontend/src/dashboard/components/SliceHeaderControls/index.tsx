@@ -162,6 +162,7 @@ const SliceHeaderControls = (
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   // setting openKeys undefined falls back to uncontrolled behaviour
   const [openKeys, setOpenKeys] = useState<string[] | undefined>(undefined);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
@@ -285,6 +286,8 @@ const SliceHeaderControls = (
       default:
         break;
     }
+    setOpenKeys([]);
+    setIsDropdownVisible(false);
   };
 
   const {
@@ -335,24 +338,12 @@ const SliceHeaderControls = (
     animationDuration: '0s',
   };
 
-  // controlled/uncontrolled behaviour for submenus
-  const openKeysProps: Record<string, string[]> = {};
-  if (openKeys) {
-    openKeysProps.openKeys = openKeys;
-  }
-
   const menu = (
     <Menu
       onClick={handleMenuClick}
-      selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
-      selectedKeys={selectedKeys}
-      onSelect={({ selectedKeys: keys }) => setSelectedKeys(keys)}
-      openKeys={openKeys}
       id={`slice_${slice.slice_id}-menu`}
-      // submenus must be rendered for handleDropdownNavigation
-      forceSubMenuRender
-      {...openKeysProps}
+      selectable={false}
     >
       <Menu.Item
         key={MenuKeys.ForceRefresh}
@@ -459,7 +450,6 @@ const SliceHeaderControls = (
           emailBody={t('Check out this chart: ')}
           addSuccessToast={addSuccessToast}
           addDangerToast={addDangerToast}
-          setOpenKeys={setOpenKeys}
           title={t('Share')}
         />
       )}
@@ -532,7 +522,8 @@ const SliceHeaderControls = (
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
-        forceRender
+        open={isDropdownVisible}
+        onOpenChange={visible => setIsDropdownVisible(visible)}
       >
         <Button
           type="link"

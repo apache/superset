@@ -91,12 +91,10 @@ export const useHeaderActionsMenu = ({
       switch (key) {
         case MenuKeys.RefreshDashboard:
           forceRefreshAllCharts();
-          setIsDropdownVisible(false);
           addSuccessToast(t('Refreshing charts'));
           break;
         case MenuKeys.EditProperties:
           showPropertiesModal();
-          setIsDropdownVisible(false);
           break;
         case MenuKeys.ToggleFullscreen: {
           const url = getDashboardUrl({
@@ -110,12 +108,11 @@ export const useHeaderActionsMenu = ({
         }
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
-          setIsDropdownVisible(false);
           break;
         default:
-          setIsDropdownVisible(false);
           break;
       }
+      setIsDropdownVisible(false);
     },
     [
       forceRefreshAllCharts,
