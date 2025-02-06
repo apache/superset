@@ -17,22 +17,22 @@
  * under the License.
  */
 import { PureComponent } from 'react';
+import { Dispatch } from 'redux';
 import {
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
   logging,
+  SqlaFormData,
   QueryFormData,
   styled,
-  ErrorTypeEnum,
   t,
-  SqlaFormData,
   ClientErrorObject,
   ChartDataResponse,
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
-import { EmptyState } from 'src/components/EmptyState';
+import { EmptyStateBig } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -40,52 +40,10 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import { Dispatch } from 'redux';
 import { Annotation } from 'src/explore/components/controls/AnnotationLayerControl';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
-
-export type ChartErrorType = Partial<ClientErrorObject>;
-export interface ChartProps {
-  annotationData?: Annotation;
-  actions: Actions;
-  chartId: string;
-  datasource?: {
-    database?: {
-      name: string;
-    };
-  };
-  dashboardId?: number;
-  initialValues?: object;
-  formData: QueryFormData;
-  labelColors?: string;
-  sharedLabelColors?: string;
-  width: number;
-  height: number;
-  setControlValue: Function;
-  timeout?: number;
-  vizType: string;
-  triggerRender?: boolean;
-  force?: boolean;
-  isFiltersInitialized?: boolean;
-  chartAlert?: string;
-  chartStatus?: string;
-  chartStackTrace?: string;
-  queriesResponse: ChartDataResponse[];
-  triggerQuery?: boolean;
-  chartIsStale?: boolean;
-  errorMessage?: React.ReactNode;
-  addFilter?: (type: string) => void;
-  onQuery?: () => void;
-  onFilterMenuOpen?: (chartId: string, column: string) => void;
-  onFilterMenuClose?: (chartId: string, column: string) => void;
-  ownState: boolean;
-  postTransformProps?: Function;
-  datasetsStatus?: 'loading' | 'error' | 'complete';
-  isInView?: boolean;
-  emitCrossFilters?: boolean;
-}
 
 export type Actions = {
   logEvent(
@@ -112,7 +70,51 @@ export type Actions = {
     dashboardId: number | undefined,
     ownState: boolean,
   ): Dispatch;
+  chartRenderingSucceeded(arg0: { key: string }): Dispatch;
+  updateDataMask(chartId: string, dataMask: { dataMask: any }): Dispatch;
 };
+
+export type ChartErrorType = Partial<ClientErrorObject>;
+export interface ChartProps {
+  annotationData?: Annotation;
+  actions: Actions;
+  chartId: string;
+  datasource?: {
+    database?: {
+      name: string;
+    };
+  };
+  dashboardId?: number;
+  initialValues?: object;
+  formData: QueryFormData;
+  labelColors?: string;
+  sharedLabelColors?: string;
+  width: number;
+  height: number;
+  setControlValue: Function;
+  timeout?: number;
+  vizType: string;
+  triggerRender?: boolean;
+  force?: boolean;
+  chartAlert?: string;
+  chartStatus?: string;
+  chartStackTrace?: string;
+  queriesResponse: ChartDataResponse[];
+  triggerQuery?: boolean;
+  chartIsStale?: boolean;
+  addFilter?: (type: string) => void;
+  onQuery?: () => void;
+  onFilterMenuOpen?: (chartId: string, column: string) => void;
+  onFilterMenuClose?: (chartId: string, column: string) => void;
+  ownState: boolean;
+  postTransformProps?: Function;
+  datasetsStatus?: 'loading' | 'error' | 'complete';
+  emitCrossFilters?: boolean;
+  errorMessage?: React.ReactNode;
+  isInView?: boolean;
+  filters?: string | string[];
+}
+
 const BLANK = {};
 const NONEXISTENT_DATASET = t(
   'The dataset associated with this chart no longer exists',
@@ -173,6 +175,12 @@ const MessageSpan = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const MonospaceDiv = styled.div`
+  font-family: ${({ theme }) => theme.typography.families.monospace};
+  word-break: break-word;
+  overflow-x: auto;
+  white-space: pre-wrap;
+`;
 class Chart extends PureComponent<ChartProps, {}> {
   static defaultProps = defaultProps;
 
@@ -240,15 +248,7 @@ class Chart extends PureComponent<ChartProps, {}> {
       height,
       datasetsStatus,
     } = this.props;
-    let error = queryResponse?.errors?.[0];
-    if (error === undefined) {
-      error = {
-        error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
-        level: 'error',
-        message: t('Check your network connection'),
-        extra: null,
-      };
-    }
+    const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 
     // if datasource is still loading, don't render JS errors
@@ -276,7 +276,8 @@ class Chart extends PureComponent<ChartProps, {}> {
         key={chartId}
         chartId={chartId}
         error={error}
-        subtitle={message}
+        subtitle={<MonospaceDiv>{message}</MonospaceDiv>}
+        copyText={message}
         link={queryResponse ? queryResponse.link : undefined}
         source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
         stackTrace={chartStackTrace}
@@ -305,7 +306,11 @@ class Chart extends PureComponent<ChartProps, {}> {
         isCurrentUserBot() ? (
           <ChartRenderer
             {...this.props}
-            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            source={
+              this.props.dashboardId
+                ? ChartSource.Dashboard
+                : ChartSource.Explore
+            }
             data-test={this.props.vizType}
           />
         ) : (
@@ -339,8 +344,7 @@ class Chart extends PureComponent<ChartProps, {}> {
 
     if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
       return (
-        <EmptyState
-          size="large"
+        <EmptyStateBig
           title={t('Add required control values to preview chart')}
           description={getChartRequiredFieldsMissingMessage(true)}
           image="chart.svg"
@@ -355,8 +359,7 @@ class Chart extends PureComponent<ChartProps, {}> {
       ensureIsArray(queriesResponse).length === 0
     ) {
       return (
-        <EmptyState
-          size="large"
+        <EmptyStateBig
           title={t('Your chart is ready to go!')}
           description={
             <span>
