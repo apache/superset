@@ -22,7 +22,6 @@ import Alert from 'src/components/Alert';
 import Button from 'src/components/Button';
 import {
   isDefined,
-  Metric,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -43,6 +42,7 @@ import {
   fetchSyncedColumns,
   updateColumns,
 } from 'src/components/Datasource/utils';
+import { DatasetObject } from '../../features/datasets/types';
 
 const DatasourceEditor = AsyncEsmComponent(() => import('./DatasourceEditor'));
 
@@ -70,14 +70,16 @@ const StyledDatasourceModal = styled(Modal)`
 interface DatasourceModalProps {
   addSuccessToast: (msg: string) => void;
   addDangerToast: (msg: string) => void;
-  datasource: any;
+  datasource: DatasetObject;
   onChange: () => {};
   onDatasourceSave: (datasource: object, errors?: Array<any>) => {};
   onHide: () => {};
   show: boolean;
 }
 
-function buildExtraJsonObject(item: Record<string, unknown>) {
+function buildExtraJsonObject(
+  item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
+) {
   const certification =
     item?.certified_by || item?.certification_details
       ? {
@@ -100,13 +102,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   show,
 }) => {
   const dispatch = useDispatch();
-  const [currentDatasource, setCurrentDatasource] = useState({
-    ...datasource,
-    metrics: datasource?.metrics?.map((metric: Metric) => ({
-      ...metric,
-      currency: JSON.parse(metric.currency || 'null'),
-    })),
-  });
+  const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const currencies = useSelector<
     {
       common: {
@@ -143,7 +139,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     extra: datasource.extra,
     is_managed_externally: datasource.is_managed_externally,
     external_url: datasource.external_url,
-    metrics: datasource?.metrics?.map((metric: Record<string, unknown>) => {
+    metrics: datasource?.metrics?.map((metric: DatasetObject['metrics'][0]) => {
       const metricBody: any = {
         expression: metric.expression,
         description: metric.description,
@@ -163,22 +159,24 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       }
       return metricBody;
     }),
-    columns: datasource?.columns?.map((column: Record<string, unknown>) => ({
-      id: typeof column.id === 'number' ? column.id : undefined,
-      column_name: column.column_name,
-      type: column.type,
-      advanced_data_type: column.advanced_data_type,
-      verbose_name: column.verbose_name,
-      description: column.description,
-      expression: column.expression,
-      filterable: column.filterable,
-      groupby: column.groupby,
-      is_active: column.is_active,
-      is_dttm: column.is_dttm,
-      python_date_format: column.python_date_format || null,
-      uuid: column.uuid,
-      extra: buildExtraJsonObject(column),
-    })),
+    columns: datasource?.columns?.map(
+      (column: DatasetObject['columns'][0]) => ({
+        id: typeof column.id === 'number' ? column.id : undefined,
+        column_name: column.column_name,
+        type: column.type,
+        advanced_data_type: column.advanced_data_type,
+        verbose_name: column.verbose_name,
+        description: column.description,
+        expression: column.expression,
+        filterable: column.filterable,
+        groupby: column.groupby,
+        is_active: column.is_active,
+        is_dttm: column.is_dttm,
+        python_date_format: column.python_date_format || null,
+        uuid: column.uuid,
+        extra: buildExtraJsonObject(column),
+      }),
+    ),
     owners: datasource.owners.map(
       (o: Record<string, number>) => o.value || o.id,
     ),
@@ -253,10 +251,10 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     }
   };
 
-  const onDatasourceChange = (data: Record<string, any>, err: Array<any>) => {
+  const onDatasourceChange = (data: DatasetObject, err: Array<any>) => {
     setCurrentDatasource({
       ...data,
-      metrics: data?.metrics.map((metric: Metric) => ({
+      metrics: data?.metrics.map((metric: DatasetObject['metrics'][0]) => ({
         ...metric,
         is_certified: metric?.certified_by || metric?.certification_details,
       })),

@@ -18,7 +18,7 @@
  */
 import { Children, cloneElement } from 'react';
 import { nanoid } from 'nanoid';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, tn } from '@superset-ui/core';
 import rison from 'rison';
 
 export function recurseReactClone(children, type, propExtender) {
@@ -91,14 +91,30 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
   });
   if (columnChanges.modified.length) {
     addSuccessToast(
-      t('Modified columns: %s', columnChanges.modified.join(', ')),
+      tn(
+        'Modified 1 column in the virtual dataset',
+        'Modified %s columns in the virtual dataset',
+        columnChanges.modified.length,
+      ),
     );
   }
   if (columnChanges.removed.length) {
-    addSuccessToast(t('Removed columns: %s', columnChanges.removed.join(', ')));
+    addSuccessToast(
+      tn(
+        'Removed 1 column from the virtual dataset',
+        'Removed %s columns from the virtual dataset',
+        columnChanges.removed.length,
+      ),
+    );
   }
   if (columnChanges.added.length) {
-    addSuccessToast(t('New columns added: %s', columnChanges.added.join(', ')));
+    addSuccessToast(
+      tn(
+        'Added 1 new column to the virtual dataset',
+        'Added %s new columns to the virtual dataset',
+        columnChanges.added.length,
+      ),
+    );
   }
   return columnChanges;
 }
