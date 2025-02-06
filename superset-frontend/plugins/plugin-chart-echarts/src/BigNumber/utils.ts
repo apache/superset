@@ -44,3 +44,18 @@ export const getDateFormatter = (
   timeFormat === smartDateFormatter.id
     ? getTimeFormatterForGranularity(granularity)
     : getTimeFormatter(timeFormat ?? fallbackFormat);
+
+// export const computeRollingValues = (data:Array<any>,
+//   rollingType: string) => {
+//     switch(rollingType){
+//       case 'mean': {
+//         const overall_mean = data.reduce((sum,value) => sum+ (value?.[1] || 0),0)/data.length;
+//         return overall_mean;
+//       }
+//       case 'sum': {
+//         const overall_sum = data.reduce((sum,value) => sum+ (value?.[1] || 0),0);
+//         return overall_sum;
+//       }
+//       default: return data[0][1];
+//     }
+// }

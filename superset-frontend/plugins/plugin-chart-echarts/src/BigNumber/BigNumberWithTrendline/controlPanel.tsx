@@ -274,6 +274,13 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    {
+      label: t('Extra'),
+      expanded: true,
+      controlSetRows: [
+        ['metrics'],
+      ],
+    }
   ],
   controlOverrides: {
     y_axis_format: {

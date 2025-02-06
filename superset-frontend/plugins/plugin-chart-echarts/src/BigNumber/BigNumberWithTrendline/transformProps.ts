@@ -84,6 +84,7 @@ export default function transformProps(
     timeFormat,
     headerFontSize,
     metric = 'value',
+    metrics = [],
     showTimestamp,
     showTrendLine,
     startYAxisAtZero,
@@ -93,7 +94,7 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
-    rollingType
+    rollingType,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -105,6 +106,7 @@ export default function transformProps(
   } = queriesData[0];
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
+  const bigNumberMetric = metrics.length > 0 ? metrics[0]?.label : metricName;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -115,18 +117,19 @@ export default function transformProps(
   let trendLineData: TimeSeriesDatum[] | undefined;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
+  let bigNumberDisplayValue = data.length === 0 ? null : data[0][bigNumberMetric]
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
 
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
   const metricColtype =
     metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
-
-  if (data.length > 0) {
-    const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
-      // sort in time descending order
-      .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
+  
+    if (data.length > 0) {
+      const sortedData = (data as BigNumberDatum[])
+        .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
+        // sort in time descending order
+        .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
     bigNumber = sortedData[0][1];
     timestamp = sortedData[0][0];
@@ -294,5 +297,6 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    bigNumberDisplayValue
   };
 }
