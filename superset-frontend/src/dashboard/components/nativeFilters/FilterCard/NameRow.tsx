@@ -65,8 +65,10 @@ export const NameRow = ({
       </InternalRow>
       {canEdit && (
         <FilterConfigurationLink
-          onClick={hidePopover}
-          showModal={openFilterConfigModal}
+          onClick={() => {
+            openFilterConfigModal();
+            hidePopover();
+          }}
         >
           <Icons.Edit
             iconSize="l"

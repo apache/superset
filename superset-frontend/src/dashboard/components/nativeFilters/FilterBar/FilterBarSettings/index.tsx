@@ -153,9 +153,16 @@ const FilterBarSettings = () => {
         toggleFilterBarOrientation(selectedKey);
       } else if (selectedKey === CROSS_FILTERS_SCOPING_MENU_KEY) {
         openScopingModal();
+      } else if (selectedKey === ADD_EDIT_FILTERS_MENU_KEY) {
+        openFilterConfigModal();
       }
     },
-    [openScopingModal, toggleCrossFiltering, toggleFilterBarOrientation],
+    [
+      openScopingModal,
+      toggleCrossFiltering,
+      toggleFilterBarOrientation,
+      openFilterConfigModal,
+    ],
   );
 
   const crossFiltersMenuItem = useMemo(
@@ -181,7 +188,7 @@ const FilterBarSettings = () => {
       items.push({
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
-          <FilterConfigurationLink showModal={openFilterConfigModal}>
+          <FilterConfigurationLink>
             {t('Add or edit filters')}
           </FilterConfigurationLink>
         ),

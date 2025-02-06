@@ -124,7 +124,12 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   });
 
   return (
-    <AntdDropdown autoFocus overlayStyle={props.overlayStyle} {...rest}>
+    <AntdDropdown
+      autoFocus
+      destroyPopupOnHide
+      overlayStyle={props.overlayStyle}
+      {...rest}
+    >
       {childrenWithProps}
     </AntdDropdown>
   );

@@ -16,41 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, FC, useCallback, memo } from 'react';
+import { ReactNode, FC, memo } from 'react';
 
 import { getFilterBarTestId } from '../utils';
 
 export interface FCBProps {
   onClick?: () => void;
   children?: ReactNode;
-  showModal?: () => void;
 }
 
 export const FilterConfigurationLink: FC<FCBProps> = ({
   onClick,
   children,
-  showModal,
-}) => {
-  const handleClick = useCallback(() => {
-    if (!showModal) {
-      return;
-    }
-    showModal();
-    if (onClick) {
-      onClick();
-    }
-  }, [showModal, onClick]);
-
-  return (
-    <div
-      {...getFilterBarTestId('create-filter')}
-      onClick={handleClick}
-      role="button"
-      tabIndex={0}
-    >
-      {children}
-    </div>
-  );
-};
+}) => (
+  <div
+    {...getFilterBarTestId('create-filter')}
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+  >
+    {children}
+  </div>
+);
 
 export default memo(FilterConfigurationLink);
