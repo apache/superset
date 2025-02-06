@@ -16,69 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, FC, useCallback, useState, memo } from 'react';
+import { ReactNode, FC, useCallback, memo } from 'react';
 
-import { useDispatch } from 'react-redux';
-import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { getFilterBarTestId } from '../utils';
-import { SaveFilterChangesType } from '../../FiltersConfigModal/types';
 
 export interface FCBProps {
-  createNewOnOpen?: boolean;
-  dashboardId?: number;
-  initialFilterId?: string;
   onClick?: () => void;
   children?: ReactNode;
+  showModal?: () => void;
 }
 
 export const FilterConfigurationLink: FC<FCBProps> = ({
-  createNewOnOpen,
-  dashboardId,
-  initialFilterId,
   onClick,
   children,
+  showModal,
 }) => {
-  const dispatch = useDispatch();
-  const [isOpen, setOpen] = useState(false);
-  const close = useCallback(() => {
-    setOpen(false);
-  }, [setOpen]);
-
-  const submit = useCallback(
-    async (filterChanges: SaveFilterChangesType) => {
-      dispatch(await setFilterConfiguration(filterChanges));
-      close();
-    },
-    [dispatch, close],
-  );
-
   const handleClick = useCallback(() => {
-    setOpen(true);
+    if (!showModal) {
+      return;
+    }
+    showModal();
     if (onClick) {
       onClick();
     }
-  }, [setOpen, onClick]);
+  }, [showModal, onClick]);
 
   return (
-    <>
-      <div
-        {...getFilterBarTestId('create-filter')}
-        onClick={handleClick}
-        role="button"
-        tabIndex={0}
-      >
-        {children}
-      </div>
-      <FiltersConfigModal
-        isOpen={isOpen}
-        onSave={submit}
-        onCancel={close}
-        initialFilterId={initialFilterId}
-        createNewOnOpen={createNewOnOpen}
-        key={`filters-for-${dashboardId}`}
-      />
-    </>
+    <div
+      {...getFilterBarTestId('create-filter')}
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+    >
+      {children}
+    </div>
   );
 };
 

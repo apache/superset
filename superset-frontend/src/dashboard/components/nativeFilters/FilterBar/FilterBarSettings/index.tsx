@@ -39,6 +39,7 @@ import { Button } from 'src/components';
 import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
+import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -99,6 +100,12 @@ const FilterBarSettings = () => {
     canEdit && isFeatureEnabled(FeatureFlag.HorizontalFilterBar);
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
+
+  const { openFilterConfigModal, FilterConfigModalComponent } =
+    useFilterConfigModal({
+      createNewOnOpen: filterValues.length === 0,
+      dashboardId,
+    });
 
   const updateCrossFiltersSetting = useCallback(
     async isEnabled => {
@@ -174,10 +181,7 @@ const FilterBarSettings = () => {
       items.push({
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
-          <FilterConfigurationLink
-            dashboardId={dashboardId}
-            createNewOnOpen={filterValues.length === 0}
-          >
+          <FilterConfigurationLink showModal={openFilterConfigModal}>
             {t('Add or edit filters')}
           </FilterConfigurationLink>
         ),
@@ -261,6 +265,7 @@ const FilterBarSettings = () => {
         </Button>
       </Dropdown>
       {scopingModal}
+      {FilterConfigModalComponent}
     </>
   );
 };

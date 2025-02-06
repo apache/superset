@@ -30,6 +30,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import {
   Behavior,
   BinaryQueryObjectFilterClause,
+  Column,
   ContextMenuFilters,
   ensureIsArray,
   FeatureFlag,
@@ -44,6 +45,9 @@ import { Menu } from 'src/components/Menu';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { Dropdown } from 'src/components/Dropdown';
 import { updateDataMask } from 'src/dataMask/actions';
+import DrillByModal from 'src/components/Chart/DrillBy/DrillByModal';
+import { useVerboseMap } from 'src/hooks/apiResources/datasets';
+import { Dataset } from 'src/components/Chart/types';
 import { DrillDetailMenuItems } from '../DrillDetail';
 import { getMenuAdjustedY } from '../utils';
 import { MenuItemTooltip } from '../DisabledMenuItemTooltip';
@@ -114,6 +118,20 @@ const ChartContextMenu = (
   }>({ clientX: 0, clientY: 0 });
 
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
+  const [drillByColumn, setDrillByColumn] = useState<Column>();
+  const [showDrillByModal, setShowDrillByModal] = useState(false);
+  const [dataset, setDataset] = useState<Dataset>();
+  const verboseMap = useVerboseMap(dataset);
+
+  const handleDrillBy = useCallback((column: Column, dataset: Dataset) => {
+    setDrillByColumn(column);
+    setDataset(dataset); // Save dataset when drilling
+    setShowDrillByModal(true);
+  }, []);
+
+  const handleCloseDrillByModal = useCallback(() => {
+    setShowDrillByModal(false);
+  }, []);
 
   const menuItems: React.JSX.Element[] = [];
 
@@ -249,9 +267,9 @@ const ChartContextMenu = (
         formData={formData}
         contextMenuY={clientY}
         submenuIndex={submenuIndex}
-        canDownload={canDownload}
         open={openKeys.includes('drill-by-submenu')}
         key="drill-by-submenu"
+        onDrillBy={handleDrillBy}
         {...(additionalConfig?.drillBy || {})}
       />,
     );
@@ -333,6 +351,16 @@ const ChartContextMenu = (
           onHideModal={() => {
             setDrillModalIsOpen(false);
           }}
+        />
+      )}
+      {showDrillByModal && drillByColumn && dataset && filters?.drillBy && (
+        <DrillByModal
+          column={drillByColumn}
+          drillByConfig={filters?.drillBy}
+          formData={formData}
+          onHideModal={handleCloseDrillByModal}
+          dataset={{ ...dataset!, verbose_map: verboseMap }}
+          canDownload={canDownload}
         />
       )}
     </>,
