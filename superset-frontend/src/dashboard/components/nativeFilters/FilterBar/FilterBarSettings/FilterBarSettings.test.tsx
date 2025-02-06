@@ -121,13 +121,13 @@ test('Can enable/disable cross-filtering', async () => {
   });
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
-  const checkbox = screen.getByRole('checkbox');
-  expect(checkbox).toBeChecked();
+  const initialCheckbox = screen.getByRole('checkbox');
+  expect(initialCheckbox).toBeChecked();
 
-  userEvent.click(checkbox);
+  userEvent.click(initialCheckbox);
 
   userEvent.click(screen.getByLabelText('gear'));
-  expect(checkbox).not.toBeChecked();
+  expect(screen.getByRole('checkbox')).not.toBeChecked();
 });
 
 test('Popover opens with "Vertical" selected', async () => {
@@ -204,16 +204,17 @@ test('On selection change, send request and update checked value', async () => {
     ),
   );
 
-  userEvent.click(screen.getByLabelText('gear'));
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
-
-  const updatedHorizontalItem = await screen.findByText('Horizontal (Top)');
-  expect(
-    within(updatedHorizontalItem.closest('li')!).getByLabelText('check'),
-  ).toBeInTheDocument();
-  expect(
-    within(verticalItem.closest('li')!).queryByLabelText('check'),
-  ).not.toBeInTheDocument();
+  await waitFor(() => {
+    userEvent.click(screen.getByLabelText('gear'));
+    userEvent.hover(screen.getByText('Orientation of filter bar'));
+    const updatedHorizontalItem = screen.getByText('Horizontal (Top)');
+    expect(
+      within(updatedHorizontalItem.closest('li')!).getByLabelText('check'),
+    ).toBeInTheDocument();
+    expect(
+      within(verticalItem.closest('li')!).queryByLabelText('check'),
+    ).not.toBeInTheDocument();
+  });
 });
 
 test('On failed request, restore previous selection', async () => {
