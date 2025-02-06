@@ -167,7 +167,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             status === QueryState.Stopped
           ) {
             statusConfig.name = (
-              <Icons.XSmall
+              <Icons.CloseOutlined
+                iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colors.error.base

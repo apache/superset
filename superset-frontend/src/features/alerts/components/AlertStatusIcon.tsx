@@ -75,7 +75,7 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Working;
       break;
     case AlertState.Error:
-      lastStateConfig.icon = Icons.XSmall;
+      lastStateConfig.icon = Icons.CloseOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report failed')
         : t('Alert failed');
