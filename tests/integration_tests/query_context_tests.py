@@ -47,10 +47,6 @@ from tests.integration_tests.conftest import (
     only_sqlite,
     with_feature_flags,
 )
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
 from tests.integration_tests.fixtures.query_context import get_query_context
 
 

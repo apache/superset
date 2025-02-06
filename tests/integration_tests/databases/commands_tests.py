@@ -39,7 +39,6 @@ from superset.commands.database.validate import ValidateDatabaseParametersComman
 from superset.commands.exceptions import CommandInvalidError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import SqlaTable
-from superset.databases.schemas import DatabaseTestConnectionSchema  # noqa: F401
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -52,14 +51,6 @@ from superset.models.core import Database
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa: F401
-    load_energy_table_with_slice,  # noqa: F401
-)
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     database_metadata_config,

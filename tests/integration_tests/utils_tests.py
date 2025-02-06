@@ -24,25 +24,18 @@ from typing import Any, Optional
 from unittest.mock import Mock, patch  # noqa: F401
 
 from superset.commands.database.exceptions import DatabaseInvalidError
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
 
 import numpy as np
 import pandas as pd
 import pytest
 from flask import Flask, g  # noqa: F401
 import marshmallow
-from sqlalchemy.exc import ArgumentError  # noqa: F401
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import app, db, security_manager
 from superset.constants import NO_TIME_RANGE
 from superset.exceptions import CertificateException, SupersetException  # noqa: F401
 from superset.models.core import Database, Log
-from superset.models.dashboard import Dashboard  # noqa: F401
-from superset.models.slice import Slice  # noqa: F401
 from superset.utils.core import (
     cast_to_num,
     convert_legacy_filters_into_adhoc,

@@ -30,7 +30,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
-from superset import app  # noqa: F401
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
 from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.extensions import db, security_manager
@@ -49,14 +48,6 @@ from tests.integration_tests.constants import (
     ADMIN_USERNAME,
     ALPHA_USERNAME,
     GAMMA_USERNAME,
-)
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa: F401
-    load_energy_table_with_slice,  # noqa: F401
 )
 from tests.integration_tests.fixtures.importexport import (
     database_config,

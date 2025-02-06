@@ -24,7 +24,6 @@ from superset import db
 from superset.daos.user import UserDAO
 from superset.extensions import security_manager
 from superset.models.user_attributes import UserAttribute
-from tests.unit_tests.fixtures.common import admin_user, after_each  # noqa: F401
 
 
 def test_get_by_id_found(admin_user: User, after_each: None) -> None:  # noqa: F811

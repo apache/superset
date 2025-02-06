@@ -18,10 +18,6 @@
 """Unit tests for Superset"""
 
 import prison
-
-from superset.utils.core import get_example_default_schema  # noqa: F401
-
-from tests.integration_tests.utils.get_dashboards import get_dashboards_ids  # noqa: F401
 from unittest import mock
 from sqlalchemy import Column
 from typing import Any

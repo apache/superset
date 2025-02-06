@@ -24,10 +24,6 @@ from superset.extensions import cache_manager
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
 
 
 class TestCache(SupersetTestCase):

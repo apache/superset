@@ -22,10 +22,6 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.slice import Slice
 from superset.utils.core import backend, get_example_default_schema
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
 
 migration_module = import_module(
     "superset.migrations.versions."

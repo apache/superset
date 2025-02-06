@@ -23,7 +23,6 @@ import pytest
 from superset.sql.parse import SQLScript
 from superset.sql_parse import ParsedQuery
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(

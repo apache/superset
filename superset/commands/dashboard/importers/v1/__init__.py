@@ -18,7 +18,6 @@
 from typing import Any
 
 from marshmallow import Schema
-from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import select
 
 from superset import db

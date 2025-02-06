@@ -27,7 +27,6 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.extensions import db
 from superset.models.core import Database
 from superset.utils.core import get_example_default_schema
-from superset.utils.database import get_example_database  # noqa: F401
 from tests.integration_tests.test_app import app
 
 

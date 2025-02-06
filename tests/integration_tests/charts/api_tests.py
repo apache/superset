@@ -48,14 +48,6 @@ from tests.integration_tests.constants import (
     ALPHA_USERNAME,
     GAMMA_USERNAME,
 )
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa: F401
-    load_energy_table_with_slice,  # noqa: F401
-)
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,
@@ -67,14 +59,6 @@ from tests.integration_tests.fixtures.query_context import get_query_context
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
     get_filter_params,
-)
-from tests.integration_tests.fixtures.unicode_dashboard import (
-    load_unicode_dashboard_with_slice,  # noqa: F401
-    load_unicode_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,  # noqa: F401
-    load_world_bank_data,  # noqa: F401
 )
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 from tests.integration_tests.test_app import app

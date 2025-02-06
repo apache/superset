@@ -38,7 +38,6 @@ from superset.key_value.types import (
 )
 from superset.utils import json
 from superset.utils.core import override_user
-from tests.unit_tests.fixtures.common import admin_user, after_each  # noqa: F401
 
 if TYPE_CHECKING:
     from superset.key_value.models import KeyValueEntry

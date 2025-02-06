@@ -19,41 +19,27 @@
 
 import prison
 from datetime import datetime
-
-from flask import g  # noqa: F401
 import pytest
 import prison  # noqa: F811
 from freezegun import freeze_time
 from sqlalchemy.sql import func
-from sqlalchemy import and_  # noqa: F401
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.models.sql_lab import SavedQuery  # noqa: F401
-from superset.tags.models import user_favorite_tag_table  # noqa: F401
 from unittest.mock import patch
 from urllib import parse
 
 
 import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager  # noqa: F401
-from superset.common.db_query_status import QueryStatus  # noqa: F401
-from superset.models.core import Database  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database  # noqa: F401
 from superset.utils import json
 from superset.tags.models import ObjectType, Tag, TagType, TaggedObject
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,  # noqa: F401
-    load_world_bank_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature  # noqa: F401
+
 from tests.integration_tests.base_tests import SupersetTestCase
 from superset.daos.tag import TagDAO
 from superset.tags.models import ObjectType  # noqa: F811
+from tests.integration_tests.fixtures.tags import with_tagging_system_feature  # noqa: F401
 
 TAGS_FIXTURE_COUNT = 10
 

@@ -26,7 +26,6 @@ from unittest import mock
 import prison
 
 from superset import db, security_manager
-from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
@@ -43,7 +42,6 @@ from superset.sql_lab import (
 from superset.sql_parse import CtasMethod
 from superset.utils.core import backend
 from superset.utils import json
-from superset.utils.json import datetime_to_epoch  # noqa: F401
 from superset.utils.database import get_example_database, get_main_database
 
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -54,11 +52,7 @@ from tests.integration_tests.constants import (
     GAMMA_SQLLAB_USERNAME,
     GAMMA_USERNAME,
 )
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.users import create_gamma_sqllab_no_data  # noqa: F401
+
 
 QUERY_1 = "SELECT * FROM birth_names LIMIT 1"
 QUERY_2 = "SELECT * FROM NO_TABLE"

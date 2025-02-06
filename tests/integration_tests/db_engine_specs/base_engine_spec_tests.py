@@ -35,14 +35,6 @@ from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.test_app import app
 
-from ..fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from ..fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa: F401
-    load_energy_table_with_slice,  # noqa: F401
-)
 from ..fixtures.pyodbcRow import Row
 
 

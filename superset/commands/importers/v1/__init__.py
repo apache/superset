@@ -18,7 +18,6 @@ from typing import Any, Optional
 
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
-from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -31,7 +30,6 @@ from superset.commands.importers.v1.utils import (
     validate_metadata_type,
 )
 from superset.daos.base import BaseDAO
-from superset.models.core import Database  # noqa: F401
 from superset.utils.decorators import transaction
 
 

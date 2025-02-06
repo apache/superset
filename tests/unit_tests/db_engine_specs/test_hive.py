@@ -23,7 +23,6 @@ import pytest
 from sqlalchemy.engine.url import make_url
 
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(

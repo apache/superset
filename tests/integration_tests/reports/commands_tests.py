@@ -80,17 +80,6 @@ from superset.reports.notifications.exceptions import (
 from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.database import get_example_database
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.tabbed_dashboard import (
-    tabbed_dashboard,  # noqa: F401
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices_module_scope,  # noqa: F401
-    load_world_bank_data,  # noqa: F401
-)
 from tests.integration_tests.reports.utils import (
     cleanup_report_schedule,
     create_report_notification,
@@ -1756,7 +1745,6 @@ def test_email_dashboard_report_fails_uncaught_exception(
     and logs with uncaught exception
     """
     # setup screenshot mock
-    from smtplib import SMTPException  # noqa: F401
 
     screenshot_mock.return_value = SCREENSHOT_FILE
     email_mock.side_effect = Exception("Uncaught exception")
@@ -2045,9 +2033,6 @@ def test_fail_screenshot(screenshot_mock, email_mock, create_report_email_chart)
     """
     ExecuteReport Command: Test soft timeout on screenshot
     """
-    from celery.exceptions import SoftTimeLimitExceeded  # noqa: F401
-
-    from superset.commands.report.exceptions import AlertQueryTimeout  # noqa: F401
 
     screenshot_mock.side_effect = Exception("Unexpected error")
     with pytest.raises(ReportScheduleScreenshotFailedError):
