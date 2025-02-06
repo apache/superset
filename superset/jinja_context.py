@@ -596,12 +596,24 @@ class BaseTemplateProcessor:
         >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
+        This function will attempt to resolve nested Jinja expressions
+        up to 4 iterations.
         """
-        template = self.env.from_string(sql)
+        # Initialize the rendered SQL with the original SQL string.
+        rendered_sql = sql
         kwargs.update(self._context)
-
         context = validate_template_context(self.engine, kwargs)
-        return template.render(context)
+
+        # Render recursively up to 4 levels.
+        for _i in range(4):
+            template = self.env.from_string(rendered_sql)
+            new_rendered_sql = template.render(context)
+            # If rendering no longer changes the SQL, break early.
+            if new_rendered_sql == rendered_sql:
+                break
+            rendered_sql = new_rendered_sql
+
+        return rendered_sql
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):

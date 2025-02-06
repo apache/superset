@@ -226,3 +226,107 @@ def test_custom_template_processors_ignored(app_context: AppContext) -> None:
     template = "SELECT '$DATE()'"
     tp = get_template_processor(database=maindb)
     assert tp.process_template(template) == template
+
+
+def test_recursive_template(app_context: AppContext) -> None:
+    """
+    Tests a 4-level deep chain that fully resolves:
+      a -> "{{ b }}"
+      b -> "{{ c }}"
+      c -> "{{ d }}"
+      d -> "final"
+    Expecting: "Result: final"
+    """
+    maindb = superset.utils.database.get_example_database()
+    template = "Result: {{ a }}"
+    tp = get_template_processor(
+        database=maindb,
+        a="{{ b }}",
+        b="{{ c }}",
+        c="{{ d }}",
+        d="final",
+    )
+    assert tp.process_template(template) == "Result: final"
+
+
+def test_circular_template(app_context: AppContext) -> None:
+    """
+    Tests a circular dependency where a variable references itself.
+    In this case, since the rendered value never changes, the process should
+    stop immediately. Expecting the unresolved variable to remain.
+    For example: a -> "{{ a }}" results in "Circular: {{ a }}"
+    """
+    maindb = superset.utils.database.get_example_database()
+    template = "Circular: {{ a }}"
+    tp = get_template_processor(
+        database=maindb,
+        a="{{ a }}",
+    )
+    # The value never changes, so we expect it to remain unresolved.
+    assert tp.process_template(template) == "Circular: {{ a }}"
+
+
+def test_no_template(app_context: AppContext) -> None:
+    """
+    Tests that if there are no Jinja expressions in the template,
+    the output remains unchanged.
+    """
+    maindb = superset.utils.database.get_example_database()
+    template = "No templating here"
+    tp = get_template_processor(database=maindb)
+    assert tp.process_template(template) == "No templating here"
+
+
+def test_single_level_template(app_context: AppContext) -> None:
+    """
+    Tests a simple single-level substitution.
+    For example, replacing {{ name }} with "World".
+    """
+    maindb = superset.utils.database.get_example_database()
+    template = "Hello, {{ name }}!"
+    tp = get_template_processor(database=maindb, name="World")
+    assert tp.process_template(template) == "Hello, World!"
+
+
+def test_three_level_recursive_template(app_context: AppContext) -> None:
+    """
+    Tests a 3-level chain:
+      a -> "{{ b }}"
+      b -> "{{ c }}"
+      c -> "done"
+    Expecting: "Chain: done"
+    """
+    maindb = superset.utils.database.get_example_database()
+    template = "Chain: {{ a }}"
+    tp = get_template_processor(
+        database=maindb,
+        a="{{ b }}",
+        b="{{ c }}",
+        c="done",
+    )
+    assert tp.process_template(template) == "Chain: done"
+
+
+def test_chain_exceeding_max_recursion(app_context: AppContext) -> None:
+    """
+    Tests a 5-level deep chain when the renderer is limited to 4 iterations.
+    The chain is defined as:
+      a -> "{{ b }}"
+      b -> "{{ c }}"
+      c -> "{{ d }}"
+      d -> "{{ e }}"
+      e -> "end"
+    After 4 iterations the chain stops one level short of full resolution,
+    so we expect: "Chain: {{ e }}"
+    """
+    maindb = superset.utils.database.get_example_database()
+    template = "Chain: {{ a }}"
+    tp = get_template_processor(
+        database=maindb,
+        a="{{ b }}",
+        b="{{ c }}",
+        c="{{ d }}",
+        d="{{ e }}",
+        e="end",
+    )
+    assert tp.process_template(template) == "Chain: {{ e }}"
