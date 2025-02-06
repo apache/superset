@@ -159,9 +159,7 @@ const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   // setting openKeys undefined falls back to uncontrolled behaviour
-  const [openKeys, setOpenKeys] = useState<string[] | undefined>(undefined);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
@@ -286,7 +284,6 @@ const SliceHeaderControls = (
       default:
         break;
     }
-    setOpenKeys([]);
     setIsDropdownVisible(false);
   };
 
