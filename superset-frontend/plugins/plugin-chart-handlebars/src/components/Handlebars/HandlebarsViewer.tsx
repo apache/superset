@@ -99,5 +99,18 @@ Handlebars.registerHelper(
   },
 );
 
+// usage: {{parseJson jsonString}}
+Handlebars.registerHelper('parseJson', (jsonString: string) => {
+  try {
+    return JSON.parse(jsonString);
+  } catch (error) {
+    if (error instanceof Error) {
+      error.message = `Invalid JSON string: ${error.message}`;
+      throw error;
+    }
+    throw new Error(`Invalid JSON string: ${String(error)}`);
+  }
+});
+
 Helpers.registerHelpers(Handlebars);
 HandlebarsGroupBy.register(Handlebars);
