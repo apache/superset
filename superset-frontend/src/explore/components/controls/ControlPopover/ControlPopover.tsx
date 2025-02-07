@@ -34,7 +34,7 @@ const getElementVisibilityRatio = (node?: HTMLElement) => {
   const containerWidth = window?.innerWidth;
 
   const rect = node?.getBoundingClientRect();
-  if (!containerHeight || !containerWidth || !rect) {
+  if (!containerHeight || !containerWidth || !rect?.top) {
     return { yRatio: 0, xRatio: 0 };
   }
 
