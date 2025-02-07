@@ -91,7 +91,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       <MenuDotsDropdown
         trigger={['click']}
         overlay={
-          <Menu style={{ width: 176 }}>
+          <Menu>
             <Menu.Item
               className="close-btn"
               key="1"
