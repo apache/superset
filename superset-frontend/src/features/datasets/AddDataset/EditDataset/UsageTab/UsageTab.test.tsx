@@ -98,15 +98,11 @@ test('shows loading state', async () => {
 
   renderDatasetUsage();
 
-  await waitFor(
-    () => {
-      const loadingIndicator = screen.getByRole('status', {
-        name: /loading/i,
-      });
-      expect(loadingIndicator).toBeInTheDocument();
-    },
-    { timeout: 10000 },
-  );
+  const loadingIndicator = await screen.findByRole('status', {
+    name: /loading/i,
+  });
+
+  expect(loadingIndicator).toBeVisible();
 });
 
 test('shows error state', async () => {
@@ -367,24 +363,8 @@ test('paginates', async () => {
   mockChartsFetch(getChartResponse(charts));
   renderDatasetUsage();
 
-  // Wait for loading state to appear and disappear
-  await waitFor(() => {
-    expect(
-      screen.getByRole('status', { name: /loading/i }),
-    ).toBeInTheDocument();
-  });
-
-  await waitFor(
-    () => {
-      expect(
-        screen.queryByRole('status', { name: /loading/i }),
-      ).not.toBeInTheDocument();
-    },
-    { timeout: 10000 },
-  );
-
   // First page
-  const chartNameValues = await screen.findAllByRole('cell', {
+  let chartNameValues = await screen.findAllByRole('cell', {
     name: /sample chart/i,
   });
 
@@ -393,23 +373,32 @@ test('paginates', async () => {
   expect(chartNameValues[24]).toHaveTextContent('Sample chart 25');
 
   // Second page
-  const nextButton = screen.getByRole('button', { name: /right/i });
-  await userEvent.click(nextButton);
+  userEvent.click(
+    screen.getByRole('button', {
+      name: /right/i,
+    }),
+  );
 
-  const secondPageValues = await screen.findAllByRole('cell', {
+  chartNameValues = await screen.findAllByRole('cell', {
     name: /sample chart/i,
   });
-  expect(secondPageValues).toHaveLength(25);
-  expect(secondPageValues[0]).toHaveTextContent('Sample chart 26');
-  expect(secondPageValues[24]).toHaveTextContent('Sample chart 50');
+
+  expect(chartNameValues).toHaveLength(25);
+  expect(chartNameValues[0]).toHaveTextContent('Sample chart 26');
+  expect(chartNameValues[24]).toHaveTextContent('Sample chart 50');
 
   // Third page
-  await userEvent.click(nextButton);
+  userEvent.click(
+    screen.getByRole('button', {
+      name: /right/i,
+    }),
+  );
 
-  const thirdPageValues = await screen.findAllByRole('cell', {
+  chartNameValues = await screen.findAllByRole('cell', {
     name: /sample chart/i,
   });
-  expect(thirdPageValues).toHaveLength(15);
-  expect(thirdPageValues[0]).toHaveTextContent('Sample chart 51');
-  expect(thirdPageValues[14]).toHaveTextContent('Sample chart 65');
-}, 20000); // Increase timeout for the entire test
+
+  expect(chartNameValues).toHaveLength(15);
+  expect(chartNameValues[0]).toHaveTextContent('Sample chart 51');
+  expect(chartNameValues[14]).toHaveTextContent('Sample chart 65');
+});
