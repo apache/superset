@@ -20,7 +20,7 @@ import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
-import { Dropdown } from 'src/components/Dropdown';
+import { MenuDotsDropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { styled, t, QueryState } from '@superset-ui/core';
 import {
@@ -88,10 +88,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
 
   return (
     <TabTitleWrapper>
-      <Dropdown
+      <MenuDotsDropdown
         trigger={['click']}
         overlay={
-          <Menu style={{ width: 176 }}>
+          <Menu>
             <Menu.Item
               className="close-btn"
               key="1"

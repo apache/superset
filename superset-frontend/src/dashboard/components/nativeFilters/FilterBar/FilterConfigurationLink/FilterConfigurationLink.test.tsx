@@ -38,11 +38,16 @@ test('should render the config link text', () => {
 });
 
 test('should render the modal on click', () => {
-  render(<FilterConfigurationLink>Config link</FilterConfigurationLink>, {
-    useRedux: true,
-  });
+  const showModal = jest.fn();
+  render(
+    <FilterConfigurationLink onClick={showModal}>
+      Config link
+    </FilterConfigurationLink>,
+    {
+      useRedux: true,
+    },
+  );
   const configLink = screen.getByText('Config link');
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   userEvent.click(configLink);
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  expect(showModal).toHaveBeenCalled();
 });
