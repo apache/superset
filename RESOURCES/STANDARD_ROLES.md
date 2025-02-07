@@ -129,13 +129,6 @@ under the License.
 | all datasource access on all_datasource_access   |:heavy_check_mark:|:heavy_check_mark:|O|O|
 | all database access on all_database_access       |:heavy_check_mark:|:heavy_check_mark:|O|O|
 | all query access on all_query_access             |:heavy_check_mark:|O|O|O|
-| can edit on UserOAuthModelView                   |:heavy_check_mark:|O|O|O|
-| can list on UserOAuthModelView                   |:heavy_check_mark:|O|O|O|
-| can show on UserOAuthModelView                   |:heavy_check_mark:|O|O|O|
-| can userinfo on UserOAuthModelView               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can add on UserOAuthModelView                    |:heavy_check_mark:|O|O|O|
-| can delete on UserOAuthModelView                 |:heavy_check_mark:|O|O|O|
-| userinfoedit on UserOAuthModelView               |:heavy_check_mark:|O|O|O|
 | can write on DynamicPlugin                       |:heavy_check_mark:|O|O|O|
 | can edit on DynamicPlugin                        |:heavy_check_mark:|O|O|O|
 | can list on DynamicPlugin                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
