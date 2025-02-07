@@ -163,6 +163,9 @@ test('render menu item with submenu without searchbox', async () => {
   expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
 });
 
+// Add global timeout for all tests
+jest.setTimeout(20000);
+
 test('render menu item with submenu and searchbox', async () => {
   fetchMock.get(DATASET_ENDPOINT, {
     result: { columns: defaultColumns },
@@ -170,18 +173,32 @@ test('render menu item with submenu and searchbox', async () => {
   renderMenu({});
   await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
-  defaultColumns.forEach(column => {
-    expect(screen.getByText(column.column_name)).toBeInTheDocument();
-  });
 
-  const searchbox = screen.getAllByPlaceholderText('Search columns')[1];
+  // Wait for all columns to be visible
+  await waitFor(
+    () => {
+      defaultColumns.forEach(column => {
+        expect(screen.getByText(column.column_name)).toBeInTheDocument();
+      });
+    },
+    { timeout: 10000 },
+  );
+
+  const searchbox = await waitFor(
+    () => screen.getAllByPlaceholderText('Search columns')[1],
+  );
   expect(searchbox).toBeInTheDocument();
 
   userEvent.type(searchbox, 'col1');
 
-  await screen.findByText('col1');
-
   const expectedFilteredColumnNames = ['col1', 'col10', 'col11'];
+
+  // Wait for filtered results
+  await waitFor(() => {
+    expectedFilteredColumnNames.forEach(colName => {
+      expect(screen.getByText(colName)).toBeInTheDocument();
+    });
+  });
 
   defaultColumns
     .filter(col => !expectedFilteredColumnNames.includes(col.column_name))
@@ -209,16 +226,22 @@ test('Do not display excluded column in the menu', async () => {
   await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
 
+  // Wait for menu items to be loaded
+  await waitFor(
+    () => {
+      defaultColumns
+        .filter(column => !excludedColNames.includes(column.column_name))
+        .forEach(column => {
+          expect(screen.getByText(column.column_name)).toBeInTheDocument();
+        });
+    },
+    { timeout: 10000 },
+  );
+
   excludedColNames.forEach(colName => {
     expect(screen.queryByText(colName)).not.toBeInTheDocument();
   });
-
-  defaultColumns
-    .filter(column => !excludedColNames.includes(column.column_name))
-    .forEach(column => {
-      expect(screen.getByText(column.column_name)).toBeInTheDocument();
-    });
-});
+}, 20000);
 
 test('When menu item is clicked, call onSelection with clicked column and drill by filters', async () => {
   fetchMock
@@ -236,7 +259,10 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
   await waitFor(() => fetchMock.called(DATASET_ENDPOINT));
   await expectDrillByEnabled();
 
-  userEvent.click(screen.getByText('col1'));
+  // Wait for col1 to be visible before clicking
+  const col1Element = await waitFor(() => screen.getByText('col1'));
+  userEvent.click(col1Element);
+
   expect(onSelectionMock).toHaveBeenCalledWith(
     {
       column_name: 'col1',
@@ -244,4 +270,4 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
     },
     { filters: defaultFilters, groupbyFieldName: 'groupby' },
   );
-});
+}, 20000);

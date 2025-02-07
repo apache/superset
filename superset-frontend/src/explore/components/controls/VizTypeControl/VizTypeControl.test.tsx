@@ -95,11 +95,14 @@ describe('VizTypeControl', () => {
     isModalOpenInit: true,
   };
 
-  const waitForRenderWrapper = (
+  // Add waitForEffects helper
+  const waitForEffects = () => new Promise(resolve => setTimeout(resolve, 0));
+
+  const waitForRenderWrapper = async (
     props: typeof defaultProps = defaultProps,
     state: object = stateWithoutNativeFilters,
-  ) =>
-    waitFor(() => {
+  ) => {
+    const result = await waitFor(() => {
       render(
         <DynamicPluginProvider>
           <VizTypeControl {...props} />
@@ -107,12 +110,21 @@ describe('VizTypeControl', () => {
         { useRedux: true, initialState: state },
       );
     });
+    await waitForEffects();
+    return result;
+  };
 
-  afterEach(() => {
-    cleanup();
-    jest.clearAllMocks();
+  beforeAll(() => {
+    jest.setTimeout(30000);
   });
 
+  afterEach(async () => {
+    cleanup();
+    jest.clearAllMocks();
+    await waitForEffects();
+  });
+
+  // Update test cases to properly handle async operations
   it('Fast viz switcher tiles render', async () => {
     const props = {
       ...defaultProps,
@@ -120,6 +132,8 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
+    await waitForEffects();
+
     expect(screen.getByLabelText('table-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('pie-chart-tile')).toBeVisible();
@@ -189,6 +203,7 @@ describe('VizTypeControl', () => {
     ).toBeVisible();
   });
 
+  // Update other test cases similarly
   it('Change viz type on click', async () => {
     const props = {
       ...defaultProps,
@@ -196,13 +211,17 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
-    userEvent.click(
-      within(screen.getByTestId('fast-viz-switcher')).getByText('Line Chart'),
-    );
+    await waitForEffects();
+
+    const switcher = screen.getByTestId('fast-viz-switcher');
+    userEvent.click(within(switcher).getByText('Line Chart'));
+    await waitForEffects();
+
     expect(props.onChange).not.toHaveBeenCalled();
-    userEvent.click(
-      within(screen.getByTestId('fast-viz-switcher')).getByText('Table'),
-    );
+
+    userEvent.click(within(switcher).getByText('Table'));
+    await waitForEffects();
+
     expect(props.onChange).toHaveBeenCalledWith('table');
   });
 

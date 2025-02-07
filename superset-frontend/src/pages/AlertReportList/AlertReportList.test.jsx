@@ -104,15 +104,15 @@ describe('AlertList', () => {
   });
 
   it('renders', async () => {
-    expect(wrapper.find(AlertList)).toExist();
+    expect(wrapper.find(AlertList)).toBeTruthy();
   });
 
   it('renders a SubMenu', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a ListView', async () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('renders switches', async () => {

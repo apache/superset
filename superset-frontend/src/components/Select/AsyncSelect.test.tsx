@@ -26,6 +26,7 @@ import {
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { AsyncSelect } from 'src/components';
+import { cleanup } from '@testing-library/react';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -104,10 +105,13 @@ const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
 const getAllSelectOptions = () =>
   getElementsByClassName('.ant-select-item-option-content');
 
-const findSelectOption = (text: string) =>
-  waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).getByText(text),
-  );
+const findSelectOption = async (text: string) => {
+  await waitFor(() => {
+    const virtualList = getElementByClassName('.rc-virtual-list');
+    expect(virtualList).not.toBeInTheDocument();
+  });
+  return within(getElementByClassName('.rc-virtual-list')).findByText(text);
+};
 
 const querySelectOption = (text: string) =>
   waitFor(() =>
@@ -144,6 +148,13 @@ const type = (text: string) => {
 };
 
 const open = () => waitFor(() => userEvent.click(getSelect()));
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 test('displays a header', async () => {
   const headerText = 'Header';
@@ -297,7 +308,10 @@ test('searches for label or value', async () => {
   render(<AsyncSelect {...defaultProps} />);
   const search = option.value;
   await type(search.toString());
-  expect(await findSelectOption(option.label)).toBeInTheDocument();
+
+  const optionElement = await findSelectOption(option.label);
+  expect(optionElement).toBeInTheDocument();
+
   const options = await findAllSelectOptions();
   expect(options.length).toBe(1);
   expect(options[0]).toHaveTextContent(option.label);

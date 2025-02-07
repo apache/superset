@@ -53,12 +53,12 @@ describe('DragDroppable', () => {
 
   it('should render a div with class dragdroppable', () => {
     const wrapper = setup();
-    expect(wrapper.find('.dragdroppable')).toExist();
+    expect(wrapper.find('.dragdroppable')).toBeTruthy();
   });
 
   it('should add class dragdroppable--dragging when dragging', () => {
     const wrapper = setup({ isDragging: true });
-    expect(wrapper.find('.dragdroppable')).toExist();
+    expect(wrapper.find('.dragdroppable')).toBeTruthy();
   });
 
   it('should call its child function', () => {

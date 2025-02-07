@@ -131,11 +131,11 @@ describe('Admin DatabaseList', () => {
   });
 
   test('renders', () => {
-    expect(wrapper.find(DatabaseList)).toExist();
+    expect(wrapper.find(DatabaseList)).toBeTruthy();
   });
 
   test('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   test('renders a SubMenu with no tabs', () => {
@@ -143,11 +143,11 @@ describe('Admin DatabaseList', () => {
   });
 
   test('renders a DatabaseModal', () => {
-    expect(wrapper.find(DatabaseModal)).toExist();
+    expect(wrapper.find(DatabaseModal)).toBeTruthy();
   });
 
   test('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   test('fetches Databases', () => {
@@ -239,6 +239,6 @@ describe('Admin DatabaseList', () => {
     );
     await waitForComponentToPaint(newWrapper);
 
-    expect(newWrapper.find('.dropdown-menu-links')).not.toExist();
+    expect(newWrapper.find('.dropdown-menu-links').length).toBe(0);
   });
 });

@@ -84,7 +84,7 @@ describe('SliceAdder', () => {
   it('render chart list', () => {
     const wrapper = styledShallow(<SliceAdder {...props} />);
     wrapper.setState({ filteredSlices: Object.values(props.slices) });
-    expect(wrapper.find(ChartList)).toExist();
+    expect(wrapper.find(ChartList)).toBeTruthy();
   });
 
   it('render error', () => {

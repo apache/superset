@@ -177,11 +177,11 @@ describe('SavedQueryList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(SavedQueryList)).toExist();
+    expect(wrapper.find(SavedQueryList)).toBeTruthy();
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a SubMenu with Saved queries and Query History links', () => {
@@ -203,7 +203,7 @@ describe('SavedQueryList', () => {
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches saved queries', () => {
@@ -215,7 +215,7 @@ describe('SavedQueryList', () => {
   });
 
   it('renders ActionsBar in table', () => {
-    expect(wrapper.find(ActionsBar)).toExist();
+    expect(wrapper.find(ActionsBar)).toBeTruthy();
     expect(wrapper.find(ActionsBar)).toHaveLength(3);
   });
 

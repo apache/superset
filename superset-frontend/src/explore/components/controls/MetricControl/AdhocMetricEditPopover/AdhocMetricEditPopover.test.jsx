@@ -96,20 +96,31 @@ describe('AdhocMetricEditPopover', () => {
 
   it('prevents saving if no column or aggregate is chosen', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: false })).not.toExist();
+
+    // Check that no enabled save button exists
+    expect(wrapper.find(Button).find({ disabled: false }).exists()).toBe(false);
+
     wrapper.instance().onColumnChange(null);
-    expect(wrapper.find(Button).find({ disabled: true })).toExist();
+
+    // Check that the button is now disabled
+    expect(wrapper.find(Button).find({ disabled: true }).exists()).toBe(true);
+
     wrapper.instance().onColumnChange(columns[0].column_name);
-    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
+
+    // The button should be enabled again
+    expect(wrapper.find(Button).find({ disabled: true }).exists()).toBe(false);
+
     wrapper.instance().onAggregateChange(null);
-    expect(wrapper.find(Button).find({ disabled: true })).toExist();
+
+    // The button should be disabled
+    expect(wrapper.find(Button).find({ disabled: true }).exists()).toBe(true);
   });
 
   it('highlights save if changes are present', () => {
     const { wrapper } = setup();
-    expect(wrapper.find(Button).find({ disabled: true })).toExist();
+    expect(wrapper.find(Button).find({ disabled: true }).exists()).toBe(true);
     wrapper.instance().onColumnChange(columns[1].column_name);
-    expect(wrapper.find(Button).find({ disabled: true })).not.toExist();
+    expect(wrapper.find(Button).find({ disabled: true }).exists()).toBe(false);
   });
 
   it('will initiate a drag when clicked', () => {
@@ -117,7 +128,7 @@ describe('AdhocMetricEditPopover', () => {
     wrapper.instance().onDragDown = sinon.spy();
     wrapper.instance().forceUpdate();
 
-    expect(wrapper.find('.fa-expand')).toExist();
+    expect(wrapper.find('.fa-expand')).toBeTruthy();
     expect(wrapper.instance().onDragDown.calledOnce).toBe(false);
     wrapper.find('.fa-expand').simulate('mouseDown');
     expect(wrapper.instance().onDragDown.calledOnce).toBe(true);

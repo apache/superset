@@ -269,7 +269,7 @@ test('should render the navigation', async () => {
     useRouter: true,
   });
   expect(await screen.findByRole('navigation')).toBeInTheDocument();
-});
+}, 10000);
 
 test('should render the brand', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
@@ -450,7 +450,7 @@ test('should render the user actions when user is not anonymous', async () => {
 
   expect(info).toHaveAttribute('href', user_info_url);
   expect(logout).toHaveAttribute('href', user_logout_url);
-});
+}, 10000);
 
 test('should NOT render the user actions when user is anonymous', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });

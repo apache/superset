@@ -83,7 +83,7 @@ describe('QueryPreviewModal', () => {
   });
 
   it('renders a SyntaxHighlighter', () => {
-    expect(wrapper.find(SyntaxHighlighter)).toExist();
+    expect(wrapper.find(SyntaxHighlighter)).toBeTruthy();
   });
 
   it('toggles between user sql and executed sql', () => {

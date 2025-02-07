@@ -16,13 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { cleanup } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
+import type { QueryFormData } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import DrillDetailPane from './DrillDetailPane';
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  fetchMock.restore();
+  supersetGetCache.clear();
+  jest.resetAllMocks();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
@@ -114,44 +126,52 @@ const fetchWithData = () => {
   });
 };
 
-afterEach(() => {
+// Add cleanup function
+afterEach(async () => {
   fetchMock.restore();
   supersetGetCache.clear();
+  // Wait for any pending effects to complete
+  await waitFor(() => {}, { timeout: 100 }).catch(() => {});
 });
 
+// Modify test cases to properly await all operations
 test('should render', async () => {
   fetchWithNoData();
   const { container } = await waitForRender();
-  expect(container).toBeInTheDocument();
+  await waitFor(() => {
+    expect(container).toBeInTheDocument();
+  });
 });
 
 test('should render loading indicator', async () => {
   fetchWithData();
   setup();
-  await waitFor(() =>
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument(),
-  );
+  await waitFor(() => {
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  });
 });
 
 test('should render the table with results', async () => {
   fetchWithData();
   await waitForRender();
-  expect(screen.getByRole('table')).toBeInTheDocument();
-  expect(screen.getByText('1996')).toBeInTheDocument();
-  expect(screen.getByText('11.27')).toBeInTheDocument();
-  expect(screen.getByText('1989')).toBeInTheDocument();
-  expect(screen.getByText('23.2')).toBeInTheDocument();
-  expect(screen.getByText('1999')).toBeInTheDocument();
-  expect(screen.getByText('9')).toBeInTheDocument();
-  expect(
-    screen.getByRole('columnheader', { name: 'year' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('columnheader', { name: 'na_sales' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('columnheader', { name: 'eu_sales' }),
-  ).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByText('1996')).toBeInTheDocument();
+    expect(screen.getByText('11.27')).toBeInTheDocument();
+    expect(screen.getByText('1989')).toBeInTheDocument();
+    expect(screen.getByText('23.2')).toBeInTheDocument();
+    expect(screen.getByText('1999')).toBeInTheDocument();
+    expect(screen.getByText('9')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'year' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'na_sales' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: 'eu_sales' }),
+    ).toBeInTheDocument();
+  });
 });
 
 test('should render the "No results" components', async () => {
@@ -195,5 +215,7 @@ test('should render the error', async () => {
     .spyOn(SupersetClient, 'post')
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
-  expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+  });
 });

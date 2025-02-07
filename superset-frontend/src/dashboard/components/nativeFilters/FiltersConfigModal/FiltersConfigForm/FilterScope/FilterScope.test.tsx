@@ -22,6 +22,7 @@ import {
   screen,
   fireEvent,
   waitFor,
+  cleanup,
 } from 'spec/helpers/testing-library';
 import { mockStoreWithChartsInTabsAndRoot } from 'spec/fixtures/mockStore';
 import { AntdForm, FormInstance } from 'src/components';
@@ -74,46 +75,80 @@ describe('FilterScope', () => {
   const getTreeSwitcher = (order = 0) =>
     document.querySelectorAll('.ant-tree-switcher')[order];
 
-  it('renders "apply to all" filter scope', () => {
-    render(<MockModal />);
+  beforeAll(() => {
+    jest.setTimeout(30000);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    // Wait for any pending effects to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
+  it('renders "apply to all" filter scope', async () => {
+    const { unmount } = render(<MockModal />);
     expect(screen.queryByRole('tree')).not.toBeInTheDocument();
+    unmount();
   });
 
   it('select tree values with 1 excluded', async () => {
-    render(<MockModal />);
-    fireEvent.click(screen.getByText('Scoping'));
+    const { unmount } = render(<MockModal />);
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Scoping'));
+    });
+
     expect(screen.getByRole('tree')).toBeInTheDocument();
-    fireEvent.click(getTreeSwitcher(2));
-    fireEvent.click(screen.getByText('CHART_ID2'));
-    await waitFor(() =>
-      expect(
-        form.getFieldValue('filters')?.[mockedProps.filterId].scope,
-      ).toEqual({
-        excluded: [20],
-        rootPath: ['ROOT_ID'],
-      }),
+
+    await waitFor(() => {
+      fireEvent.click(getTreeSwitcher(2));
+      fireEvent.click(screen.getByText('CHART_ID2'));
+    });
+
+    await waitFor(
+      () =>
+        expect(
+          form.getFieldValue('filters')?.[mockedProps.filterId].scope,
+        ).toEqual({
+          excluded: [20],
+          rootPath: ['ROOT_ID'],
+        }),
+      { timeout: 10000 },
     );
-  });
+
+    unmount();
+  }, 15000);
 
   it('select 1 value only', async () => {
-    render(<MockModal />);
-    fireEvent.click(screen.getByText('Scoping'));
+    const { unmount } = render(<MockModal />);
+
+    await waitFor(() => {
+      fireEvent.click(screen.getByText('Scoping'));
+    });
+
     expect(screen.getByRole('tree')).toBeInTheDocument();
-    fireEvent.click(getTreeSwitcher(2));
-    fireEvent.click(screen.getByText('CHART_ID2'));
-    fireEvent.click(screen.getByText('tab1'));
-    await waitFor(() =>
-      expect(
-        form.getFieldValue('filters')?.[mockedProps.filterId].scope,
-      ).toEqual({
-        excluded: [18, 20],
-        rootPath: ['ROOT_ID'],
-      }),
+
+    await waitFor(() => {
+      fireEvent.click(getTreeSwitcher(2));
+      fireEvent.click(screen.getByText('CHART_ID2'));
+      fireEvent.click(screen.getByText('tab1'));
+    });
+
+    await waitFor(
+      () =>
+        expect(
+          form.getFieldValue('filters')?.[mockedProps.filterId].scope,
+        ).toEqual({
+          excluded: [18, 20],
+          rootPath: ['ROOT_ID'],
+        }),
+      { timeout: 10000 },
     );
-  });
+
+    unmount();
+  }, 15000);
 
   it('correct init tree with values', async () => {
-    render(
+    const { unmount } = render(
       <MockModal
         scope={{
           rootPath: ['TAB_ID'],
@@ -121,13 +156,21 @@ describe('FilterScope', () => {
         }}
       />,
     );
-    fireEvent.click(screen.getByText('Scoping'));
 
     await waitFor(() => {
-      expect(screen.getByRole('tree')).toBeInTheDocument();
-      expect(
-        document.querySelectorAll('.ant-tree-checkbox-checked').length,
-      ).toBe(4);
+      fireEvent.click(screen.getByText('Scoping'));
     });
-  });
+
+    await waitFor(
+      () => {
+        expect(screen.getByRole('tree')).toBeInTheDocument();
+        expect(
+          document.querySelectorAll('.ant-tree-checkbox-checked').length,
+        ).toBe(4);
+      },
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
 });

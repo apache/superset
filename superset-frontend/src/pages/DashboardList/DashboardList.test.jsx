@@ -149,11 +149,11 @@ describe('DashboardList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DashboardList)).toExist();
+    expect(wrapper.find(DashboardList)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches info', () => {
@@ -171,26 +171,26 @@ describe('DashboardList', () => {
   });
 
   it('renders a card view', () => {
-    expect(wrapper.find(ListViewCard)).toExist();
+    expect(wrapper.find(ListViewCard)).toBeTruthy();
   });
 
   it('renders a table view', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('table')).toExist();
+    expect(wrapper.find('table')).toBeTruthy();
   });
 
   it('edits', async () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
+    expect(wrapper.find(PropertiesModal).length).toBe(0);
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(wrapper.find(PropertiesModal).length).toBeGreaterThan(0);
   });
 
   it('card view edits', async () => {
     wrapper.find('[data-test="edit-alt"]').last().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(wrapper.find(PropertiesModal)).toBeTruthy();
   });
 
   it('delete', async () => {
@@ -199,7 +199,7 @@ describe('DashboardList', () => {
       .first()
       .simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ConfirmStatusChange)).toExist();
+    expect(wrapper.find(ConfirmStatusChange)).toBeTruthy();
   });
 
   it('card view delete', async () => {
@@ -208,19 +208,19 @@ describe('DashboardList', () => {
       .last()
       .simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ConfirmStatusChange)).toExist();
+    expect(wrapper.find(ConfirmStatusChange)).toBeTruthy();
   });
 
   it('renders the Favorite Star column in list view for logged in user', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
+    expect(wrapper.find(TableCollection).find(FaveStar)).toBeTruthy();
   });
 
   it('renders the Favorite Star in card view for logged in user', async () => {
     wrapper.find('[aria-label="card-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
+    expect(wrapper.find(CardCollection).find(FaveStar)).toBeTruthy();
   });
 });
 
@@ -290,12 +290,12 @@ describe('DashboardList - anonymous view', () => {
   it('does not render the Favorite Star column in list view for anonymous user', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).not.toExist();
+    expect(wrapper.find(TableCollection).find(FaveStar).length).toBe(0);
   });
 
   it('does not render the Favorite Star in card view for anonymous user', async () => {
     wrapper.find('[aria-label="card-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).not.toExist();
+    expect(wrapper.find(CardCollection).find(FaveStar).length).toBe(0);
   });
 });

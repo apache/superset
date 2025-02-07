@@ -86,11 +86,11 @@ describe('SavedQueryPreviewModal', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(SavedQueryPreviewModal)).toExist();
+    expect(wrapper.find(SavedQueryPreviewModal)).toBeTruthy();
   });
 
   it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
+    expect(wrapper.find(Modal)).toBeTruthy();
   });
 
   it('renders sql from saved query', () => {

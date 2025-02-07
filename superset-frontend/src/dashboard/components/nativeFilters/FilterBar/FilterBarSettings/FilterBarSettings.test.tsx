@@ -18,7 +18,7 @@
  */
 
 import fetchMock from 'fetch-mock';
-import { waitFor } from '@testing-library/react';
+import { waitFor, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
@@ -74,6 +74,14 @@ const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
 
 beforeEach(() => {
   fetchMock.restore();
+});
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  fetchMock.restore();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
 });
 
 test('Dropdown trigger renders with FF HORIZONTAL_FILTER_BAR on', async () => {
@@ -136,13 +144,27 @@ test('Popover opens with "Vertical" selected', async () => {
     [FeatureFlag.HorizontalFilterBar]: true,
   };
   await setup();
-  userEvent.click(screen.getByLabelText('gear'));
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
-  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
-  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
-  expect(
-    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
-  ).toBeInTheDocument();
+
+  // Wait for gear icon to be visible and click it
+  const gearIcon = await waitFor(() => screen.getByLabelText('gear'));
+  userEvent.click(gearIcon);
+
+  // Wait for orientation text and hover
+  const orientationText = await waitFor(() =>
+    screen.getByText('Orientation of filter bar'),
+  );
+  userEvent.hover(orientationText);
+
+  // Wait for submenu to appear and verify options
+  await waitFor(
+    () => {
+      expect(screen.getByText('Vertical (Left)')).toBeInTheDocument();
+      expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+      const menuItems = screen.getAllByRole('menuitem');
+      expect(within(menuItems[4]).getByLabelText('check')).toBeInTheDocument();
+    },
+    { timeout: 3000 },
+  );
 });
 
 test('Popover opens with "Horizontal" selected', async () => {
@@ -215,7 +237,20 @@ test('On selection change, send request and update checked value', async () => {
       within(verticalItem.closest('li')!).queryByLabelText('check'),
     ).not.toBeInTheDocument();
   });
-});
+
+  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
+  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+
+  // 2nd check - checkmark stays after successful query
+  expect(
+    await within(screen.getAllByRole('menuitem')[5]).findByLabelText('check'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getAllByRole('menuitem')[4]).queryByLabelText('check'),
+  ).not.toBeInTheDocument();
+}, 10000);
 
 test('On failed request, restore previous selection', async () => {
   // @ts-ignore

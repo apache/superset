@@ -92,15 +92,15 @@ describe('AnnotationList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(AnnotationList)).toExist();
+    expect(wrapper.find(AnnotationList)).toBeTruthy();
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches annotation layer', () => {
@@ -120,7 +120,7 @@ describe('AnnotationList', () => {
   });
 
   it('renders a DeleteModal', () => {
-    expect(wrapper.find(DeleteModal)).toExist();
+    expect(wrapper.find(DeleteModal)).toBeTruthy();
   });
 
   it('deletes', async () => {

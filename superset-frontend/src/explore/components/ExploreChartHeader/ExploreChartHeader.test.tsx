@@ -355,9 +355,12 @@ describe('Additional actions tests', () => {
       spyDownloadAsImage = sinon.spy(downloadAsImage, 'default');
       spyExportChart = sinon.spy(exploreUtils, 'exportChart');
     });
-    afterEach(() => {
+
+    afterEach(async () => {
       spyDownloadAsImage.restore();
       spyExportChart.restore();
+      // Wait for any pending effects to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     test('Should call downloadAsImage when click on "Download as image"', async () => {
@@ -367,16 +370,22 @@ describe('Additional actions tests', () => {
         useRedux: true,
       });
 
-      expect(spy).toHaveBeenCalledTimes(0);
-      userEvent.click(screen.getByLabelText('Menu actions trigger'));
-      expect(spy).toHaveBeenCalledTimes(0);
+      await waitFor(() => {
+        expect(
+          screen.getByLabelText('Menu actions trigger'),
+        ).toBeInTheDocument();
+      });
 
+      userEvent.click(screen.getByLabelText('Menu actions trigger'));
       userEvent.hover(screen.getByText('Download'));
+
       const downloadAsImageElement =
         await screen.findByText('Download as image');
       userEvent.click(downloadAsImageElement);
 
-      expect(spy).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledTimes(1);
+      });
     });
 
     test('Should not export to CSV if canDownload=false', async () => {

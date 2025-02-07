@@ -36,6 +36,7 @@ import {
   TimeFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
+import { cleanup } from '@testing-library/react';
 import FiltersConfigModal, {
   FiltersConfigModalProps,
 } from './FiltersConfigModal';
@@ -156,24 +157,17 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function defaultRender(initialState: any = defaultState(), modalProps = props) {
-  return render(<FiltersConfigModal {...modalProps} />, {
-    initialState,
-    useDnd: true,
-    useRedux: true,
-  });
-}
-
-function getCheckbox(name: RegExp) {
-  return screen.getByRole('checkbox', { name });
-}
-
-function queryCheckbox(name: RegExp) {
-  return screen.queryByRole('checkbox', { name });
-}
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  jest.restoreAllMocks();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 describe('FiltersConfigModal', () => {
-  jest.setTimeout(15000);
+  // Increase the global timeout
+  jest.setTimeout(30000);
 
   test('renders a value filter type', () => {
     defaultRender();
@@ -315,13 +309,23 @@ describe('FiltersConfigModal', () => {
 
   test('validates the pre-filter value', async () => {
     defaultRender();
+    await waitFor(() => {
+      expect(screen.getByText(FILTER_SETTINGS_REGEX)).toBeInTheDocument();
+    });
+
     userEvent.click(screen.getByText(FILTER_SETTINGS_REGEX));
+    await waitFor(() => {
+      expect(getCheckbox(PRE_FILTER_REGEX)).toBeInTheDocument();
+    });
+
     userEvent.click(getCheckbox(PRE_FILTER_REGEX));
-    expect(
-      await screen.findByText(PRE_FILTER_REQUIRED_REGEX),
-    ).toBeInTheDocument();
-    // longer timeout to decrease flakiness
-  }, 10000);
+    await waitFor(
+      () => {
+        expect(screen.getByText(PRE_FILTER_REQUIRED_REGEX)).toBeInTheDocument();
+      },
+      { timeout: 20000 },
+    );
+  }, 30000); // Set individual test timeout to 30 seconds
 
   // eslint-disable-next-line jest/no-disabled-tests
   test.skip("doesn't render time range pre-filter if there are no temporal columns in datasource", async () => {

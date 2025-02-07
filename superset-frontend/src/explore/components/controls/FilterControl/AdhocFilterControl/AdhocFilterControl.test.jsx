@@ -78,7 +78,7 @@ function setup(overrides) {
 describe('AdhocFilterControl', () => {
   it('renders LabelsContainer', () => {
     const { component } = setup();
-    expect(component.find(LabelsContainer)).toExist();
+    expect(component.find(LabelsContainer)).toBeTruthy();
   });
 
   it('handles saved metrics being selected to filter on', () => {

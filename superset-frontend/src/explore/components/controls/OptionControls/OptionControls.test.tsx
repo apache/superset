@@ -65,6 +65,9 @@ test('should display a label', async () => {
   expect(await screen.findByText('Test label')).toBeInTheDocument();
 });
 
+// Add at the top of the file, after imports
+jest.setTimeout(20000);
+
 test('should display a certification icon if saved metric is certified', async () => {
   const { container } = setup({
     savedMetric: {
@@ -72,11 +75,22 @@ test('should display a certification icon if saved metric is certified', async (
       is_certified: true,
     },
   });
-  await waitFor(() => {
-    expect(screen.queryByText('Test label')).not.toBeInTheDocument();
-    expect(container.querySelector('.metric-option > svg')).toBeInTheDocument();
-  });
-});
+
+  await waitFor(
+    () => {
+      expect(screen.queryByText('Test label')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  await waitFor(
+    () => {
+      const icon = container.querySelector('.metric-option > svg');
+      expect(icon).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+}, 20000); // Add specific timeout for this test
 
 test('triggers onMoveLabel on drop', async () => {
   render(

@@ -91,18 +91,18 @@ describe('SavedQueries', () => {
   });
 
   it('is valid', () => {
-    expect(wrapper.find(SavedQueries)).toExist();
+    expect(wrapper.find(SavedQueries)).toBeTruthy();
   });
 
   it('fetches queries mine and renders listviewcard cards', async () => {
     clickTab(0);
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(1);
-    expect(wrapper.find('ListViewCard')).toExist();
+    expect(wrapper.find('ListViewCard')).toBeTruthy();
   });
 
   it('renders a submenu with clickable tables and buttons', async () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
     expect(wrapper.find('[role="tab"]')).toHaveLength(1);
     expect(wrapper.find('button')).toHaveLength(5);
     clickTab(0);

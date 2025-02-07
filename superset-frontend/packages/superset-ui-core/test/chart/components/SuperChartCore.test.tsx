@@ -26,6 +26,7 @@ import {
   supersetTheme,
   SupersetTheme,
   ThemeProvider,
+  cleanup,
 } from '@superset-ui/core';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
@@ -53,7 +54,6 @@ const styledMount = (component: ReactElement) =>
 
 describe('SuperChartCore', () => {
   const chartProps = new ChartProps();
-
   const plugins = [
     new DiligentChartPlugin().configure({ key: ChartKeys.DILIGENT }),
     new LazyChartPlugin().configure({ key: ChartKeys.LAZY }),
@@ -63,6 +63,7 @@ describe('SuperChartCore', () => {
   let restoreConsole: RestoreConsole;
 
   beforeAll(() => {
+    jest.setTimeout(30000);
     plugins.forEach(p => {
       p.unregister().register();
     });
@@ -78,12 +79,15 @@ describe('SuperChartCore', () => {
     restoreConsole = mockConsole();
   });
 
-  afterEach(() => {
+  afterEach(async () => {
+    cleanup();
     restoreConsole();
+    // Wait for any pending effects to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
   });
 
   describe('registered charts', () => {
-    it('renders registered chart', () => {
+    it('renders registered chart', async () => {
       const wrapper = styledMount(
         <SuperChartCore
           chartType={ChartKeys.DILIGENT}
@@ -91,19 +95,24 @@ describe('SuperChartCore', () => {
         />,
       );
 
-      return promiseTimeout(() => {
+      await promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(1);
       });
+      wrapper.unmount();
     });
-    it('renders registered chart with lazy loading', () => {
+
+    // Update other test cases similarly
+    it('renders registered chart with lazy loading', async () => {
       const wrapper = styledMount(
         <SuperChartCore chartType={ChartKeys.LAZY} />,
       );
 
-      return promiseTimeout(() => {
+      await promiseTimeout(() => {
         expect(wrapper.render().find('div.test-component')).toHaveLength(1);
       });
+      wrapper.unmount();
     });
+
     it('does not render if chartType is not set', () => {
       // Suppress warning
       // @ts-ignore chartType is required

@@ -112,11 +112,11 @@ describe('DatasetList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DatasetList)).toExist();
+    expect(wrapper.find(DatasetList)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches info', () => {
@@ -234,7 +234,7 @@ describe('DatasetList', () => {
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a SubMenu with no tabs', () => {

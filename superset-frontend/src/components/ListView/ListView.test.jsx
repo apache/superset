@@ -158,7 +158,7 @@ describe.skip('ListView', () => {
   });
 
   it('calls fetchData on mount', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
     expect(mockedProps.fetchData.mock.calls[0]).toMatchInlineSnapshot(
       `
         [
@@ -196,10 +196,10 @@ describe.skip('ListView', () => {
   });
 
   it('renders pagination controls', () => {
-    expect(wrapper.find(Pagination)).toExist();
-    expect(wrapper.find(Pagination.Prev)).toExist();
-    expect(wrapper.find(Pagination.Item)).toExist();
-    expect(wrapper.find(Pagination.Next)).toExist();
+    expect(wrapper.find(Pagination)).toBeTruthy();
+    expect(wrapper.find(Pagination.Prev)).toBeTruthy();
+    expect(wrapper.find(Pagination.Item)).toBeTruthy();
+    expect(wrapper.find(Pagination.Next)).toBeTruthy();
   });
 
   it('calls fetchData on page change', () => {
@@ -379,11 +379,11 @@ describe.skip('ListView', () => {
 
     const wrapper2 = factory(props);
     await waitForComponentToPaint(wrapper2);
-    expect(wrapper2.find(Empty)).toExist();
+    expect(wrapper2.find(Empty)).toBeTruthy();
   });
 
   it('renders UI filters', () => {
-    expect(wrapper.find(ListViewFilters)).toExist();
+    expect(wrapper.find(ListViewFilters)).toBeTruthy();
   });
 
   it('does not fetch async filter values on mount', () => {

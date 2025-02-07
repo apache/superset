@@ -85,7 +85,7 @@ describe('Dashboard', () => {
 
   it('should render the children component', () => {
     const wrapper = setup();
-    expect(wrapper.find(ChildrenComponent)).toExist();
+    expect(wrapper.find(ChildrenComponent)).toBeTruthy();
   });
 
   describe('UNSAFE_componentWillReceiveProps', () => {

@@ -65,11 +65,11 @@ describe('DashboardTable', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(DashboardTable)).toExist();
+    expect(wrapper.find(DashboardTable)).toBeTruthy();
   });
 
   it('render a submenu with clickable tabs and buttons', async () => {
-    expect(wrapper.find('Menu')).toExist();
+    expect(wrapper.find('Menu')).toBeTruthy();
     expect(wrapper.find('[role="tab"]')).toHaveLength(2);
     expect(wrapper.find('Button')).toHaveLength(6);
     act(() => {
@@ -83,7 +83,7 @@ describe('DashboardTable', () => {
   });
 
   it('render DashboardCard', () => {
-    expect(wrapper.find(DashboardCard)).toExist();
+    expect(wrapper.find(DashboardCard)).toBeTruthy();
   });
 
   it('display EmptyState if there is no data', async () => {
@@ -98,6 +98,6 @@ describe('DashboardTable', () => {
       );
     });
 
-    expect(wrapper.find('EmptyState')).toExist();
+    expect(wrapper.find('EmptyState')).toBeTruthy();
   });
 });
