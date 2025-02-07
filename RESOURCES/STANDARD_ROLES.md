@@ -43,8 +43,8 @@ under the License.
 | can this form post on ResetPasswordView          |:heavy_check_mark:|O|O|O|
 | can this form get on ResetMyPasswordView         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can this form post on ResetMyPasswordView        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can this form get on UserInfoEditView            |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can this form post on UserInfoEditView           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
+| can this form get on UserInfoEditView            |:heavy_check_mark:|O|O|O|
+| can this form post on UserInfoEditView           |:heavy_check_mark:|O|O|O|
 | can show on UserDBModelView                      |:heavy_check_mark:|O|O|O|
 | can edit on UserDBModelView                      |:heavy_check_mark:|O|O|O|
 | can delete on UserDBModelView                    |:heavy_check_mark:|O|O|O|
