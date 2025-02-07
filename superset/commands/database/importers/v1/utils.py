@@ -65,7 +65,6 @@ def import_database(
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["extra"] = json.dumps(config["extra"])
-    config["encrypted_extra"] = json.dumps(config.get("encrypted_extra", {}))
 
     # Before it gets removed in import_from_dict
     ssh_tunnel_config = config.pop("ssh_tunnel", None)

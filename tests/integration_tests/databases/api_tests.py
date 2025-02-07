@@ -2559,7 +2559,7 @@ class TestDatabaseApi(SupersetTestCase):
         form_data = {
             "formData": (buf, "database_export.zip"),
             "encrypted_extras": json.dumps(
-                {"databases/imported_database.yaml": dummy_encrypted_extra}
+                {"databases/imported_database.yaml": json.dumps(dummy_encrypted_extra)}
             ),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
