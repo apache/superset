@@ -244,7 +244,7 @@ describe('Header Report Dropdown', () => {
       setup(mockedProps, stateWithNonMenuAccessOnManage);
     });
 
-    userEvent.click(screen.getByRole('button'));
+    userEvent.click(screen.getByRole('menu'));
     expect(
       screen.queryByText('Set up an email report'),
     ).not.toBeInTheDocument();
