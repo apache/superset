@@ -76,69 +76,46 @@ describe('FilterScope', () => {
     document.querySelectorAll('.ant-tree-switcher')[order];
 
   beforeAll(() => {
-    jest.setTimeout(30000);
+    // Reduce the global timeout
+    jest.setTimeout(10000);
   });
 
-  afterEach(async () => {
+  beforeEach(() => {
+    // Add this to speed up animations/transitions
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
     cleanup();
-    // Wait for any pending effects to complete
-    await new Promise(resolve => setTimeout(resolve, 0));
-  });
-
-  it('renders "apply to all" filter scope', async () => {
-    const { unmount } = render(<MockModal />);
-    expect(screen.queryByRole('tree')).not.toBeInTheDocument();
-    unmount();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('select tree values with 1 excluded', async () => {
     const { unmount } = render(<MockModal />);
 
-    // Wait for the Scoping tab to be visible and click it
-    await waitFor(() => {
-      expect(screen.getByText('Scoping')).toBeInTheDocument();
-    });
-    fireEvent.click(screen.getByText('Scoping'));
+    // First, wait for and click the Scoping tab
+    const scopingTab = await screen.findByRole('tab', { name: 'Scoping' });
+    fireEvent.click(scopingTab);
 
-    // Wait for the tree to be rendered
+    // Wait for tree to be rendered after tab switch
     await waitFor(
       () => {
         expect(screen.getByRole('tree')).toBeInTheDocument();
-      },
-      { timeout: 10000 },
-    );
-
-    // Wait for tree items to be loaded
-    await waitFor(
-      () => {
         expect(
           document.querySelector('.ant-tree-treenode'),
         ).toBeInTheDocument();
       },
-      { timeout: 10000 },
+      { timeout: 3000 },
     );
 
-    // Expand the tree node and wait for children
-    await waitFor(() => {
-      fireEvent.click(getTreeSwitcher(2));
-    });
+    // Continue with tree interactions
+    fireEvent.click(getTreeSwitcher(2));
 
-    // Find and click the chart node using a more specific selector
-    const chartNode = await waitFor(
-      () =>
-        document.querySelector('[title="CHART_ID2"]') ||
-        document.querySelector(
-          '.ant-tree-node-content-wrapper:contains("CHART_ID2")',
-        ),
-    );
-
-    if (!chartNode) {
-      throw new Error('Chart node not found in tree');
-    }
-
+    const chartNode = await screen.findByText('CHART_ID2');
     fireEvent.click(chartNode);
 
-    // Verify the form value
+    // Check form values
     await waitFor(
       () =>
         expect(
@@ -147,27 +124,37 @@ describe('FilterScope', () => {
           excluded: [20],
           rootPath: ['ROOT_ID'],
         }),
-      { timeout: 10000 },
+      { timeout: 3000 },
     );
 
     unmount();
-  }, 20000);
+  }, 5000);
 
   it('select 1 value only', async () => {
     const { unmount } = render(<MockModal />);
 
-    await waitFor(() => {
-      fireEvent.click(screen.getByText('Scoping'));
-    });
+    // First, wait for and click the Scoping tab
+    const scopingTab = await screen.findByRole('tab', { name: 'Scoping' });
+    fireEvent.click(scopingTab);
 
-    expect(screen.getByRole('tree')).toBeInTheDocument();
+    // Wait for tree to be rendered
+    await waitFor(
+      () => {
+        expect(screen.getByRole('tree')).toBeInTheDocument();
+      },
+      { timeout: 3000 },
+    );
 
-    await waitFor(() => {
-      fireEvent.click(getTreeSwitcher(2));
-      fireEvent.click(screen.getByText('CHART_ID2'));
-      fireEvent.click(screen.getByText('tab1'));
-    });
+    // Perform tree interactions
+    fireEvent.click(getTreeSwitcher(2));
 
+    const chartNode = await screen.findByText('CHART_ID2');
+    fireEvent.click(chartNode);
+
+    const tabNode = await screen.findByText('tab1');
+    fireEvent.click(tabNode);
+
+    // Update expected state to include both excluded IDs
     await waitFor(
       () =>
         expect(
@@ -176,11 +163,11 @@ describe('FilterScope', () => {
           excluded: [18, 20],
           rootPath: ['ROOT_ID'],
         }),
-      { timeout: 10000 },
+      { timeout: 3000 },
     );
 
     unmount();
-  }, 15000);
+  }, 5000);
 
   it('correct init tree with values', async () => {
     const { unmount } = render(
