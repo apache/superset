@@ -309,6 +309,9 @@ describe('DatabaseModal', () => {
     });
   });
 
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
   afterEach(() => {
     fetchMock.restore();
   });
