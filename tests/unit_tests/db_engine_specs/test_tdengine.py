@@ -14,23 +14,21 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-slice_name: Age distribution of respondents
-viz_type: histogram_v2
-params:
-  adhoc_filters: []
-  column: age
-  color_scheme: supersetColors
-  datasource: 42__table
-  groupby: []
-  label_colors: {}
-  link_length: "25"
-  row_limit: 10000
-  slice_id: 1380
-  url_params: {}
-  viz_type: histogram_v2
-  x_axis_title: age
-  y_axis_title: count
-cache_timeout: null
-uuid: 5f1ea868-604e-f69d-a241-5daa83ff33be
-version: 1.0.0
-dataset_uuid: d95a2865-53ce-1f82-a53d-8e3c89331469
+
+
+from sqlalchemy.engine.url import make_url, URL  # noqa: F401
+
+
+# test get schema
+def test_get_schema_from_engine_params() -> None:
+    """
+    Test the ``get_schema_from_engine_params`` method.
+    """
+    from superset.db_engine_specs.tdengine import TDengineEngineSpec
+
+    assert (
+        TDengineEngineSpec.get_schema_from_engine_params(
+            make_url("taosws://root:taosdata@127.0.0.1:6041/dbname"), {}
+        )
+        == "dbname"
+    )

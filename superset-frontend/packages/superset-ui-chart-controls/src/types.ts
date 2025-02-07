@@ -515,6 +515,13 @@ export enum SortSeriesType {
   Avg = 'avg',
 }
 
+export type LegendPaddingType = {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
+
 export type SortSeriesData = {
   sort_series_type: SortSeriesType;
   sort_series_ascending: boolean;
