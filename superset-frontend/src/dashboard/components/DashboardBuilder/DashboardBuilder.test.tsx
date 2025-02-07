@@ -53,9 +53,6 @@ jest.mock('src/components/Select/Select', () => () => (
 jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
-jest.mock('src/dashboard/components/Header/HeaderActionsDropdown', () => () => (
-  <div data-test="mock-header-actions-dropdown" />
-));
 jest.mock('src/components/PageHeaderWithActions', () => ({
   PageHeaderWithActions: () => (
     <div data-test="mock-page-header-with-actions" />

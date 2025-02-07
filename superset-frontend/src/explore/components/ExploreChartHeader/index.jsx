@@ -31,6 +31,9 @@ import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
 import { applyColors, resetColors } from 'src/utils/colorScheme';
+import ReportModal from 'src/features/reports/ReportModal';
+import DeleteModal from 'src/components/DeleteModal';
+import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -86,6 +89,8 @@ export const ExploreChartHeader = ({
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const updateCategoricalNamespace = async () => {
     const { dashboards } = metadata || {};
     const dashboard =
@@ -128,6 +133,14 @@ export const ExploreChartHeader = ({
     setIsPropertiesModalOpen(false);
   };
 
+  const showReportModal = () => {
+    setIsReportModalOpen(true);
+  };
+
+  const closeReportModal = () => {
+    setIsReportModalOpen(false);
+  };
+
   const showModal = useCallback(() => {
     dispatch(setSaveChartModalVisibility(true));
   }, [dispatch]);
@@ -138,6 +151,11 @@ export const ExploreChartHeader = ({
     },
     [dispatch],
   );
+
+  const handleReportDelete = async report => {
+    await dispatch(deleteActiveReport(report));
+    setCurrentReportDeleting(null);
+  };
 
   const history = useHistory();
   const { redirectSQLLab } = actions;
@@ -158,6 +176,8 @@ export const ExploreChartHeader = ({
       openPropertiesModal,
       ownState,
       metadata?.dashboards,
+      showReportModal,
+      setCurrentReportDeleting,
     );
 
   const metadataBar = useExploreMetadataBar(metadata, slice);
@@ -229,8 +249,8 @@ export const ExploreChartHeader = ({
         }
         additionalActionsMenu={menu}
         menuDropdownProps={{
-          visible: isDropdownVisible,
-          onVisibleChange: setIsDropdownVisible,
+          open: isDropdownVisible,
+          onOpenChange: setIsDropdownVisible,
         }}
       />
       {isPropertiesModalOpen && (
@@ -239,6 +259,33 @@ export const ExploreChartHeader = ({
           onHide={closePropertiesModal}
           onSave={updateSlice}
           slice={slice}
+        />
+      )}
+
+      <ReportModal
+        userId={user.userId}
+        show={isReportModalOpen}
+        onHide={closeReportModal}
+        userEmail={user.email}
+        dashboardId={dashboardId}
+        chart={chart}
+        creationMethod="charts"
+      />
+
+      {currentReportDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentReportDeleting?.name,
+          )}
+          onConfirm={() => {
+            if (currentReportDeleting) {
+              handleReportDelete(currentReportDeleting);
+            }
+          }}
+          onHide={() => setCurrentReportDeleting(null)}
+          open
+          title={t('Delete Report?')}
         />
       )}
     </>

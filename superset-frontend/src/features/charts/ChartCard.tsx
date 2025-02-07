@@ -24,7 +24,7 @@ import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
@@ -172,9 +172,9 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <AntdDropdown overlay={menu}>
+            <Dropdown dropdownRender={() => menu}>
               <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </AntdDropdown>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

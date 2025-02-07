@@ -25,7 +25,7 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
@@ -315,11 +315,11 @@ const SavedQueries = ({
                         e.preventDefault();
                       }}
                     >
-                      <AntdDropdown overlay={renderMenu(q)}>
+                      <Dropdown dropdownRender={() => renderMenu(q)}>
                         <Icons.MoreVert
                           iconColor={theme.colors.grayscale.base}
                         />
-                      </AntdDropdown>
+                      </Dropdown>
                     </ListViewCard.Actions>
                   </QueryData>
                 }

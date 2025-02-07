@@ -16,90 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, ReactElement } from 'react';
+import { type ComponentProps } from 'react';
 
-import { AntdDropdown, AntdTooltip } from 'src/components';
-import { styled } from '@superset-ui/core';
+import { Dropdown } from 'antd-v5';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { kebabCase } from 'lodash';
 
-const StyledDropdownButton = styled.div`
-  .ant-btn-group {
-    button.ant-btn {
-      background-color: ${({ theme }) => theme.colors.primary.dark1};
-      border-color: transparent;
-      color: ${({ theme }) => theme.colors.grayscale.light5};
-      font-size: 12px;
-      line-height: 13px;
-      outline: none;
-      &:first-of-type {
-        border-radius: ${({ theme }) =>
-          `${theme.gridUnit}px 0 0 ${theme.gridUnit}px`};
-        margin: 0;
-      }
-
-      &:disabled {
-        background-color: ${({ theme }) => theme.colors.grayscale.light2};
-        color: ${({ theme }) => theme.colors.grayscale.base};
-      }
-      &:nth-of-type(2) {
-        margin: 0;
-        border-radius: ${({ theme }) =>
-          `0 ${theme.gridUnit}px ${theme.gridUnit}px 0`};
-        width: ${({ theme }) => theme.gridUnit * 9}px;
-        &:before,
-        &:hover:before {
-          border-left: 1px solid ${({ theme }) => theme.colors.grayscale.light5};
-          content: '';
-          display: block;
-          height: ${({ theme }) => theme.gridUnit * 8}px;
-          margin: 0;
-          position: absolute;
-          width: ${({ theme }) => theme.gridUnit * 0.25}px;
-        }
-
-        &:disabled:before {
-          border-left: 1px solid ${({ theme }) => theme.colors.grayscale.base};
-        }
-      }
-    }
-  }
-`;
-
-export interface DropdownButtonProps {
-  overlay: ReactElement;
+export type DropdownButtonProps = ComponentProps<typeof Dropdown.Button> & {
   tooltip?: string;
-  placement?: 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight';
-  buttonsRender?: ((buttons: ReactNode[]) => ReactNode[]) | undefined;
-}
+  tooltipPlacement?: TooltipPlacement;
+};
 
 export const DropdownButton = ({
-  overlay,
+  dropdownRender,
   tooltip,
-  placement,
+  tooltipPlacement,
+  children,
   ...rest
 }: DropdownButtonProps) => {
-  const buildButton = (
-    props: {
-      buttonsRender?: DropdownButtonProps['buttonsRender'];
-    } = {},
-  ) => (
-    <StyledDropdownButton>
-      <AntdDropdown.Button overlay={overlay} {...rest} {...props} />
-    </StyledDropdownButton>
+  const button = (
+    <Dropdown.Button dropdownRender={dropdownRender} {...rest}>
+      {children}
+    </Dropdown.Button>
   );
   if (tooltip) {
-    return buildButton({
-      buttonsRender: ([leftButton, rightButton]) => [
-        <AntdTooltip
-          placement={placement}
-          id={`${kebabCase(tooltip)}-tooltip`}
-          title={tooltip}
-        >
-          {leftButton}
-        </AntdTooltip>,
-        rightButton,
-      ],
-    });
+    return (
+      <Tooltip
+        placement={tooltipPlacement}
+        id={`${kebabCase(tooltip)}-tooltip`}
+        title={tooltip}
+      >
+        {button}
+      </Tooltip>
+    );
   }
-  return buildButton();
+  return button;
 };
