@@ -110,12 +110,14 @@ export function useIsFilterInScope() {
       if (isFilterDivider(filter)) return true;
 
       const isChartInScope =
-        'chartsInScope' in filter &&
-        filter.chartsInScope?.some((chartId: number) => {
+        Array.isArray(filter.chartsInScope) &&
+        filter.chartsInScope.length > 0 &&
+        filter.chartsInScope.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
           return (
-            tabParents?.length === 0 ||
-            tabParents?.every(tab => activeTabs.includes(tab))
+            !tabParents ||
+            tabParents.length === 0 ||
+            tabParents.every(tab => activeTabs.includes(tab))
           );
         });
 
