@@ -26,8 +26,8 @@ import {
   supersetTheme,
   SupersetTheme,
   ThemeProvider,
-  cleanup,
 } from '@superset-ui/core';
+import { cleanup } from '@testing-library/react';
 import SuperChartCore from '../../../src/chart/components/SuperChartCore';
 import {
   ChartKeys,

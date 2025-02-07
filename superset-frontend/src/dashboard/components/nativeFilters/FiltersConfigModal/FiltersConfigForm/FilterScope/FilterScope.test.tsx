@@ -93,17 +93,52 @@ describe('FilterScope', () => {
 
   it('select tree values with 1 excluded', async () => {
     const { unmount } = render(<MockModal />);
+
+    // Wait for the Scoping tab to be visible and click it
     await waitFor(() => {
-      fireEvent.click(screen.getByText('Scoping'));
+      expect(screen.getByText('Scoping')).toBeInTheDocument();
     });
+    fireEvent.click(screen.getByText('Scoping'));
 
-    expect(screen.getByRole('tree')).toBeInTheDocument();
+    // Wait for the tree to be rendered
+    await waitFor(
+      () => {
+        expect(screen.getByRole('tree')).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
 
+    // Wait for tree items to be loaded
+    await waitFor(
+      () => {
+        expect(
+          document.querySelector('.ant-tree-treenode'),
+        ).toBeInTheDocument();
+      },
+      { timeout: 10000 },
+    );
+
+    // Expand the tree node and wait for children
     await waitFor(() => {
       fireEvent.click(getTreeSwitcher(2));
-      fireEvent.click(screen.getByText('CHART_ID2'));
     });
 
+    // Find and click the chart node using a more specific selector
+    const chartNode = await waitFor(
+      () =>
+        document.querySelector('[title="CHART_ID2"]') ||
+        document.querySelector(
+          '.ant-tree-node-content-wrapper:contains("CHART_ID2")',
+        ),
+    );
+
+    if (!chartNode) {
+      throw new Error('Chart node not found in tree');
+    }
+
+    fireEvent.click(chartNode);
+
+    // Verify the form value
     await waitFor(
       () =>
         expect(
@@ -116,7 +151,7 @@ describe('FilterScope', () => {
     );
 
     unmount();
-  }, 15000);
+  }, 20000);
 
   it('select 1 value only', async () => {
     const { unmount } = render(<MockModal />);

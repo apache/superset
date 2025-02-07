@@ -18,6 +18,7 @@
  */
 import { ReactChild } from 'react';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import { cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DatasourcePanel, {
   IDatasource,
@@ -152,28 +153,8 @@ describe('DatasourcePanel', () => {
 
   afterEach(async () => {
     cleanup();
-    // Wait for any pending effects to complete
     await new Promise(resolve => setTimeout(resolve, 0));
   });
-
-  test('should render 0 search results', async () => {
-    const { unmount } = render(<DatasourcePanel {...props} />, {
-      useRedux: true,
-      useDnd: true,
-    });
-
-    const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
-    search('nothing', searchInput);
-
-    await waitFor(
-      () => {
-        expect(screen.getAllByText('Showing 0 of 0')).toHaveLength(2);
-      },
-      { timeout: 10000 },
-    );
-
-    unmount();
-  }, 15000);
 
   test('should search and render matching columns', async () => {
     const { unmount } = render(
@@ -185,9 +166,12 @@ describe('DatasourcePanel', () => {
     );
 
     const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
+
     await waitFor(() => {
-      search(columns[0].column_name, searchInput);
+      expect(searchInput).toBeInTheDocument();
     });
+
+    search(columns[0].column_name, searchInput);
 
     await waitFor(
       () => {

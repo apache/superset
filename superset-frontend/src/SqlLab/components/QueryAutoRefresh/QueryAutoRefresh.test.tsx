@@ -194,35 +194,30 @@ describe('QueryAutoRefresh', () => {
 
   it('Does NOT Attempt to refresh when given only completed queries', async () => {
     const store = mockStore();
-
-    // Mock API response (no queries needing refresh)
     fetchMock.get(refreshApi, {
-      result: [],
+      result: [
+        {
+          id: runningQuery.id,
+          status: 'success',
+        },
+      ],
     });
-
-    console.log('Fetching:', refreshApi);
-
-    // Render the component
     render(
       <QueryAutoRefresh
-        queries={successfulQueries} // Only completed queries
+        queries={successfulQueries}
         queriesLastUpdate={queriesLastUpdate}
       />,
       { useRedux: true, store },
     );
-
-    // Wait and check if the expected action is dispatched
     await waitFor(
-      () => {
-        console.log('Actions in store:', store.getActions());
+      () =>
         expect(store.getActions()).toContainEqual(
-          expect.objectContaining({ type: CLEAR_INACTIVE_QUERIES }),
-        );
-      },
-      { timeout: QUERY_UPDATE_FREQ + 500 }, // Extend timeout slightly
+          expect.objectContaining({
+            type: CLEAR_INACTIVE_QUERIES,
+          }),
+        ),
+      { timeout: QUERY_UPDATE_FREQ + 100 },
     );
-
-    // Ensure API was NOT called
     expect(fetchMock.calls(refreshApi)).toHaveLength(0);
   });
 });

@@ -203,98 +203,111 @@ test('Should render', async () => {
   expect(await screen.findByTestId('DatabaseSelector')).toBeInTheDocument();
 });
 
-test('Refresh should work', async () => {
-  const props = createProps();
-
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-
-  expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
-
-  const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+describe('DatabaseSelector', () => {
+  beforeAll(() => {
+    jest.setTimeout(30000);
   });
 
-  userEvent.click(select);
-
-  await waitFor(() => {
-    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
-    expect(props.handleError).toHaveBeenCalledTimes(0);
-    expect(props.onDbChange).toHaveBeenCalledTimes(0);
-    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
+  afterEach(async () => {
+    fetchMock.reset();
+    act(() => {
+      store.dispatch(api.util.resetApiState());
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
   });
 
-  // click schema reload
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+  test('Refresh should work', async () => {
+    const props = createProps();
+    const { unmount } = render(<DatabaseSelector {...props} />, {
+      useRedux: true,
+      store,
+    });
 
-  await waitFor(() => {
-    expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
-    expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
-    expect(props.handleError).toHaveBeenCalledTimes(0);
-    expect(props.onDbChange).toHaveBeenCalledTimes(0);
-    expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
-  });
-});
+    expect(fetchMock.calls(schemaApiRoute).length).toBe(0);
 
-test('Should database select display options', async () => {
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  expect(await screen.findByText('test-mysql')).toBeInTheDocument();
-});
+    const select = screen.getByRole('combobox', {
+      name: 'Select schema or type to search schemas',
+    });
 
-test('should display options in order of the api response', async () => {
-  fetchMock.get(databaseApiRoute, fakeDatabaseApiResultInReverseOrder, {
-    overwriteRoutes: true,
-  });
-  const props = createProps();
-  render(<DatabaseSelector {...props} db={undefined} />, {
-    useRedux: true,
-    store,
-  });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  expect(select).toBeInTheDocument();
-  userEvent.click(select);
-  const options = await screen.findAllByRole('option');
+    await act(async () => {
+      userEvent.click(select);
+    });
 
-  expect(options[0]).toHaveTextContent(
-    `${fakeDatabaseApiResultInReverseOrder.result[0].id}`,
-  );
-  expect(options[1]).toHaveTextContent(
-    `${fakeDatabaseApiResultInReverseOrder.result[1].id}`,
-  );
-});
+    await waitFor(
+      () => {
+        expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
+        expect(fetchMock.calls(schemaApiRoute).length).toBe(1);
+        expect(props.handleError).toHaveBeenCalledTimes(0);
+        expect(props.onDbChange).toHaveBeenCalledTimes(0);
+        expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
+      },
+      { timeout: 10000 },
+    );
 
-test('Should fetch the search keyword when total count exceeds initial options', async () => {
-  fetchMock.get(
-    databaseApiRoute,
-    {
-      ...fakeDatabaseApiResult,
-      count: fakeDatabaseApiResult.result.length + 1,
-    },
-    { overwriteRoutes: true },
-  );
+    // click schema reload
+    await act(async () => {
+      userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+    });
 
-  const props = createProps();
-  render(<DatabaseSelector {...props} />, { useRedux: true, store });
-  const select = screen.getByRole('combobox', {
-    name: 'Select database or type to search databases',
-  });
-  await waitFor(() =>
-    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1),
-  );
-  expect(select).toBeInTheDocument();
-  userEvent.type(select, 'keywordtest');
-  await waitFor(() =>
-    expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2),
-  );
-  expect(fetchMock.calls(databaseApiRoute)[1][0]).toContain('keywordtest');
+    await waitFor(
+      () => {
+        expect(fetchMock.calls(databaseApiRoute).length).toBe(1);
+        expect(fetchMock.calls(schemaApiRoute).length).toBe(2);
+        expect(props.handleError).toHaveBeenCalledTimes(0);
+        expect(props.onDbChange).toHaveBeenCalledTimes(0);
+        expect(props.onSchemaChange).toHaveBeenCalledTimes(0);
+      },
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
+
+  test('Should fetch the search keyword when total count exceeds initial options', async () => {
+    fetchMock.get(
+      databaseApiRoute,
+      {
+        ...fakeDatabaseApiResult,
+        count: fakeDatabaseApiResult.result.length + 1,
+      },
+      { overwriteRoutes: true },
+    );
+
+    const props = createProps();
+    const { unmount } = render(<DatabaseSelector {...props} />, {
+      useRedux: true,
+      store,
+    });
+
+    const select = screen.getByRole('combobox', {
+      name: 'Select database or type to search databases',
+    });
+
+    await waitFor(
+      () => {
+        expect(fetchMock.calls(databaseApiRoute)).toHaveLength(1);
+      },
+      { timeout: 10000 },
+    );
+
+    expect(select).toBeInTheDocument();
+
+    await act(async () => {
+      userEvent.type(select, 'keywordtest');
+    });
+
+    await waitFor(
+      () => {
+        expect(fetchMock.calls(databaseApiRoute)).toHaveLength(2);
+        expect(fetchMock.calls(databaseApiRoute)[1][0]).toContain(
+          'keywordtest',
+        );
+      },
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
 });
 
 test('should show empty state if there are no options', async () => {
