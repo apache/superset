@@ -94,8 +94,15 @@ export type DashboardState = {
   anchor?: string;
 };
 
+export type ExtraNativeFilter = {
+  columnName?: string;
+  filterValues?: Array<any>;
+  // filterOp?: string; // assuming all operators are 'IN' for now
+};
+
 export type Extra = {
   dashboard?: DashboardState;
+  nativeFilters?: Array<ExtraNativeFilter>;
 };
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';

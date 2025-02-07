@@ -463,6 +463,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilter, setSelectedNativeFilter] = useState<object>({});
   const [nativeFilters, setGlobalNativeFilters] = useState<object>({});
 
+  console.log('okkkkk', nativeFilter)
+
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
     [Sections.General]: {
@@ -676,7 +678,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
 
     // todo(hughhh): refactor to handle multiple native filters
-    currentAlert.extra.nativeFilter = nativeFilter
+    currentAlert.extra.dashboard.nativeFilters = [nativeFilter]
 
     const data: any = {
       ...currentAlert,
@@ -1186,14 +1188,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setForceScreenshot(event.target.checked);
   };
 
-  const onChangeDashboardFilter = (value: any) => {
-    console.log('dashboardFilter', value);
+  const onChangeDashboardFilter = (nativeFilterId: string) => {
+    console.log('dashboardFilter', nativeFilterId);
     // set dashboardFilter
     const anchor = currentAlert?.extra?.dashboard?.anchor
     const inScopeFilters = nativeFilters[anchor];
-    const filter = inScopeFilters.filter((f: any) => f.id === value)[0]
+    const filter = inScopeFilters.filter((f: any) => f.id === nativeFilterId)[0]
     console.log(filter) // use filter to grab values from API
-    console.log('about to get filter values', value);
+    console.log('about to get filter values', nativeFilterId);
     
     const datasetId = filter.targets[0].datasetId;
     const columnName = filter.targets[0].column.name;
@@ -1227,19 +1229,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       force: false,
       ownState: {}
     }
-    
+    setSelectedNativeFilter({...nativeFilter, columnName, nativeFilterId})
     getChartDataRequest(filterValues).then(response => {
       setNativeFilterValues(response.json.result[0].data.map((item: any) => ({value: item[columnName], label: item[columnName]})))
     });
-
   }
 
-  const onChangeDashboardFilterValue = (value: any) => {
-    console.log('dashboardValue', value);
-    // set dashboardValue
-    setSelectedNativeFilter({...nativeFilter, nativeFilterValue: value});
+  const onChangeDashboardFilterValue = (filterValue: any) => {
+    console.log('dashboardValue', filterValue);
 
-    
+    // todo(hughhh): refactor to handle multiple native filters 
+    // once you have multiselect
+    setSelectedNativeFilter({...nativeFilter, filterValues: [filterValue]});
   }
 
   // Make sure notification settings has the required info

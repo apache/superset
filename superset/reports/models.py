@@ -186,36 +186,36 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
     
-    def get_native_filters_params(self) -> Optional[str]:
+    def get_native_filters_params(self) -> Optional[dict[str, any]]:
         params = None
-        if self.extra and self.extra.get("native_filters"):
-            filter = self.extra.get("native_filters", {})
-            params = self._generate_native_filter(filter.get("id"), filter.get("column"), filter.get("value"))
-        return prison.dumps(params)
+        dashboard = self.extra.get('dashboard')
+        if dashboard and dashboard.get("nativeFilters"):
+            for filter in dashboard.get("nativeFilters", []):
+                # todo(hugh): handle multiple nativeFilters + multi values
+                params = self._generate_native_filter(filter.get("nativeFilterId"), filter.get("columnName"), filter.get("filterValues")[0])
+        return params
     
-    def _generate_native_filter(native_filter_id: str, column: str, value: str) -> dict:
+    def _generate_native_filter(self, native_filter_id: str, column_name: str, value: str) -> dict:
         return { 
-            "native_filters": {
-                native_filter_id: {
-                    "id": native_filter_id,
-                    "extraFormData": {
-                        "filters": [
-                            {
-                                "col": column,
-                                "op": "IN",
-                                "val": [value]
-                            }
-                        ]
-                    },
-                    "filterState": {
-                        "label": column, # pretty name but still works without this value
-                        "validateStatus": False,
-                        "value": [value]
-                    },
-                    "ownState": {}
-                }
+            native_filter_id: {
+                "id": native_filter_id,
+                "extraFormData": {
+                    "filters": [
+                        {
+                            "col": column_name,
+                            "op": "IN",
+                            "val": [value]
+                        }
+                    ]
+                },
+                "filterState": {
+                    "label": column_name, # pretty name but still works without this value
+                    "validateStatus": False,
+                    "value": [value]
+                },
+                "ownState": {}
             }
-        }        
+        }    
 
 
 class ReportRecipients(Model, AuditMixinNullable):

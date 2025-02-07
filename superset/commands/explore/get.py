@@ -69,6 +69,7 @@ class GetExploreCommand(BaseCommand, ABC):
             state = permalink_value["state"]
             initial_form_data = state["formData"]
             url_params = state.get("urlParams")
+            print('perm_url_params', url_params)
             if url_params:
                 initial_form_data["url_params"] = dict(url_params)
         elif self._form_data_key:
