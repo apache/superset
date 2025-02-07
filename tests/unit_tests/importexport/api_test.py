@@ -109,7 +109,7 @@ def test_import_assets(
     ImportAssetsCommand.assert_called_with(
         mocked_contents,
         passwords=passwords,
-        encrypted_extras=None,
+        masked_encrypted_extras=None,
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
         ssh_tunnel_priv_key_passwords=None,

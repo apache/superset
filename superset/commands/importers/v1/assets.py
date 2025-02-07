@@ -69,7 +69,9 @@ class ImportAssetsCommand(BaseCommand):
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any):
         self.contents = contents
         self.passwords: dict[str, str] = kwargs.get("passwords") or {}
-        self.encrypted_extras: dict[str, Schema] = kwargs.get("encrypted_extras") or {}
+        self.masked_encrypted_extras: dict[str, Schema] = (
+            kwargs.get("masked_encrypted_extras") or {}
+        )
         self.ssh_tunnel_passwords: dict[str, str] = (
             kwargs.get("ssh_tunnel_passwords") or {}
         )
@@ -179,7 +181,7 @@ class ImportAssetsCommand(BaseCommand):
             self.contents,
             self.schemas,
             self.passwords,
-            self.encrypted_extras,
+            self.masked_encrypted_extras,
             exceptions,
             self.ssh_tunnel_passwords,
             self.ssh_tunnel_private_keys,
@@ -187,6 +189,7 @@ class ImportAssetsCommand(BaseCommand):
         )
 
         if exceptions:
+            print("here we go!")
             raise CommandInvalidError(
                 "Error importing assets",
                 exceptions,
