@@ -100,7 +100,7 @@ def load_configs(  # noqa: C901
     contents: dict[str, str],
     schemas: dict[str, Schema],
     passwords: dict[str, str],
-    masked_encrypted_extra: dict[str, Schema],
+    encrypted_extra: dict[str, Schema],
     exceptions: list[ValidationError],
     ssh_tunnel_passwords: dict[str, str],
     ssh_tunnel_private_keys: dict[str, str],
@@ -114,7 +114,7 @@ def load_configs(  # noqa: C901
         for uuid, password in db.session.query(Database.uuid, Database.password).all()
     }
     # load existing encrypted extras so we can apply the password validation
-    db_masked_encrypted_extras: dict[str, str] = {
+    db_encrypted_extras: dict[str, str] = {
         str(uuid): encrypted_extra
         for uuid, encrypted_extra in db.session.query(
             Database.uuid, Database.encrypted_extra
@@ -157,15 +157,10 @@ def load_configs(  # noqa: C901
                     config["password"] = db_passwords[config["uuid"]]
 
                 # populate encrypted_extras from the request or from existing DBs
-                if file_name in masked_encrypted_extra:
-                    config["masked_encrypted_extra"] = masked_encrypted_extra[file_name]
-                elif (
-                    prefix == "databases"
-                    and config["uuid"] in db_masked_encrypted_extras
-                ):
-                    config["masked_encrypted_extra"] = db_masked_encrypted_extras[
-                        config["uuid"]
-                    ]
+                if file_name in encrypted_extra:
+                    config["encrypted_extra"] = encrypted_extra[file_name]
+                elif prefix == "databases" and config["uuid"] in db_encrypted_extras:
+                    config["encrypted_extra"] = db_encrypted_extras[config["uuid"]]
 
                 # populate ssh_tunnel_passwords from the request or from existing DBs
                 if file_name in ssh_tunnel_passwords:

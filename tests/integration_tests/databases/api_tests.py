@@ -2532,6 +2532,54 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_encrypted_extra_provided(self, mock_add_permissions):
+        """
+        Database API: Test import database with masked password provided
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/database/import/"
+
+        masked_database_config = database_config.copy()
+        masked_database_config["sqlalchemy_uri"] = (
+            "vertica+vertica_python://host:5433/dbname?ssl=1"
+        )
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/imported_database.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(masked_database_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "overwrite": "true",  # DEBUG; remove!
+            "formData": (buf, "database_export.zip"),
+            "encrypted_extras": json.dumps(
+                {"databases/imported_database.yaml": {"key": "value"}}
+            ),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = (
+            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+        )
+        assert database.database_name == "imported_database"
+        assert (
+            database.sqlalchemy_uri == "vertica+vertica_python://host:5433/dbname?ssl=1"
+        )
+        assert json.loads(database.encrypted_extra) == {"key": "value"}  # noqa: S105
+
+        db.session.delete(database)
+        db.session.commit()
+
     @mock.patch("superset.databases.schemas.is_feature_enabled")
     @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_password(
