@@ -726,7 +726,7 @@ const Header = () => {
     hasUnsavedChanges,
     userCanEdit,
     userCanShare,
-    userCanSaveAs,
+    userCanSave: userCanSaveAs,
     userCanCurate,
     isLoading,
     showReportModal,
