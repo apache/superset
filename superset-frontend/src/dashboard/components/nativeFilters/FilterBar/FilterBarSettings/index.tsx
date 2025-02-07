@@ -83,13 +83,9 @@ const FilterBarSettings = () => {
   );
   const [selectedFilterBarOrientation, setSelectedFilterBarOrientation] =
     useState(filterBarOrientation);
-  const isCrossFiltersFeatureEnabled = isFeatureEnabled(
-    FeatureFlag.DashboardCrossFilters,
-  );
-  const shouldEnableCrossFilters =
-    isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
+
   const [crossFiltersEnabled, setCrossFiltersEnabled] = useState<boolean>(
-    shouldEnableCrossFilters,
+    isCrossFiltersEnabled,
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -188,7 +184,7 @@ const FilterBarSettings = () => {
         divider: canSetHorizontalFilterBar,
       });
     }
-    if (isCrossFiltersFeatureEnabled && canEdit) {
+    if (canEdit) {
       items.push({
         key: CROSS_FILTERS_MENU_KEY,
         label: crossFiltersMenuItem,
@@ -222,7 +218,6 @@ const FilterBarSettings = () => {
     crossFiltersMenuItem,
     dashboardId,
     filterValues,
-    isCrossFiltersFeatureEnabled,
   ]);
 
   if (!menuItems.length) {

@@ -16,23 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { t } from '@superset-ui/core';
 
-import mockDatasource from 'spec/fixtures/mockDatasource';
-import CollectionTable from './CollectionTable';
+import { ErrorMessageComponentProps } from './types';
+import ErrorAlert from './ErrorAlert';
 
-const props = {
-  collection: mockDatasource['7__table'].columns,
-  tableColumns: ['column_name', 'type', 'groupby'],
-};
-
-test('renders a table', () => {
-  const { length } = mockDatasource['7__table'].columns;
-  const { getByRole } = render(<CollectionTable {...props} />);
-  expect(getByRole('table')).toBeInTheDocument();
-  expect(
-    getByRole('table')
-      .getElementsByTagName('tbody')[0]
-      .getElementsByClassName('row'),
-  ).toHaveLength(length);
-});
+function FrontendNetworkErrorMessage({
+  error,
+  subtitle,
+  compact,
+}: ErrorMessageComponentProps) {
+  const { level, message } = error;
+  return (
+    <ErrorAlert
+      compact={compact}
+      errorType={t('Network Error')}
+      message={message}
+      type={level}
+    />
+  );
+}
+export default FrontendNetworkErrorMessage;

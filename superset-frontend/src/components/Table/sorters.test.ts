@@ -45,14 +45,20 @@ const rows = [
  * 1 or greater means the first item comes before the second item
  */
 test('alphabeticalSort sorts correctly', () => {
+  // @ts-ignore
   expect(alphabeticalSort('name', rows[0], rows[1])).toBe(-1);
+  // @ts-ignore
   expect(alphabeticalSort('name', rows[1], rows[0])).toBe(1);
+  // @ts-ignore
   expect(alphabeticalSort('category', rows[1], rows[0])).toBe(0);
 });
 
 test('numericalSort sorts correctly', () => {
+  // @ts-ignore
   expect(numericalSort('cost', rows[1], rows[2])).toBe(0);
+  // @ts-ignore
   expect(numericalSort('cost', rows[1], rows[0])).toBeLessThan(0);
+  // @ts-ignore
   expect(numericalSort('cost', rows[4], rows[1])).toBeGreaterThan(0);
 });
 
@@ -73,6 +79,7 @@ test('alphabeticalSort bad inputs no errors', () => {
   expect(
     alphabeticalSort(
       'name',
+      // @ts-ignore
       { name: { title: 'the name attribute should not be an object' } },
       { name: 'Doug' },
     ),
@@ -93,6 +100,7 @@ test('numericalSort bad inputs no errors', () => {
   expect(
     numericalSort(
       'name',
+      // @ts-ignore
       { name: { title: 'the name attribute should not be an object' } },
       { name: 'Doug' },
     ),

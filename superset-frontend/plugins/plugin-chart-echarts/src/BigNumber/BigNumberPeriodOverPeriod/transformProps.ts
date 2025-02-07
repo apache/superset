@@ -165,7 +165,8 @@ export default function transformProps(chartProps: ChartProps) {
     percentDifferenceNum = (bigNumber - prevNumber) / Math.abs(prevNumber);
   }
 
-  const compType = compTitles[formData.timeComparison];
+  const compType =
+    compTitles[formData.timeComparison as keyof typeof compTitles];
   bigNumber = numberFormatter(bigNumber);
   prevNumber = numberFormatter(prevNumber);
   valueDifference = numberFormatter(valueDifference);

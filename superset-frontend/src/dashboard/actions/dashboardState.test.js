@@ -17,7 +17,7 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { waitFor } from '@testing-library/react';
 
 import {
@@ -25,7 +25,6 @@ import {
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
 } from 'src/dashboard/actions/dashboardState';
-import * as uiCore from '@superset-ui/core';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
 import {
   DASHBOARD_GRID_ID,
@@ -38,6 +37,11 @@ import {
 } from 'spec/fixtures/mockSliceEntities';
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 describe('dashboardState actions', () => {
   const mockState = {
@@ -57,6 +61,7 @@ describe('dashboardState actions', () => {
       present: mockDashboardData.positions,
       future: {},
     },
+    charts: {},
   };
   const newDashboardData = mockDashboardData;
 
@@ -140,15 +145,14 @@ describe('dashboardState actions', () => {
     });
 
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
-      let isFeatureEnabledMock;
       beforeEach(() => {
-        isFeatureEnabledMock = jest
-          .spyOn(uiCore, 'isFeatureEnabled')
-          .mockImplementation(feature => feature === 'CONFIRM_DASHBOARD_DIFF');
+        isFeatureEnabled.mockImplementation(
+          feature => feature === 'CONFIRM_DASHBOARD_DIFF',
+        );
       });
 
       afterEach(() => {
-        isFeatureEnabledMock.mockRestore();
+        isFeatureEnabled.mockRestore();
       });
 
       it('dispatches SET_OVERRIDE_CONFIRM when an inspect value has diff', async () => {

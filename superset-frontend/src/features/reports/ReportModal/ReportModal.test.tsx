@@ -20,12 +20,9 @@ import userEvent from '@testing-library/user-event';
 import sinon from 'sinon';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import * as uiCore from '@superset-ui/core';
+import { FeatureFlag, VizType, isFeatureEnabled } from '@superset-ui/core';
 import * as actions from 'src/features/reports/ReportModal/actions';
-import { FeatureFlag } from '@superset-ui/core';
 import ReportModal from '.';
-
-let isFeatureEnabledMock: jest.MockInstance<boolean, [string]>;
 
 const REPORT_ENDPOINT = 'glob:*/api/v1/report*';
 fetchMock.get(REPORT_ENDPOINT, {});
@@ -45,26 +42,23 @@ const defaultProps = {
   creationMethod: 'dashboards',
   chart: {
     sliceFormData: {
-      viz_type: uiCore.VizType.Table,
+      viz_type: VizType.Table,
     },
   },
 };
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 describe('Email Report Modal', () => {
-  beforeAll(() => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: FeatureFlag) => featureFlag === FeatureFlag.AlertReports,
-      );
-  });
-
   beforeEach(() => {
+    mockedIsFeatureEnabled.mockImplementation(
+      featureFlag => featureFlag === FeatureFlag.AlertReports,
+    );
     render(<ReportModal {...defaultProps} />, { useRedux: true });
-  });
-
-  afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
   });
 
   it('inputs respond correctly', () => {
@@ -112,18 +106,10 @@ describe('Email Report Modal', () => {
   });
 
   describe('Email Report Modal', () => {
-    let isFeatureEnabledMock: any;
     let dispatch: any;
 
     beforeEach(async () => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
       dispatch = sinon.spy();
-    });
-
-    afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
     });
 
     it('creates a new email report', async () => {

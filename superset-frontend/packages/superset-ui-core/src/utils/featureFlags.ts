@@ -30,12 +30,9 @@ export enum FeatureFlag {
   AvoidColorsCollision = 'AVOID_COLORS_COLLISION',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
-  /** @deprecated */
-  DashboardCrossFilters = 'DASHBOARD_CROSS_FILTERS',
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
-  DisableLegacyDatasourceEditor = 'DISABLE_LEGACY_DATASOURCE_EDITOR',
   /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
@@ -96,7 +93,7 @@ export function initFeatureFlags(featureFlags?: FeatureFlagMap) {
 
 export function isFeatureEnabled(feature: FeatureFlag): boolean {
   try {
-    return !!window.featureFlags[feature];
+    return !!window.featureFlags[feature as keyof FeatureFlagMap];
   } catch (error) {
     logger.error(`Failed to query feature flag ${feature}`);
   }

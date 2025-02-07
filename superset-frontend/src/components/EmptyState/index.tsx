@@ -144,7 +144,10 @@ const ImageContainer = ({
   size: EmptyStateSize;
 }) => {
   if (!image) return null;
-  const mappedImage = typeof image === 'string' ? imageMap[image] : image;
+  const mappedImage =
+    typeof image === 'string'
+      ? imageMap[image as keyof typeof imageMap]
+      : image;
   return (
     <div role="img" aria-label="empty">
       <Empty

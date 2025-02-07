@@ -23,7 +23,6 @@ import {
   parseDttmToDate,
   BinaryAdhocFilter,
   SimpleAdhocFilter,
-  css,
   customTimeRangeDecode,
   computeCustomDateTime,
   fetchTimeRange,
@@ -148,7 +147,7 @@ export default function TimeOffsetControls({
       ).then(res => {
         const dates = res?.value?.match(DEFAULT_DATE_PATTERN);
         const [startDate, endDate] = dates ?? [];
-        customTimeRange(`${startDate} : ${endDate}` ?? '');
+        customTimeRange(`${startDate} : ${endDate}`);
         setFormatedFilterDate(extendedDayjs(parseDttmToDate(startDate)));
       });
     } else {
@@ -223,9 +222,6 @@ export default function TimeOffsetControls({
     <div>
       <ControlHeader {...props} />
       <DatePicker
-        css={css`
-          width: 100%;
-        `}
         onChange={(datetime: Dayjs) =>
           onChange(datetime ? datetime.format(DAYJS_FORMAT) : '')
         }

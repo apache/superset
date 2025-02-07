@@ -72,6 +72,10 @@ const setup = (dashboardInfoOverride: Partial<DashboardInfo> = {}) =>
     }),
   );
 
+beforeEach(() => {
+  fetchMock.restore();
+});
+
 test('Dropdown trigger renders with FF HORIZONTAL_FILTER_BAR on', async () => {
   // @ts-ignore
   global.featureFlags = {
@@ -104,33 +108,7 @@ test('Dropdown trigger does not render without dashboard edit permissions', asyn
   expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
 });
 
-test('Dropdown trigger renders with FF DASHBOARD_CROSS_FILTERS on', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
-  await setup();
-
-  expect(screen.getByRole('img', { name: 'gear' })).toBeInTheDocument();
-});
-
-test('Dropdown trigger does not render with FF DASHBOARD_CROSS_FILTERS off', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: false,
-  };
-  await setup({
-    dash_edit_perm: false,
-  });
-
-  expect(screen.queryByRole('img', { name: 'gear' })).not.toBeInTheDocument();
-});
-
 test('Popover shows cross-filtering option on by default', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
   expect(screen.getByText('Enable cross-filtering')).toBeInTheDocument();
@@ -138,11 +116,6 @@ test('Popover shows cross-filtering option on by default', async () => {
 });
 
 test('Can enable/disable cross-filtering', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.DashboardCrossFilters]: true,
-  };
-  fetchMock.reset();
   fetchMock.put('glob:*/api/v1/dashboard/1', {
     result: {},
   });
@@ -168,7 +141,7 @@ test('Popover opens with "Vertical" selected', async () => {
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -183,7 +156,7 @@ test('Popover opens with "Horizontal" selected', async () => {
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[3]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[5]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -192,7 +165,6 @@ test('On selection change, send request and update checked value', async () => {
   global.featureFlags = {
     [FeatureFlag.HorizontalFilterBar]: true,
   };
-  fetchMock.reset();
   fetchMock.put('glob:*/api/v1/dashboard/1', {
     result: {
       json_metadata: JSON.stringify({
@@ -209,14 +181,14 @@ test('On selection change, send request and update checked value', async () => {
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
 
   // 1st check - checkmark appears immediately after click
   expect(
-    await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
+    await within(screen.getAllByRole('menuitem')[5]).findByLabelText('check'),
   ).toBeInTheDocument();
   // successful query
   await waitFor(() =>
@@ -231,18 +203,21 @@ test('On selection change, send request and update checked value', async () => {
   );
   await waitFor(() => {
     const menuitems = screen.getAllByRole('menuitem');
-    expect(menuitems.length).toBeGreaterThanOrEqual(3);
+    expect(menuitems.length).toBeGreaterThanOrEqual(6);
   });
+
+  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
+  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
 
   // 2nd check - checkmark stays after successful query
   expect(
-    await within(screen.getAllByRole('menuitem')[3]).findByLabelText('check'),
+    await within(screen.getAllByRole('menuitem')[5]).findByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[2]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[4]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
-
-  fetchMock.reset();
 });
 
 test('On failed request, restore previous selection', async () => {
@@ -250,7 +225,6 @@ test('On failed request, restore previous selection', async () => {
   global.featureFlags = {
     [FeatureFlag.HorizontalFilterBar]: true,
   };
-  fetchMock.reset();
   fetchMock.put('glob:*/api/v1/dashboard/1', 400);
 
   const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
@@ -263,10 +237,10 @@ test('On failed request, restore previous selection', async () => {
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
 
   expect(
-    within(screen.getAllByRole('menuitem')[2]).getByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[5]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   userEvent.click(await screen.findByText('Horizontal (Top)'));
@@ -284,16 +258,14 @@ test('On failed request, restore previous selection', async () => {
 
   await waitFor(() => {
     const menuitems = screen.getAllByRole('menuitem');
-    expect(menuitems.length).toBeGreaterThanOrEqual(3);
+    expect(menuitems.length).toBeGreaterThanOrEqual(6);
   });
 
   // checkmark gets rolled back to the original selection after successful query
   expect(
-    await within(screen.getAllByRole('menuitem')[2]).findByLabelText('check'),
+    await within(screen.getAllByRole('menuitem')[4]).findByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[3]).queryByLabelText('check'),
+    within(screen.getAllByRole('menuitem')[5]).queryByLabelText('check'),
   ).not.toBeInTheDocument();
-
-  fetchMock.reset();
 });

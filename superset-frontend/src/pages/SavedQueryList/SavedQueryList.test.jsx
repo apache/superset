@@ -18,6 +18,7 @@
  */
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
+import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -26,7 +27,7 @@ import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { act } from 'react-dom/test-utils';
-import * as uiCore from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
 import SavedQueryList from 'src/pages/SavedQueryList';
 import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
@@ -154,6 +155,11 @@ fetchMock.get(queriesDistinctEndpoint, {
 // Mock utils module
 jest.mock('src/views/CRUD/utils');
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
 describe('SavedQueryList', () => {
   const wrapper = mount(
     <reactRedux.Provider store={store}>
@@ -242,6 +248,55 @@ describe('SavedQueryList', () => {
     expect(fetchMock.calls(/saved_query\/0/, 'DELETE')).toHaveLength(1);
   });
 
+  it('copies a query link when the API succeeds', async () => {
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn(),
+      },
+    });
+
+    fetchMock.get('glob:*/api/v1/saved_query', {
+      result: [
+        {
+          id: 1,
+          label: 'Test Query',
+          db_id: 1,
+          schema: 'public',
+          sql: 'SELECT * FROM table',
+        },
+      ],
+      count: 1,
+    });
+    fetchMock.post('glob:*/api/v1/sqllab/permalink', {
+      body: { url: 'http://example.com/permalink' },
+      status: 200,
+    });
+
+    render(
+      <Provider store={store}>
+        <BrowserRouter>
+          <QueryParamProvider>
+            <SavedQueryList />
+          </QueryParamProvider>
+        </BrowserRouter>
+      </Provider>,
+    );
+
+    const copyActionButton = await waitFor(
+      () => screen.getAllByTestId('copy-action')[0],
+    );
+    userEvent.hover(copyActionButton);
+
+    userEvent.click(copyActionButton);
+    await waitFor(() => {
+      expect(fetchMock.calls('glob:*/api/v1/sqllab/permalink').length).toBe(1);
+    });
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'http://example.com/permalink',
+    );
+  });
+
   it('shows/hides bulk actions when bulk actions is clicked', async () => {
     const button = wrapper.find(Button).at(0);
     act(() => {
@@ -267,49 +322,31 @@ describe('SavedQueryList', () => {
 });
 
 describe('RTL', () => {
-  async function renderAndWait() {
-    const mounted = act(async () => {
-      render(
-        <BrowserRouter>
-          <QueryParamProvider>
-            <SavedQueryList />
-          </QueryParamProvider>
-        </BrowserRouter>,
-        { useRedux: true },
-      );
+  function renderAndWait() {
+    return render(<SavedQueryList />, {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
     });
-
-    return mounted;
   }
 
-  let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
-    await renderAndWait();
+    isFeatureEnabled.mockImplementation(() => true);
+    renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
-    isFeatureEnabledMock.mockRestore();
+    isFeatureEnabled.mockRestore();
   });
-  it('renders an export button in the bulk actions', () => {
-    // Grab and click the "Bulk Select" button to expose checkboxes
+  it('renders an export button in the bulk actions', async () => {
     const bulkSelectButton = screen.getByRole('button', {
       name: /bulk select/i,
     });
     userEvent.click(bulkSelectButton);
+    const checkbox = await screen.findByTestId('header-toggle-all');
+    userEvent.click(checkbox);
 
-    // Grab and click the "toggle all" checkbox to expose export button
-    const selectAllCheckbox = screen
-      .getAllByRole('checkbox', {
-        name: '',
-      })
-      .find(checkbox => checkbox.getAttribute('name') === 'header-toggle-all');
-    userEvent.click(selectAllCheckbox);
-
-    // Grab and assert that export button is visible
     const exportButton = screen.getByRole('button', {
       name: /export/i,
     });
@@ -331,6 +368,21 @@ describe('RTL', () => {
     expect(exportTooltip).toBeInTheDocument();
   });
 
+  it('renders a copy button in the actions bar', async () => {
+    // Grab copy action button and mock mouse hovering over it
+    const copyActionButton = screen.getAllByTestId('copy-action')[0];
+    userEvent.hover(copyActionButton);
+
+    // Wait for the tooltip to pop up
+    await screen.findByRole('tooltip');
+
+    // Grab and assert that "Copy query URl" tooltip is in the document
+    const copyTooltip = screen.getByRole('tooltip', {
+      name: /Copy query URL/i,
+    });
+    expect(copyTooltip).toBeInTheDocument();
+  });
+
   it('renders an import button in the submenu', async () => {
     // Grab and assert that import saved query button is visible
     const importButton = await screen.findByTestId('import-button');
@@ -338,16 +390,13 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Saved Query" tooltip under import button', async () => {
-    const importButton = await screen.findByTestId('import-button');
+    const importButton = await screen.findByTestId('import-icon');
     userEvent.hover(importButton);
 
-    waitFor(() => {
-      screen.findByTestId('import-tooltip-test');
-      const importTooltip = screen.getByRole('tooltip', {
-        name: 'Import queries',
-      });
-      expect(importTooltip).toBeVisible();
+    const importTooltip = await screen.findByRole('tooltip', {
+      name: 'Import queries',
     });
+    expect(importTooltip).toBeInTheDocument();
   });
 
   it('renders an import modal when import button is clicked', async () => {

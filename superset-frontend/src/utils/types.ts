@@ -1,5 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
+/* Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
  * regarding copyright ownership.  The ASF licenses this file
@@ -16,21 +15,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cloneDeep } from 'lodash';
 
-function processObject(object: Object) {
-  const result = object;
-  Object.keys(result).forEach(key => {
-    if (result[key] === undefined) {
-      result[key] = null;
-    } else if (result[key] !== null && typeof result[key] === 'object') {
-      result[key] = processObject(result[key]);
-    }
-  });
-  return result;
-}
+// Create a new type by picking only the keys with V type from T
+export type OnlyKeyWithType<T, V> = keyof {
+  [K in keyof T as NonNullable<T[K]> extends V ? K : never]: T[K];
+};
 
-export default function replaceUndefinedByNull(object: Object) {
-  const copy = cloneDeep(object);
-  return processObject(copy);
-}
+export const isIterable = (obj: any): obj is Iterable<any> =>
+  obj != null && typeof obj[Symbol.iterator] === 'function';

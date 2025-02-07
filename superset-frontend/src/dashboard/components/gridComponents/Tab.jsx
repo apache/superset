@@ -27,7 +27,8 @@ import EditableTitle from 'src/components/EditableTitle';
 import { setEditMode } from 'src/dashboard/actions/dashboardState';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
-import DragDroppable, {
+import {
+  DragDroppable,
   Droppable,
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { componentShape } from 'src/dashboard/util/propShapes';

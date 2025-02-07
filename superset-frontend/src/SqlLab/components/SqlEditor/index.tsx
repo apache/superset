@@ -485,20 +485,28 @@ const SqlEditor: FC<Props> = ({
           const cursorPosition = editor.getCursorPosition();
           const totalLine = session.getLength();
           const currentRow = editor.getFirstVisibleRow();
-          let end = editor.find(';', {
+          const semicolonEnd = editor.find(';', {
             backwards: false,
             skipCurrent: true,
-          })?.end;
+          });
+          let end;
+          if (semicolonEnd) {
+            ({ end } = semicolonEnd);
+          }
           if (!end || end.row < cursorPosition.row) {
             end = {
               row: totalLine + 1,
               column: 0,
             };
           }
-          let start = editor.find(';', {
+          const semicolonStart = editor.find(';', {
             backwards: true,
             skipCurrent: true,
-          })?.end;
+          });
+          let start;
+          if (semicolonStart) {
+            start = semicolonStart.end;
+          }
           let currentLine = start?.row;
           if (
             !currentLine ||

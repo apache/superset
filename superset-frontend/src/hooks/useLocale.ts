@@ -66,8 +66,11 @@ export const useLocale = (): Locale | undefined | null => {
 
   useEffect(() => {
     if (datePickerLocale === null) {
-      if (localFromFlaskBabel && LOCALE_MAPPING[localFromFlaskBabel]) {
-        LOCALE_MAPPING[localFromFlaskBabel]()
+      if (
+        localFromFlaskBabel &&
+        LOCALE_MAPPING[localFromFlaskBabel as keyof typeof LOCALE_MAPPING]
+      ) {
+        LOCALE_MAPPING[localFromFlaskBabel as keyof typeof LOCALE_MAPPING]()
           .then((locale: { default: Locale }) => {
             setDatePickerLocale(locale.default);
             dayjs.locale(localFromFlaskBabel);

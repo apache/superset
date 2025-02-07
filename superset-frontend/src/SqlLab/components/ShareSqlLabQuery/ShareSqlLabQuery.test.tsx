@@ -20,9 +20,12 @@ import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
 import { Provider } from 'react-redux';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
+import {
+  supersetTheme,
+  ThemeProvider,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
@@ -56,7 +59,13 @@ const mockState = {
   },
 };
 const store = mockStore(mockState);
-let isFeatureEnabledMock: jest.SpyInstance;
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const standardProvider: FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
@@ -110,13 +119,11 @@ describe('ShareSqlLabQuery', () => {
 
   describe('via permalink api', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
+      mockedIsFeatureEnabled.mockImplementation(() => true);
     });
 
     afterAll(() => {
-      isFeatureEnabledMock.mockReset();
+      mockedIsFeatureEnabled.mockReset();
     });
 
     it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
