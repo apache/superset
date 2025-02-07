@@ -864,9 +864,7 @@ class ImportV1DatabaseSchema(Schema):
     allow_csv_upload = fields.Boolean()
     impersonate_user = fields.Boolean()
     extra = fields.Nested(ImportV1DatabaseExtraSchema)
-    encrypted_extra = fields.Dict(
-        keys=fields.Str(), values=fields.Raw(), allow_none=True
-    )
+    encrypted_extra = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
