@@ -189,7 +189,6 @@ class ImportAssetsCommand(BaseCommand):
         )
 
         if exceptions:
-            print("here we go!")
             raise CommandInvalidError(
                 "Error importing assets",
                 exceptions,
