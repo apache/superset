@@ -24,26 +24,27 @@ from superset import security_manager
 from superset.commands.database.update import UpdateDatabaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.extensions import celery_app
-from superset.models.core import Database
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="resync_database_permissions", soft_time_limit=600)
-def resync_database_permissions(
-    database: Database,
-    username: str,
-) -> None:
-    logger.info("Resyncing database permissions for connection ID %s", database.id)
-    if user := security_manager.get_user_by_username(username):
+def resync_database_permissions(database_id: int, username: str | None) -> None:
+    logger.info("Resyncing permissions for DB connection ID %s", database_id)
+    database = DatabaseDAO.find_by_id(database_id)
+    ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
+    if not database:
+        logger.error("Database ID %s not found", database_id)
+        return
+    if username and (user := security_manager.get_user_by_username(username)):
         g.user = user
         logger.info("Impersonating user ID %s", g.user.id)
-    cmmd = UpdateDatabaseCommand(database.id, {})
+    cmmd = UpdateDatabaseCommand(database_id, {})
     try:
-        cmmd._refresh_catalogs(
-            database, database.name, DatabaseDAO.get_ssh_tunnel(database.id)
-        )
-    except Exception as ex:
+        cmmd._refresh_catalogs(database, database.name, ssh_tunnel)
+    except Exception:
         logger.error(
-            "An error occurred while resyncing database permissions", exc_info=ex
+            "An error occurred while resyncing permissions for DB connection ID %s",
+            database_id,
+            exc_info=True,
         )

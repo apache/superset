@@ -30,6 +30,7 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     UserNotFoundError,
 )
+from superset.daos.database import DatabaseDAO
 from superset.models.core import Database
 from superset.utils.core import timeout
 
@@ -37,9 +38,10 @@ logger = logging.getLogger(__name__)
 
 
 class ResyncPermissionsCommand(BaseCommand):
-    def __init__(self, model: Database | None, username: str):
-        self._model = model
-        self._username = username
+    def __init__(self, model_id: int, username: str | None):
+        self._model_id = model_id
+        self._username: str | None = username
+        self._model: Database | None = None
 
     def run(self) -> None:
         self.validate()
@@ -48,12 +50,15 @@ class ResyncPermissionsCommand(BaseCommand):
         """
         Validates the command.
         """
+        self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatabaseNotFoundError()
 
         # If OAuth2 connection, we need to impersonate
         # the current user to trigger the resync
         if self._model.is_oauth2_enabled():
+            if not self._username:
+                raise UserNotFoundError()
             if not security_manager.get_user_by_username(self._username):
                 raise UserNotFoundError()
 

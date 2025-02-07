@@ -659,14 +659,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        database = DatabaseDAO.find_by_id(pk)
-        if not database:
-            return self.response_404()
         try:
-            current_username = get_username() or ""
-            ResyncPermissionsCommand(database, current_username).run()
-            resync_database_permissions.delay(database, current_username)
+            current_username = get_username()
+            ResyncPermissionsCommand(pk, current_username).run()
+            resync_database_permissions.delay(pk, current_username)
             return self.response(202, message="OK")
+        except DatabaseNotFoundError:
+            return self.response_404()
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
