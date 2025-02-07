@@ -42,6 +42,7 @@ import {
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
+import { Button } from 'src/components';
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 
@@ -315,10 +316,15 @@ const SavedQueries = ({
                         e.preventDefault();
                       }}
                     >
-                      <Dropdown dropdownRender={() => renderMenu(q)}>
-                        <Icons.MoreVert
-                          iconColor={theme.colors.grayscale.base}
-                        />
+                      <Dropdown
+                        dropdownRender={() => renderMenu(q)}
+                        trigger={['click', 'hover']}
+                      >
+                        <Button buttonSize="xsmall" type="link">
+                          <Icons.MoreVert
+                            iconColor={theme.colors.grayscale.base}
+                          />
+                        </Button>
                       </Dropdown>
                     </ListViewCard.Actions>
                   </QueryData>

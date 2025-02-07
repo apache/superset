@@ -97,8 +97,8 @@ const HeaderMenu: React.FC<Params> = ({
       <Dropdown
         placement="bottomLeft"
         trigger={['click']}
-        onVisibleChange={onVisibleChange}
-        overlay={
+        onOpenChange={onVisibleChange}
+        dropdownRender={() => (
           <Menu style={{ width: 250 }} mode="vertical">
             <IconMenuItem
               onClick={() => {
@@ -170,7 +170,7 @@ const HeaderMenu: React.FC<Params> = ({
               {t('Reset columns')}
             </IconMenuItem>
           </Menu>
-        }
+        )}
       />
     );
   }
@@ -179,8 +179,8 @@ const HeaderMenu: React.FC<Params> = ({
     <Dropdown
       placement="bottomRight"
       trigger={['click']}
-      onVisibleChange={onVisibleChange}
-      overlay={
+      onOpenChange={onVisibleChange}
+      dropdownRender={() => (
         <Menu style={{ width: 180 }} mode="vertical">
           <IconMenuItem
             onClick={() => {
@@ -239,7 +239,7 @@ const HeaderMenu: React.FC<Params> = ({
           </IconMenuItem>
           {unHideAction}
         </Menu>
-      }
+      )}
     />
   );
 };
