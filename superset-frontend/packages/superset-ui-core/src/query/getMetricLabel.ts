@@ -23,7 +23,7 @@ export default function getMetricLabel(
   metric: QueryFormMetric,
   index?: number,
   queryFormMetrics?: QueryFormMetric[],
-  verboseMap: Record<string, string> = {},
+  verboseMap?: Record<string, string>,
 ): string {
   let label = '';
   if (isSavedMetric(metric)) {
@@ -37,5 +37,5 @@ export default function getMetricLabel(
   } else {
     label = metric.sqlExpression;
   }
-  return verboseMap[label] || label;
+  return verboseMap?.[label] || label;
 }
