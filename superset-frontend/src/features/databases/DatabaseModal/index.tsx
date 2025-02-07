@@ -139,7 +139,7 @@ const SSHTunnelContainer = styled.div`
   `};
 `;
 
-interface DatabaseModalProps {
+export interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   onDatabaseAdd?: (database?: DatabaseObject) => void;
@@ -1335,7 +1335,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (importingModal) {
       document
-        .getElementsByClassName('ant-upload-list-item-name')[0]
+        ?.getElementsByClassName('ant-upload-list-item-name')[0]
         .scrollIntoView();
     }
   }, [importingModal]);

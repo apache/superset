@@ -17,7 +17,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Maybe, QueryFormMetric } from '../../types';
+import { Currency, Maybe, QueryFormMetric } from '../../types';
 import { Column } from './Column';
 
 export type Aggregate =
@@ -65,7 +65,7 @@ export interface Metric {
   certification_details?: Maybe<string>;
   certified_by?: Maybe<string>;
   d3format?: Maybe<string>;
-  currency?: Maybe<string>;
+  currency?: Maybe<Currency>;
   description?: Maybe<string>;
   is_certified?: boolean;
   verbose_name?: string;
