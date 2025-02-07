@@ -29,16 +29,19 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="resync_database_permissions", soft_time_limit=600)
-def resync_database_permissions(database_id: int, username: str | None) -> None:
+def resync_database_permissions(database_id: int, username: str) -> None:
     logger.info("Resyncing permissions for DB connection ID %s", database_id)
+    if user := security_manager.get_user_by_username(username):
+        g.user = user
+        logger.info("Impersonating user ID %s", g.user.id)
+    else:
+        logger.error("No user to impersonate/validate permissions")
+        return
     database = DatabaseDAO.find_by_id(database_id)
     ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
     if not database:
         logger.error("Database ID %s not found", database_id)
         return
-    if username and (user := security_manager.get_user_by_username(username)):
-        g.user = user
-        logger.info("Impersonating user ID %s", g.user.id)
     cmmd = UpdateDatabaseCommand(database_id, {})
     try:
         cmmd._refresh_catalogs(database, database.name, ssh_tunnel)

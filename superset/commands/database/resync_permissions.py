@@ -54,13 +54,10 @@ class ResyncPermissionsCommand(BaseCommand):
         if not self._model:
             raise DatabaseNotFoundError()
 
-        # If OAuth2 connection, we need to impersonate
-        # the current user to trigger the resync
-        if self._model.is_oauth2_enabled():
-            if not self._username:
-                raise UserNotFoundError()
-            if not security_manager.get_user_by_username(self._username):
-                raise UserNotFoundError()
+        if not self._username or not security_manager.get_user_by_username(
+            self._username
+        ):
+            raise UserNotFoundError()
 
         # Make sure the connection works before delegating the task
         def ping(engine: Engine) -> bool:
