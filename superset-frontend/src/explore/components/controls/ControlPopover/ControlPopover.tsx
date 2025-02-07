@@ -66,9 +66,7 @@ const ControlPopover: FC<PopoverProps> = ({
   const calculatePlacement = useCallback(() => {
     if (!triggerElementRef.current) return;
 
-    const { yRatio, xRatio } = getElementVisibilityRatio(
-      triggerElementRef.current,
-    );
+    const { yRatio, xRatio } = getVisibilityRatio(triggerElementRef.current);
 
     const horizontalPlacement =
       xRatio < 0.35 ? 'right' : xRatio > 0.65 ? 'left' : '';
