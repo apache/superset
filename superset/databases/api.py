@@ -46,6 +46,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
+from superset.commands.database.resync_permissions import ResyncPermissionsCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
@@ -119,8 +120,13 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
+from superset.tasks.permissions import resync_database_permissions
 from superset.utils import json
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import (
+    error_msg_from_exception,
+    get_username,
+    parse_js_uri_path_item,
+)
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
@@ -612,6 +618,56 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/resync-permissions/", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".resync-permissions",
+        log_to_statsd=False,
+    )
+    def resync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Re-sync all permissions for a database connection.
+        ---
+        post:
+          summary: Re-sync all permissions for a database connection
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database connection ID
+          responses:
+            200:
+              description: Task created to resync permissions.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+        try:
+            current_username = get_username() or ""
+            ResyncPermissionsCommand(database.id, current_username).run()
+            resync_database_permissions.delay(database, current_username)
+            return self.response(202, message="OK")
+        except SupersetException as ex:
+            return self.response(ex.status, message=ex.message)
 
     @expose("/<int:pk>/catalogs/")
     @protect()

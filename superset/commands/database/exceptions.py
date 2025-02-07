@@ -88,9 +88,19 @@ class DatabaseExtraValidationError(ValidationError):
         )
 
 
+class DatabaseConnectionNotWorkingError(CommandException):
+    status = 400
+    message = _("DB Connection not working, please check your connection settings.")
+
+
 class DatabaseNotFoundError(CommandException):
     status = 404
     message = _("Database not found.")
+
+
+class UserNotFoundError(CommandException):
+    status = 400
+    message = _("User not found.")
 
 
 class DatabaseSchemaUploadNotAllowed(CommandException):
