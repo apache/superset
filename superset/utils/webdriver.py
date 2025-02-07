@@ -380,7 +380,7 @@ class WebDriverSelenium(WebDriverProxy):
 
         return error_messages
 
-    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:
+    def get_screenshot(self, url: str, element_name: str, user: User) -> bytes | None:  # noqa: C901
         driver = self.auth(user)
         driver.set_window_size(*self._window)
         driver.get(url)
@@ -411,6 +411,7 @@ class WebDriverSelenium(WebDriverProxy):
                     )
                 )
             except TimeoutException:
+                logger.info("Timeout Exception caught")
                 # Fallback to allow a screenshot of an empty dashboard
                 try:
                     WebDriverWait(driver, 0).until(
@@ -461,18 +462,23 @@ class WebDriverSelenium(WebDriverProxy):
                     )
 
             img = element.screenshot_as_png
+        except Exception as ex:
+            logger.warning("exception in webdriver", exc_info=ex)
+            raise
         except TimeoutException:
             # raise again for the finally block, but handled above
-            pass
+            raise
         except StaleElementReferenceException:
             logger.exception(
                 "Selenium got a stale element while requesting url %s",
                 url,
             )
+            raise
         except WebDriverException:
             logger.exception(
                 "Encountered an unexpected error when requesting url %s", url
             )
+            raise
         finally:
             self.destroy(driver, current_app.config["SCREENSHOT_SELENIUM_RETRIES"])
         return img

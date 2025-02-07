@@ -30,8 +30,12 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import { supersetTheme, FeatureFlag, ThemeProvider } from '@superset-ui/core';
-import * as uiCore from '@superset-ui/core';
+import {
+  supersetTheme,
+  FeatureFlag,
+  ThemeProvider,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
@@ -135,6 +139,13 @@ function setup(overrides?: Record<string, any>) {
   render(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
   return props;
 }
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 describe('AdhocFilterEditPopoverSimpleTabContent', () => {
   it('can render the simple tab form', () => {
@@ -392,12 +403,10 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
 
   let isFeatureEnabledMock: any;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(
-        (featureFlag: FeatureFlag) =>
-          featureFlag === FeatureFlag.EnableAdvancedDataTypes,
-      );
+    isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+      (featureFlag: FeatureFlag) =>
+        featureFlag === FeatureFlag.EnableAdvancedDataTypes,
+    );
   });
 
   afterAll(() => {

@@ -74,5 +74,7 @@ test('shows link icon when hovering', async () => {
   asyncRender(3);
   expect(screen.queryByRole('img', { name: 'full' })).not.toBeInTheDocument();
   userEvent.hover(await screen.findByText('Dashboard 1'));
-  expect(await screen.findByRole('img', { name: 'full' })).toBeInTheDocument();
+  expect(
+    (await screen.findAllByRole('img', { name: 'full' }))[0],
+  ).toBeInTheDocument();
 });

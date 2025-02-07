@@ -19,6 +19,7 @@ from datetime import date, datetime, timedelta
 from typing import Optional
 from unittest.mock import Mock, patch
 
+import freezegun
 import pytest
 from dateutil.relativedelta import relativedelta
 
@@ -314,6 +315,33 @@ def test_get_since_until_instant_time_comparison_enabled() -> None:
     )
     expected = datetime(2000, 1, 1), datetime(2018, 1, 1)
     assert result == expected
+
+
+def test_previous_calendar_quarter():
+    with freezegun.freeze_time("2023-01-15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2022, 10, 1), datetime(2023, 1, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 4, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 1, 1), datetime(2023, 4, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 8, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 4, 1), datetime(2023, 7, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2023, 10, 15"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 7, 1), datetime(2023, 10, 1))
+        assert result == expected
+
+    with freezegun.freeze_time("2024, 1, 1"):
+        result = get_since_until("previous calendar quarter")
+        expected = (datetime(2023, 10, 1), datetime(2024, 1, 1))
+        assert result == expected
 
 
 @patch("superset.utils.date_parser.parse_human_datetime", mock_parse_human_datetime)

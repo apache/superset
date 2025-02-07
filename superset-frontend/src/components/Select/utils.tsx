@@ -50,8 +50,8 @@ export function getValue(
 }
 
 export function isEqual(a: V | LabeledValue, b: V | LabeledValue, key: string) {
-  const actualA = isObject(a) && key in a ? a[key] : a;
-  const actualB = isObject(b) && key in b ? b[key] : b;
+  const actualA = isObject(a) && key in a ? a[key as keyof LabeledValue] : a;
+  const actualB = isObject(b) && key in b ? b[key as keyof LabeledValue] : b;
   // When comparing the values we use the equality
   // operator to automatically convert different types
   // eslint-disable-next-line eqeqeq
@@ -84,10 +84,15 @@ export function hasOption(
  * */
 export const propertyComparator =
   (property: string) => (a: AntdLabeledValue, b: AntdLabeledValue) => {
-    if (typeof a[property] === 'string' && typeof b[property] === 'string') {
-      return a[property].localeCompare(b[property]);
+    const propertyA = a[property as keyof LabeledValue];
+    const propertyB = b[property as keyof LabeledValue];
+    if (typeof propertyA === 'string' && typeof propertyB === 'string') {
+      return propertyA.localeCompare(propertyB);
     }
-    return (a[property] as number) - (b[property] as number);
+    if (typeof propertyA === 'number' && typeof propertyB === 'number') {
+      return propertyA - propertyB;
+    }
+    return String(propertyA).localeCompare(String(propertyB)); // fallback to string comparison
   };
 
 export const sortSelectedFirstHelper = (
@@ -186,8 +191,10 @@ export const handleFilterOptionHelper = (
     const searchValue = search.trim().toLowerCase();
     if (optionFilterProps?.length) {
       return optionFilterProps.some(prop => {
-        const optionProp = option?.[prop]
-          ? String(option[prop]).trim().toLowerCase()
+        const optionProp = option?.[prop as keyof LabeledValue]
+          ? String(option[prop as keyof LabeledValue])
+              .trim()
+              .toLowerCase()
           : '';
         return optionProp.includes(searchValue);
       });
@@ -200,7 +207,9 @@ export const handleFilterOptionHelper = (
 export const hasCustomLabels = (options: SelectOptionsType) =>
   options?.some(opt => !!opt?.customLabel);
 
-export const renderSelectOptions = (options: SelectOptionsType) =>
+export const renderSelectOptions = (
+  options: SelectOptionsType,
+): JSX.Element[] =>
   options.map(opt => {
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
@@ -213,7 +222,10 @@ export const renderSelectOptions = (options: SelectOptionsType) =>
     );
   });
 
-export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
+export const mapValues = (
+  values: SelectOptionsType,
+  labelInValue: boolean,
+): (Record<string, any> | any)[] =>
   labelInValue
     ? values.map(opt => ({
         key: opt.value,
@@ -222,7 +234,7 @@ export const mapValues = (values: SelectOptionsType, labelInValue: boolean) =>
       }))
     : values.map(opt => opt.value);
 
-export const mapOptions = (values: SelectOptionsType) =>
+export const mapOptions = (values: SelectOptionsType): Record<string, any>[] =>
   values.map(opt => ({
     children: opt.label,
     key: opt.value,

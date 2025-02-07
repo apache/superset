@@ -19,8 +19,8 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent, AsyncSelect } from 'src/components';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';

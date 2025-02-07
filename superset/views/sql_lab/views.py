@@ -19,30 +19,25 @@ import logging
 
 from flask import request, Response
 from flask_appbuilder import expose
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
 from sqlalchemy import and_
 
 from superset import db
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP, RouteMethod
-from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
+from superset.models.sql_lab import Query, TableSchema, TabState
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, get_user_id
 from superset.views.base import (
     BaseSupersetView,
-    DeleteMixin,
-    DeprecateModelViewMixin,
     json_error_response,
     json_success,
-    SupersetModelView,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class SavedQueryView(DeprecateModelViewMixin, BaseSupersetView):
+class SavedQueryView(BaseSupersetView):
     route_base = "/savedqueryview"
     class_permission_name = "SavedQuery"
 
@@ -50,31 +45,6 @@ class SavedQueryView(DeprecateModelViewMixin, BaseSupersetView):
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
-
-
-class SavedQueryViewApi(DeprecateModelViewMixin, SupersetModelView, DeleteMixin):  # pylint: disable=too-many-ancestors
-    datamodel = SQLAInterface(SavedQuery)
-    include_route_methods = RouteMethod.CRUD_SET
-    route_base = "/savedqueryviewapi"
-    class_permission_name = "SavedQuery"
-
-    include_route_methods = {
-        RouteMethod.API_READ,
-        RouteMethod.API_CREATE,
-        RouteMethod.API_UPDATE,
-        RouteMethod.API_GET,
-    }
-
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-
-    add_columns = ["label", "db_id", "schema", "description", "sql", "extra_json"]
-    edit_columns = add_columns
-    show_columns = add_columns + ["id"]
-
-    @has_access_api
-    @expose("show/<pk>")
-    def show(self, pk: int) -> FlaskResponse:
-        return super().show(pk)
 
 
 def _get_owner_id(tab_state_id: int) -> int:

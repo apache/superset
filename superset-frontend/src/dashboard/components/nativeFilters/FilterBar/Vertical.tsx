@@ -30,10 +30,10 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
@@ -168,7 +168,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
     () =>
       filterValues.length === 0 ? (
         <FilterBarEmptyStateContainer>
-          <EmptyStateSmall
+          <EmptyState
+            size="small"
             title={t('No global filters are currently added')}
             image="filter.svg"
             description={
@@ -188,14 +189,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         </FilterControlsWrapper>
       ),
     [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
-  );
-
-  const crossFilters = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
-        <CrossFiltersVertical />
-      ) : null,
-    [],
   );
 
   return (
@@ -230,7 +223,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
-                {crossFilters}
+                <CrossFiltersVertical />
                 {filterControls}
               </>
             </div>

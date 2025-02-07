@@ -70,15 +70,7 @@ describe('EmptyState', () => {
 
       // Select the first description node
       const textContainer = wrapper.find('.ant-empty-description').at(0);
-      expect(textContainer.text()).toEqual(
-        variant.tab === TableTab.Favorite
-          ? "You don't have any favorites yet!"
-          : `No ${
-              variant.tableName === WelcomeTable.SavedQueries
-                ? 'saved queries'
-                : variant.tableName.toLowerCase()
-            } yet`,
-      );
+      expect(textContainer.text()).toEqual('Nothing here yet');
       expect(wrapper.find('button')).toHaveLength(1);
     });
   });
@@ -95,9 +87,7 @@ describe('EmptyState', () => {
       expect(wrapper.find('.ant-empty-image').children()).toHaveLength(1);
 
       // Check the correct text is displayed
-      expect(textContainer.text()).toContain(
-        `Recently ${recent.tab?.toLowerCase()} charts, dashboards, and saved queries will appear here`,
-      );
+      expect(textContainer.text()).toContain(`Nothing here yet`);
     });
   });
 });

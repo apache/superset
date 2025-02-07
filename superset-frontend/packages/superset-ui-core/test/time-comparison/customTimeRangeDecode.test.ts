@@ -202,4 +202,82 @@ describe('customTimeRangeDecode', () => {
       matchedFlag: false,
     });
   });
+
+  it('9) empty string returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  it('10) both undefined returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('undefined : undefined')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  it('11) 1 side undefined returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('undefined : now')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
 });

@@ -18,10 +18,16 @@
  */
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { Column, JsonObject } from '@superset-ui/core';
+import { Column, JsonObject, getClientErrorObject } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { ColumnSelect } from './ColumnSelect';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getClientErrorObject: jest.fn(() => Promise.resolve({ error: 'Error' })),
+}));
+
+const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 fetchMock.get('glob:*/api/v1/dataset/123?*', {
   body: {
@@ -96,14 +102,13 @@ test('Should call "getClientErrorObject" when api returns an error', async () =>
   const props = createProps();
 
   props.datasetId = 789;
-  const spy = jest.spyOn(uiCore, 'getClientErrorObject');
 
-  expect(spy).not.toHaveBeenCalled();
+  expect(mockedGetClientErrorObject).not.toHaveBeenCalled();
   render(<ColumnSelect {...(props as any)} />, {
     useRedux: true,
   });
   await waitFor(() => {
-    expect(spy).toHaveBeenCalled();
+    expect(mockedGetClientErrorObject).toHaveBeenCalled();
   });
 });
 

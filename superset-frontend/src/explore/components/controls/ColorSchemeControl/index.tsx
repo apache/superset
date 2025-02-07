@@ -57,7 +57,7 @@ export interface ColorSchemeControlProps {
   colorNamespace?: string;
   chartId?: number;
   dashboardId?: number;
-  label: string;
+  label?: string;
   name: string;
   onChange?: (value: string) => void;
   value: string;
@@ -65,11 +65,13 @@ export interface ColorSchemeControlProps {
   defaultScheme?: string;
   choices: string[][] | (() => string[][]);
   schemes: ColorSchemes | (() => ColorSchemes);
-  isLinear: boolean;
+  isLinear?: boolean;
+  description?: string;
+  hovered?: boolean;
 }
 
 const StyledAlert = styled(Icons.AlertSolid)`
-  color: ${({ theme }) => theme.colors.alert.base};
+  color: ${({ theme }) => theme.colors.warning.base};
 `;
 
 const CUSTOM_LABEL_ALERT = t(

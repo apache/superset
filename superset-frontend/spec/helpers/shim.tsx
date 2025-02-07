@@ -22,8 +22,8 @@ import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
 import 'jest-enzyme';
 import jQuery from 'jquery';
-import { configure } from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
+import Enzyme from 'enzyme';
+import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
 import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
@@ -33,16 +33,17 @@ import { ResizeObserver } from './ResizeObserver';
 import setupSupersetClient from './setupSupersetClient';
 import CacheStorage from './CacheStorage';
 
-configure({ adapter: new Adapter() });
+Enzyme.configure({ adapter: new Adapter() });
 
 const exposedProperties = ['window', 'navigator', 'document'];
 
 const { defaultView } = document;
 if (defaultView != null) {
   Object.keys(defaultView).forEach(property => {
-    if (typeof global[property] === 'undefined') {
+    if (typeof global[property as keyof typeof global] === 'undefined') {
       exposedProperties.push(property);
-      global[property] = defaultView[property];
+      // @ts-ignore due to string-type index signature doesn't apply for `typeof globalThis`.
+      global[property] = defaultView[property as keyof typeof defaultView];
     }
   });
 }

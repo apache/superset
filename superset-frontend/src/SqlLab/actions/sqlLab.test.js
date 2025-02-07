@@ -21,7 +21,6 @@ import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { waitFor } from '@testing-library/react';
-import * as uiCore from '@superset-ui/core';
 import * as actions from 'src/SqlLab/actions/sqlLab';
 import { LOG_EVENT } from 'src/logger/actions';
 import {
@@ -30,7 +29,7 @@ import {
   initialState,
   queryId,
 } from 'src/SqlLab/fixtures';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { ToastType } from '../../components/MessageToasts/types';
 
@@ -44,6 +43,11 @@ jest.mock('nanoid', () => ({
 afterAll(() => {
   jest.resetAllMocks();
 });
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 describe('getUpToDateQuery', () => {
   test('should return the up to date query editor state', () => {
@@ -732,18 +736,14 @@ describe('async actions', () => {
       'glob:**/api/v1/database/*/table_metadata/extra/*';
     fetchMock.get(getExtraTableMetadataEndpoint, {});
 
-    let isFeatureEnabledMock;
-
     beforeEach(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          feature => feature === 'SQLLAB_BACKEND_PERSISTENCE',
-        );
+      isFeatureEnabled.mockImplementation(
+        feature => feature === 'SQLLAB_BACKEND_PERSISTENCE',
+      );
     });
 
     afterEach(() => {
-      isFeatureEnabledMock.mockRestore();
+      isFeatureEnabled.mockRestore();
     });
 
     afterEach(fetchMock.resetHistory);
@@ -908,11 +908,9 @@ describe('async actions', () => {
       });
       describe('with backend persistence flag off', () => {
         it('does not update the tab state in the backend', () => {
-          const backendPersistenceOffMock = jest
-            .spyOn(uiCore, 'isFeatureEnabled')
-            .mockImplementation(
-              feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
-            );
+          isFeatureEnabled.mockImplementation(
+            feature => !(feature === 'SQLLAB_BACKEND_PERSISTENCE'),
+          );
 
           const store = mockStore({
             ...initialState,
@@ -926,7 +924,7 @@ describe('async actions', () => {
 
           expect(store.getActions()).toEqual(expectedActions);
           expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
-          backendPersistenceOffMock.mockRestore();
+          isFeatureEnabled.mockRestore();
         });
       });
     });
@@ -1033,30 +1031,38 @@ describe('async actions', () => {
     });
 
     describe('runTablePreviewQuery', () => {
-      it('updates and runs data preview query when configured', () => {
-        expect.assertions(3);
+      const results = {
+        data: mockBigNumber,
+        query: { sqlEditorId: 'null', dbId: 1 },
+        query_id: 'efgh',
+      };
+      const tableName = 'table';
+      const catalogName = null;
+      const schemaName = 'schema';
+      const store = mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          databases: {
+            1: { disable_data_preview: false },
+          },
+        },
+      });
 
-        const results = {
-          data: mockBigNumber,
-          query: { sqlEditorId: 'null', dbId: 1 },
-          query_id: 'efgh',
-        };
+      beforeEach(() => {
         fetchMock.post(runQueryEndpoint, JSON.stringify(results), {
           overwriteRoutes: true,
         });
+      });
 
-        const tableName = 'table';
-        const catalogName = null;
-        const schemaName = 'schema';
-        const store = mockStore({
-          ...initialState,
-          sqlLab: {
-            ...initialState.sqlLab,
-            databases: {
-              1: { disable_data_preview: false },
-            },
-          },
-        });
+      afterEach(() => {
+        store.clearActions();
+        fetchMock.resetHistory();
+      });
+
+      it('updates and runs data preview query when configured', () => {
+        expect.assertions(3);
+
         const expectedActionTypes = [
           actions.MERGE_TABLE, // addTable (data preview)
           actions.START_QUERY, // runQuery (data preview)
@@ -1068,6 +1074,30 @@ describe('async actions', () => {
           catalog: catalogName,
           schema: schemaName,
         });
+        return request(store.dispatch, store.getState).then(() => {
+          expect(store.getActions().map(a => a.type)).toEqual(
+            expectedActionTypes,
+          );
+          expect(fetchMock.calls(runQueryEndpoint)).toHaveLength(1);
+          // tab state is not updated, since the query is a data preview
+          expect(fetchMock.calls(updateTabStateEndpoint)).toHaveLength(0);
+        });
+      });
+
+      it('runs data preview query only', () => {
+        const expectedActionTypes = [
+          actions.START_QUERY, // runQuery (data preview)
+          actions.QUERY_SUCCESS, // querySuccess
+        ];
+        const request = actions.runTablePreviewQuery(
+          {
+            dbId: 1,
+            name: tableName,
+            catalog: catalogName,
+            schema: schemaName,
+          },
+          true,
+        );
         return request(store.dispatch, store.getState).then(() => {
           expect(store.getActions().map(a => a.type)).toEqual(
             expectedActionTypes,

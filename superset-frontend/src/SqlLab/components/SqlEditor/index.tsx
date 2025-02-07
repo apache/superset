@@ -100,7 +100,7 @@ import {
   LocalStorageKeys,
   setItem,
 } from 'src/utils/localStorageHelpers';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import Alert from 'src/components/Alert';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import useLogAction from 'src/logger/useLogAction';
@@ -485,20 +485,28 @@ const SqlEditor: FC<Props> = ({
           const cursorPosition = editor.getCursorPosition();
           const totalLine = session.getLength();
           const currentRow = editor.getFirstVisibleRow();
-          let end = editor.find(';', {
+          const semicolonEnd = editor.find(';', {
             backwards: false,
             skipCurrent: true,
-          })?.end;
+          });
+          let end;
+          if (semicolonEnd) {
+            ({ end } = semicolonEnd);
+          }
           if (!end || end.row < cursorPosition.row) {
             end = {
               row: totalLine + 1,
               column: 0,
             };
           }
-          let start = editor.find(';', {
+          const semicolonStart = editor.find(';', {
             backwards: true,
             skipCurrent: true,
-          })?.end;
+          });
+          let start;
+          if (semicolonStart) {
+            start = semicolonStart.end;
+          }
           let currentLine = start?.row;
           if (
             !currentLine ||
@@ -968,8 +976,9 @@ const SqlEditor: FC<Props> = ({
           <Skeleton active />
         </div>
       ) : showEmptyState && !hasSqlStatement ? (
-        <EmptyStateBig
+        <EmptyState
           image="vector.svg"
+          size="large"
           title={t('Select a database to write a query')}
           description={t(
             'Choose one of the available databases from the panel on the left.',

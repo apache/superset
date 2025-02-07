@@ -66,6 +66,7 @@ const DatabaseConnectionForm = ({
               Object.keys(parameters.properties).includes(key) ||
               key === 'database_name',
           ).map(field =>
+            // @ts-ignore TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
             FORM_FIELD_MAP[field]({
               required: parameters.required?.includes(field),
               changeMethods: {

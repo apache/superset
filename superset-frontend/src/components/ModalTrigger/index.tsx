@@ -21,7 +21,7 @@ import { forwardRef, useState, ReactNode, MouseEvent } from 'react';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 
-interface ModalTriggerProps {
+export interface ModalTriggerProps {
   dialogClassName?: string;
   triggerNode: ReactNode;
   modalTitle?: string;

@@ -37,7 +37,7 @@ import {
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
-import { EmptyStateBig, EmptyStateProps } from '../EmptyState';
+import { EmptyState, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -130,6 +130,7 @@ const bulkSelectColumnConfig = {
     <IndeterminateCheckbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
+      data-test="header-toggle-all"
     />
   ),
   id: 'selection',
@@ -447,17 +448,19 @@ function ListView<T extends object = any>({
           {!loading && rows.length === 0 && (
             <EmptyWrapper className={viewMode}>
               {query.filters ? (
-                <EmptyStateBig
+                <EmptyState
                   title={t('No results match your filter criteria')}
                   description={t('Try different criteria to display results.')}
+                  size="large"
                   image="filter-results.svg"
                   buttonAction={() => handleClearFilterControls()}
                   buttonText={t('clear all filters')}
                 />
               ) : (
-                <EmptyStateBig
+                <EmptyState
                   {...emptyState}
                   title={emptyState?.title || t('No Data')}
+                  size="large"
                   image={emptyState?.image || 'filter-results.svg'}
                 />
               )}

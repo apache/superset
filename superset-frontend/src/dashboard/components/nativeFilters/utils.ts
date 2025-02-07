@@ -23,15 +23,17 @@ import {
   EXTRA_FORM_DATA_APPEND_KEYS,
   EXTRA_FORM_DATA_OVERRIDE_KEYS,
   ExtraFormData,
-  isFeatureEnabled,
-  FeatureFlag,
   Filter,
   getChartMetadataRegistry,
   QueryFormData,
   t,
+  ExtraFormDataOverride,
+  TimeGranularity,
+  ExtraFormDataAppend,
 } from '@superset-ui/core';
 import { LayoutItem } from 'src/dashboard/types';
 import extractUrlParams from 'src/dashboard/util/extractUrlParams';
+import { isIterable, OnlyKeyWithType } from 'src/utils/types';
 import { TAB_TYPE } from '../../util/componentTypes';
 import getBootstrapData from '../../../utils/getBootstrapData';
 
@@ -105,22 +107,26 @@ export function mergeExtraFormData(
 ): ExtraFormData {
   const mergedExtra: ExtraFormData = {};
   EXTRA_FORM_DATA_APPEND_KEYS.forEach((key: string) => {
+    const originalExtraData = originalExtra[key as keyof ExtraFormDataAppend];
+    const newExtraData = newExtra[key as keyof ExtraFormDataAppend];
     const mergedValues = [
-      ...(originalExtra[key] || []),
-      ...(newExtra[key] || []),
+      ...(isIterable(originalExtraData) ? originalExtraData : []),
+      ...(isIterable(newExtraData) ? newExtraData : []),
     ];
     if (mergedValues.length) {
-      mergedExtra[key] = mergedValues;
+      mergedExtra[key as OnlyKeyWithType<ExtraFormData, any[]>] = mergedValues;
     }
   });
   EXTRA_FORM_DATA_OVERRIDE_KEYS.forEach((key: string) => {
-    const originalValue = originalExtra[key];
+    const originalValue = originalExtra[key as keyof ExtraFormDataOverride];
     if (originalValue !== undefined) {
-      mergedExtra[key] = originalValue;
+      mergedExtra[key as OnlyKeyWithType<ExtraFormData, typeof originalValue>] =
+        originalValue as TimeGranularity;
     }
-    const newValue = newExtra[key];
+    const newValue = newExtra[key as keyof ExtraFormDataOverride];
     if (newValue !== undefined) {
-      mergedExtra[key] = newValue;
+      mergedExtra[key as OnlyKeyWithType<ExtraFormData, typeof newValue>] =
+        newValue as TimeGranularity;
     }
   });
   return mergedExtra;
@@ -150,8 +156,7 @@ export function getExtraFormData(
 export function nativeFilterGate(behaviors: Behavior[]): boolean {
   return (
     !behaviors.includes(Behavior.NativeFilter) ||
-    (isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-      behaviors.includes(Behavior.InteractiveChart))
+    behaviors.includes(Behavior.InteractiveChart)
   );
 }
 
