@@ -171,6 +171,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "upload_metadata",
         "upload",
         "oauth2",
+        "resync_permissions",
     }
 
     resource_name = "database"
@@ -663,7 +664,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         try:
             current_username = get_username() or ""
-            ResyncPermissionsCommand(database.id, current_username).run()
+            ResyncPermissionsCommand(database, current_username).run()
             resync_database_permissions.delay(database, current_username)
             return self.response(202, message="OK")
         except SupersetException as ex:
