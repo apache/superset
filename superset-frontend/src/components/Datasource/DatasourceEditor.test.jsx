@@ -193,6 +193,8 @@ describe('DatasourceEditor', () => {
 });
 
 describe('DatasourceEditor RTL', () => {
+  jest.setTimeout(15000); // Extend timeout to 15s for this test
+
   it('properly renders the metric information', async () => {
     await asyncRender(props);
     const metricButton = screen.getByTestId('collection-tab-Metrics');

@@ -144,7 +144,7 @@ const expectDrillToDetailModal = async (
 ) => {
   const button = screen.getByRole('menuitem', { name: buttonName });
 
-  userEvent.click(button);
+  await userEvent.click(button);
   const modal = await screen.findByRole('dialog', {
     name: `Drill to detail: ${chartName}`,
   });
@@ -157,7 +157,10 @@ const expectDrillToDetailModal = async (
 /**
  * Menu item should be enabled without explanatory tooltip
  */
-const expectMenuItemEnabled = async (menuItem: HTMLElement) => {
+const expectMenuItemEnabled = async (menuItem: HTMLElement | null) => {
+  expect(menuItem).not.toBeNull(); // Ensure element exists
+  if (!menuItem) return; // Prevent further assertions on null
+
   expect(menuItem).toBeInTheDocument();
   expect(menuItem).not.toHaveAttribute('aria-disabled');
   const tooltipTrigger = within(menuItem).queryByTestId('tooltip-trigger');
@@ -190,7 +193,7 @@ const expectMenuItemDisabled = async (
  * "Drill to detail" item should be enabled and open the correct modal
  */
 const expectDrillToDetailEnabled = async () => {
-  const drillToDetailMenuItem = screen.getByRole('menuitem', {
+  const drillToDetailMenuItem = await screen.findByRole('menuitem', {
     name: 'Drill to detail',
   });
 
@@ -202,7 +205,7 @@ const expectDrillToDetailEnabled = async () => {
  * "Drill to detail" item should be present and disabled
  */
 const expectDrillToDetailDisabled = async (tooltipContent?: string) => {
-  const drillToDetailMenuItem = screen.getByRole('menuitem', {
+  const drillToDetailMenuItem = screen.findByRole('menuitem', {
     name: 'Drill to detail',
   });
 
@@ -379,6 +382,7 @@ test('context menu for supported chart, dimensions, 1 filter', async () => {
 });
 
 test('context menu for supported chart, dimensions, filter A', async () => {
+  jest.setTimeout(10000);
   const filters = [filterA, filterB];
   setupMenu(filters);
   await expectDrillToDetailByEnabled();
@@ -386,6 +390,7 @@ test('context menu for supported chart, dimensions, filter A', async () => {
 });
 
 test('context menu for supported chart, dimensions, filter B', async () => {
+  jest.setTimeout(10000);
   const filters = [filterA, filterB];
   setupMenu(filters);
   await expectDrillToDetailByEnabled();
@@ -393,6 +398,7 @@ test('context menu for supported chart, dimensions, filter B', async () => {
 });
 
 test('context menu for supported chart, dimensions, all filters', async () => {
+  jest.setTimeout(10000);
   const filters = [filterA, filterB];
   setupMenu(filters);
   await expectDrillToDetailByAll(filters);

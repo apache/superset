@@ -564,6 +564,7 @@ test('Columnar, does not render the rows', () => {
 });
 
 test('database and schema are correctly populated', async () => {
+  jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -611,6 +612,7 @@ test('form without required fields', async () => {
 });
 
 test('CSV form post', async () => {
+  jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });

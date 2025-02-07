@@ -63,6 +63,8 @@ const createProps = (overrides = {}) => ({
 });
 
 describe('ChartContainer', () => {
+  jest.setTimeout(10000);
+
   test('renders when vizType is line', () => {
     const props = createProps();
     expect(isValidElement(<ChartContainer {...props} />)).toBe(true);

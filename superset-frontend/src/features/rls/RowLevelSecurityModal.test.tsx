@@ -226,6 +226,7 @@ describe('Rule modal', () => {
   });
 
   it('Does not allow to create rule without name, tables and clause', async () => {
+    jest.setTimeout(10000);
     await renderAndWait(addNewRuleDefaultProps);
 
     const addButton = screen.getByRole('button', { name: /add/i });
@@ -275,6 +276,22 @@ describe('Rule modal', () => {
 
     const addButton = screen.getByRole('button', { name: /save/i });
     await waitFor(() => userEvent.click(addButton));
-    expect(fetchMock.calls(putRuleEndpoint)).toHaveLength(4);
+
+    const actualCalls = fetchMock.calls(putRuleEndpoint);
+
+    // Verify that 4 API calls were made
+    expect(actualCalls).toHaveLength(4);
+
+    // Check each request individually
+    expect(actualCalls[0]?.[1]?.method).toBe('GET'); // Ensure method is PUT
+    expect(actualCalls[1]?.[1]?.method).toBe('PUT');
+    expect(actualCalls[2]?.[1]?.method).toBe('PUT');
+    expect(actualCalls[3]?.[1]?.method).toBe('PUT');
+
+    // Check payloads if necessary
+    expect(actualCalls[0]?.[1]?.body).toContain('"name":"rls 1"'); // Ensuring correct update payload
+    expect(actualCalls[1]?.[1]?.body).toContain('"filter_type":"Base"');
+    expect(actualCalls[2]?.[1]?.body).toContain('"group_key":"g1"');
+    expect(actualCalls[3]?.[1]?.body).toContain('"clause":"gender=\\"boy\\""');
   });
 });

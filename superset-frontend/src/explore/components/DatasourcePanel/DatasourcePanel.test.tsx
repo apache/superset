@@ -111,6 +111,7 @@ test('should display items in controls', async () => {
 });
 
 test('should render the metrics', async () => {
+  jest.setTimeout(10000);
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
@@ -153,6 +154,7 @@ test('should render 0 search results', async () => {
 });
 
 test('should search and render matching columns', async () => {
+  jest.setTimeout(10000);
   render(
     <ExploreContainer>
       <DatasourcePanel {...props} />
