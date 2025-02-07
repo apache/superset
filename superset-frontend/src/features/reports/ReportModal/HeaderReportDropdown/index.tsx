@@ -278,5 +278,5 @@ export default function HeaderReportDropDown({
     ) : (
       menu(<Icons.Calendar />)
     );
-  return canAddReports() && useTextMenu ? textMenu() : iconMenu();
+  return <>{canAddReports() && (useTextMenu ? textMenu() : iconMenu())}</>;
 }
