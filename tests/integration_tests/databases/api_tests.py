@@ -2555,11 +2555,11 @@ class TestDatabaseApi(SupersetTestCase):
                 fp.write(yaml.safe_dump(masked_database_config).encode())
         buf.seek(0)
 
+        dummy_encrypted_extra = {"key": "value"}
         form_data = {
-            "overwrite": "true",  # DEBUG; remove!
             "formData": (buf, "database_export.zip"),
             "encrypted_extras": json.dumps(
-                {"databases/imported_database.yaml": {"key": "value"}}
+                {"databases/imported_database.yaml": dummy_encrypted_extra}
             ),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
@@ -2575,7 +2575,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert (
             database.sqlalchemy_uri == "vertica+vertica_python://host:5433/dbname?ssl=1"
         )
-        assert json.loads(database.encrypted_extra) == {"key": "value"}  # noqa: S105
+        assert json.loads(database.encrypted_extra) == dummy_encrypted_extra  # noqa: S105
 
         db.session.delete(database)
         db.session.commit()
