@@ -106,16 +106,25 @@ export function useIsFilterInScope() {
   // Chart is in an active tab tree if all of its ancestors of type TAB are active
   // Dividers are always in scope
   return useCallback(
-    (filter: Filter | Divider) =>
-      isFilterDivider(filter) ||
-      ('chartsInScope' in filter &&
+    (filter: Filter | Divider) => {
+      if (isFilterDivider(filter)) return true;
+
+      const isChartInScope =
+        'chartsInScope' in filter &&
         filter.chartsInScope?.some((chartId: number) => {
           const tabParents = selectChartTabParents(chartId);
           return (
             tabParents?.length === 0 ||
             tabParents?.every(tab => activeTabs.includes(tab))
           );
-        })),
+        });
+
+      const isFilterInActiveTab =
+        filter.scope?.rootPath &&
+        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
+
+      return isChartInScope || isFilterInActiveTab;
+    },
     [selectChartTabParents, activeTabs],
   );
 }
