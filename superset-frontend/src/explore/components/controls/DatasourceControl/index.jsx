@@ -405,7 +405,10 @@ class DatasourceControl extends PureComponent {
           {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icons.AlertSolid iconColor={theme.colors.warning.base} />
+              <Icons.WarningOutlined
+                css={{ marginLeft: theme.gridUnit * 2 }}
+                iconColor={theme.colors.warning.base}
+              />
             </Tooltip>
           )}
           {extra?.warning_markdown && (

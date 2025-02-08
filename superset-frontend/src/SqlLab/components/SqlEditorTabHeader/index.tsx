@@ -22,7 +22,7 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import { styled, t, QueryState } from '@superset-ui/core';
+import { styled, t, QueryState, useTheme } from '@superset-ui/core';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -31,12 +31,15 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import Icons from 'src/components/Icons';
-import TabStatusIcon from '../TabStatusIcon';
+import Icons, { IconType } from 'src/components/Icons';
 
 const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
+
+  [aria-label='check-circle'] {
+    margin: 0px;
+  }
 `;
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -53,7 +56,14 @@ interface Props {
   queryEditor: QueryEditor;
 }
 
+const STATE_ICONS: Record<string, FC<IconType>> = {
+  running: Icons.CircleSolid,
+  success: Icons.CheckCircleOutlined,
+  failed: Icons.CloseCircleOutlined,
+};
+
 const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
+  const theme = useTheme();
   const qe = useSelector<SqlLabRootState, QueryEditor>(
     ({ sqlLab: { unsavedQueryEditor } }) => ({
       ...queryEditor,
@@ -64,6 +74,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   const queryState = useSelector<SqlLabRootState, QueryState>(
     ({ sqlLab }) => sqlLab.queries[qe.latestQueryId || '']?.state || '',
   );
+  const StatusIcon = queryState ? STATE_ICONS[queryState] : STATE_ICONS.running;
   const dispatch = useDispatch();
   const actions = useMemo(
     () =>
@@ -86,7 +97,18 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       actions.queryEditorSetTitle(qe, newTitle, qe.id);
     }
   }
-
+  const getStatusColor = (state: QueryState, theme: any) => {
+    switch (state) {
+      case 'running':
+        return theme.colors.info.base;
+      case 'success':
+        return theme.colors.success.base;
+      case 'failed':
+        return theme.colors.error.base;
+      default:
+        return theme.colors.grayscale.light2;
+    }
+  };
   return (
     <TabTitleWrapper>
       <Dropdown
@@ -150,7 +172,14 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           </Menu>
         }
       />
-      <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryState} />{' '}
+      <TabTitle>{qe.name}</TabTitle>
+      {StatusIcon && (
+        <StatusIcon
+          css={{ margin: '0px!important' }}
+          iconSize="s"
+          iconColor={getStatusColor(queryState, theme)}
+        />
+      )}
     </TabTitleWrapper>
   );
 };

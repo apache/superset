@@ -358,7 +358,10 @@ const QueryTable = ({
                 onClick={() => dispatch(removeQuery(query))}
                 className="pointer"
               >
-                <Icons.DeleteOutlined iconSize="xl" />
+                <Icons.DeleteOutlined
+                  css={{ verticalAlign: 'baseline' }}
+                  iconSize="xl"
+                />
               </StyledTooltip>
             )}
           </div>

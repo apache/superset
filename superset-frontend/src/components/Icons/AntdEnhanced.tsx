@@ -34,8 +34,10 @@ import {
   CaretRightOutlined,
   CalendarOutlined,
   CheckOutlined,
+  CheckCircleOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  CloseCircleOutlined,
   ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
@@ -73,6 +75,8 @@ import {
   SaveOutlined,
   SearchOutlined,
   SettingOutlined,
+  StarOutlined,
+  StarFilled,
   StopOutlined,
   SyncOutlined,
   TagOutlined,
@@ -88,6 +92,7 @@ import {
   ThunderboltOutlined,
   FilterOutlined,
   UnorderedListOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -108,8 +113,10 @@ const AntdIcons = {
   CaretRightOutlined,
   CalendarOutlined,
   CheckOutlined,
+  CheckCircleOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  CloseCircleOutlined,
   ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
@@ -147,6 +154,8 @@ const AntdIcons = {
   SaveOutlined,
   SearchOutlined,
   SettingOutlined,
+  StarOutlined,
+  StarFilled,
   StopOutlined,
   SyncOutlined,
   TagOutlined,
@@ -162,6 +171,7 @@ const AntdIcons = {
   ThunderboltOutlined,
   FilterOutlined,
   UnorderedListOutlined,
+  WarningOutlined,
 };
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)

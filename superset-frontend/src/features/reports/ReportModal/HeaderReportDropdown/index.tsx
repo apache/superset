@@ -286,7 +286,7 @@ export default function HeaderReportDropDown({
         className="action-button action-schedule-report"
         onClick={() => setShowModal(true)}
       >
-        <Icons.Calendar />
+        <Icons.CalendarOutlined />
       </span>
     ) : (
       <>
@@ -303,7 +303,7 @@ export default function HeaderReportDropDown({
             className="action-button action-schedule-report"
             tabIndex={0}
           >
-            <Icons.Calendar />
+            <Icons.CalendarOutlined />
           </span>
         </NoAnimationDropdown>
       </>

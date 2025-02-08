@@ -71,6 +71,29 @@ export default function ChartCard({
 
   const menu = (
     <Menu>
+      {canEdit && (
+        <Menu.Item>
+          <div
+            data-test="chart-list-edit-option"
+            role="button"
+            tabIndex={0}
+            onClick={() => openChartEditModal(chart)}
+          >
+            <Icons.EditAlt iconSize="l" /> {t('Edit')}
+          </div>
+        </Menu.Item>
+      )}
+      {canExport && (
+        <Menu.Item>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => handleBulkChartExport([chart])}
+          >
+            <Icons.Share iconSize="l" /> {t('Export')}
+          </div>
+        </Menu.Item>
+      )}
       {canDelete && (
         <Menu.Item>
           <ConfirmStatusChange
@@ -100,33 +123,14 @@ export default function ChartCard({
                 className="action-button"
                 onClick={confirmDelete}
               >
-                <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
+                <Icons.DeleteOutlined
+                  iconSize="l"
+                  css={{ verticalAlign: 'baseline' }}
+                />{' '}
+                {t('Delete')}
               </div>
             )}
           </ConfirmStatusChange>
-        </Menu.Item>
-      )}
-      {canExport && (
-        <Menu.Item>
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => handleBulkChartExport([chart])}
-          >
-            <Icons.Share iconSize="l" /> {t('Export')}
-          </div>
-        </Menu.Item>
-      )}
-      {canEdit && (
-        <Menu.Item>
-          <div
-            data-test="chart-list-edit-option"
-            role="button"
-            tabIndex={0}
-            onClick={() => openChartEditModal(chart)}
-          >
-            <Icons.EditAlt iconSize="l" /> {t('Edit')}
-          </div>
         </Menu.Item>
       )}
     </Menu>

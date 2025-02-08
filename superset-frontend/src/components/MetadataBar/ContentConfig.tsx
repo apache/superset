@@ -113,7 +113,7 @@ const config = (contentType: ContentType) => {
 
     case MetadataType.Table:
       return {
-        icon: Icons.TableOutlined,
+        icon: Icons.InsertRowAboveOutlined,
         title: contentType.title,
         tooltip: contentType.title,
       };

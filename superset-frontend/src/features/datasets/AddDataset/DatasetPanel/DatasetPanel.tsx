@@ -334,7 +334,10 @@ const DatasetPanel = ({
             title={tableName || ''}
           >
             {tableName && (
-              <Icons.TableOutlined iconColor={theme.colors.grayscale.base} />
+              <Icons.InsertRowAboveOutlined
+                css={{ margin: '0px!important', verticalAlign: 'baseline' }}
+                iconColor={theme.colors.grayscale.base}
+              />
             )}
             {tableName}
           </StyledHeader>

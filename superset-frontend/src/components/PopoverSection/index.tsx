@@ -65,7 +65,8 @@ export default function PopoverSection({
             />
           </Tooltip>
         )}
-        <Icons.Check
+        <Icons.CheckOutlined
+          iconSize="s"
           role="img"
           iconColor={
             isSelected ? theme.colors.primary.base : theme.colors.grayscale.base

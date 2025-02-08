@@ -121,7 +121,7 @@ export default (props: DropDownSelectableProps) => {
         <StyleSubmenuItem>
           {label}
           {selectedKeys?.includes(key) && (
-            <Icons.Check
+            <Icons.CheckOutlined
               iconColor={theme.colors.primary.base}
               className="tick-menu-item"
               iconSize="xl"

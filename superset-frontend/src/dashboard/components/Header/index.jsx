@@ -639,6 +639,7 @@ const Header = () => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
+                  <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}
                 </Button>
               </div>

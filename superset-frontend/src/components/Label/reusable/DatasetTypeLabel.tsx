@@ -32,7 +32,7 @@ const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({ datasetType }) => {
     datasetType === 'physical' ? t('Physical') : t('Virtual');
   const icon =
     datasetType === 'physical' ? (
-      <Icons.TableOutlined iconSize={SIZE} />
+      <Icons.InsertRowAboveOutlined iconSize={SIZE} />
     ) : (
       <Icons.ConsoleSqlOutlined iconSize={SIZE} />
     );
