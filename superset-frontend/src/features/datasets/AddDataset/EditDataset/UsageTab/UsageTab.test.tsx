@@ -102,7 +102,9 @@ test('shows loading state', async () => {
     name: /loading/i,
   });
 
-  expect(loadingIndicator).toBeVisible();
+  await waitFor(() => {
+    expect(loadingIndicator).toBeVisible();
+  });
 });
 
 test('shows error state', async () => {

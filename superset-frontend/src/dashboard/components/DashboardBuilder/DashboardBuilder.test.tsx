@@ -35,8 +35,9 @@ import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
-
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
+// Add mock for logging endpoint
+fetchMock.post('glob:*/superset/log/?*', {});
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
