@@ -607,7 +607,6 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             self._add_extra_ids_to_result(datamodel, column_name, ids, result)
             total_rows = len(result)
 
-        print('result', result)
         return self.response(200, count=total_rows, result=result)
 
     @expose("/distinct/<column_name>", methods=("GET",))

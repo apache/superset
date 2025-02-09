@@ -848,68 +848,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             value: JSON.stringify(Object.keys(allTabs)),
           });
           setTabOptions(tabTree);
-          // console.log('setting native filters', nativeFilters);
           setGlobalNativeFilters(nativeFilters);
 
-          // const dashboardId = dashboard.value;
-          // const newFormData = getFormData({
-              // ...filter,
-              // datasetId,
-              // dependencies,
-              // groupby,
-              // adhoc_filters,
-              // time_range,
-              // dashboardId,
-          // });
-
-          const chartDataExample = {
-            formData: {
-              // enableEmptyFilter: false,
-              // defaultToFirstItem: false,
-              // multiSelect: true,
-              // searchAllOptions: false,
-              // inverseSelection: false,
-              datasource: "15__table",
-              groupby: ["clinical_stage"],
-              // adhoc_filters: [],
-              // extra_filters: [],
-              // extra_form_data: {},
-              metrics: ["count"],
-              row_limit: 1000,
-              showSearch: true,
-              // url_params: {
-              //   native_filters_key: "0ktJOz1FTTo"
-              // },
-              // inView: true,
-              viz_type: "filter_select",
-              // type: "NATIVE_FILTER",
-              dashboardId: 6,
-              // native_filter_id: "NATIVE_FILTER-8jS1fx4hl"
-            },
-            force: false,
-            ownState: {}
-          }
-          
-          // get filter values
-          // getChartDataRequest(chartDataExample).then(response => {
-          //   console.log('response.json.result', response.json.result[0].data)
-          // });
-          
           const anchor = currentAlert?.extra?.dashboard?.anchor;
-          console.log('anchor', anchor);
           if (anchor) {
-              // const nativeFiltersOptions = nativeFilters[anchor].map((filter: any) => {value: filter.id, label: filter.name})
-              console.log('nativeFiltersOptions', nativeFilters[anchor]);
             setNativeFilterOptions(
               nativeFilters[anchor].map((filter: any) => ({
                 value: filter.id,
                 label: filter.name,
-              }))
-              // getChartDataRequest(chartDataExample).then(response => {
-              //   console.log('hello', response)
-              //   setNativeFilterValues(response.json.result[0].data.map((item: any) => ({value: item.clinical_stage, label: item.clinical_stage})))
-              // });
-            
+              })),
+            );
             try {
               const parsedAnchor = JSON.parse(anchor);
               if (Array.isArray(parsedAnchor)) {
@@ -1796,7 +1744,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         >
           <StyledInputContainer>
             <div className="control-label">
-              {t('Content type')} hello filters...
+              {t('Content type')}
               <span className="required">*</span>
             </div>
             <Select

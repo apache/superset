@@ -174,14 +174,6 @@ const FilterValue: FC<FilterControlProps> = ({
         return;
       }
       setIsRefreshing(true);
-      // console.log(
-      //   'test',
-      //   {
-      //     formData: newFormData,
-      //     force: shouldRefresh,
-      //     ownState: filterOwnState,
-      //   }
-      // )
       getChartDataRequest({
         formData: newFormData,
         force: shouldRefresh,
