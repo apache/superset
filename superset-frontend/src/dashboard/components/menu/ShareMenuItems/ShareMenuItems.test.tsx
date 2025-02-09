@@ -37,6 +37,7 @@ const createProps = () => ({
   emailBody: 'Check out this dashboard: ',
   dashboardId: DASHBOARD_ID,
   title: 'Test Dashboard',
+  submenuKey: 'share',
 });
 
 const { location } = window;

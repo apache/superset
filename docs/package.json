@@ -34,7 +34,7 @@
     "clsx": "^2.1.1",
     "docusaurus-plugin-less": "^2.0.2",
     "file-loader": "^6.2.0",
-    "less": "^4.2.1",
+    "less": "^4.2.2",
     "less-loader": "^11.0.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^18.3.1",
