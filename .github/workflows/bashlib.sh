@@ -176,6 +176,43 @@ cypress-run-all() {
   kill $flaskProcessId
 }
 
+install-playwright() {
+  cd "$GITHUB_WORKSPACE/superset-frontend/e2e-next"
+
+  cache-restore playwright
+
+  say "::group::Install Playwright"
+  npm ci
+  npx playwright install --with-deps $BROWSER
+  say "::endgroup::"
+
+  cache-save playwright
+}
+
+run-e2e-all() {
+    # --no-debugger means disable the interactive debugger on the 500 page
+  # so errors can print to stderr.
+  local flasklog="${HOME}/flask.log"
+  local port=8081
+  export CYPRESS_BASE_URL="http://localhost:${port}"
+
+  nohup flask run --no-debugger -p $port >"$flasklog" 2>&1 </dev/null &
+  local flaskProcessId=$!
+
+  # UNCOMMENT the next few commands to monitor memory usage
+  # monitor_memory &  # Start memory monitoring in the background
+  # memoryMonitorPid=$!
+  npx playwright test --shard=$SHARD_ID/$SHARD_COUNT
+  # kill $memoryMonitorPid
+
+  # After job is done, print out Flask log for debugging
+  echo "::group::Flask log for default run"
+  cat "$flasklog"
+  echo "::endgroup::"
+  # make sure the program exits
+  kill $flaskProcessId
+}
+
 eyes-storybook-dependencies() {
   say "::group::install eyes-storyook dependencies"
   sudo apt-get update -y && sudo apt-get -y install gconf-service ca-certificates libxshmfence-dev fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgbm1 libgcc1 libgconf-2-4 libglib2.0-0 libgdk-pixbuf2.0-0 libgtk-3-0 libnspr4 libnss3 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 lsb-release xdg-utils libappindicator1

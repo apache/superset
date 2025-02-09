@@ -1,0 +1,160 @@
+name: E2E Next
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      use_dashboard:
+        description: 'Use Cypress Dashboard (true/false) [paid service - trigger manually when needed]. You MUST provide a branch and/or PR number below for this to work.'
+        required: false
+        default: 'false'
+      ref:
+        description: 'The branch or tag to checkout'
+        required: false
+        default: ''
+      pr_id:
+        description: 'The pull request ID to checkout'
+        required: false
+        default: ''
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  playwright-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    strategy:
+      matrix:
+        shard_id: [0, 1, 2, 3, 4, 5]
+        browser: ["chromium"]
+    env:
+      SUPERSET_ENV: development
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+      PYTHONPATH: ${{ github.workspace }}
+      REDIS_PORT: 16379
+      GITHUB_TOKEN: ${{ github.token }}
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          - 15432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 16379:6379
+    steps:
+      # -------------------------------------------------------
+      # Conditional checkout based on context
+      - name: Checkout for push or pull_request event
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Checkout using ref (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.inputs.ref }}
+          submodules: recursive
+      - name: Checkout using PR ID (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
+          submodules: recursive
+      # -------------------------------------------------------
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+      - name: Setup postgres
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-postgres
+      - name: Import test data
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: testdata
+      - name: Setup Node.js
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "./superset-frontend/.nvmrc"
+      - name: Install npm dependencies
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: npm-install
+      - name: Build javascript packages
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-instrumented-assets
+      - name: Install Playwright
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        env:
+          BROWSER: ${{ matrix.browser }}
+        with:
+          run: install-playwright
+      - name: Run Cypress
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        env:
+          SHARD_ID: ${{ matrix.shard_id }}
+          SHARD_COUNT: 6
+        with:
+          run: run-e2e-all
+      - name: Upload blob reports to GitHub Actions Artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          path: ${{ github.workspace }}/superset-frontend/e2e-next/blob-report
+          name: blob-report-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.shard_id }}
+
+  merge-playwright-reports:
+    runs-on: ubuntu-latest
+    needs: [playwright-test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: './superset-frontend/.nvmrc'
+      - name: Install dependencies
+        run: npm ci
+      - name: Download blob reports from GitHub Actions Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/superset-frontend/e2e-next/all-blob-report
+          pattern: ${{ github.workspace }}/superset-frontend/e2e-next/blob-report-${{ github.run_id }}-*
+          merge-multiple: true
+      - name: Merge into HTML reports
+        working-directory: ./superset-frontend/e2e-next
+        run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - name: Upload HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: blob-report-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: ${{ github.workspace }}/superset-frontend/e2e-next/playwright-report
