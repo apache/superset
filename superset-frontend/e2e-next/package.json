@@ -1,0 +1,15 @@
+{
+  "name": "e2e-next",
+  "version": "1.0.0",
+  "description": "run E2E tests against Superset",
+  "scripts": {
+    "test": "playwright test --ui"
+  },
+  "author": "Apache",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.13.0",
+    "minimatch": "^10.0.1"
+  }
+}
