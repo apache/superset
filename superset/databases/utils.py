@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy.engine.url import make_url, URL
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
         TableMetadataForeignKeysIndexesResponse,
         TableMetadataResponse,
     )
+
+logger = logging.getLogger(__name__)
 
 
 def get_foreign_keys_metadata(
@@ -128,3 +131,266 @@ def make_url_safe(raw_url: str | URL) -> URL:
 
     else:
         return raw_url
+
+def get_schema_metadata(
+    database: Any,
+    catalog: str,
+    schema: str,
+) -> Schema:
+    """
+    Get schema metadata information, including tables, columns, indexes, fks.
+    :param database: The database model
+    :param schema: The schema name
+    :return: Schema metadata ready for API response
+    """
+    tables = database.get_all_table_names_in_schema(catalog=catalog, schema=schema)
+    relations = []
+
+    for (table, schema, catalog) in tables:
+        t = Table(catalog=catalog, schema=schema, table=table)
+        table_metadata = get_table_relation_metadata(database, t)
+        relations.append(table_metadata)
+
+    views = database.get_all_view_names_in_schema(catalog=catalog, schema=schema)
+    for (view, schema, catalog) in views:
+        v = Table(catalog=catalog, schema=schema, table=view)
+        view_metadata = get_view_relation_metadata(database, v)
+        relations.append(view_metadata)
+
+    return Schema(
+        schema_name=schema,
+        relations=relations,
+    )
+
+
+def get_table_relation_metadata(
+    database: Any,
+    table: Table,
+) -> Relation:
+    """
+    Get table metadata information, including type, pk, fks.
+    This function raises SQLAlchemyError when a schema is not found.
+
+    :param database: The database model
+    :param table: Table instance
+    :return: Dict table metadata ready for API response
+    """
+    keys = []
+    columns = database.get_columns(table)
+    primary_key = database.get_pk_constraint(table)
+    if primary_key and primary_key.get("constrained_columns"):
+        primary_key["column_names"] = primary_key.pop("constrained_columns")
+        primary_key["type"] = "pk"
+        keys += [primary_key]
+    foreign_keys = get_foreign_keys_relation_data(database, table)
+    indexes = get_indexes_relation_data(database, table)
+    keys += foreign_keys + indexes
+    payload_columns: list[Column] = []
+    table_comment = database.get_table_comment(table)
+    for col in columns:
+        dtype = get_col_type(col)
+        dtype = dtype.split("(")[0] if "(" in dtype else dtype
+        
+        top_k_values = None
+        if dtype not in ["INTEGER", "BIGINT", "SMALLINT", "NUMERIC", "DECIMAL", "FLOAT", "DOUBLE", "TIMESTAMP", "BOOLEAN"]:
+            top_k_values = get_column_top_k_values(database, table, col["column_name"], table.schema, top_k=10)
+            # logging.info(f"Top k values for {col['column_name']}: {top_k_values}")
+
+        column_metadata = {
+            "column_name": col["column_name"],
+            "data_type": dtype,
+            "is_nullable": col["nullable"],
+            "column_description": col.get("comment"),
+        }
+        if top_k_values:
+            column_metadata["most_common_values"] = top_k_values
+
+        payload_columns.append(column_metadata)
+    return {
+        "rel_name": table.table,
+        "rel_kind": "table",
+        "rel_description": table_comment,
+        "indexes": indexes,
+        "foreign_keys": foreign_keys,
+        "columns": payload_columns,
+    }
+
+def get_column_top_k_values(
+    database: Any,
+    table: Table,
+    column_name: str,
+    schema: str,
+    top_k: int = 10,
+    limit: int = 1000000,
+) -> List:
+    db_type = database.db_engine_spec.engine
+    logging.info(f"Getting top k values for {column_name} in {table.__str__()} {schema} {db_type}")
+
+    query = f"""
+    SELECT \"{column_name}\" AS value, COUNT(*) AS frequency
+    FROM (SELECT \"{column_name}\" FROM \"{table.table}\" LIMIT {limit}) AS subquery
+    WHERE \"{column_name}\" IS NOT NULL
+    GROUP BY \"{column_name}\"
+    ORDER BY frequency DESC
+    LIMIT {top_k};
+    """
+
+    db_engine_spec = database.db_engine_spec
+
+    with database.get_raw_connection(catalog='', schema=schema) as conn:
+        cursor = conn.cursor()
+        mutated_query = database.mutate_sql_based_on_config(query)
+        cursor.execute(mutated_query)
+        db_engine_spec.execute(cursor, mutated_query, database)
+        result = db_engine_spec.fetch_data(cursor)
+
+    return [value for (value, _) in result]
+
+
+def get_view_relation_metadata(
+    database: Any,
+    schema: str,
+) -> List[Relation]:
+    relation = get_table_relation_metadata(database, schema)
+    relation["rel_kind"] = "view"
+
+    return relation
+
+
+def get_foreign_keys_relation_data(
+    database: Any,
+    table: Table,
+) -> List[FKey]:
+    foreign_keys = database.get_foreign_keys(table)
+    ret = []
+    for fk in foreign_keys:
+        result = {}
+        result["column_name"] = fk.pop("constrained_columns")
+        result["referenced_column"] = fk.pop("referred_columns")
+        result["constraint_name"] = fk.pop("name")
+        ret.append(result)
+    return foreign_keys
+
+def get_indexes_relation_data(
+    database: Any,
+    table: Table,
+) -> List[Index]:
+    indexes = database.get_indexes(table)
+    ret = []
+    for idx in indexes:
+        result = {}
+        result["column_names"] = idx.pop("column_names")
+        result["is_unique"] = idx.pop("unique")
+        result["index_name"] = idx.pop("name")
+        ret.append(result)
+    return ret
+
+
+from pydantic import BaseModel, Field
+from typing import List, Optional
+
+
+class FKey(BaseModel):
+    """
+    Contains information about a foreign key contraints.
+    """
+
+    constraint_name: str = Field(
+        description="Name of the the foreign key constraint."
+    )
+    column_name: str = Field(
+        description="Name of the column to which the foreign key constraint is applied."
+    )
+    referenced_column: str = Field(
+        description="Foreign column referenced by the constraint, expressed as 'foreign_schema_name.foreign_table_name.foreign_column_name'."
+    )
+
+
+class Index(BaseModel):
+    """
+    Contains information about an index.
+    """
+    
+    index_name: str = Field(
+        description="Name of the index."
+    )
+    is_unique: bool = Field(
+        description="Whether the index is a unique constraint."
+    )
+    column_names: List[str] = Field(
+        description="Name of the column(s) constituting the index."
+    )
+    index_definition: str = Field(
+        description="CREATE INDEX statement."
+    )
+
+
+class Column(BaseModel):
+    """
+    Contains information about a column.
+    """
+    
+    column_name: str = Field(
+        description="Name of the column."
+    )
+    data_type: str = Field(
+        description="Column data type."
+    )
+    is_nullable: bool = Field(
+        description="Whether the column has or not a NOT NULL constraint."
+    )
+    column_description: Optional[str] = Field(
+        default=None,
+        description="SQL comment associated with the column."
+    )
+    most_common_values: Optional[List] = Field(
+        default=None,
+        description="Most common values in the last many records."
+    )
+
+
+class Relation(BaseModel):
+    """
+    Contains information about a relation, which is a table, a view or a materialized view. This includes columns, indexes and foreign keys.
+    """
+
+    rel_name: str = Field(
+        description="Name of the relation."
+    )
+    rel_kind: str = Field(
+        description="Type of relation, such as 'table' or 'view'."
+    )
+    rel_description: Optional[str] = Field(
+        default=None,
+        description="SQL comment associated with the relation."
+    )
+    indexes: Optional[List[Index]] = Field(
+        default = None,
+        description="Indexes associated with columns of the relation."
+    )
+    foreign_keys: Optional[List[FKey]] = Field(
+        default = None,
+        description="Foreign keys associated with columns of the relation."
+    )
+    columns: List[Column] = Field(
+        default = [],
+        description="Columns belonging to the relation."
+    )
+
+
+class Schema(BaseModel):
+    """
+    Contains information about a schema, including its relations.
+    """
+
+    schema_name: str = Field(
+        description="Name of the schema."
+    )
+    schema_description: Optional[str] = Field(
+        default=None,
+        description="SQL comment associated with the schema."
+    )
+    relations: List[Relation] = Field(
+        default=[],
+        description="Relations belonging to the schema."
+    )

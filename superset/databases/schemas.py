@@ -1342,3 +1342,25 @@ class QualifiedTableSchema(Schema):
         load_default=None,
         metadata={"description": "The table catalog"},
     )
+
+
+class QualifiedSchemaSchema(Schema):
+    """
+    Schema for a qualified schema reference.
+
+    Catalog can be ommited to fallback to default value.
+    """
+    schema = fields.String(
+        required=True,
+        metadata={"description": "The schema"},
+    )
+    catalog = fields.String(
+        required=False,
+        load_default=None,
+        metadata={"description": "The catalog"},
+    )
+    minify = fields.Boolean(
+        required=False,
+        load_default=False,
+        metadata={"description": "Whether to minify the schema"},
+    )

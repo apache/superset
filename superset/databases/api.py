@@ -92,6 +92,7 @@ from superset.databases.schemas import (
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
     QualifiedTableSchema,
+    QualifiedSchemaSchema,
     SchemasResponseSchema,
     SelectStarResponseSchema,
     TableExtraMetadataResponseSchema,
@@ -102,7 +103,7 @@ from superset.databases.schemas import (
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
-from superset.databases.utils import get_table_metadata
+from superset.databases.utils import get_schema_metadata, get_table_metadata
 from superset.db_engine_specs import get_available_engine_specs
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -165,6 +166,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "upload_metadata",
         "upload",
         "oauth2",
+        "llm_schema",
     }
 
     resource_name = "database"
@@ -934,6 +936,81 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         table = Table(table_name, parsed_schema)
         payload = database.db_engine_spec.get_extra_table_metadata(database, table)
         return self.response(200, **payload)
+
+    @expose("/<int:pk>/llm_schema/", methods=["GET"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".llm_schema",
+        log_to_statsd=False,
+    )
+    def llm_schema(self, pk: int) -> FlaskResponse:
+        # Construct a JSON representation of the schema for the entire database and put it in this format:
+        # {[
+        #     {
+        #         schema_name  = 
+        #         schema_description = 
+        #         relations = [
+        #             {
+        #                 rel_name = 
+        #                 rel_kind = 
+        #                 rel_description = 
+        #                 indexes = [
+        #                     {
+        #                         index_name = 
+        #                         is_unique = 
+        #                         column_names = 
+        #                         index_definition = 
+        #                     },
+                            
+        #                 ]
+        #                 foregin_keys = [
+        #                     {
+        #                         constraint_name = 
+        #                         column_name = 
+        #                         referenced_column = 
+        #                     },
+                            
+        #                 ]
+        #                 columns = [
+        #                     {
+        #                         column_name = 
+        #                         data_type = 
+        #                         is_nullable = 
+        #                         column_description = 
+        #                         most_common_values = 
+        #                     },
+                            
+        #                 ]
+        #             },
+        #         ]
+        #     },
+        # ]}
+        self.incr_stats("init", self.llm_schema.__name__)
+
+        try:
+            parameters = QualifiedSchemaSchema().load(request.args)
+        except ValidationError as ex:
+            raise InvalidPayloadSchemaError(ex) from ex
+        
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+
+        schema = get_schema_metadata(database, parameters["catalog"], parameters["schema"])
+
+        if parameters["minify"]:
+            def reduce_json_token_count(data):
+              """
+              Reduces the token count of a JSON string.
+              """
+              data = data.replace(": ", ":").replace(", ", ",")
+
+              return data
+
+            schema = reduce_json_token_count(json.dumps(schema.model_dump()))
+
+        return self.response(200, result=schema.model_dump())        
 
     @expose("/<int:pk>/table_metadata/", methods=["GET"])
     @protect()
