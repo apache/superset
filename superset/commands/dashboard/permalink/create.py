@@ -67,10 +67,13 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         self.validate()
         dashboard = DashboardDAO.get_by_id_or_slug(self.dashboard_id)
         print("creating permalink...")
+
+        print(self.state)
         
         value = {
             "dashboardId": str(dashboard.uuid),
-            "state": {**self.state, "urlParams": [['native_filter', '(NATIVE_FILTER-8jS1fx4hl:(extraFormData:(filters:!((col:country_name,op:IN,val:!(Brazil)))),filterState:(label:country_name,validateStatus:!f,value:!(Brazil)),id:NATIVE_FILTER-8jS1fx4hl,ownState:()))']]},
+            "state": self.state,
+            # "state": {**self.state, "urlParams": [['native_filter', '(NATIVE_FILTER-8jS1fx4hl:(extraFormData:(filters:!((col:country_name,op:IN,val:!(Brazil)))),filterState:(label:country_name,validateStatus:!f,value:!(Brazil)),id:NATIVE_FILTER-8jS1fx4hl,ownState:()))']]},
         }
         user_id = get_user_id()
         

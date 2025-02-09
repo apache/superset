@@ -463,8 +463,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilter, setSelectedNativeFilter] = useState<object>({});
   const [nativeFilters, setGlobalNativeFilters] = useState<object>({});
 
-  console.log('okkkkk', nativeFilter)
-
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
     [Sections.General]: {
@@ -840,8 +838,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          console.log(response.json.result);
-          const { tab_tree: tabTree, all_tabs: allTabs, native_filters: nativeFilters } = response.json.result;
+          const {
+            tab_tree: tabTree,
+            all_tabs: allTabs,
+            native_filters: nativeFilters,
+          } = response.json.result;
           tabTree.push({
             title: 'All Tabs',
             // select tree only works with string value
@@ -901,7 +902,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         return SupersetClient.get({
           endpoint: `/api/v1/report/related/dashboard?q=${query}`,
         }).then(response => {
-          console.log('dashboards', response.json.result);
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
               value: item.value,
@@ -1137,18 +1137,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilter = (nativeFilterId: string) => {
-    console.log('dashboardFilter', nativeFilterId);
     // set dashboardFilter
-    const anchor = currentAlert?.extra?.dashboard?.anchor
+    const anchor = currentAlert?.extra?.dashboard?.anchor;
     const inScopeFilters = nativeFilters[anchor];
-    const filter = inScopeFilters.filter((f: any) => f.id === nativeFilterId)[0]
-    console.log(filter) // use filter to grab values from API
-    console.log('about to get filter values', nativeFilterId);
-    
-    const datasetId = filter.targets[0].datasetId;
+    const filter = inScopeFilters.filter(
+      (f: any) => f.id === nativeFilterId,
+    )[0];
+
+    const { datasetId } = filter.targets[0];
     const columnName = filter.targets[0].column.name;
     const dashboardId = currentAlert?.dashboard?.value;
-  
+
     // Get values tied to the selected filter
     const filterValues = {
       formData: {
@@ -1185,11 +1184,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onChangeDashboardFilterValue = (filterValue: any) => {
     console.log('dashboardValue', filterValue);
-
-    // todo(hughhh): refactor to handle multiple native filters 
+    // todo(hughhh): refactor to handle multiple native filters
     // once you have multiselect
-    setSelectedNativeFilter({...nativeFilter, filterValues: [filterValue]});
-  }
+    setSelectedNativeFilter({ ...nativeFilter, filterValues: [filterValue] });
+  };
 
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {

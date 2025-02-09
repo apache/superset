@@ -186,14 +186,14 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
     
-    def get_native_filters_params(self) -> Optional[dict[str, any]]:
+    def get_native_filters_params(self) -> Optional[str]:
         params = None
         dashboard = self.extra.get('dashboard')
         if dashboard and dashboard.get("nativeFilters"):
             for filter in dashboard.get("nativeFilters", []):
                 # todo(hugh): handle multiple nativeFilters + multi values
                 params = self._generate_native_filter(filter.get("nativeFilterId"), filter.get("columnName"), filter.get("filterValues")[0])
-        return params
+        return prison.dumps(params)
     
     def _generate_native_filter(self, native_filter_id: str, column_name: str, value: str) -> dict:
         return { 
@@ -215,7 +215,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                 },
                 "ownState": {}
             }
-        }    
+        } 
 
 
 class ReportRecipients(Model, AuditMixinNullable):

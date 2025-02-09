@@ -241,11 +241,10 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
-            print('returning single tab url....')
             native_filter_params = self._report_schedule.get_native_filters_params()
             return [self._get_tab_url({
                 'anchor': anchor, 
-                'urlParams': {'native_filters': native_filter_params}, 
+                'urlParams': [['native_filters', native_filter_params]],
                 'dataMask': None,
                 'activeTabs': None}, 
                 user_friendly=user_friendly)]
