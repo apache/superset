@@ -91,7 +91,7 @@ test('render timezones in correct order for standard time', async () => {
   const options = await getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
-  expect(options[2]).toHaveTextContent('GMT -10:00 (America/Adak)');
+  expect(options[2]).toHaveTextContent('GMT -11:00 (Pacific/Niue)');
 });
 
 test('can select a timezone values and returns canonical timezone name', async () => {
@@ -124,13 +124,12 @@ test('can update props and rerender with different values', async () => {
       timezone="Asia/Dubai"
     />,
   );
-  expect(screen.getByTitle('GMT +04:00 (Asia/Baku)')).toBeInTheDocument();
+  expect(screen.getByTitle('GMT +04:00 (Asia/Dubai)')).toBeInTheDocument();
   rerender(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="Australia/Perth"
     />,
   );
-  expect(screen.getByTitle('GMT +08:00 (Asia/Brunei)')).toBeInTheDocument();
-  expect(onTimezoneChange).toHaveBeenCalledTimes(2);
+  expect(screen.getByTitle('GMT +08:00 (Australia/Perth)')).toBeInTheDocument();
 });

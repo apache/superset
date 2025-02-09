@@ -21,57 +21,60 @@ import userEvent from '@testing-library/user-event';
 import { Menu } from 'src/components/Menu';
 import DashboardItems from './DashboardsSubMenu';
 
-const asyncRender = (numberOfItems: number) =>
-  waitFor(() => {
-    const dashboards = [];
-    for (let i = 1; i <= numberOfItems; i += 1) {
-      dashboards.push({ id: i, dashboard_title: `Dashboard ${i}` });
-    }
-    render(
-      <Menu openKeys={['menu']}>
-        <Menu.SubMenu title="On dashboards" key="menu">
-          <DashboardItems key="menu" dashboards={dashboards} />
-        </Menu.SubMenu>
-      </Menu>,
-      {
-        useRouter: true,
-      },
-    );
-  });
+const asyncRender = (numberOfItems: number) => {
+  const dashboards = [];
+  for (let i = 1; i <= numberOfItems; i += 1) {
+    dashboards.push({ id: i, dashboard_title: `Dashboard ${i}` });
+  }
+  render(
+    <Menu openKeys={['menu']}>
+      <Menu.SubMenu title="On dashboards" key="menu">
+        <DashboardItems key="menu" dashboards={dashboards} />
+      </Menu.SubMenu>
+    </Menu>,
+    {
+      useRouter: true,
+    },
+  );
+};
 
 test('renders a submenu', async () => {
-  await asyncRender(3);
-  expect(screen.getByText('Dashboard 1')).toBeInTheDocument();
-  expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
-  expect(screen.getByText('Dashboard 3')).toBeInTheDocument();
+  asyncRender(3);
+  await waitFor(() => {
+    expect(screen.getByText('Dashboard 1')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard 3')).toBeInTheDocument();
+  });
 });
 
 test('renders a submenu with search', async () => {
-  await asyncRender(20);
-  expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+  asyncRender(20);
+  expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
 });
 
 test('displays a searched value', async () => {
-  await asyncRender(20);
+  asyncRender(20);
   userEvent.type(screen.getByPlaceholderText('Search'), '2');
-  expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
-  expect(screen.getByText('Dashboard 20')).toBeInTheDocument();
+  expect(await screen.findByText('Dashboard 2')).toBeInTheDocument();
+  expect(await screen.findByText('Dashboard 20')).toBeInTheDocument();
 });
 
 test('renders a "No results found" message when searching', async () => {
-  await asyncRender(20);
+  asyncRender(20);
   userEvent.type(screen.getByPlaceholderText('Search'), 'unknown');
-  expect(screen.getByText('No results found')).toBeInTheDocument();
+  expect(await screen.findByText('No results found')).toBeInTheDocument();
 });
 
 test('renders a submenu with no dashboards', async () => {
-  await asyncRender(0);
-  expect(screen.getByText('None')).toBeInTheDocument();
+  asyncRender(0);
+  expect(await screen.findByText('None')).toBeInTheDocument();
 });
 
 test('shows link icon when hovering', async () => {
-  await asyncRender(3);
+  asyncRender(3);
   expect(screen.queryByRole('img', { name: 'full' })).not.toBeInTheDocument();
-  userEvent.hover(screen.getByText('Dashboard 1'));
-  expect(screen.getByRole('img', { name: 'full' })).toBeInTheDocument();
+  userEvent.hover(await screen.findByText('Dashboard 1'));
+  expect(
+    (await screen.findAllByRole('img', { name: 'full' }))[0],
+  ).toBeInTheDocument();
 });

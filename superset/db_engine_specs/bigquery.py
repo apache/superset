@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import urllib
 from datetime import datetime
@@ -50,6 +51,7 @@ from superset.utils import core as utils, json
 from superset.utils.hashing import md5_sha_from_str
 
 try:
+    import google.auth
     from google.cloud import bigquery
     from google.oauth2 import service_account
 
@@ -66,6 +68,9 @@ except ModuleNotFoundError:
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+logger = logging.getLogger()
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
@@ -422,10 +427,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
-        credentials = service_account.Credentials.from_service_account_info(
-            engine.dialect.credentials_info
-        )
-        return bigquery.Client(credentials=credentials)
+        if credentials_info := engine.dialect.credentials_info:
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info
+            )
+            return bigquery.Client(credentials=credentials)
+
+        try:
+            credentials = google.auth.default()[0]
+            return bigquery.Client(credentials=credentials)
+        except google.auth.exceptions.DefaultCredentialsError as ex:
+            raise SupersetDBAPIConnectionError(
+                "The database credentials could not be found."
+            ) from ex
 
     @classmethod
     def estimate_query_cost(  # pylint: disable=too-many-arguments
@@ -496,7 +510,17 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         engine: Engine
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine, database)
+            try:
+                client = cls._get_client(engine, database)
+            except SupersetDBAPIConnectionError:
+                logger.warning(
+                    "Could not connect to database to get catalogs due to missing "
+                    "credentials. This is normal in certain circustances, for example, "
+                    "doing an import."
+                )
+                # return {} here, since it will be repopulated when creds are added
+                return set()
+
             projects = client.list_projects()
 
         return {project.project_id for project in projects}

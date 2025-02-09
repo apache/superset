@@ -40,7 +40,6 @@ import { Button } from 'src/components/';
 import { findPermission } from 'src/utils/findPermission';
 import { Tooltip } from 'src/components/Tooltip';
 import { safeStringify } from 'src/utils/safeStringify';
-import ConnectedHeaderActionsDropdown from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import PublishedStatus from 'src/dashboard/components/PublishedStatus';
 import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
@@ -53,6 +52,9 @@ import {
 import setPeriodicRunner, {
   stopPeriodicRender,
 } from 'src/dashboard/util/setPeriodicRunner';
+import ReportModal from 'src/features/reports/ReportModal';
+import DeleteModal from 'src/components/DeleteModal';
+import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from 'src/components/PageHeaderWithActions';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
@@ -66,6 +68,7 @@ import {
   redoLayoutAction,
   undoLayoutAction,
   updateDashboardTitle,
+  clearDashboardHistory,
 } from '../../actions/dashboardLayout';
 import {
   fetchCharts,
@@ -87,6 +90,7 @@ import { dashboardInfoChanged } from '../../actions/dashboardInfo';
 import isDashboardLoading from '../../util/isDashboardLoading';
 import { useChartIds } from '../../util/charts/useChartIds';
 import { useDashboardMetadataBar } from './useDashboardMetadataBar';
+import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -159,8 +163,9 @@ const Header = () => {
   const [emphasizeUndo, setEmphasizeUndo] = useState(false);
   const [emphasizeRedo, setEmphasizeRedo] = useState(false);
   const [showingPropertiesModal, setShowingPropertiesModal] = useState(false);
-  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showingEmbedModal, setShowingEmbedModal] = useState(false);
+  const [showingReportModal, setShowingReportModal] = useState(false);
+  const [currentReportDeleting, setCurrentReportDeleting] = useState(null);
   const dashboardInfo = useSelector(state => state.dashboardInfo);
   const layout = useSelector(state => state.dashboardLayout.present);
   const undoLength = useSelector(state => state.dashboardLayout.past.length);
@@ -221,6 +226,7 @@ const Header = () => {
           addWarningToast,
           onUndo: undoLayoutAction,
           onRedo: redoLayoutAction,
+          clearDashboardHistory,
           setEditMode,
           setUnsavedChanges,
           fetchFaveStar,
@@ -346,10 +352,6 @@ const Header = () => {
     [boundActionCreators, dashboardTitle],
   );
 
-  const setDropdownVisible = useCallback(visible => {
-    setIsDropdownVisible(visible);
-  }, []);
-
   const handleCtrlY = useCallback(() => {
     boundActionCreators.onRedo();
     setEmphasizeRedo(true);
@@ -471,6 +473,14 @@ const Header = () => {
 
   const hideEmbedModal = useCallback(() => {
     setShowingEmbedModal(false);
+  }, []);
+
+  const showReportModal = useCallback(() => {
+    setShowingReportModal(true);
+  }, []);
+
+  const hideReportModal = useCallback(() => {
+    setShowingReportModal(false);
   }, []);
 
   const metadataBar = useDashboardMetadataBar(dashboardInfo);
@@ -651,7 +661,10 @@ const Header = () => {
             {userCanEdit && (
               <Button
                 buttonStyle="secondary"
-                onClick={toggleEditMode}
+                onClick={() => {
+                  toggleEditMode();
+                  boundActionCreators.clearDashboardHistory?.(); // Resets the `past` as an empty array
+                }}
                 data-test="edit-dashboard-button"
                 className="action-button"
                 css={editButtonStyle}
@@ -668,6 +681,7 @@ const Header = () => {
       NavExtension,
       boundActionCreators.onRedo,
       boundActionCreators.onUndo,
+      boundActionCreators.clearDashboardHistory,
       editMode,
       emphasizeRedo,
       emphasizeUndo,
@@ -683,92 +697,47 @@ const Header = () => {
     ],
   );
 
-  const menuDropdownProps = useMemo(
-    () => ({
-      getPopupContainer: triggerNode =>
-        triggerNode.closest('.header-with-actions'),
-      visible: isDropdownVisible,
-      onVisibleChange: setDropdownVisible,
-    }),
-    [isDropdownVisible, setDropdownVisible],
-  );
+  const handleReportDelete = async report => {
+    await dispatch(deleteActiveReport(report));
+    setCurrentReportDeleting(null);
+  };
 
-  const additionalActionsMenu = useMemo(
-    () => (
-      <ConnectedHeaderActionsDropdown
-        addSuccessToast={boundActionCreators.addSuccessToast}
-        addDangerToast={boundActionCreators.addDangerToast}
-        dashboardId={dashboardInfo.id}
-        dashboardTitle={dashboardTitle}
-        dashboardInfo={dashboardInfo}
-        dataMask={dataMask}
-        layout={layout}
-        expandedSlices={expandedSlices}
-        customCss={customCss}
-        colorNamespace={colorNamespace}
-        colorScheme={colorScheme}
-        onSave={boundActionCreators.onSave}
-        onChange={boundActionCreators.onChange}
-        forceRefreshAllCharts={forceRefresh}
-        startPeriodicRender={startPeriodicRender}
-        refreshFrequency={refreshFrequency}
-        shouldPersistRefreshFrequency={shouldPersistRefreshFrequency}
-        setRefreshFrequency={boundActionCreators.setRefreshFrequency}
-        updateCss={boundActionCreators.updateCss}
-        editMode={editMode}
-        hasUnsavedChanges={hasUnsavedChanges}
-        userCanEdit={userCanEdit}
-        userCanShare={userCanShare}
-        userCanSave={userCanSaveAs}
-        userCanCurate={userCanCurate}
-        isLoading={isLoading}
-        showPropertiesModal={showPropertiesModal}
-        manageEmbedded={showEmbedModal}
-        refreshLimit={refreshLimit}
-        refreshWarning={refreshWarning}
-        lastModifiedTime={actualLastModifiedTime}
-        isDropdownVisible={isDropdownVisible}
-        setIsDropdownVisible={setDropdownVisible}
-        logEvent={boundActionCreators.logEvent}
-      />
-    ),
-    [
-      actualLastModifiedTime,
-      boundActionCreators.addDangerToast,
-      boundActionCreators.addSuccessToast,
-      boundActionCreators.logEvent,
-      boundActionCreators.onChange,
-      boundActionCreators.onSave,
-      boundActionCreators.setRefreshFrequency,
-      boundActionCreators.updateCss,
-      colorNamespace,
-      colorScheme,
-      customCss,
-      dashboardInfo,
-      dashboardTitle,
-      dataMask,
-      editMode,
-      expandedSlices,
-      forceRefresh,
-      hasUnsavedChanges,
-      isDropdownVisible,
-      isLoading,
-      layout,
-      refreshFrequency,
-      refreshLimit,
-      refreshWarning,
-      setDropdownVisible,
-      shouldPersistRefreshFrequency,
-      showEmbedModal,
-      showPropertiesModal,
-      startPeriodicRender,
-      userCanCurate,
-      userCanEdit,
-      userCanSaveAs,
-      userCanShare,
-    ],
-  );
-
+  const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+    addSuccessToast: boundActionCreators.addSuccessToast,
+    addDangerToast: boundActionCreators.addDangerToast,
+    dashboardInfo,
+    dashboardId: dashboardInfo.id,
+    dashboardTitle,
+    dataMask,
+    layout,
+    expandedSlices,
+    customCss,
+    colorNamespace,
+    colorScheme,
+    onSave: boundActionCreators.onSave,
+    onChange: boundActionCreators.onChange,
+    forceRefreshAllCharts: forceRefresh,
+    startPeriodicRender,
+    refreshFrequency,
+    shouldPersistRefreshFrequency,
+    setRefreshFrequency: boundActionCreators.setRefreshFrequency,
+    updateCss: boundActionCreators.updateCss,
+    editMode,
+    hasUnsavedChanges,
+    userCanEdit,
+    userCanShare,
+    userCanSave: userCanSaveAs,
+    userCanCurate,
+    isLoading,
+    showReportModal,
+    showPropertiesModal,
+    setCurrentReportDeleting,
+    manageEmbedded: showEmbedModal,
+    refreshLimit,
+    refreshWarning,
+    lastModifiedTime: actualLastModifiedTime,
+    logEvent: boundActionCreators.logEvent,
+  });
   return (
     <div
       css={headerContainerStyle}
@@ -782,8 +751,11 @@ const Header = () => {
         faveStarProps={faveStarProps}
         titlePanelAdditionalItems={titlePanelAdditionalItems}
         rightPanelAdditionalItems={rightPanelAdditionalItems}
-        menuDropdownProps={menuDropdownProps}
-        additionalActionsMenu={additionalActionsMenu}
+        menuDropdownProps={{
+          open: isDropdownVisible,
+          onOpenChange: setIsDropdownVisible,
+        }}
+        additionalActionsMenu={menu}
         showFaveStar={user?.userId && dashboardInfo?.id}
         showTitlePanelItems
       />
@@ -800,6 +772,32 @@ const Header = () => {
         />
       )}
 
+      <ReportModal
+        userId={user.userId}
+        show={showingReportModal}
+        onHide={hideReportModal}
+        userEmail={user.email}
+        dashboardId={dashboardInfo.id}
+        creationMethod="dashboards"
+      />
+
+      {currentReportDeleting && (
+        <DeleteModal
+          description={t(
+            'This action will permanently delete %s.',
+            currentReportDeleting?.name,
+          )}
+          onConfirm={() => {
+            if (currentReportDeleting) {
+              handleReportDelete(currentReportDeleting);
+            }
+          }}
+          onHide={() => setCurrentReportDeleting(null)}
+          open
+          title={t('Delete Report?')}
+        />
+      )}
+
       <OverwriteConfirm />
 
       {userCanCurate && (
@@ -811,7 +809,7 @@ const Header = () => {
       )}
       <Global
         styles={css`
-          .ant-menu-vertical {
+          .antd5-menu-vertical {
             border-right: none;
           }
         `}

@@ -45,7 +45,6 @@ import {
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
-  getTimeOffset,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { LineStyleOption } from 'echarts/types/src/util/types';
@@ -81,6 +80,7 @@ import {
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
   rebaseForecastDatum,
+  reorderForecastSeries,
 } from '../utils/forecast';
 import { convertInteger } from '../utils/convertInteger';
 import { defaultGrid, defaultYAxis } from '../defaults';
@@ -281,21 +281,15 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  const offsetLineWidths: { [key: string]: number } = {};
+  let patternIncrement = 0;
 
   rawSeries.forEach(entry => {
     const derivedSeries = isDerivedSeries(entry, chartProps.rawFormData);
     const lineStyle: LineStyleOption = {};
     if (derivedSeries) {
-      const offset = getTimeOffset(
-        entry,
-        ensureIsArray(chartProps.rawFormData?.time_compare),
-      )!;
-      if (!offsetLineWidths[offset]) {
-        offsetLineWidths[offset] = Object.keys(offsetLineWidths).length + 1;
-      }
-      lineStyle.type = 'dashed';
-      lineStyle.width = offsetLineWidths[offset];
+      patternIncrement += 1;
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
       lineStyle.opacity = OpacityEnum.DerivedSeries;
     }
 
@@ -628,10 +622,11 @@ export default function transformProps(
         theme,
         zoomable,
         legendState,
+        padding,
       ),
       data: legendData as string[],
     },
-    series: dedupSeries(series),
+    series: dedupSeries(reorderForecastSeries(series) as SeriesOption[]),
     toolbox: {
       show: zoomable,
       top: TIMESERIES_CONSTANTS.toolboxTop,

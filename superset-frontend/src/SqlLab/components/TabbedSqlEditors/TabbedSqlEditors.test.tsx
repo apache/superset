@@ -28,10 +28,6 @@ import { Store } from 'redux';
 import { RootState } from 'src/views/store';
 import { SET_ACTIVE_QUERY_EDITOR } from 'src/SqlLab/actions/sqlLab';
 
-fetchMock.get('glob:*/api/v1/database/*', {});
-fetchMock.get('glob:*/api/v1/saved_query/*', {});
-fetchMock.get('glob:*/kv/*', {});
-
 jest.mock('src/SqlLab/components/SqlEditor', () => () => (
   <div data-test="mock-sql-editor" />
 ));
@@ -46,9 +42,18 @@ const setup = (overridesStore?: Store, initialState?: RootState) =>
     initialState,
     ...(overridesStore && { store: overridesStore }),
   });
+let pathStub = jest.spyOn(URI.prototype, 'path');
 
 beforeEach(() => {
+  fetchMock.get('glob:*/api/v1/database/*', {});
+  fetchMock.get('glob:*/api/v1/saved_query/*', {});
+  pathStub = jest.spyOn(URI.prototype, 'path').mockReturnValue(`/sqllab/`);
   store.clearActions();
+});
+
+afterEach(() => {
+  fetchMock.reset();
+  pathStub.mockReset();
 });
 
 describe('componentDidMount', () => {
@@ -62,7 +67,13 @@ describe('componentDidMount', () => {
     replaceState.mockReset();
     uriStub.mockReset();
   });
-  test('should handle id', () => {
+  test('should handle id', async () => {
+    const id = 1;
+    fetchMock.get(`glob:*/api/v1/sqllab/permalink/kv:${id}`, {
+      label: 'test permalink',
+      sql: 'SELECT * FROM test_table',
+      dbId: 1,
+    });
     uriStub.mockReturnValue({ id: 1 });
     setup(store);
     expect(replaceState).toHaveBeenCalledWith(
@@ -70,6 +81,33 @@ describe('componentDidMount', () => {
       expect.anything(),
       '/sqllab',
     );
+    await waitFor(() =>
+      expect(
+        fetchMock.calls(`glob:*/api/v1/sqllab/permalink/kv:${id}`),
+      ).toHaveLength(1),
+    );
+    fetchMock.reset();
+  });
+  test('should handle permalink', async () => {
+    const key = '9sadkfl';
+    fetchMock.get(`glob:*/api/v1/sqllab/permalink/${key}`, {
+      label: 'test permalink',
+      sql: 'SELECT * FROM test_table',
+      dbId: 1,
+    });
+    pathStub.mockReturnValue(`/sqllab/p/${key}`);
+    setup(store);
+    await waitFor(() =>
+      expect(
+        fetchMock.calls(`glob:*/api/v1/sqllab/permalink/${key}`),
+      ).toHaveLength(1),
+    );
+    expect(replaceState).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      '/sqllab',
+    );
+    fetchMock.reset();
   });
   test('should handle savedQueryId', () => {
     uriStub.mockReturnValue({ savedQueryId: 1 });

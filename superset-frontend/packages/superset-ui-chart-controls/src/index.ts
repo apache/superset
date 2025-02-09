@@ -33,7 +33,7 @@ export * from './components/Dropdown';
 export * from './components/Menu';
 export * from './components/MetricOption';
 export * from './components/Tooltip';
-export { default as ControlHeader } from './components/ControlHeader';
+export * from './components/ControlHeader';
 
 export * from './shared-controls';
 export * from './types';

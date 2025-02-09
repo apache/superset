@@ -54,7 +54,7 @@ function getCategories(fd: QueryFormData, data: JsonObject[]) {
   const fixedColor = [c.r, c.g, c.b, 255 * c.a];
   const appliedScheme = fd.color_scheme;
   const colorFn = getScale(appliedScheme);
-  const categories = {};
+  const categories: Record<any, { color: any; enabled: boolean }> = {};
   data.forEach(d => {
     if (d.cat_color != null && !categories.hasOwnProperty(d.cat_color)) {
       let color;

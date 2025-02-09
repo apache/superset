@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEvent, Key, useState, useRef, RefObject } from 'react';
+import {
+  MouseEvent,
+  Key,
+  KeyboardEvent,
+  useState,
+  useRef,
+  RefObject,
+} from 'react';
 
-import { useHistory } from 'react-router-dom';
+import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from 'src/utils/dates';
 import {
   Behavior,
@@ -29,6 +36,8 @@ import {
   styled,
   t,
   VizType,
+  BinaryQueryObjectFilterClause,
+  QueryFormData,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { Menu } from 'src/components/Menu';
@@ -44,11 +53,11 @@ import { ResultsPaneOnDashboard } from 'src/explore/components/DataTablesPane';
 import { DrillDetailMenuItems } from 'src/components/Chart/DrillDetail';
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
+import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
+import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
-import { handleDropdownNavigation } from './utils';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
-import { SliceHeaderControlsProps } from './types';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
@@ -93,6 +102,52 @@ const VerticalDotsTrigger = () => (
   </VerticalDotsContainer>
 );
 
+export interface SliceHeaderControlsProps {
+  slice: {
+    description: string;
+    viz_type: string;
+    slice_name: string;
+    slice_id: number;
+    slice_description: string;
+    datasource: string;
+  };
+
+  defaultOpen?: boolean;
+  componentId: string;
+  dashboardId: number;
+  chartStatus: string;
+  isCached: boolean[];
+  cachedDttm: string[] | null;
+  isExpanded?: boolean;
+  updatedDttm: number | null;
+  isFullSize?: boolean;
+  isDescriptionExpanded?: boolean;
+  formData: QueryFormData;
+  exploreUrl: string;
+
+  forceRefresh: (sliceId: number, dashboardId: number) => void;
+  logExploreChart?: (sliceId: number) => void;
+  logEvent?: (eventName: string, eventData?: object) => void;
+  toggleExpandSlice?: (sliceId: number) => void;
+  exportCSV?: (sliceId: number) => void;
+  exportPivotCSV?: (sliceId: number) => void;
+  exportFullCSV?: (sliceId: number) => void;
+  exportXLSX?: (sliceId: number) => void;
+  exportFullXLSX?: (sliceId: number) => void;
+  handleToggleFullSize: () => void;
+
+  addDangerToast: (message: string) => void;
+  addSuccessToast: (message: string) => void;
+
+  supersetCanExplore?: boolean;
+  supersetCanShare?: boolean;
+  supersetCanCSV?: boolean;
+
+  crossFiltersEnabled?: boolean;
+}
+type SliceHeaderControlsPropsWithRouter = SliceHeaderControlsProps &
+  RouteComponentProps;
+
 const dropdownIconsStyles = css`
   &&.anticon > .anticon:first-child {
     margin-right: 0;
@@ -100,37 +155,28 @@ const dropdownIconsStyles = css`
   }
 `;
 
-const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
-  const [dropdownIsOpen, setDropdownIsOpen] = useState(false);
-  const [tableModalIsOpen, setTableModalIsOpen] = useState(false);
+const SliceHeaderControls = (
+  props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
+) => {
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   // setting openKeys undefined falls back to uncontrolled behaviour
-  const [openKeys, setOpenKeys] = useState<string[] | undefined>(undefined);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
   const history = useHistory();
 
   const queryMenuRef: RefObject<any> = useRef(null);
-  const menuRef: RefObject<any> = useRef(null);
-  const copyLinkMenuRef: RefObject<any> = useRef(null);
-  const shareByEmailMenuRef: RefObject<any> = useRef(null);
-  const drillToDetailMenuRef: RefObject<any> = useRef(null);
+  const resultsMenuRef: RefObject<any> = useRef(null);
 
-  const toggleDropdown = ({ close }: { close?: boolean } = {}) => {
-    setDropdownIsOpen(!(close || dropdownIsOpen));
-    // clear selected keys
-    setSelectedKeys([]);
-    // clear out/deselect submenus
-    // setOpenKeys([]);
-  };
+  const [modalFilters, setFilters] = useState<BinaryQueryObjectFilterClause[]>(
+    [],
+  );
 
   const canEditCrossFilters =
     useSelector<RootState, boolean>(
       ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
     ) &&
-    isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
     getChartMetadataRegistry()
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
@@ -147,10 +193,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
     domEvent,
   }: {
     key: Key;
-    domEvent: MouseEvent<HTMLElement>;
+    domEvent: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>;
   }) => {
-    // close menu
-    toggleDropdown({ close: true });
     switch (key) {
       case MenuKeys.ForceRefresh:
         refreshChart();
@@ -197,7 +241,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
-          '.ant-dropdown:not(.ant-dropdown-hidden)',
+          '.antd5-dropdown:not(.antd5-dropdown-hidden)',
         ) as HTMLElement;
         if (menu) {
           menu.style.visibility = 'hidden';
@@ -222,8 +266,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         break;
       }
       case MenuKeys.ViewResults: {
-        if (!tableModalIsOpen) {
-          setTableModalIsOpen(true);
+        if (resultsMenuRef.current && !resultsMenuRef.current.showModal) {
+          resultsMenuRef.current.open(domEvent);
         }
         break;
       }
@@ -240,6 +284,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
       default:
         break;
     }
+    setIsDropdownVisible(false);
   };
 
   const {
@@ -290,23 +335,12 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
     animationDuration: '0s',
   };
 
-  // controlled/uncontrolled behaviour for submenus
-  const openKeysProps: Record<string, string[]> = {};
-  if (openKeys) {
-    openKeysProps.openKeys = openKeys;
-  }
-
   const menu = (
     <Menu
       onClick={handleMenuClick}
-      selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
-      selectedKeys={selectedKeys}
       id={`slice_${slice.slice_id}-menu`}
-      ref={menuRef}
-      // submenus must be rendered for handleDropdownNavigation
-      forceSubMenuRender
-      {...openKeysProps}
+      selectable={false}
     >
       <Menu.Item
         key={MenuKeys.ForceRefresh}
@@ -333,7 +367,10 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
       )}
 
       {canExplore && (
-        <Menu.Item key={MenuKeys.ExploreChart}>
+        <Menu.Item
+          key={MenuKeys.ExploreChart}
+          data-test-edit-chart-name={slice.slice_name}
+        >
           <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
             {t('Edit chart')}
           </Tooltip>
@@ -352,7 +389,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         <Menu.Item key={MenuKeys.ViewQuery}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View query')}</span>
+              <div data-test="view-query-menu-item">{t('View query')}</div>
             }
             modalTitle={t('View query')}
             modalBody={<ViewQueryModal latestQueryFormData={props.formData} />}
@@ -370,10 +407,9 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
             canExplore={props.supersetCanExplore}
             exploreUrl={props.exploreUrl}
             triggerNode={
-              <span data-test="view-query-menu-item">{t('View as table')}</span>
+              <div data-test="view-query-menu-item">{t('View as table')}</div>
             }
-            setShowModal={setTableModalIsOpen}
-            showModal={tableModalIsOpen}
+            modalRef={resultsMenuRef}
             modalTitle={t('Chart Data: %s', slice.slice_name)}
             modalBody={
               <ResultsPaneOnDashboard
@@ -391,48 +427,32 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
 
       {isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail && (
         <DrillDetailMenuItems
-          chartId={slice.slice_id}
+          setFilters={setFilters}
+          filters={modalFilters}
           formData={props.formData}
           key={MenuKeys.DrillToDetail}
-          showModal={drillModalIsOpen}
           setShowModal={setDrillModalIsOpen}
-          drillToDetailMenuRef={drillToDetailMenuRef}
         />
       )}
 
       {(slice.description || canExplore) && <Menu.Divider />}
 
       {supersetCanShare && (
-        <Menu.SubMenu
+        <ShareMenuItems
+          dashboardId={dashboardId}
+          dashboardComponentId={componentId}
+          copyMenuItemTitle={t('Copy permalink to clipboard')}
+          emailMenuItemTitle={t('Share chart by email')}
+          emailSubject={t('Superset chart')}
+          emailBody={t('Check out this chart: ')}
+          addSuccessToast={addSuccessToast}
+          addDangerToast={addDangerToast}
           title={t('Share')}
-          key={MenuKeys.Share}
-          // reset to uncontrolled behaviour
-          onTitleMouseEnter={() => setOpenKeys(undefined)}
-        >
-          <ShareMenuItems
-            dashboardId={dashboardId}
-            dashboardComponentId={componentId}
-            copyMenuItemTitle={t('Copy permalink to clipboard')}
-            emailMenuItemTitle={t('Share chart by email')}
-            emailSubject={t('Superset chart')}
-            emailBody={t('Check out this chart: ')}
-            addSuccessToast={addSuccessToast}
-            addDangerToast={addDangerToast}
-            copyMenuItemRef={copyLinkMenuRef}
-            shareByEmailMenuItemRef={shareByEmailMenuRef}
-            selectedKeys={selectedKeys.filter(
-              key => key === MenuKeys.CopyLink || key === MenuKeys.ShareByEmail,
-            )}
-          />
-        </Menu.SubMenu>
+        />
       )}
 
       {props.supersetCanCSV && (
-        <Menu.SubMenu
-          title={t('Download')}
-          key={MenuKeys.Download}
-          onTitleMouseEnter={() => setOpenKeys(undefined)}
-        >
+        <Menu.SubMenu title={t('Download')} key={MenuKeys.Download}>
           <Menu.Item
             key={MenuKeys.ExportCsv}
             icon={<Icons.FileOutlined css={dropdownIconsStyles} />}
@@ -495,37 +515,32 @@ const SliceHeaderControls = (props: SliceHeaderControlsProps) => {
         />
       )}
       <NoAnimationDropdown
-        overlay={menu}
+        dropdownRender={() => menu}
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
-        visible={dropdownIsOpen}
-        onVisibleChange={status => toggleDropdown({ close: !status })}
-        onKeyDown={e =>
-          handleDropdownNavigation(
-            e,
-            dropdownIsOpen,
-            menu,
-            toggleDropdown,
-            setSelectedKeys,
-            setOpenKeys,
-          )
-        }
+        open={isDropdownVisible}
+        onOpenChange={visible => setIsDropdownVisible(visible)}
       >
-        <span
-          css={() => css`
-            display: flex;
-            align-items: center;
-          `}
+        <Button
+          type="link"
           id={`slice_${slice.slice_id}-controls`}
-          role="button"
           aria-label="More Options"
           aria-haspopup="true"
-          tabIndex={0}
         >
           <VerticalDotsTrigger />
-        </span>
+        </Button>
       </NoAnimationDropdown>
+      <DrillDetailModal
+        formData={props.formData}
+        initialFilters={[]}
+        onHideModal={() => {
+          setDrillModalIsOpen(false);
+        }}
+        chartId={slice.slice_id}
+        showModal={drillModalIsOpen}
+      />
+
       {canEditCrossFilters && scopingModal}
     </>
   );

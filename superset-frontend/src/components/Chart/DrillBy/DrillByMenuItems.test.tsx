@@ -70,11 +70,10 @@ const renderMenu = ({
   ...rest
 }: Partial<DrillByMenuItemsProps>) =>
   render(
-    <Menu>
+    <Menu forceSubMenuRender>
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
         drillByConfig={drillByConfig}
-        canDownload
         open
         {...rest}
       />
@@ -108,10 +107,9 @@ const expectDrillByEnabled = async () => {
     within(drillByMenuItem).queryByTestId('tooltip-trigger');
   expect(tooltipTrigger).not.toBeInTheDocument();
 
-  userEvent.hover(
-    within(drillByMenuItem).getByRole('button', { name: 'Drill by' }),
-  );
-  expect(await screen.findByTestId('drill-by-submenu')).toBeInTheDocument();
+  userEvent.hover(within(drillByMenuItem).getByText('Drill by'));
+  const drillBySubmenus = await screen.findAllByTestId('drill-by-submenu');
+  expect(drillBySubmenus[0]).toBeInTheDocument();
 };
 
 getChartMetadataRegistry().registerValue(
@@ -176,7 +174,7 @@ test('render menu item with submenu and searchbox', async () => {
     expect(screen.getByText(column.column_name)).toBeInTheDocument();
   });
 
-  const searchbox = screen.getByRole('textbox');
+  const searchbox = screen.getAllByPlaceholderText('Search columns')[1];
   expect(searchbox).toBeInTheDocument();
 
   userEvent.type(searchbox, 'col1');

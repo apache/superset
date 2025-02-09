@@ -359,12 +359,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
     @property
     def verbose_map(self) -> dict[str, str]:
         verb_map = {"__timestamp": "Time"}
-        verb_map.update(
-            {o.metric_name: o.verbose_name or o.metric_name for o in self.metrics}
-        )
-        verb_map.update(
-            {o.column_name: o.verbose_name or o.column_name for o in self.columns}
-        )
+
+        for o in self.metrics:
+            if o.metric_name not in verb_map:
+                verb_map[o.metric_name] = o.verbose_name or o.metric_name
+
+        for o in self.columns:
+            if o.column_name not in verb_map:
+                verb_map[o.column_name] = o.verbose_name or o.column_name
+
         return verb_map
 
     @property
@@ -1568,7 +1571,11 @@ class SqlaTable(
                     # probe adhoc column type
                     tbl, _ = self.get_from_clause(template_processor)
                     qry = sa.select([sqla_column]).limit(1).select_from(tbl)
-                    sql = self.database.compile_sqla_query(qry)
+                    sql = self.database.compile_sqla_query(
+                        qry,
+                        catalog=self.catalog,
+                        schema=self.schema,
+                    )
                     col_desc = get_columns_description(
                         self.database,
                         self.catalog,
@@ -1903,6 +1910,7 @@ class SqlaTable(
             for method, perms in zip(
                 (SqlaTable.perm, SqlaTable.schema_perm, SqlaTable.catalog_perm),
                 (permissions, schema_perms, catalog_perms),
+                strict=False,
             )
             if perms
         ]

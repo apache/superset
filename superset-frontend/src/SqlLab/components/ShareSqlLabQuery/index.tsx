@@ -17,18 +17,16 @@
  * under the License.
  */
 import {
-  FeatureFlag,
   styled,
   t,
   useTheme,
-  isFeatureEnabled,
   getClientErrorObject,
+  SupersetClient,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import CopyToClipboard from 'src/components/CopyToClipboard';
-import { storeQuery } from 'src/utils/common';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import { LOG_ACTIONS_SQLLAB_COPY_LINK } from 'src/logger/LogUtils';
 import useLogAction from 'src/logger/useLogAction';
@@ -54,23 +52,21 @@ const ShareSqlLabQuery = ({
 }: ShareSqlLabQueryProps) => {
   const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
-  const { dbId, name, schema, autorun, sql, remoteId, templateParams } =
-    useQueryEditor(queryEditorId, [
-      'dbId',
-      'name',
-      'schema',
-      'autorun',
-      'sql',
-      'remoteId',
-      'templateParams',
-    ]);
+  const { dbId, name, schema, autorun, sql, templateParams } = useQueryEditor(
+    queryEditorId,
+    ['dbId', 'name', 'schema', 'autorun', 'sql', 'templateParams'],
+  );
 
-  const getCopyUrlForKvStore = (callback: Function) => {
+  const getCopyUrlForPermalink = (callback: Function) => {
     const sharedQuery = { dbId, name, schema, autorun, sql, templateParams };
 
-    return storeQuery(sharedQuery)
-      .then(shortUrl => {
-        callback(shortUrl);
+    return SupersetClient.post({
+      endpoint: '/api/v1/sqllab/permalink',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(sharedQuery),
+    })
+      .then(({ json }) => {
+        callback(json.url);
       })
       .catch(response => {
         getClientErrorObject(response).then(() => {
@@ -79,61 +75,29 @@ const ShareSqlLabQuery = ({
       });
   };
 
-  const getCopyUrlForSavedQuery = (callback: Function) => {
-    let savedQueryToastContent;
-
-    if (remoteId) {
-      savedQueryToastContent = `${
-        window.location.origin + window.location.pathname
-      }?savedQueryId=${remoteId}`;
-      callback(savedQueryToastContent);
-    } else {
-      savedQueryToastContent = t('Please save the query to enable sharing');
-      callback(savedQueryToastContent);
-    }
-  };
   const getCopyUrl = (callback: Function) => {
     logAction(LOG_ACTIONS_SQLLAB_COPY_LINK, {
       shortcut: false,
     });
-    if (isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore)) {
-      return getCopyUrlForKvStore(callback);
-    }
-    return getCopyUrlForSavedQuery(callback);
+    return getCopyUrlForPermalink(callback);
   };
 
-  const buildButton = (canShare: boolean) => {
-    const tooltip = canShare
-      ? t('Copy query link to your clipboard')
-      : t('Save the query to enable this feature');
+  const buildButton = () => {
+    const tooltip = t('Copy query link to your clipboard');
     return (
-      <Button buttonSize="small" tooltip={tooltip} disabled={!canShare}>
-        <StyledIcon
-          iconColor={
-            canShare ? theme.colors.primary.base : theme.colors.grayscale.base
-          }
-          iconSize="xl"
-        />
+      <Button buttonSize="small" tooltip={tooltip}>
+        <StyledIcon iconColor={theme.colors.primary.base} iconSize="xl" />
         {t('Copy link')}
       </Button>
     );
   };
 
-  const canShare =
-    !!remoteId || isFeatureEnabled(FeatureFlag.ShareQueriesViaKvStore);
-
   return (
-    <>
-      {canShare ? (
-        <CopyToClipboard
-          getText={getCopyUrl}
-          wrapped={false}
-          copyNode={buildButton(canShare)}
-        />
-      ) : (
-        buildButton(canShare)
-      )}
-    </>
+    <CopyToClipboard
+      getText={getCopyUrl}
+      wrapped={false}
+      copyNode={buildButton()}
+    />
   );
 };
 

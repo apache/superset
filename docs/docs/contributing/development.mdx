@@ -72,6 +72,7 @@ documentation.
 configured to be secure.
 :::
 
+
 ### Supported environment variables
 
 Affecting the Docker build process:
@@ -79,11 +80,26 @@ Affecting the Docker build process:
 - **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
 - **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
+- **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,
+  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
+- **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
+  for more verbose logging
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
 used in the `docker compose` context to assign env vars to the superset configuration.
 
+### Accessing the postgres database
+Sometimes it's useful to access the database in the docker container directly.
+You can enter a `psql` shell (the official Postgres client) by running the following command:
+
+```bash
+docker compose exec db psql -U superset
+```
+
+Also note that the database is exposed on port 5432, so you can connect to it using your favorite
+Postgres client or even SQL Lab itselft directly in Superset by creating a new database connection
+to `localhost:5432`.
 
 ### Nuking the postgres database
 
@@ -117,7 +133,8 @@ instance, but many people like to run that tooling from their host.
 
 Assuming you already have a way to setup your python environments
 like `pyenv`, `virtualenv` or something else, all you should have to
-do is to install our dev, pinned python requirements bundle
+do is to install our dev, pinned python requirements bundle, after installing
+the prerequisites mentioned in [OS Dependencies](https://superset.apache.org/docs/installation/pypi/#os-dependencies)
 
 ```bash
 pip install -r requirements/development.txt
@@ -624,71 +641,6 @@ To run a single test file:
 
 ```bash
 npm run test -- path/to/file.js
-```
-
-### Integration Testing
-
-We use [Cypress](https://www.cypress.io/) for integration tests. To open Cypress and explore tests first setup and run test server:
-
-```bash
-export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
-export SUPERSET_TESTENV=true
-export CYPRESS_BASE_URL="http://localhost:8081"
-superset db upgrade
-superset load_test_users
-superset load-examples --load-test-data
-superset init
-superset run --port 8081
-```
-
-Run Cypress tests:
-
-```bash
-cd superset-frontend
-npm run build-instrumented
-
-cd cypress-base
-npm install
-
-# run tests via headless Chrome browser (requires Chrome 64+)
-npm run cypress-run-chrome
-
-# run tests from a specific file
-npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
-
-# run specific file with video capture
-npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
-
-# to open the cypress ui
-npm run cypress-debug
-
-# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
-# e.g., CYPRESS_BASE_URL="http://localhost:9000"
-CYPRESS_BASE_URL=<your url> npm run cypress open
-```
-
-See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
-
-As an alternative you can use docker compose environment for testing:
-
-Make sure you have added below line to your /etc/hosts file:
-`127.0.0.1 db`
-
-If you already have launched Docker environment please use the following command to ensure a fresh database instance:
-`docker compose down -v`
-
-Launch environment:
-
-`CYPRESS_CONFIG=true docker compose up --build`
-
-It will serve the backend and frontend on port 8088.
-
-Run Cypress tests:
-
-```bash
-cd cypress-base
-npm install
-npm run cypress open
 ```
 
 ### Debugging Server App

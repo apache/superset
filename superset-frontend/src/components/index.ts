@@ -43,6 +43,7 @@ export {
   Typography,
   Upload,
 } from 'antd';
+export { Layout } from 'antd-v5';
 
 /*
  * Components that conflict with the ones in src/components.
@@ -55,7 +56,6 @@ export {
   Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
-  Dropdown as AntdDropdown,
   Form as AntdForm,
   Input as AntdInput,
   Select as AntdSelect,
@@ -66,5 +66,4 @@ export {
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
-export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';

@@ -14,12 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import random
 import string
 
 import sqlalchemy.sql.sqltypes
 
 from superset.utils.mock_data import add_data, ColumnInfo
+
+logger = logging.getLogger(__name__)
 
 COLUMN_TYPES = [
     sqlalchemy.sql.sqltypes.INTEGER(),
@@ -34,7 +37,7 @@ COLUMN_TYPES = [
 
 
 def load_big_data() -> None:
-    print("Creating table `wide_table` with 100 columns")
+    logger.debug("Creating table `wide_table` with 100 columns")
     columns: list[ColumnInfo] = []
     for i in range(100):
         column: ColumnInfo = {
@@ -48,7 +51,7 @@ def load_big_data() -> None:
         columns.append(column)
     add_data(columns=columns, num_rows=1000, table_name="wide_table")
 
-    print("Creating 1000 small tables")
+    logger.debug("Creating 1000 small tables")
     columns = [
         {
             "name": "id",
@@ -70,6 +73,6 @@ def load_big_data() -> None:
     for i in range(1000):
         add_data(columns=columns, num_rows=10, table_name=f"small_table_{i}")
 
-    print("Creating table with long name")
+    logger.debug("Creating table with long name")
     name = "".join(random.choices(string.ascii_letters + string.digits, k=60))  # noqa: S311
     add_data(columns=columns, num_rows=10, table_name=name)

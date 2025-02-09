@@ -45,12 +45,12 @@ export function useFilterConfigMap() {
   const filterConfig = useFilterConfiguration();
   return useMemo(
     () =>
-      filterConfig.reduce(
+      filterConfig.reduce<Record<string, Filter | Divider>>(
         (acc: Record<string, Filter | Divider>, filter: Filter) => {
           acc[filter.id] = filter;
           return acc;
         },
-        {} as Record<string, Filter | Divider>,
+        {},
       ),
     [filterConfig],
   );

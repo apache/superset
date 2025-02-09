@@ -30,24 +30,18 @@ fi
 
 echo_step() {
 cat <<EOF
-
 ######################################################################
-
-
 Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
-
-
 ######################################################################
-
 EOF
 }
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
 # If Cypress run – overwrite the password for admin and export env variables
 if [ "$CYPRESS_CONFIG" == "true" ]; then
     ADMIN_PASSWORD="general"
-    export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
     export SUPERSET_TESTENV=true
-    export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset
+    export POSTGRES_DB=superset_cypress
+    export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
 fi
 # Initialize the database
 echo_step "1" "Starting" "Applying DB migrations"
@@ -56,12 +50,16 @@ echo_step "1" "Complete" "Applying DB migrations"
 
 # Create an admin user
 echo_step "2" "Starting" "Setting up admin user ( admin / $ADMIN_PASSWORD )"
-superset fab create-admin \
-              --username admin \
-              --firstname Superset \
-              --lastname Admin \
-              --email admin@superset.com \
-              --password "$ADMIN_PASSWORD"
+if [ "$CYPRESS_CONFIG" == "true" ]; then
+    superset load_test_users
+else
+    superset fab create-admin \
+        --username admin \
+        --email admin@superset.com \
+        --password "$ADMIN_PASSWORD" \
+        --firstname Superset \
+        --lastname Admin
+fi
 echo_step "2" "Complete" "Setting up admin user"
 # Create default roles and permissions
 echo_step "3" "Starting" "Setting up roles and perms"
@@ -73,10 +71,9 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     echo_step "4" "Starting" "Loading examples"
     # If Cypress run which consumes superset_test_config – load required data for tests
     if [ "$CYPRESS_CONFIG" == "true" ]; then
-        superset load_test_users
         superset load_examples --load-test-data
     else
-        superset load_examples --force
+        superset load_examples
     fi
     echo_step "4" "Complete" "Loading examples"
 fi

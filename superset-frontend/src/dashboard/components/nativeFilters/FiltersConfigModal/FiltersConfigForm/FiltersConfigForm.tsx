@@ -1106,15 +1106,16 @@ const FiltersConfigForm = (
                       initialValue={sort}
                       label={<StyledLabel>{t('Sort type')}</StyledLabel>}
                     >
-                      <Radio.Group
+                      <Radio.GroupWrapper
+                        options={[
+                          { value: true, label: t('Sort ascending') },
+                          { value: false, label: t('Sort descending') },
+                        ]}
                         onChange={value => {
                           onSortChanged(value.target.value);
                           formChanged();
                         }}
-                      >
-                        <Radio value>{t('Sort ascending')}</Radio>
-                        <Radio value={false}>{t('Sort descending')}</Radio>
-                      </Radio.Group>
+                      />
                     </StyledRowFormItem>
                     {hasMetrics && (
                       <StyledRowSubFormItem
@@ -1181,22 +1182,23 @@ const FiltersConfigForm = (
                         <StyledLabel>{t('Single value type')}</StyledLabel>
                       }
                     >
-                      <Radio.Group
+                      <Radio.GroupWrapper
                         onChange={value => {
                           onEnableSingleValueChanged(value.target.value);
                           formChanged();
                         }}
-                      >
-                        <Radio value={SingleValueType.Minimum}>
-                          {t('Minimum')}
-                        </Radio>
-                        <Radio value={SingleValueType.Exact}>
-                          {t('Exact')}
-                        </Radio>
-                        <Radio value={SingleValueType.Maximum}>
-                          {t('Maximum')}
-                        </Radio>
-                      </Radio.Group>
+                        options={[
+                          {
+                            label: t('Minimum'),
+                            value: SingleValueType.Minimum,
+                          },
+                          { label: t('Exact'), value: SingleValueType.Exact },
+                          {
+                            label: t('Maximum'),
+                            value: SingleValueType.Maximum,
+                          },
+                        ]}
+                      />
                     </StyledRowFormItem>
                   </CollapsibleControl>
                 </CleanFormItem>
@@ -1353,7 +1355,6 @@ const FiltersConfigForm = (
           forceUpdate={forceUpdate}
           filterScope={filterToEdit?.scope}
           formFilterScope={formFilter?.scope}
-          formScopingType={formFilter?.scoping}
           initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>

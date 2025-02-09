@@ -19,8 +19,8 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent, AsyncSelect } from 'src/components';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -50,7 +50,7 @@ import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { SelectValue } from 'antd/lib/select';
-import { isEmpty, isString } from 'lodash';
+import { isEmpty } from 'lodash';
 
 interface QueryDatabase {
   id?: number;
@@ -280,7 +280,7 @@ export const SaveDatasetModal = ({
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     let templateParams;
-    if (isString(datasource?.templateParams)) {
+    if (typeof datasource?.templateParams === 'string') {
       const p = JSON.parse(datasource.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {

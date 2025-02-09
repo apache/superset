@@ -21,7 +21,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
+import { VizType, isFeatureEnabled } from '@superset-ui/core';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
 import { render, screen, cleanup } from 'spec/helpers/testing-library';
@@ -47,13 +47,18 @@ const chartsDatasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 const datasetEndpoint = 'glob:*/api/v1/dataset/*';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on: new Date().toISOString(),
   creator: 'super user',
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: uiCore.VizType.LegacyBar,
+  viz_type: VizType.Bar,
   datasource_name: `ds${i}`,
   thumbnail_url: '/thumbnail',
 }));
@@ -119,12 +124,12 @@ const store = mockStore({ user });
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
 describe('ChartList', () => {
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
+  isFeatureEnabled.mockImplementation(
+    feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
+  );
 
   afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
+    isFeatureEnabled.mockRestore();
   });
 
   beforeEach(() => {
@@ -221,17 +226,14 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
+    isFeatureEnabled.mockImplementation(() => true);
     await renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
-    isFeatureEnabledMock.mockRestore();
+    isFeatureEnabled.mockRestore();
   });
 
   it('renders an "Import Chart" tooltip under import button', async () => {

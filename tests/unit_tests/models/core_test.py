@@ -17,13 +17,22 @@
 
 # pylint: disable=import-outside-toplevel
 
+
 from datetime import datetime
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy import (
+    Column,
+    Integer,
+    MetaData,
+    select,
+    Table as SqlalchemyTable,
+)
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
@@ -43,6 +52,29 @@ oauth2_client_info = {
         "scope": "refresh_token session:role:USERADMIN",
     }
 }
+
+
+@pytest.fixture
+def query() -> Select:
+    """
+    A nested query fixture used to test query optimization.
+    """
+    metadata = MetaData()
+    some_table = SqlalchemyTable(
+        "some_table",
+        metadata,
+        Column("a", Integer),
+        Column("b", Integer),
+        Column("c", Integer),
+    )
+
+    inner_select = select(some_table.c.a, some_table.c.b, some_table.c.c)
+    outer_select = select(inner_select.c.a, inner_select.c.b).where(
+        inner_select.c.a > 1,
+        inner_select.c.b == 2,
+    )
+
+    return outer_select
 
 
 def test_get_metrics(mocker: MockerFixture) -> None:
@@ -526,16 +558,47 @@ def test_get_oauth2_config(app_context: None) -> None:
     }
 
 
-def test_raw_connection_oauth(mocker: MockerFixture) -> None:
+def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
     """
     Test that we can start OAuth2 from `raw_connection()` errors.
 
-    Some databases that use OAuth2 need to trigger the flow when the connection is
-    created, rather than when the query runs. This happens when the SQLAlchemy engine
-    URI cannot be built without the user personal token.
+    With OAuth2, some databases will raise an exception when the engine is first created
+    (eg, BigQuery). Others, like, Snowflake, when the connection is created. And
+    finally, GSheets will raise an exception when the query is executed.
 
-    This test verifies that the exception is captured and raised correctly so that the
-    frontend can trigger the OAuth2 dance.
+    This tests verifies that when calling `raw_connection()` the OAuth2 flow is
+    triggered when the engine is created.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock()
+    g.user.id = 42
+
+    database = Database(
+        id=1,
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    _get_sqla_engine = mocker.patch.object(database, "_get_sqla_engine")
+    _get_sqla_engine.side_effect = OAuth2Error("OAuth2 required")
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        with database.get_raw_connection() as conn:
+            conn.cursor()
+    assert str(excinfo.value) == "You don't have permission to access the data."
+
+
+def test_raw_connection_oauth_connection(mocker: MockerFixture) -> None:
+    """
+    Test that we can start OAuth2 from `raw_connection()` errors.
+
+    With OAuth2, some databases will raise an exception when the engine is first created
+    (eg, BigQuery). Others, like, Snowflake, when the connection is created. And
+    finally, GSheets will raise an exception when the query is executed.
+
+    This tests verifies that when calling `raw_connection()` the OAuth2 flow is
+    triggered when the connection is created.
     """
     g = mocker.patch("superset.db_engine_specs.base.g")
     g.user = mocker.MagicMock()
@@ -556,6 +619,40 @@ def test_raw_connection_oauth(mocker: MockerFixture) -> None:
     with pytest.raises(OAuth2RedirectError) as excinfo:
         with database.get_raw_connection() as conn:
             conn.cursor()
+    assert str(excinfo.value) == "You don't have permission to access the data."
+
+
+def test_raw_connection_oauth_execute(mocker: MockerFixture) -> None:
+    """
+    Test that we can start OAuth2 from `raw_connection()` errors.
+
+    With OAuth2, some databases will raise an exception when the engine is first created
+    (eg, BigQuery). Others, like, Snowflake, when the connection is created. And
+    finally, GSheets will raise an exception when the query is executed.
+
+    This tests verifies that when calling `raw_connection()` the OAuth2 flow is
+    triggered when the connection is created.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock()
+    g.user.id = 42
+
+    database = Database(
+        id=1,
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
+    get_sqla_engine().__enter__().raw_connection().cursor().execute.side_effect = (
+        OAuth2Error("OAuth2 required")
+    )
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:  # noqa: PT012
+        with database.get_raw_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
     assert str(excinfo.value) == "You don't have permission to access the data."
 
 
@@ -604,6 +701,27 @@ def test_engine_context_manager(mocker: MockerFixture) -> None:
         source=None,
         sqlalchemy_uri="trino://",
     )
+
+
+def test_engine_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test that we handle OAuth2 when `create_engine` fails.
+    """
+    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+    mocker.patch.object(database, "_get_sqla_engine", side_effect=Exception)
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(database.db_engine_spec, "needs_oauth2", return_value=True)
+    start_oauth2_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2Error("OAuth2 required"),
+    )
+
+    with pytest.raises(OAuth2Error):
+        with database.get_sqla_engine("catalog", "schema"):
+            pass
+
+    start_oauth2_dance.assert_called_with(database)
 
 
 def test_purge_oauth2_tokens(session: Session) -> None:
@@ -683,3 +801,112 @@ def test_purge_oauth2_tokens(session: Session) -> None:
     # make sure database was not deleted... just in case
     database = session.query(Database).filter_by(id=database1.id).one()
     assert database.name == "my_oauth2_db"
+
+
+def test_compile_sqla_query_no_optimization(query: Select) -> None:
+    """
+    Test the `compile_sqla_query` method.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+    )
+
+    space = " "
+    #
+    assert (
+        database.compile_sqla_query(query, is_virtual=True)
+        == f"""SELECT anon_1.a, anon_1.b{space}
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c{space}
+FROM some_table) AS anon_1{space}
+WHERE anon_1.a > 1 AND anon_1.b = 2"""  # noqa: S608
+    )
+
+
+@with_feature_flags(OPTIMIZE_SQL=True)
+def test_compile_sqla_query(query: Select) -> None:
+    """
+    Test the `compile_sqla_query` method.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+    )
+
+    assert (
+        database.compile_sqla_query(query, is_virtual=True)
+        == """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+    )
+
+
+def test_get_all_table_names_in_schema(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    mocker.patch.object(database, "get_inspector")
+    get_table_names = mocker.patch(
+        "superset.db_engine_specs.postgres.PostgresEngineSpec.get_table_names"
+    )
+    get_table_names.return_value = {"first_table", "second_table", "third_table"}
+
+    tables_list = database.get_all_table_names_in_schema(
+        catalog="examples",
+        schema="public",
+    )
+    assert sorted(tables_list) == sorted(
+        {
+            ("first_table", "public", "examples"),
+            ("second_table", "public", "examples"),
+            ("third_table", "public", "examples"),
+        }
+    )
+
+
+def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    mocker.patch.object(database, "get_inspector")
+    get_view_names = mocker.patch(
+        "superset.db_engine_specs.base.BaseEngineSpec.get_view_names"
+    )
+    get_view_names.return_value = {"first_view", "second_view", "third_view"}
+
+    views_list = database.get_all_view_names_in_schema(
+        catalog="examples",
+        schema="public",
+    )
+    assert sorted(views_list) == sorted(
+        {
+            ("first_view", "public", "examples"),
+            ("second_view", "public", "examples"),
+            ("third_view", "public", "examples"),
+        }
+    )

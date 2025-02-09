@@ -29,7 +29,7 @@ describe('getFormData()', () => {
 
   const mockData = {
     datasource: '1__table',
-    viz_type: VizType.LegacySankey,
+    viz_type: VizType.Sankey,
     slice_id: 1,
     url_params: {},
     granularity_sqla: null,

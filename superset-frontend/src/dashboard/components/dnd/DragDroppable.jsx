@@ -248,6 +248,6 @@ export const Droppable = DropTarget(...dropConfig)(UnwrappedDragDroppable);
 
 // note that the composition order here determines using
 // component.method() vs decoratedComponentInstance.method() in the drag/drop config
-export default DragSource(...dragConfig)(
+export const DragDroppable = DragSource(...dragConfig)(
   DropTarget(...dropConfig)(UnwrappedDragDroppable),
 );

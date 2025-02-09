@@ -62,14 +62,11 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
-import { CrossFilterIndicator } from '../../selectors';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
-
-const EMPTY_ARRAY: CrossFilterIndicator[] = [];
 
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
@@ -94,20 +91,15 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
 
-  const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DashboardCrossFilters,
-  );
   const selectedCrossFilters = useMemo(
     () =>
-      isCrossFiltersEnabled
-        ? crossFiltersSelector({
-            dataMask,
-            chartIds,
-            chartLayoutItems,
-            verboseMaps,
-          })
-        : EMPTY_ARRAY,
-    [chartIds, chartLayoutItems, dataMask, isCrossFiltersEnabled, verboseMaps],
+      crossFiltersSelector({
+        dataMask,
+        chartIds,
+        chartLayoutItems,
+        verboseMaps,
+      }),
+    [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,

@@ -21,8 +21,8 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { Provider } from 'react-redux';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import moment from 'moment';
 import { INVALID_DATE } from '@superset-ui/chart-controls';
+import { extendedDayjs } from 'src/utils/dates';
 import TimeOffsetControls, {
   TimeOffsetControlsProps,
 } from './TimeOffsetControl';
@@ -73,8 +73,8 @@ describe('TimeOffsetControls', () => {
 
   // Our Time comparison control depends on this string for supporting date deletion on date picker
   // That's why this test is linked to the TimeOffsetControl component
-  it('Moment should return "Invalid date" when parsing an invalid date string', () => {
-    const invalidDate = moment('not-a-date');
+  it('Dayjs should return "Invalid date" when parsing an invalid date string', () => {
+    const invalidDate = extendedDayjs('not-a-date');
     expect(invalidDate.format()).toBe(INVALID_DATE);
   });
 });

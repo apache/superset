@@ -879,11 +879,11 @@ class TestUtils(SupersetTestCase):
             assert form_data == {}
             assert slc is None
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Top 10 Girl Name Share")
+        slc = self.get_slice("Life Expectancy VS Rural %")
         dashboard_id = 1
 
         assert slc.viz is not None

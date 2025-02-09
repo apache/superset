@@ -193,6 +193,12 @@ module.exports = {
             message:
               'Default React import is not required due to automatic JSX runtime in React 16.4',
           },
+          {
+            // this disallows wildcard imports from modules (but allows them for local files with `./` or `src/`)
+            selector:
+              'ImportNamespaceSpecifier[parent.source.value!=/^(\\.|src)/]',
+            message: 'Wildcard imports are not allowed',
+          },
         ],
       },
       settings: {
@@ -325,13 +331,18 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
-      'warn',
+      'error',
       {
         paths: [
           {
             name: 'antd',
             message:
               'Please import Ant components from the index of src/components',
+          },
+          {
+            name: 'antd-v5',
+            message:
+              'Please import Ant v5 components from the index of src/components',
           },
           {
             name: '@superset-ui/core',

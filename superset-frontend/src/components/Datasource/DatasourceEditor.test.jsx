@@ -21,7 +21,12 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
-import * as uiCore from '@superset-ui/core';
+import { isFeatureEnabled } from '@superset-ui/core';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 const props = {
   datasource: mockDatasource['7__table'],
@@ -47,8 +52,6 @@ const asyncRender = props =>
 
 describe('DatasourceEditor', () => {
   fetchMock.get(DATASOURCE_ENDPOINT, []);
-
-  let isFeatureEnabledMock;
 
   beforeEach(async () => {
     await asyncRender({
@@ -154,13 +157,11 @@ describe('DatasourceEditor', () => {
 
   describe('enable edit Source tab', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => false);
+      isFeatureEnabled.mockImplementation(() => false);
     });
 
     afterAll(() => {
-      isFeatureEnabledMock.mockRestore();
+      isFeatureEnabled.mockRestore();
     });
 
     it('Source Tab: edit mode', () => {

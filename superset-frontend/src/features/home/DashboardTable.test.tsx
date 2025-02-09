@@ -69,7 +69,7 @@ describe('DashboardTable', () => {
   });
 
   it('render a submenu with clickable tabs and buttons', async () => {
-    expect(wrapper.find('SubMenu')).toExist();
+    expect(wrapper.find('Menu')).toExist();
     expect(wrapper.find('[role="tab"]')).toHaveLength(2);
     expect(wrapper.find('Button')).toHaveLength(6);
     act(() => {

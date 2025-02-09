@@ -17,8 +17,10 @@
  * under the License.
  */
 
+import { addAlpha } from '@superset-ui/core';
 import { type ThemeConfig } from 'antd-v5';
 import { theme as supersetTheme } from 'src/preamble';
+import { mix } from 'polished';
 import { lightAlgorithm } from './light';
 
 export enum ThemeType {
@@ -55,15 +57,6 @@ const baseConfig: ThemeConfig = {
     zIndexPopupBase: supersetTheme.zIndex.max,
   },
   components: {
-    Alert: {
-      borderRadius: supersetTheme.borderRadius,
-      colorBgContainer: supersetTheme.colors.grayscale.light5,
-      colorBorder: supersetTheme.colors.grayscale.light3,
-      fontSize: supersetTheme.typography.sizes.m,
-      fontSizeLG: supersetTheme.typography.sizes.m,
-      fontSizeIcon: supersetTheme.typography.sizes.l,
-      colorText: supersetTheme.colors.grayscale.dark1,
-    },
     Avatar: {
       containerSize: 32,
       fontSize: supersetTheme.typography.sizes.s,
@@ -72,13 +65,61 @@ const baseConfig: ThemeConfig = {
     Badge: {
       paddingXS: supersetTheme.gridUnit * 2,
     },
+    Button: {
+      defaultBg: supersetTheme.colors.primary.light4,
+      defaultHoverBg: mix(
+        0.1,
+        supersetTheme.colors.primary.base,
+        supersetTheme.colors.primary.light4,
+      ),
+      defaultActiveBg: mix(
+        0.25,
+        supersetTheme.colors.primary.base,
+        supersetTheme.colors.primary.light4,
+      ),
+      defaultColor: supersetTheme.colors.primary.dark1,
+      defaultHoverColor: supersetTheme.colors.primary.dark1,
+      defaultBorderColor: 'transparent',
+      defaultHoverBorderColor: 'transparent',
+      colorPrimaryHover: supersetTheme.colors.primary.dark1,
+      colorPrimaryActive: mix(
+        0.2,
+        supersetTheme.colors.grayscale.dark2,
+        supersetTheme.colors.primary.dark1,
+      ),
+      primaryColor: supersetTheme.colors.grayscale.light5,
+      colorPrimaryTextHover: supersetTheme.colors.grayscale.light5,
+      colorError: supersetTheme.colors.error.base,
+      colorErrorHover: mix(
+        0.1,
+        supersetTheme.colors.grayscale.light5,
+        supersetTheme.colors.error.base,
+      ),
+      colorErrorBg: mix(
+        0.2,
+        supersetTheme.colors.grayscale.dark2,
+        supersetTheme.colors.error.base,
+      ),
+      dangerColor: supersetTheme.colors.grayscale.light5,
+      colorLinkHover: supersetTheme.colors.primary.base,
+      linkHoverBg: 'transparent',
+    },
     Card: {
       paddingLG: supersetTheme.gridUnit * 6,
       fontWeightStrong: supersetTheme.typography.weights.medium,
       colorBgContainer: supersetTheme.colors.grayscale.light4,
     },
+    DatePicker: {
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+      borderRadiusSM: supersetTheme.gridUnit / 2,
+    },
     Divider: {
       colorSplit: supersetTheme.colors.grayscale.light3,
+    },
+    Dropdown: {
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+      zIndexPopup: supersetTheme.zIndex.max,
     },
     Input: {
       colorBorder: supersetTheme.colors.secondary.light3,
@@ -99,6 +140,19 @@ const baseConfig: ThemeConfig = {
       paddingLG: supersetTheme.gridUnit * 3,
       colorSplit: supersetTheme.colors.grayscale.light3,
       colorText: supersetTheme.colors.grayscale.dark1,
+    },
+    Menu: {
+      itemHeight: 32,
+      colorBgContainer: supersetTheme.colors.grayscale.light5,
+      subMenuItemBg: supersetTheme.colors.grayscale.light5,
+      colorBgElevated: supersetTheme.colors.grayscale.light5,
+      boxShadowSecondary: `0 3px 6px -4px ${addAlpha(supersetTheme.colors.grayscale.dark2, 0.12)}, 0 6px 16px 0 ${addAlpha(supersetTheme.colors.grayscale.dark2, 0.08)}, 0 9px 28px 8px ${addAlpha(supersetTheme.colors.grayscale.dark2, 0.05)}`,
+      activeBarHeight: 0,
+      itemHoverBg: supersetTheme.colors.secondary.light5,
+      padding: supersetTheme.gridUnit * 2,
+      subMenuItemBorderRadius: 0,
+      horizontalLineHeight: 1.4,
+      zIndexPopup: supersetTheme.zIndex.max,
     },
     Modal: {
       colorBgMask: `${supersetTheme.colors.grayscale.dark2}73`,

@@ -455,7 +455,7 @@ test('should show missing params state', () => {
   expect(screen.getByText(/missing url parameters/i)).toBeVisible();
   expect(
     screen.getByText(
-      /the url is missing the dataset_id or slice_id parameters\./i,
+      /the url is missing the dataset_id or slice_id parameters/i,
     ),
   ).toBeVisible();
 });

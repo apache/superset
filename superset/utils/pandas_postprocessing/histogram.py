@@ -71,7 +71,7 @@ def histogram(
 
     if len(groupby) == 0:
         # without grouping
-        hist_dict = dict(zip(bin_edges_str, hist_values(df[column])))
+        hist_dict = dict(zip(bin_edges_str, hist_values(df[column]), strict=False))
         histogram_df = DataFrame(hist_dict, index=[0])
     else:
         # with grouping

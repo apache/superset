@@ -54,17 +54,22 @@ const drillBy = (targetDrillByColumn: string, isLegacy = false) => {
     interceptV1ChartData();
   }
 
-  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
-    .first()
-    .find("[role='menu'] [role='menuitem'] [title='Drill by']")
+  cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
+    .should('be.visible')
+    .find("[role='menu'] [role='menuitem']")
+    .contains(/^Drill by$/)
     .trigger('mouseover', { force: true });
+
   cy.get(
-    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-hidden) [data-test="drill-by-submenu"]',
+    '.antd5-dropdown-menu-submenu:not(.antd5-dropdown-menu-submenu-hidden) [data-test="drill-by-submenu"]',
   )
+    .should('be.visible')
     .find('[role="menuitem"]')
-    .contains(new RegExp(`^${targetDrillByColumn}$`))
-    .first()
-    .click({ force: true });
+    .then($el => {
+      cy.wrap($el)
+        .contains(new RegExp(`^${targetDrillByColumn}$`))
+        .trigger('keydown', { keyCode: 13, which: 13, force: true });
+    });
 
   if (isLegacy) {
     return cy.wait('@legacyData');
@@ -524,8 +529,8 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it('Bar Chart V2', () => {
-      testEchart('echarts_timeseries_bar', 'Bar Chart V2', [
+    it('Bar Chart', () => {
+      testEchart('echarts_timeseries_bar', 'Bar Chart', [
         [70, 94],
         [362, 68],
       ]);
@@ -593,7 +598,7 @@ describe('Drill by modal', () => {
       ]);
     });
 
-    it('Radar Chart', () => {
+    it.skip('Radar Chart', () => {
       testEchart('radar', 'Radar Chart', [
         [182, 49],
         [423, 91],

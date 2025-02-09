@@ -42,9 +42,8 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
 from superset.exceptions import SupersetException
-from superset.extensions import async_query_manager_factory, cache_manager
+from superset.extensions import cache_manager
 from superset.models import core as models
-from superset.models.cache import CacheKey
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
@@ -53,8 +52,6 @@ from superset.sql_parse import Table
 from superset.utils import core as utils, json
 from superset.utils.core import backend
 from superset.utils.database import get_example_database
-from superset.views.database.views import DatabaseView
-from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -136,10 +133,10 @@ class TestCore(SupersetTestCase):
         resp = self.client.get("/superset/slice/-1/")
         assert resp.status_code == 404
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_viz_cache_key(self):
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Top 10 Girl Name Share")
+        slc = self.get_slice("Life Expectancy VS Rural %")
 
         viz = slc.viz
         qobj = viz.query_obj()
@@ -204,11 +201,15 @@ class TestCore(SupersetTestCase):
         slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
 
         assert slc.slice_name == copy_name
+        form_data["datasource"] = f"{tbl_id}__table"
+        form_data["slice_id"] = new_slice_id
+
+        assert slc.form_data == form_data
         form_data.pop("slice_id")  # We don't save the slice id when saving as
-        assert slc.viz.form_data == form_data
 
         form_data = {
             "adhoc_filters": [],
+            "datasource": f"{tbl_id}__table",
             "viz_type": "sankey",
             "groupby": ["source"],
             "metric": "sum__value",
@@ -223,7 +224,7 @@ class TestCore(SupersetTestCase):
         )
         slc = db.session.query(Slice).filter_by(id=new_slice_id).one()
         assert slc.slice_name == new_slice_name
-        assert slc.viz.form_data == form_data
+        assert slc.form_data == form_data
 
         # Cleanup
         slices = (
@@ -265,13 +266,6 @@ class TestCore(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         # assert that /chart/add responds with 200
         url = "/chart/add"
-        resp = self.client.get(url)
-        assert resp.status_code == 200
-
-    def test_get_user_slices(self):
-        self.login(ADMIN_USERNAME)
-        userid = security_manager.find_user("admin").id
-        url = f"/sliceasync/api/read?_flt_0_created_by={userid}"
         resp = self.client.get(url)
         assert resp.status_code == 200
 
@@ -326,53 +320,6 @@ class TestCore(SupersetTestCase):
         # Disable for password store for later tests
         models.custom_password_store = None
 
-    def test_databaseview_edit(self):
-        # validate that sending a password-masked uri does not over-write the decrypted
-        # uri
-        self.login(ADMIN_USERNAME)
-        database = superset.utils.database.get_example_database()
-        sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
-        url = f"databaseview/edit/{database.id}"
-        data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
-        data["sqlalchemy_uri"] = database.safe_sqlalchemy_uri()
-        self.client.post(url, data=data)
-        database = superset.utils.database.get_example_database()
-        assert sqlalchemy_uri_decrypted == database.sqlalchemy_uri_decrypted
-
-        # Need to clean up after ourselves
-        database.impersonate_user = False
-        database.allow_dml = False
-        database.allow_run_async = False
-        db.session.commit()
-
-    @pytest.mark.usefixtures(
-        "load_birth_names_dashboard_with_slices",
-        "load_energy_table_with_slice",
-    )
-    def test_warm_up_cache(self):
-        self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Top 10 Girl Name Share")
-        data = self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
-        assert data == [
-            {"slice_id": slc.id, "viz_error": None, "viz_status": "success"}
-        ]
-
-        data = self.get_json_resp(
-            "/superset/warm_up_cache?table_name=energy_usage&db_name=main"
-        )
-        assert len(data) > 0
-
-        dashboard = self.get_dash_by_slug("births")
-
-        assert self.get_json_resp(
-            f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}"
-        ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
-
-        assert self.get_json_resp(
-            f"/superset/warm_up_cache?dashboard_id={dashboard.id}&slice_id={slc.id}&extra_filters="
-            + quote(json.dumps([{"col": "name", "op": "in", "val": ["Jennifer"]}]))
-        ) == [{"slice_id": slc.id, "viz_error": None, "viz_status": "success"}]
-
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
         self.login(ADMIN_USERNAME)
@@ -395,47 +342,6 @@ class TestCore(SupersetTestCase):
                     "viz_status": None,
                 }
             ]
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_cache_logging(self):
-        self.login(ADMIN_USERNAME)
-        store_cache_keys = app.config["STORE_CACHE_KEYS_IN_METADATA_DB"]
-        app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = True
-        slc = self.get_slice("Top 10 Girl Name Share")
-        self.get_json_resp(f"/superset/warm_up_cache?slice_id={slc.id}")
-        ck = db.session.query(CacheKey).order_by(CacheKey.id.desc()).first()
-        assert ck.datasource_uid == f"{slc.table.id}__table"
-        db.session.delete(ck)
-        app.config["STORE_CACHE_KEYS_IN_METADATA_DB"] = store_cache_keys
-
-    @with_feature_flags(KV_STORE=False)
-    def test_kv_disabled(self):
-        self.login(ADMIN_USERNAME)
-
-        resp = self.client.get("/kv/10001/")
-        assert 404 == resp.status_code
-
-        value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))  # noqa: C408
-        assert resp.status_code == 404
-
-    @with_feature_flags(KV_STORE=True)
-    def test_kv_enabled(self):
-        self.login(ADMIN_USERNAME)
-
-        resp = self.client.get("/kv/10001/")
-        assert 404 == resp.status_code
-
-        value = json.dumps({"data": "this is a test"})
-        resp = self.client.post("/kv/store/", data=dict(data=value))  # noqa: C408
-        assert resp.status_code == 200
-        kv = db.session.query(models.KeyValue).first()
-        kv_value = kv.value
-        assert json.loads(value) == json.loads(kv_value)
-
-        resp = self.client.get(f"/kv/{kv.id}/")
-        assert resp.status_code == 200
-        assert json.loads(value) == json.loads(resp.data.decode("utf-8"))
 
     def test_gamma(self):
         self.login(GAMMA_USERNAME)
@@ -557,263 +463,6 @@ class TestCore(SupersetTestCase):
             data["errors"][0]["message"]
             == "The dataset associated with this chart no longer exists"
         )
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_explore_json(self):
-        tbl_id = self.table_ids.get("birth_names")
-        form_data = {
-            "datasource": f"{tbl_id}__table",
-            "viz_type": "dist_bar",
-            "granularity_sqla": "ds",
-            "time_range": "No filter",
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["gender"],
-            "row_limit": 100,
-        }
-        self.login(ADMIN_USERNAME)
-        rv = self.client.post(
-            "/superset/explore_json/",
-            data={"form_data": json.dumps(form_data)},
-        )
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert rv.status_code == 200
-        assert data["rowcount"] == 2
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_explore_json_dist_bar_order(self):
-        tbl_id = self.table_ids.get("birth_names")
-        form_data = {
-            "datasource": f"{tbl_id}__table",
-            "viz_type": "dist_bar",
-            "url_params": {},
-            "granularity_sqla": "ds",
-            "time_range": 'DATEADD(DATETIME("2021-01-22T00:00:00"), -100, year) : 2021-01-22T00:00:00',  # noqa: E501
-            "metrics": [
-                {
-                    "expressionType": "SIMPLE",
-                    "column": {
-                        "id": 334,
-                        "column_name": "name",
-                        "verbose_name": "null",
-                        "description": "null",
-                        "expression": "",
-                        "filterable": True,
-                        "groupby": True,
-                        "is_dttm": False,
-                        "type": "VARCHAR(255)",
-                        "python_date_format": "null",
-                    },
-                    "aggregate": "COUNT",
-                    "sqlExpression": "null",
-                    "isNew": False,
-                    "hasCustomLabel": False,
-                    "label": "COUNT(name)",
-                    "optionName": "metric_xdzsijn42f9_khi4h3v3vci",
-                },
-                {
-                    "expressionType": "SIMPLE",
-                    "column": {
-                        "id": 332,
-                        "column_name": "ds",
-                        "verbose_name": "null",
-                        "description": "null",
-                        "expression": "",
-                        "filterable": True,
-                        "groupby": True,
-                        "is_dttm": True,
-                        "type": "TIMESTAMP WITHOUT TIME ZONE",
-                        "python_date_format": "null",
-                    },
-                    "aggregate": "COUNT",
-                    "sqlExpression": "null",
-                    "isNew": False,
-                    "hasCustomLabel": False,
-                    "label": "COUNT(ds)",
-                    "optionName": "metric_80g1qb9b6o7_ci5vquydcbe",
-                },
-            ],
-            "order_desc": True,
-            "adhoc_filters": [],
-            "groupby": ["name"],
-            "columns": [],
-            "row_limit": 10,
-            "color_scheme": "supersetColors",
-            "label_colors": {},
-            "show_legend": True,
-            "y_axis_format": "SMART_NUMBER",
-            "bottom_margin": "auto",
-            "x_ticks_layout": "auto",
-        }
-
-        self.login(ADMIN_USERNAME)
-        rv = self.client.post(
-            "/superset/explore_json/",
-            data={"form_data": json.dumps(form_data)},
-        )
-        data = json.loads(rv.data.decode("utf-8"))
-
-        resp = self.run_sql(
-            """
-            SELECT count(name) AS count_name, count(ds) AS count_ds
-            FROM birth_names
-            WHERE ds >= '1921-01-22 00:00:00.000000' AND ds < '2021-01-22 00:00:00.000000'
-            GROUP BY name
-            ORDER BY count_name DESC
-            LIMIT 10;
-            """,  # noqa: E501
-            client_id="client_id_1",
-            username="admin",
-        )
-        count_ds = []
-        count_name = []
-        for series in data["data"]:
-            if series["key"] == "COUNT(ds)":
-                count_ds = series["values"]
-            if series["key"] == "COUNT(name)":
-                count_name = series["values"]
-        for expected, actual_ds, actual_name in zip(resp["data"], count_ds, count_name):
-            assert expected["count_name"] == actual_name["y"]
-            assert expected["count_ds"] == actual_ds["y"]
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
-    def test_explore_json_async(self):
-        tbl_id = self.table_ids.get("birth_names")
-        form_data = {
-            "datasource": f"{tbl_id}__table",
-            "viz_type": "dist_bar",
-            "granularity_sqla": "ds",
-            "time_range": "No filter",
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["gender"],
-            "row_limit": 100,
-        }
-        app._got_first_request = False
-        async_query_manager_factory.init_app(app)
-        self.login(ADMIN_USERNAME)
-        rv = self.client.post(
-            "/superset/explore_json/",
-            data={"form_data": json.dumps(form_data)},
-        )
-        data = json.loads(rv.data.decode("utf-8"))
-        keys = list(data.keys())
-
-        # If chart is cached, it will return 200, otherwise 202
-        assert rv.status_code in {200, 202}
-        if rv.status_code == 202:
-            assert keys == [
-                "channel_id",
-                "job_id",
-                "user_id",
-                "status",
-                "errors",
-                "result_url",
-            ]
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch.dict(
-        "superset.extensions.feature_flag_manager._feature_flags",
-        GLOBAL_ASYNC_QUERIES=True,
-    )
-    def test_explore_json_async_results_format(self):
-        tbl_id = self.table_ids.get("birth_names")
-        form_data = {
-            "datasource": f"{tbl_id}__table",
-            "viz_type": "dist_bar",
-            "granularity_sqla": "ds",
-            "time_range": "No filter",
-            "metrics": ["count"],
-            "adhoc_filters": [],
-            "groupby": ["gender"],
-            "row_limit": 100,
-        }
-        app._got_first_request = False
-        async_query_manager_factory.init_app(app)
-        self.login(ADMIN_USERNAME)
-        rv = self.client.post(
-            "/superset/explore_json/?results=true",
-            data={"form_data": json.dumps(form_data)},
-        )
-        assert rv.status_code == 200
-
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    @mock.patch(
-        "superset.utils.cache_manager.CacheManager.cache",
-        new_callable=mock.PropertyMock,
-    )
-    @mock.patch("superset.viz.BaseViz.force_cached", new_callable=mock.PropertyMock)
-    def test_explore_json_data(self, mock_force_cached, mock_cache):
-        tbl_id = self.table_ids.get("birth_names")
-        form_data = dict(  # noqa: C418
-            {
-                "form_data": {
-                    "datasource": f"{tbl_id}__table",
-                    "viz_type": "dist_bar",
-                    "granularity_sqla": "ds",
-                    "time_range": "No filter",
-                    "metrics": ["count"],
-                    "adhoc_filters": [],
-                    "groupby": ["gender"],
-                    "row_limit": 100,
-                }
-            }
-        )
-
-        class MockCache:
-            def get(self, key):
-                return form_data
-
-            def set(self):
-                return None
-
-        mock_cache.return_value = MockCache()
-        mock_force_cached.return_value = False
-
-        self.login(ADMIN_USERNAME)
-        rv = self.client.get("/superset/explore_json/data/valid-cache-key")
-        data = json.loads(rv.data.decode("utf-8"))
-
-        assert rv.status_code == 200
-        assert data["rowcount"] == 2
-
-    @mock.patch(
-        "superset.utils.cache_manager.CacheManager.cache",
-        new_callable=mock.PropertyMock,
-    )
-    def test_explore_json_data_no_login(self, mock_cache):
-        tbl_id = self.table_ids.get("birth_names")
-        form_data = dict(  # noqa: C418
-            {
-                "form_data": {
-                    "datasource": f"{tbl_id}__table",
-                    "viz_type": "dist_bar",
-                    "granularity_sqla": "ds",
-                    "time_range": "No filter",
-                    "metrics": ["count"],
-                    "adhoc_filters": [],
-                    "groupby": ["gender"],
-                    "row_limit": 100,
-                }
-            }
-        )
-
-        class MockCache:
-            def get(self, key):
-                return form_data
-
-            def set(self):
-                return None
-
-        mock_cache.return_value = MockCache()
-
-        rv = self.client.get("/superset/explore_json/data/valid-cache-key")
-        assert rv.status_code == 403
 
     def test_explore_json_data_invalid_cache_key(self):
         self.login(ADMIN_USERNAME)

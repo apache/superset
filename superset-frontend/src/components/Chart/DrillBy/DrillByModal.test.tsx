@@ -19,7 +19,7 @@
 
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
-import { omit, isUndefined, omitBy } from 'lodash';
+import { omit, omitBy } from 'lodash';
 import userEvent from '@testing-library/user-event';
 import { waitFor, within } from '@testing-library/react';
 import { render, screen } from 'spec/helpers/testing-library';
@@ -166,7 +166,7 @@ test('should generate Explore url', async () => {
     form_data: {
       ...omitBy(
         omit(formData, ['slice_id', 'slice_name', 'dashboards']),
-        isUndefined,
+        i => i === undefined,
       ),
       groupby: ['name'],
       adhoc_filters: [

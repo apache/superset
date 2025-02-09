@@ -70,8 +70,10 @@ const loadOptions = async (search: string, page: number, pageSize: number) => {
   const optionFilterProps = ['label', 'value', 'gender'];
   const data = OPTIONS.filter(option =>
     optionFilterProps.some(prop => {
-      const optionProp = option?.[prop]
-        ? String(option[prop]).trim().toLowerCase()
+      const optionProp = option?.[prop as keyof typeof option]
+        ? String(option[prop as keyof typeof option])
+            .trim()
+            .toLowerCase()
         : '';
       return optionProp.includes(searchValue);
     }),

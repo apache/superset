@@ -20,7 +20,7 @@ import os
 import subprocess
 from datetime import datetime
 
-XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' "
+XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1280x1024x24' "
 REPO = os.getenv("GITHUB_REPOSITORY") or "apache/superset"
 GITHUB_EVENT_NAME = os.getenv("GITHUB_EVENT_NAME") or "push"
 CYPRESS_RECORD_KEY = os.getenv("CYPRESS_RECORD_KEY") or ""
@@ -55,7 +55,9 @@ def run_cypress_for_test_file(
             group_id = f"matrix{group}-file{i}-{attempt}"
             cmd = (
                 f"{XVFB_PRE_CMD} "
-                f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
+                f'{cypress_cmd} --spec "{test_file}" '
+                f"--config numTestsKeptInMemory=0 "
+                f"--browser {browser} "
                 f"--record --group {group_id} --tag {REPO},{GITHUB_EVENT_NAME} "
                 f"--ci-build-id {build_id} "
                 f"-- {chrome_flags}"
@@ -64,7 +66,9 @@ def run_cypress_for_test_file(
             os.environ.pop("CYPRESS_RECORD_KEY", None)
             cmd = (
                 f"{XVFB_PRE_CMD} "
-                f"{cypress_cmd} --browser {browser} "
+                f"{cypress_cmd} "
+                f"--browser {browser} "
+                f"--config numTestsKeptInMemory=0 "
                 f'--spec "{test_file}" '
                 f"-- {chrome_flags}"
             )

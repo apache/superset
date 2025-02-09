@@ -33,7 +33,7 @@ const mockCharts = [...new Array(3)].map((_, i) => ({
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: VizType.LegacyBar,
+  viz_type: VizType.Bar,
   datasource_title: `ds${i}`,
   thumbnail_url: '',
 }));
@@ -87,9 +87,7 @@ const renderChartTable = (props: any) =>
 test('renders with EmptyState if no data present', async () => {
   await renderChartTable(mockedProps);
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(
-    screen.getByText(/other charts will appear here/i),
-  ).toBeInTheDocument();
+  expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();
 });
 
 test('fetches chart favorites and renders chart cards', async () => {

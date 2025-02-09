@@ -24,39 +24,6 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { waitFor } from '@testing-library/react';
 import { UploadFile } from 'antd/lib/upload/interface';
-import { forEach } from 'lodash';
-
-fetchMock.post('glob:*api/v1/database/1/csv_upload/', {});
-fetchMock.post('glob:*api/v1/database/1/excel_upload/', {});
-fetchMock.post('glob:*api/v1/database/1/columnar_upload/', {});
-
-fetchMock.get(
-  'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:eq,value:!t)),page:0,page_size:100)',
-  {
-    result: [
-      {
-        id: 1,
-        database_name: 'database1',
-      },
-      {
-        id: 2,
-        database_name: 'database2',
-      },
-    ],
-  },
-);
-
-fetchMock.get('glob:*api/v1/database/*/catalogs/', {
-  result: [],
-});
-
-fetchMock.get('glob:*api/v1/database/1/schemas/', {
-  result: ['information_schema', 'public'],
-});
-
-fetchMock.get('glob:*api/v1/database/2/schemas/', {
-  result: ['schema1', 'schema2'],
-});
 
 const csvProps = {
   show: true,
@@ -78,6 +45,48 @@ const columnarProps = {
   allowedExtensions: ['parquet', 'zip'],
   type: 'columnar',
 };
+
+beforeEach(() => {
+  fetchMock.post('glob:*api/v1/database/1/upload/', {});
+
+  // 4 mocks below are not necessary
+  fetchMock.post('glob:*api/v1/database/csv_metadata/', {});
+  fetchMock.post('glob:*api/v1/database/excel_metadata/', {});
+  fetchMock.post('glob:*api/v1/database/columnar_metadata/', {});
+  fetchMock.post('glob:*api/v1/database/upload_metadata/', {});
+
+  fetchMock.get(
+    'glob:*api/v1/database/?q=(filters:!((col:allow_file_upload,opr:eq,value:!t)),page:0,page_size:100)',
+    {
+      result: [
+        {
+          id: 1,
+          database_name: 'database1',
+        },
+        {
+          id: 2,
+          database_name: 'database2',
+        },
+      ],
+    },
+  );
+
+  fetchMock.get('glob:*api/v1/database/*/catalogs/', {
+    result: [],
+  });
+
+  fetchMock.get('glob:*api/v1/database/1/schemas/', {
+    result: ['information_schema', 'public'],
+  });
+
+  fetchMock.get('glob:*api/v1/database/2/schemas/', {
+    result: ['schema1', 'schema2'],
+  });
+});
+
+afterEach(() => {
+  fetchMock.restore();
+});
 
 test('CSV, renders the general information elements correctly', () => {
   render(<UploadDataModal {...csvProps} />, {
@@ -601,7 +610,7 @@ test('form without required fields', async () => {
   await waitFor(() => screen.getByText('Table name is required'));
 });
 
-test('CSV, form post', async () => {
+test('CSV form post', async () => {
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -613,7 +622,7 @@ test('CSV, form post', async () => {
 
   // Select a file from the file dialog
   const file = new File(['test'], 'test.csv', { type: 'text' });
-  const inputElement = document.querySelector('input[type="file"]');
+  const inputElement = screen.getByTestId('model-file-input');
 
   if (inputElement) {
     userEvent.upload(inputElement as HTMLElement, file);
@@ -623,15 +632,15 @@ test('CSV, form post', async () => {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
-  await waitFor(() => screen.getByText('database1'));
-  await waitFor(() => screen.getByText('database2'));
+  await screen.findByText('database1');
+  await screen.findByText('database2');
 
   screen.getByText('database1').click();
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getAllByText('public'));
+  await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
   // Fill out form fields
@@ -644,21 +653,22 @@ test('CSV, form post', async () => {
   });
 
   userEvent.click(uploadButton);
-  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/csv_upload/'));
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
   // Get the matching fetch calls made
-  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/csv_upload/');
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
-  const [_, options] = matchingCalls[0];
+  const [, options] = matchingCalls[0];
   const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('csv');
   expect(formData.get('table_name')).toBe('table1');
   expect(formData.get('schema')).toBe('public');
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.csv');
-});
+}, 10000); // longer timeout to decrease flakiness
 
-test('Excel, form post', async () => {
+test('Excel form post', async () => {
   render(<UploadDataModal {...excelProps} />, {
     useRedux: true,
   });
@@ -670,7 +680,7 @@ test('Excel, form post', async () => {
 
   // Select a file from the file dialog
   const file = new File(['test'], 'test.xls', { type: 'text' });
-  const inputElement = document.querySelector('input[type="file"]');
+  const inputElement = screen.getByTestId('model-file-input');
 
   if (inputElement) {
     userEvent.upload(inputElement as HTMLElement, file);
@@ -680,15 +690,15 @@ test('Excel, form post', async () => {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
-  await waitFor(() => screen.getByText('database1'));
-  await waitFor(() => screen.getByText('database2'));
+  await screen.findByText('database1');
+  await screen.findByText('database2');
 
   screen.getByText('database1').click();
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getAllByText('public'));
+  await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
   // Fill out form fields
@@ -701,25 +711,22 @@ test('Excel, form post', async () => {
   });
 
   userEvent.click(uploadButton);
-  await waitFor(() =>
-    fetchMock.called('glob:*api/v1/database/1/excel_upload/'),
-  );
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
   // Get the matching fetch calls made
-  const matchingCalls = fetchMock.calls(
-    'glob:*api/v1/database/1/excel_upload/',
-  );
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
-  const [_, options] = matchingCalls[0];
+  const [, options] = matchingCalls[0];
   const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('excel');
   expect(formData.get('table_name')).toBe('table1');
   expect(formData.get('schema')).toBe('public');
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.xls');
-});
+}, 10000); // longer timeout to decrease flakiness
 
-test('Columnar, form post', async () => {
+test('Columnar form post', async () => {
   render(<UploadDataModal {...columnarProps} />, {
     useRedux: true,
   });
@@ -731,7 +738,7 @@ test('Columnar, form post', async () => {
 
   // Select a file from the file dialog
   const file = new File(['test'], 'test.parquet', { type: 'text' });
-  const inputElement = document.querySelector('input[type="file"]');
+  const inputElement = screen.getByTestId('model-file-input');
 
   if (inputElement) {
     userEvent.upload(inputElement as HTMLElement, file);
@@ -741,15 +748,15 @@ test('Columnar, form post', async () => {
     name: /select a database/i,
   });
   userEvent.click(selectDatabase);
-  await waitFor(() => screen.getByText('database1'));
-  await waitFor(() => screen.getByText('database2'));
+  await screen.findByText('database1');
+  await screen.findByText('database2');
 
   screen.getByText('database1').click();
   const selectSchema = screen.getByRole('combobox', {
     name: /schema/i,
   });
   userEvent.click(selectSchema);
-  await waitFor(() => screen.getAllByText('public'));
+  await screen.findAllByText('public');
   screen.getAllByText('public')[1].click();
 
   // Fill out form fields
@@ -762,27 +769,24 @@ test('Columnar, form post', async () => {
   });
 
   userEvent.click(uploadButton);
-  await waitFor(() =>
-    fetchMock.called('glob:*api/v1/database/1/columnar_upload/'),
-  );
+  await waitFor(() => fetchMock.called('glob:*api/v1/database/1/upload/'));
 
   // Get the matching fetch calls made
-  const matchingCalls = fetchMock.calls(
-    'glob:*api/v1/database/1/columnar_upload/',
-  );
+  const matchingCalls = fetchMock.calls('glob:*api/v1/database/1/upload/');
   expect(matchingCalls).toHaveLength(1);
-  const [_, options] = matchingCalls[0];
+  const [, options] = matchingCalls[0];
   const formData = options?.body as FormData;
+  expect(formData.get('type')).toBe('columnar');
   expect(formData.get('table_name')).toBe('table1');
   expect(formData.get('schema')).toBe('public');
   expect(formData.get('table_name')).toBe('table1');
   const fileData = formData.get('file') as File;
   expect(fileData.name).toBe('test.parquet');
-});
+}, 10000); // longer timeout to decrease flakiness
 
 test('CSV, validate file extension returns false', () => {
   const invalidFileNames = ['out', 'out.exe', 'out.csv.exe', '.csv', 'out.xls'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -795,7 +799,7 @@ test('CSV, validate file extension returns false', () => {
 
 test('Excel, validate file extension returns false', () => {
   const invalidFileNames = ['out', 'out.exe', 'out.xls.exe', '.csv', 'out.csv'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -814,7 +818,7 @@ test('Columnar, validate file extension returns false', () => {
     '.parquet',
     'out.excel',
   ];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -827,7 +831,7 @@ test('Columnar, validate file extension returns false', () => {
 
 test('CSV, validate file extension returns true', () => {
   const invalidFileNames = ['out.csv', 'out.tsv', 'out.exe.csv', 'out a.csv'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -840,7 +844,7 @@ test('CSV, validate file extension returns true', () => {
 
 test('Excel, validate file extension returns true', () => {
   const invalidFileNames = ['out.xls', 'out.xlsx', 'out.exe.xls', 'out a.xls'];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',
@@ -858,7 +862,7 @@ test('Columnar, validate file extension returns true', () => {
     'out.exe.zip',
     'out a.parquet',
   ];
-  forEach(invalidFileNames, fileName => {
+  invalidFileNames.forEach(fileName => {
     const file: UploadFile<any> = {
       name: fileName,
       uid: 'xp',

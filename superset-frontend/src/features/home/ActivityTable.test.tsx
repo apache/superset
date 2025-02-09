@@ -137,9 +137,5 @@ test('calls the getEdited batch call when edited tab is clicked', async () => {
 });
 test('show empty state if there is no data', () => {
   renderActivityTable(emptyActivityProps);
-  expect(
-    screen.getByText(
-      /recently created charts, dashboards, and saved queries will appear here/i,
-    ),
-  ).toBeInTheDocument();
+  expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();
 });

@@ -597,6 +597,7 @@ test('renders all notification fields', async () => {
   expect(recipients).toBeInTheDocument();
   expect(addNotificationMethod).toBeInTheDocument();
 });
+
 test('adds another notification method section after clicking add notification method', async () => {
   render(<AlertReportModal {...generateMockedProps(false, false, false)} />, {
     useRedux: true,
