@@ -192,10 +192,10 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         if dashboard and dashboard.get("nativeFilters"):
             for filter in dashboard.get("nativeFilters", []):
                 # todo(hugh): handle multiple nativeFilters + multi values
-                params = self._generate_native_filter(filter.get("nativeFilterId"), filter.get("columnName"), filter.get("filterValues")[0])
+                params = self._generate_native_filter(filter.get("nativeFilterId"), filter.get("columnName"), filter.get("filterValues"))
         return prison.dumps(params)
     
-    def _generate_native_filter(self, native_filter_id: str, column_name: str, value: str) -> dict:
+    def _generate_native_filter(self, native_filter_id: str, column_name: str, values: list[str]) -> dict:
         return { 
             native_filter_id: {
                 "id": native_filter_id,
@@ -204,14 +204,14 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                         {
                             "col": column_name,
                             "op": "IN",
-                            "val": [value]
+                            "val": values
                         }
                     ]
                 },
                 "filterState": {
                     "label": column_name, # pretty name but still works without this value
                     "validateStatus": False,
-                    "value": [value]
+                    "value": values
                 },
                 "ownState": {}
             }

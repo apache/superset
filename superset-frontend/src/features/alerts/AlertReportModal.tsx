@@ -676,7 +676,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
 
     // todo(hughhh): refactor to handle multiple native filters
-    currentAlert.extra.dashboard.nativeFilters = [nativeFilter]
+    console.log(nativeFilter);
+    currentAlert.extra.dashboard.nativeFilters = [nativeFilter];
 
     const data: any = {
       ...currentAlert,
@@ -1182,11 +1183,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   }
 
-  const onChangeDashboardFilterValue = (filterValue: any) => {
-    console.log('dashboardValue', filterValue);
+  const onChangeDashboardFilterValue = (filterValues: any) => {
+    console.log('dashboardValue', filterValues);
     // todo(hughhh): refactor to handle multiple native filters
-    // once you have multiselect
-    setSelectedNativeFilter({ ...nativeFilter, filterValues: [filterValue] });
+    setSelectedNativeFilter({ ...nativeFilter, filterValues });
   };
 
   // Make sure notification settings has the required info
@@ -1859,9 +1859,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <div className="control-label">{t('Select Dashboard Value')}</div>
                 <Select 
                   ariaLabel={t('Value')}
-                  value={nativeFilter.nativeFilterValue}
+                  value={nativeFilter.nativeFilterValues}
                   options={nativeFilterValues}
                   onChange={onChangeDashboardFilterValue}
+                  mode='multiple'
                 />
               </div>
             </StyledInputContainer>
