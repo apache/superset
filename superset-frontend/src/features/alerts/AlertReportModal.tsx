@@ -461,7 +461,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   // todo(hughhh): refactor to handle multiple native filters
   const [nativeFilter, setSelectedNativeFilter] = useState<object>({});
-  const [nativeFilters, setGlobalNativeFilters] = useState<object>({});
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -674,7 +673,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
 
-
     // todo(hughhh): refactor to handle multiple native filters
     console.log(nativeFilter);
     currentAlert.extra.dashboard.nativeFilters = [nativeFilter];
@@ -850,7 +848,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             value: JSON.stringify(Object.keys(allTabs)),
           });
           setTabOptions(tabTree);
-          setGlobalNativeFilters(nativeFilters);
 
           const anchor = currentAlert?.extra?.dashboard?.anchor;
           if (anchor) {
@@ -1162,26 +1159,31 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         // adhoc_filters: [],
         // extra_filters: [],
         // extra_form_data: {},
-        metrics: ["count"],
+        metrics: ['count'],
         row_limit: 1000,
         showSearch: true,
         // url_params: {
         //   native_filters_key: "0ktJOz1FTTo"
         // },
         // inView: true,
-        viz_type: "filter_select",
+        viz_type: 'filter_select',
         // type: "NATIVE_FILTER",
         dashboardId: dashboardId,
         // native_filter_id: "NATIVE_FILTER-8jS1fx4hl"
       },
       force: false,
-      ownState: {}
-    }
-    setSelectedNativeFilter({...nativeFilter, columnName, nativeFilterId})
+      ownState: {},
+    };
+    setSelectedNativeFilter({ ...nativeFilter, columnName, nativeFilterId });
     getChartDataRequest(filterValues).then(response => {
-      setNativeFilterValues(response.json.result[0].data.map((item: any) => ({value: item[columnName], label: item[columnName]})))
+      setNativeFilterValues(
+        response.json.result[0].data.map((item: any) => ({
+          value: item[columnName],
+          label: item[columnName],
+        })),
+      );
     });
-  }
+  };
 
   const onChangeDashboardFilterValue = (filterValues: any) => {
     console.log('dashboardValue', filterValues);
@@ -1372,6 +1374,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   useEffect(() => {
     if (resource) {
+      console.log('editting...', resource);
+      // Add native filter settings
+      setSelectedNativeFilter(resource.extra?.dashboard.nativeFilters[0]);
+
       // Add notification settings
       const settings = (resource.recipients || []).map(setting => {
         const config =
@@ -1834,7 +1840,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </>
             )}
           </StyledInputContainer>
-          
+
           {tabsEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
               <>
@@ -1847,22 +1853,32 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   placeholder={t('Select a tab')}
                 />
               </>
-              <div style={{marginTop: '10px', display: 'flex', flexDirection: 'column'}}>
-              <div className="control-label">{t('Select Dashboard Filter')}</div>
-                <Select 
+              <div
+                style={{
+                  marginTop: '10px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div className="control-label">
+                  {t('Select Dashboard Filter')}
+                </div>
+                <Select
                   disabled={nativeFilterOptions?.length < 1}
                   ariaLabel={t('Select Filter')}
-                  value={nativeFilter.nativeFilter}
+                  value={nativeFilter.columnName}
                   options={nativeFilterOptions}
                   onChange={onChangeDashboardFilter}
                 />
-                <div className="control-label">{t('Select Dashboard Value')}</div>
-                <Select 
+                <div className="control-label">
+                  {t('Select Dashboard Value')}
+                </div>
+                <Select
                   ariaLabel={t('Value')}
-                  value={nativeFilter.nativeFilterValues}
+                  value={nativeFilter.filterValues}
                   options={nativeFilterValues}
                   onChange={onChangeDashboardFilterValue}
-                  mode='multiple'
+                  mode="multiple"
                 />
               </div>
             </StyledInputContainer>
