@@ -45,7 +45,7 @@ This is the core application. Superset operates like this:
 
 This is where chart and dashboard definitions, user information, logs, etc. are stored. Superset is tested to work with PostgreSQL and MySQL databases as the metadata database (not be confused with a data source like your data warehouse, which could be a much greater variety of options like Snowflake, Redshift, etc.).
 
-Some installation methods like our Quickstart and PyPI come configured by default to use a SQLite on-disk database. And in a Docker Compose installation, the data would be stored in a PostgresQL container volume. Neither of these cases are recommended for production instances of Superset.
+Some installation methods like our Quickstart and PyPI come configured by default to use a SQLite on-disk database. And in a Docker Compose installation, the data would be stored in a PostgreSQL container volume. Neither of these cases are recommended for production instances of Superset.
 
 For production, a properly-configured, managed, standalone database is recommended. No matter what database you use, you should plan to back it up regularly.
 
