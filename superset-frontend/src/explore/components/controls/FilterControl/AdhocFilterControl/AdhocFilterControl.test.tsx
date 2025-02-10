@@ -26,7 +26,34 @@ import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
-const createProps = () => ({
+interface Column {
+  column_name: string;
+  type: string;
+}
+
+interface Database {
+  id: number;
+}
+
+interface Datasource {
+  type: string;
+  database: Database;
+  schema: string;
+  datasource_name: string;
+}
+
+interface Props {
+  name: string;
+  label: string;
+  value: AdhocFilter[];
+  datasource: Datasource;
+  columns: Column[];
+  onChange: jest.Mock;
+  sections: string[];
+  operators: string[];
+}
+
+const createProps = (): Props => ({
   name: 'filter_control',
   label: 'Filters',
   value: [],
@@ -45,7 +72,7 @@ const createProps = () => ({
   operators: ['==', '>', '<'],
 });
 
-const renderComponent = (props = {}) =>
+const renderComponent = (props: Partial<Props> = {}) =>
   render(
     <ThemeProvider theme={supersetTheme}>
       <DndProvider backend={HTML5Backend}>
@@ -71,7 +98,6 @@ describe('AdhocFilterControl', () => {
     });
 
     renderComponent({ value: [existingFilter] });
-    // Look for the combined filter text instead
     expect(screen.getByText("column1 = 'test'")).toBeInTheDocument();
   });
 
@@ -87,7 +113,6 @@ describe('AdhocFilterControl', () => {
 
     renderComponent({ value: [existingFilter], onChange });
 
-    // Use data-test attribute to find the remove button
     const removeButton = screen.getByTestId('remove-control-button');
     await userEvent.click(removeButton);
 
@@ -103,25 +128,34 @@ describe('AdhocFilterControl', () => {
   it('should handle partition column data', async () => {
     const mockPartitionColumn = 'date_column';
     const mockResponse = {
-      json: {
-        partitions: {
-          cols: [mockPartitionColumn],
-        },
+      partitions: {
+        cols: [mockPartitionColumn],
       },
     };
 
-    global.fetch = jest.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve(mockResponse.json),
-      }),
-    );
+    const createMockResponse = () => {
+      const response = new Response(JSON.stringify(mockResponse), {
+        status: 200,
+        statusText: 'OK',
+        headers: new Headers({
+          'Content-Type': 'application/json',
+        }),
+      });
+
+      jest
+        .spyOn(response, 'json')
+        .mockImplementation(() => Promise.resolve(mockResponse));
+      return response;
+    };
+
+    global.fetch = jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(createMockResponse()));
 
     renderComponent();
 
-    // Wait for the component to fetch partition data
     await screen.findByTestId('adhoc-filter-control');
 
-    // Verify the component state was updated
     const component = screen.getByTestId('adhoc-filter-control');
     expect(component).toBeInTheDocument();
   });
