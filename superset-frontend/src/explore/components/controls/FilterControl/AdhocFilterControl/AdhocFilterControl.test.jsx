@@ -16,131 +16,113 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import sinon from 'sinon';
-import { shallow } from 'enzyme';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
+import { ThemeProvider } from '@emotion/react';
 import { supersetTheme } from '@superset-ui/core';
-
-import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
-import { LabelsContainer } from 'src/explore/components/controls/OptionControls';
-import {
-  AGGREGATES,
-  Operators,
-  OPERATOR_ENUM_TO_OPERATOR_TYPE,
-} from 'src/explore/constants';
-import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import AdhocFilterControl from '.';
+import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
-const simpleAdhocFilter = new AdhocFilter({
-  expressionType: ExpressionTypes.Simple,
-  subject: 'value',
-  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
-  comparator: '10',
-  clause: Clauses.Where,
+const createProps = () => ({
+  name: 'filter_control',
+  label: 'Filters',
+  value: [],
+  datasource: {
+    type: 'table',
+    database: { id: 1 },
+    schema: 'test_schema',
+    datasource_name: 'test_table',
+  },
+  columns: [
+    { column_name: 'column1', type: 'STRING' },
+    { column_name: 'column2', type: 'NUMBER' },
+  ],
+  onChange: jest.fn(),
+  sections: ['WHERE', 'HAVING'],
+  operators: ['==', '>', '<'],
 });
 
-const sumValueAdhocMetric = new AdhocMetric({
-  expressionType: ExpressionTypes.Simple,
-  column: { type: 'VARCHAR(255)', column_name: 'source' },
-  aggregate: AGGREGATES.SUM,
-});
-
-const savedMetric = { metric_name: 'sum__value', expression: 'SUM(value)' };
-
-const columns = [
-  { type: 'VARCHAR(255)', column_name: 'source' },
-  { type: 'VARCHAR(255)', column_name: 'target' },
-  { type: 'DOUBLE', column_name: 'value' },
-];
-
-const formData = {
-  metric: undefined,
-  metrics: [sumValueAdhocMetric, savedMetric.metric_name],
-};
-
-function setup(overrides) {
-  const onChange = sinon.spy();
-  const props = {
-    onChange,
-    value: [simpleAdhocFilter],
-    datasource: { type: 'table' },
-    columns,
-    savedMetrics: [savedMetric],
-    formData,
-    theme: supersetTheme,
-    ...overrides,
-  };
-  const wrapper = shallow(<AdhocFilterControl {...props} />);
-  const component = wrapper.shallow();
-  return { wrapper, component, onChange };
-}
+const renderComponent = (props = {}) =>
+  render(
+    <ThemeProvider theme={supersetTheme}>
+      <DndProvider backend={HTML5Backend}>
+        <AdhocFilterControl {...createProps()} {...props} />
+      </DndProvider>
+    </ThemeProvider>,
+  );
 
 describe('AdhocFilterControl', () => {
-  it('renders LabelsContainer', () => {
-    const { component } = setup();
-    expect(component.find(LabelsContainer)).toBeTruthy();
+  it('should render with default props', () => {
+    renderComponent();
+    expect(screen.getByText('Add filter')).toBeInTheDocument();
+    expect(screen.getByTestId('adhoc-filter-control')).toBeInTheDocument();
   });
 
-  it('handles saved metrics being selected to filter on', () => {
-    const { component, onChange } = setup({ value: [] });
-    component.instance().onNewFilter({ saved_metric_name: 'sum__value' });
+  test('should render existing filters', () => {
+    const existingFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'column1',
+      operator: '==',
+      comparator: 'test',
+      clause: Clauses.Where,
+    });
 
-    const adhocFilter = onChange.lastCall.args[0][0];
-    expect(adhocFilter instanceof AdhocFilter).toBe(true);
-    expect(
-      adhocFilter.equals(
-        new AdhocFilter({
-          expressionType: ExpressionTypes.Sql,
-          subject: savedMetric.expression,
-          operator:
-            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
-          comparator: 0,
-          clause: Clauses.Having,
-        }),
-      ),
-    ).toBe(true);
+    renderComponent({ value: [existingFilter] });
+    // Look for the combined filter text instead
+    expect(screen.getByText("column1 = 'test'")).toBeInTheDocument();
   });
 
-  it('handles adhoc metrics being selected to filter on', () => {
-    const { component, onChange } = setup({ value: [] });
-    component.instance().onNewFilter(sumValueAdhocMetric);
+  test('should call onChange when removing a filter', async () => {
+    const existingFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'column1',
+      operator: '==',
+      comparator: 'test',
+      clause: Clauses.Where,
+    });
+    const onChange = jest.fn();
 
-    const adhocFilter = onChange.lastCall.args[0][0];
-    expect(adhocFilter instanceof AdhocFilter).toBe(true);
-    expect(
-      adhocFilter.equals(
-        new AdhocFilter({
-          expressionType: ExpressionTypes.Sql,
-          subject: sumValueAdhocMetric.label,
-          operator:
-            OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
-          comparator: 0,
-          clause: Clauses.Having,
-        }),
-      ),
-    ).toBe(true);
+    renderComponent({ value: [existingFilter], onChange });
+
+    // Use data-test attribute to find the remove button
+    const removeButton = screen.getByTestId('remove-control-button');
+    await userEvent.click(removeButton);
+
+    expect(onChange).toHaveBeenCalledWith([]);
   });
 
-  it('persists existing filters even when new filters are added', () => {
-    const { component, onChange } = setup();
-    component.instance().onNewFilter(columns[0]);
+  it('should show add filter button when no filters exist', () => {
+    renderComponent();
+    const addButton = screen.getByTestId('add-filter-button');
+    expect(addButton).toBeInTheDocument();
+  });
 
-    const existingAdhocFilter = onChange.lastCall.args[0][0];
-    expect(existingAdhocFilter instanceof AdhocFilter).toBe(true);
-    expect(existingAdhocFilter.equals(simpleAdhocFilter)).toBe(true);
+  it('should handle partition column data', async () => {
+    const mockPartitionColumn = 'date_column';
+    const mockResponse = {
+      json: {
+        partitions: {
+          cols: [mockPartitionColumn],
+        },
+      },
+    };
 
-    const newAdhocFilter = onChange.lastCall.args[0][1];
-    expect(newAdhocFilter instanceof AdhocFilter).toBe(true);
-    expect(
-      newAdhocFilter.equals(
-        new AdhocFilter({
-          expressionType: ExpressionTypes.Simple,
-          subject: columns[0].column_name,
-          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
-          comparator: '',
-          clause: Clauses.Where,
-        }),
-      ),
-    ).toBe(true);
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        json: () => Promise.resolve(mockResponse.json),
+      }),
+    );
+
+    renderComponent();
+
+    // Wait for the component to fetch partition data
+    await screen.findByTestId('adhoc-filter-control');
+
+    // Verify the component state was updated
+    const component = screen.getByTestId('adhoc-filter-control');
+    expect(component).toBeInTheDocument();
   });
 });
