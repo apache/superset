@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { REPORT_LIST } from '../../utils/urls';
 import { test, expect } from '@playwright/test';
+import { REPORT_LIST } from '../../utils/urls';
 
 test.describe('Report list view', () => {
   test.beforeEach(async ({ page }) => {

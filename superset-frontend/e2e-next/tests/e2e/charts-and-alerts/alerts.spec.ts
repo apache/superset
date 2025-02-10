@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ALERT_LIST } from '../../utils/urls';
 import { test, expect } from '@playwright/test';
+import { ALERT_LIST } from '../../utils/urls';
 
 test.describe('Alert list view', () => {
   test.beforeEach(async ({ page }) => {

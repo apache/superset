@@ -18,9 +18,9 @@
  */
 
 import { APIRequestContext, Page } from '@playwright/test';
-import config from '../../playwright.config';
 import { readFileSync } from 'fs';
 import path from 'path';
+import config from '../../playwright.config';
 
 const BASE_EXPLORE_URL = '/explore/?form_data=';
 const DASHBOARD_FIXTURES: Record<string, any>[] = JSON.parse(
@@ -38,7 +38,7 @@ const getDashboards = async (request: APIRequestContext) => {
     },
   });
   const body = await response.body();
-  const result: Record<string, any>[] = JSON.parse(body.toString()).result;
+  const { result } = JSON.parse(body.toString());
   return result;
 };
 
@@ -49,9 +49,9 @@ const cleanDashboards = async (request: APIRequestContext) => {
     const isInDb = sampleDashboards
       ?.filter(
         (d: Record<string, any>) =>
-          d['dashboard_title'] === fixture['dashboard_title'],
+          d.dashboard_title === fixture.dashboard_title,
       )
-      .map(i => i['id']);
+      .map(i => i.id);
     if (isInDb) {
       deletableDashboards.push(...isInDb);
     }
@@ -76,7 +76,8 @@ export const createSampleDashboards = async (
   indexes?: number[],
 ) => {
   await cleanDashboards(request);
-  for (let i = 0; i < DASHBOARD_FIXTURES.length; i++) {
+  /* eslint-disable no-await-in-loop */
+  for (let i = 0; i < DASHBOARD_FIXTURES.length; i += 1) {
     if (indexes?.includes(i) || !indexes) {
       await request.post(`/api/v1/dashboard/`, {
         failOnStatusCode: false,
@@ -98,7 +99,7 @@ const getCharts = async (request: APIRequestContext) => {
     },
   });
   const body = await response.body();
-  const result: Record<string, any>[] = JSON.parse(body.toString()).result;
+  const { result } = JSON.parse(body.toString());
   return result;
 };
 
@@ -107,10 +108,8 @@ export const cleanCharts = async (request: APIRequestContext) => {
   const deletableCharts: any[] = [];
   for (const fixture of CHART_FIXTURES) {
     const isInDb = sampleCharts
-      ?.filter(
-        (d: Record<string, any>) => d['slice_name'] === fixture['slice_name'],
-      )
-      .map(i => i['id']);
+      ?.filter((d: Record<string, any>) => d.slice_name === fixture.slice_name)
+      .map(i => i.id);
     if (isInDb) {
       deletableCharts.push(...isInDb);
     }
@@ -131,7 +130,8 @@ export const createSampleCharts = async (
   indexes?: number[],
 ) => {
   await cleanCharts(request);
-  for (let i = 0; i < CHART_FIXTURES.length; i++) {
+  /* eslint-disable no-await-in-loop */
+  for (let i = 0; i < CHART_FIXTURES.length; i += 1) {
     if (indexes?.includes(i) || !indexes) {
       await request.post(`/api/v1/chart/`, {
         data: CHART_FIXTURES[i],
