@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
 import { act } from 'spec/helpers/testing-library';
+import { styledMount as mount } from 'spec/helpers/theming';
 import { QueryParamProvider } from 'use-query-params';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import thunk from 'redux-thunk';
@@ -144,7 +144,7 @@ const factory = (props = mockedProps) =>
   );
 
 // TODO: rewrite to rtl
-describe.skip('ListView', () => {
+describe('ListView', () => {
   let wrapper = beforeAll(async () => {
     wrapper = factory();
     await waitForComponentToPaint(wrapper);
