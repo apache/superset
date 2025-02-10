@@ -185,7 +185,9 @@ install-playwright() {
 }
 
 run-e2e-all() {
-    # --no-debugger means disable the interactive debugger on the 500 page
+  cd "$GITHUB_WORKSPACE/superset-frontend/e2e-next"
+
+  # --no-debugger means disable the interactive debugger on the 500 page
   # so errors can print to stderr.
   local flasklog="${HOME}/flask.log"
   local port=8081
