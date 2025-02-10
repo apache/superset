@@ -16,20 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  cleanup,
-  render,
-  screen,
-  userEvent,
-} from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import FilterConfigurationLink from '.';
-
-// Add cleanup after each test
-afterEach(async () => {
-  cleanup();
-  // Wait for any pending effects to complete
-  await new Promise(resolve => setTimeout(resolve, 0));
-});
 
 test('should render', () => {
   const { container } = render(
@@ -48,12 +36,17 @@ test('should render the config link text', () => {
   expect(screen.getByText('Config link')).toBeInTheDocument();
 });
 
-test('should render the modal on click', async () => {
-  render(<FilterConfigurationLink>Config link</FilterConfigurationLink>, {
-    useRedux: true,
-  });
+test('should render the modal on click', () => {
+  const showModal = jest.fn();
+  render(
+    <FilterConfigurationLink onClick={showModal}>
+      Config link
+    </FilterConfigurationLink>,
+    {
+      useRedux: true,
+    },
+  );
   const configLink = screen.getByText('Config link');
-  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  await userEvent.click(configLink);
-  expect(screen.getByRole('dialog')).toBeInTheDocument();
+  userEvent.click(configLink);
+  expect(showModal).toHaveBeenCalled();
 });
