@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { Provider } from 'react-redux';
 import { AntdForm, FormInstance } from 'src/components';
 import FiltersConfigForm, {
