@@ -31,7 +31,7 @@ type optionsType = {
 export function styledMount(
   component: ReactElement,
   options: optionsType = {},
-) {
+): ReturnType<typeof enzymeMount> {
   return enzymeMount(component, {
     ...options,
     wrappingComponent: ProviderWrapper,
@@ -45,7 +45,7 @@ export function styledMount(
 export function styledShallow(
   component: ReactElement,
   options: optionsType = {},
-) {
+): ReturnType<typeof enzymeShallow> {
   return enzymeShallow(component, {
     ...options,
     wrappingComponent: ProviderWrapper,
