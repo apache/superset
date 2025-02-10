@@ -101,6 +101,7 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
 </ul>`,
     isInt: false,
     renderTrigger: true,
+    valueKey: null,
 
     validators: [validateNonEmpty],
     mapStateToProps: ({ controls }) => ({
