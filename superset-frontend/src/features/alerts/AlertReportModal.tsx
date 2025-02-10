@@ -1376,6 +1376,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     if (resource) {
       console.log('editting...', resource);
       // Add native filter settings
+      const nativeFilterOptionLabel = nativeFilterOptions.find(
       setSelectedNativeFilter(resource.extra?.dashboard.nativeFilters[0]);
 
       // Add notification settings
