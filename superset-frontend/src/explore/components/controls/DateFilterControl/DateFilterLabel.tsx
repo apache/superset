@@ -355,23 +355,24 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );
-
   const popoverContent = (
     <ControlPopover
-      placement="right"
+      autoAdjustOverflow={false}
       trigger="click"
+      placement="right"
       content={overlayContent}
       title={title}
-      defaultVisible={show}
-      visible={show}
-      onVisibleChange={toggleOverlay}
+      defaultOpen={show}
+      open={show}
+      onOpenChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
-      getPopupContainer={triggerNode =>
+      destroyTooltipOnHide
+      getPopupContainer={nodeTrigger =>
         isOverflowingFilterBar
-          ? (triggerNode.parentNode as HTMLElement)
+          ? (nodeTrigger.parentNode as HTMLElement)
           : document.body
       }
-      destroyTooltipOnHide
+      overlayClassName="time-range-popover"
     >
       <Tooltip placement="top" title={tooltipTitle}>
         <DateLabel
