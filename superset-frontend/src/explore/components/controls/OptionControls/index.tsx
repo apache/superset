@@ -386,7 +386,7 @@ export const OptionControlLabel = ({
         />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icons.FieldDerived />}
+        {isFunction && <Icons.FunctionOutlined iconSize="m" />}
         {getLabelContent()}
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (

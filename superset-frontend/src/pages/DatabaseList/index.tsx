@@ -21,6 +21,7 @@ import {
   styled,
   SupersetClient,
   t,
+  useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
@@ -78,14 +79,6 @@ interface DatabaseListProps {
   };
 }
 
-const IconCheck = styled(Icons.Check)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 
@@ -96,7 +89,18 @@ const Actions = styled.div`
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  return value ? <IconCheck /> : <IconCancelX />;
+  const theme = useTheme();
+  return value ? (
+    <Icons.CheckOutlined
+      iconSize="m"
+      iconColor={theme.colors.grayscale.dark1}
+    />
+  ) : (
+    <Icons.CloseOutlined
+      iconSize="m"
+      iconColor={theme.colors.grayscale.light1}
+    />
+  );
 }
 
 function DatabaseList({

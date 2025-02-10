@@ -188,7 +188,10 @@ const QueryTable = ({
       timed_out: {
         config: {
           icon: (
-            <Icons.Clock iconColor={theme.colors.error.base} iconSize="m" />
+            <Icons.ClockCircleOutlined
+              iconColor={theme.colors.error.base}
+              iconSize="m"
+            />
           ),
           label: t('Offline'),
         },

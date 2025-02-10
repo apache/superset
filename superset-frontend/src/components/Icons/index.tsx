@@ -36,8 +36,7 @@ const IconFileNames = [
   'binoculars',
   'bolt_small',
   'bolt_small_run',
-  'cancel',
-  'cancel_solid',
+
   'cancel-x',
   'card_view',
   'cards',
@@ -45,7 +44,6 @@ const IconFileNames = [
   'checkbox-half',
   'checkbox-off',
   'checkbox-on',
-  'clock',
   'code',
   'cog',
   'collapse',
@@ -68,7 +66,6 @@ const IconFileNames = [
   'exclamation',
   'expand',
   'field_abc',
-  'field_boolean',
   'field_date',
   'field_derived',
   'field_num',
@@ -77,7 +74,6 @@ const IconFileNames = [
   'filter',
   'filter_small',
   'folder',
-  'function_x',
   'grid',
   'image',
   'import',
@@ -164,6 +160,11 @@ const IconFileNames = [
   'circle_check',
   'circle_check_solid',
   'circle',
+  'function_x',
+  'clock',
+  'cancel',
+  'cancel_solid',
+  'field_boolean',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

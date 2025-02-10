@@ -69,7 +69,11 @@ export default function Timer({
   }, [endTime, isRunning, startTime]);
 
   return (
-    <TimerLabel icon={<Icons.Clock iconSize="m" />} type={status} role="timer">
+    <TimerLabel
+      icon={<Icons.ClockCircleOutlined iconSize="m" />}
+      type={status}
+      role="timer"
+    >
       {clockStr}
     </TimerLabel>
   );

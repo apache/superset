@@ -159,7 +159,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
           };
           if (status === QueryState.Success) {
             statusConfig.name = (
-              <Icons.Check iconColor={theme.colors.success.base} />
+              <Icons.CheckOutlined
+                iconSize="m"
+                iconColor={theme.colors.success.base}
+                css={{ verticalAlign: '-webkit-baseline-middle' }}
+              />
             );
             statusConfig.label = t('Success');
           } else if (

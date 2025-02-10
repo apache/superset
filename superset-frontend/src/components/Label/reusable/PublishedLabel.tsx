@@ -32,9 +32,9 @@ const PublishedLabel: React.FC<PublishedLabelProps> = ({
 }) => {
   const label = isPublished ? t('Published') : t('Draft');
   const icon = isPublished ? (
-    <Icons.CircleCheck iconSize="s" />
+    <Icons.CheckCircleOutlined iconSize="s" />
   ) : (
-    <Icons.Minus iconSize="s" />
+    <Icons.MinusCircleOutlined iconSize="s" />
   );
   const labelType = isPublished ? 'primary' : 'secondary';
 

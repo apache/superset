@@ -103,10 +103,6 @@ const StyledTabsContainer = styled.div`
   }
 `;
 
-const StyledCancelXIcon = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 const DropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colors.primary.base};
   width: 5px;
@@ -119,7 +115,7 @@ const DropIndicator = styled.div`
 
 const CloseIconWithDropIndicator = props => (
   <>
-    <StyledCancelXIcon />
+    <Icons.CloseOutlined iconSize="s" iconColor={theme.colors.grayscale.base} />
     {props.showDropIndicators.right && (
       <DropIndicator className="drop-indicator-right" pos="right" />
     )}

@@ -22,7 +22,13 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import { styled, t, QueryState, useTheme } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  QueryState,
+  SupersetTheme,
+  useTheme,
+} from '@superset-ui/core';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -75,6 +81,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
     ({ sqlLab }) => sqlLab.queries[qe.latestQueryId || '']?.state || '',
   );
   const StatusIcon = queryState ? STATE_ICONS[queryState] : STATE_ICONS.running;
+
   const dispatch = useDispatch();
   const actions = useMemo(
     () =>
@@ -97,17 +104,20 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       actions.queryEditorSetTitle(qe, newTitle, qe.id);
     }
   }
-  const getStatusColor = (state: QueryState, theme: any) => {
-    switch (state) {
-      case 'running':
-        return theme.colors.info.base;
-      case 'success':
-        return theme.colors.success.base;
-      case 'failed':
-        return theme.colors.error.base;
-      default:
-        return theme.colors.grayscale.light2;
-    }
+  const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
+    const statusColors: Record<QueryState, string> = {
+      [QueryState.Running]: theme.colors.info.base,
+      [QueryState.Success]: theme.colors.success.base,
+      [QueryState.Failed]: theme.colors.error.base,
+      [QueryState.Started]: theme.colors.primary.base,
+      [QueryState.Stopped]: theme.colors.warning.base,
+      [QueryState.Pending]: theme.colors.grayscale.light1,
+      [QueryState.Scheduled]: theme.colors.grayscale.light2,
+      [QueryState.Fetching]: theme.colors.secondary.base,
+      [QueryState.TimedOut]: theme.colors.error.dark1,
+    };
+
+    return statusColors[state] || theme.colors.grayscale.light2;
   };
   return (
     <TabTitleWrapper>

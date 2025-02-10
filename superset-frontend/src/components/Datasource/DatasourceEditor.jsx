@@ -137,6 +137,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+  [aria-label="database"] {
+    margin-right: 0px!important;
+  }
   `}
 `;
 
@@ -1472,7 +1475,7 @@ class DatasourceEditor extends PureComponent {
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
                   >
-                    <i className="fa fa-database" />{' '}
+                    <Icons.DatabaseOutlined iconSize="m" />
                     {t('Sync columns from source')}
                   </Button>
                 </StyledButtonWrapper>
