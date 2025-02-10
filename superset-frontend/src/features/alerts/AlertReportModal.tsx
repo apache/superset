@@ -79,6 +79,7 @@ import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { getFormData } from '../../utils';
+import { native } from 'rimraf';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -458,6 +459,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
   const [nativeFilterOptions, setNativeFilterOptions] = useState<object>([]);
   const [nativeFilterValues, setNativeFilterValues] = useState<object>([]);
+  const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
 
   // todo(hughhh): refactor to handle multiple native filters
   const [nativeFilter, setSelectedNativeFilter] = useState<object>({});
@@ -674,7 +676,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       contentType === ContentType.Chart && !isReport;
 
     // todo(hughhh): refactor to handle multiple native filters
-    console.log(nativeFilter);
     currentAlert.extra.dashboard.nativeFilters = [nativeFilter];
 
     const data: any = {
@@ -848,6 +849,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             value: JSON.stringify(Object.keys(allTabs)),
           });
           setTabOptions(tabTree);
+          setTabNativeFilters(nativeFilters);
 
           const anchor = currentAlert?.extra?.dashboard?.anchor;
           if (anchor) {
@@ -1135,15 +1137,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilter = (nativeFilterId: string) => {
+    console.log('dashboardFilter', nativeFilterId);
+
     // set dashboardFilter
     const anchor = currentAlert?.extra?.dashboard?.anchor;
-    const inScopeFilters = nativeFilters[anchor];
+    const inScopeFilters = tabNativeFilters[anchor];
     const filter = inScopeFilters.filter(
       (f: any) => f.id === nativeFilterId,
     )[0];
 
     const { datasetId } = filter.targets[0];
     const columnName = filter.targets[0].column.name;
+    const columnLabel = nativeFilterOptions.filter(
+      filter => filter.value === nativeFilterId,
+    )[0].label;
     const dashboardId = currentAlert?.dashboard?.value;
 
     // Get values tied to the selected filter
@@ -1174,7 +1181,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       force: false,
       ownState: {},
     };
-    setSelectedNativeFilter({ ...nativeFilter, columnName, nativeFilterId });
+    setSelectedNativeFilter({
+      ...nativeFilter,
+      columnName,
+      columnLabel,
+      nativeFilterId,
+    });
     getChartDataRequest(filterValues).then(response => {
       setNativeFilterValues(
         response.json.result[0].data.map((item: any) => ({
@@ -1186,7 +1198,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilterValue = (filterValues: any) => {
-    console.log('dashboardValue', filterValues);
     // todo(hughhh): refactor to handle multiple native filters
     setSelectedNativeFilter({ ...nativeFilter, filterValues });
   };
@@ -1374,9 +1385,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   useEffect(() => {
     if (resource) {
-      console.log('editting...', resource);
       // Add native filter settings
-      const nativeFilterOptionLabel = nativeFilterOptions.find(
+      // todo(hughhh): refactor to handle multiple native filters
       setSelectedNativeFilter(resource.extra?.dashboard.nativeFilters[0]);
 
       // Add notification settings
@@ -1867,7 +1877,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <Select
                   disabled={nativeFilterOptions?.length < 1}
                   ariaLabel={t('Select Filter')}
-                  value={nativeFilter.columnName}
+                  value={nativeFilter.columnLabel}
                   options={nativeFilterOptions}
                   onChange={onChangeDashboardFilter}
                 />

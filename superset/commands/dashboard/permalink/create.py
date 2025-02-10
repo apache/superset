@@ -66,24 +66,11 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
     def run(self) -> str:
         self.validate()
         dashboard = DashboardDAO.get_by_id_or_slug(self.dashboard_id)
-        print("creating permalink...")
-
-        print(self.state)
-        
         value = {
             "dashboardId": str(dashboard.uuid),
             "state": self.state,
-            # "state": {**self.state, "urlParams": [['native_filter', '(NATIVE_FILTER-8jS1fx4hl:(extraFormData:(filters:!((col:country_name,op:IN,val:!(Brazil)))),filterState:(label:country_name,validateStatus:!f,value:!(Brazil)),id:NATIVE_FILTER-8jS1fx4hl,ownState:()))']]},
         }
         user_id = get_user_id()
-        
-        print('.' * 10)
-        print(self.resource)
-        print(user_id)
-        print(value)
-        print(self.codec)   
-        print('.' * 10)
-        
         entry = KeyValueDAO.upsert_entry(
             resource=self.resource,
             key=get_deterministic_uuid(self.salt, (user_id, value)),
@@ -92,11 +79,7 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         )
         db.session.flush()
         assert entry.id  # for type checks
-        
         hash = encode_permalink_key(key=entry.id, salt=self.salt)
-        print("permalink created")
-        print(hash)
-        
         return hash
 
     def validate(self) -> None:

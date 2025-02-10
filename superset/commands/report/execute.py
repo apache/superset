@@ -270,8 +270,6 @@ class BaseReportState:
         """
         Get one tab url
         """
-        print('in single tab....')
-        print(dashboard_state)
         permalink_key = CreateDashboardPermalinkCommand(
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
@@ -498,10 +496,6 @@ class BaseReportState:
         error_text = None
         header_data = self._get_log_data()
         url = self._get_url(user_friendly=True)
-
-        print("*"*100)
-        print(url)
-        print("*"*100)
 
         if (
             feature_flag_manager.is_feature_enabled("ALERTS_ATTACH_REPORTS")
