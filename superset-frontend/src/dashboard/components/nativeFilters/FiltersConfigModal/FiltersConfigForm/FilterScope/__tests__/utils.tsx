@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { AntdForm, FormInstance } from 'src/components';
 import FiltersConfigForm, {
@@ -50,7 +50,7 @@ export const createMockModal = ({ scope, formRef }: MockModalProps) => {
   const MockModalComponent = () => {
     const [form] = AntdForm.useForm();
 
-    React.useEffect(() => {
+    useEffect(() => {
       // Create a new ref object instead of modifying the parameter
       const currentForm = form;
       Object.defineProperty(formRef, 'current', {

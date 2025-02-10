@@ -16,13 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import AdhocFilterEditPopover from '.';
-import AdhocFilter from '../AdhocFilter';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import AdhocFilterEditPopover from '.';
+import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
 const simpleAdhocFilter = new AdhocFilter({
@@ -155,7 +154,7 @@ describe('AdhocFilterEditPopover', () => {
     await userEvent.type(valueInput, '100');
 
     const saveButton = screen.getByRole('button', { name: /save/i });
-    expect(saveButton).not.toBeDisabled();
+    expect(saveButton).toBeEnabled();
   });
 
   it('disables save button when filter is invalid', () => {
