@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { snakeCase, cloneDeep } from 'lodash';
+import { snakeCase, cloneDeep, isEqual } from 'lodash';
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import {
   SuperChart,
@@ -110,9 +110,15 @@ const ChartRenderer = (props: ChartRendererProps) => {
     filterState,
     postTransformProps,
     source,
+    emitCrossFilters,
+    triggerRender,
+    labelsColor,
+    labelsColorMap,
   } = props;
 
-  const hasQueryResponseChange = false;
+  if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+    return null;
+  }
   const suppressContextMenu = getChartMetadataRegistry().get(
     formData.viz_type ?? vizType,
   )?.suppressContextMenu;
@@ -121,66 +127,114 @@ const ChartRenderer = (props: ChartRendererProps) => {
   const [inContextMenu, setInContextMenu] = useState(false);
   const [legendState, setLegendState] = useState<any>(undefined);
   const contextMenuRef = useRef<any>(null);
+  const prevProps = useRef(props);
   const mutableQueriesResponse = useRef(cloneDeep(queriesResponse));
+  const [hasQueryResponseChange, setHasQueryResponseChange] = useState(false);
   const renderStartTime = useRef<number>(0);
 
-  if (chartStatus === 'loading' || !!chartAlert || chartStatus === null) {
+  const resultsReady = useMemo(
+    () =>
+      queriesResponse &&
+      ['success', 'rendered'].includes(chartStatus) &&
+      !queriesResponse?.[0]?.error,
+    [queriesResponse, chartStatus],
+  );
+
+  const queryResponseChanged = useMemo(
+    () => queriesResponse !== prevProps.current.queriesResponse,
+    [queriesResponse],
+  );
+
+  const shouldRender = useMemo(
+    () =>
+      resultsReady &&
+      (queryResponseChanged ||
+        !isEqual(datasource, prevProps.current.datasource) ||
+        annotationData !== prevProps.current.annotationData ||
+        ownState !== prevProps.current.ownState ||
+        filterState !== prevProps.current.filterState ||
+        height !== prevProps.current.height ||
+        width !== prevProps.current.width ||
+        triggerRender ||
+        labelsColor !== prevProps.current.labelsColor ||
+        labelsColorMap !== prevProps.current.labelsColorMap ||
+        formData.color_scheme !== prevProps.current.formData.color_scheme ||
+        formData.stack !== prevProps.current.formData.stack ||
+        emitCrossFilters !== prevProps.current.emitCrossFilters),
+    [resultsReady, queryResponseChanged, props],
+  );
+
+  if (!shouldRender) {
     return null;
   }
+
+  useEffect(() => {
+    if (queryResponseChanged) {
+      setHasQueryResponseChange(true);
+      mutableQueriesResponse.current = cloneDeep(queriesResponse);
+    }
+  }, [queryResponseChanged, queriesResponse]);
+
+  useEffect(() => {
+    prevProps.current = props;
+  }, [props]);
 
   useEffect(() => {
     mutableQueriesResponse.current = cloneDeep(queriesResponse);
   }, [queriesResponse]);
 
   useEffect(() => {
-    const shouldShowContextMenu =
+    setShowContextMenu(
       source === ChartSource.Dashboard &&
-      !suppressContextMenu &&
-      isFeatureEnabled(FeatureFlag.DrillToDetail);
-
-    setShowContextMenu(shouldShowContextMenu);
+        !suppressContextMenu &&
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
+    );
   }, [source, suppressContextMenu]);
 
-  // only log chart render time which is triggered by query results change
-  // currently we don't log chart re-render time, like window resize etc
-  if (hasQueryResponseChange) {
-    actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
-      slice_id: chartId,
-      has_err: false,
-      error_details: '',
-      start_offset: renderStartTime.current,
-      ts: new Date().getTime(),
-      duration: Logger.getTimestamp() - renderStartTime.current,
-    });
-  }
-  const handleAddFilter = (
-    col: string,
-    vals: string | string[],
-    merge = true,
-    refresh = true,
-  ) => {
-    alert(col);
-    console.log(col, vals, merge, refresh);
-    addFilter(col, vals, merge, refresh);
-  };
-
-  const handleOnContextMenu = (
-    offsetX: number,
-    offsetY: number,
-    filters: undefined,
-  ) => {
-    contextMenuRef.current.open(offsetX, offsetY, filters);
-    // setInContextMenu({ inContextMenu: true });
-    setInContextMenu(true);
-  };
-
-  const handleSetControlValue = (...args: string[]) => {
-    setControlValue;
-    if (setControlValue) {
-      setControlValue(...args);
+  useEffect(() => {
+    // only log chart render time which is triggered by query results change
+    // currently we don't log chart re-render time, like window resize etc
+    if (hasQueryResponseChange) {
+      actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
+        slice_id: chartId,
+        has_err: false,
+        error_details: '',
+        start_offset: renderStartTime.current,
+        ts: new Date().getTime(),
+        duration: Logger.getTimestamp() - renderStartTime.current,
+      });
     }
-  };
+  }, [hasQueryResponseChange]);
 
+  /**
+   * Hooks region
+   */
+  const handleAddFilter = useCallback(
+    (col: string, vals: string | string[], merge = true, refresh = true) => {
+      alert(col);
+      console.log(col, vals, merge, refresh);
+      addFilter(col, vals, merge, refresh);
+    },
+    [],
+  );
+  const handleOnContextMenu = useCallback(
+    (offsetX: number, offsetY: number, filters: undefined) => {
+      if (contextMenuRef.current) {
+        contextMenuRef.current.open(offsetX, offsetY, filters);
+      }
+      // setInContextMenu({ inContextMenu: true });
+      // setInContextMenu(true);
+    },
+    [],
+  );
+  const handleSetControlValue = useCallback(
+    (...args: string[]) => {
+      if (setControlValue) {
+        setControlValue(...args);
+      }
+    },
+    [setControlValue],
+  );
   const handleRenderFailure = (
     error: { toString: () => string },
     info: { componentStack: string } | null,
@@ -204,7 +258,6 @@ const ChartRenderer = (props: ChartRendererProps) => {
       });
     }
   };
-
   const handleRenderSuccess = useCallback(() => {
     if (!['loading', 'rendered'].includes(chartStatus || '')) {
       actions.chartRenderingSucceeded({ key: chartId });
@@ -218,8 +271,7 @@ const ChartRenderer = (props: ChartRendererProps) => {
       duration: Logger.getTimestamp() - renderStartTime.current,
     });
   }, [actions, chartId, chartStatus, vizType]);
-
-  // renderStartTime.current = Logger.getTimestamp();
+  // end Hooks region
 
   const currentFormData =
     chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
@@ -307,7 +359,6 @@ const ChartRenderer = (props: ChartRendererProps) => {
       onFilterMenuOpen,
       onFilterMenuClose,
       setLegendState,
-      legendState,
       setDataMask,
       chartId,
     ],

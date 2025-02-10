@@ -32,7 +32,7 @@ import {
 } from '@superset-ui/core';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import Loading from 'src/components/Loading';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -344,7 +344,7 @@ class Chart extends PureComponent<ChartProps, {}> {
 
     if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
       return (
-        <EmptyStateBig
+        <EmptyState
           title={t('Add required control values to preview chart')}
           description={getChartRequiredFieldsMissingMessage(true)}
           image="chart.svg"
@@ -359,7 +359,7 @@ class Chart extends PureComponent<ChartProps, {}> {
       ensureIsArray(queriesResponse).length === 0
     ) {
       return (
-        <EmptyStateBig
+        <EmptyState
           title={t('Your chart is ready to go!')}
           description={
             <span>
