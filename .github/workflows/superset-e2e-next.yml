@@ -119,7 +119,7 @@ jobs:
           BROWSER: ${{ matrix.browser }}
         with:
           run: install-playwright
-      - name: Run Cypress
+      - name: Run E2E with Playwright
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
