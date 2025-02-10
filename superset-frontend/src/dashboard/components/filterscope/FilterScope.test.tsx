@@ -17,9 +17,12 @@
  * under the License.
  */
 import { supersetTheme } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { cleanup } from '@testing-library/react';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import FilterScopeSelector from './FilterScopeSelector';
 
 // Add afterEach cleanup

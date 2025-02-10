@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import '@testing-library/jest-dom';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import {
   ErrorLevel,
   ErrorTypeEnum,

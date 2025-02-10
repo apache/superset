@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import FilterConfigurationLink from '.';
 
 // Add cleanup after each test

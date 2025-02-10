@@ -23,7 +23,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import Button from 'src/components/Button';
 import Modal from 'src/components/Modal';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
 // store needed for withToasts(DatabaseList)

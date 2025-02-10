@@ -21,7 +21,7 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';

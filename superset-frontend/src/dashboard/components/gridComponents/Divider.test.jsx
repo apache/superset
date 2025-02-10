@@ -26,8 +26,7 @@ import {
   DIVIDER_TYPE,
   DASHBOARD_GRID_TYPE,
 } from 'src/dashboard/util/componentTypes';
-import { screen, render } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { screen, render, userEvent } from 'spec/helpers/testing-library';
 
 describe('Divider', () => {
   const props = {

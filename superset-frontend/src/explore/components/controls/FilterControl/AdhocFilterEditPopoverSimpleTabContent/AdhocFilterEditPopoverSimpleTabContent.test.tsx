@@ -18,7 +18,13 @@
  */
 import * as redux from 'react-redux';
 import sinon from 'sinon';
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -36,7 +42,6 @@ import {
   ThemeProvider,
   isFeatureEnabled,
 } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 
 import { TestDataset } from '@superset-ui/chart-controls';

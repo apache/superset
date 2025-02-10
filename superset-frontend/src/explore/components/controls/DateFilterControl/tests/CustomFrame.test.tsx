@@ -22,10 +22,10 @@ import configureStore from 'redux-mock-store';
 import {
   render,
   screen,
+  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { CustomFrame } from '../components';
 
 const TODAY = '2024-06-03';

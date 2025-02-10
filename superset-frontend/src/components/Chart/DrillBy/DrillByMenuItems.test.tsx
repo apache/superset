@@ -16,14 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import {
   Behavior,
   ChartMetadata,
   getChartMetadataRegistry,
 } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { Menu } from 'src/components/Menu';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';

@@ -30,7 +30,7 @@ import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(DatabaseList)
 

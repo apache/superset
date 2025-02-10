@@ -20,7 +20,7 @@ import { styledMount as mount } from 'spec/helpers/theming';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import DashboardCard from 'src/features/dashboards/DashboardCard';

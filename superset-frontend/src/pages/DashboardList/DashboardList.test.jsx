@@ -25,10 +25,14 @@ import { isFeatureEnabled } from '@superset-ui/core';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
 
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import DashboardList from 'src/pages/DashboardList';

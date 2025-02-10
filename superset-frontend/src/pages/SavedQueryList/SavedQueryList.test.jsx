@@ -23,10 +23,15 @@ import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
 import { isFeatureEnabled } from '@superset-ui/core';
 import SavedQueryList from 'src/pages/SavedQueryList';
 import SubMenu from 'src/features/home/SubMenu';

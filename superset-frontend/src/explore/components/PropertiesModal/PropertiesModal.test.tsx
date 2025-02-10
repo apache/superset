@@ -18,9 +18,13 @@
  */
 
 import { VizType } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
 const createProps = () =>

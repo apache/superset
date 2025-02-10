@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen } from 'spec/helpers/testing-library';
 import { PluginContext } from 'src/components/DynamicPlugins';
 
 import Dashboard from 'src/dashboard/components/Dashboard';
@@ -29,8 +27,6 @@ import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import datasources from 'spec/fixtures/mockDatasource';
 import {
-  extraFormData,
-  NATIVE_FILTER_ID,
   singleNativeFiltersState,
   dataMaskWith1Filter,
 } from 'spec/fixtures/mockNativeFilters';
@@ -75,15 +71,14 @@ describe('Dashboard', () => {
 
   const ChildrenComponent = () => <div>Test</div>;
 
-  const renderDashboard = (overrideProps = {}) => {
-    return render(
+  const renderDashboard = (overrideProps = {}) =>
+    render(
       <PluginContext.Provider value={{ loading: false }}>
         <Dashboard {...props} {...overrideProps}>
           <ChildrenComponent />
         </Dashboard>
       </PluginContext.Provider>,
     );
-  };
 
   const OVERRIDE_FILTERS = {
     '1_region': { values: [], scope: [1] },

@@ -158,7 +158,7 @@ describe('ChartDataProvider', () => {
           <ChartDataProvider
             {...props}
             formData={{ ...props.formData, datasource: newDatasource }}
-            loadDatasource={true}
+            loadDatasource
           />,
         );
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -259,7 +259,7 @@ describe('ChartDataProvider', () => {
 
       const errorElement = await screen.findByRole('alert');
       expect(errorElement).toHaveAttribute('role', 'alert');
-      expect(errorElement.textContent).toBe(errorMessage);
+      expect(errorElement).toHaveTextContent(errorMessage);
     });
 
     it('shows error message upon JS error', async () => {
@@ -271,7 +271,7 @@ describe('ChartDataProvider', () => {
 
       const errorElement = await screen.findByRole('alert');
       expect(errorElement).toHaveAttribute('role', 'alert');
-      expect(errorElement.textContent).toBe('non-async error');
+      expect(errorElement).toHaveTextContent('non-async error');
     });
   });
 

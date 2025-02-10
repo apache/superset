@@ -17,13 +17,13 @@
  * under the License.
  */
 import { FocusEventHandler } from 'react';
-import { act } from 'react-dom/test-utils';
 import {
   isFeatureEnabled,
   getExtensionsRegistry,
   FeatureFlag,
 } from '@superset-ui/core';
 import {
+  act,
   cleanup,
   fireEvent,
   render,

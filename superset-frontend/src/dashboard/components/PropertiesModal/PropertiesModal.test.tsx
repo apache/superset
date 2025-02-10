@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import * as ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled } from '@superset-ui/core';

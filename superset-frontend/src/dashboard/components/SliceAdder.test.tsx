@@ -16,16 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom'; // Add this import
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import {
+  ThemeProvider,
+  supersetTheme,
+  DatasourceType,
+} from '@superset-ui/core';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
-import SliceAdder, { SliceAdderProps } from './SliceAdder';
 import { configureStore } from '@reduxjs/toolkit';
-import { DatasourceType } from '@superset-ui/core';
+import SliceAdder, { SliceAdderProps } from './SliceAdder';
 
 // Mock the Select component to avoid debounce issues
 jest.mock('@superset-ui/core', () => ({

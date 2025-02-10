@@ -18,12 +18,12 @@
  */
 
 import {
+  cleanup,
   screen,
   render,
   selectOption,
-  cleanup,
+  userEvent,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import AdhocMetric, {
   EXPRESSION_TYPES,

@@ -20,9 +20,12 @@ import fetchMock from 'fetch-mock';
 import UploadDataModal, {
   validateUploadFileExtension,
 } from 'src/features/databases/UploadDataModel';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { UploadFile } from 'antd/lib/upload/interface';
 
 const csvProps = {

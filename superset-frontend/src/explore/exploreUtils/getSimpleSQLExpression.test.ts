@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { cleanup } from '@testing-library/react';
+import { cleanup } from 'spec/helpers/testing-library';
 import { EMPTY_STRING, NULL_STRING } from 'src/utils/common';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';

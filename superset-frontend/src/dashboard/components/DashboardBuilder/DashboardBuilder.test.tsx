@@ -17,8 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render } from 'spec/helpers/testing-library';
-import { fireEvent, within } from '@testing-library/react';
+import { fireEvent, render, within } from 'spec/helpers/testing-library';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {

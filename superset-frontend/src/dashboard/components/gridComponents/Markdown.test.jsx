@@ -23,7 +23,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { SafeMarkdown } from '@superset-ui/core';
 
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';

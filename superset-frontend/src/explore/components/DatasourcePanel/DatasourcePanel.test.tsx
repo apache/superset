@@ -17,9 +17,14 @@
  * under the License.
  */
 import { ReactChild } from 'react';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import { cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import DatasourcePanel, {
   IDatasource,
   Props as DatasourcePanelProps,

@@ -16,8 +16,7 @@
  * limitations under the License.
  */
 
-import { render, cleanup } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, cleanup } from 'spec/helpers/testing-library';
 import {
   ErrorLevel,
   ErrorSource,

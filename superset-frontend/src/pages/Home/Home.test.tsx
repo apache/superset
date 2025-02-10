@@ -17,9 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
 import Welcome from 'src/pages/Home';
 import setupExtensions from 'src/setup/setupExtensions';
 

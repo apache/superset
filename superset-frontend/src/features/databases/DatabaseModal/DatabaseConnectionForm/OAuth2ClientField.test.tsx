@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, fireEvent } from 'spec/helpers/testing-library';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { DatabaseObject } from 'src/features/databases/types';
 import { OAuth2ClientField } from './OAuth2ClientField';

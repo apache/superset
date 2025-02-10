@@ -29,7 +29,7 @@ import ListView from 'src/components/ListView';
 import SubMenu from 'src/features/home/SubMenu';
 
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(AnnotationList)
 const mockStore = configureStore([thunk]);

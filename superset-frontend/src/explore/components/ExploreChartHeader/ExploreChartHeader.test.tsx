@@ -18,8 +18,12 @@
  */
 
 import sinon from 'sinon';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import * as chartAction from 'src/components/Chart/chartAction';
 import * as saveModalActions from 'src/explore/actions/saveModalActions';

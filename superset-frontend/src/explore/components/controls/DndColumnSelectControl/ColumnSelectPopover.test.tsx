@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, fireEvent } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';

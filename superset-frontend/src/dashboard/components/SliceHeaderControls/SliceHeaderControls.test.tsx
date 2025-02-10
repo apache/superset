@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';

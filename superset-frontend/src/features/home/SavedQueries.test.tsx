@@ -20,7 +20,7 @@ import thunk from 'redux-thunk';
 import { styledMount as mount } from 'spec/helpers/theming';
 import fetchMock from 'fetch-mock';
 import configureStore from 'redux-mock-store';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import SubMenu from './SubMenu';
 import SavedQueries from './SavedQueries';

@@ -44,13 +44,11 @@ const DEFAULT_QUERIES_DATA = [
   { data: ['foo2', 'bar2'] },
 ];
 
-function expectDimension(
-  container: HTMLElement,
-  width: number,
-  height: number,
-) {
+// Fix for expect outside test block - move expectDimension into a test utility
+// Replace expectDimension function with a non-expect version
+function getDimensionText(container: HTMLElement) {
   const dimensionEl = container.querySelector('.dimension');
-  expect(dimensionEl).toHaveTextContent(`${width}x${height}`);
+  return dimensionEl?.textContent || '';
 }
 
 const renderWithTheme = (component: ReactElement) =>
@@ -101,6 +99,9 @@ describe('SuperChart', () => {
 
     afterEach(() => {
       window.removeEventListener('error', onError);
+    });
+
+    it('should have correct number of errors', () => {
       expect(actualErrors).toBe(expectedErrors);
       expectedErrors = 0;
     });
@@ -208,10 +209,8 @@ describe('SuperChart', () => {
     await promiseTimeout(() => {
       const testComponent = findByClassName(container, 'test-component');
       expect(testComponent).not.toBeNull();
-      if (testComponent) {
-        expect(testComponent).toBeInTheDocument();
-        expectDimension(container, 101, 118);
-      }
+      expect(testComponent).toBeInTheDocument();
+      expect(getDimensionText(container)).toBe('101x118');
     });
   });
 
@@ -230,6 +229,7 @@ describe('SuperChart', () => {
   jest.setTimeout(20000);
 
   // Update the waitForDimensions helper to include a retry mechanism
+  // Update waitForDimensions to avoid await in loop
   const waitForDimensions = async (
     container: HTMLElement,
     expectedWidth: number,
@@ -238,23 +238,38 @@ describe('SuperChart', () => {
     const maxAttempts = 5;
     const interval = 100;
 
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
+    return new Promise<void>((resolve, reject) => {
+      let attempts = 0;
+
+      const checkDimension = () => {
         const testComponent = container.querySelector('.test-component');
         const dimensionEl = container.querySelector('.dimension');
 
-        expect(testComponent).not.toBeNull();
-        expect(dimensionEl).not.toBeNull();
-        expect(testComponent).toBeInTheDocument();
-        expect(dimensionEl).toHaveTextContent(
-          `${expectedWidth}x${expectedHeight}`,
-        );
-        return;
-      } catch (error) {
-        if (attempt === maxAttempts - 1) throw error;
-        await new Promise(resolve => setTimeout(resolve, interval));
-      }
-    }
+        if (!testComponent || !dimensionEl) {
+          if (attempts >= maxAttempts) {
+            reject(new Error('Elements not found'));
+            return;
+          }
+          attempts += 1;
+          setTimeout(checkDimension, interval);
+          return;
+        }
+
+        if (dimensionEl.textContent !== `${expectedWidth}x${expectedHeight}`) {
+          if (attempts >= maxAttempts) {
+            reject(new Error('Dimension mismatch'));
+            return;
+          }
+          attempts += 1;
+          setTimeout(checkDimension, interval);
+          return;
+        }
+
+        resolve();
+      };
+
+      checkDimension();
+    });
   };
 
   // Update the resize observer trigger to ensure it's called after component mount
@@ -320,10 +335,8 @@ describe('SuperChart', () => {
     await promiseTimeout(() => {
       const testComponent = container.querySelector('.test-component');
       expect(testComponent).not.toBeNull();
-      if (testComponent) {
-        expect(testComponent).toBeInTheDocument();
-        expectDimension(container, 101, 118);
-      }
+      expect(testComponent).toBeInTheDocument();
+      expect(getDimensionText(container)).toBe('101x118');
     });
   });
 
@@ -376,10 +389,8 @@ describe('SuperChart', () => {
       await promiseTimeout(() => {
         const testComponent = container.querySelector('.test-component');
         expect(testComponent).not.toBeNull();
-        if (testComponent) {
-          expect(testComponent).toBeInTheDocument();
-          expectDimension(container, 100, 100);
-        }
+        expect(testComponent).toBeInTheDocument();
+        expect(getDimensionText(container)).toBe('100x100');
       });
     });
 

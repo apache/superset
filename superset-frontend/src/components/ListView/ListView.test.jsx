@@ -17,7 +17,7 @@
  * under the License.
  */
 import { styledMount as mount } from 'spec/helpers/theming';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
 import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import thunk from 'redux-thunk';

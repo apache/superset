@@ -17,8 +17,12 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import DatasourceEditor from 'src/components/Datasource/DatasourceEditor';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import { isFeatureEnabled } from '@superset-ui/core';

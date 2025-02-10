@@ -17,13 +17,16 @@
  * under the License.
  */
 import sinon from 'sinon';
-import userEvent from '@testing-library/user-event';
 import { getChartMetadataRegistry, ChartMetadata } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import VizTypeControl from 'src/explore/components/controls/VizTypeControl';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
-import { act } from 'react-dom/test-utils';
-import { cleanup } from '@testing-library/react';
 
 const defaultProps = {
   name: 'viz_type',

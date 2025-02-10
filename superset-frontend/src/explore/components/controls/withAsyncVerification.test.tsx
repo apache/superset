@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import '@testing-library/jest-dom';
+import { render } from 'spec/helpers/testing-library';
 import withAsyncVerification, {
   ControlPropsWithExtras,
   WithAsyncVerificationOptions,

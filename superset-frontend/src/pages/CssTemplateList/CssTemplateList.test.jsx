@@ -30,7 +30,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);

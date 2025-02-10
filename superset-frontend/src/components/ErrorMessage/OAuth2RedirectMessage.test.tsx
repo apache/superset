@@ -20,8 +20,7 @@
 import * as reduxHooks from 'react-redux';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
-import { render, fireEvent, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import {
   ErrorLevel,
   ErrorSource,

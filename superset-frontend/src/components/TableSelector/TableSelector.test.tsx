@@ -17,18 +17,18 @@
  * under the License.
  */
 
-import { act } from 'react-dom/test-utils';
 import {
+  act,
+  cleanup,
   render,
   screen,
+  userEvent,
   waitFor,
   within,
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import { api } from 'src/hooks/apiResources/queryApi';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import { cleanup } from '@testing-library/react';
 import TableSelector, { TableSelectorMultiple } from '.';
 
 const createProps = (props = {}) => ({

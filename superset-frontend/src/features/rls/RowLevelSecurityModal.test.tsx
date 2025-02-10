@@ -18,13 +18,13 @@
  */
 import fetchMock from 'fetch-mock';
 import {
+  act,
   render,
   screen,
   selectOption,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { act } from 'react-dom/test-utils';
-import userEvent from '@testing-library/user-event';
 import RowLevelSecurityModal, {
   RowLevelSecurityModalProps,
 } from './RowLevelSecurityModal';

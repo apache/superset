@@ -17,12 +17,12 @@
  * under the License.
  */
 import {
+  cleanup,
   render,
   screen,
   selectOption,
-  cleanup,
+  userEvent,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { IAceEditorProps } from 'react-ace';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';

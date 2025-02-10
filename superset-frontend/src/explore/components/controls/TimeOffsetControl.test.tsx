@@ -17,8 +17,7 @@
  * under the License.
  */
 import configureStore from 'redux-mock-store';
-import { render, screen } from '@testing-library/react';
-import '@testing-library/jest-dom';
+import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { INVALID_DATE } from '@superset-ui/chart-controls';
