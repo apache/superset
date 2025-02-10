@@ -178,16 +178,10 @@ cypress-run-all() {
 
 install-playwright() {
   cd "$GITHUB_WORKSPACE/superset-frontend/e2e-next"
-
-  # Uncomment below command once Playwright has been installed successfully for the 1st time.
-  # cache-restore playwright
-
   say "::group::Install Playwright"
   npm ci
   npx playwright install --with-deps $BROWSER
   say "::endgroup::"
-
-  cache-save playwright
 }
 
 run-e2e-all() {
