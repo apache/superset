@@ -31,7 +31,7 @@ type optionsType = {
 export function styledMount(
   component: ReactElement,
   options: optionsType = {},
-): ReturnType<typeof enzymeMount> {
+): any {
   return enzymeMount(component, {
     ...options,
     wrappingComponent: ProviderWrapper,
