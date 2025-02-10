@@ -78,8 +78,6 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     [setDataMask],
   );
 
-  console.log('pushing pr again');
-
   useEffect(() => {
     handleTimeRangeChange(filterState.value);
   }, [filterState.value]);
