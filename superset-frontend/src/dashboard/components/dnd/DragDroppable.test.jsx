@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  styledMount as mount,
-  styledShallow as shallow,
-} from 'spec/helpers/theming';
+import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
@@ -45,9 +42,9 @@ describe('DragDroppable', () => {
     dragPreviewRef() {},
   };
 
-  function setup(overrideProps, shouldMount = false) {
-    const method = shouldMount ? mount : shallow;
-    const wrapper = method(<DragDroppable {...props} {...overrideProps} />);
+  function setup(overrideProps) {
+    // Always use mount instead of shallow
+    const wrapper = mount(<DragDroppable {...props} {...overrideProps} />);
     return wrapper;
   }
 
