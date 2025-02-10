@@ -33,3 +33,4 @@ esm/
 lib/
 tmp/
 storybook-static/
+e2e-next/playwright-report
