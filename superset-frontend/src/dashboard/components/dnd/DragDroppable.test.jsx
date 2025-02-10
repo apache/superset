@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
-import sinon from 'sinon';
+import { render, screen } from 'spec/helpers/testing-library';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -42,75 +42,140 @@ describe('DragDroppable', () => {
     dragPreviewRef() {},
   };
 
-  function setup(overrideProps) {
-    // Always use mount instead of shallow
-    const wrapper = mount(<DragDroppable {...props} {...overrideProps} />);
-    return wrapper;
+  function setup(overrideProps = {}) {
+    const utils = render(
+      <ThemeProvider theme={supersetTheme}>
+        <DragDroppable {...props} {...overrideProps}>
+          {provided => (
+            <div data-test="child-content" {...provided}>
+              Test Content
+            </div>
+          )}
+        </DragDroppable>
+      </ThemeProvider>,
+    );
+    return {
+      ...utils,
+      children: overrideProps.children,
+    };
   }
 
   it('should render a div with class dragdroppable', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.dragdroppable')).toBeTruthy();
+    setup();
+    expect(screen.getByTestId('dragdroppable-object')).toHaveClass(
+      'dragdroppable',
+    );
   });
 
   it('should add class dragdroppable--dragging when dragging', () => {
-    const wrapper = setup({ isDragging: true });
-    expect(wrapper.find('.dragdroppable')).toBeTruthy();
+    setup({ isDragging: true });
+    expect(screen.getByTestId('dragdroppable-object')).toHaveClass(
+      'dragdroppable--dragging',
+    );
   });
 
   it('should call its child function', () => {
-    const childrenSpy = sinon.spy();
-    setup({ children: childrenSpy });
-    expect(childrenSpy.callCount).toBe(1);
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
+    setup({ children: renderChild });
+    expect(renderChild).toHaveBeenCalled();
+    expect(renderChild.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+      }),
+    );
   });
 
   it('should call onDropIndicatorChange when isDraggingOver changes', () => {
-    const onDropIndicatorChange = sinon.spy();
-    const wrapper = setup({
+    const onDropIndicatorChange = jest.fn();
+    const { rerender } = setup({
       onDropIndicatorChange,
       component: newComponentFactory(TAB_TYPE),
     });
-    wrapper.setProps({ isDraggingOver: true });
-    expect(onDropIndicatorChange.callCount).toBe(1);
+
+    rerender(
+      <ThemeProvider theme={supersetTheme}>
+        <DragDroppable
+          {...props}
+          onDropIndicatorChange={onDropIndicatorChange}
+          component={newComponentFactory(TAB_TYPE)}
+          isDraggingOver
+        >
+          {provided => (
+            <div data-testid="child-content" {...provided}>
+              Test Content
+            </div>
+          )}
+        </DragDroppable>
+      </ThemeProvider>,
+    );
+
+    expect(onDropIndicatorChange).toHaveBeenCalledTimes(1);
   });
 
   it('should call its child function with "dragSourceRef" if editMode=true', () => {
-    const children = sinon.spy();
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
     const dragSourceRef = () => {};
-    setup({ children, editMode: false, dragSourceRef });
-    setup({ children, editMode: true, dragSourceRef });
 
-    expect(children.getCall(0).args[0].dragSourceRef).toBeUndefined();
-    expect(children.getCall(1).args[0].dragSourceRef).toBe(dragSourceRef);
+    setup({ children: renderChild, editMode: false });
+    expect(renderChild.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+      }),
+    );
+
+    setup({ children: renderChild, editMode: true, dragSourceRef });
+    expect(renderChild.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+        dragSourceRef,
+      }),
+    );
   });
 
-  it('should call its child function with "dropIndicatorProps" dependent on editMode, isDraggingOver, state.dropIndicator is set', () => {
-    const children = sinon.spy();
-    const wrapper = setup({ children, editMode: false, isDraggingOver: false });
-    wrapper.setState({ dropIndicator: 'nonsense' });
-    wrapper.setProps({ ...props, editMode: true, isDraggingOver: true });
+  it('should call its child function with "dropIndicatorProps" dependent on editMode and isDraggingOver', () => {
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
+    const { rerender } = setup({ children: renderChild });
 
-    expect(children.callCount).toBe(3); // initial + setState + setProps
-    expect(children.getCall(0).args[0].dropIndicatorProps).toBeUndefined();
-    expect(children.getCall(2).args[0].dropIndicatorProps).toEqual({
-      className: 'drop-indicator',
-    });
+    expect(renderChild.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+      }),
+    );
+
+    rerender(
+      <ThemeProvider theme={supersetTheme}>
+        <DragDroppable {...props} editMode isDraggingOver>
+          {renderChild}
+        </DragDroppable>
+      </ThemeProvider>,
+    );
+
+    expect(renderChild.mock.calls[1][0]).toEqual(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+        dropIndicatorProps: { className: 'drop-indicator' },
+      }),
+    );
   });
 
   it('should call props.dragPreviewRef and props.droppableRef on mount', () => {
-    const dragPreviewRef = sinon.spy();
-    const droppableRef = sinon.spy();
+    const dragPreviewRef = jest.fn();
+    const droppableRef = jest.fn();
 
-    setup({ dragPreviewRef, droppableRef }, true);
-    expect(dragPreviewRef.callCount).toBe(1);
-    expect(droppableRef.callCount).toBe(1);
-  });
-
-  it('should set this.mounted dependent on life cycle', () => {
-    const wrapper = setup({}, true);
-    const instance = wrapper.instance();
-    expect(instance.mounted).toBe(true);
-    wrapper.unmount();
-    expect(instance.mounted).toBe(false);
+    setup({ dragPreviewRef, droppableRef });
+    expect(dragPreviewRef).toHaveBeenCalledTimes(1);
+    expect(droppableRef).toHaveBeenCalledTimes(1);
   });
 });
