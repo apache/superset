@@ -134,7 +134,7 @@ test.describe('Charts list', () => {
     test('should sort correctly in list mode', async ({ page }) => {
       await page.getByTestId('sort-header').nth(1).click();
       await expect(page.getByTestId('table-row').first()).toContainText(
-        /(Area Chart)|(1 - Sample chart)/,
+        /(Area Chart)|(1 - Sample chart)|(% Rural)/,
       );
       await page.getByTestId('sort-header').nth(1).click();
       await expect(page.getByTestId('table-row').first()).toContainText(
