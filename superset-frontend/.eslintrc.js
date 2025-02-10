@@ -354,6 +354,14 @@ module.exports = {
             name: 'lodash/memoize',
             message: 'Lodash Memoize is unsafe! Please use memoize-one instead',
           },
+          {
+            name: '@testing-library/react',
+            message: 'Please use spec/helpers/testing-library instead',
+          },
+          {
+            name: '@testing-library/react-dom-utils',
+            message: 'Please use spec/helpers/testing-library instead',
+          },
         ],
         patterns: ['antd/*'],
       },
