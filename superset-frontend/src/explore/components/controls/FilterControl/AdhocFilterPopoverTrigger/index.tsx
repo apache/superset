@@ -106,9 +106,9 @@ class AdhocFilterPopoverTrigger extends PureComponent<
       <ControlPopover
         trigger="click"
         content={overlayContent}
-        defaultVisible={visible}
-        visible={visible}
-        onVisibleChange={togglePopover}
+        defaultOpen={visible}
+        open={visible}
+        onOpenChange={togglePopover}
         destroyTooltipOnHide
       >
         {this.props.children}

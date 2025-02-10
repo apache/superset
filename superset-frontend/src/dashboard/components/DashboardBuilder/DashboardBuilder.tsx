@@ -30,7 +30,6 @@ import {
   useTheme,
   useElementOnScreen,
 } from '@superset-ui/core';
-import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -653,13 +652,6 @@ const DashboardBuilder = () => {
         </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        <Global
-          styles={css`
-            // @z-index-above-dashboard-header (100) + 1 = 101
-            ${fullSizeChartId &&
-            `div > .filterStatusPopover.ant-popover{z-index: 101}`}
-          `}
-        />
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (

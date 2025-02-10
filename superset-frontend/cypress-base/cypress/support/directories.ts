@@ -555,7 +555,7 @@ export const exploreView = {
     timeSection: {
       timeRangeFilter: dataTestLocator('time-range-trigger'),
       timeRangeFilterModal: {
-        container: '.ant-popover-content',
+        container: '.antd5-popover-content',
         footer: '.footer',
         cancelButton: dataTestLocator('cancel-button'),
         configureLastTimeRange: {

@@ -17,8 +17,7 @@
  * under the License.
  */
 import Button from 'src/components/Button';
-import { PopoverProps } from 'antd/lib/popover';
-import Popover from '.';
+import Popover, { PopoverProps } from 'src/components/Popover';
 
 export default {
   title: 'Popover',
@@ -66,6 +65,8 @@ const TRIGGERS = {
 InteractivePopover.args = {
   content: 'Popover sample content',
   title: 'Popover title',
+  arrow: true,
+  color: '#fff',
 };
 
 InteractivePopover.argTypes = {
@@ -78,5 +79,15 @@ InteractivePopover.argTypes = {
     name: TRIGGERS.label,
     control: { type: 'select' },
     options: TRIGGERS.options,
+  },
+  arrow: {
+    name: 'arrow',
+    control: { type: 'boolean' },
+    description: "Change arrow's visible state",
+  },
+  color: {
+    name: 'color',
+    control: { type: 'color' },
+    description: 'The background color of the popover.',
   },
 };

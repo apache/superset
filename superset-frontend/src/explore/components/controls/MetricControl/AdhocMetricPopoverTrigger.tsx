@@ -259,9 +259,9 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           placement="right"
           trigger="click"
           content={overlayContent}
-          defaultVisible={visible}
-          visible={visible}
-          onVisibleChange={togglePopover}
+          defaultOpen={visible}
+          open={visible}
+          onOpenChange={togglePopover}
           title={popoverTitle}
           destroyTooltipOnHide
         >
