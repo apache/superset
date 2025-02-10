@@ -740,15 +740,11 @@ class DatasourceEditor extends React.PureComponent {
       } else {
         // unchanged
         finalColumns.push(currentCol);
+        results.modified.push(col.column_name); //even reordering should count as modified data
       }
     });
-    if (
-      results.added.length ||
-      results.modified.length ||
-      results.removed.length
-    ) {
-      this.setColumns({ databaseColumns: finalColumns });
-    }
+    //Updating columns all time to change column order.
+    this.setColumns({ databaseColumns: finalColumns });
     return results;
   }
 
