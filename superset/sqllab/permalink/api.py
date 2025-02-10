@@ -87,7 +87,7 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
         try:
             state = self.add_model_schema.load(request.json)
             key = CreateSqlLabPermalinkCommand(state=state).run()
-            url = url_for("SqllabView.root", key=key, _external=True)
+            url = url_for("SqllabView.permalink_view", permalink=key, _external=True)
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)

@@ -74,7 +74,6 @@ const renderMenu = ({
       <DrillByMenuItems
         formData={formData ?? defaultFormData}
         drillByConfig={drillByConfig}
-        canDownload
         open
         {...rest}
       />
