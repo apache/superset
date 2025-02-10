@@ -101,42 +101,43 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
   const { groupby, defaultValue, enableSingleValue } = formData;
-
+  const minIndex = 0;
+  const maxIndex = 1;
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
-  const [value, setValue] = useState<[number, number]>(
-    defaultValue ?? [min, enableSingleExactValue ? min : max],
-  );
+  const [value, setValue] = useState<[number | null, number | null]>([
+    defaultValue?.[minIndex] ?? null,
+    defaultValue?.[maxIndex] ?? null,
+  ]);
   const [previousMode, setPreviousMode] = useState<SingleValueType | null>(
     null,
   );
-  const minIndex = 0;
-  const maxIndex = 1;
+
   const minMax = value ?? [min, max];
 
   const getBounds = useCallback(
     (
-      value: [number, number],
+      value: [number | null, number | null],
     ): { lower: number | null; upper: number | null } => {
       const [lowerRaw, upperRaw] = value;
 
-      if (enableSingleExactValue) {
-        return { lower: lowerRaw, upper: upperRaw };
-      }
+      // if (enableSingleExactValue) {
+      //   return { lower: lowerRaw, upper: upperRaw };
+      // }
 
       return {
-        lower: lowerRaw > min ? lowerRaw : null,
-        upper: upperRaw < max ? upperRaw : null,
+        lower: lowerRaw !== null && lowerRaw > min ? lowerRaw : null,
+        upper: upperRaw !== null && upperRaw < max ? upperRaw : null,
       };
     },
     [max, min, enableSingleExactValue],
   );
 
   const handleAfterChange = useCallback(
-    (value: [number, number]): void => {
+    (value: [number | null, number | null]): void => {
       const { lower, upper } = getBounds(value);
       setDataMask({
         extraFormData: getRangeExtraFormData(col, lower, upper),
@@ -148,6 +149,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     },
     [col, getBounds, setDataMask],
   );
+
+  useEffect(() => {
+    console.log('Datamask has been called');
+    console.log(filterState);
+  }, [setDataMask]);
 
   const metadataText = useMemo(() => {
     if (enableSingleMinValue) {
@@ -163,7 +169,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [enableSingleValue]);
 
   const handleChange = (newValue: number, index: 0 | 1) => {
-    const updatedValue: [number, number] = [...value];
+    const updatedValue: [number | null, number | null] = [...value];
 
     if (enableSingleExactValue) {
       setValue([newValue, newValue]);
@@ -185,25 +191,23 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
 
     updatedValue[index] = newValue;
+    console.log(updatedValue);
     setValue(updatedValue);
     handleAfterChange(updatedValue);
   };
 
-  useEffect(() => {
-    // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
-    if (row?.min === undefined && row?.max === undefined) {
-      return;
-    }
-    const filterStateValue = filterState.value ?? minMax;
-    setValue(filterStateValue);
-    handleAfterChange(filterStateValue);
-  }, [
-    enableSingleMaxValue,
-    enableSingleMinValue,
-    enableSingleExactValue,
-    JSON.stringify(filterState.value),
-    JSON.stringify(data),
-  ]);
+  // useEffect(() => {
+  //   // when switch filter type and queriesData still not updated we need ignore this case (in FilterBar)
+  //   if (row?.min === undefined && row?.max === undefined) {
+  //     return;
+  //   }
+  //   console.log(filterState)
+  //   const filterStateValue = filterState.value ?? [null, null];
+  //   setValue(filterStateValue);
+  //   handleAfterChange(filterStateValue);
+  // }, [
+  //   filterState?.value, row?.min, row?.max
+  // ]);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -284,10 +288,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [enableSingleExactValue]);
 
   const handleBlur = (index: 0 | 1) => {
-    if (index === minIndex && minMax[index] > minMax[maxIndex]) {
-      handleChange(minMax[maxIndex], minIndex);
-    } else if (index === maxIndex && minMax[index] < minMax[minIndex]) {
-      handleChange(minMax[minIndex], maxIndex);
+    if (index === minIndex) {
+      handleChange(filterState?.value[minIndex], minIndex);
+    } else if (index === maxIndex) {
+      handleChange(filterState?.value[maxIndex], maxIndex);
     }
   };
 
@@ -316,9 +320,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             {enableSingleValue !== undefined ? (
               <>
                 <InputNumber
-                  value={
-                    enableSingleMaxValue ? minMax[maxIndex] : minMax[minIndex]
-                  }
                   min={min}
                   max={max}
                   onChange={val => handleChange(Number(val), minIndex)}
@@ -332,23 +333,24 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             ) : (
               <>
                 <InputNumber
-                  value={minMax[minIndex]}
+                  value={filterState?.value?.[minIndex] ?? null}
                   min={min}
                   max={max}
-                  onChange={val => handleChange(Number(val), minIndex)}
-                  onBlur={() => handleBlur(minIndex)}
-                  placeholder={t('From')}
+                  onChange={val => handleChange(val, minIndex)}
+                  // onBlur={() => handleBlur(minIndex)}
+                  placeholder={t(`${min}`)}
                   data-test="native-filter-from-input"
                 />
                 <StyledDivider>-</StyledDivider>
                 <InputNumber
-                  value={minMax[maxIndex]}
+                  value={filterState?.value?.[maxIndex] ?? null}
                   min={min}
                   max={max}
-                  onChange={val => handleChange(Number(val), maxIndex)}
-                  onBlur={() => handleBlur(maxIndex)}
-                  placeholder={t('To')}
+                  onChange={val => handleChange(val, maxIndex)}
+                  // onBlur={() => handleBlur(maxIndex)}
+                  placeholder={t(`${max}`)}
                   data-test="native-filter-to-input"
+                  // changeOnBlur={false}
                 />
               </>
             )}
