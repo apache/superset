@@ -227,41 +227,47 @@ test('On failed request, restore previous selection', async () => {
   const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
 
   await setup();
-  userEvent.click(screen.getByLabelText('gear'));
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  const gearIcon = await screen.findByLabelText('gear');
+  userEvent.click(gearIcon);
 
-  expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
-  expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
+  const orientationMenu = await screen.findByText('Orientation of filter bar');
+  userEvent.hover(orientationMenu);
 
+  // Wait for menu items to be visible
+  const verticalItem = await screen.findByText('Vertical (Left)');
+  const horizontalItem = await screen.findByText('Horizontal (Top)');
+
+  // Verify initial state
   expect(
-    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
+    within(verticalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[5]).queryByLabelText('check'),
+    within(horizontalItem.closest('li')!).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
-  userEvent.click(await screen.findByText('Horizontal (Top)'));
+  // Click horizontal option
+  userEvent.click(horizontalItem);
 
+  // Verify error toast
   await waitFor(() => {
     expect(dangerToastSpy).toHaveBeenCalledWith(
       'Sorry, there was an error saving this dashboard: Unknown Error',
     );
   });
 
-  userEvent.click(screen.getByLabelText('gear'));
-  userEvent.hover(screen.getByText('Orientation of filter bar'));
+  // Reopen menu and verify selection rolled back
+  userEvent.click(gearIcon);
+  userEvent.hover(orientationMenu);
 
+  // Wait for menu items and verify state
   await waitFor(() => {
-    expect(screen.getByText('Vertical (Left)')).toBeInTheDocument();
-    const menuitems = screen.getAllByRole('menuitem');
-    expect(menuitems.length).toBeGreaterThanOrEqual(6);
+    const verticalItemAfter = screen.getByText('Vertical (Left)');
+    const horizontalItemAfter = screen.getByText('Horizontal (Top)');
+    expect(
+      within(verticalItemAfter.closest('li')!).getByLabelText('check'),
+    ).toBeInTheDocument();
+    expect(
+      within(horizontalItemAfter.closest('li')!).queryByLabelText('check'),
+    ).not.toBeInTheDocument();
   });
-
-  // checkmark gets rolled back to the original selection after successful query
-  expect(
-    await within(screen.getAllByRole('menuitem')[4]).findByLabelText('check'),
-  ).toBeInTheDocument();
-  expect(
-    within(screen.getAllByRole('menuitem')[5]).queryByLabelText('check'),
-  ).not.toBeInTheDocument();
 });

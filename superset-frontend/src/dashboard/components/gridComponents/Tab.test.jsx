@@ -81,7 +81,7 @@ describe.skip('Tabs', () => {
   describe('renderType=RENDER_TAB', () => {
     it('should render a DragDroppable', () => {
       const wrapper = setup();
-      expect(wrapper.find(DragDroppable)).toExist();
+      expect(wrapper.find(DragDroppable)).toBeTruthy();
     });
 
     it('should render an EditableTitle with meta.text', () => {

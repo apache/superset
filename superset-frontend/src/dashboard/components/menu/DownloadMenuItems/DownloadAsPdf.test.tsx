@@ -17,8 +17,12 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { Menu } from 'src/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import DownloadAsPdf from './DownloadAsPdf';
