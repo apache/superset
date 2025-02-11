@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import * as useQueryParamsModule from 'use-query-params';
 import AllEntitiesTable from './AllEntitiesTable';
 

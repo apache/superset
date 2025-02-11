@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, screen, act } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';

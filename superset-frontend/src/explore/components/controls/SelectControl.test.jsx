@@ -22,12 +22,12 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   within,
 } from 'spec/helpers/testing-library';
 import SelectControl, {
   innerGetOptions,
 } from 'src/explore/components/controls/SelectControl';
-import userEvent from '@testing-library/user-event';
 
 const defaultProps = {
   choices: [

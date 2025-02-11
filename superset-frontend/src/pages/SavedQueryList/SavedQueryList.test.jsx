@@ -18,15 +18,19 @@
  */
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
-import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
 import { isFeatureEnabled } from '@superset-ui/core';
 import SavedQueryList from 'src/pages/SavedQueryList';
 import SubMenu from 'src/features/home/SubMenu';
@@ -177,11 +181,11 @@ describe('SavedQueryList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(SavedQueryList)).toExist();
+    expect(wrapper.find(SavedQueryList)).toBeTruthy();
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a SubMenu with Saved queries and Query History links', () => {
@@ -203,7 +207,7 @@ describe('SavedQueryList', () => {
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches saved queries', () => {
@@ -215,7 +219,7 @@ describe('SavedQueryList', () => {
   });
 
   it('renders ActionsBar in table', () => {
-    expect(wrapper.find(ActionsBar)).toExist();
+    expect(wrapper.find(ActionsBar)).toBeTruthy();
     expect(wrapper.find(ActionsBar)).toHaveLength(3);
   });
 
@@ -273,13 +277,12 @@ describe('SavedQueryList', () => {
     });
 
     render(
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider>
-            <SavedQueryList />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>,
+      <BrowserRouter>
+        <QueryParamProvider>
+          <SavedQueryList />
+        </QueryParamProvider>
+      </BrowserRouter>,
+      { store },
     );
 
     const copyActionButton = await waitFor(

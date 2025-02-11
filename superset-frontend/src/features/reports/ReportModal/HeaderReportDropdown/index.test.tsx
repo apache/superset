@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen, act } from 'spec/helpers/testing-library';
+import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import HeaderReportDropdown, { HeaderReportProps } from '.';

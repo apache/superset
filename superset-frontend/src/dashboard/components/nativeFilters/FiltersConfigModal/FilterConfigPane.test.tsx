@@ -22,9 +22,9 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import FilterConfigPane from './FilterConfigurePane';
 
 const scrollMock = jest.fn();

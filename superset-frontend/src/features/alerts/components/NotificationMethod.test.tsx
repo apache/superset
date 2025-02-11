@@ -21,9 +21,9 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 
 import {
   FeatureFlag,

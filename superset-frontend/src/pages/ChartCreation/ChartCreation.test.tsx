@@ -17,8 +17,12 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { screen, waitFor, render } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { createMemoryHistory } from 'history';
 import { ChartCreation } from 'src/pages/ChartCreation';

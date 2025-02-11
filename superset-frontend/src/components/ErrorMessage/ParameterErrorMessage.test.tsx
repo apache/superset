@@ -17,9 +17,8 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import ParameterErrorMessage from './ParameterErrorMessage';
 
 jest.mock(

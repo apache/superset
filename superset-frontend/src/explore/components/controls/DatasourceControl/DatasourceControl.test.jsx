@@ -20,11 +20,11 @@ import configureStore from 'redux-mock-store';
 import { DatasourceType } from '@superset-ui/core';
 import {
   fireEvent,
-  waitFor,
-  screen,
   render,
+  screen,
+  userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import DatasourceControl, {
   getDatasourceTitle,
 } from 'src/explore/components/controls/DatasourceControl';

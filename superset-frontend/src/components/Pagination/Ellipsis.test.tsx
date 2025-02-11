@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Ellipsis } from './Ellipsis';
 
 test('Ellipsis - click when the button is enabled', () => {

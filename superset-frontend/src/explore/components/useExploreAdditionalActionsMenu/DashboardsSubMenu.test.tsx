@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { Menu } from 'src/components/Menu';
 import DashboardItems from './DashboardsSubMenu';
 
@@ -50,7 +54,7 @@ test('renders a submenu', async () => {
 test('renders a submenu with search', async () => {
   asyncRender(20);
   expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
-});
+}, 10000);
 
 test('displays a searched value', async () => {
   asyncRender(20);

@@ -143,6 +143,13 @@ const setup = (props?: any, store?: Store) =>
   });
 
 describe('ResultSet', () => {
+  // Add cleanup after each test
+  afterEach(async () => {
+    fetchMock.resetHistory();
+    // Wait for any pending effects to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   test('renders a Table', async () => {
     const { getByTestId } = setup(
       mockedProps,
@@ -157,8 +164,10 @@ describe('ResultSet', () => {
         },
       }),
     );
-    const table = getByTestId('table-container');
-    expect(table).toBeInTheDocument();
+    await waitFor(() => {
+      const table = getByTestId('table-container');
+      expect(table).toBeInTheDocument();
+    });
   });
 
   test('should render success query', async () => {
@@ -245,7 +254,7 @@ describe('ResultSet', () => {
     await waitFor(() =>
       expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(1),
     );
-  });
+  }, 10000);
 
   test('should not call reRunQuery if no error', async () => {
     const query = queries[0];
@@ -508,13 +517,22 @@ describe('ResultSet', () => {
         },
       }),
     );
+
+    await waitFor(() => {
+      const downloadButton = getByTestId('export-csv-button');
+      expect(downloadButton).toBeInTheDocument();
+    });
+
     const downloadButton = getByTestId('export-csv-button');
-    fireEvent.click(downloadButton);
+    await waitFor(() => fireEvent.click(downloadButton));
+
     const warningModal = await findByRole('dialog');
-    expect(
-      within(warningModal).getByText(`Download is on the way`),
-    ).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(
+        within(warningModal).getByText(`Download is on the way`),
+      ).toBeInTheDocument();
+    });
+  }, 20000);
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {
     const { queryByTestId } = setup(

@@ -23,7 +23,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { SafeMarkdown } from '@superset-ui/core';
 
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
@@ -74,17 +74,17 @@ describe('Markdown', () => {
 
   it('should render a Draggable', () => {
     const wrapper = setup();
-    expect(wrapper.find(Draggable)).toExist();
+    expect(wrapper.find(Draggable)).toBeTruthy();
   });
 
   it('should render a WithPopoverMenu', () => {
     const wrapper = setup();
-    expect(wrapper.find(WithPopoverMenu)).toExist();
+    expect(wrapper.find(WithPopoverMenu)).toBeTruthy();
   });
 
   it('should render a ResizableContainer', () => {
     const wrapper = setup();
-    expect(wrapper.find(ResizableContainer)).toExist();
+    expect(wrapper.find(ResizableContainer)).toBeTruthy();
   });
 
   it('should only have an adjustableWidth if its parent is a Row', () => {
@@ -110,27 +110,27 @@ describe('Markdown', () => {
 
   it('should render an Markdown when NOT focused', () => {
     const wrapper = setup();
-    expect(wrapper.find(MarkdownEditor)).not.toExist();
-    expect(wrapper.find(SafeMarkdown)).toExist();
+    expect(wrapper.find(MarkdownEditor).length).toBe(0);
+    expect(wrapper.find(SafeMarkdown).length).toBeGreaterThan(0);
   });
 
   it('should render an AceEditor when focused and editMode=true and editorMode=edit', async () => {
     const wrapper = setup({ editMode: true });
-    expect(wrapper.find(MarkdownEditor)).not.toExist();
-    expect(wrapper.find(SafeMarkdown)).toExist();
+    expect(wrapper.find(MarkdownEditor).length).toBe(0);
+    expect(wrapper.find(SafeMarkdown).length).toBeGreaterThan(0);
     act(() => {
       wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
     });
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(MarkdownEditor)).toExist();
-    expect(wrapper.find(SafeMarkdown)).not.toExist();
+    expect(wrapper.find(MarkdownEditor).length).toBeGreaterThan(0);
+    expect(wrapper.find(SafeMarkdown).length).toBe(0);
   });
 
   it('should render a ReactMarkdown when focused and editMode=true and editorMode=preview', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
-    expect(wrapper.find(MarkdownEditor)).toExist();
-    expect(wrapper.find(SafeMarkdown)).not.toExist();
+    expect(wrapper.find(MarkdownEditor).length).toBeGreaterThan(0);
+    expect(wrapper.find(SafeMarkdown).length).toBe(0);
 
     // we can't call setState on Markdown bc it's not the root component, so call
     // the mode dropdown onchange instead
@@ -138,8 +138,8 @@ describe('Markdown', () => {
     dropdown.prop('onChange')('preview');
     wrapper.update();
 
-    expect(wrapper.find(SafeMarkdown)).toExist();
-    expect(wrapper.find(MarkdownEditor)).not.toExist();
+    expect(wrapper.find(SafeMarkdown).length).toBeGreaterThan(0);
+    expect(wrapper.find(MarkdownEditor).length).toBe(0);
   });
 
   it('should call updateComponents when editMode changes from edit => preview, and there are markdownSource changes', () => {
@@ -166,7 +166,7 @@ describe('Markdown', () => {
     const wrapper = setup({ editMode: true });
     wrapper.find(WithPopoverMenu).simulate('click'); // focus
 
-    expect(wrapper.find(DeleteComponentButton)).toExist();
+    expect(wrapper.find(DeleteComponentButton)).toBeTruthy();
   });
 
   it('should call deleteComponent when deleted', () => {

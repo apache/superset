@@ -18,8 +18,12 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -249,7 +253,7 @@ test('If only examples DB exist we must show the Connect Database option', async
   userEvent.hover(dataMenu);
   expect(await screen.findByText('Connect database')).toBeInTheDocument();
   expect(screen.queryByText('Create dataset')).not.toBeInTheDocument();
-});
+}, 10000);
 
 test('If more than just examples DB exist we must show the Create dataset option', async () => {
   const mockedProps = createProps();

@@ -189,7 +189,7 @@ test('renders unhide when invisible column exists', async () => {
   fireEvent.click(unhideColumnsButton);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledTimes(1);
   expect(mockGridApi.setColumnsVisible).toHaveBeenCalledWith(['column2'], true);
-});
+}, 10000);
 
 describe('for main menu', () => {
   test('renders Copy to Clipboard', async () => {

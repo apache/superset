@@ -17,8 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import SqlEditorLeftBar, {
   SqlEditorLeftBarProps,
 } from 'src/SqlLab/components/SqlEditorLeftBar';

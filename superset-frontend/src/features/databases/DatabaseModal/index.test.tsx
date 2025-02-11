@@ -20,8 +20,13 @@
 // TODO: These tests should be made atomic in separate files
 
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import * as hooks from 'src/views/CRUD/hooks';

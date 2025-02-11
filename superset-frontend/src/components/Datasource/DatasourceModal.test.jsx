@@ -16,23 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act } from 'react-dom/test-utils';
 import {
+  act,
   render,
   screen,
   waitFor,
   fireEvent,
   cleanup,
-} from '@testing-library/react';
+  defaultStore as store,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
 import sinon from 'sinon';
-import {
-  supersetTheme,
-  ThemeProvider,
-  SupersetClient,
-} from '@superset-ui/core';
-import { defaultStore as store } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import { DatasourceModal } from 'src/components/Datasource';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 
@@ -57,11 +52,8 @@ let container;
 
 async function renderAndWait(props = mockedProps) {
   const { container: renderedContainer } = render(
-    <Provider store={store}>
-      <ThemeProvider theme={supersetTheme}>
-        <DatasourceModal {...props} />
-      </ThemeProvider>
-    </Provider>,
+    <DatasourceModal {...props} />,
+    { store },
   );
 
   container = renderedContainer;

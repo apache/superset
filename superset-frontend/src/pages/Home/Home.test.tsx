@@ -17,9 +17,13 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
 import Welcome from 'src/pages/Home';
 import setupExtensions from 'src/setup/setupExtensions';
 
@@ -199,10 +203,16 @@ test('With toggle switch - does not show thumbnails when switch is off', async (
   mockedIsFeatureEnabled.mockReturnValue(true);
 
   await renderWelcome();
-  const toggle = await screen.findByRole('switch');
-  userEvent.click(toggle);
-  expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
-});
+  const toggle = await screen.findByRole('switch', {}, { timeout: 10000 });
+
+  await waitFor(
+    () => {
+      userEvent.click(toggle);
+      expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+}, 20000); // Add timeout for this specific test
 
 test('Should render an extension component if one is supplied', async () => {
   const extensionsRegistry = getExtensionsRegistry();

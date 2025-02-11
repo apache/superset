@@ -17,8 +17,7 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';

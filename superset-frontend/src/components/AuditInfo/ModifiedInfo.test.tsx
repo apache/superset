@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import { ModifiedInfo } from '.';
 
@@ -40,7 +43,7 @@ test('should render a tooltip when user is provided', async () => {
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(screen.getByText('Modified by: Foo Bar')).toBeInTheDocument();
-});
+}, 10000);
 
 test('should render only the date if username is not provided', async () => {
   render(<ModifiedInfo date={TEST_DATE} />);

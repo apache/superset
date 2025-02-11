@@ -17,8 +17,13 @@
  * under the License.
  */
 import { useState } from 'react';
-import userEvent from '@testing-library/user-event';
-import { cleanup, render, screen, within } from 'spec/helpers/testing-library';
+import {
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import setupPlugins from 'src/setup/setupPlugins';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';

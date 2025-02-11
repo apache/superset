@@ -18,8 +18,7 @@
  */
 
 import { ErrorLevel, ErrorSource, ErrorTypeEnum } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import FrontendNetworkErrorMessage from './FrontendNetworkErrorMessage';
 
 jest.mock(

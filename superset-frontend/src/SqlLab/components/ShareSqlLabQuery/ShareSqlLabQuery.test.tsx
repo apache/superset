@@ -26,9 +26,13 @@ import {
   ThemeProvider,
   isFeatureEnabled,
 } from '@superset-ui/core';
-import { render, screen, act, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  act,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
 
@@ -133,7 +137,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = mockQueryEditor;
+      const { id: _id, remoteId: _remoteId, ...expected } = mockQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
@@ -150,7 +154,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, ...expected } = unsavedQueryEditor;
+      const { id: _id, ...expected } = unsavedQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),

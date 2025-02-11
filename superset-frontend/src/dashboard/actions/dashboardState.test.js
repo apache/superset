@@ -18,7 +18,7 @@
  */
 import sinon from 'sinon';
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
-import { waitFor } from '@testing-library/react';
+import { waitFor } from 'spec/helpers/testing-library';
 
 import {
   SAVE_DASHBOARD_STARTED,

@@ -17,14 +17,9 @@
  * under the License.
  */
 
-import { render, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { render, fireEvent } from 'spec/helpers/testing-library';
 import { DatabaseObject } from 'src/features/databases/types';
 import { OAuth2ClientField } from './OAuth2ClientField';
-
-const renderWithTheme = (component: JSX.Element) =>
-  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
 
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
@@ -75,7 +70,7 @@ describe('OAuth2ClientField', () => {
   });
 
   it('does not show input fields until the collapse trigger is clicked', () => {
-    const { getByText, getByTestId, queryByTestId } = renderWithTheme(
+    const { getByText, getByTestId, queryByTestId } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
 
@@ -98,7 +93,7 @@ describe('OAuth2ClientField', () => {
   });
 
   it('renders the OAuth2ClientField component with initial values', () => {
-    const { getByTestId, getByText } = renderWithTheme(
+    const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
 
@@ -117,7 +112,7 @@ describe('OAuth2ClientField', () => {
   });
 
   it('handles input changes and triggers onEncryptedExtraInputChange', () => {
-    const { getByTestId, getByText } = renderWithTheme(
+    const { getByTestId, getByText } = render(
       <OAuth2ClientField {...defaultProps} />,
     );
 
@@ -148,7 +143,7 @@ describe('OAuth2ClientField', () => {
       },
     };
 
-    const { queryByTestId } = renderWithTheme(<OAuth2ClientField {...props} />);
+    const { queryByTestId } = render(<OAuth2ClientField {...props} />);
 
     expect(queryByTestId('client-id')).not.toBeInTheDocument();
   });
@@ -165,9 +160,7 @@ describe('OAuth2ClientField', () => {
       },
     };
 
-    const { getByTestId, getByText } = renderWithTheme(
-      <OAuth2ClientField {...props} />,
-    );
+    const { getByTestId, getByText } = render(<OAuth2ClientField {...props} />);
 
     const collapseTrigger = getByText('OAuth2 client information');
     fireEvent.click(collapseTrigger);
