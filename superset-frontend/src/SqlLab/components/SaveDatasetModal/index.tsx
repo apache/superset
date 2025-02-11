@@ -112,7 +112,7 @@ const Styles = styled.div`
   .sdm-radio {
     height: 30px;
     margin: 10px 0px;
-    line-height: ${theme.gridUnit * 7.5}px;
+    line-height: 30px;
   }
   .sdm-radio span {
     display: inline-flex;
