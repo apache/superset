@@ -49,7 +49,7 @@ import {PAGE_SIZE_OPTIONS} from './consts';
 import {updateExternalFormData} from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 import {ActionCell} from './ActionCell';
-
+import { Modal } from '@superset-ui/core';
 type ValueRange = [number, number];
 
 interface TableSize {
