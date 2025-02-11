@@ -240,62 +240,6 @@ describe('DashboardTable', () => {
     expect(assignMock).toHaveBeenCalledWith('/dashboard/new');
   });
 
-  // Update the deletion test:
-  it('handles dashboard deletion confirmation', async () => {
-    const props = {
-      ...defaultProps,
-      mine: mockDashboards,
-    };
-
-    const refreshDataMock = jest.fn();
-    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
-      state: {
-        loading: false,
-        resourceCollection: mockDashboards,
-        resourceCount: mockDashboards.length,
-        bulkSelectEnabled: false,
-        lastFetched: new Date().toISOString(),
-      },
-      setResourceCollection: jest.fn(),
-      hasPerm: jest.fn().mockReturnValue(true),
-      refreshData: refreshDataMock,
-      fetchData: jest.fn(),
-      toggleBulkSelect: jest.fn(),
-    }));
-
-    render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...props} />
-        </Router>
-      </Provider>,
-    );
-
-    const moreOptionsButton = screen.getAllByRole('img', {
-      name: 'more-vert',
-    })[0];
-    await userEvent.click(moreOptionsButton);
-
-    await waitFor(() => {
-      expect(screen.getByText('Delete')).toBeInTheDocument();
-    });
-
-    const deleteOption = screen.getByText('Delete');
-    await userEvent.click(deleteOption);
-
-    // Type DELETE in the confirmation input
-    const deleteInput = screen.getByTestId('delete-modal-input');
-    await userEvent.type(deleteInput, 'DELETE');
-
-    const confirmDeleteButton = screen.getByTestId('modal-confirm-button');
-    await userEvent.click(confirmDeleteButton);
-
-    await waitFor(() => {
-      expect(refreshDataMock).toHaveBeenCalled();
-    });
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
   it('switches to Other tab when available', async () => {
     const props = {
       ...defaultProps,
@@ -346,7 +290,6 @@ describe('DashboardTable', () => {
     expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
-  // Then update the deletion test
   it('handles dashboard deletion confirmation', async () => {
     const props = {
       ...defaultProps,
