@@ -241,7 +241,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         appbuilder.add_view(
             DashboardModelView,
-            "Dashboards",
+            "Dashboards TEST",
             label=__("Dashboards"),
             icon="fa-dashboard",
             category="",
