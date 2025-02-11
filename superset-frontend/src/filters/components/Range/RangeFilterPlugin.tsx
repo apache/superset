@@ -169,11 +169,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
     const { lower, upper } = getBounds(realValue);
 
-    if (lower === null || upper === null) {
+    if (lower === null && upper === null) {
       setDataMask({
         extraFormData: getRangeExtraFormData(col, null, null),
         filterState: {
-          value: null,
+          value: undefined,
           label: '',
         },
       });
@@ -203,7 +203,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     setDataMask({
       extraFormData: getRangeExtraFormData(col, null, null),
       filterState: {
-        value: null,
+        value: undefined,
         label: '',
       },
     });

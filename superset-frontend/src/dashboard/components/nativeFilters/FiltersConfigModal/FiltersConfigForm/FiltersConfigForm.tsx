@@ -1253,7 +1253,7 @@ const FiltersConfigForm = (
                         validator: () => {
                           if (
                             formFilter?.defaultDataMask?.filterState?.value !==
-                            null
+                            undefined
                           ) {
                             // requires managing the error as the DefaultValue
                             // component does not use an Antdesign compatible input
