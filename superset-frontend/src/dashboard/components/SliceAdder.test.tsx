@@ -81,11 +81,10 @@ const defaultProps: SliceAdderProps = {
 
 const renderSliceAdder = (props = defaultProps) =>
   render(
-    <Provider store={mockStore}>
-      <ThemeProvider theme={supersetTheme}>
-        <SliceAdder {...props} />
-      </ThemeProvider>
-    </Provider>,
+    <ThemeProvider theme={supersetTheme}>
+      <SliceAdder {...props} />
+    </ThemeProvider>,
+    { store: mockStore },
   );
 
 describe('SliceAdder', () => {
@@ -241,13 +240,7 @@ describe('SliceAdder', () => {
 
   it('should update selectedSliceIdsSet when props change', () => {
     const { rerender } = renderSliceAdder();
-    rerender(
-      <Provider store={mockStore}>
-        <ThemeProvider theme={supersetTheme}>
-          <SliceAdder {...defaultProps} selectedSliceIds={[129]} />
-        </ThemeProvider>
-      </Provider>,
-    );
+    rerender(<SliceAdder {...defaultProps} selectedSliceIds={[129]} />);
     // Verify the internal state was updated by checking if new charts are available
     expect(screen.getByRole('checkbox')).toBeInTheDocument();
   });
