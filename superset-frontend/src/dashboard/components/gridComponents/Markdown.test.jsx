@@ -16,21 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Provider } from 'react-redux';
-import {
-  act,
-  render,
-  screen,
-  fireEvent,
-  userEvent,
-} from 'spec/helpers/testing-library';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { act, render, screen, fireEvent } from 'spec/helpers/testing-library';
 import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown';
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 describe('Markdown', () => {
   const props = {
@@ -345,7 +335,7 @@ describe('Markdown', () => {
 
     // Check ROW_TYPE width
     const container = screen.getByTestId('dashboard-component-chart-holder');
-    const parentElement = container.parentElement;
+    const { parentElement } = container;
     expect(parentElement).toHaveStyle('width: 248px');
 
     // Check non-ROW_TYPE width
