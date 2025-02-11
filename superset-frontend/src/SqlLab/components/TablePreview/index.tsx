@@ -30,7 +30,7 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import Icons from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import { Skeleton, AntdBreadcrumb as Breadcrumb } from 'src/components';
+import { Skeleton, AntdBreadcrumb as Breadcrumb, Button } from 'src/components';
 import { Dropdown } from 'src/components/Dropdown';
 import FilterableTable from 'src/components/FilterableTable';
 import Tabs from 'src/components/Tabs';
@@ -324,11 +324,13 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
           )}
           trigger={['click']}
         >
-          <Icons.DownSquareOutlined
-            iconSize="m"
-            style={{ marginTop: 2, marginLeft: 4 }}
-            aria-label={t('Table actions')}
-          />
+          <Button buttonSize="xsmall" type="link">
+            <Icons.DownSquareOutlined
+              iconSize="m"
+              style={{ marginTop: 2, marginLeft: 4 }}
+              aria-label={t('Table actions')}
+            />
+          </Button>
         </Dropdown>
       </Title>
       {isMetadataRefreshing ? (

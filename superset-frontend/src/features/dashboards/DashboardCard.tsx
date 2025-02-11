@@ -34,6 +34,7 @@ import { PublishedLabel } from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
+import { Button } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -179,8 +180,10 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown dropdownRender={() => menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+            <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
+              <Button buttonSize="xsmall" type="link">
+                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+              </Button>
             </Dropdown>
           </ListViewCard.Actions>
         }

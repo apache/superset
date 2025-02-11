@@ -104,7 +104,7 @@ describe('SavedQueries', () => {
   it('renders a submenu with clickable tables and buttons', async () => {
     expect(wrapper.find(SubMenu)).toExist();
     expect(wrapper.find('[role="tab"]')).toHaveLength(1);
-    expect(wrapper.find('button')).toHaveLength(2);
+    expect(wrapper.find('button')).toHaveLength(5);
     clickTab(0);
     await waitForComponentToPaint(wrapper);
     expect(fetchMock.calls(/saved_query\/\?q/)).toHaveLength(2);
