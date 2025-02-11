@@ -17,6 +17,9 @@
  * under the License.
  */
 {
+  "rules": {
+    "import/no-unresolved": 0 // TODO: enable this ESLint rule back once Playwright migration completes.
+  },
   "settings": {
     "import/resolver": {
       "node": {
