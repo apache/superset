@@ -143,6 +143,7 @@ jobs:
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install dependencies
+        working-directory: ./superset-frontend/e2e-next
         run: npm ci
       - name: Download blob reports from GitHub Actions Artifacts
         uses: actions/download-artifact@v4
