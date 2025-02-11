@@ -18,10 +18,6 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider } from '@emotion/react';
-import { supersetTheme } from '@superset-ui/core';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import AdhocFilterControl from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';

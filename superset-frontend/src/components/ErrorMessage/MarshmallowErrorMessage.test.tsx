@@ -18,12 +18,7 @@
  */
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import {
-  ErrorLevel,
-  ErrorTypeEnum,
-  ThemeProvider,
-  supersetTheme,
-} from '@superset-ui/core';
+import { ErrorLevel, ErrorTypeEnum } from '@superset-ui/core';
 import MarshmallowErrorMessage from './MarshmallowErrorMessage';
 
 describe('MarshmallowErrorMessage', () => {

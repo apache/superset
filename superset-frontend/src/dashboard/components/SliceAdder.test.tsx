@@ -22,12 +22,7 @@ import {
   screen,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
-import {
-  ThemeProvider,
-  supersetTheme,
-  DatasourceType,
-} from '@superset-ui/core';
+import { DatasourceType } from '@superset-ui/core';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { configureStore } from '@reduxjs/toolkit';
 import SliceAdder, { SliceAdderProps } from './SliceAdder';

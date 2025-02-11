@@ -35,12 +35,7 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import {
-  supersetTheme,
-  FeatureFlag,
-  ThemeProvider,
-  isFeatureEnabled,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 
 import { TestDataset } from '@superset-ui/chart-controls';

@@ -18,10 +18,8 @@
  */
 
 import { render, fireEvent } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import ColumnSelectPopover, {
   ColumnSelectPopoverProps,
 } from 'src/explore/components/controls/DndColumnSelectControl/ColumnSelectPopover';

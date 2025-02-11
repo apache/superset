@@ -22,8 +22,6 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
   OptionControlLabel,
   DragContainer,
