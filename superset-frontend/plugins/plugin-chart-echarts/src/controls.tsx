@@ -230,7 +230,7 @@ const tooltipPercentageControl: ControlSetItem = {
     type: 'CheckboxControl',
     label: t('Show percentage'),
     renderTrigger: true,
-    default: true,
+    default: false,
     description: t('Whether to display the percentage value in the tooltip'),
     visibility: ({ controls, form_data }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value) &&
