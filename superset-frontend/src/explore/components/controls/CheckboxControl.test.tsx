@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 
 const defaultProps = {
@@ -28,9 +27,7 @@ const defaultProps = {
 };
 
 const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <CheckboxControl {...defaultProps} {...overrides} />;
-  </ThemeProvider>
+  <CheckboxControl {...defaultProps} {...overrides} />
 );
 
 describe('CheckboxControl', () => {

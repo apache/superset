@@ -49,39 +49,25 @@ describe('MarshmallowErrorMessage', () => {
   };
 
   test('renders without crashing', () => {
-    render(
-      <ThemeProvider theme={supersetTheme}>
-        <MarshmallowErrorMessage error={mockError} />
-      </ThemeProvider>,
-    );
+    render(<MarshmallowErrorMessage error={mockError} />);
     expect(screen.getByText('Validation failed')).toBeInTheDocument();
   });
 
   test('renders the provided subtitle', () => {
     render(
-      <ThemeProvider theme={supersetTheme}>
-        <MarshmallowErrorMessage error={mockError} subtitle="Error Alert" />
-      </ThemeProvider>,
+      <MarshmallowErrorMessage error={mockError} subtitle="Error Alert" />,
     );
     expect(screen.getByText('Error Alert')).toBeInTheDocument();
   });
 
   test('renders extracted invalid values', () => {
-    render(
-      <ThemeProvider theme={supersetTheme}>
-        <MarshmallowErrorMessage error={mockError} />
-      </ThemeProvider>,
-    );
+    render(<MarshmallowErrorMessage error={mockError} />);
     expect(screen.getByText("can't be blank:")).toBeInTheDocument();
     expect(screen.getByText('is too low: 10')).toBeInTheDocument();
   });
 
   test('renders the JSONTree when details are expanded', () => {
-    render(
-      <ThemeProvider theme={supersetTheme}>
-        <MarshmallowErrorMessage error={mockError} />
-      </ThemeProvider>,
-    );
+    render(<MarshmallowErrorMessage error={mockError} />);
     fireEvent.click(screen.getByText('Details'));
     expect(screen.getByText('"can\'t be blank"')).toBeInTheDocument();
   });

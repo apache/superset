@@ -17,7 +17,6 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
@@ -51,11 +50,9 @@ describe('DragDroppable', () => {
     );
 
     const utils = render(
-      <ThemeProvider theme={supersetTheme}>
-        <DragDroppable {...props} {...overrideProps}>
-          {overrideProps.children || defaultChildren}
-        </DragDroppable>
-      </ThemeProvider>,
+      <DragDroppable {...props} {...overrideProps}>
+        {overrideProps.children || defaultChildren}
+      </DragDroppable>,
     );
     return {
       ...utils,
@@ -119,16 +116,14 @@ describe('DragDroppable', () => {
     }
 
     render(
-      <ThemeProvider theme={supersetTheme}>
-        <MockDragDroppable
-          {...props}
-          editMode
-          isDraggingOver
-          component={newComponentFactory(TAB_TYPE)}
-        >
-          {renderChild}
-        </MockDragDroppable>
-      </ThemeProvider>,
+      <MockDragDroppable
+        {...props}
+        editMode
+        isDraggingOver
+        component={newComponentFactory(TAB_TYPE)}
+      >
+        {renderChild}
+      </MockDragDroppable>,
     );
 
     // Verify the last render included dropIndicatorProps
@@ -164,16 +159,14 @@ describe('DragDroppable', () => {
     }
 
     render(
-      <ThemeProvider theme={supersetTheme}>
-        <MockDragDroppable
-          {...props}
-          editMode
-          isDraggingOver
-          component={newComponentFactory(TAB_TYPE)}
-        >
-          {renderChild}
-        </MockDragDroppable>
-      </ThemeProvider>,
+      <MockDragDroppable
+        {...props}
+        editMode
+        isDraggingOver
+        component={newComponentFactory(TAB_TYPE)}
+      >
+        {renderChild}
+      </MockDragDroppable>,
     );
 
     expect(
@@ -208,17 +201,15 @@ describe('DragDroppable', () => {
     }
 
     render(
-      <ThemeProvider theme={supersetTheme}>
-        <MockDragDroppable
-          {...props}
-          editMode
-          isDraggingOver
-          disableDragDrop
-          component={newComponentFactory(TAB_TYPE)}
-        >
-          {renderChild}
-        </MockDragDroppable>
-      </ThemeProvider>,
+      <MockDragDroppable
+        {...props}
+        editMode
+        isDraggingOver
+        disableDragDrop
+        component={newComponentFactory(TAB_TYPE)}
+      >
+        {renderChild}
+      </MockDragDroppable>,
     );
 
     expect(
@@ -254,15 +245,13 @@ describe('DragDroppable', () => {
     });
 
     rerender(
-      <ThemeProvider theme={supersetTheme}>
-        <DragDroppable
-          {...props}
-          component={newComponentFactory(TAB_TYPE)}
-          onDropIndicatorChange={onDropIndicatorChange}
-          isDraggingOver
-          editMode
-        />
-      </ThemeProvider>,
+      <DragDroppable
+        {...props}
+        component={newComponentFactory(TAB_TYPE)}
+        onDropIndicatorChange={onDropIndicatorChange}
+        isDraggingOver
+        editMode
+      />,
     );
 
     expect(onDropIndicatorChange).toHaveBeenCalledWith(

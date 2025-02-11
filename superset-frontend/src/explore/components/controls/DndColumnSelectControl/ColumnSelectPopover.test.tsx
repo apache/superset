@@ -38,19 +38,16 @@ const renderPopover = (
   const store = mockStore({ explore: { datasource: { type: 'table' } } });
 
   return render(
-    <Provider store={store}>
-      <ThemeProvider theme={supersetTheme}>
-        <ColumnSelectPopover
-          hasCustomLabel
-          isTemporal
-          label="Custom Label"
-          onClose={jest.fn()}
-          setDatasetModal={jest.fn()}
-          setLabel={jest.fn()}
-          {...props}
-        />
-      </ThemeProvider>
-    </Provider>,
+    <ColumnSelectPopover
+      hasCustomLabel
+      isTemporal
+      label="Custom Label"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={jest.fn()}
+      {...props}
+    />,
+    { store },
   );
 };
 

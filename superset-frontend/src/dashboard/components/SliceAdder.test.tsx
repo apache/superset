@@ -80,12 +80,7 @@ const defaultProps: SliceAdderProps = {
 };
 
 const renderSliceAdder = (props = defaultProps) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <SliceAdder {...props} />
-    </ThemeProvider>,
-    { store: mockStore },
-  );
+  render(<SliceAdder {...props} />, { store: mockStore });
 
 describe('SliceAdder', () => {
   beforeEach(() => {

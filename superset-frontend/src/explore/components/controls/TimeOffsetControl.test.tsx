@@ -18,8 +18,6 @@
  */
 import configureStore from 'redux-mock-store';
 import { render, screen } from 'spec/helpers/testing-library';
-import { Provider } from 'react-redux';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { INVALID_DATE } from '@superset-ui/chart-controls';
 import { extendedDayjs } from 'src/utils/dates';
 import TimeOffsetControls, {
@@ -52,13 +50,7 @@ describe('TimeOffsetControls', () => {
 
     const props = { ...defaultProps };
 
-    render(
-      <Provider store={store}>
-        <ThemeProvider theme={supersetTheme}>
-          <TimeOffsetControls {...props} />
-        </ThemeProvider>
-      </Provider>,
-    );
+    render(<TimeOffsetControls {...props} />, { store });
 
     return { store, props };
   };

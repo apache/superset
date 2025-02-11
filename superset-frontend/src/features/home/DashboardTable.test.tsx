@@ -25,7 +25,6 @@ import {
 import { SupersetClient } from '@superset-ui/core';
 import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
-import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
@@ -145,22 +144,20 @@ describe('DashboardTable', () => {
 
   it('renders loading state initially', () => {
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...defaultProps} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...defaultProps} />
+      </Router>,
+      { store },
     );
     expect(screen.getByRole('img', { name: 'empty' })).toBeInTheDocument();
   });
 
   it('renders empty state when no dashboards', async () => {
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...defaultProps} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...defaultProps} />
+      </Router>,
+      { store },
     );
 
     await waitFor(() => {
@@ -185,11 +182,10 @@ describe('DashboardTable', () => {
     }));
 
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...defaultProps} mine={mockDashboards} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...defaultProps} mine={mockDashboards} />
+      </Router>,
+      { store },
     );
 
     await waitFor(() => {
@@ -206,11 +202,10 @@ describe('DashboardTable', () => {
     };
 
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...props} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...props} />
+      </Router>,
+      { store },
     );
 
     const mineTab = screen.getByRole('menuitem', { name: /mine/i });
@@ -228,11 +223,10 @@ describe('DashboardTable', () => {
     });
 
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...defaultProps} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...defaultProps} />
+      </Router>,
+      { store },
     );
 
     const createButton = screen.getByRole('button', { name: /dashboard$/i });
@@ -248,11 +242,10 @@ describe('DashboardTable', () => {
     };
 
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...props} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...props} />
+      </Router>,
+      { store },
     );
 
     const otherTab = screen.getByRole('tab', { name: 'Examples' });
@@ -267,11 +260,10 @@ describe('DashboardTable', () => {
     };
 
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...props} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...props} />
+      </Router>,
+      { store },
     );
 
     const moreOptionsButton = screen.getAllByRole('img', {
@@ -313,11 +305,10 @@ describe('DashboardTable', () => {
     }));
 
     render(
-      <Provider store={store}>
-        <Router history={history}>
-          <DashboardTable {...props} />
-        </Router>
-      </Provider>,
+      <Router history={history}>
+        <DashboardTable {...props} />
+      </Router>,
+      { store },
     );
 
     const moreOptionsButton = screen.getAllByLabelText('more-vert')[0];

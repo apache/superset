@@ -100,11 +100,9 @@ const defaultProps = {
 };
 
 const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Provider store={mockStore}>
-      <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
-    </Provider>
-  </ThemeProvider>
+  <Provider store={mockStore}>
+    <OAuth2RedirectMessage {...defaultProps} {...overrides} />;
+  </Provider>
 );
 
 describe('OAuth2RedirectMessage Component', () => {

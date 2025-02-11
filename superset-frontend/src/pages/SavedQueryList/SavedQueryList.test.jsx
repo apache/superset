@@ -18,7 +18,6 @@
  */
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
-import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -278,13 +277,12 @@ describe('SavedQueryList', () => {
     });
 
     render(
-      <Provider store={store}>
-        <BrowserRouter>
-          <QueryParamProvider>
-            <SavedQueryList />
-          </QueryParamProvider>
-        </BrowserRouter>
-      </Provider>,
+      <BrowserRouter>
+        <QueryParamProvider>
+          <SavedQueryList />
+        </QueryParamProvider>
+      </BrowserRouter>,
+      { store },
     );
 
     const copyActionButton = await waitFor(

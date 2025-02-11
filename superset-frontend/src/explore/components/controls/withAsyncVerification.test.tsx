@@ -23,7 +23,6 @@ import withAsyncVerification, {
 } from 'src/explore/components/controls/withAsyncVerification';
 import { ExtraControlProps } from '@superset-ui/chart-controls';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 const VALID_METRIC = {
   metric_name: 'sum__value',
@@ -77,11 +76,7 @@ async function setup({
     verify: verifier,
     onChange,
   });
-  const utils = render(
-    <ThemeProvider theme={supersetTheme}>
-      <VerifiedControl {...props} />
-    </ThemeProvider>,
-  );
+  const utils = render(<VerifiedControl {...props} />);
   return { props, ...utils, verifier, VerifiedControl };
 }
 
@@ -96,11 +91,7 @@ describe('VerifiedMetricsControl', () => {
     );
 
     // should call verifier with new props when props are updated
-    rerender(
-      <ThemeProvider theme={supersetTheme}>
-        <VerifiedControl {...props} validMetric={['abc']} />
-      </ThemeProvider>,
-    );
+    rerender(<VerifiedControl {...props} validMetric={['abc']} />);
 
     expect(verifier).toHaveBeenCalledWith(
       expect.objectContaining({ validMetric: ['abc'] }),

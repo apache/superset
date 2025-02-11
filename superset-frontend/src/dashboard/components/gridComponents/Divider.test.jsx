@@ -17,8 +17,6 @@
  * under the License.
  */
 import sinon from 'sinon';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 
 import Divider from 'src/dashboard/components/gridComponents/Divider';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
@@ -44,14 +42,9 @@ describe('Divider', () => {
   const setup = overrideProps =>
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
-    render(
-      <DndProvider backend={HTML5Backend}>
-        <Divider {...props} {...overrideProps} />
-      </DndProvider>,
-      {
-        useDnd: true,
-      },
-    );
+    render(<Divider {...props} {...overrideProps} />, {
+      useDnd: true,
+    });
 
   it('should render a Draggable', () => {
     setup();

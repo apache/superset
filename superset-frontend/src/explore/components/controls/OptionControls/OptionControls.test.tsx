@@ -49,11 +49,9 @@ const defaultProps = {
 };
 
 const setup = (overrides?: Record<string, any>) =>
-  render(
-    <DndProvider backend={HTML5Backend}>
-      <OptionControlLabel {...defaultProps} {...overrides} />
-    </DndProvider>,
-  );
+  render(<OptionControlLabel {...defaultProps} {...overrides} />, {
+    useDnd: true,
+  });
 
 test('should render', async () => {
   const { container } = setup();
@@ -94,7 +92,7 @@ test('should display a certification icon if saved metric is certified', async (
 
 test('triggers onMoveLabel on drop', async () => {
   render(
-    <DndProvider backend={HTML5Backend}>
+    <>
       <OptionControlLabel
         {...defaultProps}
         index={1}
@@ -105,7 +103,9 @@ test('triggers onMoveLabel on drop', async () => {
         index={2}
         label={<span>Label 2</span>}
       />
-    </DndProvider>,
+      ,
+    </>,
+    { useDnd: true },
   );
   await waitFor(() => {
     fireEvent.dragStart(screen.getByText('Label 1'));

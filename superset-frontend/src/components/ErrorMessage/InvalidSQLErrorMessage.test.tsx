@@ -43,11 +43,7 @@ const defaultProps = {
 };
 
 const renderComponent = (overrides = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <InvalidSQLErrorMessage {...defaultProps} {...overrides} />
-    </ThemeProvider>,
-  );
+  render(<InvalidSQLErrorMessage {...defaultProps} {...overrides} />);
 
 describe('InvalidSQLErrorMessage', () => {
   beforeAll(() => {

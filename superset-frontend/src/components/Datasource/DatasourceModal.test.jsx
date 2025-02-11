@@ -26,13 +26,8 @@ import {
   defaultStore as store,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
 import sinon from 'sinon';
-import {
-  supersetTheme,
-  ThemeProvider,
-  SupersetClient,
-} from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { DatasourceModal } from 'src/components/Datasource';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 
@@ -57,11 +52,8 @@ let container;
 
 async function renderAndWait(props = mockedProps) {
   const { container: renderedContainer } = render(
-    <Provider store={store}>
-      <ThemeProvider theme={supersetTheme}>
-        <DatasourceModal {...props} />
-      </ThemeProvider>
-    </Provider>,
+    <DatasourceModal {...props} />,
+    { store },
   );
 
   container = renderedContainer;

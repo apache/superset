@@ -73,13 +73,9 @@ const createProps = (): Props => ({
 });
 
 const renderComponent = (props: Partial<Props> = {}) =>
-  render(
-    <ThemeProvider theme={supersetTheme}>
-      <DndProvider backend={HTML5Backend}>
-        <AdhocFilterControl {...createProps()} {...props} />
-      </DndProvider>
-    </ThemeProvider>,
-  );
+  render(<AdhocFilterControl {...createProps()} {...props} />, {
+    useDnd: true,
+  });
 
 describe('AdhocFilterControl', () => {
   it('should render with default props', () => {

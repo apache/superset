@@ -26,7 +26,6 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import thunk from 'redux-thunk';
-import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -395,14 +394,9 @@ const store = mockStore({});
 describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () => {
   const setupFilter = async (props: Props) => {
     await act(async () => {
-      render(
-        <Provider store={store}>
-          <ThemeProvider theme={supersetTheme}>
-            <AdhocFilterEditPopoverSimpleTabContent {...props} />
-          </ThemeProvider>
-          ,
-        </Provider>,
-      );
+      render(<AdhocFilterEditPopoverSimpleTabContent {...props} />, {
+        store,
+      });
     });
   };
 

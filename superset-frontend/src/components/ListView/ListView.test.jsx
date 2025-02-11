@@ -19,11 +19,9 @@
 import { render, screen, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
 
 // Only import components that are directly referenced in tests
 import ListView from 'src/components/ListView/ListView';
@@ -122,13 +120,10 @@ const mockedProps = {
 
 const factory = (props = mockedProps) =>
   render(
-    <Provider store={mockStore()}>
-      <QueryParamProvider location={makeMockLocation()}>
-        <ThemeProvider theme={supersetTheme}>
-          <ListView {...props} />
-        </ThemeProvider>
-      </QueryParamProvider>
-    </Provider>,
+    <QueryParamProvider location={makeMockLocation()}>
+      <ListView {...props} />
+    </QueryParamProvider>,
+    { store: mockStore() },
   );
 
 describe('ListView', () => {
