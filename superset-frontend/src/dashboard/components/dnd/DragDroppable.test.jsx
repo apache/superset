@@ -125,7 +125,6 @@ describe('DragDroppable', () => {
           editMode
           isDraggingOver
           component={newComponentFactory(TAB_TYPE)}
-          children={renderChild}
         >
           {renderChild}
         </MockDragDroppable>
@@ -171,7 +170,6 @@ describe('DragDroppable', () => {
           editMode
           isDraggingOver
           component={newComponentFactory(TAB_TYPE)}
-          children={renderChild}
         >
           {renderChild}
         </MockDragDroppable>

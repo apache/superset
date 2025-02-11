@@ -26,6 +26,7 @@ type optionsType = {
   wrappingComponentProps?: any;
   wrappingComponent?: ReactElement;
   context?: any;
+  newOption?: string;
 };
 
 export function styledMount(
