@@ -154,11 +154,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     });
   };
 
-  const handleBlur = (index: 0 | 1) => {
-    if (inputValue[index] === null) {
-      return;
-    }
-
+  const handleBlur = () => {
     let realValue = inputValue;
 
     if (enableSingleExactValue) {
@@ -172,6 +168,17 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
 
     const { lower, upper } = getBounds(realValue);
+
+    if (lower === null || upper === null) {
+      setDataMask({
+        extraFormData: getRangeExtraFormData(col, null, null),
+        filterState: {
+          value: null,
+          label: '',
+        },
+      });
+      return;
+    }
     setInputValue(() => {
       setDataMask({
         extraFormData: getRangeExtraFormData(col, lower, upper),
@@ -200,7 +207,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         label: '',
       },
     });
-  }, [row?.min, row?.max, filterState?.value, getBounds]);
+  }, [row?.min, row?.max, JSON.stringify(filterState.value), getBounds]);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -243,9 +250,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 min={min}
                 max={inputValue[maxIndex] ?? max}
                 onChange={val => handleChange(val, minIndex)}
-                onBlur={() => handleBlur(minIndex)}
+                onBlur={() => handleBlur()}
                 placeholder={`${min}`}
-                data-test="range-filter-min-input"
+                status={filterState.validateStatus}
+                data-test="range-filter-from-input"
               />
             )}
             {enableSingleValue === undefined && (
@@ -257,16 +265,16 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
                 min={inputValue[minIndex] ?? min}
                 max={max}
                 onChange={val => handleChange(val, maxIndex)}
-                onBlur={() => handleBlur(maxIndex)}
+                onBlur={() => handleBlur()}
                 placeholder={`${max}`}
-                data-test="range-filter-max-input"
+                data-test="range-filter-to-input"
+                status={filterState.validateStatus}
               />
             )}
-            {(enableSingleValue !== undefined ||
-              filterBarOrientation === FilterBarOrientation.Vertical) && (
-              <Metadata value={metadataText} />
-            )}
           </Wrapper>
+          {(enableSingleValue !== undefined ||
+            filterBarOrientation === FilterBarOrientation.Vertical) &&
+            !filterState.validateStatus && <Metadata value={metadataText} />}
         </StyledFormItem>
       )}
     </FilterPluginStyle>
