@@ -16,41 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
-import DropdownSelectableIcon, { DropDownSelectableProps } from '.';
+import { LayoutItem } from '../types';
 
-export default {
-  title: 'DropdownSelectableIcon',
-  component: DropdownSelectableIcon,
+const findTabIndexByComponentId = ({
+  currentComponent,
+  directPathToChild = [],
+}: {
+  currentComponent: LayoutItem;
+  directPathToChild: string[];
+}): number => {
+  if (
+    !currentComponent ||
+    directPathToChild.length === 0 ||
+    directPathToChild.indexOf(currentComponent.id) === -1
+  ) {
+    return -1;
+  }
+
+  const currentComponentIdx = directPathToChild.findIndex(
+    id => id === currentComponent.id,
+  );
+  const nextParentId = directPathToChild[currentComponentIdx + 1];
+  if (currentComponent.children.indexOf(nextParentId) >= 0) {
+    return currentComponent.children.findIndex(
+      childId => childId === nextParentId,
+    );
+  }
+  return -1;
 };
 
-export const Component = (props: DropDownSelectableProps) => (
-  <DropdownSelectableIcon
-    {...props}
-    icon={<Icons.Gear name="gear" iconColor="#000000" />}
-  />
-);
-
-Component.args = {
-  info: 'Info go here',
-  selectedKeys: ['vertical'],
-  menuItems: [
-    {
-      key: 'vertical',
-      label: 'Vertical',
-    },
-    {
-      key: 'horizontal',
-      label: 'Horizontal',
-    },
-  ],
-};
-
-Component.argTypes = {
-  onSelect: {
-    action: 'onSelect',
-    table: {
-      disable: true,
-    },
-  },
-};
+export default findTabIndexByComponentId;

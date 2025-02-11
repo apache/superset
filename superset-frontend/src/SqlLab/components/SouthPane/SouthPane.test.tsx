@@ -135,7 +135,7 @@ test('should render empty result state when latestQuery is empty', () => {
   expect(resultPanel).toHaveTextContent('Run a query to display results');
 });
 
-test('should render tabs for table preview queries', () => {
+test('should render tabs for table metadata view', () => {
   const { getAllByRole } = render(<SouthPane {...mockedProps} />, {
     useRedux: true,
     initialState: mockState,
@@ -145,7 +145,7 @@ test('should render tabs for table preview queries', () => {
   expect(tabs).toHaveLength(mockState.sqlLab.tables.length + 2);
   expect(tabs[0]).toHaveTextContent('Results');
   expect(tabs[1]).toHaveTextContent('Query history');
-  mockState.sqlLab.tables.forEach(({ name }, index) => {
-    expect(tabs[index + 2]).toHaveTextContent(`Preview: \`${name}\``);
+  mockState.sqlLab.tables.forEach(({ name, schema }, index) => {
+    expect(tabs[index + 2]).toHaveTextContent(`${schema}.${name}`);
   });
 });

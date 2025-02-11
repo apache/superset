@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -82,12 +82,8 @@ const Styles = styled.div`
   .error-alert {
     margin: ${({ theme }) => 2 * theme.gridUnit}px;
   }
-  .ant-dropdown-trigger {
+  .antd5-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
-    box-shadow: none;
-    &:active {
-      box-shadow: none;
-    }
   }
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
@@ -410,8 +406,8 @@ class DatasourceControl extends PureComponent {
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
-          <AntdDropdown
-            overlay={
+          <Dropdown
+            dropdownRender={() =>
               datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu
@@ -423,24 +419,17 @@ class DatasourceControl extends PureComponent {
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />
-          </AntdDropdown>
+          </Dropdown>
         </div>
         {/* missing dataset */}
         {isMissingDatasource && isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
               level="warning"
-              title={t('Missing URL parameters')}
-              source="explore"
-              subtitle={
-                <>
-                  <p>
-                    {t(
-                      'The URL is missing the dataset_id or slice_id parameters.',
-                    )}
-                  </p>
-                </>
-              }
+              errorType={t('Missing URL parameters')}
+              description={t(
+                'The URL is missing the dataset_id or slice_id parameters.',
+              )}
             />
           </div>
         )}
@@ -448,25 +437,18 @@ class DatasourceControl extends PureComponent {
           <div className="error-alert">
             <ErrorAlert
               level="warning"
-              title={t('Missing dataset')}
-              source="explore"
-              subtitle={
+              errorType={t('Missing dataset')}
+              description={
                 <>
-                  <p>
-                    {t(
-                      'The dataset linked to this chart may have been deleted.',
-                    )}
-                  </p>
-                  <p>
-                    <Button
-                      buttonStyle="primary"
-                      onClick={() =>
-                        this.handleMenuItemClick({ key: CHANGE_DATASET })
-                      }
-                    >
-                      {t('Swap dataset')}
-                    </Button>
-                  </p>
+                  {t('The dataset linked to this chart may have been deleted.')}
+                  <Button
+                    buttonStyle="primary"
+                    onClick={() =>
+                      this.handleMenuItemClick({ key: CHANGE_DATASET })
+                    }
+                  >
+                    {t('Swap dataset')}
+                  </Button>
                 </>
               }
             />

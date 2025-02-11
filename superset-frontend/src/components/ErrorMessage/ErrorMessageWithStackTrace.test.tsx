@@ -55,7 +55,7 @@ test('should render the link', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   const link = screen.getByRole('link');
-  expect(link).toHaveTextContent('(Request Access)');
+  expect(link).toHaveTextContent('Request Access');
   expect(link).toHaveAttribute('href', mockedProps.link);
 });
 

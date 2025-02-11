@@ -74,7 +74,7 @@ module.exports = {
     'file-progress',
     'lodash',
     'theme-colors',
-    'translation-vars',
+    'i18n-strings',
     'react-prefer-function-component',
     'prettier',
   ],
@@ -284,7 +284,7 @@ module.exports = {
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
-        'translation-vars/no-template-vars': 0,
+        'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
         'react/no-void-elements': 0,
       },
@@ -292,7 +292,7 @@ module.exports = {
   ],
   rules: {
     'theme-colors/no-literal-colors': 'error',
-    'translation-vars/no-template-vars': ['error', true],
+    'i18n-strings/no-template-vars': ['error', true],
     camelcase: [
       'error',
       {
@@ -331,13 +331,18 @@ module.exports = {
     'no-prototype-builtins': 0,
     'no-restricted-properties': 0,
     'no-restricted-imports': [
-      'warn',
+      'error',
       {
         paths: [
           {
             name: 'antd',
             message:
               'Please import Ant components from the index of src/components',
+          },
+          {
+            name: 'antd-v5',
+            message:
+              'Please import Ant v5 components from the index of src/components',
           },
           {
             name: '@superset-ui/core',

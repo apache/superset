@@ -16,12 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { render } from 'spec/helpers/testing-library';
 
-import { Popover as AntdPopover } from 'antd';
-import type { PopoverProps as AntdPopoverProps } from 'antd/lib/popover';
+import mockDatasource from 'spec/fixtures/mockDatasource';
+import CollectionTable from './CollectionTable';
 
-export interface PopoverProps extends AntdPopoverProps {
-  forceRender?: boolean;
-}
+const props = {
+  collection: mockDatasource['7__table'].columns,
+  tableColumns: ['column_name', 'type', 'groupby'],
+  sortColumns: [],
+};
 
-export const Popover = (props: PopoverProps) => <AntdPopover {...props} />;
+test('renders a table', () => {
+  const { length } = mockDatasource['7__table'].columns;
+  const { getByRole } = render(<CollectionTable {...props} />);
+  expect(getByRole('table')).toBeInTheDocument();
+  expect(
+    getByRole('table')
+      .getElementsByTagName('tbody')[0]
+      .getElementsByClassName('row'),
+  ).toHaveLength(length);
+});

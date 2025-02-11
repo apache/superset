@@ -29,7 +29,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@data-ui/xy-chart": "^0.0.84",
     "d3": "^3.5.17",
     "d3-tip": "^0.9.1",
     "dompurify": "^3.2.3",
@@ -43,6 +42,6 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "^17.0.2"
   }
 }

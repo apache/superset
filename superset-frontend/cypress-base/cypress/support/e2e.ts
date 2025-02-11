@@ -20,6 +20,7 @@ import '@cypress/code-coverage/support';
 import '@applitools/eyes-cypress/commands';
 import failOnConsoleError from 'cypress-fail-on-console-error';
 import { expect } from 'chai';
+import rison from 'rison';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -169,7 +170,7 @@ Cypress.Commands.add('login', () => {
   }).then(response => {
     if (response.status === 302) {
       // If there's a redirect, follow it manually
-      const redirectUrl = response.headers['location'];
+      const redirectUrl = response.headers.location;
       cy.request({
         method: 'GET',
         url: redirectUrl,
@@ -183,8 +184,12 @@ Cypress.Commands.add('login', () => {
 });
 
 Cypress.Commands.add('visitChartByName', name => {
-  cy.request(`/chart/api/read?_flt_3_slice_name=${name}`).then(response => {
-    cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${response.body.pks[0]}}`);
+  const query = rison.encode({
+    columns: ['id'],
+    filters: [{ col: 'slice_name', opr: 'eq', value: name }],
+  });
+  cy.request(`/api/v1/chart?q=${query}`).then(response => {
+    cy.visit(`${BASE_EXPLORE_URL}{"slice_id": ${response.body.result[0].id}}`);
   });
 });
 

@@ -137,11 +137,6 @@ interface UploadInfo {
   column_data_types: string;
 }
 
-interface SheetColumnNames {
-  sheet_name: string;
-  column_names: string[];
-}
-
 const defaultUploadInfo: UploadInfo = {
   table_name: '',
   schema: '',
@@ -225,8 +220,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [columns, setColumns] = useState<string[]>([]);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [sheetsColumnNames, setSheetsColumnNames] = useState<
-    SheetColumnNames[]
-  >([]);
+    Record<string, string[]>
+  >({});
   const [delimiter, setDelimiter] = useState<string>(',');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [currentSchema, setCurrentSchema] = useState<string | undefined>();
@@ -235,19 +230,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
 
-  const createTypeToEndpointMap = (
-    databaseId: number,
-  ): { [key: string]: string } => ({
-    csv: `/api/v1/database/${databaseId}/csv_upload/`,
-    excel: `/api/v1/database/${databaseId}/excel_upload/`,
-    columnar: `/api/v1/database/${databaseId}/columnar_upload/`,
-  });
-
-  const typeToFileMetadataEndpoint = {
-    csv: '/api/v1/database/csv_metadata/',
-    excel: '/api/v1/database/excel_metadata/',
-    columnar: '/api/v1/database/columnar_metadata/',
-  };
+  const createTypeToEndpointMap = (databaseId: number) =>
+    `/api/v1/database/${databaseId}/upload/`;
 
   const nullValuesOptions = [
     {
@@ -334,7 +318,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     setDelimiter(',');
     setPreviewUploadedFile(true);
     setFileLoading(false);
-    setSheetsColumnNames([]);
+    setSheetsColumnNames({});
     form.resetFields();
   };
 
@@ -394,9 +378,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     if (type === 'csv') {
       formData.append('delimiter', mergedValues.delimiter);
     }
+    formData.append('type', type);
     setFileLoading(true);
     return SupersetClient.post({
-      endpoint: typeToFileMetadataEndpoint[type],
+      endpoint: '/api/v1/database/upload_metadata/',
       body: formData,
       headers: { Accept: 'application/json' },
     })
@@ -408,10 +393,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           const { allSheetNames, sheetColumnNamesMap } = items.reduce(
             (
               acc: {
-                allSheetNames: any[];
+                allSheetNames: string[];
                 sheetColumnNamesMap: Record<string, string[]>;
               },
-              item: { sheet_name: any; column_names: any },
+              item: { sheet_name: string; column_names: string[] },
             ) => {
               acc.allSheetNames.push(item.sheet_name);
               acc.sheetColumnNamesMap[item.sheet_name] = item.column_names;
@@ -477,7 +462,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
     appendFormData(formData, mergedValues);
     setIsLoading(true);
-    const endpoint = createTypeToEndpointMap(currentDatabaseId)[type];
+    const endpoint = createTypeToEndpointMap(currentDatabaseId);
+    formData.append('type', type);
     return SupersetClient.post({
       endpoint,
       body: formData,

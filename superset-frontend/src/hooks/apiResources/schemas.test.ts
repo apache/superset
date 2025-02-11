@@ -53,11 +53,9 @@ const expectedResult3 = fakeApiResult3.result.map((value: string) => ({
 }));
 
 describe('useSchemas hook', () => {
-  afterEach(() => {
+  beforeEach(() => {
     fetchMock.reset();
-    act(() => {
-      store.dispatch(api.util.resetApiState());
-    });
+    store.dispatch(api.util.resetApiState());
   });
 
   test('returns api response mapping json result', async () => {

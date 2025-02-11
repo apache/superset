@@ -21,6 +21,7 @@
 *.swp
 __pycache__
 
+.aider*
 .local
 .cache
 .bento*
@@ -124,3 +125,4 @@ docker/*local*
 # Jest test report
 test-report.html
 superset/static/stats/statistics.html
+.aider*

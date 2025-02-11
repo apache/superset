@@ -26,7 +26,13 @@ import { StyledIcon } from 'src/views/CRUD/utils';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationLayerObject } from './types';
+
+type AnnotationLayerObjectStringKeys = keyof Pick<
+  AnnotationLayerObject,
+  OnlyKeyWithType<AnnotationLayerObject, string>
+>;
 
 interface AnnotationLayerModalProps {
   addDangerToast: (msg: string) => void;
@@ -167,7 +173,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       descr: currentLayer ? currentLayer.descr : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as AnnotationLayerObjectStringKeys] = target.value;
     setCurrentLayer(data);
   };
 

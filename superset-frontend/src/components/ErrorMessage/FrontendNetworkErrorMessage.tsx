@@ -16,26 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export default function findTabIndexByComponentId({
-  currentComponent,
-  directPathToChild = [],
-}) {
-  if (
-    !currentComponent ||
-    directPathToChild.length === 0 ||
-    directPathToChild.indexOf(currentComponent.id) === -1
-  ) {
-    return -1;
-  }
+import { t } from '@superset-ui/core';
 
-  const currentComponentIdx = directPathToChild.findIndex(
-    id => id === currentComponent.id,
+import { ErrorMessageComponentProps } from './types';
+import ErrorAlert from './ErrorAlert';
+
+function FrontendNetworkErrorMessage({
+  error,
+  subtitle,
+  compact,
+}: ErrorMessageComponentProps) {
+  const { level, message } = error;
+  return (
+    <ErrorAlert
+      compact={compact}
+      errorType={t('Network Error')}
+      message={message}
+      type={level}
+    />
   );
-  const nextParentId = directPathToChild[currentComponentIdx + 1];
-  if (currentComponent.children.indexOf(nextParentId) >= 0) {
-    return currentComponent.children.findIndex(
-      childId => childId === nextParentId,
-    );
-  }
-  return -1;
 }
+export default FrontendNetworkErrorMessage;

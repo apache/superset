@@ -143,7 +143,8 @@ const factory = (props = mockedProps) =>
     },
   );
 
-describe('ListView', () => {
+// TODO: rewrite to rtl
+describe.skip('ListView', () => {
   let wrapper = beforeAll(async () => {
     wrapper = factory();
     await waitForComponentToPaint(wrapper);

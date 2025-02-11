@@ -79,6 +79,9 @@ export interface ChartDataResponseResult {
     | 'timed_out';
   from_dttm: number | null;
   to_dttm: number | null;
+  // TODO(hainenber): define proper type for below attributes
+  rejected_filters?: any[];
+  applied_filters?: any[];
 }
 
 export interface TimeseriesChartDataResponseResult

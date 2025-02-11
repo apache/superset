@@ -24,10 +24,10 @@ import {
   logging,
   Behavior,
   t,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
   VizType,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from 'src/components/EmptyState';
@@ -92,8 +92,7 @@ class ChartRenderer extends Component {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
         !suppressContextMenu &&
-        (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
-          isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: undefined,
     };

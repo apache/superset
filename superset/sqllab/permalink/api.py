@@ -16,7 +16,7 @@
 # under the License.
 import logging
 
-from flask import request, Response
+from flask import request, Response, url_for
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
 
@@ -87,8 +87,7 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
         try:
             state = self.add_model_schema.load(request.json)
             key = CreateSqlLabPermalinkCommand(state=state).run()
-            http_origin = request.headers.environ.get("HTTP_ORIGIN")
-            url = f"{http_origin}/sqllab/p/{key}"
+            url = url_for("SqllabView.permalink_view", permalink=key, _external=True)
             return self.response(201, key=key, url=url)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
@@ -104,10 +103,10 @@ class SqlLabPermalinkRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def get(self, key: str) -> Response:
-        """Get chart's permanent link state.
+        """Get permanent link state for SQLLab editor.
         ---
         get:
-          summary: Get chart's permanent link state
+          summary: Get permanent link state for SQLLab editor.
           parameters:
           - in: path
             schema:
