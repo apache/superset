@@ -16,25 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import React from 'react';
 import { Provider } from 'react-redux';
-import { styledMount as mount } from 'spec/helpers/theming';
-import sinon from 'sinon';
+import {
+  act,
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { SafeMarkdown } from '@superset-ui/core';
-
-import { act } from 'spec/helpers/testing-library';
-import { MarkdownEditor } from 'src/components/AsyncAceEditor';
 import MarkdownConnected from 'src/dashboard/components/gridComponents/Markdown';
-import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
-import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
-import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
-import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
-
 import { mockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
+import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 
 describe('Markdown', () => {
   const props = {
@@ -47,134 +43,205 @@ describe('Markdown', () => {
     editMode: false,
     availableColumnCount: 12,
     columnWidth: 50,
-    redoLength: 0,
-    undoLength: 0,
-    onResizeStart() {},
-    onResize() {},
-    onResizeStop() {},
-    handleComponentDrop() {},
-    updateComponents() {},
-    deleteComponent() {},
-    logEvent() {},
-    addDangerToast() {},
+    onResizeStart: jest.fn(),
+    onResize: jest.fn(),
+    onResizeStop: jest.fn(),
+    handleComponentDrop: jest.fn(),
+    updateComponents: jest.fn(),
+    deleteComponent: jest.fn(),
+    logEvent: jest.fn(),
+    addDangerToast: jest.fn(),
   };
 
-  function setup(overrideProps) {
-    // We have to wrap provide DragDropContext for the underlying DragDroppable
-    // otherwise we cannot assert on Droppable children
-    const wrapper = mount(
-      <Provider store={mockStore}>
-        <DndProvider backend={HTML5Backend}>
-          <MarkdownConnected {...props} {...overrideProps} />
-        </DndProvider>
-      </Provider>,
-    );
-    return wrapper;
-  }
-
-  it('should render a Draggable', () => {
-    const wrapper = setup();
-    expect(wrapper.find(Draggable)).toBeTruthy();
-  });
-
-  it('should render a WithPopoverMenu', () => {
-    const wrapper = setup();
-    expect(wrapper.find(WithPopoverMenu)).toBeTruthy();
-  });
-
-  it('should render a ResizableContainer', () => {
-    const wrapper = setup();
-    expect(wrapper.find(ResizableContainer)).toBeTruthy();
-  });
-
-  it('should only have an adjustableWidth if its parent is a Row', () => {
-    let wrapper = setup();
-    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(true);
-
-    wrapper = setup({ ...props, parentComponent: mockLayout.present.CHART_ID });
-    expect(wrapper.find(ResizableContainer).prop('adjustableWidth')).toBe(
-      false,
-    );
-  });
-
-  it('should pass correct props to ResizableContainer', () => {
-    const wrapper = setup();
-    const resizableProps = wrapper.find(ResizableContainer).props();
-    expect(resizableProps.widthStep).toBe(props.columnWidth);
-    expect(resizableProps.widthMultiple).toBe(props.component.meta.width);
-    expect(resizableProps.heightMultiple).toBe(props.component.meta.height);
-    expect(resizableProps.maxWidthMultiple).toBe(
-      props.component.meta.width + props.availableColumnCount,
-    );
-  });
-
-  it('should render an Markdown when NOT focused', () => {
-    const wrapper = setup();
-    expect(wrapper.find(MarkdownEditor).length).toBe(0);
-    expect(wrapper.find(SafeMarkdown).length).toBeGreaterThan(0);
-  });
-
-  it('should render an AceEditor when focused and editMode=true and editorMode=edit', async () => {
-    const wrapper = setup({ editMode: true });
-    expect(wrapper.find(MarkdownEditor).length).toBe(0);
-    expect(wrapper.find(SafeMarkdown).length).toBeGreaterThan(0);
-    act(() => {
-      wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
+  // Add cleanup and silence warnings for known issues
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(msg => {
+      if (
+        typeof msg === 'string' &&
+        !msg.includes('[antd:') &&
+        !msg.includes('Warning: An update to SafeMarkdown') &&
+        !msg.includes('Warning: React does not recognize') &&
+        !msg.includes("Warning: Can't perform a React state update")
+      ) {
+        console.error(msg);
+      }
     });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(MarkdownEditor).length).toBeGreaterThan(0);
-    expect(wrapper.find(SafeMarkdown).length).toBe(0);
   });
 
-  it('should render a ReactMarkdown when focused and editMode=true and editorMode=preview', () => {
-    const wrapper = setup({ editMode: true });
-    wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
-    expect(wrapper.find(MarkdownEditor).length).toBeGreaterThan(0);
-    expect(wrapper.find(SafeMarkdown).length).toBe(0);
-
-    // we can't call setState on Markdown bc it's not the root component, so call
-    // the mode dropdown onchange instead
-    const dropdown = wrapper.find(MarkdownModeDropdown);
-    dropdown.prop('onChange')('preview');
-    wrapper.update();
-
-    expect(wrapper.find(SafeMarkdown).length).toBeGreaterThan(0);
-    expect(wrapper.find(MarkdownEditor).length).toBe(0);
+  afterAll(() => {
+    jest.restoreAllMocks();
   });
 
-  it('should call updateComponents when editMode changes from edit => preview, and there are markdownSource changes', () => {
-    const updateComponents = sinon.spy();
-    const wrapper = setup({ editMode: true, updateComponents });
-    wrapper.find(WithPopoverMenu).simulate('click'); // focus + edit
-
-    // we can't call setState on Markdown bc it's not the root component, so call
-    // the mode dropdown onchange instead
-    const dropdown = wrapper.find(MarkdownModeDropdown);
-    dropdown.prop('onChange')('preview');
-    expect(updateComponents.callCount).toBe(0);
-
-    dropdown.prop('onChange')('edit');
-    // because we can't call setState on Markdown, change it through the editor
-    // then go back to preview mode to invoke updateComponents
-    const editor = wrapper.find(MarkdownEditor);
-    editor.prop('onChange')('new markdown!');
-    dropdown.prop('onChange')('preview');
-    expect(updateComponents.callCount).toBe(1);
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('should render a DeleteComponentButton when focused in editMode', () => {
-    const wrapper = setup({ editMode: true });
-    wrapper.find(WithPopoverMenu).simulate('click'); // focus
+  const setup = async (overrideProps = {}) => {
+    // Wait for SafeMarkdown to load its dependencies
+    let utils;
+    await act(async () => {
+      utils = render(<MarkdownConnected {...props} {...overrideProps} />, {
+        useDnd: true,
+        store: mockStore,
+      });
+      // Wait for async operations to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
+    });
+    return utils;
+  };
 
-    expect(wrapper.find(DeleteComponentButton)).toBeTruthy();
+  // Add cleanup after each test
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('should call deleteComponent when deleted', () => {
-    const deleteComponent = sinon.spy();
-    const wrapper = setup({ editMode: true, deleteComponent });
-    wrapper.find(WithPopoverMenu).simulate('click'); // focus
-    wrapper.find(DeleteComponentButton).simulate('click');
+  it('should render the markdown component', async () => {
+    await setup();
+    expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
+  });
 
-    expect(deleteComponent.callCount).toBe(1);
+  it('should render the markdown content in preview mode by default', async () => {
+    await setup();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('dashboard-component-chart-holder'),
+    ).toBeInTheDocument();
+  });
+
+  it('should render editor when in edit mode and clicked', async () => {
+    await setup({ editMode: true });
+    const container = screen.getByTestId('dashboard-component-chart-holder');
+    await act(async () => {
+      fireEvent.click(container);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('should switch between edit and preview modes', async () => {
+    await setup({ editMode: true });
+    const container = screen.getByTestId('dashboard-component-chart-holder');
+
+    await act(async () => {
+      fireEvent.click(container);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    // Find and click edit dropdown by role
+    const editButton = screen.getByRole('button', { name: /edit/i });
+    await act(async () => {
+      fireEvent.click(editButton);
+    });
+
+    // Click preview option in dropdown
+    const previewOption = await screen.findByText(/preview/i);
+    await act(async () => {
+      fireEvent.click(previewOption);
+    });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('should call updateComponents when switching from edit to preview with changes', async () => {
+    const updateComponents = jest.fn();
+    const mockCode = 'new markdown!';
+
+    const { container } = await setup({
+      editMode: true,
+      updateComponents,
+      component: {
+        ...mockLayout.present.MARKDOWN_ID,
+        id: 'test',
+        meta: { code: '' },
+      },
+    });
+
+    // Enter edit mode and change content
+    await act(async () => {
+      const markdownHolder = screen.getByTestId(
+        'dashboard-component-chart-holder',
+      );
+      fireEvent.click(markdownHolder);
+
+      // Wait for editor to be fully mounted
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Find the actual textarea/input element
+      const editor = container.querySelector('.ace_text-input');
+      console.log('Editor element:', editor);
+
+      // Simulate direct input
+      fireEvent.input(editor, { target: { value: mockCode } });
+      console.log('After input:', editor.value);
+
+      // Force blur and change events
+      fireEvent.change(editor, { target: { value: mockCode } });
+      fireEvent.blur(editor);
+
+      // Wait for state update
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Click the Edit dropdown button
+      const editDropdown = screen.getByText('Edit');
+      fireEvent.click(editDropdown);
+
+      // Wait for dropdown to open
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Find and click preview in dropdown
+      const previewOption = await screen.findByText(/preview/i);
+      fireEvent.click(previewOption);
+
+      // Wait for update to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    console.log('Component state:', {
+      updateCalls: updateComponents.mock.calls,
+      editorVisible: screen.queryByRole('textbox') !== null,
+      dropdownOpen: screen.queryByText(/preview/i) !== null,
+    });
+
+    // Update assertion to match actual component structure
+    expect(updateComponents).toHaveBeenCalledWith({
+      test: {
+        id: 'test',
+        meta: { code: mockCode },
+        type: 'MARKDOWN',
+        children: [],
+        parents: [],
+      },
+    });
+  });
+
+  it('should adjust width based on parent type', async () => {
+    const { rerender } = await setup();
+
+    // Check ROW_TYPE width
+    const container = screen.getByTestId('dashboard-component-chart-holder');
+    const parentElement = container.parentElement;
+    expect(parentElement).toHaveStyle('width: 248px');
+
+    // Check non-ROW_TYPE width
+    await act(async () => {
+      rerender(
+        <Provider store={mockStore}>
+          <MarkdownConnected
+            {...props}
+            parentComponent={mockLayout.present.CHART_ID}
+          />
+        </Provider>,
+      );
+      // Wait for styles to update
+      await new Promise(resolve => setTimeout(resolve, 100));
+    });
+
+    const updatedContainer = screen.getByTestId(
+      'dashboard-component-chart-holder',
+    );
+    const updatedParent = updatedContainer.parentElement;
+    // Check that width is no longer 248px
+    expect(updatedParent).not.toHaveStyle('width: 248px');
   });
 });

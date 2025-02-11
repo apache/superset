@@ -45,7 +45,9 @@ export default class MarkdownModeDropdown extends PureComponent<MarkdownModeDrop
     const { id, value, onChange } = this.props;
 
     return (
+      // Add data-testid to the PopoverDropdown component
       <PopoverDropdown
+        data-testid="markdown-mode-dropdown"
         id={id}
         options={dropdownOptions}
         value={value}
