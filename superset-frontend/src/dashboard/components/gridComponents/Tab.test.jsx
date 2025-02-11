@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import { render, screen } from 'spec/helpers/testing-library';
+
 import { Provider } from 'react-redux';
-import { styledMount as mount } from 'spec/helpers/theming';
 import sinon from 'sinon';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DragDroppable from 'src/dashboard/components/dnd/DragDroppable';
 import EditableTitle from 'src/components/EditableTitle';
@@ -59,7 +60,6 @@ describe.skip('Tabs', () => {
     deleteComponent() {},
     updateComponents() {},
   };
-
   function setup(overrideProps) {
     // We have to wrap provide DragDropContext for the underlying DragDroppable
     // otherwise we cannot assert on DragDroppable children
@@ -68,7 +68,7 @@ describe.skip('Tabs', () => {
       dashboardLayout: dashboardLayoutWithTabs,
       dashboardFilters: {},
     });
-    const wrapper = mount(
+    const wrapper = render(
       <Provider store={mockStore}>
         <DndProvider backend={HTML5Backend}>
           <Tab {...props} {...overrideProps} />
@@ -77,39 +77,39 @@ describe.skip('Tabs', () => {
     );
     return wrapper;
   }
-
   describe('renderType=RENDER_TAB', () => {
     it('should render a DragDroppable', () => {
       const wrapper = setup();
-      expect(wrapper.find(DragDroppable)).toBeTruthy();
+      expect(screen.getByTestId(DragDroppable)).toExist();
     });
-
     it('should render an EditableTitle with meta.text', () => {
       const wrapper = setup();
-      const title = wrapper.find(EditableTitle);
+      const title = screen.getByTestId(EditableTitle);
       expect(title).toHaveLength(1);
-      expect(title.find('.editable-title')).toHaveText(
+      expect(screen.getByTestId('.editable-title')).toHaveText(
         props.component.meta.defaultText,
       );
     });
-
     it('should call updateComponents when EditableTitle changes', () => {
       const updateComponents = sinon.spy();
-      const wrapper = setup({ editMode: true, updateComponents });
-      wrapper.find(EditableTitle).prop('onSaveTitle')('New title');
-
+      const wrapper = setup({
+        editMode: true,
+        updateComponents,
+      });
+      screen.getByTestId(EditableTitle).prop('onSaveTitle')('New title');
       expect(updateComponents.callCount).toBe(1);
       expect(updateComponents.getCall(0).args[0].TAB_ID.meta.text).toBe(
         'New title',
       );
     });
   });
-
   describe('renderType=RENDER_TAB_CONTENT', () => {
     it('should render a DashboardComponent', () => {
-      const wrapper = setup({ renderType: RENDER_TAB_CONTENT });
+      const wrapper = setup({
+        renderType: RENDER_TAB_CONTENT,
+      });
       // We expect 2 because this Tab has a Row child and the row has a Chart
-      expect(wrapper.find(DashboardComponent)).toHaveLength(2);
+      expect(screen.getByTestId(DashboardComponent)).toHaveLength(2);
     });
   });
 });
