@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
 import { TableTab } from 'src/views/CRUD/types';
+import { render, screen } from 'spec/helpers/testing-library';
 import EmptyState, { EmptyStateProps } from './EmptyState';
 import { WelcomeTable } from './types';
 
@@ -65,29 +65,30 @@ describe('EmptyState', () => {
 
   variants.forEach(variant => {
     it(`renders an ${variant.tab} ${variant.tableName} empty state`, () => {
-      const wrapper = mount(<EmptyState {...variant} />);
-      expect(wrapper).toExist();
+      const { container } = render(<EmptyState {...variant} />);
 
       // Select the first description node
-      const textContainer = wrapper.find('.ant-empty-description').at(0);
-      expect(textContainer.text()).toEqual('Nothing here yet');
-      expect(wrapper.find('button')).toHaveLength(1);
+      expect(
+        container.querySelector('.ant-empty-description'),
+      ).toHaveTextContent('Nothing here yet');
+      expect(screen.getAllByRole('button')).toHaveLength(1);
     });
   });
 
   recents.forEach(recent => {
     it(`renders a ${recent.tab} ${recent.tableName} empty state`, () => {
-      const wrapper = mount(<EmptyState {...recent} />);
-      expect(wrapper).toExist();
+      const { container } = render(<EmptyState {...recent} />);
 
       // Select the first description node
-      const textContainer = wrapper.find('.ant-empty-description').at(0);
+      // Check the correct text is displayed
+      expect(
+        container.querySelector('.ant-empty-description'),
+      ).toHaveTextContent('Nothing here yet');
 
       // Validate the image
-      expect(wrapper.find('.ant-empty-image').children()).toHaveLength(1);
-
-      // Check the correct text is displayed
-      expect(textContainer.text()).toContain(`Nothing here yet`);
+      expect(
+        container.querySelector('.ant-empty-image')?.children,
+      ).toHaveLength(1);
     });
   });
 });
