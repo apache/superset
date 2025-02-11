@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { render } from 'spec/helpers/testing-library';
 import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -125,7 +126,9 @@ describe('DragDroppable', () => {
           isDraggingOver
           component={newComponentFactory(TAB_TYPE)}
           children={renderChild}
-        />
+        >
+          {renderChild}
+        </MockDragDroppable>
       </ThemeProvider>,
     );
 
@@ -146,8 +149,6 @@ describe('DragDroppable', () => {
     expect(dragPreviewRef).toHaveBeenCalledTimes(1);
     expect(droppableRef).toHaveBeenCalledTimes(1);
   });
-
-  // ... existing tests ...
 
   it('should handle forbidden drops correctly', () => {
     const renderChild = jest.fn(provided => (
@@ -171,7 +172,9 @@ describe('DragDroppable', () => {
           isDraggingOver
           component={newComponentFactory(TAB_TYPE)}
           children={renderChild}
-        />
+        >
+          {renderChild}
+        </MockDragDroppable>
       </ThemeProvider>,
     );
 
@@ -214,8 +217,9 @@ describe('DragDroppable', () => {
           isDraggingOver
           disableDragDrop
           component={newComponentFactory(TAB_TYPE)}
-          children={renderChild}
-        />
+        >
+          {renderChild}
+        </MockDragDroppable>
       </ThemeProvider>,
     );
 
@@ -227,9 +231,9 @@ describe('DragDroppable', () => {
     });
   });
 
+  // Later in the file, remove the require and use the imported getEmptyImage
   it('should handle empty drag preview correctly', () => {
     const dragPreviewRef = jest.fn();
-    const { getEmptyImage } = require('react-dnd-html5-backend');
 
     setup({
       dragPreviewRef,
