@@ -29,6 +29,7 @@ import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
+import Button from 'src/components/Button';
 
 interface ChartCardProps {
   chart: Chart;
@@ -172,8 +173,10 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <Dropdown dropdownRender={() => menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+            <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
+              <Button buttonSize="xsmall" type="link">
+                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+              </Button>
             </Dropdown>
           </ListViewCard.Actions>
         }
