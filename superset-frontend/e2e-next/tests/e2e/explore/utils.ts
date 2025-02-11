@@ -165,7 +165,7 @@ export const saveChartToDashboard = async (
   ).toBeVisible();
   await expect(
     page.getByText(`was added to dashboard [${dashboardName}]`),
-  ).not.toBeVisible();
+  ).not.toBeVisible({ timeout: 10_000 }); // Increase to 10s for CI environment.
 };
 
 export const visitSampleChartFromList = async (
