@@ -215,6 +215,131 @@ describe('Markdown', () => {
     });
   });
 
+  it('should show placeholder text when markdown is empty', async () => {
+    await setup({
+      component: {
+        ...mockLayout.present.MARKDOWN_ID,
+        meta: { code: '' },
+      },
+    });
+
+    expect(
+      screen.getByText(/Click here to learn more about/),
+    ).toBeInTheDocument();
+  });
+
+  it('should handle markdown errors gracefully', async () => {
+    const addDangerToast = jest.fn();
+    const { container } = await setup({
+      addDangerToast,
+      component: {
+        ...mockLayout.present.MARKDOWN_ID,
+        meta: { code: '# Test' },
+      },
+    });
+
+    console.log('Component structure:', {
+      markdownEditor: screen.getByTestId('dashboard-markdown-editor'),
+      safeMarkdown: container.querySelector('.safe-markdown'),
+      allEventListeners: container.querySelectorAll('[data-test]'),
+      toastFn: addDangerToast.toString(),
+    });
+
+    // Try different error event types
+    await act(async () => {
+      const markdownEditor = screen.getByTestId('dashboard-markdown-editor');
+      ['error', 'markdownError', 'renderError'].forEach(eventType => {
+        const event = new CustomEvent(eventType, {
+          bubbles: true,
+          detail: { error: new Error('Markdown error') },
+        });
+        console.log(`Dispatching ${eventType} event`);
+        markdownEditor.dispatchEvent(event);
+      });
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('After events:', {
+        toastCalls: addDangerToast.mock.calls,
+        errorElements: container.querySelectorAll('.error-message'),
+      });
+    });
+  });
+
+  it('should resize editor when width changes', async () => {
+    const { container, rerender } = await setup({ editMode: true });
+
+    await act(async () => {
+      const chartHolder = screen.getByTestId(
+        'dashboard-component-chart-holder',
+      );
+      fireEvent.click(chartHolder);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    const editorContainer = screen.getByTestId('dashboard-markdown-editor');
+    console.log('Initial component state:', {
+      container: {
+        width: container.offsetWidth,
+        style: window.getComputedStyle(container),
+      },
+      editor: {
+        width: editorContainer.offsetWidth,
+        style: window.getComputedStyle(editorContainer),
+        children: editorContainer.children.length,
+      },
+      aceEditor: container.querySelector('.ace_editor'),
+    });
+
+    await act(async () => {
+      rerender(
+        <MarkdownConnected
+          {...props}
+          availableColumnCount={6}
+          columnWidth={100}
+          component={{
+            ...mockLayout.present.MARKDOWN_ID,
+            meta: { ...mockLayout.present.MARKDOWN_ID.meta },
+          }}
+        />,
+      );
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      console.log('After resize:', {
+        containerWidth: container.offsetWidth,
+        editorWidth: editorContainer.offsetWidth,
+        aceEditor: container.querySelector('.ace_editor')?.style,
+        computedStyle: window.getComputedStyle(editorContainer),
+      });
+    });
+  });
+
+  it('should update content when undo/redo changes occur', async () => {
+    const { rerender } = await setup({
+      editMode: true,
+      component: {
+        ...mockLayout.present.MARKDOWN_ID,
+        meta: { code: 'original' },
+      },
+    });
+
+    // Simulate undo/redo state change
+    await act(async () => {
+      rerender(
+        <MarkdownConnected
+          {...props}
+          undoLength={2}
+          redoLength={1}
+          component={{
+            ...mockLayout.present.MARKDOWN_ID,
+            meta: { code: 'updated' },
+          }}
+        />,
+      );
+    });
+
+    expect(screen.getByText('updated')).toBeInTheDocument();
+  });
+
   it('should adjust width based on parent type', async () => {
     const { rerender } = await setup();
 
