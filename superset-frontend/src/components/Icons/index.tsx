@@ -59,7 +59,6 @@ const IconFileNames = [
   'drag',
   'edit_alt',
   'edit',
-  'email',
   'error',
   'error_solid',
   'error_solid_small',
@@ -106,9 +105,7 @@ const IconFileNames = [
   'queued',
   'running',
   'sql',
-  'search',
   'server',
-  'share',
   'slack',
   'sort_asc',
   'sort_desc',
@@ -165,6 +162,9 @@ const IconFileNames = [
   'cancel',
   'cancel_solid',
   'field_boolean',
+  'search',
+  'email',
+  'share',
 ];
 
 const iconOverrides: Record<string, FC<IconType>> = {};

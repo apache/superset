@@ -121,7 +121,11 @@ function DashboardCard({
             className="action-button"
             data-test="dashboard-card-option-export-button"
           >
-            <Icons.Share iconSize="l" /> {t('Export')}
+            <Icons.UploadOutlined
+              iconSize="l"
+              css={{ verticalAlign: 'baseline' }}
+            />{' '}
+            {t('Export')}
           </div>
         </Menu.Item>
       )}

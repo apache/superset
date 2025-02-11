@@ -205,6 +205,10 @@ const SavedQueries = ({
           }
         }}
       >
+        <Icons.UploadOutlined
+          iconSize="l"
+          css={{ verticalAlign: 'baseline' }}
+        />
         {t('Share')}
       </Menu.Item>
       {canDelete && (

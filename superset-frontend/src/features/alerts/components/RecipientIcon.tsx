@@ -34,7 +34,9 @@ export default function RecipientIcon({ type }: { type: string }) {
   };
   switch (type) {
     case NotificationMethodOption.Email:
-      recipientIconConfig.icon = <Icons.Email css={NotificationStyledIcon} />;
+      recipientIconConfig.icon = (
+        <Icons.MailOutlined css={NotificationStyledIcon} />
+      );
       recipientIconConfig.label = NotificationMethodOption.Email;
       break;
     case NotificationMethodOption.Slack:

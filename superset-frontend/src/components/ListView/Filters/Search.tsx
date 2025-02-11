@@ -24,7 +24,7 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdInput } from 'src/components';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
@@ -43,10 +43,6 @@ const Container = styled.div`
   width: ${SELECT_WIDTH}px;
 `;
 
-const SearchIcon = styled(Icons.Search)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
 const StyledInput = styled(AntdInput)`
   border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
@@ -61,6 +57,7 @@ function SearchFilter(
   }: SearchHeaderProps,
   ref: RefObject<FilterHandler>,
 ) {
+  const theme = useTheme();
   const [value, setValue] = useState(initialValue || '');
   const handleSubmit = () => {
     if (value) {
@@ -96,7 +93,12 @@ function SearchFilter(
         onChange={handleChange}
         onPressEnter={handleSubmit}
         onBlur={handleSubmit}
-        prefix={<SearchIcon iconSize="l" />}
+        prefix={
+          <Icons.SearchOutlined
+            iconColor={theme.colors.grayscale.light1}
+            iconSize="l"
+          />
+        }
       />
     </Container>
   );

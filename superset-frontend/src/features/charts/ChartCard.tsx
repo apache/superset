@@ -90,7 +90,11 @@ export default function ChartCard({
             tabIndex={0}
             onClick={() => handleBulkChartExport([chart])}
           >
-            <Icons.Share iconSize="l" /> {t('Export')}
+            <Icons.UploadOutlined
+              iconSize="l"
+              css={{ verticalAlign: 'baseline' }}
+            />{' '}
+            {t('Export')}
           </div>
         </Menu.Item>
       )}

@@ -114,7 +114,12 @@ export const FilterInput = ({
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
-      prefix={<Icons.Search iconColor={theme.colors.grayscale.base} />}
+      prefix={
+        <Icons.SearchOutlined
+          iconSize="l"
+          iconColor={theme.colors.grayscale.base}
+        />
+      }
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;

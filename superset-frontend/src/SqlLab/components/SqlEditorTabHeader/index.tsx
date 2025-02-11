@@ -183,13 +183,11 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         }
       />
       <TabTitle>{qe.name}</TabTitle>
-      {StatusIcon && (
-        <StatusIcon
-          css={{ margin: '0px!important' }}
-          iconSize="s"
-          iconColor={getStatusColor(queryState, theme)}
-        />
-      )}
+      <StatusIcon
+        css={{ margin: '0px!important' }}
+        iconSize="s"
+        iconColor={getStatusColor(queryState, theme)}
+      />
     </TabTitleWrapper>
   );
 };

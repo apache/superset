@@ -503,7 +503,10 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined
+                      iconSize="l"
+                      css={{ verticalAlign: 'baseline' }}
+                    />
                   </span>
                 </Tooltip>
               )}
