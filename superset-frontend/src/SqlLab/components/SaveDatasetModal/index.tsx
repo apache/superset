@@ -100,18 +100,22 @@ const Styles = styled.div`
     margin: 0 8px;
   }
   .sdm-input {
-    margin-left: 45px;
+    margin-left: 40px;
     width: 401px;
   }
   .sdm-autocomplete {
     width: 401px;
     align-self: center;
+    margin-left: 4px;
   }
   .sdm-radio {
-    display: block;
     height: 30px;
     margin: 10px 0px;
     line-height: 30px;
+  }
+  .sdm-radio span {
+    display: inline-flex;
+    padding-right: 0px;
   }
   .sdm-overwrite-msg {
     margin: 7px;
