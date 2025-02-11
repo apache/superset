@@ -1,26 +1,23 @@
 import React, {
   CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  MouseEvent,
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
-  useState,
-  MouseEvent,
-  KeyboardEvent as ReactKeyboardEvent,
-  useEffect,
   useRef,
+  useState,
 } from 'react';
-import {
-  ColumnInstance,
-  ColumnWithLooseAccessor,
-  DefaultSortTypes,
-  Row,
-} from 'react-table';
-import { extent as d3Extent, max as d3Max } from 'd3-array';
-import { FaSort } from '@react-icons/all-files/fa/FaSort';
-import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
-import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
+import {ColumnInstance, ColumnWithLooseAccessor, DefaultSortTypes, Row,} from 'react-table';
+import {extent as d3Extent, max as d3Max} from 'd3-array';
+import {FaSort} from '@react-icons/all-files/fa/FaSort';
+import {FaSortDown as FaSortDesc} from '@react-icons/all-files/fa/FaSortDown';
+import {FaSortUp as FaSortAsc} from '@react-icons/all-files/fa/FaSortUp';
 import cx from 'classnames';
 import {
+  BinaryQueryObjectFilterClause,
+  css,
   DataRecord,
   DataRecordValue,
   DTTM_ALIAS,
@@ -28,41 +25,30 @@ import {
   GenericDataType,
   getSelectedText,
   getTimeFormatterForGranularity,
-  BinaryQueryObjectFilterClause,
   styled,
-  css,
   t,
   tn,
   useTheme,
 } from '@superset-ui/core';
-import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
+import {Dropdown, Menu, Tooltip} from '@superset-ui/chart-controls';
 import {
   CheckOutlined,
-  InfoCircleOutlined,
   DownOutlined,
+  InfoCircleOutlined,
   MinusCircleOutlined,
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, isNumber } from 'lodash';
-import {
-  ColorSchemeEnum,
-  DataColumnMeta,
-  TableChartTransformedProps,
-} from './types';
-import DataTable, {
-  DataTableProps,
-  SearchInputProps,
-  SelectPageSizeRendererProps,
-  SizeOption,
-} from './DataTable';
+import {isEmpty} from 'lodash';
+import {ColorSchemeEnum, DataColumnMeta, TableChartTransformedProps,} from './types';
+import DataTable, {DataTableProps, SearchInputProps, SelectPageSizeRendererProps, SizeOption,} from './DataTable';
 
 import Styles from './Styles';
-import { formatColumnValue } from './utils/formatValue';
-import { PAGE_SIZE_OPTIONS } from './consts';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import {formatColumnValue} from './utils/formatValue';
+import {PAGE_SIZE_OPTIONS} from './consts';
+import {updateExternalFormData} from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import { ActionCell } from './ActionCell';
+import {ActionCell} from './ActionCell';
 
 type ValueRange = [number, number];
 
@@ -94,10 +80,10 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
  * Cell background width calculation for horizontal bar chart
  */
 function cellWidth({
-  value,
-  valueRange,
-  alignPositiveNegative,
-}: {
+                     value,
+                     valueRange,
+                     alignPositiveNegative,
+                   }: {
   value: number;
   valueRange: ValueRange;
   alignPositiveNegative: boolean;
@@ -119,10 +105,10 @@ function cellWidth({
  * when alignPositiveNegative is not set
  */
 function cellOffset({
-  value,
-  valueRange,
-  alignPositiveNegative,
-}: {
+                      value,
+                      valueRange,
+                      alignPositiveNegative,
+                    }: {
   value: number;
   valueRange: ValueRange;
   alignPositiveNegative: boolean;
@@ -141,9 +127,9 @@ function cellOffset({
  * Cell background color calculation for horizontal bar chart
  */
 function cellBackground({
-  value,
-  colorPositiveNegative = false,
-}: {
+                          value,
+                          colorPositiveNegative = false,
+                        }: {
   value: number;
   colorPositiveNegative: boolean;
 }) {
@@ -151,16 +137,16 @@ function cellBackground({
   return `rgba(${r},0,0,0.2)`;
 }
 
-function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
-  const { isSorted, isSortedDesc } = column;
-  let sortIcon = <FaSort />;
+function SortIcon<D extends object>({column}: { column: ColumnInstance<D> }) {
+  const {isSorted, isSortedDesc} = column;
+  let sortIcon = <FaSort/>;
   if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
+    sortIcon = isSortedDesc ? <FaSortDesc/> : <FaSortAsc/>;
   }
   return sortIcon;
 }
 
-function SearchInput({ count, value, onChange }: SearchInputProps) {
+function SearchInput({count, value, onChange}: SearchInputProps) {
   return (
     <span className="dt-global-filter">
       {t('Search')}{' '}
@@ -176,10 +162,10 @@ function SearchInput({ count, value, onChange }: SearchInputProps) {
 }
 
 function SelectPageSize({
-  options,
-  current,
-  onChange,
-}: SelectPageSizeRendererProps) {
+                          options,
+                          current,
+                          onChange,
+                        }: SelectPageSizeRendererProps) {
   return (
     <span
       className="dt-select-page-size form-inline"
@@ -287,10 +273,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   } = props;
 
   const comparisonColumns = [
-    { key: 'all', label: t('Display all') },
-    { key: '#', label: '#' },
-    { key: '△', label: '△' },
-    { key: '%', label: '%' },
+    {key: 'all', label: t('Display all')},
+    {key: '#', label: '#'},
+    {key: '△', label: '△'},
+    {key: '%', label: '%'},
   ];
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -440,17 +426,29 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, [selection_mode, data, bulk_action_id_column]);
 
   const handleTableAction = useCallback((action: string, id: string, value?: string) => {
-    console.log("Sending....",action,id,value)
-    if (window.self !== window.top) {
-      window.parent.postMessage({
-        action: 'table-action',
-        actionType: action,
-        id,
-        value,
-        containerId: 'your-container-id' // Add identifier if needed
-      }, '*', [new MessageChannel().port2]);
-    }
+    sendWindowPostMessge({
+      action: 'remita-action',
+      actionType: action,
+      id,
+      value
+    });
   }, []);
+
+  const handleBulkAction = useCallback((action: string, selectedIds?: string[]) => {
+    sendWindowPostMessge({
+      action: 'remita-action',
+      actionType: action,
+      selectedIds
+    });
+  }, []);
+
+  function sendWindowPostMessge(messageData: any) {
+    if (window.self !== window.top) {
+      window.parent.postMessage(messageData, '*', [new MessageChannel().port2]);
+    } else {
+      alert("This will send to parent app in embeded mode | "+JSON.stringify(messageData));
+    }
+  }
 
   const tableActionsConfig = useMemo(() => {
     if (!enable_table_actions || !table_actions_id_column || !table_actions) {
@@ -490,7 +488,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, [bulk_action_id_column]);
 
   const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
-    let updatedFilters = { ...(filters || {}) };
+    let updatedFilters = {...(filters || {})};
     if (filters && isActiveFilterValue(key, value)) {
       updatedFilters = {};
     } else {
@@ -523,15 +521,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               : groupBy.map(col => {
                 const val = ensureIsArray(updatedFilters?.[col]);
                 if (!val.length)
-                    return {
-                      col,
-                      op: 'IS NULL' as const,
-                    };
+                  return {
+                    col,
+                    op: 'IS NULL' as const,
+                  };
                 return {
                   col,
                   op: 'IN' as const,
                   val: val.map(el =>
-                      el instanceof Date ? el.getTime() : el!,
+                    el instanceof Date ? el.getTime() : el!,
                   ),
                   grain: col === DTTM_ALIAS ? timeGrain : undefined,
                 };
@@ -561,7 +559,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
-    const { isNumeric, config = {} } = column;
+    const {isNumeric, config = {}} = column;
     const textAlign =
       config.horizontalAlign ||
       (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
@@ -578,7 +576,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const allColumns = comparisonColumns[0].key;
     const main = comparisonLabels[0];
     const showAllColumns = selectedComparisonColumns.includes(allColumns);
-    return columnsMeta.filter(({ label, key }) => {
+    return columnsMeta.filter(({label, key}) => {
       // Extract the key portion after the space, assuming the format is always "label key"
       const keyPortion = key.substring(label.length);
       const isKeyHidded = hideComparisonKeys.includes(keyPortion);
@@ -605,13 +603,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu && !isRawRecords
       ? (
         value: D,
-          cellPoint: {
-            key: string;
-            value: DataRecordValue;
-            isMetric?: boolean;
-          },
+        cellPoint: {
+          key: string;
+          value: DataRecordValue;
+          isMetric?: boolean;
+        },
         clientX: number,
-          clientY: number,
+        clientY: number,
       ) => {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         filteredColumnsMeta.forEach(col => {
@@ -634,11 +632,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             ? undefined
             : {
               filters: [
-                    {
-                      col: cellPoint.key,
-                      op: '==',
-                      val: cellPoint.value as string | number | boolean,
-                    },
+                {
+                  col: cellPoint.key,
+                  op: '==',
+                  val: cellPoint.value as string | number | boolean,
+                },
               ],
               groupbyFieldName: 'groupby',
             },
@@ -675,7 +673,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const renderTimeComparisonDropdown = (): JSX.Element => {
     const allKey = comparisonColumns[0].key;
     const handleOnClick = (data: any) => {
-      const { key } = data;
+      const {key} = data;
       // Toggle 'All' key selection
       if (key === allKey) {
         setSelectedComparisonColumns([allKey]);
@@ -734,7 +732,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   `}
                 >
                   {selectedComparisonColumns.includes(column.key) && (
-                    <CheckOutlined />
+                    <CheckOutlined/>
                   )}
                 </span>
               </Menu.Item>
@@ -744,7 +742,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         trigger={['click']}
       >
         <span>
-          <TableOutlined /> <DownOutlined />
+          <TableOutlined/> <DownOutlined/>
         </span>
       </Dropdown>
     );
@@ -764,7 +762,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         headers.push(
           <th
             key={`placeholder-${i}`}
-            style={{ borderBottom: 0 }}
+            style={{borderBottom: 0}}
             aria-label={`Header-${i}`}
           />,
         );
@@ -772,11 +770,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       // Add the current header <th>
       headers.push(
-        <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
+        <th key={`header-${key}`} colSpan={colSpan} style={{borderBottom: 0}}>
           {key}
           <span
             css={css`
               float: right;
+
               & svg {
                 color: ${theme.colors.grayscale.base} !important;
               }
@@ -791,7 +790,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
               />
             ) : (
-              <MinusCircleOutlined onClick={() => setHideComparisonKeys([...hideComparisonKeys, key])} />
+              <MinusCircleOutlined onClick={() => setHideComparisonKeys([...hideComparisonKeys, key])}/>
             )}
           </span>
         </th>,
@@ -806,9 +805,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           th {
             border-right: 2px solid ${theme.colors.grayscale.light2};
           }
+
           th:first-child {
             border-left: none;
           }
+
           th:last-child {
             border-right: none;
           }
@@ -845,7 +846,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         config.alignPositiveNegative === undefined ? defaultAlignPN : config.alignPositiveNegative;
       const colorPositiveNegative =
         config.colorPositiveNegative === undefined ? defaultColorPN : config.colorPositiveNegative;
-      const { truncateLongCells } = config;
+      const {truncateLongCells} = config;
       const hasColumnColorFormatters =
         isNumeric && Array.isArray(columnColorFormatters) && columnColorFormatters.length > 0;
       const hasBasicColorFormatters =
@@ -876,9 +877,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
+        Cell: ({value, row}: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
-          const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
+          const html = isHtml && allowRenderHtml ? {__html: text} : undefined;
           let backgroundColor;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
@@ -886,8 +887,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             backgroundColor = basicColorFormatters[row.index][originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-              ? basicColorFormatters[row.index][originKey]?.mainArrow
-              : '';
+                ? basicColorFormatters[row.index][originKey]?.mainArrow
+                : '';
           }
           if (hasColumnColorFormatters) {
             columnColorFormatters!
@@ -906,56 +907,56 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             backgroundColor = basicColorColumnFormatters[row.index][column.key]?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
-              ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
-              : '';
+                ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
+                : '';
           }
           const StyledCell = styled.td`
-          text-align: ${sharedStyle.textAlign};
-          white-space: ${value instanceof Date ? 'nowrap' : undefined};
-          position: relative;
-          background: ${backgroundColor || undefined};
-        `;
+            text-align: ${sharedStyle.textAlign};
+            white-space: ${value instanceof Date ? 'nowrap' : undefined};
+            position: relative;
+            background: ${backgroundColor || undefined};
+          `;
           const cellBarStyles = css`
-          position: absolute;
-          height: 100%;
-          display: block;
-          top: 0;
-          ${valueRange &&
-          `
+            position: absolute;
+            height: 100%;
+            display: block;
+            top: 0;
+            ${valueRange &&
+            `
             width: ${`${cellWidth({
-            value: value as number,
-            valueRange,
-            alignPositiveNegative,
-          })}%`};
+              value: value as number,
+              valueRange,
+              alignPositiveNegative,
+            })}%`};
             left: ${`${cellOffset({
-            value: value as number,
-            valueRange,
-            alignPositiveNegative,
-          })}%`};
+              value: value as number,
+              valueRange,
+              alignPositiveNegative,
+            })}%`};
             background-color: ${cellBackground({
-            value: value as number,
-            colorPositiveNegative,
-          })};
+              value: value as number,
+              colorPositiveNegative,
+            })};
           `}
-        `;
+          `;
           let arrowStyles = css`
-          color: ${
-            basicColorFormatters &&
-            basicColorFormatters[row.index][originKey]?.arrowColor === ColorSchemeEnum.Green
-              ? theme.colors.success.base
-              : theme.colors.error.base
-          };
-          margin-right: ${theme.gridUnit}px;
-        `;
-          if (basicColorColumnFormatters && basicColorColumnFormatters?.length > 0) {
-            arrowStyles = css`
             color: ${
-              basicColorColumnFormatters[row.index][column.key]?.arrowColor === ColorSchemeEnum.Green
+              basicColorFormatters &&
+              basicColorFormatters[row.index][originKey]?.arrowColor === ColorSchemeEnum.Green
                 ? theme.colors.success.base
                 : theme.colors.error.base
             };
             margin-right: ${theme.gridUnit}px;
           `;
+          if (basicColorColumnFormatters && basicColorColumnFormatters?.length > 0) {
+            arrowStyles = css`
+              color: ${
+                basicColorColumnFormatters[row.index][column.key]?.arrowColor === ColorSchemeEnum.Green
+                  ? theme.colors.success.base
+                  : theme.colors.error.base
+              };
+              margin-right: ${theme.gridUnit}px;
+            `;
           }
           const cellProps = {
             'aria-labelledby': `header-${column.key}`,
@@ -965,7 +966,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
-                    // allow selecting text in a cell
+                  // allow selecting text in a cell
                   if (!getSelectedText()) {
                     toggleFilter(key, value);
                   }
@@ -977,7 +978,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 e.stopPropagation();
                 handleContextMenu(
                   row.original,
-                  { key, value, isMetric },
+                  {key, value, isMetric},
                   e.nativeEvent.clientX,
                   e.nativeEvent.clientY,
                 );
@@ -997,14 +998,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <StyledCell {...cellProps}>
                   <div
                     className="dt-truncate-cell"
-                    style={columnWidth ? { width: columnWidth } : undefined}
+                    style={columnWidth ? {width: columnWidth} : undefined}
                     dangerouslySetInnerHTML={html}
                   />
                 </StyledCell>
               );
             }
             // eslint-disable-next-line react/no-danger
-            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
+            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html}/>;
           }
           // If cellProps renders textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
@@ -1024,7 +1025,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 />
               )}
               {truncateLongCells ? (
-                <div className="dt-truncate-cell" style={columnWidth ? { width: columnWidth } : undefined}>
+                <div className="dt-truncate-cell" style={columnWidth ? {width: columnWidth} : undefined}>
                   {arrow && <span css={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
@@ -1037,7 +1038,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </StyledCell>
           );
         },
-        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
+        Header: ({column: col, onClick, style, onDragStart, onDrop}) => (
           <th
             id={`header-${column.key}`}
             title={t('Shift + Click to sort by multiple columns')}
@@ -1082,7 +1083,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               }}
             >
               <span data-column-name={col.id}>{label}</span>
-              <SortIcon column={col} />
+              <SortIcon column={col}/>
             </div>
           </th>
         ),
@@ -1091,13 +1092,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <th>
               <div
                 css={css`
-                display: flex;
-                align-items: center;
-                & svg {
-                  margin-left: ${theme.gridUnit}px;
-                  color: ${theme.colors.grayscale.dark1} !important;
-                }
-              `}
+                  display: flex;
+                  align-items: center;
+
+                  & svg {
+                    margin-left: ${theme.gridUnit}px;
+                    color: ${theme.colors.grayscale.dark1} !important;
+                  }
+                `}
               >
                 {t('Summary')}
                 <Tooltip
@@ -1105,7 +1107,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
                   )}
                 >
-                  <InfoCircleOutlined />
+                  <InfoCircleOutlined/>
                 </Tooltip>
               </div>
             </th>
@@ -1148,8 +1150,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const handleSizeChange = useCallback(
-    ({ width, height }: { width: number; height: number }) => {
-      setTableSize({ width, height });
+    ({width, height}: { width: number; height: number }) => {
+      setTableSize({width, height});
     },
     [],
   );
@@ -1158,7 +1160,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     // After initial load the table should resize only when the new sizes
     // Are not only scrollbar updates, otherwise, the table would twitch
     const scrollBarSize = getScrollBarSize();
-    const { width: tableWidth, height: tableHeight } = tableSize;
+    const {width: tableWidth, height: tableHeight} = tableSize;
     // Table is increasing its original size
     if (
       width - tableWidth > scrollBarSize ||
@@ -1180,7 +1182,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [width, height, handleSizeChange, tableSize]);
 
-  const { width: widthFromState, height: heightFromState } = tableSize;
+  const {width: widthFromState, height: heightFromState} = tableSize;
   const columnsWithSelection = useMemo(() => {
     let finalColumns = columns;
 
@@ -1188,7 +1190,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     if (enable_bulk_actions) {
       const selectionColumn = {
         id: 'selection',
-        Header: ({ data }: { data: D[] }) => {
+        Header: ({data}: { data: D[] }) => {
           const visibleIds = data.map(row => String(row[bulk_action_id_column as keyof D]));
           const allVisibleSelected = visibleIds.length > 0 &&
             visibleIds.every(id => selectedRows.has(id));
@@ -1196,7 +1198,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             visibleIds.some(id => selectedRows.has(id));
 
           return (
-            <th className=" selection-cell  right-border-only " role="columnheader button" tabIndex="0">
+            <td className=" right-border-only " role="columnheader button" tabIndex="0">
               <div className="selection-cell">
                 <input
                   type="checkbox"
@@ -1211,17 +1213,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 />
                 <span className="selection-cell-number">#</span>
               </div>
-            </th>
-        );
+            </td>
+          );
         },
         Cell: ({
-          row
-        }: {
+                 row
+               }: {
           row: Row<D>
         }) => {
           const rowId = String(row.original[bulk_action_id_column as keyof D] ?? row.index);
           const currentPage = serverPaginationData.currentPage || 0; // Get current page index (0-based)
-          const pageSize = serverPaginationData.pageSize|| 10; // Get current page size
+          const pageSize = serverPaginationData.pageSize || 10; // Get current page size
           const rowNumber = currentPage * pageSize + row.index + 1; // Calculate row number
           return (
             <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex="0">
@@ -1265,7 +1267,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <span data-column-name="actions">{t('Actions')}</span>
           </th>
         ),
-        Cell: ({ row }: { row: Row<D> }) => {
+        Cell: ({row}: { row: Row<D> }) => {
           const rowId = String(row.original[tableActionsConfig.idColumn as keyof D] ?? row.index);
           return (
             <ActionCell
@@ -1311,40 +1313,40 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   return (
 
     <Styles>
-        <DataTable<D>
-          columns={columnsWithSelection}
-          data={data}
-          rowCount={rowCount}
-          tableClassName="table table-striped table-condensed"
-          pageSize={pageSize}
-          serverPaginationData={serverPaginationData}
-          pageSizeOptions={pageSizeOptions}
-          width={widthFromState}
-          height={heightFromState}
-          serverPagination={serverPagination}
-          onServerPaginationChange={handleServerPaginationChange}
-          onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+      <DataTable<D>
+        columns={columnsWithSelection}
+        data={data}
+        rowCount={rowCount}
+        tableClassName="table table-striped table-condensed"
+        pageSize={pageSize}
+        serverPaginationData={serverPaginationData}
+        pageSizeOptions={pageSizeOptions}
+        width={widthFromState}
+        height={heightFromState}
+        serverPagination={serverPagination}
+        onServerPaginationChange={handleServerPaginationChange}
+        onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
         // 9 page items in > 340px works well even for 100+ pages
-          maxPageItemCount={width > 340 ? 9 : 7}
-          noResults={getNoResultsMessage}
-          searchInput={includeSearch && SearchInput}
-          selectPageSize={pageSize !== null && SelectPageSize}
-          // not in use in Superset, but needed for unit tests
-          sticky={sticky}
-          renderGroupingHeaders={
-            !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
-          }
-          renderTimeComparisonDropdown={
-            isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
-          }
-          selectedRows={selectedRows}
-          enableBulkActions={enable_bulk_actions}
-          bulkActions={actions}
-          enableTableActions = {enable_table_actions}
-          tableActionsIdColumn = {table_actions_id_column}
-          tableActions = {table_actions}
-
-        />
+        maxPageItemCount={width > 340 ? 9 : 7}
+        noResults={getNoResultsMessage}
+        searchInput={includeSearch && SearchInput}
+        selectPageSize={pageSize !== null && SelectPageSize}
+        // not in use in Superset, but needed for unit tests
+        sticky={sticky}
+        renderGroupingHeaders={
+          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+        }
+        renderTimeComparisonDropdown={
+          isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
+        }
+        selectedRows={selectedRows}
+        enableBulkActions={enable_bulk_actions}
+        bulkActions={actions}
+        enableTableActions={enable_table_actions}
+        tableActionsIdColumn={table_actions_id_column}
+        tableActions={table_actions}
+        onBulkActionClick={handleBulkAction}
+      />
     </Styles>
   );
 }

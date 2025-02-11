@@ -250,7 +250,7 @@ const bulkActionsSection = {
           description: t(
             'Actions to show in dropdown menu. One per line in format:\nkey|label|boundToSelection|visibilityCondition',
           ),
-          default: '',
+          default: 'export|Export Selected|true|selected',
           language: 'text',
           renderTrigger: true,
           visibility: ({ controls }) => Boolean(controls?.enable_bulk_actions?.value),
@@ -268,7 +268,7 @@ const bulkActionsSection = {
           description: t(
             'Actions as individual buttons. One per line in format:\nkey|label|style|boundToSelection|visibilityCondition',
           ),
-          default: '',
+          default: 'delete|Delete|danger|true|selected\nsave|Save|primary|false|all',
           language: 'text',
           renderTrigger: true,
           visibility: ({ controls }) => Boolean(controls?.enable_bulk_actions?.value),
