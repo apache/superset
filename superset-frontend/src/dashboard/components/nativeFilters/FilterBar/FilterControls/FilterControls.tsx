@@ -141,17 +141,15 @@ const FilterControls: FC<FilterControlsProps> = ({
         // the OutPortal, otherwise react-reverse-portal crashes
         <Fragment key={key}>
           {'' /* Empty text node to avoid react-reverse-portal crash */}
-          <fieldset
-            disabled={isOutOfScope}
+          <OutPortal
+            node={portalNodes[filterIndex]}
+            inView
             style={{
               opacity: isOutOfScope ? 0.5 : 1,
               pointerEvents: isOutOfScope ? 'none' : 'auto',
               cursor: isOutOfScope ? 'not-allowed' : 'default',
             }}
-          >
-            {'' /* eslint-disable-line react/jsx-curly-brace-presence */}
-            <OutPortal node={portalNodes[filterIndex]} inView={!isOutOfScope} />
-          </fieldset>
+          />
         </Fragment>
       );
     },
