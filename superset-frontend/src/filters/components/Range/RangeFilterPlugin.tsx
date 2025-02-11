@@ -41,11 +41,7 @@ const StyledDivider = styled.span`
   align-content: center;
 `;
 
-const Wrapper = styled.div<{
-  validateStatus?: 'error' | 'warning' | 'info';
-  orientation?: FilterBarOrientation;
-  isOverflowing?: boolean;
-}>`
+const Wrapper = styled.div`
   display: flex;
   justify-content: space-between;
 
@@ -95,7 +91,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     filterState,
     inputRef,
     filterBarOrientation = FilterBarOrientation.Vertical,
-    isOverflowingFilterBar,
   } = props;
   const [row] = data;
   // @ts-ignore
@@ -119,10 +114,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       value: [number | null, number | null],
     ): { lower: number | null; upper: number | null } => {
       const [lowerRaw, upperRaw] = value;
-
-      // if (enableSingleExactValue) {
-      //   return { lower: lowerRaw, upper: upperRaw };
-      // }
 
       return {
         lower: lowerRaw !== null && lowerRaw > min ? lowerRaw : null,
@@ -232,9 +223,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           <Wrapper
             tabIndex={-1}
             ref={inputRef}
-            validateStatus={filterState.validateStatus}
-            orientation={filterBarOrientation}
-            isOverflowing={isOverflowingFilterBar}
             onFocus={setFocusedFilter}
             onBlur={unsetFocusedFilter}
             onMouseEnter={setHoveredFilter}
