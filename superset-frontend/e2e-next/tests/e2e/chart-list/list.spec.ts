@@ -36,14 +36,14 @@ import {
 const orderAlphabetical = (page: Page) =>
   setFilter(page, 'Sort', 'Alphabetical', InterceptItemCategory.Chart);
 
-// const openMenu = async (page: Page) => {
-//   await page.getByLabel('more-vert').first().click();
-// };
+const openMenu = async (page: Page) => {
+  await page.getByLabel('more-vert').first().click();
+};
 
-// const openProperties = async (page: Page) => {
-//   await openMenu(page);
-//   await page.getByTestId('chart-list-edit-option').click();
-// };
+const openProperties = async (page: Page) => {
+  await openMenu(page);
+  await page.getByTestId('chart-list-edit-option').click();
+};
 
 const confirmDelete = async (page: Page) => {
   await page.getByTestId('delete-modal-input').fill('DELETE');
@@ -316,54 +316,82 @@ test.describe('Charts list', () => {
       );
     });
 
-    // it('should delete correctly', () => {
-    //   interceptDelete();
+    test('should delete correctly', async ({ page }) => {
+      const interceptedDelete = intercept(
+        page,
+        InterceptType[InterceptItemCategory.Chart].Delete,
+      );
 
-    //   // deletes in card-view
-    //   setGridMode('card');
-    //   orderAlphabetical();
+      // deletes in card-view
+      await setGridMode(page, 'card');
+      await orderAlphabetical(page);
 
-    //   cy.getBySel('styled-card').eq(1).contains('1 - Sample chart');
-    //   openMenu();
-    //   cy.getBySel('chart-list-delete-option').click();
-    //   confirmDelete();
-    //   cy.wait('@delete');
-    //   cy.getBySel('styled-card')
-    //     .eq(1)
-    //     .should('not.contain', '1 - Sample chart');
+      await expect(page.getByTestId('styled-card').first()).toContainText(
+        '1 - Sample chart',
+      );
+      await openMenu(page);
+      await page.getByTestId('chart-list-delete-option').click();
+      await confirmDelete(page);
+      await interceptedDelete;
+      await expect(page.getByTestId('styled-card').first()).not.toContainText(
+        '1 - Sample chart',
+      );
 
-    //   // deletes in list-view
-    //   setGridMode('list');
-    //   cy.getBySel('table-row').eq(1).contains('2 - Sample chart');
-    //   cy.getBySel('trash').eq(1).click();
-    //   confirmDelete();
-    //   cy.wait('@delete');
-    //   cy.getBySel('table-row').eq(1).should('not.contain', '2 - Sample chart');
-    // });
+      // deletes in list-view
+      await setGridMode(page, 'list');
+      await expect(page.getByTestId('table-row').first()).toContainText(
+        '2 - Sample chart',
+      );
+      await page.getByTestId('trash').nth(0).click();
+      await confirmDelete(page);
+      await interceptedDelete;
+      await expect(page.getByTestId('table-row').first()).not.toContainText(
+        '2 - Sample chart',
+      );
+    });
 
-    // it('should edit correctly', () => {
-    //   interceptUpdate();
+    test('should edit correctly', async ({ page }) => {
+      const interceptedUpdate = intercept(
+        page,
+        InterceptType[InterceptItemCategory.Chart].Update,
+      );
 
-    //   // edits in card-view
-    //   setGridMode('card');
-    //   orderAlphabetical();
-    //   cy.getBySel('styled-card').eq(1).contains('1 - Sample chart');
+      // edits in card-view
+      await setGridMode(page, 'card');
+      await orderAlphabetical(page);
+      await expect(page.getByTestId('styled-card').first()).toContainText(
+        '1 - Sample chart',
+      );
 
-    //   // change title
-    //   openProperties();
-    //   cy.getBySel('properties-modal-name-input').type(' | EDITED');
-    //   cy.get('button:contains("Save")').click();
-    //   cy.wait('@update');
-    //   cy.getBySel('styled-card').eq(1).contains('1 - Sample chart | EDITED');
+      // change title
+      await openProperties(page);
+      await page
+        .getByTestId('properties-modal-name-input')
+        .fill('1 - Sample chart | EDITED');
+      await page
+        .getByTestId('properties-modal-save-button')
+        .getByText('Save')
+        .click();
+      await interceptedUpdate;
+      await expect(page.getByTestId('styled-card').first()).toContainText(
+        '1 - Sample chart | EDITED',
+      );
 
-    //   // edits in list-view
-    //   setGridMode('list');
-    //   cy.getBySel('edit-alt').eq(1).click();
-    //   cy.getBySel('properties-modal-name-input').clear();
-    //   cy.getBySel('properties-modal-name-input').type('1 - Sample chart');
-    //   cy.get('button:contains("Save")').click();
-    //   cy.wait('@update');
-    //   cy.getBySel('table-row').eq(1).contains('1 - Sample chart');
-    // });
+      // edits in list-view
+      await setGridMode(page, 'list');
+      await page.getByTestId('edit-alt').first().click();
+      await page.getByTestId('properties-modal-name-input').clear();
+      await page
+        .getByTestId('properties-modal-name-input')
+        .fill('1 - Sample chart');
+      await page
+        .getByTestId('properties-modal-save-button')
+        .getByText('Save')
+        .click();
+      await interceptedUpdate;
+      await expect(page.getByTestId('table-row').first()).toContainText(
+        '1 - Sample chart',
+      );
+    });
   });
 });

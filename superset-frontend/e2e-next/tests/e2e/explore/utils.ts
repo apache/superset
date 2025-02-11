@@ -22,6 +22,7 @@ import { minimatch } from 'minimatch';
 
 export enum InterceptItemCategory {
   Dashboard = 'Dashboard',
+  Dataset = 'Dataset',
   Chart = 'Chart',
   Other = 'Other',
 }
@@ -73,6 +74,12 @@ export const InterceptType = {
     Filtering: {
       method: 'GET',
       endpoint: '**/api/v1/dashboard/?q=*',
+    },
+  },
+  [InterceptItemCategory.Dataset]: {
+    Explore: {
+      method: 'POST',
+      endpoint: '**/api/v1/explore/**',
     },
   },
   [InterceptItemCategory.Other]: {
