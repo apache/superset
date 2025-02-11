@@ -223,7 +223,8 @@ jobs:
       - name: Check target image exists in ECR
         id: check-image
         continue-on-error: true
-        PR_NUMBER: ${{ github.event.inputs.issue_number || github.event.pull_request.number }}
+        env:
+          PR_NUMBER: ${{ github.event.inputs.issue_number || github.event.pull_request.number }}
         run: |
           aws ecr describe-images \
           --registry-id $(echo "${{ steps.login-ecr.outputs.registry }}" | grep -Eo "^[0-9]+") \
