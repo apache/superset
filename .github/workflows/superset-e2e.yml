@@ -109,7 +109,7 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies

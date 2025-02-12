@@ -161,7 +161,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('filter-control-name')
       .contains('test_12')
       .should('not.be.visible');
-    cy.get('.ant-popover-inner-content').scrollTo('bottom');
+    cy.get('.antd5-popover-inner').scrollTo('bottom');
     cy.getBySel('filter-control-name').contains('test_12').should('be.visible');
   });
 
@@ -226,7 +226,7 @@ describe('Horizontal FilterBar', () => {
     cy.getBySel('slice-header').within(() => {
       cy.get('.filter-counts').trigger('mouseover');
     });
-    cy.get('.filterStatusPopover').contains('test_9').click();
+    cy.getBySel('filter-status-popover').contains('test_9').click();
     cy.getBySel('dropdown-content').should('be.visible');
     cy.get('.ant-select-focused').should('be.visible');
   });
