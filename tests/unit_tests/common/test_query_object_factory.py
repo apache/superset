@@ -40,7 +40,9 @@ def app_config() -> dict[str, Any]:
 
 @fixture
 def connector_registry() -> Mock:
-    return Mock(spec=["get_datasource"])
+    mock = Mock(spec=["get_datasource"])
+    mock.get_datasource().verbose_map = {"sum__num": "SUM", "unused": "UNUSED"}
+    return mock
 
 
 def apply_max_row_limit(limit: int, max_limit: Optional[int] = None) -> int:
@@ -64,6 +66,11 @@ def query_object_factory(
 @fixture
 def raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names")
+
+
+@fixture
+def metric_label_raw_query_context() -> dict[str, Any]:
+    return QueryContextGenerator().generate("birth_names:metric_labels")
 
 
 class TestQueryObjectFactory:
@@ -107,3 +114,21 @@ class TestQueryObjectFactory:
             raw_query_context["result_type"], **raw_query_object
         )
         assert query_object.post_processing == []
+
+    def test_query_context_metric_names(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        raw_query_context["queries"][0]["metrics"] = [
+            {"label": "sum__num"},
+            {"label": "num_girls"},
+            {"label": "num_boys"},
+        ]
+        raw_query_object = raw_query_context["queries"][0]
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            datasource=raw_query_context["datasource"],
+            **raw_query_object,
+        )
+        assert query_object.metric_names == ["SUM", "num_girls", "num_boys"]

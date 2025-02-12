@@ -49,6 +49,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils import csv, excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -63,6 +64,8 @@ from superset.utils.core import (
     get_column_names_from_metrics,
     get_metric_names,
     get_x_axis_label,
+    is_adhoc_column,
+    is_adhoc_metric,
     normalize_dttm_col,
     TIME_COMPARISON,
 )
@@ -180,6 +183,30 @@ class QueryContextProcessor:
             ]
             for col in cache.df.columns.values
         }
+        label_map.update(
+            {
+                column_name: [
+                    str(query_obj.columns[idx])
+                    if not is_adhoc_column(query_obj.columns[idx])
+                    else cast(AdhocColumn, query_obj.columns[idx])["sqlExpression"],
+                ]
+                for idx, column_name in enumerate(query_obj.column_names)
+            }
+        )
+        label_map.update(
+            {
+                metric_name: [
+                    str(query_obj.metrics[idx])
+                    if not is_adhoc_metric(query_obj.metrics[idx])
+                    else str(cast(AdhocMetric, query_obj.metrics[idx])["sqlExpression"])
+                    if cast(AdhocMetric, query_obj.metrics[idx])["expressionType"]
+                    == "SQL"
+                    else metric_name,
+                ]
+                for idx, metric_name in enumerate(query_obj.metric_names)
+                if query_obj and query_obj.metrics
+            }
+        )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
         return {
