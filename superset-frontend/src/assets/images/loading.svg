@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -20 464 200" width="100%" height="100%" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1">
+
+    <defs />
+    <g id="Page-1" fill="none" fill-rule="evenodd" stroke="none" stroke-width="1">
+        <g id="Remita_Ellipses">
+            <g id="Page-1" transform="translate(14 6)">
+                <path id="Fill-13" fill="#f16521" transform="translate(0 1.70667)" d="M 69.0157 130.698 C 53.2805 146.426 27.7677 146.426 12.0325 130.698 C -3.70275 114.97 -3.70275 89.4689 12.0325 73.741 C 27.7677 58.0131 53.2805 58.0131 69.0157 73.741 C 84.7509 89.4689 84.7509 114.97 69.0157 130.698">
+    <animateTransform begin="0.00" repeatCount="indefinite" values="0 15 ; 0 -15; 0 15" type="translate" dur="0.8s" attributeName="transform" />
+</path>
+                <path id="Fill-15" fill="#d95129" transform="translate(0 1.70667)" d="M 69.0157 73.7423 C 84.7509 89.4703 84.7509 114.971 69.0157 130.699 C 53.2805 146.427 27.7677 146.427 12.0325 130.699">
+    <animateTransform begin="0.00" repeatCount="indefinite" values="0 15 ; 0 -15; 0 15" type="translate" dur="0.8s" attributeName="transform" />
+</path>
+                <path id="Fill-17" fill="#f16521" transform="translate(0 15.952)" d="M 231.263 126.847 C 210.393 147.708 176.554 147.708 155.684 126.847 C 134.816 105.987 134.816 72.1639 155.684 51.3032 C 176.554 30.4451 210.393 30.4451 231.263 51.3032 C 252.134 72.1639 252.134 105.987 231.263 126.847">
+<animateTransform begin="0.25" repeatCount="indefinite" values="0 18 ; 0 -18; 0 18" type="translate" dur="0.8s" attributeName="transform" />
+</path>
+                <path id="Fill-19" fill="#d95129" transform="translate(0 15.952)" d="M 231.263 51.3048 C 252.134 72.1655 252.134 105.988 231.263 126.849 C 210.393 147.707 176.554 147.707 155.684 126.849">
+<animateTransform begin="0.25" repeatCount="indefinite" values="0 18 ; 0 -18; 0 18" type="translate" dur="0.8s" attributeName="transform" />
+</path>
+                <path id="Fill-21" fill="#1ca78b" transform="translate(0 -14.1169)" d="M 415.074 121.626 C 387.239 149.448 342.109 149.448 314.268 121.626 C 286.436 93.8033 286.436 48.692 314.268 20.8669 C 342.109 -6.95547 387.239 -6.95547 415.074 20.8669 C 442.912 48.692 442.912 93.8033 415.074 121.626">
+<animateTransform begin="0.4" repeatCount="indefinite" values="0 23 ; 0 -23; 0 23" type="translate" dur="0.8s" attributeName="transform" />
+</path>
+                <path id="Fill-23" fill="#168972" transform="translate(0 -8.36689)" d="M 415.074 20.8688 C 442.912 48.6912 442.912 93.8025 415.074 121.628 C 387.239 149.45 342.109 149.45 314.268 121.628">
+<animateTransform begin="0.4" repeatCount="indefinite" values="0 23 ; 0 -23; 0 23" type="translate" dur="0.8s" attributeName="transform" />
+</path>
+            </g>
+        </g>
+    </g>
+</svg>

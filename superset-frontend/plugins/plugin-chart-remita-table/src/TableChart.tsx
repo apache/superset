@@ -49,7 +49,6 @@ import {PAGE_SIZE_OPTIONS} from './consts';
 import {updateExternalFormData} from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 import {ActionCell} from './ActionCell';
-import { Modal } from '@superset-ui/core';
 type ValueRange = [number, number];
 
 interface TableSize {
@@ -210,13 +209,6 @@ interface FormattedAction {
   boundToSelection: boolean;
   visibilityCondition: 'all' | 'selected' | 'unselected';
   style?: string;
-}
-
-// 5. Add proper type definitions
-interface TableAction {
-  key: string;
-  label: string;
-  type: 'primary' | 'default' | 'danger';
 }
 
 export default function TableChart<D extends DataRecord = DataRecord>(
@@ -385,6 +377,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     split: parseSplitActions(split_actions || ''),
     nonSplit: parseNonSplitActions(non_split_actions || '')
   }), [split_actions, non_split_actions, parseSplitActions, parseNonSplitActions]);
+
   const lastSelectedRow = useRef<string | null>(null);
 
   const handleRowSelect = useCallback((rowId: string, event?: React.MouseEvent) => {
@@ -1198,7 +1191,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             visibleIds.some(id => selectedRows.has(id));
 
           return (
-            <td className=" right-border-only " role="columnheader button" tabIndex="0">
+            <td className=" right-border-only " role="columnheader button">
               <div className="selection-cell">
                 <input
                   type="checkbox"
@@ -1226,7 +1219,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const pageSize = serverPaginationData.pageSize || 10; // Get current page size
           const rowNumber = currentPage * pageSize + row.index + 1; // Calculate row number
           return (
-            <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex="0">
+            <td aria-labelledby="selection-cell" role="cell" className="right-border-only">
               <div className="selection-cell">
                 <input
                   type="checkbox"

@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TableAction } from "antd-v5/es/table/interface";
-import { Dropdown } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
 import { styled } from "@superset-ui/core";
 
 const ActionWrapper = styled.div`
