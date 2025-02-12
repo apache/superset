@@ -160,7 +160,7 @@ The following example installs the drivers for BigQuery and Elasticsearch, allow
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install .[postgres] \
+  uv pip install .[postgres] \
     .[bigquery] \
     .[elasticsearch] &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
