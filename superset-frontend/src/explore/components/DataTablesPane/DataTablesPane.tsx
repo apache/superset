@@ -25,7 +25,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import Tabs from 'src/components/Tabs';
+import { Tabs } from 'antd-v5';
 import {
   getItem,
   setItem,
