@@ -335,6 +335,10 @@ class SupersetParseError(SupersetErrorException):
         super().__init__(error)
 
 
+class SupersetDatetimeParseError(SupersetException):
+    status = 422
+
+
 class OAuth2RedirectError(SupersetErrorException):
     """
     Exception used to start OAuth2 dance for personal tokens.
