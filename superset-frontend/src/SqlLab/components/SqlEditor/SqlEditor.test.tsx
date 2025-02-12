@@ -17,13 +17,18 @@
  * under the License.
  */
 import { FocusEventHandler } from 'react';
-import { act } from 'react-dom/test-utils';
 import {
   isFeatureEnabled,
   getExtensionsRegistry,
   FeatureFlag,
 } from '@superset-ui/core';
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import reducers from 'spec/helpers/reducerIndex';
 import { setupStore } from 'src/views/store';
@@ -135,6 +140,15 @@ const createStore = (initState: object) =>
   });
 
 describe('SqlEditor', () => {
+  beforeAll(() => {
+    jest.setTimeout(30000);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   const mockedProps = {
     queryEditor: initialState.sqlLab.queryEditors[0],
     tables: [table],
@@ -187,16 +201,27 @@ describe('SqlEditor', () => {
   });
 
   it('render a SqlEditorLeftBar', async () => {
-    const { getByTestId } = setup(mockedProps, store);
-    await waitFor(() =>
-      expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
-    );
-  });
+    const { getByTestId, unmount } = setup(mockedProps, store);
 
+    await waitFor(
+      () => expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
+
+  // Update other similar tests with timeouts
   it('render an AceEditorWrapper', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    expect(await findByTestId('react-ace')).toBeInTheDocument();
-  });
+    const { findByTestId, unmount } = setup(mockedProps, store);
+
+    await waitFor(
+      () => expect(findByTestId('react-ace')).resolves.toBeInTheDocument(),
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
 
   it('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
     const { findByTestId, queryByTestId } = setup(

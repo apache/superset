@@ -55,6 +55,7 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
 import { usePermissions } from 'src/hooks/usePermissions';
+import Button from 'src/components/Button';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
@@ -158,9 +159,8 @@ const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
 ) => {
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   // setting openKeys undefined falls back to uncontrolled behaviour
-  const [openKeys, setOpenKeys] = useState<string[] | undefined>(undefined);
+  const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
@@ -241,7 +241,7 @@ const SliceHeaderControls = (
         // menu closes with a delay, we need to hide it manually,
         // so that we don't capture it on the screenshot
         const menu = document.querySelector(
-          '.ant-dropdown:not(.ant-dropdown-hidden)',
+          '.antd5-dropdown:not(.antd5-dropdown-hidden)',
         ) as HTMLElement;
         if (menu) {
           menu.style.visibility = 'hidden';
@@ -284,6 +284,7 @@ const SliceHeaderControls = (
       default:
         break;
     }
+    setIsDropdownVisible(false);
   };
 
   const {
@@ -334,24 +335,12 @@ const SliceHeaderControls = (
     animationDuration: '0s',
   };
 
-  // controlled/uncontrolled behaviour for submenus
-  const openKeysProps: Record<string, string[]> = {};
-  if (openKeys) {
-    openKeysProps.openKeys = openKeys;
-  }
-
   const menu = (
     <Menu
       onClick={handleMenuClick}
-      selectable={false}
       data-test={`slice_${slice.slice_id}-menu`}
-      selectedKeys={selectedKeys}
-      onSelect={({ selectedKeys: keys }) => setSelectedKeys(keys)}
-      openKeys={openKeys}
       id={`slice_${slice.slice_id}-menu`}
-      // submenus must be rendered for handleDropdownNavigation
-      forceSubMenuRender
-      {...openKeysProps}
+      selectable={false}
     >
       <Menu.Item
         key={MenuKeys.ForceRefresh}
@@ -458,9 +447,7 @@ const SliceHeaderControls = (
           emailBody={t('Check out this chart: ')}
           addSuccessToast={addSuccessToast}
           addDangerToast={addDangerToast}
-          setOpenKeys={setOpenKeys}
           title={t('Share')}
-          key={MenuKeys.Share}
         />
       )}
 
@@ -532,22 +519,17 @@ const SliceHeaderControls = (
         overlayStyle={dropdownOverlayStyle}
         trigger={['click']}
         placement="bottomRight"
-        autoFocus
-        forceRender
+        open={isDropdownVisible}
+        onOpenChange={visible => setIsDropdownVisible(visible)}
       >
-        <span
-          css={() => css`
-            display: flex;
-            align-items: center;
-          `}
+        <Button
+          type="link"
           id={`slice_${slice.slice_id}-controls`}
-          role="button"
           aria-label="More Options"
           aria-haspopup="true"
-          tabIndex={0}
         >
           <VerticalDotsTrigger />
-        </span>
+        </Button>
       </NoAnimationDropdown>
       <DrillDetailModal
         formData={props.formData}

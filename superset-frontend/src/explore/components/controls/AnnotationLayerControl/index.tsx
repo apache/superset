@@ -232,8 +232,8 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
           anno,
           this.props.annotationError[anno.name],
         )}
-        visible={this.state.popoverVisible[i]}
-        onVisibleChange={visible => this.handleVisibleChange(visible, i)}
+        open={this.state.popoverVisible[i]}
+        onOpenChange={visible => this.handleVisibleChange(visible, i)}
       >
         <CustomListItem selectable>
           <span>{anno.name}</span>
@@ -255,9 +255,9 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               '',
             )}
             title={t('Add annotation layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
+            open={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
-            onVisibleChange={visible =>
+            onOpenChange={visible =>
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }
           >

@@ -406,6 +406,7 @@ const RightMenu = ({
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <StyledSubMenu
+            key="sub1"
             data-test="new-dropdown"
             title={
               <Icons.PlusOutlined
@@ -474,7 +475,11 @@ const RightMenu = ({
           </StyledSubMenu>
         )}
         {/* TODO replace TriangleDown with ANTD5 icons */}
-        <StyledSubMenu title={t('Setting')} icon={<Icons.TriangleDown />}>
+        <StyledSubMenu
+          key="sub3_settings"
+          title={t('Settings')}
+          icon={<Icons.TriangleDown iconSize="xl" />}
+        >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
               {section?.childs?.map?.(child => {

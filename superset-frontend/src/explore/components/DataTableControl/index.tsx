@@ -27,10 +27,8 @@ import {
   TimeFormats,
   useTheme,
 } from '@superset-ui/core';
-import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
-import { Space } from 'src/components/Space';
 import { Input } from 'src/components/Input';
 import {
   BOOL_FALSE_DISPLAY,
@@ -146,12 +144,21 @@ const FormatPicker = ({
   onChange: any;
   value: FormatPickerValue;
 }) => (
-  <Radio.Group value={value} onChange={onChange}>
-    <Space direction="vertical">
-      <Radio value={FormatPickerValue.Formatted}>{t('Formatted date')}</Radio>
-      <Radio value={FormatPickerValue.Original}>{t('Original value')}</Radio>
-    </Space>
-  </Radio.Group>
+  <Radio.GroupWrapper
+    spaceConfig={{
+      direction: 'vertical',
+      align: 'start',
+      size: 15,
+      wrap: false,
+    }}
+    size="large"
+    value={value}
+    onChange={onChange}
+    options={[
+      { label: t('Formatted date'), value: FormatPickerValue.Formatted },
+      { label: t('Original value'), value: FormatPickerValue.Original },
+    ]}
+  />
 );
 
 const FormatPickerContainer = styled.div`
@@ -192,13 +199,6 @@ const DataTableTemporalHeaderCell = ({
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <FormatPickerContainer onClick={e => e.stopPropagation()}>
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
-          <Global
-            styles={css`
-              .column-formatting-popover .ant-popover-inner-content {
-                padding: 0;
-              }
-            `}
-          />
           <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
           <FormatPicker
             onChange={onChange}
@@ -216,11 +216,10 @@ const DataTableTemporalHeaderCell = ({
   return datasourceId ? (
     <span>
       <Popover
-        overlayClassName="column-formatting-popover"
         trigger="click"
         content={overlayContent}
         placement="bottomLeft"
-        arrowPointAtCenter
+        arrow={{ pointAtCenter: true }}
       >
         <Icons.SettingOutlined
           iconSize="m"
