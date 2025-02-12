@@ -251,7 +251,7 @@ describe('Markdown', () => {
   });
 
   it('should resize editor when width changes', async () => {
-    const { container, rerender } = await setup({ editMode: true });
+    const { rerender } = await setup({ editMode: true });
 
     await act(async () => {
       const chartHolder = screen.getByTestId(
@@ -260,8 +260,6 @@ describe('Markdown', () => {
       fireEvent.click(chartHolder);
       await new Promise(resolve => setTimeout(resolve, 50));
     });
-
-    const editorContainer = screen.getByTestId('dashboard-markdown-editor');
 
     await act(async () => {
       rerender(
