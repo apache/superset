@@ -46,7 +46,7 @@ export default class MarkdownModeDropdown extends PureComponent<MarkdownModeDrop
 
     return (
       <PopoverDropdown
-        data-testid="markdown-mode-dropdown"
+        data-test="markdown-mode-dropdown"
         id={id}
         options={dropdownOptions}
         value={value}
