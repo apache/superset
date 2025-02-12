@@ -240,7 +240,7 @@ function TagList(props: TagListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}

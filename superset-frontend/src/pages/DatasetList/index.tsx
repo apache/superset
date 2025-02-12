@@ -438,8 +438,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     onClick={handleExport}
                   >
                     <Icons.UploadOutlined
-                      iconSize="l"
-                      css={{ verticalAlign: 'baseline' }}
+                      iconSize="xl"
+                      css={{ verticalAlign: 'middle' }}
                     />
                   </span>
                 </Tooltip>
@@ -462,7 +462,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className={allowEdit ? 'action-button' : 'disabled'}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditAlt />
+                    <Icons.EditOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -478,7 +478,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.Copy />
+                    <Icons.CopyOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -650,7 +650,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           title={t('Import datasets')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

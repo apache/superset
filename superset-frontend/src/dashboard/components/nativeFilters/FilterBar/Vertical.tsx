@@ -97,13 +97,6 @@ const CollapsedBar = styled.div<{ offset: number }>`
   `}
 `;
 
-const StyledCollapseIcon = styled(Icons.Collapse)`
-  ${({ theme }) => `
-    color: ${theme.colors.primary.base};
-    margin-bottom: ${theme.gridUnit * 3}px;
-  `}
-`;
-
 const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 8}px;
 `;
@@ -202,9 +195,15 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           role="button"
           offset={offset}
         >
-          <StyledCollapseIcon
-            {...getFilterBarTestId('expand-button')}
+          <Icons.VerticalAlignTopOutlined
             iconSize="l"
+            css={{
+              transform: 'rotate(90deg)',
+              marginBottom: `${theme.gridUnit * 3}px`,
+            }}
+            className="collapse-icon"
+            iconColor={theme.colors.primary.base}
+            {...getFilterBarTestId('expand-button')}
           />
           <Icons.FilterOutlined
             iconColor={theme.colors.grayscale.base}

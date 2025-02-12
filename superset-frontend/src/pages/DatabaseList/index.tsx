@@ -471,10 +471,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined
-                      iconSize="l"
-                      css={{ verticalAlign: 'baseline' }}
-                    />
+                    <Icons.UploadOutlined css={{ verticalAlign: 'baseline' }} />
                   </span>
                 </Tooltip>
               )}
@@ -491,7 +488,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}

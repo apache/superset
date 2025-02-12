@@ -250,7 +250,7 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         >
           <Icons.PlusCircleOutlined
             iconSize="s"
-            css={{ verticalAlign: 'middle', margin: '0!important' }}
+            css={{ verticalAlign: 'middle' }}
             data-test="add-tab-icon"
           />
         </Tooltip>

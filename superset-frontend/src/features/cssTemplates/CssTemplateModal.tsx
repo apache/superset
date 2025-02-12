@@ -230,7 +230,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       title={
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt
+            <Icons.EditOutlined
               iconColor={theme.colors.grayscale.base}
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />

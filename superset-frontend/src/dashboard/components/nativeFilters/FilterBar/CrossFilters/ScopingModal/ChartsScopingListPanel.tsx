@@ -35,16 +35,15 @@ import { NEW_CHART_SCOPING_ID } from './constants';
 const AddButtonContainer = styled.div`
   ${({ theme }) => css`
     margin-top: ${theme.gridUnit * 2}px;
-
     & button > [role='img']:first-of-type {
-      margin-right: ${theme.gridUnit}px;
       line-height: 0;
     }
-
     span[role='img'] {
       padding-bottom: 1px;
     }
-
+    button > span > :first-of-type {
+      margin-right: 0;
+    }
     .antd5-btn > .anticon + span {
       margin-left: 0;
     }
@@ -135,8 +134,7 @@ export const ChartsScopingListPanel = ({
           buttonSize="xsmall"
           onClick={addNewCustomScope}
         >
-          <Icons.PlusOutlined css={{ margin: '0!important' }} iconSize="s" />{' '}
-          {t('Add custom scoping')}
+          <Icons.PlusOutlined iconSize="s" /> {t('Add custom scoping')}
         </Button>
       </AddButtonContainer>
       <FilterTitle

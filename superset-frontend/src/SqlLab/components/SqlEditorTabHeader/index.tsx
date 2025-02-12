@@ -43,8 +43,10 @@ const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
 
-  [aria-label='check-circle'] {
+  [aria-label='check-circle'],
+  .status-icon {
     margin: 0px;
+    margin-right: 0px;
   }
 `;
 const TabTitle = styled.span`
@@ -57,7 +59,6 @@ const IconContainer = styled.div`
   width: ${({ theme }) => theme.gridUnit * 8}px;
   text-align: center;
 `;
-
 interface Props {
   queryEditor: QueryEditor;
 }
@@ -184,7 +185,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       />
       <TabTitle>{qe.name}</TabTitle>
       <StatusIcon
-        css={{ margin: '0px!important' }}
+        className="status-icon"
         iconSize="s"
         iconColor={getStatusColor(queryState, theme)}
       />

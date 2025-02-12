@@ -40,7 +40,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
 import ResultSet from '../ResultSet';
 import HighlightedSql from '../HighlightedSql';
-import { StaticPosition, verticalAlign, StyledTooltip } from './styles';
+import { StaticPosition, StyledTooltip } from './styles';
 
 interface QueryTableQuery
   extends Omit<
@@ -345,7 +345,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.Edit iconSize="xl" />
+              <Icons.EditOutlined iconSize="xl" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
@@ -353,7 +353,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.PlusCircleOutlined iconSize="xl" css={verticalAlign} />
+              <Icons.PlusCircleOutlined iconSize="xl" />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
@@ -361,10 +361,7 @@ const QueryTable = ({
                 onClick={() => dispatch(removeQuery(query))}
                 className="pointer"
               >
-                <Icons.DeleteOutlined
-                  css={{ verticalAlign: 'baseline' }}
-                  iconSize="xl"
-                />
+                <Icons.DeleteOutlined iconSize="xl" />
               </StyledTooltip>
             )}
           </div>

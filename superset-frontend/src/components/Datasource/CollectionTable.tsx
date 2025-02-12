@@ -152,6 +152,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right:0;
+    }
   `}
 `;
 
@@ -485,7 +488,6 @@ export default class CRUDCollection extends PureComponent<
                 data-test="add-item-button"
               >
                 <Icons.PlusOutlined
-                  css={{ margin: '0!important' }}
                   iconSize="m"
                   data-test="crud-add-table-item"
                 />

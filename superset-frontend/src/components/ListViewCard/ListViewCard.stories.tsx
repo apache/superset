@@ -77,12 +77,12 @@ export const SupersetListViewCard = ({
                 <Icons.DeleteOutlined /> Delete
               </Menu.Item>
               <Menu.Item role="button" tabIndex={0} onClick={action('Edit')}>
-                <Icons.EditAlt /> Edit
+                <Icons.EditOutlined /> Edit
               </Menu.Item>
             </Menu>
           )}
         >
-          <Icons.MoreHoriz />
+          <Icons.EllipsisOutlined />
         </Dropdown>
       </ListViewCard.Actions>
     }

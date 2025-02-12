@@ -137,9 +137,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
-  [aria-label="database"] {
-    margin-right: 0px!important;
-  }
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
 

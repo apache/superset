@@ -279,7 +279,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
       title={
         <h4 data-test="annotation-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt
+            <Icons.EditOutlined
               iconColor={theme.colors.grayscale.base}
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />

@@ -351,7 +351,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const title = (
     <IconWrapper>
-      <Icons.EditAlt iconColor={theme.colors.grayscale.base} />
+      <Icons.EditOutlined iconColor={theme.colors.grayscale.base} />
       <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );

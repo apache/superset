@@ -71,7 +71,7 @@ export const NameRow = ({
             hidePopover();
           }}
         >
-          <Icons.Edit
+          <Icons.EditOutlined
             iconSize="l"
             iconColor={theme.colors.grayscale.light1}
             css={() => css`

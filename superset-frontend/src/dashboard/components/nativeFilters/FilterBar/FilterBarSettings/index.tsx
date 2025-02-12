@@ -221,7 +221,12 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Vertical (Left)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Vertical && <Icons.Check />}
+                  FilterBarOrientation.Vertical && (
+                  <Icons.CheckOutlined
+                    iconSize="m"
+                    css={{ verticalAlign: 'middle' }}
+                  />
+                )}
               </Space>
             ),
           },
@@ -231,7 +236,12 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Horizontal (Top)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Horizontal && <Icons.Check />}
+                  FilterBarOrientation.Horizontal && (
+                  <Icons.CheckOutlined
+                    iconSize="m"
+                    css={{ verticalAlign: 'middle' }}
+                  />
+                )}
               </Space>
             ),
           },

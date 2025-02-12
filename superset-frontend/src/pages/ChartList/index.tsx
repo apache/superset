@@ -503,10 +503,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined
-                      iconSize="l"
-                      css={{ verticalAlign: 'baseline' }}
-                    />
+                    <Icons.UploadOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -522,7 +519,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
@@ -786,7 +783,7 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined iconSize="xl" data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

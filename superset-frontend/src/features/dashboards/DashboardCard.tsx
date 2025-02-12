@@ -109,7 +109,12 @@ function DashboardCard({
             onClick={() => openDashboardEditModal?.(dashboard)}
             data-test="dashboard-card-option-edit-button"
           >
-            <Icons.EditAlt iconSize="l" data-test="edit-alt" /> {t('Edit')}
+            <Icons.EditOutlined
+              iconSize="l"
+              css={{ verticalAlign: 'baseline' }}
+              data-test="edit-alt"
+            />{' '}
+            {t('Edit')}
           </div>
         </Menu.Item>
       )}

@@ -27,8 +27,10 @@ import {
   getClientErrorObject,
   t,
   SupersetError,
+  useTheme,
 } from '@superset-ui/core';
 
+import Icons from 'src/components/Icons';
 import Modal from 'src/components/Modal';
 import AsyncEsmComponent from 'src/components/AsyncEsmComponent';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -101,6 +103,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   onHide,
   show,
 }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const [currentDatasource, setCurrentDatasource] = useState(datasource);
   const currencies = useSelector<
@@ -298,6 +301,11 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       onHide={onHide}
       title={
         <span>
+          <Icons.EditOutlined
+            iconColor={theme.colors.grayscale.base}
+            css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            data-test="edit-alt"
+          />
           {t('Edit Dataset ')}
           <strong>{currentDatasource.table_name}</strong>
         </span>

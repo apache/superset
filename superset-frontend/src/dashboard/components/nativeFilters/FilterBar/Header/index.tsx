@@ -79,7 +79,11 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           buttonSize="xsmall"
           onClick={() => toggleFiltersBar(false)}
         >
-          <Icons.Expand iconColor={theme.colors.grayscale.base} />
+          <Icons.VerticalAlignTopOutlined
+            iconSize="xl"
+            css={{ transform: 'rotate(-90deg)' }}
+            iconColor={theme.colors.grayscale.base}
+          />
         </HeaderButton>
       </TitleArea>
     </Wrapper>

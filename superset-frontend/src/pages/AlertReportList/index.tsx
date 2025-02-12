@@ -381,7 +381,7 @@ function AlertList({
                   label: allowEdit ? 'edit-action' : 'preview-action',
                   tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: allowEdit ? 'Edit' : 'Binoculars',
+                  icon: allowEdit ? 'EditOutlined' : 'Binoculars',
                   onClick: handleEdit,
                 }
               : null,

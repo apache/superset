@@ -45,6 +45,7 @@ import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
+import Icons from 'src/components/Icons';
 
 export interface Column {
   name: string;
@@ -301,7 +302,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
                 aria-label="Copy"
                 tooltip={t('Copy SELECT statement to the clipboard')}
               >
-                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
+                <Icons.CopyOutlined iconSize="s" aria-hidden />
               </IconTooltip>
             }
             text={tableData.selectStar}

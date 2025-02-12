@@ -80,7 +80,11 @@ export default function ChartCard({
             tabIndex={0}
             onClick={() => openChartEditModal(chart)}
           >
-            <Icons.EditAlt iconSize="l" /> {t('Edit')}
+            <Icons.EditOutlined
+              iconSize="l"
+              css={{ verticalAlign: 'baseline' }}
+            />{' '}
+            {t('Edit')}
           </div>
         </Menu.Item>
       )}

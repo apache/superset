@@ -32,7 +32,9 @@ import {
   FeatureFlag,
   getClientErrorObject,
   ensureIsArray,
+  useTheme,
 } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
@@ -66,6 +68,7 @@ function PropertiesModal({
   show,
   addSuccessToast,
 }: PropertiesModalProps) {
+  const theme = useTheme();
   const [submitting, setSubmitting] = useState(false);
   const [form] = AntdForm.useForm();
   // values of form inputs
@@ -244,7 +247,16 @@ function PropertiesModal({
     <Modal
       show={show}
       onHide={onHide}
-      title={t('Edit Chart Properties')}
+      title={
+        <span>
+          <Icons.EditOutlined
+            iconColor={theme.colors.grayscale.base}
+            css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            data-test="edit-alt"
+          />
+          {t('Edit Chart Properties')}
+        </span>
+      }
       footer={
         <>
           <Button
