@@ -1,16 +1,17 @@
 ---
-title:  Kubernetes
+title: Kubernetes
 hide_title: true
 sidebar_position: 2
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Installing on Kubernetes
 
-<img src={useBaseUrl("/img/k8s.png" )} width="150" />
-<br /><br />
+<img src={useBaseUrl('/img/k8s.png')} width="150" />
+<br />
+<br />
 
 Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
 found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
@@ -134,7 +135,7 @@ init:
 ```
 
 :::note
-Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data.  Knowing the installation counts for different Superset versions informs the  project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
+Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data. Knowing the installation counts for different Superset versions informs the project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
 
 To opt-out of this data collection in your Helm-based installation, edit the `repository:` line in your `helm/superset/values.yaml` file, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
 :::
@@ -154,10 +155,11 @@ See [Install Database Drivers](/docs/configuration/databases) for more informati
 :::
 
 The following example installs the drivers for BigQuery and Elasticsearch, allowing you to connect to these data sources within your Superset setup:
+
 ```yaml
 bootstrapScript: |
   #!/bin/bash
-  pip install psycopg2==2.9.6 \
+  uv pip install psycopg2==2.9.6 \
     sqlalchemy-bigquery==1.6.1 \
     elasticsearch-dbapi==0.2.5 &&\
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
@@ -191,7 +193,7 @@ Those can be passed as key/values either with `extraEnv` or `extraSecretEnv` if 
 extraEnv:
   SMTP_HOST: smtp.gmail.com
   SMTP_USER: user@gmail.com
-  SMTP_PORT: "587"
+  SMTP_PORT: '587'
   SMTP_MAIL_FROM: user@gmail.com
 
 extraSecretEnv:
@@ -352,7 +354,7 @@ supersetCeleryBeat:
 extraEnv:
   SMTP_HOST: smtp.gmail.com
   SMTP_USER: user@gmail.com
-  SMTP_PORT: "587"
+  SMTP_PORT: '587'
   SMTP_MAIL_FROM: user@gmail.com
 
 extraSecretEnv:
