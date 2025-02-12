@@ -24,7 +24,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
@@ -95,7 +95,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, defaultValue, enableSingleValue } = formData;
+  const { groupby, defaultValue, enableSingleValue, enableEmptyFilter } =
+    formData;
   const minIndex = 0;
   const maxIndex = 1;
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
@@ -103,11 +104,28 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
-  const [inputValue, setInputValue] = useState<[number | null, number | null]>(
-    filterState.value != null
-      ? filterState.value
-      : (defaultValue ?? [null, null]),
-  );
+
+  const [inputValue, setInputValue] = useState<[number | null, number | null]>([null, null]);
+  const currentInputValues = useRef<[number | null, number | null]>([null, null]);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (filterState.value) {
+      currentInputValues.current = filterState.value;
+      setInputValue(filterState.value);
+    } else {
+      // clear all scenario
+      if (filterState.validateStatus === undefined) {
+        currentInputValues.current = [null, null];
+        setInputValue([null, null]);
+        return;
+      }
+      if (defaultValue) {
+        currentInputValues.current = defaultValue;
+        setInputValue(defaultValue);
+      }
+    }
+  }, [filterState.value]);
 
   const getBounds = useCallback(
     (
@@ -137,16 +155,19 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [enableSingleValue]);
 
   const handleChange = (newValue: number | null, index: 0 | 1) => {
-    setInputValue(prev => {
-      if (index === minIndex) {
-        return [newValue, prev[maxIndex]];
-      }
-      return [prev[minIndex], newValue];
-    });
+    if (index === minIndex) {
+      currentInputValues.current = [newValue, currentInputValues.current[1]];
+      setInputValue([newValue, currentInputValues.current[1]]);
+    } else {
+      currentInputValues.current = [currentInputValues.current[0], newValue];
+      setInputValue([currentInputValues.current[0], newValue]);
+    }
   };
 
   const handleBlur = () => {
     let realValue = inputValue;
+    const inputMin = inputValue[minIndex];
+    const inputMax = inputValue[maxIndex];
 
     if (enableSingleExactValue) {
       realValue = [inputValue[minIndex], realValue[minIndex]];
@@ -158,27 +179,76 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       realValue = [null, inputValue[maxIndex]];
     }
 
-    const { lower, upper } = getBounds(realValue);
+    // checking that min and max are valid
+    // const { lower: isMin, upper: isMaxHig } = getBounds(realValue);
 
-    if (lower === null && upper === null) {
+    let isRangeValid = true;
+    let errorMessage = t('Please provide a valid range');
+
+    if (enableEmptyFilter) {
+      // filter can never be empty
+      if (inputMin === null || inputMax === null) {
+        isRangeValid = false;
+      }
+    }
+
+    if (!enableEmptyFilter) {
+      // if the filter is not required but any of the two is set, then the other must be set
+      if (
+        (inputMin != null && inputMax === null) ||
+        (inputMin === null && inputMax != null)
+      ) {
+        isRangeValid = false;
+      }
+    }
+
+    // min is higher than max
+    if (inputMin !== null && inputMax !== null && inputMin > inputMax) {
+      isRangeValid = false;
+      errorMessage = t('Minimum value cannot be higher than maximum value');
+    }
+
+    // max is lower than min
+    if (inputMin !== null && inputMax !== null && inputMax < inputMin) {
+      isRangeValid = false;
+      errorMessage = t('Maximum value cannot be lower than minimum value');
+    }
+
+    // input values are not within dataset ranges
+    if (
+      inputMin !== null &&
+      inputMax !== null &&
+      (inputMin < min || inputMax > max)
+    ) {
+      isRangeValid = false;
+      errorMessage = t('Your range is not within the dataset range');
+    }
+
+    if (!isRangeValid) {
+      setError(errorMessage);
       setDataMask({
         extraFormData: getRangeExtraFormData(col, null, null),
         filterState: {
           value: undefined,
           label: '',
+          validateStatus: 'error',
+          validateMessage: errorMessage,
         },
       });
       return;
     }
     setInputValue(() => {
+      setError(null);
       setDataMask({
-        extraFormData: getRangeExtraFormData(col, lower, upper),
+        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
         filterState: {
-          value: [lower, upper],
-          label: getLabel(lower, upper, enableSingleExactValue),
+          value: [inputMin, inputMax],
+          label: getLabel(inputMin, inputMax, enableSingleExactValue),
+          validateStatus: 'success',
+          validateMessage: '',
         },
       });
-      return [lower, upper];
+      return [inputMin, inputMax];
     });
   };
 
@@ -201,15 +271,15 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [row?.min, row?.max, JSON.stringify(filterState.value), getBounds]);
 
   const formItemExtra = useMemo(() => {
-    if (filterState.validateMessage) {
+    if (error) {
       return (
-        <StatusMessage status={filterState.validateStatus}>
-          {filterState.validateMessage}
+        <StatusMessage status="error">
+          {error}
         </StatusMessage>
       );
     }
     return undefined;
-  }, [filterState.validateMessage, filterState.validateStatus]);
+  }, [error]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
@@ -234,9 +304,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               enableSingleValue === 1 ||
               enableSingleValue === undefined) && (
               <InputNumber
-                value={inputValue[0]}
-                min={min}
-                max={inputValue[maxIndex] ?? max}
+                value={currentInputValues.current[0]}
                 onChange={val => handleChange(val, minIndex)}
                 onBlur={() => handleBlur()}
                 placeholder={`${min}`}
@@ -249,9 +317,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             )}
             {(enableSingleValue === 2 || enableSingleValue === undefined) && (
               <InputNumber
-                value={inputValue[1]}
-                min={inputValue[minIndex] ?? min}
-                max={max}
+                value={currentInputValues.current[1]}
                 onChange={val => handleChange(val, maxIndex)}
                 onBlur={() => handleBlur()}
                 placeholder={`${max}`}
