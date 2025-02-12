@@ -303,7 +303,7 @@
     "css-minimizer-webpack-plugin": "^7.0.0",
     "enzyme": "^3.11.0",
     "enzyme-matchers": "^7.1.2",
-    "esbuild": "^0.20.0",
+    "esbuild": "^0.25.0",
     "esbuild-loader": "^4.2.2",
     "eslint": "^8.56.0",
     "eslint-config-airbnb": "^19.0.4",
