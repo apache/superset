@@ -394,6 +394,24 @@ class TestExportDatabasesCommand(SupersetTestCase):
         assert "databases" in prefixes
         assert "datasets" not in prefixes
 
+    @patch("superset.security.manager.g")
+    def test_export_database_command_unicode_chars(self, mock_g):
+        mock_g.user = security_manager.find_user("admin")
+        db.session.query(Database).filter_by(database_name="中文").delete()
+        command = CreateDatabaseCommand(
+            {"database_name": "中文", "sqlalchemy_uri": "sqlite:///:memory:"},
+        )
+        example_db = command.run()
+
+        command = ExportDatabasesCommand([example_db.id], export_related=False)
+        contents = dict(command.run())
+
+        path = f"databases/{example_db.id}.yaml"
+        assert path in set(contents.keys())
+        yaml_content = contents[path]()
+        assert "database_name: 中文" in yaml_content
+        db.session.query(Database).filter_by(database_name="中文").delete()
+
 
 class TestImportDatabasesCommand(SupersetTestCase):
     @patch("superset.security.manager.g")
