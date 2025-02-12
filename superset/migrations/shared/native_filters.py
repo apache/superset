@@ -18,11 +18,10 @@ from collections import defaultdict
 from textwrap import dedent
 from typing import Any
 
-from shortid import ShortId
-
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
+from superset.utils.core import shortid
 from superset.utils.dashboard_filter_scopes_converter import convert_filter_scopes
 
 
@@ -49,7 +48,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     :see: convert_filter_scopes
     """
 
-    shortid = ShortId()
+    short_id = f"{shortid()}"[:9]
     default_filters = json.loads(json_metadata.get("default_filters") or "{}")
     filter_scopes = json_metadata.get("filter_scopes", {})
     filter_box_ids = {filter_box.id for filter_box in filter_boxes}
@@ -85,7 +84,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
 
             fltr: dict[str, Any] = {
                 "cascadeParentIds": [],
-                "id": f"NATIVE_FILTER-{shortid.generate()}",
+                "id": f"NATIVE_FILTER-{short_id}",
                 "scope": {
                     "rootPath": filter_scope["scope"],
                     "excluded": [
