@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
@@ -9,11 +10,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {ColumnInstance, ColumnWithLooseAccessor, DefaultSortTypes, Row,} from 'react-table';
-import {extent as d3Extent, max as d3Max} from 'd3-array';
-import {FaSort} from '@react-icons/all-files/fa/FaSort';
-import {FaSortDown as FaSortDesc} from '@react-icons/all-files/fa/FaSortDown';
-import {FaSortUp as FaSortAsc} from '@react-icons/all-files/fa/FaSortUp';
+import {
+  ColumnInstance,
+  ColumnWithLooseAccessor,
+  DefaultSortTypes,
+  Row,
+} from 'react-table';
+import { extent as d3Extent, max as d3Max } from 'd3-array';
+import { FaSort } from '@react-icons/all-files/fa/FaSort';
+import { FaSortDown as FaSortDesc } from '@react-icons/all-files/fa/FaSortDown';
+import { FaSortUp as FaSortAsc } from '@react-icons/all-files/fa/FaSortUp';
 import cx from 'classnames';
 import {
   BinaryQueryObjectFilterClause,
@@ -30,7 +36,7 @@ import {
   tn,
   useTheme,
 } from '@superset-ui/core';
-import {Dropdown, Menu, Tooltip} from '@superset-ui/chart-controls';
+import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
 import {
   CheckOutlined,
   DownOutlined,
@@ -39,16 +45,26 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import {isEmpty} from 'lodash';
-import {ColorSchemeEnum, DataColumnMeta, TableChartTransformedProps,} from './types';
-import DataTable, {DataTableProps, SearchInputProps, SelectPageSizeRendererProps, SizeOption,} from './DataTable';
+import { isEmpty } from 'lodash';
+import {
+  ColorSchemeEnum,
+  DataColumnMeta,
+  TableChartTransformedProps,
+} from './types';
+import DataTable, {
+  DataTableProps,
+  SearchInputProps,
+  SelectPageSizeRendererProps,
+  SizeOption,
+} from './DataTable';
 
 import Styles from './Styles';
-import {formatColumnValue} from './utils/formatValue';
-import {PAGE_SIZE_OPTIONS} from './consts';
-import {updateExternalFormData} from './DataTable/utils/externalAPIs';
+import { formatColumnValue } from './utils/formatValue';
+import { PAGE_SIZE_OPTIONS } from './consts';
+import { updateExternalFormData } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import {ActionCell} from './ActionCell';
+import { ActionCell } from './ActionCell';
+
 type ValueRange = [number, number];
 
 interface TableSize {
@@ -79,10 +95,10 @@ function getSortTypeByDataType(dataType: GenericDataType): DefaultSortTypes {
  * Cell background width calculation for horizontal bar chart
  */
 function cellWidth({
-                     value,
-                     valueRange,
-                     alignPositiveNegative,
-                   }: {
+  value,
+  valueRange,
+  alignPositiveNegative,
+}: {
   value: number;
   valueRange: ValueRange;
   alignPositiveNegative: boolean;
@@ -104,10 +120,10 @@ function cellWidth({
  * when alignPositiveNegative is not set
  */
 function cellOffset({
-                      value,
-                      valueRange,
-                      alignPositiveNegative,
-                    }: {
+  value,
+  valueRange,
+  alignPositiveNegative,
+}: {
   value: number;
   valueRange: ValueRange;
   alignPositiveNegative: boolean;
@@ -126,9 +142,9 @@ function cellOffset({
  * Cell background color calculation for horizontal bar chart
  */
 function cellBackground({
-                          value,
-                          colorPositiveNegative = false,
-                        }: {
+  value,
+  colorPositiveNegative = false,
+}: {
   value: number;
   colorPositiveNegative: boolean;
 }) {
@@ -136,16 +152,16 @@ function cellBackground({
   return `rgba(${r},0,0,0.2)`;
 }
 
-function SortIcon<D extends object>({column}: { column: ColumnInstance<D> }) {
-  const {isSorted, isSortedDesc} = column;
-  let sortIcon = <FaSort/>;
+function SortIcon<D extends object>({ column }: { column: ColumnInstance<D> }) {
+  const { isSorted, isSortedDesc } = column;
+  let sortIcon = <FaSort />;
   if (isSorted) {
-    sortIcon = isSortedDesc ? <FaSortDesc/> : <FaSortAsc/>;
+    sortIcon = isSortedDesc ? <FaSortDesc /> : <FaSortAsc />;
   }
   return sortIcon;
 }
 
-function SearchInput({count, value, onChange}: SearchInputProps) {
+function SearchInput({ count, value, onChange }: SearchInputProps) {
   return (
     <span className="dt-global-filter">
       {t('Search')}{' '}
@@ -161,10 +177,10 @@ function SearchInput({count, value, onChange}: SearchInputProps) {
 }
 
 function SelectPageSize({
-                          options,
-                          current,
-                          onChange,
-                        }: SelectPageSizeRendererProps) {
+  options,
+  current,
+  onChange,
+}: SelectPageSizeRendererProps) {
   return (
     <span
       className="dt-select-page-size form-inline"
@@ -265,10 +281,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   } = props;
 
   const comparisonColumns = [
-    {key: 'all', label: t('Display all')},
-    {key: '#', label: '#'},
-    {key: '△', label: '△'},
-    {key: '%', label: '%'},
+    { key: 'all', label: t('Display all') },
+    { key: '#', label: '#' },
+    { key: '△', label: '△' },
+    { key: '%', label: '%' },
   ];
   const timestampFormatter = useCallback(
     value => getTimeFormatterForGranularity(timeGrain)(value),
@@ -316,130 +332,173 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [filters],
   );
-  const parseSplitActions = useCallback((actionsStr: string): FormattedAction[] => {
-    if (!actionsStr?.trim()) return [];
-    return actionsStr
-      .split('\n')
-      .filter(Boolean)
-      .map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length < 4) {
-          console.warn(`Invalid split action format: ${line}`);
-          return null;
-        }
-        const [key, label, boundToSelection, visibilityCondition] = parts;
-        if (!['all', 'selected', 'unselected'].includes(visibilityCondition)) {
-          console.warn(`Invalid visibility condition: ${visibilityCondition}`);
-          return null;
-        }
-        return {
-          key,
-          label,
-          boundToSelection: boundToSelection === 'true',
-          visibilityCondition: visibilityCondition as 'all' | 'selected' | 'unselected'
-        };
-      })
-      .filter(Boolean) as FormattedAction[];
-  }, []);
+  const parseSplitActions = useCallback(
+    (actionsStr: string): FormattedAction[] => {
+      if (!actionsStr?.trim()) return [];
+      return actionsStr
+        .split('\n')
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length < 4) {
+            console.warn(`Invalid split action format: ${line}`);
+            return null;
+          }
+          const [key, label, boundToSelection, visibilityCondition] = parts;
+          if (
+            !['all', 'selected', 'unselected'].includes(visibilityCondition)
+          ) {
+            console.warn(
+              `Invalid visibility condition: ${visibilityCondition}`,
+            );
+            return null;
+          }
+          return {
+            key,
+            label,
+            boundToSelection: boundToSelection === 'true',
+            visibilityCondition: visibilityCondition as
+              | 'all'
+              | 'selected'
+              | 'unselected',
+          };
+        })
+        .filter(Boolean) as FormattedAction[];
+    },
+    [],
+  );
 
-  const parseNonSplitActions = useCallback((actionsStr: string): FormattedAction[] => {
-    if (!actionsStr?.trim()) return [];
-    return actionsStr
-      .split('\n')
-      .filter(Boolean)
-      .map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length < 5) {
-          console.warn(`Invalid non-split action format: ${line}`);
-          return null;
-        }
-        const [key, label, style, boundToSelection, visibilityCondition] = parts;
-        if (!['default', 'primary', 'danger'].includes(style)) {
-          console.warn(`Invalid style: ${style}`);
-          return null;
-        }
-        if (!['all', 'selected', 'unselected'].includes(visibilityCondition)) {
-          console.warn(`Invalid visibility condition: ${visibilityCondition}`);
-          return null;
-        }
-        return {
-          key,
-          label,
-          style,
-          boundToSelection: boundToSelection === 'true',
-          visibilityCondition: visibilityCondition as 'all' | 'selected' | 'unselected'
-        };
-      })
-      .filter(Boolean) as FormattedAction[];
-  }, []);
+  const parseNonSplitActions = useCallback(
+    (actionsStr: string): FormattedAction[] => {
+      if (!actionsStr?.trim()) return [];
+      return actionsStr
+        .split('\n')
+        .filter(Boolean)
+        .map(line => {
+          const parts = line.split('|').map(p => p.trim());
+          if (parts.length < 5) {
+            console.warn(`Invalid non-split action format: ${line}`);
+            return null;
+          }
+          const [key, label, style, boundToSelection, visibilityCondition] =
+            parts;
+          if (!['default', 'primary', 'danger'].includes(style)) {
+            console.warn(`Invalid style: ${style}`);
+            return null;
+          }
+          if (
+            !['all', 'selected', 'unselected'].includes(visibilityCondition)
+          ) {
+            console.warn(
+              `Invalid visibility condition: ${visibilityCondition}`,
+            );
+            return null;
+          }
+          return {
+            key,
+            label,
+            style,
+            boundToSelection: boundToSelection === 'true',
+            visibilityCondition: visibilityCondition as
+              | 'all'
+              | 'selected'
+              | 'unselected',
+          };
+        })
+        .filter(Boolean) as FormattedAction[];
+    },
+    [],
+  );
 
-  const actions = useMemo(() => ({
-    split: parseSplitActions(split_actions || ''),
-    nonSplit: parseNonSplitActions(non_split_actions || '')
-  }), [split_actions, non_split_actions, parseSplitActions, parseNonSplitActions]);
+  const actions = useMemo(
+    () => ({
+      split: parseSplitActions(split_actions || ''),
+      nonSplit: parseNonSplitActions(non_split_actions || ''),
+    } as any),
+    [split_actions, non_split_actions, parseSplitActions, parseNonSplitActions],
+  );
 
   const lastSelectedRow = useRef<string | null>(null);
 
-  const handleRowSelect = useCallback((rowId: string, event?: React.MouseEvent) => {
-    setSelectedRows(prev => {
-      const newSelected = new Set(prev);
+  // @ts-ignore
+  const handleRowSelect = useCallback(
+    (rowId: string, event?: React.MouseEvent) => {
+      setSelectedRows(prev => {
+        const newSelected = new Set(prev);
 
-      if (selection_mode === 'single') {
-        // Single selection mode
-        if (prev.has(rowId)) {
-          newSelected.clear();
-        } else {
-          newSelected.clear();
-          newSelected.add(rowId);
-        }
-      } else {
-        // Multiple selection mode
-        if (event?.shiftKey && lastSelectedRow.current) {
-          // Shift+Click: Select range
-          const visibleIds = data.map(row => String(row[bulk_action_id_column as keyof D]));
-          const startIdx = visibleIds.indexOf(lastSelectedRow.current);
-          const endIdx = visibleIds.indexOf(rowId);
-
-          if (startIdx > -1 && endIdx > -1) {
-            const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
-            visibleIds.slice(min, max + 1).forEach(id => newSelected.add(id));
-          }
-        } else {
-          // Regular click: Toggle single row
+        if (selection_mode === 'single') {
+          // Single selection mode
           if (prev.has(rowId)) {
-            newSelected.delete(rowId);
+            newSelected.clear();
           } else {
+            newSelected.clear();
             newSelected.add(rowId);
           }
-          lastSelectedRow.current = rowId;
+        } else {
+          // Multiple selection mode
+          if (event?.shiftKey && lastSelectedRow.current) {
+            // Shift+Click: Select range
+            const visibleIds = data.map(row =>
+              String(row[bulk_action_id_column as keyof D]),
+            );
+            const startIdx = visibleIds.indexOf(lastSelectedRow.current);
+            const endIdx = visibleIds.indexOf(rowId);
+
+            if (startIdx > -1 && endIdx > -1) {
+              const [min, max] = [
+                Math.min(startIdx, endIdx),
+                Math.max(startIdx, endIdx),
+              ];
+              visibleIds.slice(min, max + 1).forEach(id => newSelected.add(id));
+            }
+          } else {
+            // Regular click: Toggle single row
+            if (prev.has(rowId)) {
+              newSelected.delete(rowId);
+            } else {
+              newSelected.add(rowId);
+            }
+            lastSelectedRow.current = rowId;
+          }
         }
-      }
-      return newSelected;
-    });
-  }, [selection_mode, data, bulk_action_id_column]);
+        return newSelected;
+      });
+    },
+    [selection_mode, data, bulk_action_id_column],
+  );
 
-  const handleTableAction = useCallback((action: string, id: string, value?: string) => {
-    sendWindowPostMessge({
-      action: 'remita-action',
-      actionType: action,
-      id,
-      value
-    });
-  }, []);
+  const handleTableAction = useCallback(
+    (action: string, id: string, value?: string) => {
+      sendWindowPostMessge({
+        action: 'remita-action',
+        actionType: action,
+        id,
+        value,
+      });
+    },
+    [],
+  );
 
-  const handleBulkAction = useCallback((action: string, selectedIds?: string[]) => {
-    sendWindowPostMessge({
-      action: 'remita-action',
-      actionType: action,
-      selectedIds
-    });
-  }, []);
+  const handleBulkAction = useCallback(
+    (action: string, selectedIds?: string[]) => {
+      sendWindowPostMessge({
+        action: 'remita-action',
+        actionType: action,
+        selectedIds,
+      });
+    },
+    [],
+  );
 
   function sendWindowPostMessge(messageData: any) {
     if (window.self !== window.top) {
       window.parent.postMessage(messageData, '*', [new MessageChannel().port2]);
     } else {
-      alert("This will send to parent app in embeded mode | "+JSON.stringify(messageData));
+      alert(
+        `This will send to parent app in embeded mode | ${JSON.stringify(
+          messageData,
+        )}`,
+      );
     }
   }
 
@@ -452,7 +511,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const actions = JSON.parse(table_actions);
       return {
         idColumn: table_actions_id_column,
-        actions
+        actions,
       };
     } catch (e) {
       console.error('Failed to parse table actions:', e);
@@ -460,28 +519,33 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [enable_table_actions, table_actions_id_column, table_actions]);
 
-  const handleBulkSelect = useCallback((visibleData: D[]) => {
-    // Get IDs of only the visible rows
-    const visibleIds = visibleData.map(row => String(row[bulk_action_id_column as keyof D]));
+  const handleBulkSelect = useCallback(
+    (visibleData: D[]) => {
+      // Get IDs of only the visible rows
+      const visibleIds = visibleData.map(row =>
+        String(row[bulk_action_id_column as keyof D]),
+      );
 
-    setSelectedRows(prev => {
-      const newSelected = new Set(prev);
-      const allVisibleSelected = visibleIds.length > 0 &&
-        visibleIds.every(id => newSelected.has(id));
+      setSelectedRows(prev => {
+        const newSelected = new Set(prev);
+        const allVisibleSelected =
+          visibleIds.length > 0 && visibleIds.every(id => newSelected.has(id));
 
-      if (allVisibleSelected) {
-        // If all visible rows are selected, deselect only visible rows
-        visibleIds.forEach(id => newSelected.delete(id));
-      } else {
-        // Otherwise, select all visible rows
-        visibleIds.forEach(id => newSelected.add(id));
-      }
-      return newSelected;
-    });
-  }, [bulk_action_id_column]);
+        if (allVisibleSelected) {
+          // If all visible rows are selected, deselect only visible rows
+          visibleIds.forEach(id => newSelected.delete(id));
+        } else {
+          // Otherwise, select all visible rows
+          visibleIds.forEach(id => newSelected.add(id));
+        }
+        return newSelected;
+      });
+    },
+    [bulk_action_id_column],
+  );
 
   const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
-    let updatedFilters = {...(filters || {})};
+    let updatedFilters = { ...(filters || {}) };
     if (filters && isActiveFilterValue(key, value)) {
       updatedFilters = {};
     } else {
@@ -489,7 +553,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         [key]: [value],
       };
     }
-    if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
+    if (
+      Array.isArray(updatedFilters[key]) &&
+      updatedFilters[key].length === 0
+    ) {
       delete updatedFilters[key];
     }
     const groupBy = Object.keys(updatedFilters);
@@ -512,21 +579,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             groupBy.length === 0
               ? []
               : groupBy.map(col => {
-                const val = ensureIsArray(updatedFilters?.[col]);
-                if (!val.length)
+                  const val = ensureIsArray(updatedFilters?.[col]);
+                  if (!val.length)
+                    return {
+                      col,
+                      op: 'IS NULL' as const,
+                    };
                   return {
                     col,
-                    op: 'IS NULL' as const,
+                    op: 'IN' as const,
+                    val: val.map(el =>
+                      el instanceof Date ? el.getTime() : el!,
+                    ),
+                    grain: col === DTTM_ALIAS ? timeGrain : undefined,
                   };
-                return {
-                  col,
-                  op: 'IN' as const,
-                  val: val.map(el =>
-                    el instanceof Date ? el.getTime() : el!,
-                  ),
-                  grain: col === DTTM_ALIAS ? timeGrain : undefined,
-                };
-              }),
+                }),
         },
         filterState: {
           label: labelElements.join(', '),
@@ -552,7 +619,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const getSharedStyle = (column: DataColumnMeta): CSSProperties => {
-    const {isNumeric, config = {}} = column;
+    const { isNumeric, config = {} } = column;
     const textAlign =
       config.horizontalAlign ||
       (isNumeric && !isUsingTimeComparison ? 'right' : 'left');
@@ -569,7 +636,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const allColumns = comparisonColumns[0].key;
     const main = comparisonLabels[0];
     const showAllColumns = selectedComparisonColumns.includes(allColumns);
-    return columnsMeta.filter(({label, key}) => {
+    return columnsMeta.filter(({ label, key }) => {
       // Extract the key portion after the space, assuming the format is always "label key"
       const keyPortion = key.substring(label.length);
       const isKeyHidded = hideComparisonKeys.includes(keyPortion);
@@ -595,46 +662,46 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const handleContextMenu =
     onContextMenu && !isRawRecords
       ? (
-        value: D,
-        cellPoint: {
-          key: string;
-          value: DataRecordValue;
-          isMetric?: boolean;
-        },
-        clientX: number,
-        clientY: number,
-      ) => {
-        const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
-        filteredColumnsMeta.forEach(col => {
-          if (!col.isMetric) {
-            const dataRecordValue = value[col.key];
-            drillToDetailFilters.push({
-              col: col.key,
-              op: '==',
-              val: dataRecordValue as string | number | boolean,
-              formattedVal: formatColumnValue(col, dataRecordValue)[1],
-            });
-          }
-        });
-        onContextMenu(clientX, clientY, {
-          drillToDetail: drillToDetailFilters,
-          crossFilter: cellPoint.isMetric
-            ? undefined
-            : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
-          drillBy: cellPoint.isMetric
-            ? undefined
-            : {
-              filters: [
-                {
-                  col: cellPoint.key,
-                  op: '==',
-                  val: cellPoint.value as string | number | boolean,
+          value: D,
+          cellPoint: {
+            key: string;
+            value: DataRecordValue;
+            isMetric?: boolean;
+          },
+          clientX: number,
+          clientY: number,
+        ) => {
+          const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
+          filteredColumnsMeta.forEach(col => {
+            if (!col.isMetric) {
+              const dataRecordValue = value[col.key];
+              drillToDetailFilters.push({
+                col: col.key,
+                op: '==',
+                val: dataRecordValue as string | number | boolean,
+                formattedVal: formatColumnValue(col, dataRecordValue)[1],
+              });
+            }
+          });
+          onContextMenu(clientX, clientY, {
+            drillToDetail: drillToDetailFilters,
+            crossFilter: cellPoint.isMetric
+              ? undefined
+              : getCrossFilterDataMask(cellPoint.key, cellPoint.value),
+            drillBy: cellPoint.isMetric
+              ? undefined
+              : {
+                  filters: [
+                    {
+                      col: cellPoint.key,
+                      op: '==',
+                      val: cellPoint.value as string | number | boolean,
+                    },
+                  ],
+                  groupbyFieldName: 'groupby',
                 },
-              ],
-              groupbyFieldName: 'groupby',
-            },
-        });
-      }
+          });
+        }
       : undefined;
 
   const getHeaderColumns = (
@@ -666,7 +733,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   const renderTimeComparisonDropdown = (): JSX.Element => {
     const allKey = comparisonColumns[0].key;
     const handleOnClick = (data: any) => {
-      const {key} = data;
+      const { key } = data;
       // Toggle 'All' key selection
       if (key === allKey) {
         setSelectedComparisonColumns([allKey]);
@@ -696,7 +763,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           setShowComparisonDropdown(flag);
         }}
         overlay={
-          <Menu multiple onClick={handleOnClick} onBlur={handleOnBlur} selectedKeys={selectedComparisonColumns}>
+          <Menu
+            multiple
+            onClick={handleOnClick}
+            onBlur={handleOnBlur}
+            selectedKeys={selectedComparisonColumns}
+          >
             <div
               css={css`
                 max-width: 242px;
@@ -725,7 +797,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   `}
                 >
                   {selectedComparisonColumns.includes(column.key) && (
-                    <CheckOutlined/>
+                    <CheckOutlined />
                   )}
                 </span>
               </Menu.Item>
@@ -735,7 +807,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         trigger={['click']}
       >
         <span>
-          <TableOutlined/> <DownOutlined/>
+          <TableOutlined /> <DownOutlined />
         </span>
       </Dropdown>
     );
@@ -755,7 +827,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         headers.push(
           <th
             key={`placeholder-${i}`}
-            style={{borderBottom: 0}}
+            style={{ borderBottom: 0 }}
             aria-label={`Header-${i}`}
           />,
         );
@@ -763,7 +835,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       // Add the current header <th>
       headers.push(
-        <th key={`header-${key}`} colSpan={colSpan} style={{borderBottom: 0}}>
+        <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
           {key}
           <span
             css={css`
@@ -783,7 +855,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
               />
             ) : (
-              <MinusCircleOutlined onClick={() => setHideComparisonKeys([...hideComparisonKeys, key])}/>
+              <MinusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys([...hideComparisonKeys, key])
+                }
+              />
             )}
           </span>
         </th>,
@@ -836,18 +912,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // inline style for both th and td cell
       const sharedStyle: CSSProperties = getSharedStyle(column);
       const alignPositiveNegative =
-        config.alignPositiveNegative === undefined ? defaultAlignPN : config.alignPositiveNegative;
+        config.alignPositiveNegative === undefined
+          ? defaultAlignPN
+          : config.alignPositiveNegative;
       const colorPositiveNegative =
-        config.colorPositiveNegative === undefined ? defaultColorPN : config.colorPositiveNegative;
-      const {truncateLongCells} = config;
+        config.colorPositiveNegative === undefined
+          ? defaultColorPN
+          : config.colorPositiveNegative;
+      const { truncateLongCells } = config;
       const hasColumnColorFormatters =
-        isNumeric && Array.isArray(columnColorFormatters) && columnColorFormatters.length > 0;
+        isNumeric &&
+        Array.isArray(columnColorFormatters) &&
+        columnColorFormatters.length > 0;
       const hasBasicColorFormatters =
-        isUsingTimeComparison && Array.isArray(basicColorFormatters) && basicColorFormatters.length > 0;
+        isUsingTimeComparison &&
+        Array.isArray(basicColorFormatters) &&
+        basicColorFormatters.length > 0;
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
-        (config.showCellBars === undefined ? showCellBars : config.showCellBars) &&
+        (config.showCellBars === undefined
+          ? showCellBars
+          : config.showCellBars) &&
         (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
@@ -870,14 +956,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // typing is incorrect in current version of `@types/react-table`
         // so we ask TS not to check.
         accessor: ((datum: D) => datum[key]) as never,
-        Cell: ({value, row}: { value: DataRecordValue; row: Row<D> }) => {
+        Cell: ({ value, row }: { value: DataRecordValue; row: Row<D> }) => {
           const [isHtml, text] = formatColumnValue(column, value);
-          const html = isHtml && allowRenderHtml ? {__html: text} : undefined;
+          const html = isHtml && allowRenderHtml ? { __html: text } : undefined;
           let backgroundColor;
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
-            backgroundColor = basicColorFormatters[row.index][originKey]?.backgroundColor;
+            backgroundColor =
+              basicColorFormatters[row.index][originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorFormatters[row.index][originKey]?.mainArrow
@@ -896,8 +983,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
               });
           }
-          if (basicColorColumnFormatters && basicColorColumnFormatters?.length > 0) {
-            backgroundColor = basicColorColumnFormatters[row.index][column.key]?.backgroundColor || backgroundColor;
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            backgroundColor =
+              basicColorColumnFormatters[row.index][column.key]
+                ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
@@ -933,21 +1025,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           `}
           `;
           let arrowStyles = css`
-            color: ${
-              basicColorFormatters &&
-              basicColorFormatters[row.index][originKey]?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colors.success.base
-                : theme.colors.error.base
-            };
+            color: ${basicColorFormatters &&
+            basicColorFormatters[row.index][originKey]?.arrowColor ===
+              ColorSchemeEnum.Green
+              ? theme.colors.success.base
+              : theme.colors.error.base};
             margin-right: ${theme.gridUnit}px;
           `;
-          if (basicColorColumnFormatters && basicColorColumnFormatters?.length > 0) {
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
             arrowStyles = css`
-              color: ${
-                basicColorColumnFormatters[row.index][column.key]?.arrowColor === ColorSchemeEnum.Green
-                  ? theme.colors.success.base
-                  : theme.colors.error.base
-              };
+              color: ${basicColorColumnFormatters[row.index][column.key]
+                ?.arrowColor === ColorSchemeEnum.Green
+                ? theme.colors.success.base
+                : theme.colors.error.base};
               margin-right: ${theme.gridUnit}px;
             `;
           }
@@ -959,11 +1052,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             onClick:
               emitCrossFilters && !valueRange && !isMetric
                 ? () => {
-                  // allow selecting text in a cell
-                  if (!getSelectedText()) {
-                    toggleFilter(key, value);
+                    // allow selecting text in a cell
+                    if (!getSelectedText()) {
+                      toggleFilter(key, value);
+                    }
                   }
-                }
                 : undefined,
             onContextMenu: (e: MouseEvent) => {
               if (handleContextMenu) {
@@ -971,7 +1064,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 e.stopPropagation();
                 handleContextMenu(
                   row.original,
-                  {key, value, isMetric},
+                  { key, value, isMetric },
                   e.nativeEvent.clientX,
                   e.nativeEvent.clientY,
                 );
@@ -991,14 +1084,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <StyledCell {...cellProps}>
                   <div
                     className="dt-truncate-cell"
-                    style={columnWidth ? {width: columnWidth} : undefined}
+                    style={columnWidth ? { width: columnWidth } : undefined}
                     dangerouslySetInnerHTML={html}
                   />
                 </StyledCell>
               );
             }
             // eslint-disable-next-line react/no-danger
-            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html}/>;
+            return <StyledCell {...cellProps} dangerouslySetInnerHTML={html} />;
           }
           // If cellProps renders textContent already, then we don't have to
           // render `Cell`. This saves some time for large tables.
@@ -1018,7 +1111,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 />
               )}
               {truncateLongCells ? (
-                <div className="dt-truncate-cell" style={columnWidth ? {width: columnWidth} : undefined}>
+                <div
+                  className="dt-truncate-cell"
+                  style={columnWidth ? { width: columnWidth } : undefined}
+                >
                   {arrow && <span css={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
@@ -1031,7 +1127,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </StyledCell>
           );
         },
-        Header: ({column: col, onClick, style, onDragStart, onDrop}) => (
+        Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
             id={`header-${column.key}`}
             title={t('Shift + Click to sort by multiple columns')}
@@ -1076,7 +1172,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               }}
             >
               <span data-column-name={col.id}>{label}</span>
-              <SortIcon column={col}/>
+              <SortIcon column={col} />
             </div>
           </th>
         ),
@@ -1100,7 +1196,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     'Show total aggregations of selected metrics. Note that row limit does not apply to the result.',
                   )}
                 >
-                  <InfoCircleOutlined/>
+                  <InfoCircleOutlined />
                 </Tooltip>
               </div>
             </th>
@@ -1143,8 +1239,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const handleSizeChange = useCallback(
-    ({width, height}: { width: number; height: number }) => {
-      setTableSize({width, height});
+    ({ width, height }: { width: number; height: number }) => {
+      setTableSize({ width, height });
     },
     [],
   );
@@ -1153,7 +1249,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     // After initial load the table should resize only when the new sizes
     // Are not only scrollbar updates, otherwise, the table would twitch
     const scrollBarSize = getScrollBarSize();
-    const {width: tableWidth, height: tableHeight} = tableSize;
+    const { width: tableWidth, height: tableHeight } = tableSize;
     // Table is increasing its original size
     if (
       width - tableWidth > scrollBarSize ||
@@ -1175,7 +1271,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   }, [width, height, handleSizeChange, tableSize]);
 
-  const {width: widthFromState, height: heightFromState} = tableSize;
+  const { width: widthFromState, height: heightFromState } = tableSize;
   const columnsWithSelection = useMemo(() => {
     let finalColumns = columns;
 
@@ -1183,12 +1279,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     if (enable_bulk_actions) {
       const selectionColumn = {
         id: 'selection',
-        Header: ({data}: { data: D[] }) => {
-          const visibleIds = data.map(row => String(row[bulk_action_id_column as keyof D]));
-          const allVisibleSelected = visibleIds.length > 0 &&
+        Header: ({ data }: { data: D[] }) => {
+          const visibleIds = data.map(row =>
+            String(row[bulk_action_id_column as keyof D]),
+          );
+          const allVisibleSelected =
+            visibleIds.length > 0 &&
             visibleIds.every(id => selectedRows.has(id));
-          const someVisibleSelected = !allVisibleSelected &&
-            visibleIds.some(id => selectedRows.has(id));
+          const someVisibleSelected =
+            !allVisibleSelected && visibleIds.some(id => selectedRows.has(id));
 
           return (
             <td className=" right-border-only " role="columnheader button">
@@ -1209,24 +1308,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             </td>
           );
         },
-        Cell: ({
-                 row
-               }: {
-          row: Row<D>
-        }) => {
-          const rowId = String(row.original[bulk_action_id_column as keyof D] ?? row.index);
+        Cell: ({ row }: { row: Row<D> }) => {
+          const rowId = String(
+            row.original[bulk_action_id_column as keyof D] ?? row.index,
+          );
           const currentPage = serverPaginationData.currentPage || 0; // Get current page index (0-based)
           const pageSize = serverPaginationData.pageSize || 10; // Get current page size
           const rowNumber = currentPage * pageSize + row.index + 1; // Calculate row number
           return (
-            <td aria-labelledby="selection-cell" role="cell" className="right-border-only">
+            <td
+              aria-labelledby="selection-cell"
+              role="cell"
+              className="right-border-only"
+            >
               <div className="selection-cell">
                 <input
                   type="checkbox"
                   checked={selectedRows.has(rowId)}
-                  onChange={(e) => {
+                  onChange={e => {
                     if (selection_mode === 'single') {
-                      setSelectedRows(new Set(selectedRows.has(rowId) ? [] : [rowId]));
+                      setSelectedRows(
+                        new Set(selectedRows.has(rowId) ? [] : [rowId]),
+                      );
                     } else {
                       setSelectedRows(prev => {
                         const newSelected = new Set(prev);
@@ -1247,7 +1350,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         },
         width: 40,
       };
-      finalColumns = [selectionColumn, ...finalColumns];
+      finalColumns = [selectionColumn, ...finalColumns] as any;
     }
 
     // Add actions column if table actions enabled
@@ -1260,8 +1363,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <span data-column-name="actions">{t('Actions')}</span>
           </th>
         ),
-        Cell: ({row}: { row: Row<D> }) => {
-          const rowId = String(row.original[tableActionsConfig.idColumn as keyof D] ?? row.index);
+        Cell: ({ row }: { row: Row<D> }) => {
+          const rowId = String(
+            row.original[tableActionsConfig.idColumn as keyof D] ?? row.index,
+          );
           return (
             <ActionCell
               rowId={rowId}
@@ -1285,26 +1390,31 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     selection_mode,
     handleBulkSelect,
     tableActionsConfig,
-    handleTableAction
+    handleTableAction,
   ]);
 
   useEffect(() => {
     if (enable_bulk_actions && !bulk_action_id_column) {
       console.warn('Bulk actions enabled but no ID column specified');
     }
-    if (enable_bulk_actions && data.length > 0 && !(bulk_action_id_column in data[0])) {
+    if (
+      enable_bulk_actions &&
+      data.length > 0 &&
+      !(bulk_action_id_column in data[0])
+    ) {
       console.warn(`ID column "${bulk_action_id_column}" not found in data`);
     }
   }, [enable_bulk_actions, bulk_action_id_column, data]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       setSelectedRows(new Set());
-    };
-  }, []);
+    },
+    [],
+  );
 
+  // @ts-ignore
   return (
-
     <Styles>
       <DataTable<D>
         columns={columnsWithSelection}

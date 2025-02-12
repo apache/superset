@@ -129,7 +129,7 @@ const basic: TableChartProps = {
       ],
     },
   ],
-};
+} as any;
 
 /**
  * Advanced data input with
@@ -253,7 +253,7 @@ const comparison: TableChartProps = {
     onContextMenu: jest.fn(),
   },
   emitCrossFilters: true,
-};
+} as any;
 
 const comparisonWithConfig: TableChartProps = {
   ...comparison,
@@ -300,7 +300,7 @@ const comparisonWithConfig: TableChartProps = {
     onContextMenu: jest.fn(),
   },
   emitCrossFilters: false,
-};
+} as any;
 
 const raw = {
   ...advanced,

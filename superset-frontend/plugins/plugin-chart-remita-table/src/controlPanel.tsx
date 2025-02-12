@@ -48,7 +48,10 @@ import {
 import { isEmpty } from 'lodash';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
-import { validateSplitActions,validateNonSplitActions } from './utils/validator';
+import {
+  validateSplitActions,
+  validateNonSplitActions,
+} from './utils/validator';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -187,7 +190,6 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
     })
     .flat();
 
-
 // Add the bulk actions section
 const bulkActionsSection = {
   label: t('Row Selection & Actions'),
@@ -215,13 +217,15 @@ const bulkActionsSection = {
           label: t('ID Column'),
           description: t('Column to use as unique identifier for bulk actions'),
           default: null,
-          mapStateToProps: ({ datasource }) => ({
-            choices: datasource?.columns?.map(col => [
-              col.column_name,
-              col.verbose_name || col.column_name,
-            ]) || [],
+          mapStateToProps: ({ datasource }: any) => ({
+            choices:
+              datasource?.columns?.map((col: any) => [
+                col.column_name,
+                col.verbose_name || col.column_name,
+              ]) || [],
           }),
-          visibility: ({ controls }) => Boolean(controls?.enable_bulk_actions?.value),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
         },
       },
     ],
@@ -237,7 +241,8 @@ const bulkActionsSection = {
             ['multiple', t('Multiple Selection')],
             ['single', t('Single Selection')],
           ],
-          visibility: ({ controls }) => Boolean(controls?.enable_bulk_actions?.value),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
         },
       },
     ],
@@ -253,8 +258,11 @@ const bulkActionsSection = {
           default: 'export|Export Selected|true|selected',
           language: 'text',
           renderTrigger: true,
-          visibility: ({ controls }) => Boolean(controls?.enable_bulk_actions?.value),
-          placeholder: t('export|Export Selected|true|selected\nrefresh|Refresh|false|all'),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
+          placeholder: t(
+            'export|Export Selected|true|selected\nrefresh|Refresh|false|all',
+          ),
           validators: [validateSplitActions],
         },
       },
@@ -268,11 +276,15 @@ const bulkActionsSection = {
           description: t(
             'Actions as individual buttons. One per line in format:\nkey|label|style|boundToSelection|visibilityCondition',
           ),
-          default: 'delete|Delete|danger|true|selected\nsave|Save|primary|false|all',
+          default:
+            'delete|Delete|danger|true|selected\nsave|Save|primary|false|all',
           language: 'text',
           renderTrigger: true,
-          visibility: ({ controls }) => Boolean(controls?.enable_bulk_actions?.value),
-          placeholder: t('delete|Delete|danger|true|selected\nsave|Save|primary|false|all'),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
+          placeholder: t(
+            'delete|Delete|danger|true|selected\nsave|Save|primary|false|all',
+          ),
           validators: [validateNonSplitActions],
         },
       },
@@ -281,62 +293,65 @@ const bulkActionsSection = {
 };
 
 // Add this section to your controlPanelSections
-const tableActionsSection= {
+const tableActionsSection = {
   label: t('Table Actions'),
   expanded: true,
   tabOverride: 'customize',
   renderTrigger: true,
   controlSetRows: [
-  [
-    {
-      name: 'enable_table_actions',
-      config: {
-        type: 'CheckboxControl',
-        label: t('Enable Table Actions'),
-        default: false,
-        description: t('Enable actions column in the table'),
+    [
+      {
+        name: 'enable_table_actions',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Enable Table Actions'),
+          default: false,
+          description: t('Enable actions column in the table'),
+        },
       },
-    },
-  ],
-  [
-    {
-      name: 'table_actions_id_column',
-      config: {
-        type: 'SelectControl',
-        label: t('ID Column'),
-        description: t('Column to use as identifier for row actions'),
-        default: null,
-        mapStateToProps: ({ datasource }) => ({
-          choices: datasource?.columns?.map(col => [
-            col.column_name,
-            col.verbose_name || col.column_name,
-          ]) || [],
-        }),
-        visibility: ({ controls }) => Boolean(controls?.enable_table_actions?.value),
+    ],
+    [
+      {
+        name: 'table_actions_id_column',
+        config: {
+          type: 'SelectControl',
+          label: t('ID Column'),
+          description: t('Column to use as identifier for row actions'),
+          default: null,
+          mapStateToProps: ({ datasource }: any) => ({
+            choices:
+              datasource?.columns?.map((col: any) => [
+                col.column_name,
+                col.verbose_name || col.column_name,
+              ]) || [],
+          }),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_table_actions?.value),
+        },
       },
-    },
-  ],
-  [
-    {
-      name: 'table_actions',
-      config: {
-        type: 'TextAreaControl',
-        label: t('Table Actions Configuration'),
-        description: t(
-          'Actions configuration in JSON format. Example:\n' +
-          '{\n' +
-          '  "edit": {"label": "Edit", "action": "edit"},\n' +
-          '  "delete": {"label": "Delete", "action": "delete"}\n' +
-          '}'
-        ),
-        default: '{ "view": {"label": "View", "action": "view"}}',
-        language: 'json',
-        visibility: ({ controls }) => Boolean(controls?.enable_table_actions?.value),
+    ],
+    [
+      {
+        name: 'table_actions',
+        config: {
+          type: 'TextAreaControl',
+          label: t('Table Actions Configuration'),
+          description: t(
+            'Actions configuration in JSON format. Example:\n' +
+              '{\n' +
+              '  "edit": {"label": "Edit", "action": "edit"},\n' +
+              '  "delete": {"label": "Delete", "action": "delete"}\n' +
+              '}',
+          ),
+          default: '{ "view": {"label": "View", "action": "view"}}',
+          language: 'json',
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_table_actions?.value),
+        },
       },
-    },
+    ],
   ],
-],
-}
+} as any;
 
 const config: ControlPanelConfig = {
   controlPanelSections: [

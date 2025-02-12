@@ -22,13 +22,13 @@ import {
   TimeGranularity,
   QueryFormMetric,
   ChartProps,
-  DataRecord,
+  // DataRecord,
   DataRecordValue,
   DataRecordFilters,
   GenericDataType,
   QueryMode,
   ChartDataResponseResult,
-  QueryFormData,
+  // QueryFormData,
   SetDataMaskHook,
   ContextMenuFilters,
   CurrencyFormatter,
@@ -67,8 +67,6 @@ export interface ActionConfig {
   row_actions: string; // key|label|valueColumns|boundToSelection|visibilityCondition
 }
 
-
-
 export interface BulkActionEvent {
   actionKey: string;
   selectedIds: string[];
@@ -89,31 +87,31 @@ export interface TableActionsProps {
   onActionClick: (action: string, selectedIds: string[]) => void;
 }
 
-interface TableAction {
-  label: string;
-  action?: string;
-  valueColumn?: string;
-}
+// interface TableAction {
+//   label: string;
+//   action?: string;
+//   valueColumn?: string;
+// }
 
-interface TableActionConfig {
-  idColumn: string;
-  actions: Record<string, TableAction>;
-}
+// interface TableActionConfig {
+//   idColumn: string;
+//   actions: Record<string, TableAction>;
+// }
 
-export interface TableChartProps<D extends DataRecord = DataRecord> {
-  data: D[];
-  height: number;
-  width: number;
-  enableBulkActions?: boolean;
-  bulkActionIdColumn?: string;
-  selectionMode?: SelectionMode;
-  actions?: {
-    split: BulkAction[];
-    nonSplit: BulkAction[];
-  };
-  onBulkActionClick?: (event: BulkActionEvent) => void;
-  onRowActionClick?: (event: RowActionEvent) => void;
-}
+// export interface TableChartProps<D extends DataRecord = DataRecord> {
+//   data: D[];
+//   height: number;
+//   width: number;
+//   enableBulkActions?: boolean;
+//   bulkActionIdColumn?: string;
+//   selectionMode?: SelectionMode;
+//   actions?: {
+//     split: BulkAction[];
+//     nonSplit: BulkAction[];
+//   };
+//   onBulkActionClick?: (event: BulkActionEvent) => void;
+//   onRowActionClick?: (event: RowActionEvent) => void;
+// }
 export type CustomFormatter = (value: DataRecordValue) => string;
 
 export type TableColumnConfig = {
@@ -183,7 +181,7 @@ export interface TableChartProps extends ChartProps {
   };
   rawFormData: TableChartFormData;
   queriesData: ChartDataResponseResult[];
-  hooks?: {
+  hooks: {
     onBulkActionClick?: (actionKey: string, selectedIds: string[]) => void;
   };
 }
@@ -232,7 +230,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   startDateOffset?: string;
-  enable_bulk_actions ?: boolean;
+  enable_bulk_actions?: boolean;
   bulk_action_id_column?: string;
   selection_mode?: 'single' | 'multiple';
   split_actions?: string;

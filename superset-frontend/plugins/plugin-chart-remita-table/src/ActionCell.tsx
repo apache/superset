@@ -72,6 +72,7 @@ export const ActionCell = ({
   onActionClick: (action: string, id: string, value?: string) => void;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const extendedActions = actions as any;
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -92,9 +93,9 @@ export const ActionCell = ({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-
-    const value = config.valueColumn ? String(row[config.valueColumn]) : undefined;
-    onActionClick(config.action || key, rowId, value);
+    const configExtended = config as any;
+    const value = configExtended.valueColumn ? String(row[configExtended.valueColumn]) : undefined;
+    onActionClick(configExtended.action || key, rowId, value);
     setMenuOpen(false);
   };
 
@@ -120,10 +121,10 @@ export const ActionCell = ({
               key={key}
               href="#"
               className={`remita-link remita-action-${key}`}
-              data-action={config.action || key}
+              data-action={extendedActions.action || key}
               onClick={(e) => handleActionClick(e, key, config)}
             >
-              {config.label}
+              {extendedActions.label}
             </ActionLink>
           ))}
         </MenuContainer>

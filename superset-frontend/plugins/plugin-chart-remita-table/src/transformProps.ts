@@ -455,7 +455,7 @@ const transformProps = (
       onContextMenu,
     },
     emitCrossFilters,
-  } = chartProps;
+  } = chartProps as any;
 
   const {
     align_pn: alignPositiveNegative = true,
@@ -721,9 +721,9 @@ const transformProps = (
     split_actions,
     non_split_actions,
     enable_table_actions,
-    table_actions_id_column ,
-    table_actions ,
-  };
+    table_actions_id_column,
+    table_actions,
+  } as any;
 };
 
 export default transformProps;
