@@ -277,12 +277,6 @@ describe('Markdown', () => {
       );
 
       await new Promise(resolve => setTimeout(resolve, 100));
-      console.log('After resize:', {
-        containerWidth: container.offsetWidth,
-        editorWidth: editorContainer.offsetWidth,
-        aceEditor: container.querySelector('.ace_editor')?.style,
-        computedStyle: window.getComputedStyle(editorContainer),
-      });
     });
   });
 
