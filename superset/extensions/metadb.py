@@ -48,11 +48,14 @@ from typing import Any, Callable, cast, TypeVar
 from flask import current_app
 from shillelagh.adapters.base import Adapter
 from shillelagh.backends.apsw.dialects.base import APSWDialect
+from shillelagh.backends.multicorn.dialects.base import Multicorn2Dialect
 from shillelagh.exceptions import ProgrammingError
 from shillelagh.fields import (
     Boolean,
     Date,
     DateTime,
+    Decimal,
+    Duration,
     Field,
     Float,
     Integer,
@@ -93,6 +96,8 @@ class SupersetAPSWDialect(APSWDialect):
 
     name = "superset"
 
+    supports_statement_cache = True
+
     def __init__(self, allowed_dbs: list[str] | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
@@ -117,6 +122,37 @@ class SupersetAPSWDialect(APSWDialect):
                 "isolation_level": self.isolation_level,
             },
         )
+
+
+class SupersetMulticorn2Dialect(Multicorn2Dialect):
+    """
+    Postgres-backed (with the Multicorn2 extension) dialect for the meta database.
+    """
+
+    name = "superset"
+    driver = "multicorn2"
+
+    supports_statement_cache = True
+
+    def __init__(self, allowed_dbs: list[str] | None = None, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+
+        self.allowed_dbs = allowed_dbs
+
+    def create_connect_args(self, url: URL) -> tuple[tuple[()], dict[str, Any]]:
+        args, kwargs = super().create_connect_args(url)
+        kwargs.update(
+            {
+                "adapters": ["superset"],
+                "adapter_kwargs": {
+                    "superset": {
+                        "prefix": None,
+                        "allowed_dbs": self.allowed_dbs,
+                    }
+                },
+            },
+        )
+        return args, kwargs
 
 
 F = TypeVar("F", bound=Callable[..., Any])
@@ -152,24 +188,6 @@ def has_rowid(method: F) -> F:
         return method(self, *args, **kwargs)
 
     return cast(F, wrapper)
-
-
-class Duration(Field[datetime.timedelta, datetime.timedelta]):
-    """
-    Shillelagh field used for representing durations as `timedelta` objects.
-    """
-
-    type = "DURATION"
-    db_api_type = "DATETIME"
-
-
-class Decimal(Field[decimal.Decimal, decimal.Decimal]):
-    """
-    Shillelagh field used for representing decimals.
-    """
-
-    type = "DECIMAL"
-    db_api_type = "NUMBER"
 
 
 class FallbackField(Field[Any, str]):
