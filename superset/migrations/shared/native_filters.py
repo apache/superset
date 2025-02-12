@@ -48,7 +48,6 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
     :see: convert_filter_scopes
     """
 
-    short_id = f"{shortid()}"[:9]
     default_filters = json.loads(json_metadata.get("default_filters") or "{}")
     filter_scopes = json_metadata.get("filter_scopes", {})
     filter_box_ids = {filter_box.id for filter_box in filter_boxes}
@@ -81,6 +80,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
 
         for field, filter_scope in filter_scope_by_key_and_field[key].items():
             default = default_filters.get(key, {}).get(field)
+            short_id = f"{shortid()}"[:9]
 
             fltr: dict[str, Any] = {
                 "cascadeParentIds": [],
