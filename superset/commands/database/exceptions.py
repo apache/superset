@@ -88,9 +88,9 @@ class DatabaseExtraValidationError(ValidationError):
         )
 
 
-class DatabaseConnectionNotWorkingError(CommandException):
-    status = 400
-    message = _("DB Connection not working, please check your connection settings.")
+class DatabaseConnectionResyncPermissionsError(CommandException):
+    status = 500
+    message = _("Unable to resync permissions for this database connection.")
 
 
 class DatabaseNotFoundError(CommandException):

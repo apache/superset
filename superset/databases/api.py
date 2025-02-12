@@ -47,6 +47,9 @@ from superset.commands.database.exceptions import (
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
 from superset.commands.database.resync_permissions import ResyncPermissionsCommand
+from superset.commands.database.resync_permissions_async import (
+    ResyncPermissionsAsyncCommand,
+)
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
@@ -120,7 +123,6 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
-from superset.tasks.permissions import resync_database_permissions
 from superset.utils import json
 from superset.utils.core import (
     error_msg_from_exception,
@@ -620,7 +622,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>/resync-permissions/", methods=("POST",))
+    @expose("/<int:pk>/resync_permissions/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
@@ -659,11 +661,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        async_resync_perms = app.config["RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
         try:
-            current_username = get_username()
-            ResyncPermissionsCommand(pk, current_username).run()
-            resync_database_permissions.delay(pk, current_username)
-            return self.response(202, message="OK")
+            if async_resync_perms:
+                current_username = get_username()
+                ResyncPermissionsAsyncCommand(pk, current_username).run()
+                return self.response(
+                    202, message="Async task created to resync permissions"
+                )
+
+            ResyncPermissionsCommand(pk).run()
+            return self.response(200, message="Permissions successfully resynced")
         except DatabaseNotFoundError:
             return self.response_404()
         except SupersetException as ex:
