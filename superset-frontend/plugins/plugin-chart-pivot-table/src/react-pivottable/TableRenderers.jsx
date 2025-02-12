@@ -726,7 +726,7 @@ export class TableRenderer extends React.Component {
       }
 
       const style = agg.isSubtotal
-        ? { fontWeight: 'bold' }
+        ? { fontWeight: 'bold', backgroundColor }
         : { backgroundColor };
 
       return (
@@ -797,12 +797,12 @@ export class TableRenderer extends React.Component {
       colTotalCallbacks,
       grandTotalCallback,
     } = pivotSettings;
-
+    const colspan_after_collapse = this.state.isCollapsed ? this.state.collapseLevel  : rowAttrs.length + Math.min(colAttrs.length, 1)
     const totalLabelCell = (
       <th
         key="label"
         className="pvtTotalLabel pvtRowTotalLabel"
-        colSpan={rowAttrs.length + Math.min(colAttrs.length, 1)}
+        colSpan={colspan_after_collapse}
         onClick={this.clickHeaderHandler(
           pivotData,
           [],
