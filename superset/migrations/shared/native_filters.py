@@ -74,6 +74,7 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
         }
 
     # Construct the native filters.
+    unique_short_ids = set()
     for filter_box in filter_boxes:
         key = str(filter_box.id)
         params = json.loads(filter_box.params or "{}")
@@ -81,6 +82,15 @@ def convert_filter_scopes_to_native_filters(  # pylint: disable=invalid-name,too
         for field, filter_scope in filter_scope_by_key_and_field[key].items():
             default = default_filters.get(key, {}).get(field)
             short_id = f"{shortid()}"[:9]
+
+            # Ensure uniqueness due to UUIDv4 truncation increasing
+            # collision chance to infinitesimally small amount.
+            while True:
+                if short_id not in unique_short_ids:
+                    unique_short_ids.add(short_id)
+                    break
+                else:
+                    short_id = f"{shortid()}"[:9]
 
             fltr: dict[str, Any] = {
                 "cascadeParentIds": [],
