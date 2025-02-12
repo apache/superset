@@ -67,6 +67,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             catches=(
                 SQLAlchemyError,
                 ValueError,
+                SupersetSecurityException,
             ),
             reraise=DatasetUpdateFailedError,
         )
