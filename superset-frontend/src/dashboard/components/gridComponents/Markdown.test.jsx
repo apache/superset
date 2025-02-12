@@ -43,7 +43,6 @@ describe('Markdown', () => {
     addDangerToast: jest.fn(),
   };
 
-  // Add cleanup and silence warnings for known issues
   beforeAll(() => {
     jest.spyOn(console, 'error').mockImplementation(msg => {
       if (
@@ -67,20 +66,17 @@ describe('Markdown', () => {
   });
 
   const setup = async (overrideProps = {}) => {
-    // Wait for SafeMarkdown to load its dependencies
     let utils;
     await act(async () => {
       utils = render(<MarkdownConnected {...props} {...overrideProps} />, {
         useDnd: true,
         store: mockStore,
       });
-      // Wait for async operations to complete
       await new Promise(resolve => setTimeout(resolve, 0));
     });
     return utils;
   };
 
-  // Add cleanup after each test
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -235,7 +231,6 @@ describe('Markdown', () => {
       toastFn: addDangerToast.toString(),
     });
 
-    // Try different error event types
     await act(async () => {
       const markdownEditor = screen.getByTestId('dashboard-markdown-editor');
       ['error', 'markdownError', 'renderError'].forEach(eventType => {
