@@ -260,7 +260,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         : null;
       // firstItem[0] !== undefined for a case when groupby changed but new data still not fetched
       // TODO: still need repopulate default value in config modal when column changed
-      if (firstItem?.[0] !== undefined) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const searchFilters = searchParams.get('filters');
+      // avoid 'filters' of url to confict update with 'requiredFirst'; fix refresh again and again..
+      if (firstItem?.[0] !== undefined && !searchFilters) {
         updateDataMask(firstItem);
       }
     } else if (isDisabled) {
