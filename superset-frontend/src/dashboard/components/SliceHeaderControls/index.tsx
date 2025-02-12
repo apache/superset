@@ -299,7 +299,7 @@ const SliceHeaderControls = (
     supersetCanShare = false,
     isCached = [],
   } = props;
-  const isTable = slice.viz_type === VizType.Table;
+  const isTable = slice.viz_type === VizType.Table || slice.viz_type === VizType.RemitaTable;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     extendedDayjs.utc(itemCachedDttm).fromNow(),
