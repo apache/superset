@@ -262,18 +262,6 @@ describe('Markdown', () => {
     });
 
     const editorContainer = screen.getByTestId('dashboard-markdown-editor');
-    console.log('Initial component state:', {
-      container: {
-        width: container.offsetWidth,
-        style: window.getComputedStyle(container),
-      },
-      editor: {
-        width: editorContainer.offsetWidth,
-        style: window.getComputedStyle(editorContainer),
-        children: editorContainer.children.length,
-      },
-      aceEditor: container.querySelector('.ace_editor'),
-    });
 
     await act(async () => {
       rerender(
