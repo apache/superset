@@ -1276,7 +1276,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   />
                 )}
                 {include_row_numbers && (
-                  <span className="selection-cell-number">{rowNumber}</span>
+                  <span className="selection-cell-number" title={rowNumber.toString()}>{rowNumber}</span>
                 )}
               </div>
             </td>
@@ -1336,6 +1336,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   return (
+    <>
+      { message && <Alert message={message} type="info" showIcon /> }
     <Styles>
       <DataTable<D>
         columns={columnsWithSelection}
@@ -1373,5 +1375,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         onBulkActionClick={handleBulkAction}
       />
     </Styles>
+    </>
   );
 }

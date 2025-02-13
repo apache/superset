@@ -328,7 +328,7 @@ const TableActionFormControl = ({
             </>
           )}
           <Space direction="vertical" style={{width: '100%'}}>
-            {actions.length === 0 ? (
+            {actions.length === 0 || !(actions instanceof Array) ? (
               <Alert
                 message="No table row actions added yet."
                 type="info"
@@ -407,7 +407,7 @@ const TableActionFormControl = ({
       {offerEditInModal ? (
         <>
           <div style={{marginBottom: '16px'}}>
-            {actions.length === 0 ? (
+            {actions.length === 0 || !(actions instanceof Array) ? (
               <>
                 <Alert
                   message="No table row actions added yet."
