@@ -135,6 +135,7 @@ export const infoTooltip = (theme: SupersetTheme) => css`
 
 export const toggleStyle = (theme: SupersetTheme) => css`
   padding-left: ${theme.gridUnit * 2}px;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`

@@ -64,6 +64,12 @@ interface Props {
 }
 
 const STATE_ICONS: Record<string, FC<IconType>> = {
+  started: Icons.CircleSolid,
+  stopped: Icons.StopOutlined,
+  pending: Icons.CircleSolid,
+  scheduled: Icons.CalendarOutlined,
+  fetching: Icons.CircleSolid,
+  timedOut: Icons.FieldTimeOutlined,
   running: Icons.CircleSolid,
   success: Icons.CheckCircleOutlined,
   failed: Icons.CloseCircleOutlined,

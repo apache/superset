@@ -96,10 +96,10 @@ const getEntityIcon = (entity: ActivityObject) => {
   if ('sql' in entity) return <Icons.ConsoleSqlOutlined />;
   const url = 'item_url' in entity ? entity.item_url : entity.url;
   if (url?.includes('dashboard')) {
-    return <Icons.NavDashboard />;
+    return <Icons.DashboardOutlined />;
   }
   if (url?.includes('explore')) {
-    return <Icons.NavCharts />;
+    return <Icons.BarChartOutlined />;
   }
   return null;
 };

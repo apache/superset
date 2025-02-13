@@ -49,30 +49,31 @@ const StyledModal = styled(Modal)`
 `;
 
 const StyledSectionContainer = styled.div`
+  ${({ theme }) => css`
   display: flex;
   flex-direction: column;
-  padding: ${({ theme }) =>
-    `${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px`};
+  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px;
 
   label,
   .control-label {
-    display: inline-block;
-    font-size: ${({ theme }) => theme.typography.sizes.s}px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
-    vertical-align: middle;
+    display: flex;
+    font-size: ${theme.typography.sizes.s}px;
+    color: ${theme.colors.grayscale.base};
+    aling-items:center;
   }
 
   .info-solid-small {
     vertical-align: middle;
-    padding-bottom: ${({ theme }) => theme.gridUnit / 2}px;
+    padding-bottom: ${theme.gridUnit / 2}px;
   }
+  `}
 `;
-
 const StyledInputContainer = styled.div`
+  ${({ theme }) => css`
   display: flex;
   flex-direction: column;
-  margin: ${({ theme }) => theme.gridUnit}px;
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  margin: ${theme.gridUnit}px;
+  margin-bottom: ${theme.gridUnit * 4}px;
 
   .input-container {
     display: flex;
@@ -89,9 +90,10 @@ const StyledInputContainer = styled.div`
   }
 
   .required {
-    margin-left: ${({ theme }) => theme.gridUnit / 2}px;
-    color: ${({ theme }) => theme.colors.error.base};
+    margin-left: ${theme.gridUnit / 2}px;
+    color: ${theme.colors.error.base};
   }
+`}
 `;
 
 const StyledTextArea = styled(TextArea)`

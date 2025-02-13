@@ -41,7 +41,7 @@ const PLACEMENTS = [
 export const InteractiveIconTooltip = (args: Props) => (
   <div css={{ margin: '40px 70px' }}>
     <IconTooltip {...args}>
-      <Icons.Info />
+      <Icons.InfoCircleOutlined />
     </IconTooltip>
   </div>
 );

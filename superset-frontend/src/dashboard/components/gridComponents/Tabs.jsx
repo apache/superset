@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, usePrevious } from '@superset-ui/core';
+import { styled, t, usePrevious, css, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
@@ -70,19 +70,20 @@ const propTypes = {
 };
 
 const defaultProps = {
-  setActiveTab() {},
-  onResizeStart() {},
-  onResize() {},
-  onResizeStop() {},
+  setActiveTab() { },
+  onResizeStart() { },
+  onResize() { },
+  onResizeStop() { },
 };
 
 const StyledTabsContainer = styled.div`
+  ${({ theme }) => css`
   width: 100%;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 
   .dashboard-component-tabs-content {
-    min-height: ${({ theme }) => theme.gridUnit * 12}px;
-    margin-top: ${({ theme }) => theme.gridUnit / 4}px;
+    min-height: ${theme.gridUnit * 12}px;
+    margin-top: ${theme.gridUnit / 4}px;
     position: relative;
   }
 
@@ -90,7 +91,7 @@ const StyledTabsContainer = styled.div`
     overflow: visible;
 
     .ant-tabs-nav-wrap {
-      min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+      min-height: ${theme.gridUnit * 12.5}px;
     }
 
     .ant-tabs-content-holder {
@@ -101,8 +102,8 @@ const StyledTabsContainer = styled.div`
   div .ant-tabs-tab-btn {
     text-transform: none;
   }
+  `}
 `;
-
 const DropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colors.primary.base};
   width: 5px;
@@ -113,14 +114,18 @@ const DropIndicator = styled.div`
   border-radius: 2px;
 `;
 
-const CloseIconWithDropIndicator = props => (
-  <>
-    <Icons.CloseOutlined iconSize="s" iconColor={theme.colors.grayscale.base} />
-    {props.showDropIndicators.right && (
-      <DropIndicator className="drop-indicator-right" pos="right" />
-    )}
-  </>
-);
+const CloseIconWithDropIndicator = (props) => {
+  const theme = useTheme();
+  return (
+    <>
+      <Icons.CloseOutlined iconSize="s" iconColor={theme.colors.grayscale.base} />
+      {props.showDropIndicators.right && (
+        <DropIndicator className="drop-indicator-right" pos="right" />
+      )}
+    </>
+  );
+};
+
 
 const Tabs = props => {
   const nativeFilters = useSelector(state => state.nativeFilters);
@@ -300,7 +305,7 @@ const Tabs = props => {
           <span>
             {t(
               'Deleting a tab will remove all content within it and will deactivate any related alerts or reports. You may still ' +
-                'reverse this action with the',
+              'reverse this action with the',
             )}{' '}
             <b>{t('undo')}</b>{' '}
             {t('button (cmd + z) until you save your changes.')}

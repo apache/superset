@@ -24,23 +24,26 @@ import Icons from 'src/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
 const ToastContainer = styled.div`
+  ${({ theme }) => css`
   display: flex;
   justify-content: center;
   align-items: center;
 
   span {
-    padding: 0 11px;
+    padding: 0 ${theme.gridUnit * 2}px;
   }
 
   .toast__close,
   .toast__close span {
-    padding: 0 !important;
+    padding: 0;
   }
+  `}
 `;
 
 const NotificationStyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.gridUnit * 5}px;
   color: ${theme.colors.grayscale.base};
+  margin-right:0;
 `;
 
 interface ToastPresenterProps {
@@ -87,13 +90,13 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
   );
 
   if (toast.toastType === ToastType.Warning) {
-    icon = <Icons.WarningSolid css={NotificationStyledIcon} />;
+    icon = <Icons.ExclamationCircleFilled css={NotificationStyledIcon} />;
     className = 'toast--warning';
   } else if (toast.toastType === ToastType.Danger) {
-    icon = <Icons.ErrorSolid css={NotificationStyledIcon} />;
+    icon = <Icons.ExclamationCircleFilled css={NotificationStyledIcon} />;
     className = 'toast--danger';
   } else if (toast.toastType === ToastType.Info) {
-    icon = <Icons.InfoSolid css={NotificationStyledIcon} />;
+    icon = <Icons.InfoCircleFilled css={NotificationStyledIcon} />;
     className = 'toast--info';
   }
 
