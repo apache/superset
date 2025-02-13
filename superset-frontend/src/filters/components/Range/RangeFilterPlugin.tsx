@@ -284,11 +284,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             onMouseDown={() => setFilterActive(true)}
             onMouseUp={() => setFilterActive(false)}
           >
-            {(enableSingleValue === 0 ||
-              enableSingleValue === 1 ||
+            {(enableSingleValue === SingleValueType.Minimum ||
+              enableSingleValue === SingleValueType.Exact ||
               enableSingleValue === undefined) && (
               <InputNumber
-                value={inputValue[0]}
+                value={inputValue[minIndex]}
+                max={inputValue[maxIndex] || undefined}
                 onChange={val => handleChange(val, minIndex)}
                 placeholder={`${min}`}
                 status={filterState.validateStatus}
@@ -298,9 +299,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             {enableSingleValue === undefined && (
               <StyledDivider>-</StyledDivider>
             )}
-            {(enableSingleValue === 2 || enableSingleValue === undefined) && (
+            {(enableSingleValue === SingleValueType.Maximum ||
+              enableSingleValue === undefined) && (
               <InputNumber
-                value={inputValue[1]}
+                value={inputValue[maxIndex]}
+                min={inputValue[minIndex] || undefined}
                 onChange={val => handleChange(val, maxIndex)}
                 placeholder={`${max}`}
                 data-test="range-filter-to-input"
