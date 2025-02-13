@@ -27,7 +27,8 @@ from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Unio
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined, Environment
+from jinja2 import DebugUndefined, Environment, nodes
+from jinja2.nodes import Call, Node
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -888,6 +889,26 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     raise SupersetTemplateException(exc_message)
 
 
+def has_metric_macro(template_string: str, env: Environment) -> bool:
+    """
+    Checks if a template string contains a metric macro.
+
+        >>> has_metric_macro("{{ metric('my_metric') }}")
+        True
+
+    """
+    ast = env.parse(template_string)
+
+    def visit_node(node: Node) -> bool:
+        return (
+            isinstance(node, Call)
+            and isinstance(node.node, nodes.Name)
+            and node.node.name == "metric"
+        ) or any(visit_node(child) for child in node.iter_child_nodes())
+
+    return visit_node(ast)
+
+
 def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
     """
     Given a metric key, returns its syntax.
@@ -908,16 +929,32 @@ def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
     dataset = DatasetDAO.find_by_id(dataset_id)
     if not dataset:
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
     metrics: dict[str, str] = {
         metric.metric_name: metric.expression for metric in dataset.metrics
     }
-    dataset_name = dataset.table_name
-    if metric := metrics.get(metric_key):
-        return metric
-    raise SupersetTemplateException(
-        _(
-            "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
-            metric_name=metric_key,
-            dataset_name=dataset_name,
+    if metric_key not in metrics:
+        raise SupersetTemplateException(
+            _(
+                "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
+                metric_name=metric_key,
+                dataset_name=dataset.table_name,
+            )
         )
-    )
+
+    definition = metrics[metric_key]
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    context = {"metric": partial(safe_proxy, metric_macro)}
+    while has_metric_macro(definition, env):
+        old_definition = definition
+        template = env.from_string(definition)
+        try:
+            definition = template.render(context)
+        except RecursionError as ex:
+            raise SupersetTemplateException("Cyclic metric macro detected") from ex
+
+        if definition == old_definition:
+            break
+
+    return definition

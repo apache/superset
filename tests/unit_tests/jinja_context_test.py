@@ -544,6 +544,99 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     mock_get_form_data.assert_not_called()
 
 
+def test_metric_macro_recursive(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is recursive.
+    """
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="a", expression="COUNT(*)"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    assert metric_macro("c", 1) == "COUNT(*)"
+
+
+def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is compound.
+    """
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="a", expression="SUM(*)"),
+            SqlMetric(metric_name="b", expression="COUNT(*)"),
+            SqlMetric(
+                metric_name="c",
+                expression="{{ metric('a') }} / {{ metric('b') }}",
+            ),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    assert metric_macro("c", 1) == "SUM(*) / COUNT(*)"
+
+
+def test_metric_macro_recursive_cyclic(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is cyclic.
+
+    In this case it should stop, and not go into an infinite loop.
+    """
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ metric('c') }}"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        metric_macro("c", 1)
+    assert str(excinfo.value) == "Cyclic metric macro detected"
+
+
+def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is cyclic.
+
+    In this case it should stop, and not go into an infinite loop.
+    """
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ metric('a') }}"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
+    )
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        metric_macro("a", 1)
+    assert str(excinfo.value) == "Cyclic metric macro detected"
+
+
 def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:
     """
     Test the ``metric_macro`` when passing a dataset ID and an invalid key.
