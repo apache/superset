@@ -1,3 +1,4 @@
+/* eslint-disable */
 import React, {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
@@ -213,25 +214,19 @@ interface FormattedAction {
   style?: string;
 }
 
-// 5. Add proper type definitions
-interface TableAction {
-  key: string;
-  label: string;
-  type: 'primary' | 'default' | 'danger';
-}
-
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
     sticky?: DataTableProps<D>['sticky'];
     enable_bulk_actions?: boolean;
+    include_row_numbers?: boolean;
     bulk_action_id_column?: string;
     selection_mode?: 'single' | 'multiple';
-    split_actions?: string;
-    non_split_actions?: string;
+    split_actions?: Set<any>;
+    non_split_actions?:  Set<any>;
     onBulkActionClick?: (actionKey?: string, selectedIds?: string[]) => void;
     enable_table_actions?: boolean;
     table_actions_id_column?: string;
-    table_actions?: string;
+    table_actions?: Set<any>;
     onTableActionClick?: (action?: string, id?: string, value?: string) => void;
   },
 ) {
@@ -264,13 +259,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     basicColorFormatters,
     basicColorColumnFormatters,
     enable_bulk_actions = false,
+    include_row_numbers = true,
     bulk_action_id_column = 'id',
     selection_mode = 'multiple',
-    split_actions = '',
-    non_split_actions = '',
+    split_actions = new Set<any>(),
+    non_split_actions = new Set<any>(),
     enable_table_actions = false,
     table_actions_id_column = '',
-    table_actions,
+    table_actions = new Set<any>(),
   } = props;
 
   const comparisonColumns = [
@@ -326,123 +322,107 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     },
     [filters],
   );
-  const parseSplitActions = useCallback((actionsStr: string): FormattedAction[] => {
-    if (!actionsStr?.trim()) return [];
-    return actionsStr
-      .split('\n')
-      .filter(Boolean)
-      .map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length < 4) {
-          console.warn(`Invalid split action format: ${line}`);
-          return null;
-        }
-        const [key, label, boundToSelection, visibilityCondition] = parts;
-        if (!['all', 'selected', 'unselected'].includes(visibilityCondition)) {
-          console.warn(`Invalid visibility condition: ${visibilityCondition}`);
-          return null;
-        }
-        return {
-          key,
-          label,
-          boundToSelection: boundToSelection === 'true',
-          visibilityCondition: visibilityCondition as 'all' | 'selected' | 'unselected'
-        };
-      })
-      .filter(Boolean) as FormattedAction[];
-  }, []);
 
-  const parseNonSplitActions = useCallback((actionsStr: string): FormattedAction[] => {
-    if (!actionsStr?.trim()) return [];
-    return actionsStr
-      .split('\n')
-      .filter(Boolean)
-      .map(line => {
-        const parts = line.split('|').map(p => p.trim());
-        if (parts.length < 5) {
-          console.warn(`Invalid non-split action format: ${line}`);
-          return null;
-        }
-        const [key, label, style, boundToSelection, visibilityCondition] = parts;
-        if (!['default', 'primary', 'danger'].includes(style)) {
-          console.warn(`Invalid style: ${style}`);
-          return null;
-        }
-        if (!['all', 'selected', 'unselected'].includes(visibilityCondition)) {
-          console.warn(`Invalid visibility condition: ${visibilityCondition}`);
-          return null;
-        }
-        return {
-          key,
-          label,
-          style,
-          boundToSelection: boundToSelection === 'true',
-          visibilityCondition: visibilityCondition as 'all' | 'selected' | 'unselected'
-        };
-      })
-      .filter(Boolean) as FormattedAction[];
-  }, []);
+  const parseOrConvertToSet = (input) => {
+    // If input is a string, try to parse it.
+    if (typeof input === 'string') {
+      try {
+        const parsed = JSON.parse(input);
+        return Array.isArray(parsed) ? new Set(parsed) : new Set();
+      } catch (error) {
+        return new Set();
+      }
+    }
+    // If input is an array, convert it to a set.
+    if (Array.isArray(input)) {
+      return new Set(input);
+    }
+    // If input is already a Set, return it.
+    if (input instanceof Set) {
+      return input;
+    }
+    return new Set();
+  };
 
-  const actions = useMemo(() => ({
-    split: parseSplitActions(split_actions || ''),
-    nonSplit: parseNonSplitActions(non_split_actions || '')
-  }), [split_actions, non_split_actions, parseSplitActions, parseNonSplitActions]);
+  const actions = useMemo(
+    () => ({
+      split: parseOrConvertToSet(split_actions),
+      nonSplit: parseOrConvertToSet(non_split_actions),
+    } as any),
+    [split_actions, non_split_actions],
+  );
+
   const lastSelectedRow = useRef<string | null>(null);
 
-  const handleRowSelect = useCallback((rowId: string, event?: React.MouseEvent) => {
-    setSelectedRows(prev => {
-      const newSelected = new Set(prev);
+  // @ts-ignore
+  const handleRowSelect = useCallback(
+    (rowId: string, event?: React.MouseEvent) => {
+      setSelectedRows(prev => {
+        const newSelected = new Set(prev);
 
-      if (selection_mode === 'single') {
-        // Single selection mode
-        if (prev.has(rowId)) {
-          newSelected.clear();
-        } else {
-          newSelected.clear();
-          newSelected.add(rowId);
-        }
-      } else {
-        // Multiple selection mode
-        if (event?.shiftKey && lastSelectedRow.current) {
-          // Shift+Click: Select range
-          const visibleIds = data.map(row => String(row[bulk_action_id_column as keyof D]));
-          const startIdx = visibleIds.indexOf(lastSelectedRow.current);
-          const endIdx = visibleIds.indexOf(rowId);
-
-          if (startIdx > -1 && endIdx > -1) {
-            const [min, max] = [Math.min(startIdx, endIdx), Math.max(startIdx, endIdx)];
-            visibleIds.slice(min, max + 1).forEach(id => newSelected.add(id));
-          }
-        } else {
-          // Regular click: Toggle single row
+        if (selection_mode === 'single') {
+          // Single selection mode
           if (prev.has(rowId)) {
-            newSelected.delete(rowId);
+            newSelected.clear();
           } else {
+            newSelected.clear();
             newSelected.add(rowId);
           }
-          lastSelectedRow.current = rowId;
+        } else {
+          // Multiple selection mode
+          if (event?.shiftKey && lastSelectedRow.current) {
+            // Shift+Click: Select range
+            const visibleIds = data.map(row =>
+              String(row[bulk_action_id_column as keyof D]),
+            );
+            const startIdx = visibleIds.indexOf(lastSelectedRow.current);
+            const endIdx = visibleIds.indexOf(rowId);
+
+            if (startIdx > -1 && endIdx > -1) {
+              const [min, max] = [
+                Math.min(startIdx, endIdx),
+                Math.max(startIdx, endIdx),
+              ];
+              visibleIds.slice(min, max + 1).forEach(id => newSelected.add(id));
+            }
+          } else {
+            // Regular click: Toggle single row
+            if (prev.has(rowId)) {
+              newSelected.delete(rowId);
+            } else {
+              newSelected.add(rowId);
+            }
+            lastSelectedRow.current = rowId;
+          }
         }
-      }
-      return newSelected;
-    });
-  }, [selection_mode, data, bulk_action_id_column]);
+        return newSelected;
+      });
+    },
+    [selection_mode, data, bulk_action_id_column],
+  );
 
-  const handleTableAction = useCallback((action: string, id: string, value?: string) => {
-    sendWindowPostMessge({
-      action: 'remita-action',
-      actionType: action,
-      id,
-      value
-    });
-  }, []);
+  const handleTableAction = useCallback(
+    (action: any, id: string, value?: string) => {
+      sendWindowPostMessge({
+        action: 'remita-action',
+        actionType: action,
+        id,
+        value,
+      });
+    },
+    [],
+  );
 
-  const handleBulkAction = useCallback((action: string, selectedIds?: string[]) => {
-    sendWindowPostMessge({
-      action: 'remita-action',
-      actionType: action,
-      selectedIds
-    });
-  }, []);
+  const handleBulkAction = useCallback(
+    (action: any, selectedIds?: string[]) => {
+      sendWindowPostMessge({
+        action: 'remita-action',
+        actionType: action,
+        selectedIds,
+      });
+    },
+    [],
+  );
 
   function sendWindowPostMessge(messageData: any) {
     if (window.self !== window.top) {
@@ -459,36 +439,40 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
 
     try {
-      const actions = JSON.parse(table_actions);
+      const actions = parseOrConvertToSet(table_actions);
       return {
         idColumn: table_actions_id_column,
-        actions
+        actions,
       };
     } catch (e) {
-      console.error('Failed to parse table actions:', e);
       return undefined;
     }
   }, [enable_table_actions, table_actions_id_column, table_actions]);
 
-  const handleBulkSelect = useCallback((visibleData: D[]) => {
-    // Get IDs of only the visible rows
-    const visibleIds = visibleData.map(row => String(row[bulk_action_id_column as keyof D]));
+  const handleBulkSelect = useCallback(
+    (visibleData: D[]) => {
+      // Get IDs of only the visible rows
+      const visibleIds = visibleData.map(row =>
+        String(row[bulk_action_id_column as keyof D]),
+      );
 
-    setSelectedRows(prev => {
-      const newSelected = new Set(prev);
-      const allVisibleSelected = visibleIds.length > 0 &&
-        visibleIds.every(id => newSelected.has(id));
+      setSelectedRows(prev => {
+        const newSelected = new Set(prev);
+        const allVisibleSelected =
+          visibleIds.length > 0 && visibleIds.every(id => newSelected.has(id));
 
-      if (allVisibleSelected) {
-        // If all visible rows are selected, deselect only visible rows
-        visibleIds.forEach(id => newSelected.delete(id));
-      } else {
-        // Otherwise, select all visible rows
-        visibleIds.forEach(id => newSelected.add(id));
-      }
-      return newSelected;
-    });
-  }, [bulk_action_id_column]);
+        if (allVisibleSelected) {
+          // If all visible rows are selected, deselect only visible rows
+          visibleIds.forEach(id => newSelected.delete(id));
+        } else {
+          // Otherwise, select all visible rows
+          visibleIds.forEach(id => newSelected.add(id));
+        }
+        return newSelected;
+      });
+    },
+    [bulk_action_id_column],
+  );
 
   const getCrossFilterDataMask = (key: string, value: DataRecordValue) => {
     let updatedFilters = {...(filters || {})};
@@ -499,7 +483,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         [key]: [value],
       };
     }
-    if (Array.isArray(updatedFilters[key]) && updatedFilters[key].length === 0) {
+    if (
+      Array.isArray(updatedFilters[key]) &&
+      updatedFilters[key].length === 0
+    ) {
       delete updatedFilters[key];
     }
     const groupBy = Object.keys(updatedFilters);
@@ -706,7 +693,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           setShowComparisonDropdown(flag);
         }}
         overlay={
-          <Menu multiple onClick={handleOnClick} onBlur={handleOnBlur} selectedKeys={selectedComparisonColumns}>
+          <Menu
+            multiple
+            onClick={handleOnClick}
+            onBlur={handleOnBlur}
+            selectedKeys={selectedComparisonColumns}
+          >
             <div
               css={css`
                 max-width: 242px;
@@ -793,7 +785,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
               />
             ) : (
-              <MinusCircleOutlined onClick={() => setHideComparisonKeys([...hideComparisonKeys, key])}/>
+              <MinusCircleOutlined
+                onClick={() =>
+                  setHideComparisonKeys([...hideComparisonKeys, key])
+                }
+              />
             )}
           </span>
         </th>,
@@ -846,18 +842,28 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // inline style for both th and td cell
       const sharedStyle: CSSProperties = getSharedStyle(column);
       const alignPositiveNegative =
-        config.alignPositiveNegative === undefined ? defaultAlignPN : config.alignPositiveNegative;
+        config.alignPositiveNegative === undefined
+          ? defaultAlignPN
+          : config.alignPositiveNegative;
       const colorPositiveNegative =
-        config.colorPositiveNegative === undefined ? defaultColorPN : config.colorPositiveNegative;
+        config.colorPositiveNegative === undefined
+          ? defaultColorPN
+          : config.colorPositiveNegative;
       const {truncateLongCells} = config;
       const hasColumnColorFormatters =
-        isNumeric && Array.isArray(columnColorFormatters) && columnColorFormatters.length > 0;
+        isNumeric &&
+        Array.isArray(columnColorFormatters) &&
+        columnColorFormatters.length > 0;
       const hasBasicColorFormatters =
-        isUsingTimeComparison && Array.isArray(basicColorFormatters) && basicColorFormatters.length > 0;
+        isUsingTimeComparison &&
+        Array.isArray(basicColorFormatters) &&
+        basicColorFormatters.length > 0;
       const valueRange =
         !hasBasicColorFormatters &&
         !hasColumnColorFormatters &&
-        (config.showCellBars === undefined ? showCellBars : config.showCellBars) &&
+        (config.showCellBars === undefined
+          ? showCellBars
+          : config.showCellBars) &&
         (isMetric || isRawRecords || isPercentMetric) &&
         getValueRange(key, alignPositiveNegative);
 
@@ -887,7 +893,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           let arrow = '';
           const originKey = column.key.substring(column.label.length).trim();
           if (!hasColumnColorFormatters && hasBasicColorFormatters) {
-            backgroundColor = basicColorFormatters[row.index][originKey]?.backgroundColor;
+            backgroundColor =
+              basicColorFormatters[row.index][originKey]?.backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorFormatters[row.index][originKey]?.mainArrow
@@ -906,8 +913,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 }
               });
           }
-          if (basicColorColumnFormatters && basicColorColumnFormatters?.length > 0) {
-            backgroundColor = basicColorColumnFormatters[row.index][column.key]?.backgroundColor || backgroundColor;
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
+            backgroundColor =
+              basicColorColumnFormatters[row.index][column.key]
+                ?.backgroundColor || backgroundColor;
             arrow =
               column.label === comparisonLabels[0]
                 ? basicColorColumnFormatters[row.index][column.key]?.mainArrow
@@ -943,21 +955,22 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           `}
           `;
           let arrowStyles = css`
-            color: ${
-              basicColorFormatters &&
-              basicColorFormatters[row.index][originKey]?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colors.success.base
-                : theme.colors.error.base
-            };
+            color: ${basicColorFormatters &&
+            basicColorFormatters[row.index][originKey]?.arrowColor ===
+            ColorSchemeEnum.Green
+              ? theme.colors.success.base
+              : theme.colors.error.base};
             margin-right: ${theme.gridUnit}px;
           `;
-          if (basicColorColumnFormatters && basicColorColumnFormatters?.length > 0) {
+          if (
+            basicColorColumnFormatters &&
+            basicColorColumnFormatters?.length > 0
+          ) {
             arrowStyles = css`
-              color: ${
-                basicColorColumnFormatters[row.index][column.key]?.arrowColor === ColorSchemeEnum.Green
-                  ? theme.colors.success.base
-                  : theme.colors.error.base
-              };
+              color: ${basicColorColumnFormatters[row.index][column.key]
+                ?.arrowColor === ColorSchemeEnum.Green
+                ? theme.colors.success.base
+                : theme.colors.error.base};
               margin-right: ${theme.gridUnit}px;
             `;
           }
@@ -1028,7 +1041,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 />
               )}
               {truncateLongCells ? (
-                <div className="dt-truncate-cell" style={columnWidth ? {width: columnWidth} : undefined}>
+                <div
+                  className="dt-truncate-cell"
+                  style={columnWidth ? {width: columnWidth} : undefined}
+                >
                   {arrow && <span css={arrowStyles}>{arrow}</span>}
                   {text}
                 </div>
@@ -1190,74 +1206,85 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     let finalColumns = columns;
 
     // Add selection column if bulk actions enabled
-    if (enable_bulk_actions) {
+    if (enable_bulk_actions || include_row_numbers) {
       const selectionColumn = {
         id: 'selection',
         Header: ({data}: { data: D[] }) => {
-          const visibleIds = data.map(row => String(row[bulk_action_id_column as keyof D]));
-          const allVisibleSelected = visibleIds.length > 0 &&
+          const visibleIds = data.map(row =>
+            String(row[bulk_action_id_column as keyof D]),
+          );
+          const allVisibleSelected =
+            visibleIds.length > 0 &&
             visibleIds.every(id => selectedRows.has(id));
-          const someVisibleSelected = !allVisibleSelected &&
-            visibleIds.some(id => selectedRows.has(id));
+          const someVisibleSelected =
+            !allVisibleSelected && visibleIds.some(id => selectedRows.has(id));
 
           return (
             <td className=" right-border-only " role="columnheader button" tabIndex="0" width="50px">
               <div className="selection-cell">
-                <input
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  ref={el => {
-                    if (el) {
-                      el.indeterminate = someVisibleSelected;
-                    }
-                  }}
-                  onChange={() => handleBulkSelect(data)}
-                  disabled={selection_mode === 'single'}
-                />
-                <span className="selection-cell-number">#</span>
+                {enable_bulk_actions && (
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    ref={el => {
+                      if (el) {
+                        el.indeterminate = someVisibleSelected;
+                      }
+                    }}
+                    onChange={() => handleBulkSelect(data)}
+                    disabled={selection_mode === 'single'}
+                  />
+                )}
+                {include_row_numbers && (
+                  <span className="selection-cell-number">#</span>
+                )}
               </div>
             </td>
           );
         },
-        Cell: ({
-                 row
-               }: {
-          row: Row<D>
-        }) => {
-          const rowId = String(row.original[bulk_action_id_column as keyof D] ?? row.index);
+        Cell: ({row}: { row: Row<D> }) => {
+          const rowId = String(
+            row.original[bulk_action_id_column as keyof D] ?? row.index,
+          );
           const currentPage = serverPaginationData.currentPage || 0; // Get current page index (0-based)
           const pageSize = serverPaginationData.pageSize || 10; // Get current page size
           const rowNumber = currentPage * pageSize + row.index + 1; // Calculate row number
           return (
             <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex="0" width="50px" style={{ overflow: 'hidden', paddingRight: "5px", paddingLeft: "5px" }}>
               <div className="selection-cell">
-                <input
-                  type="checkbox"
-                  checked={selectedRows.has(rowId)}
-                  onChange={(e) => {
-                    if (selection_mode === 'single') {
-                      setSelectedRows(new Set(selectedRows.has(rowId) ? [] : [rowId]));
-                    } else {
-                      setSelectedRows(prev => {
-                        const newSelected = new Set(prev);
-                        if (e.target.checked) {
-                          newSelected.add(rowId);
-                        } else {
-                          newSelected.delete(rowId);
-                        }
-                        return newSelected;
-                      });
-                    }
-                  }}
-                />
-                <span className="selection-cell-number" title={rowNumber.toString()}>{rowNumber}</span>
+                {enable_bulk_actions && (
+                  <input
+                    type="checkbox"
+                    checked={selectedRows.has(rowId)}
+                    onChange={e => {
+                      if (selection_mode === 'single') {
+                        setSelectedRows(
+                          new Set(selectedRows.has(rowId) ? [] : [rowId]),
+                        );
+                      } else {
+                        setSelectedRows(prev => {
+                          const newSelected = new Set(prev);
+                          if (e.target.checked) {
+                            newSelected.add(rowId);
+                          } else {
+                            newSelected.delete(rowId);
+                          }
+                          return newSelected;
+                        });
+                      }
+                    }}
+                  />
+                )}
+                {include_row_numbers && (
+                  <span className="selection-cell-number">{rowNumber}</span>
+                )}
               </div>
             </td>
           );
         },
         width: 40,
       };
-      finalColumns = [selectionColumn, ...finalColumns];
+      finalColumns = [selectionColumn, ...finalColumns] as any;
     }
 
     // Add actions column if table actions enabled
@@ -1271,7 +1298,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           </th>
         ),
         Cell: ({row}: { row: Row<D> }) => {
-          const rowId = String(row.original[tableActionsConfig.idColumn as keyof D] ?? row.index);
+          const rowId = String(
+            row.original[tableActionsConfig.idColumn as keyof D] ?? row.index,
+          );
           return (
             <ActionCell
               rowId={rowId}
@@ -1295,64 +1324,54 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     selection_mode,
     handleBulkSelect,
     tableActionsConfig,
-    handleTableAction
+    handleTableAction,
   ]);
 
-  useEffect(() => {
-    if (enable_bulk_actions && !bulk_action_id_column) {
-      console.warn('Bulk actions enabled but no ID column specified');
-    }
-    if (enable_bulk_actions && data.length > 0 && !(bulk_action_id_column in data[0])) {
-      console.warn(`ID column "${bulk_action_id_column}" not found in data`);
-    }
-  }, [enable_bulk_actions, bulk_action_id_column, data]);
 
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       setSelectedRows(new Set());
-    };
-  }, []);
+    },
+    [],
+  );
 
   return (
-    <>
-      { message && <Alert message={message} type="info" showIcon/> }
-      <Styles>
-        <DataTable<D>
-          columns={columnsWithSelection}
-          data={data}
-          rowCount={rowCount}
-          tableClassName="table table-striped table-condensed"
-          tableStyle={{ tableLayout: 'auto' }}
-          pageSize={pageSize}
-          serverPaginationData={serverPaginationData}
-          pageSizeOptions={pageSizeOptions}
-          width={widthFromState}
-          height={heightFromState}
-          serverPagination={serverPagination}
-          onServerPaginationChange={handleServerPaginationChange}
-          onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-          // 9 page items in > 340px works well even for 100+ pages
-          maxPageItemCount={width > 340 ? 9 : 7}
-          noResults={getNoResultsMessage}
-          searchInput={includeSearch && SearchInput}
-          selectPageSize={pageSize !== null && SelectPageSize}
-          // not in use in Superset, but needed for unit tests
-          sticky={sticky}
-          renderGroupingHeaders={
-            !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
-          }
-          renderTimeComparisonDropdown={
-            isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
-          }
-          selectedRows={selectedRows}
-          enableBulkActions={enable_bulk_actions}
-          bulkActions={actions}
-          enableTableActions={enable_table_actions}
-          tableActionsIdColumn={table_actions_id_column}
-          tableActions={table_actions}
-          onBulkActionClick={handleBulkAction}
-        />
-      </Styles>
-    </>
+    <Styles>
+      <DataTable<D>
+        columns={columnsWithSelection}
+        data={data}
+        rowCount={rowCount}
+        tableClassName="table table-striped table-condensed"
+        pageSize={pageSize}
+        serverPaginationData={serverPaginationData}
+        pageSizeOptions={pageSizeOptions}
+        width={widthFromState}
+        height={heightFromState}
+        serverPagination={serverPagination}
+        onServerPaginationChange={handleServerPaginationChange}
+        onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+        // 9 page items in > 340px works well even for 100+ pages
+        maxPageItemCount={width > 340 ? 9 : 7}
+        noResults={getNoResultsMessage}
+        searchInput={includeSearch && SearchInput}
+        selectPageSize={pageSize !== null && SelectPageSize}
+        // not in use in Superset, but needed for unit tests
+        sticky={sticky}
+        renderGroupingHeaders={
+          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+        }
+        renderTimeComparisonDropdown={
+          isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
+        }
+        selectedRows={selectedRows}
+        enableBulkActions={enable_bulk_actions}
+        bulkActions={actions}
+        enableTableActions={enable_table_actions}
+        includeRowNumber={include_row_numbers}
+        tableActionsIdColumn={table_actions_id_column}
+        tableActions={table_actions}
+        onBulkActionClick={handleBulkAction}
+      />
+    </Styles>
   );
 }

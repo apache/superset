@@ -37,14 +37,14 @@ import { BulkActions } from '../BulkActions';
 export interface BulkAction {
   key: string;
   label: string;
-  style?: 'default' | 'primary' | 'danger';
+  style?: any
   boundToSelection: boolean;
   visibilityCondition: 'all' | 'selected' | 'unselected';
 }
 
 export interface BulkActionsConfig {
-  split: BulkAction[];
-  nonSplit: BulkAction[];
+  split: Set<BulkAction>;
+  nonSplit: Set<BulkAction>;
 }
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
@@ -71,9 +71,10 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   bulkActions?: BulkActionsConfig;
   onBulkActionClick?: (actionKey: string, selectedIds: any[]) => void;
   enableBulkActions?: boolean;
+  includeRowNumber?:boolean;
   enableTableActions?: boolean;
   tableActionsIdColumn?: string;
-  tableActions?: string;
+  tableActions?: Set<any>;
   onTableActionClick?: (action?: string, id?: string, value?: string) => void;
 }
 
@@ -232,7 +233,6 @@ export default typedMemo(function DataTable<D extends object>({
   };
 
   const renderBulkActions = () => {
-    console.log("enableBulkActions eds",enableBulkActions,selectedRows);
     if (!enableBulkActions || !bulkActions || !selectedRows) return null;
 
     return (

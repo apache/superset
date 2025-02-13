@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { TableAction } from "antd-v5/es/table/interface";
-import { Dropdown } from "antd";
-import { MoreOutlined } from "@ant-design/icons";
 import { styled } from "@superset-ui/core";
 
 const ActionWrapper = styled.div`
@@ -74,6 +72,7 @@ export const ActionCell = ({
   onActionClick: (action: string, id: string, value?: string) => void;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const extendedActions = actions as any;
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -94,9 +93,9 @@ export const ActionCell = ({
   ) => {
     e.preventDefault();
     e.stopPropagation();
-
-    const value = config.valueColumn ? String(row[config.valueColumn]) : undefined;
-    onActionClick(config.action || key, rowId, value);
+    const configExtended = config as any;
+    const value = configExtended.valueColumn ? String(row[configExtended.valueColumn]) : undefined;
+    onActionClick(configExtended.action || key, rowId, value);
     setMenuOpen(false);
   };
 
@@ -117,17 +116,18 @@ export const ActionCell = ({
           <div className="dot" />
         </MenuTrigger>
         <MenuContainer className="remita-menu" hidden={!menuOpen}>
-          {Object.entries(actions).map(([key, config]) => (
+          {Array.from(actions).map((config, index) => (
             <ActionLink
-              key={key}
+              key={config.key || index}
               href="#"
-              className={`remita-link remita-action-${key}`}
-              data-action={config.action || key}
-              onClick={(e) => handleActionClick(e, key, config)}
+              className={`remita-link remita-action-${config.key || index}`}
+              data-action={config.action || config.key || index}
+              onClick={(e) => handleActionClick(e, config.key || index, config)}
             >
               {config.label}
             </ActionLink>
           ))}
+
         </MenuContainer>
       </ActionWrapper>
     </td>

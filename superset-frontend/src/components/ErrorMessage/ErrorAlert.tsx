@@ -21,7 +21,7 @@ import { Tooltip } from 'src/components/Tooltip';
 import Modal from 'src/components/Modal';
 import { ExclamationCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import Alert from 'src/components/Alert';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme,FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 
 export interface ErrorAlertProps {
   errorType?: string; // Strong text on the first line
@@ -78,6 +78,13 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
     whiteSpace: 'pre-wrap',
     fontFamily: theme.typography.families.sansSerif,
   };
+  const showSeeMoreFeature = (isFeatureEnabled(FeatureFlag.EnableSeeMoreErrors) ?? true);
+  if(!showSeeMoreFeature) {
+    description = '';
+    errorType = t('Error loading Data');
+  }else{
+    compact=true;
+  }
   const renderDescription = () => (
     <div>
       {description && (
@@ -85,7 +92,7 @@ const ErrorAlert: React.FC<ErrorAlertProps> = ({
           {description}
         </p>
       )}
-      {descriptionDetails && (
+      {showSeeMoreFeature && descriptionDetails && (
         <div>
           {isDescriptionVisible && (
             <p style={descriptionPre ? preStyle : {}}>{descriptionDetails}</p>
