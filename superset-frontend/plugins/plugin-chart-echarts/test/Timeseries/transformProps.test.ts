@@ -36,15 +36,25 @@ describe('EchartsTimeseries transformProps', () => {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
-    metric: 'sum__num',
+    metrics: ['sum__num'],
     groupby: ['foo', 'bar'],
     viz_type: 'my_viz',
   };
   const queriesData = [
     {
       data: [
-        { 'San Francisco': 1, 'New York': 2, __timestamp: 599616000000 },
-        { 'San Francisco': 3, 'New York': 4, __timestamp: 599916000000 },
+        {
+          'San Francisco': 1,
+          'New York': 2,
+          __timestamp: 599616000000,
+          sum__num: 4,
+        },
+        {
+          'San Francisco': 3,
+          'New York': 4,
+          __timestamp: 599916000000,
+          sum__num: 8,
+        },
       ],
     },
   ];
@@ -64,7 +74,7 @@ describe('EchartsTimeseries transformProps', () => {
         height: 600,
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
-            data: ['San Francisco', 'New York'],
+            data: ['sum__num', 'San Francisco', 'New York'],
           }),
           series: expect.arrayContaining([
             expect.objectContaining({
@@ -101,7 +111,7 @@ describe('EchartsTimeseries transformProps', () => {
         height: 600,
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
-            data: ['San Francisco', 'New York'],
+            data: ['sum__num', 'San Francisco', 'New York'],
           }),
           series: expect.arrayContaining([
             expect.objectContaining({
@@ -146,7 +156,7 @@ describe('EchartsTimeseries transformProps', () => {
         height: 600,
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
-            data: ['San Francisco', 'New York', 'My Formula'],
+            data: ['sum__num', 'San Francisco', 'New York', 'My Formula'],
           }),
           series: expect.arrayContaining([
             expect.objectContaining({
@@ -274,7 +284,7 @@ describe('EchartsTimeseries transformProps', () => {
       expect.objectContaining({
         echartOptions: expect.objectContaining({
           legend: expect.objectContaining({
-            data: ['San Francisco', 'New York', 'My Line'],
+            data: ['sum__num', 'San Francisco', 'New York', 'My Line'],
           }),
           series: expect.arrayContaining([
             expect.objectContaining({
@@ -420,7 +430,7 @@ describe('Does transformProps transform series correctly', () => {
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
-    metric: 'sum__num',
+    metrics: ['sum__num'],
     groupby: ['foo', 'bar'],
     showValue: true,
     stack: true,
@@ -435,24 +445,28 @@ describe('Does transformProps transform series correctly', () => {
           'New York': 2,
           Boston: 1,
           __timestamp: 599616000000,
+          sum__num: 4,
         },
         {
           'San Francisco': 3,
           'New York': 4,
           Boston: 1,
           __timestamp: 599916000000,
+          sum__num: 8,
         },
         {
           'San Francisco': 5,
           'New York': 8,
           Boston: 6,
           __timestamp: 600216000000,
+          sum__num: 19,
         },
         {
           'San Francisco': 2,
           'New York': 7,
           Boston: 2,
           __timestamp: 600516000000,
+          sum__num: 11,
         },
       ],
     },
@@ -468,7 +482,7 @@ describe('Does transformProps transform series correctly', () => {
   const totalStackedValues = queriesData[0].data.reduce(
     (totals, currentStack) => {
       const total = Object.keys(currentStack).reduce((stackSum, key) => {
-        if (key === '__timestamp') return stackSum;
+        if (key === '__timestamp' || key === 'sum__num') return stackSum;
         return stackSum + currentStack[key as keyof typeof currentStack];
       }, 0);
       totals.push(total);
@@ -561,7 +575,6 @@ describe('Does transformProps transform series correctly', () => {
     const expectedThresholds = totalStackedValues.map(
       total => ((formData.percentageThreshold || 0) / 100) * total,
     );
-
     transformedSeries.forEach((series, seriesIndex) => {
       expect(series.label.show).toBe(true);
       series.data.forEach((value, dataIndex) => {
@@ -576,7 +589,6 @@ describe('Does transformProps transform series correctly', () => {
       });
     });
   });
-
   it('should not apply percentage threshold when showValue is true and stack is false', () => {
     const updatedChartPropsConfig = {
       ...chartPropsConfig,

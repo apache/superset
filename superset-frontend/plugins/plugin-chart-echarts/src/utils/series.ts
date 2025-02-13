@@ -60,8 +60,8 @@ export function extractDataTotalValues(
   opts: {
     stack: StackType;
     percentageThreshold: number;
-    xAxisCol: string;
     legendState?: LegendState;
+    metricsLabels: string[];
   },
 ): {
   totalStackedValues: number[];
@@ -69,11 +69,11 @@ export function extractDataTotalValues(
 } {
   const totalStackedValues: number[] = [];
   const thresholdValues: number[] = [];
-  const { stack, percentageThreshold, xAxisCol, legendState } = opts;
+  const { stack, percentageThreshold, legendState, metricsLabels } = opts;
   if (stack) {
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
-        if (curr === xAxisCol) {
+        if (!metricsLabels.includes(curr)) {
           return prev;
         }
         if (legendState && !legendState[curr]) {
