@@ -215,14 +215,18 @@ export default function transformProps(
   ) {
     xAxisLabel = verboseMap[xAxisLabel];
   }
+  const metricsLabels = metrics
+    .map(metric => getMetricLabel(metric, undefined, undefined, verboseMap))
+    .filter((label): label is string => label !== undefined);
   const isHorizontal = orientation === OrientationType.Horizontal;
+
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
       stack,
       percentageThreshold,
-      xAxisCol: xAxisLabel,
       legendState,
+      metricsLabels,
     },
   );
   const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
@@ -296,7 +300,6 @@ export default function transformProps(
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
     const colorScaleKey = getOriginalSeries(seriesName, array);
-
     const transformedSeries = transformSeries(
       entry,
       colorScale,
