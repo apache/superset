@@ -49,6 +49,7 @@ import {PAGE_SIZE_OPTIONS} from './consts';
 import {updateExternalFormData} from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 import {ActionCell} from './ActionCell';
+import {Alert} from "antd";
 
 type ValueRange = [number, number];
 
@@ -282,6 +283,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     value => getTimeFormatterForGranularity(timeGrain)(value),
     [timeGrain],
   );
+  const [message, setMessage] = useState('');
   const [tableSize, setTableSize] = useState<TableSize>({
     width: 0,
     height: 0,
@@ -446,7 +448,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     if (window.self !== window.top) {
       window.parent.postMessage(messageData, '*', [new MessageChannel().port2]);
     } else {
-      alert("This will send to parent app in embeded mode | "+JSON.stringify(messageData));
+      setMessage(JSON.stringify(messageData));
+      setTimeout(() => setMessage(''), 5000);
     }
   }
 
@@ -1311,43 +1314,45 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   }, []);
 
   return (
-
-    <Styles>
-      <DataTable<D>
-        columns={columnsWithSelection}
-        data={data}
-        rowCount={rowCount}
-        tableClassName="table table-striped table-condensed"
-        tableStyle={{ tableLayout: 'auto' }}
-        pageSize={pageSize}
-        serverPaginationData={serverPaginationData}
-        pageSizeOptions={pageSizeOptions}
-        width={widthFromState}
-        height={heightFromState}
-        serverPagination={serverPagination}
-        onServerPaginationChange={handleServerPaginationChange}
-        onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-        // 9 page items in > 340px works well even for 100+ pages
-        maxPageItemCount={width > 340 ? 9 : 7}
-        noResults={getNoResultsMessage}
-        searchInput={includeSearch && SearchInput}
-        selectPageSize={pageSize !== null && SelectPageSize}
-        // not in use in Superset, but needed for unit tests
-        sticky={sticky}
-        renderGroupingHeaders={
-          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
-        }
-        renderTimeComparisonDropdown={
-          isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
-        }
-        selectedRows={selectedRows}
-        enableBulkActions={enable_bulk_actions}
-        bulkActions={actions}
-        enableTableActions={enable_table_actions}
-        tableActionsIdColumn={table_actions_id_column}
-        tableActions={table_actions}
-        onBulkActionClick={handleBulkAction}
-      />
-    </Styles>
+    <>
+      { message && <Alert message={message} type="info" showIcon/> }
+      <Styles>
+        <DataTable<D>
+          columns={columnsWithSelection}
+          data={data}
+          rowCount={rowCount}
+          tableClassName="table table-striped table-condensed"
+          tableStyle={{ tableLayout: 'auto' }}
+          pageSize={pageSize}
+          serverPaginationData={serverPaginationData}
+          pageSizeOptions={pageSizeOptions}
+          width={widthFromState}
+          height={heightFromState}
+          serverPagination={serverPagination}
+          onServerPaginationChange={handleServerPaginationChange}
+          onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+          // 9 page items in > 340px works well even for 100+ pages
+          maxPageItemCount={width > 340 ? 9 : 7}
+          noResults={getNoResultsMessage}
+          searchInput={includeSearch && SearchInput}
+          selectPageSize={pageSize !== null && SelectPageSize}
+          // not in use in Superset, but needed for unit tests
+          sticky={sticky}
+          renderGroupingHeaders={
+            !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+          }
+          renderTimeComparisonDropdown={
+            isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
+          }
+          selectedRows={selectedRows}
+          enableBulkActions={enable_bulk_actions}
+          bulkActions={actions}
+          enableTableActions={enable_table_actions}
+          tableActionsIdColumn={table_actions_id_column}
+          tableActions={table_actions}
+          onBulkActionClick={handleBulkAction}
+        />
+      </Styles>
+    </>
   );
 }
