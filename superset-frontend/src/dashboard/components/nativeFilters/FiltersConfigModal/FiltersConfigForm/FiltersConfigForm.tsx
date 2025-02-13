@@ -1278,7 +1278,11 @@ const FiltersConfigForm = (
                             return [...prevErroredFilters, filterId];
                           });
                           return Promise.reject(
-                            new Error(formFilter?.defaultDataMask?.filterState?.validateMessage ?? t('Default value is required')),
+                            new Error(
+                              formFilter?.defaultDataMask?.filterState
+                                ?.validateMessage ??
+                                t('Default value is required'),
+                            ),
                           );
                         },
                       },
