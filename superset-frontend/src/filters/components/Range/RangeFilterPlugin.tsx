@@ -24,7 +24,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
@@ -76,6 +76,39 @@ const getLabel = (
   return '';
 };
 
+const validateRange = (
+  inputMin: number | null,
+  inputMax: number | null,
+  min: number,
+  max: number,
+  enableEmptyFilter: boolean,
+): { isValid: boolean; errorMessage: string | null } => {
+  if (enableEmptyFilter && (inputMin === null || inputMax === null)) {
+    return { isValid: false, errorMessage: t('Please provide a valid range') };
+  }
+
+  if (!enableEmptyFilter && (inputMin !== null) !== (inputMax !== null)) {
+    return { isValid: false, errorMessage: t('Please provide a valid range') };
+  }
+
+  if (inputMin !== null && inputMax !== null) {
+    if (inputMin > inputMax) {
+      return {
+        isValid: false,
+        errorMessage: t('Minimum value cannot be higher than maximum value'),
+      };
+    }
+    if (inputMin < min || inputMax > max) {
+      return {
+        isValid: false,
+        errorMessage: t('Your range is not within the dataset range'),
+      };
+    }
+  }
+
+  return { isValid: true, errorMessage: null };
+};
+
 export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const {
     data,
@@ -105,41 +138,26 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
-  const [inputValue, setInputValue] = useState<[number | null, number | null]>([null, null]);
-  const currentInputValues = useRef<[number | null, number | null]>([null, null]);
+  const [inputValue, setInputValue] = useState<[number | null, number | null]>([
+    null,
+    null,
+  ]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (filterState.value) {
-      currentInputValues.current = filterState.value;
       setInputValue(filterState.value);
     } else {
       // clear all scenario
       if (filterState.validateStatus === undefined) {
-        currentInputValues.current = [null, null];
         setInputValue([null, null]);
         return;
       }
       if (defaultValue) {
-        currentInputValues.current = defaultValue;
         setInputValue(defaultValue);
       }
     }
   }, [filterState.value]);
-
-  const getBounds = useCallback(
-    (
-      value: [number | null, number | null],
-    ): { lower: number | null; upper: number | null } => {
-      const [lowerRaw, upperRaw] = value;
-
-      return {
-        lower: lowerRaw !== null && lowerRaw > min ? lowerRaw : null,
-        upper: upperRaw !== null && upperRaw < max ? upperRaw : null,
-      };
-    },
-    [max, min],
-  );
 
   const metadataText = useMemo(() => {
     if (enableSingleMinValue) {
@@ -155,81 +173,31 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   }, [enableSingleValue]);
 
   const handleChange = (newValue: number | null, index: 0 | 1) => {
+    let newInputValue: [number | null, number | null];
     if (index === minIndex) {
-      currentInputValues.current = [newValue, currentInputValues.current[1]];
-      setInputValue([newValue, currentInputValues.current[1]]);
+      newInputValue = [newValue, inputValue[maxIndex]];
     } else {
-      currentInputValues.current = [currentInputValues.current[0], newValue];
-      setInputValue([currentInputValues.current[0], newValue]);
+      newInputValue = [inputValue[minIndex], newValue];
     }
-  };
+    setInputValue(newInputValue);
 
-  const handleBlur = () => {
-    let realValue = inputValue;
-    const inputMin = inputValue[minIndex];
-    const inputMax = inputValue[maxIndex];
+    const inputMin = newInputValue[minIndex];
+    const inputMax = newInputValue[maxIndex];
 
-    if (enableSingleExactValue) {
-      realValue = [inputValue[minIndex], realValue[minIndex]];
-    }
-    if (enableSingleMinValue) {
-      realValue = [inputValue[minIndex], null];
-    }
-    if (enableSingleMaxValue) {
-      realValue = [null, inputValue[maxIndex]];
-    }
+    const { isValid, errorMessage } = validateRange(
+      inputMin,
+      inputMax,
+      min,
+      max,
+      enableEmptyFilter,
+    );
 
-    // checking that min and max are valid
-    // const { lower: isMin, upper: isMaxHig } = getBounds(realValue);
-
-    let isRangeValid = true;
-    let errorMessage = t('Please provide a valid range');
-
-    if (enableEmptyFilter) {
-      // filter can never be empty
-      if (inputMin === null || inputMax === null) {
-        isRangeValid = false;
-      }
-    }
-
-    if (!enableEmptyFilter) {
-      // if the filter is not required but any of the two is set, then the other must be set
-      if (
-        (inputMin != null && inputMax === null) ||
-        (inputMin === null && inputMax != null)
-      ) {
-        isRangeValid = false;
-      }
-    }
-
-    // min is higher than max
-    if (inputMin !== null && inputMax !== null && inputMin > inputMax) {
-      isRangeValid = false;
-      errorMessage = t('Minimum value cannot be higher than maximum value');
-    }
-
-    // max is lower than min
-    if (inputMin !== null && inputMax !== null && inputMax < inputMin) {
-      isRangeValid = false;
-      errorMessage = t('Maximum value cannot be lower than minimum value');
-    }
-
-    // input values are not within dataset ranges
-    if (
-      inputMin !== null &&
-      inputMax !== null &&
-      (inputMin < min || inputMax > max)
-    ) {
-      isRangeValid = false;
-      errorMessage = t('Your range is not within the dataset range');
-    }
-
-    if (!isRangeValid) {
+    if (!isValid) {
       setError(errorMessage);
       setDataMask({
         extraFormData: getRangeExtraFormData(col, null, null),
         filterState: {
-          value: undefined,
+          value: [inputMin, inputMax],
           label: '',
           validateStatus: 'error',
           validateMessage: errorMessage,
@@ -244,8 +212,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         filterState: {
           value: [inputMin, inputMax],
           label: getLabel(inputMin, inputMax, enableSingleExactValue),
-          validateStatus: 'success',
-          validateMessage: '',
         },
       });
       return [inputMin, inputMax];
@@ -268,15 +234,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         label: '',
       },
     });
-  }, [row?.min, row?.max, JSON.stringify(filterState.value), getBounds]);
+  }, [row?.min, row?.max, JSON.stringify(filterState.value)]);
 
   const formItemExtra = useMemo(() => {
     if (error) {
-      return (
-        <StatusMessage status="error">
-          {error}
-        </StatusMessage>
-      );
+      return <StatusMessage status="error">{error}</StatusMessage>;
     }
     return undefined;
   }, [error]);
@@ -304,9 +266,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               enableSingleValue === 1 ||
               enableSingleValue === undefined) && (
               <InputNumber
-                value={currentInputValues.current[0]}
+                value={inputValue[0]}
                 onChange={val => handleChange(val, minIndex)}
-                onBlur={() => handleBlur()}
                 placeholder={`${min}`}
                 status={filterState.validateStatus}
                 data-test="range-filter-from-input"
@@ -317,9 +278,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
             )}
             {(enableSingleValue === 2 || enableSingleValue === undefined) && (
               <InputNumber
-                value={currentInputValues.current[1]}
+                value={inputValue[1]}
                 onChange={val => handleChange(val, maxIndex)}
-                onBlur={() => handleBlur()}
                 placeholder={`${max}`}
                 data-test="range-filter-to-input"
                 status={filterState.validateStatus}
