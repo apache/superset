@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { act } from 'react-dom/test-utils';
-import userEvent from '@testing-library/user-event';
 import ChartTable from './ChartTable';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -87,9 +91,7 @@ const renderChartTable = (props: any) =>
 test('renders with EmptyState if no data present', async () => {
   await renderChartTable(mockedProps);
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(
-    screen.getByText(/other charts will appear here/i),
-  ).toBeInTheDocument();
+  expect(screen.getByText(/nothing here yet/i)).toBeInTheDocument();
 });
 
 test('fetches chart favorites and renders chart cards', async () => {

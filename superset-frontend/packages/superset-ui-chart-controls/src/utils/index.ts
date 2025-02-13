@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 export * from './checkColumnType';
 export * from './selectOptions';
 export * from './D3Formatting';
@@ -26,5 +27,5 @@ export { default as columnChoices, columnsByType } from './columnChoices';
 export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
 export * from './getTemporalColumns';
-export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';
+export * from './displayTimeRelatedControls';
 export * from './colorControls';

@@ -21,13 +21,17 @@ import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
+import { VizType, isFeatureEnabled } from '@superset-ui/core';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
 
 import ChartList from 'src/pages/ChartList';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -47,13 +51,18 @@ const chartsDatasourcesEndpoint = 'glob:*/api/v1/chart/datasources';
 const chartFavoriteStatusEndpoint = 'glob:*/api/v1/chart/favorite_status*';
 const datasetEndpoint = 'glob:*/api/v1/dataset/*';
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
 const mockCharts = [...new Array(3)].map((_, i) => ({
   changed_on: new Date().toISOString(),
   creator: 'super user',
   id: i,
   slice_name: `cool chart ${i}`,
   url: 'url',
-  viz_type: uiCore.VizType.Bar,
+  viz_type: VizType.Bar,
   datasource_name: `ds${i}`,
   thumbnail_url: '/thumbnail',
 }));
@@ -119,12 +128,12 @@ const store = mockStore({ user });
 const useSelectorMock = jest.spyOn(reactRedux, 'useSelector');
 
 describe('ChartList', () => {
-  const isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW');
+  isFeatureEnabled.mockImplementation(
+    feature => feature === 'LISTVIEWS_DEFAULT_CARD_VIEW',
+  );
 
   afterAll(() => {
-    isFeatureEnabledMock.mockRestore();
+    isFeatureEnabled.mockRestore();
   });
 
   beforeEach(() => {
@@ -149,11 +158,11 @@ describe('ChartList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(ChartList)).toExist();
+    expect(wrapper.find(ChartList)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches info', () => {
@@ -171,38 +180,38 @@ describe('ChartList', () => {
   });
 
   it('renders a card view', () => {
-    expect(wrapper.find(ListViewCard)).toExist();
+    expect(wrapper.find(ListViewCard)).toBeTruthy();
   });
 
   it('renders a table view', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('table')).toExist();
+    expect(wrapper.find('table')).toBeTruthy();
   });
 
   it('edits', async () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
+    expect(wrapper.find(PropertiesModal).length).toBe(0);
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(wrapper.find(PropertiesModal).length).toBeGreaterThan(0);
   });
 
   it('delete', async () => {
     wrapper.find('[data-test="trash"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ConfirmStatusChange)).toExist();
+    expect(wrapper.find(ConfirmStatusChange)).toBeTruthy();
   });
 
   it('renders the Favorite Star column in list view for logged in user', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
+    expect(wrapper.find(TableCollection).find(FaveStar)).toBeTruthy();
   });
 
   it('renders the Favorite Star in card view for logged in user', async () => {
     wrapper.find('[aria-label="card-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
+    expect(wrapper.find(CardCollection).find(FaveStar)).toBeTruthy();
   });
 });
 
@@ -221,17 +230,14 @@ describe('RTL', () => {
     return mounted;
   }
 
-  let isFeatureEnabledMock;
   beforeEach(async () => {
-    isFeatureEnabledMock = jest
-      .spyOn(uiCore, 'isFeatureEnabled')
-      .mockImplementation(() => true);
+    isFeatureEnabled.mockImplementation(() => true);
     await renderAndWait();
   });
 
   afterEach(() => {
     cleanup();
-    isFeatureEnabledMock.mockRestore();
+    isFeatureEnabled.mockRestore();
   });
 
   it('renders an "Import Chart" tooltip under import button', async () => {
@@ -273,12 +279,12 @@ describe('ChartList - anonymous view', () => {
   it('does not render the Favorite Star column in list view for anonymous user', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).not.toExist();
+    expect(wrapper.find(TableCollection).find(FaveStar).length).toBe(0);
   });
 
   it('does not render the Favorite Star in card view for anonymous user', async () => {
     wrapper.find('[aria-label="card-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).not.toExist();
+    expect(wrapper.find(CardCollection).find(FaveStar).length).toBe(0);
   });
 });

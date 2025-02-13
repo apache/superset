@@ -50,6 +50,24 @@ export default function exploreReducer(state = {}, action) {
         isDatasourceMetaLoading: true,
       };
     },
+    [actions.START_METADATA_LOADING]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: true,
+      };
+    },
+    [actions.STOP_METADATA_LOADING]() {
+      return {
+        ...state,
+        isDatasourceMetaLoading: false,
+      };
+    },
+    [actions.SYNC_DATASOURCE_METADATA]() {
+      return {
+        ...state,
+        datasource: action.datasource,
+      };
+    },
     [actions.UPDATE_FORM_DATA_BY_DATASOURCE]() {
       const newFormData = { ...state.form_data };
       const { prevDatasource, newDatasource } = action;

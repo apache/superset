@@ -80,7 +80,9 @@ export const hasTemporalColumns = (
 export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
   !column.type_generic ||
   !(filterType in FILTER_SUPPORTED_TYPES) ||
-  FILTER_SUPPORTED_TYPES[filterType]?.includes(column.type_generic);
+  FILTER_SUPPORTED_TYPES[
+    filterType as keyof typeof FILTER_SUPPORTED_TYPES
+  ]?.includes(column.type_generic);
 
 export const mostUsedDataset = (
   datasets: DatasourcesState,

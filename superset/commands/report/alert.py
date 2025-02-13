@@ -170,7 +170,7 @@ class AlertCommand(BaseCommand):
                 )
 
             executor, username = get_executor(  # pylint: disable=unused-variable
-                executor_types=app.config["ALERT_REPORTS_EXECUTE_AS"],
+                executors=app.config["ALERT_REPORTS_EXECUTORS"],
                 model=self._report_schedule,
             )
             user = security_manager.find_user(username)

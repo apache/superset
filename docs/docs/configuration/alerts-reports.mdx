@@ -25,6 +25,9 @@ Alerts and reports are disabled by default. To turn them on, you need to do some
 - At least one of those must be configured, depending on what you want to use:
   - emails: `SMTP_*` settings
   - Slack messages: `SLACK_API_TOKEN`
+- Users can customize the email subject by including date code placeholders, which will automatically be replaced with the corresponding UTC date when the email is sent. To enable this functionality, activate the `"DATE_FORMAT_IN_EMAIL_SUBJECT"` [feature flag](/docs/configuration/configuring-superset#feature-flags). This enables date formatting in email subjects, preventing all reporting emails from being grouped into the same thread (optional for the reporting feature).
+    - Use date codes from [strftime.org](https://strftime.org/) to create the email subject.
+    - If no date code is provided, the original string will be used as the email subject.
 
 ##### Disable dry-run mode
 
@@ -177,10 +180,9 @@ By default, Alerts and Reports are executed as the owner of the alert/report obj
 just change the config as follows (`admin` in this example):
 
 ```python
-from superset.tasks.types import ExecutorType
+from superset.tasks.types import FixedExecutor
 
-THUMBNAIL_SELENIUM_USER = 'admin'
-ALERT_REPORTS_EXECUTE_AS = [ExecutorType.SELENIUM]
+ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 ```
 
 Please refer to `ExecutorType` in the codebase for other executor types.

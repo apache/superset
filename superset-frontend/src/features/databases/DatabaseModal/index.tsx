@@ -60,6 +60,7 @@ import {
 import { useCommonConf } from 'src/features/databases/state';
 import Loading from 'src/components/Loading';
 import { isEmpty, pick } from 'lodash';
+import { OnlyKeyWithType } from 'src/utils/types';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -68,6 +69,7 @@ import {
   Engines,
   ExtraJson,
   CustomTextType,
+  DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
 import SqlAlchemyForm from './SqlAlchemyForm';
@@ -137,7 +139,7 @@ const SSHTunnelContainer = styled.div`
   `};
 `;
 
-interface DatabaseModalProps {
+export interface DatabaseModalProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
   onDatabaseAdd?: (database?: DatabaseObject) => void;
@@ -364,19 +366,26 @@ export function dbReducer(
         // Formatting wrapping google sheets table catalog
         const catalogCopy: CatalogObject[] = [...trimmedState.catalog];
         const idx = action.payload.type?.split('-')[1];
-        const catalogToUpdate: CatalogObject = catalogCopy[idx] || {};
-        catalogToUpdate[action.payload.name] = action.payload.value;
+        const catalogToUpdate: CatalogObject =
+          catalogCopy[parseInt(idx, 10)] || {};
+        if (action.payload.value !== undefined) {
+          catalogToUpdate[action.payload.name as keyof CatalogObject] =
+            action.payload.value;
+        }
 
         // insert updated catalog to existing state
         catalogCopy.splice(parseInt(idx, 10), 1, catalogToUpdate);
 
         // format catalog for state
         // eslint-disable-next-line array-callback-return
-        parametersCatalog = catalogCopy.reduce((obj, item: any) => {
-          const catalog = { ...obj };
-          catalog[item.name] = item.value;
-          return catalog;
-        }, {});
+        parametersCatalog = catalogCopy.reduce<Record<string, string>>(
+          (obj, item: CatalogObject) => {
+            const catalog = { ...obj };
+            catalog[item.name as keyof CatalogObject] = item.value;
+            return catalog;
+          },
+          {},
+        );
 
         return {
           ...trimmedState,
@@ -634,7 +643,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const connectionAlert = getConnectionAlert();
   const isEditMode = !!databaseId;
   const hasAlert =
-    connectionAlert || !!(db?.engine && engineSpecificAlertMapping[db.engine]);
+    connectionAlert ||
+    !!(
+      db?.engine &&
+      engineSpecificAlertMapping[
+        db.engine as keyof typeof engineSpecificAlertMapping
+      ]
+    );
   const useSqlAlchemyForm =
     db?.configuration_method === ConfigurationMethod.SqlalchemyUri;
   const useTabLayout = isEditMode || useSqlAlchemyForm;
@@ -838,20 +853,28 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
          */
         if (
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
-          dbToUpdate.parameters?.[paramConfig]
+          dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters]
         ) {
-          if (typeof dbToUpdate.parameters?.[paramConfig] === 'object') {
+          if (
+            typeof dbToUpdate.parameters?.[
+              paramConfig as keyof DatabaseParameters
+            ] === 'object'
+          ) {
             // add new encrypted extra to masked_encrypted_extra object
             additionalEncryptedExtra[paramConfig] =
-              dbToUpdate.parameters?.[paramConfig];
+              dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters];
             // The backend expects `masked_encrypted_extra` as a string for historical
             // reasons.
-            dbToUpdate.parameters[paramConfig] = JSON.stringify(
-              dbToUpdate.parameters[paramConfig],
+            dbToUpdate.parameters[
+              paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+            ] = JSON.stringify(
+              dbToUpdate.parameters[paramConfig as keyof DatabaseParameters],
             );
           } else {
             additionalEncryptedExtra[paramConfig] = JSON.parse(
-              dbToUpdate.parameters?.[paramConfig] || '{}',
+              dbToUpdate.parameters?.[
+                paramConfig as OnlyKeyWithType<DatabaseParameters, string>
+              ] || '{}',
             );
           }
         }
@@ -1312,7 +1335,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   useEffect(() => {
     if (importingModal) {
       document
-        .getElementsByClassName('ant-upload-list-item-name')[0]
+        ?.getElementsByClassName('ant-upload-list-item-name')[0]
         .scrollIntoView();
     }
   }, [importingModal]);
@@ -1544,12 +1567,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             type="info"
             showIcon
             message={
-              engineSpecificAlertMapping[db.engine]?.message ||
-              connectionAlert?.DEFAULT?.message
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.message || connectionAlert?.DEFAULT?.message
             }
             description={
-              engineSpecificAlertMapping[db.engine]?.description ||
-              connectionAlert?.DEFAULT?.description + ipAlert
+              engineSpecificAlertMapping[
+                db.engine as keyof typeof engineSpecificAlertMapping
+              ]?.description || connectionAlert?.DEFAULT?.description + ipAlert
             }
           />
         </StyledAlertMargin>
@@ -1583,8 +1608,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             description={t(
               'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
             )}
-            subtitle={alertErrors?.[0] || validationErrors?.description}
-            copyText={validationErrors?.description}
+            descriptionDetails={
+              alertErrors?.[0] || validationErrors?.description
+            }
           />
         </ErrorAlertContainer>
       );

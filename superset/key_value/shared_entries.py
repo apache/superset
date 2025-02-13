@@ -42,6 +42,7 @@ def set_shared_value(key: SharedKey, value: Any) -> None:
 def get_permalink_salt(key: SharedKey) -> str:
     salt = get_shared_value(key)
     if salt is None:
-        salt = random_key()
+        # Use a 48 bytes salt
+        salt = random_key(48)
         set_shared_value(key, value=salt)
     return salt

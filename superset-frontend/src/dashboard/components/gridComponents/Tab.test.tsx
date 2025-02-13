@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
 import {
   fireEvent,
   render,
   screen,
   waitFor,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import EditableTitle from 'src/components/EditableTitle';
@@ -288,7 +288,7 @@ test('Render tab content with no children', () => {
   expect(
     screen.getByText('There are no components added to this tab'),
   ).toBeVisible();
-  expect(screen.getByAltText('empty')).toBeVisible();
+  expect(screen.getByRole('img', { name: 'empty' })).toBeVisible();
   expect(screen.queryByText('edit mode')).not.toBeInTheDocument();
 });
 
@@ -397,7 +397,7 @@ test('Render tab content with no children, editMode: true, canEdit: true', () =>
   expect(
     screen.getByText('Drag and drop components to this tab'),
   ).toBeVisible();
-  expect(screen.getByAltText('empty')).toBeVisible();
+  expect(screen.getByRole('img', { name: 'empty' })).toBeVisible();
   expect(
     screen.getByRole('link', { name: 'create a new chart' }),
   ).toBeVisible();

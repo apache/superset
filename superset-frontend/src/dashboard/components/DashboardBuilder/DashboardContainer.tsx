@@ -122,7 +122,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const [dashboardLabelsColorInitiated, setDashboardLabelsColorInitiated] =
     useState(false);
   const prevRenderedChartIds = useRef<number[]>([]);
-  const prevTabIndexRef = useRef();
+  const prevTabIndexRef = useRef<number>();
   const tabIndex = useMemo(() => {
     const nextTabIndex = findTabIndexByComponentId({
       currentComponent: getRootLevelTabsComponent(dashboardLayout),

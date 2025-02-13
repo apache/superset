@@ -84,6 +84,12 @@ export interface Dataset {
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
+  catalog?: string;
+  schema?: string;
+  table_name?: string;
+  database?: Record<string, unknown>;
+  normalize_columns?: boolean;
+  always_filter_main_dttm?: boolean;
 }
 
 export interface ControlPanelState {
@@ -363,6 +369,13 @@ export type CustomControlItem = {
   config: BaseControlConfig<any, any, any>;
 };
 
+export const isCustomControlItem = (obj: unknown): obj is CustomControlItem =>
+  typeof obj === 'object' &&
+  obj !== null &&
+  typeof ('name' in obj && obj.name) === 'string' &&
+  typeof ('config' in obj && obj.config) === 'object' &&
+  (obj as CustomControlItem).config !== null;
+
 // use ReactElement instead of ReactNode because `string`, `number`, etc. may
 // interfere with other ControlSetItem types
 export type ExpandedControlItem = CustomControlItem | ReactElement | null;
@@ -507,6 +520,13 @@ export enum SortSeriesType {
   Sum = 'sum',
   Avg = 'avg',
 }
+
+export type LegendPaddingType = {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
 
 export type SortSeriesData = {
   sort_series_type: SortSeriesType;

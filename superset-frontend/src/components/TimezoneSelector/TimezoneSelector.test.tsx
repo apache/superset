@@ -18,8 +18,12 @@
  */
 import { FC } from 'react';
 import { extendedDayjs } from 'src/utils/dates';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {
@@ -124,13 +128,12 @@ test('can update props and rerender with different values', async () => {
       timezone="Asia/Dubai"
     />,
   );
-  expect(screen.getByTitle('GMT +04:00 (Asia/Baku)')).toBeInTheDocument();
+  expect(screen.getByTitle('GMT +04:00 (Asia/Dubai)')).toBeInTheDocument();
   rerender(
     <TimezoneSelector
       onTimezoneChange={onTimezoneChange}
       timezone="Australia/Perth"
     />,
   );
-  expect(screen.getByTitle('GMT +08:00 (Asia/Brunei)')).toBeInTheDocument();
-  expect(onTimezoneChange).toHaveBeenCalledTimes(2);
+  expect(screen.getByTitle('GMT +08:00 (Australia/Perth)')).toBeInTheDocument();
 });

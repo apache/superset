@@ -30,7 +30,7 @@ import {
   CategoricalColorNamespace,
 } from '@superset-ui/core';
 import AntdSelect from 'antd/lib/select';
-import { isFunction, sortBy } from 'lodash';
+import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -57,7 +57,7 @@ export interface ColorSchemeControlProps {
   colorNamespace?: string;
   chartId?: number;
   dashboardId?: number;
-  label: string;
+  label?: string;
   name: string;
   onChange?: (value: string) => void;
   value: string;
@@ -65,11 +65,13 @@ export interface ColorSchemeControlProps {
   defaultScheme?: string;
   choices: string[][] | (() => string[][]);
   schemes: ColorSchemes | (() => ColorSchemes);
-  isLinear: boolean;
+  isLinear?: boolean;
+  description?: string;
+  hovered?: boolean;
 }
 
 const StyledAlert = styled(Icons.AlertSolid)`
-  color: ${({ theme }) => theme.colors.alert.base};
+  color: ${({ theme }) => theme.colors.warning.base};
 `;
 
 const CUSTOM_LABEL_ALERT = t(
@@ -163,7 +165,7 @@ const ColorSchemeControl = ({
     }
     let result = value || defaultScheme;
     if (result === 'SUPERSET_DEFAULT') {
-      const schemesObject = isFunction(schemes) ? schemes() : schemes;
+      const schemesObject = typeof schemes === 'function' ? schemes() : schemes;
       result = schemesObject?.SUPERSET_DEFAULT?.id;
     }
     return result;
@@ -179,8 +181,8 @@ const ColorSchemeControl = ({
         </Option>,
       ];
     }
-    const schemesObject = isFunction(schemes) ? schemes() : schemes;
-    const controlChoices = isFunction(choices) ? choices() : choices;
+    const schemesObject = typeof schemes === 'function' ? schemes() : schemes;
+    const controlChoices = typeof choices === 'function' ? choices() : choices;
     const allColorOptions: string[] = [];
     const filteredColorOptions = controlChoices.filter(o => {
       const option = o[0];

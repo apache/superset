@@ -25,16 +25,16 @@ export function dataTestChartName(chartName: string): string {
 
 export const pageHeader = {
   logo: '.navbar-brand > img',
-  headerNavigationItem: '.ant-menu-submenu-title',
+  headerNavigationItem: '.antd5-menu-submenu-title',
   headerNavigationDropdown: "[aria-label='triangle-down']",
-  headerNavigationItemMenu: '.ant-menu-item-group-list',
-  plusIcon: ':nth-child(2) > .ant-menu-submenu-title',
+  headerNavigationItemMenu: '.antd5-menu-item-group-list',
+  plusIcon: ':nth-child(2) > .antd5-menu-submenu-title',
   plusIconMenuOptions: {
     sqlQueryOption: dataTestLocator('menu-item-SQL query'),
     chartOption: dataTestLocator('menu-item-Chart'),
     dashboardOption: dataTestLocator('menu-item-Dashboard'),
   },
-  plusMenu: '.ant-menu-submenu-popup',
+  plusMenu: '.antd5-menu-submenu-popup',
   barButtons: '[role="presentation"]',
   sqlLabMenu: '[id="item_3$Menu"]',
   dataMenu: '[id="item_4$Menu"]',
@@ -158,10 +158,10 @@ export const sqlLabView = {
     runButton: '.css-d3dxop',
   },
   rowsLimit: {
-    dropdown: '.ant-dropdown-menu',
-    limitButton: '.ant-dropdown-menu-item',
+    dropdown: '.antd5-dropdown-menu',
+    limitButton: '.antd5-dropdown-menu-item',
     limitButtonText: '.css-151uxnz',
-    limitTextWithValue: '[class="ant-dropdown-trigger"]',
+    limitTextWithValue: '[class="antd5-dropdown-trigger"]',
   },
   renderedTableHeader: '.ReactVirtualized__Table__headerRow',
   renderedTableRow: '.ReactVirtualized__Table__row',
@@ -555,7 +555,7 @@ export const exploreView = {
     timeSection: {
       timeRangeFilter: dataTestLocator('time-range-trigger'),
       timeRangeFilterModal: {
-        container: '.ant-popover-content',
+        container: '.antd5-popover-content',
         footer: '.footer',
         cancelButton: dataTestLocator('cancel-button'),
         configureLastTimeRange: {
@@ -633,7 +633,7 @@ export const dashboardView = {
     refreshChart: dataTestLocator('refresh-chart-menu-item'),
   },
   threeDotsMenuIcon:
-    '.header-with-actions .right-button-panel .ant-dropdown-trigger',
+    '.header-with-actions .right-button-panel .antd5-dropdown-trigger',
   threeDotsMenuDropdown: dataTestLocator('header-actions-menu'),
   refreshDashboard: dataTestLocator('refresh-dashboard-menu-item'),
   saveAsMenuOption: dataTestLocator('save-as-menu-item'),

@@ -20,12 +20,19 @@ import { FC } from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
 import { Provider } from 'react-redux';
-import { supersetTheme, ThemeProvider } from '@superset-ui/core';
-import { render, screen, act, waitFor } from '@testing-library/react';
-import '@testing-library/jest-dom';
-import userEvent from '@testing-library/user-event';
+import {
+  supersetTheme,
+  ThemeProvider,
+  isFeatureEnabled,
+} from '@superset-ui/core';
+import {
+  render,
+  screen,
+  act,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ShareSqlLabQuery from 'src/SqlLab/components/ShareSqlLabQuery';
 import { initialState } from 'src/SqlLab/fixtures';
 
@@ -56,7 +63,13 @@ const mockState = {
   },
 };
 const store = mockStore(mockState);
-let isFeatureEnabledMock: jest.SpyInstance;
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const standardProvider: FC = ({ children }) => (
   <ThemeProvider theme={supersetTheme}>
@@ -110,13 +123,11 @@ describe('ShareSqlLabQuery', () => {
 
   describe('via permalink api', () => {
     beforeAll(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(() => true);
+      mockedIsFeatureEnabled.mockImplementation(() => true);
     });
 
     afterAll(() => {
-      isFeatureEnabledMock.mockReset();
+      mockedIsFeatureEnabled.mockReset();
     });
 
     it('calls storeQuery() with the query when getCopyUrl() is called', async () => {
@@ -126,7 +137,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, remoteId, ...expected } = mockQueryEditor;
+      const { id: _id, remoteId: _remoteId, ...expected } = mockQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
@@ -143,7 +154,7 @@ describe('ShareSqlLabQuery', () => {
         });
       });
       const button = screen.getByRole('button');
-      const { id, ...expected } = unsavedQueryEditor;
+      const { id: _id, ...expected } = unsavedQueryEditor;
       userEvent.click(button);
       await waitFor(() =>
         expect(fetchMock.calls(storeQueryUrl)).toHaveLength(1),
