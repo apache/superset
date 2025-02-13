@@ -28,8 +28,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
-import { debounce } from 'lodash';
-import { FAST_DEBOUNCE } from 'src/constants';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
@@ -193,6 +191,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     // Filter state is pre-set case
     if (filterState.value && !filterState.validateStatus) {
       setInputValue(filterState.value);
+      setDataMask({
+        extraFormData: getRangeExtraFormData(
+          col,
+          filterState.value[minIndex],
+          filterState.value[maxIndex],
+        ),
+        filterState,
+      });
     }
   }, [filterState.value]);
 
@@ -208,11 +214,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
     return '';
   }, [enableSingleValue]);
-
-  const debouncedSetDataMask = useMemo(
-    () => debounce((value: any) => setDataMask(value), FAST_DEBOUNCE),
-    [setDataMask],
-  );
 
   const handleChange = (newValue: number | null, index: 0 | 1) => {
     const newInputValue: [number | null, number | null] =
@@ -236,7 +237,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
     if (!isValid) {
       setError(errorMessage);
-      debouncedSetDataMask({
+      setDataMask({
         extraFormData: getRangeExtraFormData(col, null, null),
         filterState: {
           value: null,
@@ -249,7 +250,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
 
     setError(null);
-    debouncedSetDataMask({
+    setDataMask({
       extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
       filterState: {
         value: [inputMin, inputMax],
