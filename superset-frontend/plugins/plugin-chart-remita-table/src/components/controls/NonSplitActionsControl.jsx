@@ -10,6 +10,8 @@ import {
   EyeOutlined,
   LinkOutlined,
   PlusOutlined,
+  MoreOutlined,
+  TagOutlined,
 } from '@ant-design/icons';
 import ControlHeader from '../../../../../src/explore/components/ControlHeader';
 
@@ -29,6 +31,14 @@ const VISIBILITY_CONDITION_OPTIONS = [
   {value: 'all', label: 'All'},
 ];
 
+// Map style values to colors
+const STYLE_COLORS = {
+  default: 'grey',
+  primary: 'blue',
+  danger: 'red',
+  success: 'green',
+  warning: 'orange',
+};
 const parseInitialValue = (value) => {
   if (!value) return [];
   if (typeof value === 'string') {
@@ -114,6 +124,7 @@ const NonSplitActionsControl = ({
       visibilityCondition: values.visibilityCondition,
       publishEvent: values.publishEvent || false,
       actionUrl: !values.publishEvent ? values.actionUrl : undefined,
+      showInSliceHeader: values.showInSliceHeader || false,
     };
     const updatedActions = [...actions, newAction];
     setActions(updatedActions);
@@ -132,6 +143,7 @@ const NonSplitActionsControl = ({
       visibilityCondition: values.visibilityCondition,
       publishEvent: values.publishEvent || false,
       actionUrl: !values.publishEvent ? values.actionUrl : undefined,
+      showInSliceHeader: values.showInSliceHeader || false,
     };
     const updatedActions = actions.map((action, idx) =>
       idx === editingIndex ? updatedAction : action
@@ -168,6 +180,20 @@ const NonSplitActionsControl = ({
       : Promise.resolve();
   };
 
+  // Component to render the TagOutlined icon with dynamic styles
+  const TagIcon = ({ action }) => {
+    // Determine the color based on the action.style value
+    const color = STYLE_COLORS[action.style] || STYLE_COLORS.default;
+
+    return (
+      <TagOutlined
+        style={{
+          color: color,
+          fontSize: '0.8rem',
+        }}
+      />
+    );
+  };
   // Render form fields used for adding/editing in the Simple tab
   const renderFormFields = () => (
     <>
@@ -246,6 +272,13 @@ const NonSplitActionsControl = ({
           )
         }
       </Form.Item>
+      <Form.Item
+        name="show_in_slice_header"
+        label="Show In Slice Header"
+        valuePropName="checked"
+      >
+        <Checkbox>Show In Slice Header</Checkbox>
+      </Form.Item>
     </>
   );
 
@@ -281,14 +314,12 @@ const NonSplitActionsControl = ({
       style={{marginBottom: '4px'}}
       bodyStyle={{padding: '4px'}}
     >
-      <div style={{fontSize: '0.8rem', marginBottom: '2px'}}>
-        <strong>Label:</strong> {action.label}
-      </div>
-      <div style={{fontSize: '0.8rem', marginBottom: '2px'}}>
-        <strong>Style:</strong> {action.style}
-      </div>
+
       <Space style={{width: '100%', justifyContent: 'space-between'}}>
         <Space>
+          <Tooltip title={`Style: ${action.style}`}>
+            <TagIcon action={action} />
+          </Tooltip>
           <Tooltip title={`Bound: ${action.boundToSelection ? 'Yes' : 'No'}`}>
             {action.boundToSelection ? (
               <CheckOutlined style={{color: 'green', fontSize: '0.8rem'}}/>
@@ -307,6 +338,9 @@ const NonSplitActionsControl = ({
               <LinkOutlined style={{fontSize: '0.8rem'}}/>
             </Tooltip>
           )}
+          <Tooltip title={`Show In Slice: ${action.showInSliceHeader ? 'Yes' : 'No'}`}>
+            <MoreOutlined style={{color: action.showInSliceHeader ? 'blue' : 'grey', fontSize: '0.8rem'}}/>
+          </Tooltip>
         </Space>
       </Space>
     </Card>
@@ -324,6 +358,7 @@ const NonSplitActionsControl = ({
       visibilityCondition: action.visibilityCondition,
       publishEvent: action.publishEvent,
       actionUrl: action.actionUrl,
+      showInSliceHeader:action.showInSliceHeader,
     });
     setIsPublishEvent(action.publishEvent);
     setModalVisible(true);
@@ -365,7 +400,7 @@ const NonSplitActionsControl = ({
             </>
           )}
           <Space direction="vertical" style={{width: '100%'}}>
-            {actions.length === 0 ? (
+            {actions.length === 0 || !(actions instanceof Array) ? (
               <Alert
                 message="No actions added yet."
                 type="info"
@@ -446,7 +481,7 @@ const NonSplitActionsControl = ({
       {offerEditInModal ? (
         <>
           <div style={{marginBottom: '16px'}}>
-            {actions.length === 0 ? (
+            {actions.length === 0 || !(actions instanceof Array) ? (
               <>
                 <Alert
                   message="No actions added yet."

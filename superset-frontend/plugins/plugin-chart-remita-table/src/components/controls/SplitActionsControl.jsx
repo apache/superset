@@ -26,6 +26,7 @@ import {
   KeyOutlined,
   LinkOutlined,
   PlusOutlined,
+  MoreOutlined,
 } from '@ant-design/icons';
 
 const { Option } = Select;
@@ -272,9 +273,7 @@ const SplitActionsControl = ({
       style={{ marginBottom: '4px' }}
       bodyStyle={{ padding: '4px' }}
     >
-      <div style={{ fontSize: '0.8rem', marginBottom: '2px' }}>
-        <strong>Label:</strong> {action.label}
-      </div>
+
       <Space style={{ width: '100%', justifyContent: 'space-between' }}>
         <Space>
           <Tooltip title={`Bound: ${action.boundToSelection ? 'Yes' : 'No'}`}>
@@ -295,6 +294,9 @@ const SplitActionsControl = ({
               <LinkOutlined style={{ fontSize: '0.8rem' }} />
             </Tooltip>
           )}
+          <Tooltip title={`Show In Slice: ${action.showInSliceHeader ? 'Yes' : 'No'}`}>
+            <MoreOutlined style={{color: action.showInSliceHeader ? 'blue' : 'grey', fontSize: '0.8rem'}}/>
+          </Tooltip>
         </Space>
       </Space>
     </Card>
@@ -310,6 +312,7 @@ const SplitActionsControl = ({
       actionUrl: action.actionUrl,
       visibilityCondition: action.visibilityCondition,
       publishEvent: action.publishEvent,
+      showInSliceHeader:action.showInSliceHeader,
     });
     setIsPublishEvent(action.publishEvent);
     setModalVisible(true);

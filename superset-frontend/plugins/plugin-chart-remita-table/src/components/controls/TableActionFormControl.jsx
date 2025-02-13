@@ -16,12 +16,26 @@ import {
   Typography,
 } from 'antd';
 import ControlHeader from '../../../../../src/explore/components/ControlHeader';
-import {BellOutlined, DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined,} from '@ant-design/icons';
+import {BellOutlined, DeleteOutlined, EditOutlined, LinkOutlined, PlusOutlined,TagOutlined,} from '@ant-design/icons';
 
 const {Option} = Select;
 const {Title} = Typography;
 const {TabPane} = Tabs;
-
+const STYLE_OPTIONS = [
+  {value: 'default', label: 'Default'},
+  {value: 'primary', label: 'Primary'},
+  {value: 'danger', label: 'Danger'},
+  {value: 'success', label: 'Success'},
+  {value: 'warning', label: 'Warning'},
+];
+// Map style values to colors
+const STYLE_COLORS = {
+  default: 'grey',
+  primary: 'blue',
+  danger: 'red',
+  success: 'green',
+  warning: 'orange',
+};
 const parseInitialValue = (value) => {
   if (!value) return [];
   if (typeof value === 'string') {
@@ -104,6 +118,7 @@ const TableActionFormControl = ({
       label: values.label,
       publishEvent: values.publishEvent || false,
       actionUrl: !values.publishEvent ? values.actionUrl : undefined,
+      style: values.style,
     };
     const updatedActions = [...actions, newAction];
     setActions(updatedActions);
@@ -120,6 +135,7 @@ const TableActionFormControl = ({
       label: values.label,
       publishEvent: values.publishEvent || false,
       actionUrl: !values.publishEvent ? values.actionUrl : undefined,
+      style: values.style,
     };
     const updatedActions = actions.map((action, idx) =>
       idx === editingIndex ? updatedAction : action
@@ -157,7 +173,21 @@ const TableActionFormControl = ({
       : Promise.resolve();
   };
 
-  // Render form fields used for both adding and editing in Simple tab.
+  // Component to render the TagOutlined icon with dynamic styles
+  const TagIcon = ({ action }) => {
+    // Determine the color based on the action.style value
+    const color = STYLE_COLORS[action.style] || STYLE_COLORS.default;
+
+    return (
+      <TagOutlined
+        style={{
+          color: color,
+          fontSize: '0.8rem',
+        }}
+      />
+    );
+  };
+  // Render form fields used for adding/editing in the Simple tab
   const renderFormFields = () => (
     <>
       <Form.Item
@@ -179,6 +209,19 @@ const TableActionFormControl = ({
         ]}
       >
         <Input placeholder="Action label"/>
+      </Form.Item>
+      <Form.Item
+        name="style"
+        label="Style"
+        rules={[{required: true, message: 'Please select a style'}]}
+      >
+        <Select placeholder="Select a style">
+          {STYLE_OPTIONS.map((option) => (
+            <Option key={option.value} value={option.value}>
+              {option.label}
+            </Option>
+          ))}
+        </Select>
       </Form.Item>
       <Form.Item
         name="publishEvent"
@@ -235,11 +278,12 @@ const TableActionFormControl = ({
       style={{marginBottom: '4px'}}
       bodyStyle={{padding: '4px'}}
     >
-      <div style={{fontSize: '0.8rem', marginBottom: '2px'}}>
-        <strong>Label:</strong> {action.label}
-      </div>
+
       <Space style={{width: '100%', justifyContent: 'space-between'}}>
         <Space>
+          <Tooltip title={`Style: ${action.style}`}>
+            <TagIcon action={action} />
+          </Tooltip>
           <Tooltip title={`Publish Event: ${action.publishEvent ? 'Yes' : 'No'}`}>
             <BellOutlined style={{color: action.publishEvent ? 'blue' : 'grey', fontSize: '0.8rem'}}/>
           </Tooltip>
@@ -261,6 +305,7 @@ const TableActionFormControl = ({
       label: action.label,
       actionUrl: action.actionUrl,
       publishEvent: action.publishEvent,
+      style: action.style,
     });
     setIsPublishEvent(action.publishEvent);
     setModalVisible(true);
