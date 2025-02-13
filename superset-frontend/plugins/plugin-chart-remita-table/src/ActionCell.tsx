@@ -106,7 +106,7 @@ export const ActionCell = ({
   };
 
   return (
-    <td className="dt-is-filter right-border-only remita-action-col">
+    <td className="dt-is-filter right-border-only remita-action-col" width="70px">
       <ActionWrapper ref={wrapperRef} className="remita-action-wrapper">
         <MenuTrigger
           className="remita-menu-trigger"

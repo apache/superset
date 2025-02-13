@@ -1198,7 +1198,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             visibleIds.some(id => selectedRows.has(id));
 
           return (
-            <td className=" right-border-only " role="columnheader button" tabIndex="0">
+            <td className=" right-border-only " role="columnheader button" tabIndex="0" width="50px">
               <div className="selection-cell">
                 <input
                   type="checkbox"
@@ -1226,7 +1226,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const pageSize = serverPaginationData.pageSize || 10; // Get current page size
           const rowNumber = currentPage * pageSize + row.index + 1; // Calculate row number
           return (
-            <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex="0">
+            <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex="0" width="50px" style={{ overflow: 'hidden', paddingRight: "5px", paddingLeft: "5px" }}>
               <div className="selection-cell">
                 <input
                   type="checkbox"
@@ -1247,7 +1247,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                     }
                   }}
                 />
-                <span className="selection-cell-number">{rowNumber}</span>
+                <span className="selection-cell-number" title={rowNumber.toString()}>{rowNumber}</span>
               </div>
             </td>
           );
@@ -1263,7 +1263,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const actionColumn = {
         id: 'actions',
         Header: () => (
-          <th data-column-name="actions">
+          <th data-column-name="actions" width={10}>
             <span data-column-name="actions">{t('Actions')}</span>
           </th>
         ),
@@ -1318,6 +1318,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         data={data}
         rowCount={rowCount}
         tableClassName="table table-striped table-condensed"
+        tableStyle={{ tableLayout: 'auto' }}
         pageSize={pageSize}
         serverPaginationData={serverPaginationData}
         pageSizeOptions={pageSizeOptions}
