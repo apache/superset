@@ -39,6 +39,10 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
+import { AntdForm } from 'src/components';
+import Button from 'src/components/Button';
+import Icons from 'src/components/Icons';
+
 import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
 import Modal from 'src/components/Modal';
@@ -1854,7 +1858,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
           {tabsEnabled && contentType === ContentType.Dashboard && (
             <StyledInputContainer>
-              <>
+              <div>
                 <div className="control-label">{t('Select tab')}</div>
                 <StyledTreeSelect
                   disabled={tabOptions?.length === 0}
@@ -1863,35 +1867,70 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   onSelect={updateAnchorState}
                   placeholder={t('Select a tab')}
                 />
-              </>
-              <div
-                style={{
-                  marginTop: '10px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div className="control-label">
-                  {t('Select Dashboard Filter')}
-                </div>
-                <Select
-                  disabled={nativeFilterOptions?.length < 1}
-                  ariaLabel={t('Select Filter')}
-                  value={nativeFilter.columnLabel}
-                  options={nativeFilterOptions}
-                  onChange={onChangeDashboardFilter}
-                />
-                <div className="control-label">
-                  {t('Select Dashboard Value')}
-                </div>
-                <Select
-                  ariaLabel={t('Value')}
-                  value={nativeFilter.filterValues}
-                  options={nativeFilterValues}
-                  onChange={onChangeDashboardFilterValue}
-                  mode="multiple"
-                />
               </div>
+              <AntdForm
+                name="form1"
+                onFinish={() => console.log('finish')}
+                autoComplete="off"
+                style={{ margin: '5px 0' }}
+              >
+                <AntdForm.List name="list1">
+                  {(fields, { add, remove }) => (
+                    <div>
+                      {fields.map(({ key, name, ...restField }) => (
+                        <div style={{ display: 'flex' }} key={key}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              flex: 1,
+                            }}
+                          >
+                            <div className="control-label" style={{ flex: 1 }}>
+                              {t('Select Dashboard Filter')}
+                            </div>
+                            <Select
+                              disabled={nativeFilterOptions?.length < 1}
+                              ariaLabel={t('Select Filter')}
+                              value={nativeFilter.columnLabel}
+                              options={nativeFilterOptions}
+                              onChange={onChangeDashboardFilter}
+                              style={{ flex: 1 }}
+                            />
+                          </div>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              flex: 1,
+                            }}
+                          >
+                            <div className="control-label">{t('Value')}</div>
+                            <Select
+                              ariaLabel={t('Value')}
+                              value={nativeFilter.filterValues}
+                              options={nativeFilterValues}
+                              onChange={onChangeDashboardFilterValue}
+                              mode="multiple"
+                            />
+                          </div>
+                          <div style={{ display: 'flex' }}>
+                            <Icons.Trash
+                              onClick={() => remove(name)}
+                              style={{ display: 'flex' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <AntdForm.Item>
+                        <Button type="dashed" onClick={() => add()} block>
+                          + {t('Apply another dashboard filter')}
+                        </Button>
+                      </AntdForm.Item>
+                    </div>
+                  )}
+                </AntdForm.List>
+              </AntdForm>
             </StyledInputContainer>
           )}
           {isScreenshot && (
