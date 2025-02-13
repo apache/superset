@@ -27,8 +27,6 @@ billiard==4.2.1
     # via celery
 blinker==1.9.0
     # via flask
-bottleneck==1.4.2
-    # via apache-superset (pyproject.toml)
 brotli==1.1.0
     # via flask-compress
 cachelib==0.9.0
@@ -220,7 +218,6 @@ numexpr==2.10.2
 numpy==1.26.4
     # via
     #   apache-superset (pyproject.toml)
-    #   bottleneck
     #   numexpr
     #   pandas
     #   pyarrow
@@ -298,8 +295,6 @@ python-dateutil==2.9.0.post0
     #   holidays
     #   pandas
     #   shillelagh
-python-dotenv==1.0.1
-    # via apache-superset (pyproject.toml)
 python-geohash==0.8.5
     # via apache-superset (pyproject.toml)
 pytz==2024.2
@@ -328,8 +323,6 @@ rsa==4.9
 selenium==4.27.1
     # via apache-superset (pyproject.toml)
 shillelagh==1.2.18
-    # via apache-superset (pyproject.toml)
-simplejson==3.19.3
     # via apache-superset (pyproject.toml)
 six==1.16.0
     # via

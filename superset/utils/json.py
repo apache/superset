@@ -16,17 +16,17 @@
 # under the License.
 import copy
 import decimal
+import json
 import logging
 import uuid
 from datetime import date, datetime, time, timedelta
+from json import JSONDecodeError
 from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
 import pandas as pd
-import simplejson
 from flask_babel.speaklater import LazyString
 from jsonpath_ng import parse
-from simplejson import JSONDecodeError
 
 from superset.constants import PASSWORD_MASK
 from superset.utils.dates import datetime_to_epoch, EPOCH
@@ -35,7 +35,7 @@ logging.getLogger("MARKDOWN").setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class DashboardEncoder(simplejson.JSONEncoder):
+class DashboardEncoder(json.JSONEncoder):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.sort_keys = True
@@ -49,7 +49,7 @@ class DashboardEncoder(simplejson.JSONEncoder):
         except Exception:  # pylint: disable=broad-except
             if isinstance(o, datetime):
                 return {"__datetime__": o.replace(microsecond=0).isoformat()}
-            return simplejson.JSONEncoder(sort_keys=True).default(o)
+            return json.JSONEncoder(sort_keys=True).default(o)
 
 
 def format_timedelta(time_delta: timedelta) -> str:
@@ -189,7 +189,7 @@ def dumps(  # pylint: disable=too-many-arguments
     sort_keys: bool = False,
     indent: Union[str, int, None] = None,
     separators: Union[tuple[str, str], None] = None,
-    cls: Union[type[simplejson.JSONEncoder], None] = None,
+    cls: Union[type[json.JSONEncoder], None] = None,
     encoding: Optional[str] = "utf-8",
 ) -> str:
     """
@@ -218,10 +218,10 @@ def dumps(  # pylint: disable=too-many-arguments
         "encoding": encoding,
     }
     try:
-        results_string = simplejson.dumps(obj, **dumps_kwargs)
+        results_string = json.dumps(obj, **dumps_kwargs)
     except UnicodeDecodeError:
         dumps_kwargs["encoding"] = None
-        results_string = simplejson.dumps(obj, **dumps_kwargs)
+        results_string = json.dumps(obj, **dumps_kwargs)
     return results_string
 
 
@@ -240,7 +240,7 @@ def loads(
     :param object_hook: function that will be called to decode objects values
     :returns: A Python object deserialized from string
     """
-    return simplejson.loads(
+    return json.loads(
         obj,
         encoding=encoding,
         allow_nan=allow_nan,

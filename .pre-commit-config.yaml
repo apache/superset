@@ -25,7 +25,6 @@ repos:
       - id: mypy
         args: [--check-untyped-defs]
         additional_dependencies: [
-            types-simplejson,
             types-python-dateutil,
             types-requests,
             # types-redis 4.6.0.5 is failing mypy

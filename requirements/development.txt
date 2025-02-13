@@ -46,10 +46,6 @@ blinker==1.9.0
     # via
     #   -c requirements/base.txt
     #   flask
-bottleneck==1.4.2
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
 brotli==1.1.0
     # via
     #   -c requirements/base.txt
@@ -451,7 +447,6 @@ numpy==1.26.4
     # via
     #   -c requirements/base.txt
     #   apache-superset
-    #   bottleneck
     #   cmdstanpy
     #   contourpy
     #   db-dtypes
@@ -660,10 +655,6 @@ python-dateutil==2.9.0.post0
     #   pyhive
     #   shillelagh
     #   trino
-python-dotenv==1.0.1
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
 python-geohash==0.8.5
     # via
     #   -c requirements/base.txt
@@ -735,10 +726,6 @@ setuptools==75.6.0
     #   zope-event
     #   zope-interface
 shillelagh==1.2.18
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
-simplejson==3.19.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
