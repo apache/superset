@@ -111,46 +111,6 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
     && chmod -R 1777 $SUPERSET_HOME \
     && chown -R superset:superset $SUPERSET_HOME
 
-
-# Install common system dependencies in a single layer
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    curl \
-    default-libmysqlclient-dev \
-    git \
-    libecpg-dev \
-    libfontconfig1 \
-    libglib2.0-0 \
-    libjpeg-dev \
-    libldap2-dev \
-    libnss3 \
-    libpng-dev \
-    libpq-dev \
-    libsasl2-dev \
-    libsasl2-modules-gssapi-mit \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
-    libxcomposite1 \
-    libxcursor1 \
-    libxdamage1 \
-    libxext6 \
-    libxfixes3 \
-    libxi6 \
-    libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    libzstd-dev \
-    pkg-config \
-    python3-dev \
-    python3-pil \
-    unzip \
-    wget \
-    xvfb \
-    zip \
-    && rm -rf /var/lib/apt/lists/*
-
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
@@ -273,7 +233,6 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
-USER root
 # Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
     git \
@@ -282,22 +241,6 @@ RUN /app/docker/apt-install.sh \
 
 # Copy development requirements and install them
 COPY requirements/*.txt requirements/
-
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install -r requirements/development.txt \
-    && uv pip install .[postgres]
-
-# Install browser testing tools
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install playwright \
-    && playwright install-deps \
-    && playwright install chromium
-
-# Setup Oracle client
-ENV ORACLE_HOME=/opt/oracle/instantclient_23_4 \
-    LD_LIBRARY_PATH=/opt/oracle/instantclient_23_4 \
-    PATH="/opt/oracle/instantclient_23_4:/app/superset_home/.local/bin:${PATH}"
-
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
@@ -315,33 +258,6 @@ USER superset
 ######################################################################
 FROM lean AS ci
 USER root
-
-# Install CI-specific dependencies
-ARG GECKODRIVER_VERSION=v0.32.0
-ARG FIREFOX_VERSION=106.0.3
-
-# Update certificates and install CI tools
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    firefox-esr \
-    libasound2 \
-    libdbus-glib-1-2 \
-    libgtk-3-0 \
-    libnss3 \
-    libx11-xcb1 \
-    libxtst6 \
-    openssl \
-    wget \
-    && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz \
-    && tar -xzf geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -C /usr/local/bin \
-    && rm geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz \
-    && rm -rf /var/lib/apt/lists/*
-
-# Setup SSL certificates
-ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
-    TZ=UTC
-
 RUN uv pip install .[postgres]
 USER superset
 CMD ["/app/docker/entrypoints/docker-ci.sh"]

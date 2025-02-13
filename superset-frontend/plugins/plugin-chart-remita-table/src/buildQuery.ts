@@ -191,7 +191,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    if (formDataCopy.result_type === 'full' ) {
+    if (formDataCopy.result_type === 'full' && (formDataCopy.result_format === 'csv' || formDataCopy.result_format === 'xlsx') && formDataCopy.query_mode === 'raw') {
       moreProps.row_limit = undefined; // Remove row limit for export
       moreProps.row_offset = 0; // Reset offset for export
     }else {

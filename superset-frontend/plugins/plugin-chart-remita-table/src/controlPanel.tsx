@@ -46,12 +46,11 @@ import {
 } from '@superset-ui/core';
 
 import { isEmpty } from 'lodash';
+import NonSplitActionsControl from './components/controls/NonSplitActionsControl';
+import SplitActionsControl from './components/controls/SplitActionsControl';
+import TableActionFormControl from './components/controls/TableActionFormControl';
 import { PAGE_SIZE_OPTIONS } from './consts';
 import { ColorSchemeEnum } from './types';
-import {
-  validateSplitActions,
-  validateNonSplitActions,
-} from './utils/validator';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
   const mode = controls?.query_mode?.value;
@@ -190,21 +189,18 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
     })
     .flat();
 
-// Add the bulk actions section
 const bulkActionsSection = {
-  label: t('Row Selection & Actions'),
+  label: t('Table Header Actions'),
   expanded: true,
-  tabOverride: 'customize',
-  renderTrigger: true,
   controlSetRows: [
     [
       {
         name: 'enable_bulk_actions',
         config: {
           type: 'CheckboxControl',
+          renderTrigger: true,
           label: t('Enable Bulk Actions'),
           default: false,
-          renderTrigger: true,
           description: t('Enable row selection and bulk actions in the table'),
         },
       },
@@ -214,6 +210,7 @@ const bulkActionsSection = {
         name: 'bulk_action_id_column',
         config: {
           type: 'SelectControl',
+          renderTrigger: true,
           label: t('ID Column'),
           description: t('Column to use as unique identifier for bulk actions'),
           default: null,
@@ -234,6 +231,7 @@ const bulkActionsSection = {
         name: 'selection_mode',
         config: {
           type: 'SelectControl',
+          renderTrigger: true,
           label: t('Selection Mode'),
           description: t('How rows can be selected'),
           default: 'multiple',
@@ -250,20 +248,18 @@ const bulkActionsSection = {
       {
         name: 'split_actions',
         config: {
-          type: 'TextAreaControl',
+          type: SplitActionsControl,
+          renderTrigger: true,
           label: t('Header Button Actions - Split Dropdown Actions'),
           description: t(
-            'Actions to show in dropdown menu. One per line in format:\nkey|label|boundToSelection|visibilityCondition',
+            'Actions to show in dropdown menu. Define in JSON format.',
           ),
-          default: 'export|Export Selected|true|selected',
-          language: 'text',
-          renderTrigger: true,
-          visibility: ({ controls }: any) =>
-            Boolean(controls?.enable_bulk_actions?.value),
-          placeholder: t(
-            'export|Export Selected|true|selected\nrefresh|Refresh|false|all',
-          ),
-          validators: [validateSplitActions],
+          default: JSON.stringify([
+            { key: 'export', label: 'Export Selected', boundToSelection: true, visibilityCondition: 'selected' },
+          ]),
+          language: 'json',
+          visibility: ({ controls }: any) => Boolean(controls?.enable_bulk_actions?.value),
+          offerEditInModal: true,
         },
       },
     ],
@@ -271,33 +267,28 @@ const bulkActionsSection = {
       {
         name: 'non_split_actions',
         config: {
-          type: 'TextAreaControl',
+          type: NonSplitActionsControl,
+          renderTrigger: true,
           label: t('Header Button Actions - Non Split'),
           description: t(
-            'Actions as individual buttons. One per line in format:\nkey|label|style|boundToSelection|visibilityCondition',
+            'Actions as individual buttons. Define in JSON format.',
           ),
-          default:
-            'delete|Delete|danger|true|selected\nsave|Save|primary|false|all',
-          language: 'text',
-          renderTrigger: true,
-          visibility: ({ controls }: any) =>
-            Boolean(controls?.enable_bulk_actions?.value),
-          placeholder: t(
-            'delete|Delete|danger|true|selected\nsave|Save|primary|false|all',
-          ),
-          validators: [validateNonSplitActions],
-        },
+          default: JSON.stringify([
+            {key: 'delete', label: 'Delete', style: 'danger', boundToSelection: true, visibilityCondition: 'selected'},
+            {key: 'save', label: 'Save', style: 'primary', boundToSelection: false, visibilityCondition: 'all'},
+          ]),
+          language: 'json',
+          visibility: ({controls}: any) => Boolean(controls?.enable_bulk_actions?.value),
+          offerEditInModal: true,
+        }
       },
     ],
   ],
 };
 
-// Add this section to your controlPanelSections
 const tableActionsSection = {
-  label: t('Table Actions'),
+  label: t('Table Row Actions'),
   expanded: true,
-  tabOverride: 'customize',
-  renderTrigger: true,
   controlSetRows: [
     [
       {
@@ -306,6 +297,7 @@ const tableActionsSection = {
           type: 'CheckboxControl',
           label: t('Enable Table Actions'),
           default: false,
+          renderTrigger: true,
           description: t('Enable actions column in the table'),
         },
       },
@@ -316,6 +308,7 @@ const tableActionsSection = {
         config: {
           type: 'SelectControl',
           label: t('ID Column'),
+          renderTrigger: true,
           description: t('Column to use as identifier for row actions'),
           default: null,
           mapStateToProps: ({ datasource }: any) => ({
@@ -334,21 +327,19 @@ const tableActionsSection = {
       {
         name: 'table_actions',
         config: {
-          type: 'TextAreaControl',
+          type: TableActionFormControl,
+          renderTrigger: true,
           label: t('Table Actions Configuration'),
           description: t(
-            'Actions configuration in JSON format. Example:\n' +
-              '{\n' +
-              '  "edit": {"label": "Edit", "action": "edit"},\n' +
-              '  "delete": {"label": "Delete", "action": "delete"}\n' +
-              '}',
+            'Define the actions that will appear in the table. Use the Simple tab for a form-based input or the Advanced tab for raw JSON.',
           ),
-          default: '{ "view": {"label": "View", "action": "view"}}',
+          default: [{ label: 'View', action: 'view' }],
+          offerEditInModal: true,
           language: 'json',
           visibility: ({ controls }: any) =>
             Boolean(controls?.enable_table_actions?.value),
         },
-      },
+      },,
     ],
   ],
 } as any;
@@ -561,8 +552,6 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
-    bulkActionsSection,
-    tableActionsSection,
     {
       label: t('Options'),
       expanded: true,
@@ -608,6 +597,16 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('Whether to include a client-side search box'),
+            },
+          }],
+          [{
+            name: 'include_row_numbers',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Row Numbers'),
+              renderTrigger: true,
+              default: false,
+              description: t('Whether to include a client-side row numbers'),
             },
           },
         ],
@@ -853,6 +852,8 @@ const config: ControlPanelConfig = {
       }),
       visibility: isAggMode,
     },
+    bulkActionsSection,
+    tableActionsSection,
   ],
   formDataOverrides: formData => ({
     ...formData,

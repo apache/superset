@@ -116,17 +116,18 @@ export const ActionCell = ({
           <div className="dot" />
         </MenuTrigger>
         <MenuContainer className="remita-menu" hidden={!menuOpen}>
-          {Object.entries(actions).map(([key, config]) => (
+          {Array.from(actions).map((config, index) => (
             <ActionLink
-              key={key}
+              key={config.key || index}
               href="#"
-              className={`remita-link remita-action-${key}`}
-              data-action={extendedActions.action || key}
-              onClick={(e) => handleActionClick(e, key, config)}
+              className={`remita-link remita-action-${config.key || index}`}
+              data-action={config.action || config.key || index}
+              onClick={(e) => handleActionClick(e, config.key || index, config)}
             >
-              {extendedActions.label}
+              {config.label}
             </ActionLink>
           ))}
+
         </MenuContainer>
       </ActionWrapper>
     </td>

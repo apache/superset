@@ -478,11 +478,12 @@ const transformProps = (
     enable_bulk_actions = false,
     bulk_action_id_column = 'id',
     selection_mode = 'multiple',
-    split_actions = '',
-    non_split_actions = '',
+    split_actions,
+    non_split_actions,
     enable_table_actions = false,
     table_actions_id_column = 'id',
-    table_actions = '{}',
+    table_actions ,
+    include_row_numbers,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -723,6 +724,7 @@ const transformProps = (
     enable_table_actions,
     table_actions_id_column,
     table_actions,
+    include_row_numbers,
   } as any;
 };
 
