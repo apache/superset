@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-# temporarily suspended      - dev
+      - dev
       - demo
       - upgrade
   # Optionally allow manual triggers
