@@ -456,19 +456,19 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   endRange?: string,
 ) {
   cy.get('.control-label').contains('RANGE TYPE').should('be.visible');
-  cy.get('.ant-popover-content .ant-select-selector')
+  cy.get('.antd5-popover-content .ant-select-selector')
     .should('be.visible')
     .click();
   cy.get(`[label="Advanced"]`).should('be.visible').click();
   cy.get('.section-title').contains('Advanced Time Range').should('be.visible');
   if (startRange) {
-    cy.get('.ant-popover-inner-content')
+    cy.get('.antd5-popover-inner-content')
       .find('[class^=ant-input]')
       .first()
       .type(`${startRange}`);
   }
   if (endRange) {
-    cy.get('.ant-popover-inner-content')
+    cy.get('.antd5-popover-inner-content')
       .find('[class^=ant-input]')
       .last()
       .type(`${endRange}`);

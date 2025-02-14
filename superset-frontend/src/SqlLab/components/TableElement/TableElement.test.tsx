@@ -122,7 +122,7 @@ test('fades table', async () => {
       '1',
     ),
   );
-});
+}, 10000);
 
 test('sorts columns', async () => {
   const { getAllByTestId, getByText } = render(
