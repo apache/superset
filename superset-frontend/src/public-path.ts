@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'src/public-path';
+import { staticAssetsPrefix } from './utils/getBootstrapData';
 
-import './assets/stylesheets/superset.less';
-
-// Importing Antd under its own stylesheet to prevent unintentional theming
-import './assets/stylesheets/antd/index.less';
+// Prefix the defined webpack public path with our configured prefix
+__webpack_public_path__ = `${staticAssetsPrefix()}${__webpack_public_path__}`;

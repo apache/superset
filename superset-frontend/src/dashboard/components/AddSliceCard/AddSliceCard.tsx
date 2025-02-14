@@ -34,9 +34,12 @@ import ImageLoader from 'src/components/ListViewCard/ImageLoader';
 import { usePluginContext } from 'src/components/DynamicPlugins';
 import { Tooltip } from 'src/components/Tooltip';
 import { GenericLink } from 'src/components/GenericLink/GenericLink';
+import { assetUrl } from 'src/utils/assetUrl';
 import { Theme } from '@emotion/react';
 
-const FALLBACK_THUMBNAIL_URL = '/static/assets/images/chart-card-fallback.svg';
+const FALLBACK_THUMBNAIL_URL = assetUrl(
+  '/static/assets/images/chart-card-fallback.svg',
+);
 
 const TruncatedTextWithTooltip = ({
   children,

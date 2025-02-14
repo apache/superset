@@ -19,6 +19,7 @@
 import { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
+import { assetUrl } from 'src/utils/assetUrl';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
 import { MainNav, MenuMode } from 'src/components/Menu';
@@ -252,11 +253,11 @@ export function Menu({
           >
             {isFrontendRoute(window.location.pathname) ? (
               <GenericLink className="navbar-brand" to={brand.path}>
-                <img src={brand.icon} alt={brand.alt} />
+                <img src={assetUrl(brand.icon)} alt={brand.alt} />
               </GenericLink>
             ) : (
               <a className="navbar-brand" href={brand.path} tabIndex={-1}>
-                <img src={brand.icon} alt={brand.alt} />
+                <img src={assetUrl(brand.icon)} alt={brand.alt} />
               </a>
             )}
           </Tooltip>

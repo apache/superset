@@ -41,6 +41,11 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, '../superset/static/assets');
 const ROOT_DIR = path.resolve(__dirname, '..');
+// Public path for extracted css src:urls. All assets are compiled into the same
+// folder. This forces the src:url in the extracted css to only contain the filename
+// and will therefore be relative to the .css file itself and not have to worry about
+// any url prefix.
+const MINI_CSS_EXTRACT_PUBLICPATH = './';
 
 const {
   mode = 'development',
@@ -50,11 +55,10 @@ const {
 } = parsedArgs;
 const isDevMode = mode !== 'production';
 const isDevServer = process.argv[1].includes('webpack-dev-server');
-const ASSET_BASE_URL = process.env.ASSET_BASE_URL || '';
 
 const output = {
   path: BUILD_DIR,
-  publicPath: `${ASSET_BASE_URL}/static/assets/`,
+  publicPath: '/static/assets/',
 };
 if (isDevMode) {
   output.filename = '[name].[contenthash:8].entry.js';
@@ -397,7 +401,14 @@ const config = {
         test: /\.css$/,
         include: [APP_DIR, /superset-ui.+\/src/],
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          isDevMode
+            ? 'style-loader'
+            : {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
+                },
+              },
           {
             loader: 'css-loader',
             options: {
@@ -410,7 +421,14 @@ const config = {
         test: /\.less$/,
         include: APP_DIR,
         use: [
-          isDevMode ? 'style-loader' : MiniCssExtractPlugin.loader,
+          isDevMode
+            ? 'style-loader'
+            : {
+                loader: MiniCssExtractPlugin.loader,
+                options: {
+                  publicPath: MINI_CSS_EXTRACT_PUBLICPATH,
+                },
+              },
           {
             loader: 'css-loader',
             options: {
@@ -535,6 +553,9 @@ if (isDevMode) {
   });
 
   config.devServer = {
+    devMiddleware: {
+      writeToDisk: filePath => /assets\/images/.test(filePath),
+    },
     historyApiFallback: true,
     hot: true,
     port: devserverPort,

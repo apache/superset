@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import 'src/public-path';
+import { staticAssetsPrefix } from 'src/utils/getBootstrapData';
 
-import './assets/stylesheets/superset.less';
-
-// Importing Antd under its own stylesheet to prevent unintentional theming
-import './assets/stylesheets/antd/index.less';
+/**
+ * Takes a string path to a static asset and prefixes it with the defined static asset prefix
+ * defined in the bootstrap data
+ * @param path A string path to a resource
+ */
+export function assetUrl(path: string) {
+  return `${staticAssetsPrefix()}${path.startsWith('/') ? path : `/${path}`}`;
+}

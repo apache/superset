@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import 'src/public-path';
 
 // Menu App. Used in views that do not already include the Menu component in the layout.
 // eg, backend rendered views
