@@ -22,7 +22,7 @@
 // @ts-check
 const { exit } = require("node:process");
 const { join, dirname } = require("node:path");
-const { readdirSync } = require("node:fs");
+const { readdir } = require("node:fs/promises");
 const { chdir, cwd } = require("node:process");
 const { createRequire } = require("node:module");
 
@@ -46,38 +46,41 @@ void (async () => {
   const packageRootDir = getPackage(packageArg);
   const packagePathRegex = new RegExp(`^${packageRootDir}\/`);
   const updatedArgs = removePackageSegment(remainingArgs, packagePathRegex);
+  const argsStr = updatedArgs.join(" ");
 
   const excludedDeclarationDirs = getExcludedDeclarationDirs(
     excludeDeclarationDirArg
   );
-  let declarationFiles = getFilesRecursivelySync(
+  let declarationFiles = await getFilesRecursively(
     packageRootDir,
     DECLARATION_FILE_REGEX,
     excludedDeclarationDirs
   );
   declarationFiles = removePackageSegment(declarationFiles, packagePathRegex);
+  const declarationFilesStr = declarationFiles.join(" ");
+
+  const packageRootDirAbsolute = join(SUPERSET_ROOT, packageRootDir);
+  const tsConfig = join(packageRootDirAbsolute, "tsconfig.json");
+  const command = `--noEmit --allowJs --composite false --project ${tsConfig} ${argsStr} ${declarationFilesStr}`;
 
   try {
-    chdir(join(SUPERSET_ROOT, packageRootDir));
+    chdir(packageRootDirAbsolute);
     const packageRequire = createRequire(join(cwd(), "node_modules"));
     // Please ensure that tscw-config is installed in the package being type-checked.
     const tscw = packageRequire("tscw-config");
-    const tsConfig = join(cwd(), "tsconfig.json");
-
-    const child =
-      await tscw`--noEmit --allowJs --project ${tsConfig} --composite false ${updatedArgs.join(
-        " "
-      )} ${declarationFiles.join(" ")}`;
+    const child = await tscw`${command}`;
 
     if (child.stdout) {
       console.log(child.stdout);
     } else {
-      console.log(child.stderr);
+      console.error(child.stderr);
     }
 
     exit(child.exitCode);
   } catch (e) {
-    console.error(e);
+    console.error("Failed to execute type checking:", e);
+    console.error("Package:", packageRootDir);
+    console.error("Command:", `tscw ${command}`);
     exit(1);
   }
 })();
@@ -87,10 +90,11 @@ void (async () => {
  * @param {RegExp} regex
  * @param {string[]} excludedDirs
  *
- * @returns {string[]}
+ * @returns {Promise<string[]>}
  */
-function getFilesRecursivelySync(dir, regex, excludedDirs) {
-  const files = readdirSync(dir, { withFileTypes: true });
+
+async function getFilesRecursively(dir, regex, excludedDirs) {
+  const files = await readdir(dir, { withFileTypes: true });
   /** @type {string[]} */
   let result = [];
 
@@ -100,7 +104,7 @@ function getFilesRecursivelySync(dir, regex, excludedDirs) {
 
     if (file.isDirectory() && !shouldExclude) {
       result = result.concat(
-        getFilesRecursivelySync(fullPath, regex, excludedDirs)
+        await getFilesRecursively(fullPath, regex, excludedDirs)
       );
     } else if (regex.test(file.name)) {
       result.push(fullPath);
