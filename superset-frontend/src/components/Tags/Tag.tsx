@@ -22,6 +22,7 @@ import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { CloseOutlined } from '@ant-design/icons';
 
 const StyledTag = styled(AntdTag)`
@@ -70,7 +71,7 @@ const Tag = ({
           <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
             {id ? (
               <a
-                href={`/superset/all_entities/?id=${id}`}
+                href={ensureAppRoot(`/superset/all_entities/?id=${id}`)}
                 target="_blank"
                 rel="noreferrer"
               >
