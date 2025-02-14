@@ -61,15 +61,14 @@ function drillToDetail(targetMenuItem: string) {
 const drillToDetailBy = (targetDrill: string) => {
   interceptSamples();
 
-  cy.get('.ant-dropdown:not(.ant-dropdown-hidden)')
-    .first()
+  cy.get('.antd5-dropdown:not(.antd5-dropdown-hidden)')
     .should('be.visible')
     .find("[role='menu'] [role='menuitem']")
     .contains(/^Drill to detail by$/)
     .trigger('mouseover', { force: true });
 
   cy.get(
-    '.ant-dropdown-menu-submenu:not(.ant-dropdown-menu-submenu-hidden) [data-test="drill-to-detail-by-submenu"]',
+    '.antd5-dropdown-menu-submenu:not(.antd5-dropdown-menu-submenu-hidden) [data-test="drill-to-detail-by-submenu"]',
   )
     .should('be.visible')
     .find('[role="menuitem"]')

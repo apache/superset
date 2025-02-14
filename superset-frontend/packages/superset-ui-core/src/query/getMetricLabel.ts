@@ -19,17 +19,23 @@
 
 import { QueryFormMetric, isSavedMetric, isAdhocMetricSimple } from './types';
 
-export default function getMetricLabel(metric: QueryFormMetric): string {
+export default function getMetricLabel(
+  metric: QueryFormMetric,
+  index?: number,
+  queryFormMetrics?: QueryFormMetric[],
+  verboseMap?: Record<string, string>,
+): string {
+  let label = '';
   if (isSavedMetric(metric)) {
-    return metric;
-  }
-  if (metric.label) {
-    return metric.label;
-  }
-  if (isAdhocMetricSimple(metric)) {
-    return `${metric.aggregate}(${
+    label = metric;
+  } else if (metric.label) {
+    ({ label } = metric);
+  } else if (isAdhocMetricSimple(metric)) {
+    label = `${metric.aggregate}(${
       metric.column.columnName || metric.column.column_name
     })`;
+  } else {
+    label = metric.sqlExpression;
   }
-  return metric.sqlExpression;
+  return verboseMap?.[label] || label;
 }

@@ -300,13 +300,16 @@ class BaseReportState:
         )
         user = security_manager.find_user(username)
 
+        max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+
         if self._report_schedule.chart:
             url = self._get_url()
+
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["slice"]
-            window_size = (
-                self._report_schedule.custom_width or window_width,
-                self._report_schedule.custom_height or window_height,
-            )
+            width = min(max_width, self._report_schedule.custom_width or window_width)
+            height = self._report_schedule.custom_height or window_height
+            window_size = (width, height)
+
             screenshots: list[Union[ChartScreenshot, DashboardScreenshot]] = [
                 ChartScreenshot(
                     url,
@@ -317,11 +320,12 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
+
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
-            window_size = (
-                self._report_schedule.custom_width or window_width,
-                self._report_schedule.custom_height or window_height,
-            )
+            width = min(max_width, self._report_schedule.custom_width or window_width)
+            height = self._report_schedule.custom_height or window_height
+            window_size = (width, height)
+
             screenshots = [
                 DashboardScreenshot(
                     url,
@@ -578,9 +582,9 @@ class BaseReportState:
                     SupersetError(
                         message=ex.message,
                         error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
-                        level=ErrorLevel.ERROR
-                        if ex.status >= 500
-                        else ErrorLevel.WARNING,
+                        level=(
+                            ErrorLevel.ERROR if ex.status >= 500 else ErrorLevel.WARNING
+                        ),
                     )
                 )
         if notification_errors:
