@@ -260,7 +260,7 @@ export const exportChart = ({
     });
     payload = formData;
   } else {
-    url = '/api/v1/chart/data';
+    url = ensureAppRoot('/api/v1/chart/data');
     payload = buildV1ChartDataPayload({
       formData,
       force,
