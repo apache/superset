@@ -68,6 +68,16 @@ repos:
         language: system
         pass_filenames: true
         files: \.(js|jsx|ts|tsx)$
+  - repo: local
+    hooks:
+      - id: type-checking-frontend
+        name: Type-Checking (Frontend)
+        entry: ./scripts/check-type.js
+        args: [package=superset-frontend, excludeDeclarationDir=cypress-base]
+        language: node
+        files: ^superset-frontend/
+        exclude: ^superset-frontend/cypress-base/
+        types_or: [ts, tsx, javascript, jsx]
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
@@ -83,5 +93,5 @@ repos:
     rev: v0.8.0
     hooks:
       - id: ruff
-        args: [ --fix ]
+        args: [--fix]
       - id: ruff-format
