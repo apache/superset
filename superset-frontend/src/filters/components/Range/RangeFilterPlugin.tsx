@@ -28,6 +28,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
+import { isNumber } from 'lodash';
 import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
@@ -98,7 +99,7 @@ const validateRange = (
       if (!inputMin && enableEmptyFilter) {
         return { isValid: false, errorMessage: requiredValuError };
       }
-      if (inputMin && (inputMin < min || inputMin > max)) {
+      if (isNumber(inputMin) && (inputMin < min || inputMin > max)) {
         return { isValid: false, errorMessage: singleValueRangeError };
       }
     }
@@ -108,7 +109,7 @@ const validateRange = (
         return { isValid: false, errorMessage: requiredValuError };
       }
 
-      if (inputMax && (inputMax < min || inputMax > max)) {
+      if (isNumber(inputMax) && (inputMax < min || inputMax > max)) {
         return { isValid: false, errorMessage: singleValueRangeError };
       }
     }
@@ -165,6 +166,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
   const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
+  const rangeInput = enableSingleValue === undefined;
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
@@ -345,7 +347,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               enableSingleValue === undefined) && (
               <InputNumber
                 value={inputValue[minIndex]}
-                max={inputValue[maxIndex] || undefined}
+                max={
+                  rangeInput && inputValue[maxIndex]
+                    ? inputValue[maxIndex]
+                    : undefined
+                }
                 onChange={val => handleChange(val, minIndex)}
                 placeholder={`${min}`}
                 status={filterState.validateStatus}
@@ -359,7 +365,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               enableSingleValue === undefined) && (
               <InputNumber
                 value={inputValue[maxIndex]}
-                min={inputValue[minIndex] || undefined}
+                min={
+                  rangeInput && inputValue[minIndex]
+                    ? inputValue[minIndex]
+                    : undefined
+                }
                 onChange={val => handleChange(val, maxIndex)}
                 placeholder={`${max}`}
                 data-test="range-filter-to-input"
@@ -367,7 +377,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               />
             )}
           </Wrapper>
-          {(enableSingleValue !== undefined ||
+          {(rangeInput ||
             filterBarOrientation === FilterBarOrientation.Vertical) &&
             !filterState.validateStatus && <Metadata value={metadataText} />}
         </StyledFormItem>
