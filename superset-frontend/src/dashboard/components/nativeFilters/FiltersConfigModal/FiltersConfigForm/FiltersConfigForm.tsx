@@ -1251,10 +1251,7 @@ const FiltersConfigForm = (
                     rules={[
                       {
                         validator: () => {
-                          if (
-                            formFilter?.defaultDataMask?.filterState?.value !==
-                            undefined
-                          ) {
+                          if (formFilter?.defaultDataMask?.filterState?.value) {
                             // requires managing the error as the DefaultValue
                             // component does not use an Antdesign compatible input
                             const formValidationFields = form.getFieldsError();
@@ -1278,11 +1275,7 @@ const FiltersConfigForm = (
                             return [...prevErroredFilters, filterId];
                           });
                           return Promise.reject(
-                            new Error(
-                              formFilter?.defaultDataMask?.filterState
-                                ?.validateMessage ??
-                                t('Default value is required'),
-                            ),
+                            new Error(t('Default value is required')),
                           );
                         },
                       },

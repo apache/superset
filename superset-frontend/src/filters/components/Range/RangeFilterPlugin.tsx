@@ -24,7 +24,7 @@ import {
   styled,
   t,
 } from '@superset-ui/core';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { InputNumber } from 'src/components/Input';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import Metadata from 'src/components/Metadata';
@@ -32,6 +32,8 @@ import { PluginFilterRangeProps } from './types';
 import { StatusMessage, StyledFormItem, FilterPluginStyle } from '../common';
 import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
+
+type InputValue = number | null;
 
 const StyledDivider = styled.span`
   margin: 0 ${({ theme }) => theme.gridUnit * 3}px;
@@ -77,8 +79,8 @@ const getLabel = (
 };
 
 const validateRange = (
-  inputMin: number | null,
-  inputMax: number | null,
+  inputMin: InputValue,
+  inputMax: InputValue,
   min: number,
   max: number,
   enableEmptyFilter: boolean,
@@ -166,13 +168,57 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
-  const [inputValue, setInputValue] = useState<[number | null, number | null]>([
+  const [inputValue, setInputValue] = useState<[InputValue, InputValue]>([
     null,
     null,
   ]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (
+      filterState.validateStatus === 'error' &&
+      error !== filterState.validateMessage
+    ) {
+      setError(filterState.validateMessage);
+
+      const inputMin = inputValue[minIndex];
+      const inputMax = inputValue[maxIndex];
+
+      const { isValid, errorMessage } = validateRange(
+        inputMin,
+        inputMax,
+        min,
+        max,
+        enableEmptyFilter,
+        enableSingleValue,
+      );
+
+      if (!isValid) {
+        setError(errorMessage);
+        setDataMask({
+          extraFormData: getRangeExtraFormData(col, null, null),
+          filterState: {
+            value: null,
+            label: '',
+            validateStatus: 'error',
+            validateMessage: errorMessage,
+          },
+        });
+        return;
+      }
+
+      setError(null);
+      setDataMask({
+        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
+        filterState: {
+          value: [inputMin, inputMax],
+          label: getLabel(inputMin, inputMax, enableSingleExactValue),
+          validateStatus: undefined,
+          validateMessage: '',
+        },
+      });
+      return;
+    }
     if (filterState.validateStatus === 'error') {
       setError(filterState.validateMessage);
       return;
@@ -185,19 +231,23 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         filterState: {
           value: [null, null],
           label: '',
+          validateStatus: undefined,
+          validateMessage: '',
         },
       });
     }
     // Filter state is pre-set case
     if (filterState.value && !filterState.validateStatus) {
       setInputValue(filterState.value);
+      const [minVal, maxVal] = filterState.value;
       setDataMask({
-        extraFormData: getRangeExtraFormData(
-          col,
-          filterState.value[minIndex],
-          filterState.value[maxIndex],
-        ),
-        filterState,
+        extraFormData: getRangeExtraFormData(col, minVal, maxVal),
+        filterState: {
+          value: filterState.value,
+          label: getLabel(minVal, maxVal, enableSingleExactValue),
+          validateStatus: undefined,
+          validateMessage: '',
+        },
       });
     }
   }, [filterState.value]);
@@ -215,49 +265,54 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     return '';
   }, [enableSingleValue]);
 
-  const handleChange = (newValue: number | null, index: 0 | 1) => {
-    const newInputValue: [number | null, number | null] =
-      index === minIndex
-        ? [newValue, inputValue[maxIndex]]
-        : [inputValue[minIndex], newValue];
+  const handleChange = useCallback(
+    (newValue: number | null, index: 0 | 1) => {
+      const newInputValue: [number | null, number | null] =
+        index === minIndex
+          ? [newValue, inputValue[maxIndex]]
+          : [inputValue[minIndex], newValue];
 
-    setInputValue(newInputValue);
+      setInputValue(newInputValue);
 
-    const inputMin = newInputValue[minIndex];
-    const inputMax = newInputValue[maxIndex];
+      const inputMin = newInputValue[minIndex];
+      const inputMax = newInputValue[maxIndex];
 
-    const { isValid, errorMessage } = validateRange(
-      inputMin,
-      inputMax,
-      min,
-      max,
-      enableEmptyFilter,
-      enableSingleValue,
-    );
+      const { isValid, errorMessage } = validateRange(
+        inputMin,
+        inputMax,
+        min,
+        max,
+        enableEmptyFilter,
+        enableSingleValue,
+      );
 
-    if (!isValid) {
-      setError(errorMessage);
+      if (!isValid) {
+        setError(errorMessage);
+        setDataMask({
+          extraFormData: getRangeExtraFormData(col, null, null),
+          filterState: {
+            value: null,
+            label: '',
+            validateStatus: 'error',
+            validateMessage: errorMessage,
+          },
+        });
+        return;
+      }
+
+      setError(null);
       setDataMask({
-        extraFormData: getRangeExtraFormData(col, null, null),
+        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
         filterState: {
-          value: null,
-          label: '',
-          validateStatus: 'error',
-          validateMessage: errorMessage,
+          value: [inputMin, inputMax],
+          label: getLabel(inputMin, inputMax, enableSingleExactValue),
+          validateStatus: undefined,
+          validateMessage: '',
         },
       });
-      return;
-    }
-
-    setError(null);
-    setDataMask({
-      extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
-      filterState: {
-        value: [inputMin, inputMax],
-        label: getLabel(inputMin, inputMax, enableSingleExactValue),
-      },
-    });
-  };
+    },
+    [col, min, max, enableEmptyFilter, enableSingleValue, setDataMask],
+  );
 
   const formItemExtra = useMemo(() => {
     if (error) {
