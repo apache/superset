@@ -30,11 +30,8 @@ import {
 import AutoSizer from 'react-virtualized-auto-sizer';
 import Icons from 'src/components/Icons';
 import type { SqlLabRootState } from 'src/SqlLab/types';
-import {
-  Skeleton,
-  AntdBreadcrumb as Breadcrumb,
-  AntdDropdown,
-} from 'src/components';
+import { Skeleton, AntdBreadcrumb as Breadcrumb, Button } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import FilterableTable from 'src/components/FilterableTable';
 import Tabs from 'src/components/Tabs';
 import {
@@ -308,8 +305,8 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
       <Title>
         <Icons.Table iconSize="l" />
         {tableName}
-        <AntdDropdown
-          overlay={
+        <Dropdown
+          dropdownRender={() => (
             <Menu
               onClick={({ key }) => {
                 if (key === 'refresh-table') {
@@ -324,15 +321,17 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
               }}
               items={dropdownMenu}
             />
-          }
+          )}
           trigger={['click']}
         >
-          <Icons.DownSquareOutlined
-            iconSize="m"
-            style={{ marginTop: 2, marginLeft: 4 }}
-            aria-label={t('Table actions')}
-          />
-        </AntdDropdown>
+          <Button buttonSize="xsmall" type="link">
+            <Icons.DownSquareOutlined
+              iconSize="m"
+              style={{ marginTop: 2, marginLeft: 4 }}
+              aria-label={t('Table actions')}
+            />
+          </Button>
+        </Dropdown>
       </Title>
       {isMetadataRefreshing ? (
         <Skeleton active />

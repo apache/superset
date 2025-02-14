@@ -20,7 +20,7 @@ import { AriaAttributes } from 'react';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'abortcontroller-polyfill/dist/abortcontroller-polyfill-only';
-import 'jest-enzyme';
+import 'enzyme-matchers';
 import jQuery from 'jquery';
 import Enzyme from 'enzyme';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';

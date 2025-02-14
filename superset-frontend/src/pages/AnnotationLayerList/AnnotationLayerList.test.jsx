@@ -31,7 +31,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(AnnotationLayersList)
 const mockStore = configureStore([thunk]);
@@ -88,19 +88,19 @@ describe('AnnotationLayersList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(AnnotationLayersList)).toExist();
+    expect(wrapper.find(AnnotationLayersList)).toBeTruthy();
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('renders a modal', () => {
-    expect(wrapper.find(AnnotationLayerModal)).toExist();
+    expect(wrapper.find(AnnotationLayerModal)).toBeTruthy();
   });
 
   it('fetches layers', () => {
@@ -112,7 +112,7 @@ describe('AnnotationLayersList', () => {
   });
 
   it('renders Filters', () => {
-    expect(wrapper.find(Filters)).toExist();
+    expect(wrapper.find(Filters)).toBeTruthy();
   });
 
   it('searches', async () => {

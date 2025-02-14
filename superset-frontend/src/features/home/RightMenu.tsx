@@ -410,6 +410,7 @@ const RightMenu = ({
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
           <StyledSubMenu
+            key="sub1"
             data-test="new-dropdown"
             title={
               <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
@@ -475,6 +476,7 @@ const RightMenu = ({
           </StyledSubMenu>
         )}
         <StyledSubMenu
+          key="sub3_settings"
           title={t('Settings')}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >

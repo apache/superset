@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, waitFor, within } from 'spec/helpers/testing-library';
 import SouthPane from 'src/SqlLab/components/SouthPane';
-import '@testing-library/jest-dom';
 import { STATUS_OPTIONS } from 'src/SqlLab/constants';
 import { initialState, table, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { denormalizeTimestamp } from '@superset-ui/core';
+import userEvent from '@testing-library/user-event';
 
 const mockedProps = {
   queryEditorId: defaultQueryEditor.id,
@@ -49,12 +49,14 @@ const mockState = {
     tables: [
       {
         ...table,
+        id: 't3',
         name: 'table3',
         dataPreviewQueryId: '2g2_iRFMl',
         queryEditorId: defaultQueryEditor.id,
       },
       {
         ...table,
+        id: 't4',
         name: 'table4',
         dataPreviewQueryId: 'erWdqEWPm',
         queryEditorId: defaultQueryEditor.id,
@@ -148,4 +150,23 @@ test('should render tabs for table metadata view', () => {
   mockState.sqlLab.tables.forEach(({ name, schema }, index) => {
     expect(tabs[index + 2]).toHaveTextContent(`${schema}.${name}`);
   });
+});
+
+test('should remove tab', async () => {
+  const { getAllByRole } = await render(<SouthPane {...mockedProps} />, {
+    useRedux: true,
+    initialState: mockState,
+  });
+
+  const tabs = getAllByRole('tab');
+  const totalTabs = mockState.sqlLab.tables.length + 2;
+  expect(tabs).toHaveLength(totalTabs);
+  const removeButton = within(tabs[2].parentElement as HTMLElement).getByRole(
+    'button',
+    {
+      name: /remove/,
+    },
+  );
+  userEvent.click(removeButton);
+  await waitFor(() => expect(getAllByRole('tab')).toHaveLength(totalTabs - 1));
 });
