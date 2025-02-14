@@ -61,9 +61,9 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   ['MEMORY_DECIMAL', t('Memory in bytes - decimal (1024B => 1.024kB)')],
   ['MEMORY_BINARY', t('Memory in bytes - binary (1024B => 1KiB)')],
   [NumberFormats.BYTES_SI, 'Bytes in SI (kB, MB)'],
-  [NumberFormats.BYTES_IEC, 'Bytes in IEC (kiB, MiB)'],
+  [NumberFormats.BYTES_IEC, 'Bytes in IEC (KiB, MiB)'],
   [NumberFormats.BYTERATE_SI, 'Byterate in SI (kB/s, MB/s)'],
-  [NumberFormats.BYTERATE_IEC, 'Byterate in IEC (kiB/s, MiB/s)'],
+  [NumberFormats.BYTERATE_IEC, 'Byterate in IEC (KiB/s, MiB/s)'],
 ];
 
 export const D3_TIME_FORMAT_DOCS = t(
