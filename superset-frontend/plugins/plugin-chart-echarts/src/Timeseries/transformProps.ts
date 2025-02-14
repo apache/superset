@@ -157,6 +157,7 @@ export default function transformProps(
     onlyTotal,
     opacity,
     orientation,
+    overrideLineStyle,
     percentageThreshold,
     richTooltip,
     seriesType,
@@ -291,6 +292,10 @@ export default function transformProps(
       // use a combination of dash and dot for the line style
       lineStyle.type = [(patternIncrement % 5) + 1, (patternIncrement % 3) + 1];
       lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
+
+    if (overrideLineStyle) {
+      lineStyle.type = overrideLineStyle;
     }
 
     const entryName = String(entry.name || '');
