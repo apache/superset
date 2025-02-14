@@ -46,7 +46,7 @@ function formatValue(
   decimals: number,
 ) {
   if (value === 0) {
-    const formatted = `0 + ${labels[0]}`;
+    const formatted = `0 ${labels[0]}`;
     return formatted;
   }
 
@@ -107,7 +107,6 @@ export default function createNetworkNumberFormatter(
         id,
         label: label ?? 'Bytes IEC Formatter',
       });
-      break;
     case NumberFormats.BYTERATE_SI:
       return new NumberFormatter({
         description,
@@ -115,7 +114,6 @@ export default function createNetworkNumberFormatter(
         id,
         label: label ?? 'Byterate SI Formatter',
       });
-      break;
     case NumberFormats.BYTERATE_IEC:
       return new NumberFormatter({
         description,
