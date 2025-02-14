@@ -121,7 +121,7 @@ export function updateColumns(prevCols, newCols, addSuccessToast) {
 
 export async function fetchSyncedColumns(datasource) {
   const params = {
-    datasource_type: datasource.type,
+    datasource_type: datasource.type || datasource.datasource_type,
     database_name:
       datasource.database?.database_name || datasource.database?.name,
     catalog_name: datasource.catalog,
