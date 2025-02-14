@@ -484,6 +484,8 @@ const transformProps = (
     table_actions_id_column = 'id',
     table_actions ,
     include_row_numbers,
+    slice_id,
+    show_split_buttons_in_slice_header,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -725,6 +727,8 @@ const transformProps = (
     table_actions_id_column,
     table_actions,
     include_row_numbers,
+    slice_id,
+    show_split_buttons_in_slice_header
   } as any;
 };
 

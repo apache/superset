@@ -232,7 +232,6 @@ const NonSplitActionsControl = ({
       </Form.Item>
       <Form.Item
         name="boundToSelection"
-        label="Bound to Selection"
         valuePropName="checked"
       >
         <Checkbox>Bound to Selection</Checkbox>
@@ -252,7 +251,6 @@ const NonSplitActionsControl = ({
       </Form.Item>
       <Form.Item
         name="publishEvent"
-        label="Publish Event"
         valuePropName="checked"
       >
         <Checkbox onChange={(e) => setIsPublishEvent(e.target.checked)}>
@@ -273,8 +271,7 @@ const NonSplitActionsControl = ({
         }
       </Form.Item>
       <Form.Item
-        name="show_in_slice_header"
-        label="Show In Slice Header"
+        name="showInSliceHeader"
         valuePropName="checked"
       >
         <Checkbox>Show In Slice Header</Checkbox>

@@ -1,38 +1,27 @@
-import React, {
-  useCallback,
-  useRef,
-  ReactNode,
-  HTMLProps,
-  MutableRefObject,
-  CSSProperties,
-  DragEvent,
-} from 'react';
+import React, {CSSProperties, DragEvent, HTMLProps, MutableRefObject, ReactNode, useCallback, useRef,} from 'react';
 
 import {
-  useTable,
-  usePagination,
-  useSortBy,
-  useGlobalFilter,
-  useColumnOrder,
-  PluginHook,
-  TableOptions,
   FilterType,
   IdType,
+  PluginHook,
   Row,
+  TableOptions,
+  useColumnOrder,
+  useGlobalFilter,
+  usePagination,
+  useSortBy,
+  useTable,
 } from 'react-table';
-import { matchSorter, rankings } from 'match-sorter';
-import { typedMemo, usePrevious } from '@superset-ui/core';
-import { isEqual } from 'lodash';
-import GlobalFilter, { GlobalFilterProps } from './components/GlobalFilter';
-import SelectPageSize, {
-  SelectPageSizeProps,
-  SizeOption,
-} from './components/SelectPageSize';
+import {matchSorter, rankings} from 'match-sorter';
+import {typedMemo, usePrevious} from '@superset-ui/core';
+import {isEqual} from 'lodash';
+import GlobalFilter, {GlobalFilterProps} from './components/GlobalFilter';
+import SelectPageSize, {SelectPageSizeProps, SizeOption,} from './components/SelectPageSize';
 import SimplePagination from './components/Pagination';
 import useSticky from './hooks/useSticky';
-import { PAGE_SIZE_OPTIONS } from '../consts';
-import { sortAlphanumericCaseInsensitive } from './utils/sortAlphanumericCaseInsensitive';
-import { BulkActions } from '../BulkActions';
+import {PAGE_SIZE_OPTIONS} from '../consts';
+import {sortAlphanumericCaseInsensitive} from './utils/sortAlphanumericCaseInsensitive';
+import {BulkActions} from '../BulkActions';
 
 export interface BulkAction {
   key: string;
@@ -40,6 +29,7 @@ export interface BulkAction {
   style?: any
   boundToSelection: boolean;
   visibilityCondition: 'all' | 'selected' | 'unselected';
+  showInSliceHeader: boolean;
 }
 
 export interface BulkActionsConfig {
@@ -71,11 +61,12 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   bulkActions?: BulkActionsConfig;
   onBulkActionClick?: (actionKey: string, selectedIds: any[]) => void;
   enableBulkActions?: boolean;
-  includeRowNumber?:boolean;
+  includeRowNumber?: boolean;
   enableTableActions?: boolean;
   tableActionsIdColumn?: string;
   tableActions?: Set<any>;
   onTableActionClick?: (action?: string, id?: string, value?: string) => void;
+  showSplitInSliceHeader?: boolean;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -114,6 +105,7 @@ export default typedMemo(function DataTable<D extends object>({
                                                                 bulkActions,
                                                                 onBulkActionClick,
                                                                 enableBulkActions = false,
+                                                                showSplitInSliceHeader = false,
                                                                 ...moreUseTableOptions
                                                               }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -156,7 +148,7 @@ export default typedMemo(function DataTable<D extends object>({
         (Number(initialHeight) || wrapperRef.current.clientHeight) -
         (globalControlRef.current?.clientHeight || 0) -
         (paginationRef.current?.clientHeight || 0);
-      return { width, height };
+      return {width, height};
     }
     return undefined;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +191,7 @@ export default typedMemo(function DataTable<D extends object>({
     wrapStickyTable,
     setColumnOrder,
     allColumns,
-    state: { pageIndex, pageSize, globalFilter: filterValue, sticky = {} },
+    state: {pageIndex, pageSize, globalFilter: filterValue, sticky = {}},
   } = useTable<D>(
     {
       columns,
@@ -233,13 +225,13 @@ export default typedMemo(function DataTable<D extends object>({
   };
 
   const renderBulkActions = () => {
-    if (!enableBulkActions || !bulkActions || !selectedRows) return null;
-
+    if (!enableBulkActions || !bulkActions || !selectedRows ) return null;
     return (
       <div className="dt-bulk-actions">
         <BulkActions
           selectedRows={selectedRows}
           actions={bulkActions}
+          showSplitInSliceHeader={showSplitInSliceHeader}
           onActionClick={handleBulkAction}
         />
       </div>
@@ -288,11 +280,11 @@ export default typedMemo(function DataTable<D extends object>({
   };
 
   const renderTable = () => (
-    <table {...getTableProps({ className: tableClassName })}>
+    <table {...getTableProps({className: tableClassName})}>
       <thead>
-        {renderGroupingHeaders ? renderGroupingHeaders() : null}
+      {renderGroupingHeaders ? renderGroupingHeaders() : null}
       {headerGroups.map(headerGroup => {
-        const { key: headerGroupKey, ...headerGroupProps } =
+        const {key: headerGroupKey, ...headerGroupProps} =
           headerGroup.getHeaderGroupProps();
         return (
           <tr key={headerGroupKey || headerGroup.id} {...headerGroupProps}>
@@ -312,11 +304,11 @@ export default typedMemo(function DataTable<D extends object>({
       {page && page.length > 0 ? (
         page.map(row => {
           prepareRow(row);
-          const { key: rowKey, ...rowProps } = row.getRowProps();
+          const {key: rowKey, ...rowProps} = row.getRowProps();
           return (
             <tr key={rowKey || row.id} {...rowProps} role="row">
               {row.cells.map(cell =>
-                cell.render('Cell', { key: cell.column.id }),
+                cell.render('Cell', {key: cell.column.id}),
               )}
             </tr>
           );
@@ -332,16 +324,16 @@ export default typedMemo(function DataTable<D extends object>({
       {shouldRenderFooter && (
         <tfoot>
         {footerGroups.map(footerGroup => {
-          const { key: footerGroupKey, ...footerGroupProps } =
+          const {key: footerGroupKey, ...footerGroupProps} =
             footerGroup.getHeaderGroupProps();
           return (
-              <tr
-                key={footerGroupKey || footerGroup.id}
-                {...footerGroupProps}
-                role="row"
-              >
+            <tr
+              key={footerGroupKey || footerGroup.id}
+              {...footerGroupProps}
+              role="row"
+            >
               {footerGroup.headers.map(column =>
-                column.render('Footer', { key: column.id }),
+                column.render('Footer', {key: column.id}),
               )}
             </tr>
           );
@@ -364,7 +356,7 @@ export default typedMemo(function DataTable<D extends object>({
 
   const paginationStyle: CSSProperties = sticky.height
     ? {}
-    : { visibility: 'hidden' };
+    : {visibility: 'hidden'};
 
   let resultPageCount = pageCount;
   let resultCurrentPageSize = pageSize;
@@ -390,7 +382,7 @@ export default typedMemo(function DataTable<D extends object>({
   }
 
   return (
-    <div ref={wrapperRef} style={{ width: initialWidth, height: initialHeight }}>
+    <div ref={wrapperRef} style={{width: initialWidth, height: initialHeight}}>
       {hasGlobalControl ? (
         <div ref={globalControlRef} className="form-inline dt-controls">
           <div
@@ -402,7 +394,7 @@ export default typedMemo(function DataTable<D extends object>({
             } : {}}
           >
             <div className={renderTimeComparisonDropdown ? 'remita-header-container' : 'remita-header-container'}
-                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '10px' }}
+                 style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: '10px'}}
             >
               {hasPagination ? (
                 <SelectPageSize
@@ -440,7 +432,6 @@ export default typedMemo(function DataTable<D extends object>({
           </div>
         </div>
       ) : null}
-
 
 
       {wrapStickyTable ? wrapStickyTable(renderTable) : renderTable()}

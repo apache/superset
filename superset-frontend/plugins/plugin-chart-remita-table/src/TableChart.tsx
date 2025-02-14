@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, {
   CSSProperties,
   KeyboardEvent as ReactKeyboardEvent,
@@ -10,6 +9,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
+
+
 import {ColumnInstance, ColumnWithLooseAccessor, DefaultSortTypes, Row,} from 'react-table';
 import {extent as d3Extent, max as d3Max} from 'd3-array';
 import {FaSort} from '@react-icons/all-files/fa/FaSort';
@@ -205,14 +206,14 @@ function SelectPageSize({
 
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
-
-interface FormattedAction {
-  key: string;
-  label: string;
-  boundToSelection: boolean;
-  visibilityCondition: 'all' | 'selected' | 'unselected';
-  style?: string;
-}
+//
+// interface FormattedAction {
+//   key: string;
+//   label: string;
+//   boundToSelection: boolean;
+//   visibilityCondition: 'all' | 'selected' | 'unselected';
+//   style?: string;
+// }
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
@@ -222,12 +223,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     bulk_action_id_column?: string;
     selection_mode?: 'single' | 'multiple';
     split_actions?: Set<any>;
-    non_split_actions?:  Set<any>;
+    non_split_actions?: Set<any>;
     onBulkActionClick?: (actionKey?: string, selectedIds?: string[]) => void;
     enable_table_actions?: boolean;
     table_actions_id_column?: string;
     table_actions?: Set<any>;
     onTableActionClick?: (action?: string, id?: string, value?: string) => void;
+    slice_id?: string;
+    show_split_buttons_in_slice_header: boolean;
   },
 ) {
   const {
@@ -267,7 +270,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     enable_table_actions = false,
     table_actions_id_column = '',
     table_actions = new Set<any>(),
+    show_split_buttons_in_slice_header = false,
   } = props;
+
+  const sliceId = props?.slice_id;
+  const resetOnMount = true;
+
 
   const comparisonColumns = [
     {key: 'all', label: t('Display all')},
@@ -323,7 +331,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [filters],
   );
 
-  const parseOrConvertToSet = (input) => {
+  const parseOrConvertToSet = (input: any) => {
     // If input is a string, try to parse it.
     if (typeof input === 'string') {
       try {
@@ -353,6 +361,39 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const lastSelectedRow = useRef<string | null>(null);
+  useEffect(() => {
+    // Determine the navigation type
+    // Create a key in sessionStorage to mark that we have done the initial load reset.
+    // Use a global flag on the window object so that we only reset once per full page load.
+    // On a full refresh, window.__tableChartResetDone will be undefined.
+    if (resetOnMount && !window.__tableChartResetDone) {
+      // Clear the stored selection and update the state
+      localStorage.removeItem(`selectedRows_${sliceId}`);
+      setSelectedRows(new Set());
+      // Mark that we've already reset for this page load
+      window.__tableChartResetDone = true;
+    } else {
+      // Load selected rows from localStorage on component mount
+      const savedSelectedRows = localStorage.getItem(`selectedRows_${sliceId}`);
+      if (savedSelectedRows) {
+        setSelectedRows(new Set(JSON.parse(savedSelectedRows)));
+      }
+    }
+  }, [sliceId, resetOnMount]);
+
+
+  // Save selected rows to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(`selectedRows_${sliceId}`, JSON.stringify([...selectedRows]));
+    // Manually dispatch a storage event to notify other tabs/windows
+    const event = new StorageEvent('storage', {
+      key: `selectedRows_${sliceId}`,
+      newValue: JSON.stringify([...selectedRows]),
+      oldValue: localStorage.getItem(`selectedRows_${sliceId}`),
+      storageArea: localStorage,
+    });
+    window.dispatchEvent(event);
+  }, [selectedRows, sliceId]); // Add tableId as a dependency
 
   // @ts-ignore
   const handleRowSelect = useCallback(
@@ -424,14 +465,43 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [],
   );
 
+  useEffect(() => {
+    const handleMessage = (event: any) => {
+      // Check if the event data is what you expect
+      if (event.data && event.data.notification === 'alert-event') {
+        doShowAlertMessge(event.data.data);
+      }
+      if (event.data && event.data.notification === 'publish-event') {
+        doSendWindowPostMessge(event.data.data);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+
+  function doSendWindowPostMessge(messageData: any) {
+    window.parent.postMessage(messageData, '*', [new MessageChannel().port2]);
+  }
+
+  function doShowAlertMessge(messageData: any) {
+    setMessage(JSON.stringify(messageData));
+    setTimeout(() => setMessage(''), 5000);
+  }
+
+
   function sendWindowPostMessge(messageData: any) {
     if (window.self !== window.top) {
-      window.parent.postMessage(messageData, '*', [new MessageChannel().port2]);
+      doSendWindowPostMessge(messageData);
     } else {
-      setMessage(JSON.stringify(messageData));
-      setTimeout(() => setMessage(''), 5000);
+      doShowAlertMessge(messageData);
     }
   }
+
 
   const tableActionsConfig = useMemo(() => {
     if (!enable_table_actions || !table_actions_id_column || !table_actions) {
@@ -1220,7 +1290,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             !allVisibleSelected && visibleIds.some(id => selectedRows.has(id));
 
           return (
-            <td className=" right-border-only " role="columnheader button" tabIndex="0" width="50px">
+            <td className=" right-border-only " role="columnheader button" tabIndex={0} width="50px">
               <div className="selection-cell">
                 {enable_bulk_actions && (
                   <input
@@ -1250,7 +1320,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           const pageSize = serverPaginationData.pageSize || 10; // Get current page size
           const rowNumber = currentPage * pageSize + row.index + 1; // Calculate row number
           return (
-            <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex="0" width="50px" style={{ overflow: 'hidden', paddingRight: "5px", paddingLeft: "5px" }}>
+            <td aria-labelledby="selection-cell" role="cell" className="right-border-only" tabIndex={0} width="50px"
+                style={{overflow: 'hidden', paddingRight: "5px", paddingLeft: "5px"}}>
               <div className="selection-cell">
                 {enable_bulk_actions && (
                   <input
@@ -1337,44 +1408,46 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   return (
     <>
-      { message && <Alert message={message} type="info" showIcon /> }
-    <Styles>
-      <DataTable<D>
-        columns={columnsWithSelection}
-        data={data}
-        rowCount={rowCount}
-        tableClassName="table table-striped table-condensed"
-        pageSize={pageSize}
-        serverPaginationData={serverPaginationData}
-        pageSizeOptions={pageSizeOptions}
-        width={widthFromState}
-        height={heightFromState}
-        serverPagination={serverPagination}
-        onServerPaginationChange={handleServerPaginationChange}
-        onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
-        // 9 page items in > 340px works well even for 100+ pages
-        maxPageItemCount={width > 340 ? 9 : 7}
-        noResults={getNoResultsMessage}
-        searchInput={includeSearch && SearchInput}
-        selectPageSize={pageSize !== null && SelectPageSize}
-        // not in use in Superset, but needed for unit tests
-        sticky={sticky}
-        renderGroupingHeaders={
-          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
-        }
-        renderTimeComparisonDropdown={
-          isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
-        }
-        selectedRows={selectedRows}
-        enableBulkActions={enable_bulk_actions}
-        bulkActions={actions}
-        enableTableActions={enable_table_actions}
-        includeRowNumber={include_row_numbers}
-        tableActionsIdColumn={table_actions_id_column}
-        tableActions={table_actions}
-        onBulkActionClick={handleBulkAction}
-      />
-    </Styles>
+      {message && <Alert message={message} type="info" closable
+                         style={{position: 'fixed', top: 115, right: 20, zIndex: 1000}} showIcon/>}
+      <Styles>
+        <DataTable<D>
+          columns={columnsWithSelection}
+          data={data}
+          rowCount={rowCount}
+          tableClassName="table table-striped table-condensed"
+          pageSize={pageSize}
+          serverPaginationData={serverPaginationData}
+          pageSizeOptions={pageSizeOptions}
+          width={widthFromState}
+          height={heightFromState}
+          serverPagination={serverPagination}
+          onServerPaginationChange={handleServerPaginationChange}
+          onColumnOrderChange={() => setColumnOrderToggle(!columnOrderToggle)}
+          // 9 page items in > 340px works well even for 100+ pages
+          maxPageItemCount={width > 340 ? 9 : 7}
+          noResults={getNoResultsMessage}
+          searchInput={includeSearch && SearchInput}
+          selectPageSize={pageSize !== null && SelectPageSize}
+          // not in use in Superset, but needed for unit tests
+          sticky={sticky}
+          renderGroupingHeaders={
+            !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+          }
+          renderTimeComparisonDropdown={
+            isUsingTimeComparison ? renderTimeComparisonDropdown : undefined
+          }
+          selectedRows={selectedRows}
+          enableBulkActions={enable_bulk_actions}
+          bulkActions={actions}
+          enableTableActions={enable_table_actions}
+          includeRowNumber={include_row_numbers}
+          tableActionsIdColumn={table_actions_id_column}
+          tableActions={table_actions}
+          onBulkActionClick={handleBulkAction}
+          showSplitInSliceHeader={show_split_buttons_in_slice_header}
+        />
+      </Styles>
     </>
   );
 }

@@ -43,6 +43,7 @@ export interface BulkActionProps {
       label: string;
       boundToSelection: boolean;
       visibilityCondition: 'all' | 'selected' | 'unselected';
+      showInSliceHeader: boolean;
     }>;
     nonSplit: Set<{
       key: string;
@@ -50,21 +51,25 @@ export interface BulkActionProps {
       style?: 'default' | 'primary' | 'danger';
       boundToSelection: boolean;
       visibilityCondition: 'all' | 'selected' | 'unselected';
+      showInSliceHeader: boolean;
     }>;
   };
   onActionClick: (actionKey: any, selectedIds: any[]) => void;
+  showSplitInSliceHeader: boolean;
 }
 
 export const BulkActions: React.FC<BulkActionProps> = ({
                                                          selectedRows,
                                                          actions,
                                                          onActionClick,
+                                                         showSplitInSliceHeader,
                                                        }) => {
   const hasSelection = selectedRows.size > 0;
 
   // Convert Sets to Arrays for filtering.
   const splitActions = Array.from(actions.split);
   const nonSplitActions = Array.from(actions.nonSplit);
+  const splitInSliceHeader = showSplitInSliceHeader;
 
   const dropdownActions = splitActions.filter(action => {
     if (action.visibilityCondition === 'all') return true;
@@ -74,6 +79,7 @@ export const BulkActions: React.FC<BulkActionProps> = ({
   });
 
   const buttonActions = nonSplitActions.filter(action => {
+    if (action.showInSliceHeader) return false;
     if (action.visibilityCondition === 'all') return true;
     if (action.visibilityCondition === 'selected') return true;
     if (action.visibilityCondition === 'unselected') return !hasSelection;
@@ -91,7 +97,7 @@ export const BulkActions: React.FC<BulkActionProps> = ({
           </span>
 
           {/* Show dropdown if there are dropdown actions */}
-          {dropdownActions.length > 0 && (
+          {dropdownActions.length > 0 && !splitInSliceHeader && (
             <Dropdown
               overlay={
                 <Menu>
@@ -128,18 +134,19 @@ export const BulkActions: React.FC<BulkActionProps> = ({
           )}
           {/* Render button actions */}
           {
-            Array.from(buttonActions).map(action => (
-              <button
-                key={action.key}
-                className={`btn btn-${action.style || 'default'}`}
-                onClick={() =>
-                  onActionClick(action.key, Array.from(selectedRows))
-                }
-                disabled={action.boundToSelection && !hasSelection}
-              >
-                {action.label}
-              </button>
-            ))}
+            Array.from(buttonActions)
+              .map(action => (
+                <button
+                  key={action.key}
+                  className={`btn btn-${action.style || 'default'}`}
+                  onClick={() =>
+                    onActionClick(action.key, Array.from(selectedRows))
+                  }
+                  disabled={action.boundToSelection && !hasSelection}
+                >
+                  {action.label}
+                </button>
+              ))}
         </div>
       </span>
     </>

@@ -184,6 +184,7 @@ export interface TableChartProps extends ChartProps {
   hooks: {
     onBulkActionClick?: (actionKey: string, selectedIds: string[]) => void;
   };
+  slice_id?: number
 }
 
 export type BasicColorFormatterType = {
@@ -236,6 +237,7 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   split_actions?: string;
   non_split_actions?: string;
   onBulkActionClick?: (actionKey: string, selectedIds: string[]) => void;
+  slice_id?: number;
 }
 
 export enum ColorSchemeEnum {
@@ -243,4 +245,9 @@ export enum ColorSchemeEnum {
   'Red' = 'Red',
 }
 
+export type ChartsState = { [key: string]: any };
+/** Root state of redux */
+export type RootState = {
+  charts: ChartsState;
+};
 export default {};

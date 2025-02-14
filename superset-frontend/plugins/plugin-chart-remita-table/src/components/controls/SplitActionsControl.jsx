@@ -200,7 +200,6 @@ const SplitActionsControl = ({
       </Form.Item>
       <Form.Item
         name="boundToSelection"
-        label="Bound to Selection"
         valuePropName="checked"
       >
         <Checkbox>Bound to Selection</Checkbox>
@@ -220,7 +219,6 @@ const SplitActionsControl = ({
       </Form.Item>
       <Form.Item
         name="publishEvent"
-        label="Publish Event"
         valuePropName="checked"
       >
         <Checkbox onChange={(e) => setIsPublishEvent(e.target.checked)}>
@@ -294,9 +292,6 @@ const SplitActionsControl = ({
               <LinkOutlined style={{ fontSize: '0.8rem' }} />
             </Tooltip>
           )}
-          <Tooltip title={`Show In Slice: ${action.showInSliceHeader ? 'Yes' : 'No'}`}>
-            <MoreOutlined style={{color: action.showInSliceHeader ? 'blue' : 'grey', fontSize: '0.8rem'}}/>
-          </Tooltip>
         </Space>
       </Space>
     </Card>
@@ -312,7 +307,6 @@ const SplitActionsControl = ({
       actionUrl: action.actionUrl,
       visibilityCondition: action.visibilityCondition,
       publishEvent: action.publishEvent,
-      showInSliceHeader:action.showInSliceHeader,
     });
     setIsPublishEvent(action.publishEvent);
     setModalVisible(true);

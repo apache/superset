@@ -207,6 +207,19 @@ const bulkActionsSection = {
     ],
     [
       {
+        name: 'show_split_buttons_in_slice_header',
+        config: {
+          type: 'CheckboxControl',
+          renderTrigger: true,
+          label: t('Show Split In Slice Header'),
+          description: t('Include actions buttons in slice header.'),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
+        },
+      },
+    ],
+    [
+      {
         name: 'bulk_action_id_column',
         config: {
           type: 'SelectControl',
@@ -252,7 +265,7 @@ const bulkActionsSection = {
           renderTrigger: true,
           label: t('Header Button Actions - Split Dropdown Actions'),
           description: t(
-            'Actions to show in dropdown menu. Define in JSON format.',
+            'Actions to show in dropdown menu.',
           ),
           default: JSON.stringify([
             { key: 'export', label: 'Export Selected', boundToSelection: true, visibilityCondition: 'selected' },
@@ -262,6 +275,7 @@ const bulkActionsSection = {
           offerEditInModal: true,
         },
       },
+
     ],
     [
       {
@@ -271,7 +285,7 @@ const bulkActionsSection = {
           renderTrigger: true,
           label: t('Header Button Actions - Non Split'),
           description: t(
-            'Actions as individual buttons. Define in JSON format.',
+            'Actions as individual buttons.',
           ),
           default: JSON.stringify([
             {key: 'delete', label: 'Delete', style: 'danger', boundToSelection: true, visibilityCondition: 'selected'},
