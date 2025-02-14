@@ -193,7 +193,6 @@ RUN mkdir -p \
       apache_superset.egg-info \
       requirements \
     && touch superset/static/version_info.json
-
 # ============== CHANGE 4: BEGIN - Install Chrome and ChromeDriver ==============
 # Install Chrome and ChromeDriver
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -219,18 +218,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     gnupg \
     curl \
-    unzip \
-    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update \
-    && apt-get install -y google-chrome-stable \
-    && CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1-3) \
+    unzip
+
+# Add Google Chrome repository
+RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+
+# Install Google Chrome
+RUN apt-get update && apt-get install -y google-chrome-stable
+
+# Install ChromeDriver
+RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1-3) \
     && CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}") \
     && wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" \
     && unzip chromedriver_linux64.zip -d /usr/local/bin \
     && rm chromedriver_linux64.zip \
-    && chmod +x /usr/local/bin/chromedriver \
-    && apt-get clean \
+    && chmod +x /usr/local/bin/chromedriver
+
+# Clean up
+RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/cache/apt/*
 # ============== CHANGE 4: END ==============

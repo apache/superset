@@ -263,7 +263,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     basicColorFormatters,
     basicColorColumnFormatters,
     enable_bulk_actions = false,
-    include_row_numbers = true,
+    include_row_numbers = false,
     bulk_action_id_column = 'id',
     selection_mode = 'multiple',
     split_actions = new Set<any>(),
