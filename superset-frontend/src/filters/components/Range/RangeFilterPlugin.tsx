@@ -169,14 +169,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   ]);
   const [error, setError] = useState<string | null>(null);
 
-  console.log({ defaultValue, filterState });
-
   useEffect(() => {
     if (
       filterState.validateStatus === 'error' &&
       error !== filterState.validateMessage
     ) {
-      console.log('Inside filter state error case');
       setError(filterState.validateMessage);
 
       const inputMin = inputValue[minIndex];
@@ -224,7 +221,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
     // Default value case
     if (defaultValue && !filterState.value) {
-      console.log('Inside default value case');
       setInputValue(defaultValue);
       const [minVal, maxVal] = defaultValue;
       setDataMask({
@@ -240,7 +236,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
     // Clear all case
     if (!filterState.value && !filterState.validateStatus) {
-      console.log('Inside clear all case');
       setInputValue([null, null]);
       setDataMask({
         extraFormData: getRangeExtraFormData(col, null, null),
@@ -255,7 +250,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
     // Filter state is pre-set case
     if (filterState.value && !filterState.validateStatus) {
-      console.log('Inside filter state pre-set case', { filterState });
       setInputValue(filterState.value);
       const [minVal, maxVal] = filterState.value;
       setDataMask({
@@ -303,8 +297,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         enableEmptyFilter,
         enableSingleValue,
       );
-
-      console.log('Inside handleChange');
 
       if (!isValid) {
         setError(errorMessage);
