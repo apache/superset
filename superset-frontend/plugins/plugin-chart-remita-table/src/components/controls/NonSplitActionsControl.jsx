@@ -12,6 +12,7 @@ import {
   PlusOutlined,
   MoreOutlined,
   TagOutlined,
+  BarsOutlined,
 } from '@ant-design/icons';
 import ControlHeader from '../../../../../src/explore/components/ControlHeader';
 
@@ -328,15 +329,15 @@ const NonSplitActionsControl = ({
             <EyeOutlined style={{fontSize: '0.8rem'}}/>
           </Tooltip>
           <Tooltip title={`Publish Event: ${action.publishEvent ? 'Yes' : 'No'}`}>
-            <BellOutlined style={{color: action.publishEvent ? 'blue' : 'grey', fontSize: '0.8rem'}}/>
+            <BellOutlined style={{color: action.publishEvent ? 'green' : 'grey', fontSize: '0.8rem'}}/>
           </Tooltip>
           {(!action.publishEvent) && action.actionUrl && (
             <Tooltip title={`Action URL: ${action.actionUrl}`}>
               <LinkOutlined style={{fontSize: '0.8rem'}}/>
             </Tooltip>
           )}
-          <Tooltip title={`Show In Slice: ${action.showInSliceHeader ? 'Yes' : 'No'}`}>
-            <MoreOutlined style={{color: action.showInSliceHeader ? 'blue' : 'grey', fontSize: '0.8rem'}}/>
+          <Tooltip title={`Show In Slice Header: ${action.showInSliceHeader ? 'Yes' : 'No'}`}>
+            <BarsOutlined style={{color: action.showInSliceHeader ? 'green' : 'grey', fontSize: '0.8rem'}}/>
           </Tooltip>
         </Space>
       </Space>

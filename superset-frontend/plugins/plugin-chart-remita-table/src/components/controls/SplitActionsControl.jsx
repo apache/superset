@@ -27,6 +27,7 @@ import {
   LinkOutlined,
   PlusOutlined,
   MoreOutlined,
+  BarsOutlined
 } from '@ant-design/icons';
 
 const { Option } = Select;
@@ -285,7 +286,7 @@ const SplitActionsControl = ({
             <EyeOutlined style={{ fontSize: '0.8rem' }} />
           </Tooltip>
           <Tooltip title={`Publish Event: ${action.publishEvent ? 'Yes' : 'No'}`}>
-            <BellOutlined style={{ color: action.publishEvent ? 'blue' : 'grey', fontSize: '0.8rem' }} />
+            <BellOutlined style={{ color: action.publishEvent ? 'green' : 'grey', fontSize: '0.8rem' }} />
           </Tooltip>
           {(!action.publishEvent) && (
             <Tooltip title={`Action URL: ${action.actionUrl}`}>
@@ -463,7 +464,7 @@ const SplitActionsControl = ({
                 />
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Button size="small" type="primary" icon={<PlusOutlined />} onClick={openAddModal}>
-                    Add New Action
+                    Add New Split Action
                   </Button>
                 </div>
               </>
@@ -474,7 +475,7 @@ const SplitActionsControl = ({
           {!readOnly && actions.length>0 && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
               <Button size="small" type="primary" onClick={openAddModal} icon={<EditOutlined />}>
-                Edit Actions
+                Edit Split Actions
               </Button>
             </div>
           )}

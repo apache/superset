@@ -220,6 +220,19 @@ const bulkActionsSection = {
     ],
     [
       {
+        name: 'retain_selection_accross_navigation',
+        config: {
+          type: 'CheckboxControl',
+          renderTrigger: true,
+          label: t('Retain Row Selection Accross Navigation'),
+          description: t('Retain row selection accross navigation.'),
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
+        },
+      },
+    ],
+    [
+      {
         name: 'bulk_action_id_column',
         config: {
           type: 'SelectControl',

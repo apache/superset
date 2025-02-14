@@ -67,6 +67,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   tableActions?: Set<any>;
   onTableActionClick?: (action?: string, id?: string, value?: string) => void;
   showSplitInSliceHeader?: boolean;
+  retainSelectionAccrossNavigation?: boolean;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {

@@ -486,6 +486,7 @@ const transformProps = (
     include_row_numbers,
     slice_id,
     show_split_buttons_in_slice_header,
+    retain_selection_accross_navigation,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -728,7 +729,8 @@ const transformProps = (
     table_actions,
     include_row_numbers,
     slice_id,
-    show_split_buttons_in_slice_header
+    show_split_buttons_in_slice_header,
+    retain_selection_accross_navigation
   } as any;
 };
 

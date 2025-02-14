@@ -231,6 +231,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onTableActionClick?: (action?: string, id?: string, value?: string) => void;
     slice_id?: string;
     show_split_buttons_in_slice_header: boolean;
+    retain_selection_accross_navigation: boolean;
   },
 ) {
   const {
@@ -271,10 +272,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     table_actions_id_column = '',
     table_actions = new Set<any>(),
     show_split_buttons_in_slice_header = false,
+    retain_selection_accross_navigation = false,
   } = props;
 
   const sliceId = props?.slice_id;
-  const resetOnMount = true;
+  const resetOnMount =!props?.retain_selection_accross_navigation;
 
 
   const comparisonColumns = [
@@ -366,11 +368,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     // Create a key in sessionStorage to mark that we have done the initial load reset.
     // Use a global flag on the window object so that we only reset once per full page load.
     // On a full refresh, window.__tableChartResetDone will be undefined.
+    // @ts-ignore
     if (resetOnMount && !window.__tableChartResetDone) {
       // Clear the stored selection and update the state
       localStorage.removeItem(`selectedRows_${sliceId}`);
       setSelectedRows(new Set());
       // Mark that we've already reset for this page load
+      // @ts-ignore
       window.__tableChartResetDone = true;
     } else {
       // Load selected rows from localStorage on component mount
@@ -1324,15 +1328,21 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 style={{overflow: 'hidden', paddingRight: "5px", paddingLeft: "5px"}}>
               <div className="selection-cell">
                 {enable_bulk_actions && (
-                  <input
-                    type="checkbox"
-                    checked={selectedRows.has(rowId)}
-                    onChange={e => {
-                      if (selection_mode === 'single') {
+                  selection_mode === 'single' ? (
+                    <input
+                      type="radio"
+                      checked={selectedRows.has(rowId)}
+                      onChange={e => {
                         setSelectedRows(
-                          new Set(selectedRows.has(rowId) ? [] : [rowId]),
+                          new Set(selectedRows.has(rowId) ? [] : [rowId])
                         );
-                      } else {
+                      }}
+                    />
+                  ) : (
+                    <input
+                      type="checkbox"
+                      checked={selectedRows.has(rowId)}
+                      onChange={e => {
                         setSelectedRows(prev => {
                           const newSelected = new Set(prev);
                           if (e.target.checked) {
@@ -1342,16 +1352,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                           }
                           return newSelected;
                         });
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  )
                 )}
-                {include_row_numbers && (
-                  <span className="selection-cell-number" title={rowNumber.toString()}>{rowNumber}</span>
-                )}
-              </div>
-            </td>
-          );
+              {include_row_numbers && (
+                <span className="selection-cell-number" title={rowNumber.toString()}>{rowNumber}</span>
+              )}
+            </div>
+        </td>
+        )
+          ;
         },
         width: 40,
       };
@@ -1446,6 +1457,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           tableActions={table_actions}
           onBulkActionClick={handleBulkAction}
           showSplitInSliceHeader={show_split_buttons_in_slice_header}
+          retainSelectionAccrossNavigation={retain_selection_accross_navigation}
         />
       </Styles>
     </>
