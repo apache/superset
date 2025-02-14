@@ -67,10 +67,6 @@ function formatValue(
 
   const absoluteValue = Math.abs(value);
   if (absoluteValue >= 1000) {
-    // const i = Math.floor(Math.log(absoluteValue) / Math.log(base));
-    // const parsedVal = parseFloat(
-    //   (absoluteValue / Math.pow(base, i)).toFixed(decimals),
-    // );
     const i = Math.min(
       Math.floor(Math.log(absoluteValue) / Math.log(base)),
       labels.length - 1,
