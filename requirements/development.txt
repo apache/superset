@@ -738,10 +738,6 @@ shillelagh==1.2.18
     # via
     #   -c requirements/base.txt
     #   apache-superset
-shortid==0.1.2
-    # via
-    #   -c requirements/base.txt
-    #   apache-superset
 simplejson==3.19.3
     # via
     #   -c requirements/base.txt

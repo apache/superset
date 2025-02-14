@@ -29,6 +29,7 @@ import {
   calculateLowerLogTick,
   dedupSeries,
   extractGroupbyLabel,
+  extractDataTotalValues,
   extractSeries,
   extractShowValueIndexes,
   extractTooltipKeys,
@@ -1084,6 +1085,123 @@ const forecastValue = [
     seriesId: 'bar',
   },
 ];
+
+describe('extractDataTotalValues', () => {
+  it('test_extractDataTotalValues_withStack', () => {
+    const data: DataRecord[] = [
+      { metric1: 10, metric2: 20, xAxisCol: '2021-01-01' },
+      { metric1: 15, metric2: 25, xAxisCol: '2021-01-02' },
+    ];
+    const metricsLabels = ['metric1', 'metric2'];
+    const opts = {
+      stack: true,
+      percentageThreshold: 10,
+      metricsLabels,
+    };
+    const result = extractDataTotalValues(data, opts);
+    expect(result.totalStackedValues).toEqual([30, 40]);
+    expect(result.thresholdValues).toEqual([3, 4]);
+  });
+
+  it('should calculate total and threshold values with stack option enabled', () => {
+    const data: DataRecord[] = [
+      { metric1: 10, metric2: 20, xAxisCol: '2021-01-01' },
+      { metric1: 15, metric2: 25, xAxisCol: '2021-01-02' },
+    ];
+    const metricsLabels = ['metric1', 'metric2'];
+    const opts = {
+      stack: true,
+      percentageThreshold: 10,
+      metricsLabels,
+    };
+    const result = extractDataTotalValues(data, opts);
+    expect(result.totalStackedValues).toEqual([30, 40]);
+    expect(result.thresholdValues).toEqual([3, 4]);
+  });
+
+  it('should handle empty data array', () => {
+    const data: DataRecord[] = [];
+    const metricsLabels: string[] = [];
+    const opts = {
+      stack: true,
+      percentageThreshold: 10,
+      metricsLabels,
+    };
+    const result = extractDataTotalValues(data, opts);
+    expect(result.totalStackedValues).toEqual([]);
+    expect(result.thresholdValues).toEqual([]);
+  });
+
+  it('should calculate total and threshold values with stack option disabled', () => {
+    const data: DataRecord[] = [
+      { metric1: 10, metric2: 20, xAxisCol: '2021-01-01' },
+      { metric1: 15, metric2: 25, xAxisCol: '2021-01-02' },
+    ];
+    const metricsLabels = ['metric1', 'metric2'];
+    const opts = {
+      stack: false,
+      percentageThreshold: 10,
+      metricsLabels,
+    };
+    const result = extractDataTotalValues(data, opts);
+    expect(result.totalStackedValues).toEqual([]);
+    expect(result.thresholdValues).toEqual([]);
+  });
+
+  it('should handle data with null or undefined values', () => {
+    const data: DataRecord[] = [
+      { my_x_axis: 'abc', x: 1, y: 0, z: 2 },
+      { my_x_axis: 'foo', x: null, y: 10, z: 5 },
+      { my_x_axis: null, x: 4, y: 3, z: 7 },
+    ];
+    const metricsLabels = ['x', 'y', 'z'];
+    const opts = {
+      stack: true,
+      percentageThreshold: 10,
+      metricsLabels,
+    };
+    const result = extractDataTotalValues(data, opts);
+    expect(result.totalStackedValues).toEqual([3, 15, 14]);
+    expect(result.thresholdValues).toEqual([
+      0.30000000000000004, 1.5, 1.4000000000000001,
+    ]);
+  });
+
+  it('should handle different percentage thresholds', () => {
+    const data: DataRecord[] = [
+      { metric1: 10, metric2: 20, xAxisCol: '2021-01-01' },
+      { metric1: 15, metric2: 25, xAxisCol: '2021-01-02' },
+    ];
+    const metricsLabels = ['metric1', 'metric2'];
+    const opts = {
+      stack: true,
+      percentageThreshold: 50,
+      metricsLabels,
+    };
+    const result = extractDataTotalValues(data, opts);
+    expect(result.totalStackedValues).toEqual([30, 40]);
+    expect(result.thresholdValues).toEqual([15, 20]);
+  });
+  it('should not add datum not in metrics to the total value when stacked', () => {
+    const data: DataRecord[] = [
+      { xAxisCol: 'foo', xAxisSort: 10, val: 345 },
+      { xAxisCol: 'bar', xAxisSort: 20, val: 2432 },
+      { xAxisCol: 'baz', xAxisSort: 30, val: 4543 },
+    ];
+    const metricsLabels = ['val'];
+    const opts = {
+      stack: true,
+      percentageThreshold: 50,
+      metricsLabels,
+    };
+
+    const result = extractDataTotalValues(data, opts);
+
+    // Assuming extractDataTotalValues returns the total value
+    // without including the 'xAxisCol' category
+    expect(result.totalStackedValues).toEqual([345, 2432, 4543]); // 10 + 20, excluding the 'xAxisCol' category
+  });
+});
 
 test('extractTooltipKeys with rich tooltip', () => {
   const result = extractTooltipKeys(forecastValue, 1, true, false);
