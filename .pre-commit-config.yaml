@@ -78,6 +78,15 @@ repos:
         files: ^superset-frontend/
         exclude: ^superset-frontend/cypress-base/
         types_or: [ts, tsx, javascript, jsx]
+  - repo: local
+    hooks:
+      - id: type-checking-websocket
+        name: Type-Checking (Websocket)
+        entry: ./scripts/check-type.js
+        args: [package=superset-websocket]
+        language: node
+        files: ^superset-websocket/
+        types_or: [ts, tsx, javascript, jsx]
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
