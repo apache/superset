@@ -29,6 +29,7 @@ import {
   createSmartDateVerboseFormatter,
   createSmartDateDetailedFormatter,
   createMemoryFormatter,
+  createNetworkNumberFormatter,
 } from '@superset-ui/core';
 import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
@@ -83,7 +84,31 @@ export default function setupFormatters(
       createDurationFormatter({ colonNotation: true }),
     )
     .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
-    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }));
+    .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }))
+    .registerValue(
+      'BYTES_SI',
+      createNetworkNumberFormatter({ id: NumberFormats.BYTES_SI, n: 2 }),
+    )
+    .registerValue(
+      'BYTES_IEC',
+      createNetworkNumberFormatter({ id: NumberFormats.BYTES_IEC, n: 2 }),
+    )
+    .registerValue(
+      'BITRATE_SI',
+      createNetworkNumberFormatter({ id: NumberFormats.BITRATE_SI, n: 2 }),
+    )
+    .registerValue(
+      'BYTERATE_SI',
+      createNetworkNumberFormatter({ id: NumberFormats.BYTERATE_SI, n: 2 }),
+    )
+    .registerValue(
+      'BITRATE_IEC',
+      createNetworkNumberFormatter({ id: NumberFormats.BITRATE_IEC, n: 2 }),
+    )
+    .registerValue(
+      'BYTERATE_IEC',
+      createNetworkNumberFormatter({ id: NumberFormats.BYTERATE_IEC, n: 2 }),
+    );
 
   const timeFormatterRegistry = getTimeFormatterRegistry();
 
