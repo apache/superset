@@ -419,6 +419,10 @@ const NonSplitActionsControl = ({
           <Input.TextArea
             rows={10}
             value={advancedJson}
+            placeholder={JSON.stringify([
+              {key: 'delete', label: 'Delete', style: 'danger', boundToSelection: true, visibilityCondition: 'selected'},
+              {key: 'save', label: 'Save', style: 'primary', boundToSelection: false, visibilityCondition: 'all'},
+            ])}
             onChange={(e) => setAdvancedJson(e.target.value)}
           />
           <Space style={{marginTop: 16}}>

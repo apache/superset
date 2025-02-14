@@ -394,6 +394,7 @@ const TableActionFormControl = ({
           <Input.TextArea
             rows={10}
             value={advancedJson}
+            placeholder={JSON.stringify([{ label: 'View', action: 'view' }])}
             onChange={(e) => setAdvancedJson(e.target.value)}
           />
           <Space style={{marginTop: 16}}>

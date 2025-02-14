@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import { TableAction } from "antd-v5/es/table/interface";
 import { styled } from "@superset-ui/core";
 
 const ActionWrapper = styled.div`
@@ -67,12 +66,11 @@ export const ActionCell = ({
                              onActionClick,
                            }: {
   rowId: string;
-  actions: Record<string, TableAction>;
+  actions: any;
   row: any;
   onActionClick: (action: string, id: string, value?: string) => void;
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const extendedActions = actions as any;
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,7 +87,7 @@ export const ActionCell = ({
   const handleActionClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
     key: string,
-    config: TableAction
+    config: any
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -116,15 +114,15 @@ export const ActionCell = ({
           <div className="dot" />
         </MenuTrigger>
         <MenuContainer className="remita-menu" hidden={!menuOpen}>
-          {Array.from(actions).map((config, index) => (
+          {Array.from(actions).map((config:any, index) => (
             <ActionLink
-              key={config.key || index}
+              key={config?.key || index}
               href="#"
-              className={`remita-link remita-action-${config.key || index}`}
-              data-action={config.action || config.key || index}
-              onClick={(e) => handleActionClick(e, config.key || index, config)}
+              className={`remita-link remita-action-${config?.key || index}`}
+              data-action={config?.action || config?.key || index}
+              onClick={(e) => handleActionClick(e, config?.key || index, config)}
             >
-              {config.label}
+              {config?.label}
             </ActionLink>
           ))}
 

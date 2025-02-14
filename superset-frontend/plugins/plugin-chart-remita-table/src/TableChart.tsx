@@ -1370,12 +1370,11 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
 
     // Add actions column if table actions enabled
-
     if (tableActionsConfig?.idColumn && tableActionsConfig?.actions) {
       const actionColumn = {
         id: 'actions',
         Header: () => (
-          <th data-column-name="actions" width={10}>
+          <th data-column-name="actions" >
             <span data-column-name="actions">{t('Actions')}</span>
           </th>
         ),

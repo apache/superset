@@ -280,9 +280,6 @@ const bulkActionsSection = {
           description: t(
             'Actions to show in dropdown menu.',
           ),
-          default: JSON.stringify([
-            { key: 'export', label: 'Export Selected', boundToSelection: true, visibilityCondition: 'selected' },
-          ]),
           language: 'json',
           visibility: ({ controls }: any) => Boolean(controls?.enable_bulk_actions?.value),
           offerEditInModal: true,
@@ -300,10 +297,6 @@ const bulkActionsSection = {
           description: t(
             'Actions as individual buttons.',
           ),
-          default: JSON.stringify([
-            {key: 'delete', label: 'Delete', style: 'danger', boundToSelection: true, visibilityCondition: 'selected'},
-            {key: 'save', label: 'Save', style: 'primary', boundToSelection: false, visibilityCondition: 'all'},
-          ]),
           language: 'json',
           visibility: ({controls}: any) => Boolean(controls?.enable_bulk_actions?.value),
           offerEditInModal: true,
@@ -360,7 +353,6 @@ const tableActionsSection = {
           description: t(
             'Define the actions that will appear in the table. Use the Simple tab for a form-based input or the Advanced tab for raw JSON.',
           ),
-          default: [{ label: 'View', action: 'view' }],
           offerEditInModal: true,
           language: 'json',
           visibility: ({ controls }: any) =>

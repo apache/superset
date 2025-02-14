@@ -396,6 +396,9 @@ const SplitActionsControl = ({
           <Input.TextArea
             rows={10}
             value={advancedJson}
+            placeholder={JSON.stringify([
+              { key: 'export', label: 'Export Selected', boundToSelection: true, visibilityCondition: 'selected' },
+            ])}
             onChange={(e) => setAdvancedJson(e.target.value)}
           />
           <Space style={{ marginTop: 16 }}>
