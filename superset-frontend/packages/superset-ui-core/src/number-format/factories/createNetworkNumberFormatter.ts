@@ -44,8 +44,11 @@ const formatterCache = new Map<number, Function>();
 
 function siFormatter(decimals: number) {
   if (formatterCache.size >= MAX_CACHE_SIZE) {
-    const firstKey = formatterCache.keys().next().value;
-    formatterCache.delete(firstKey);
+    const iterator = formatterCache.keys();
+    const first = iterator.next();
+    if (!first.done) {
+      formatterCache.delete(first.value);
+    }
   }
 
   try {
@@ -68,8 +71,7 @@ function formatValue(
   decimals: number,
 ) {
   if (value === 0) {
-    const formatted = `0 ${labels[0]}`;
-    return formatted;
+    return `0 ${labels[0]}`;
   }
   const absoluteValue = Math.abs(value);
   if (absoluteValue >= 1000) {
@@ -83,8 +85,7 @@ function formatValue(
     return `${value < 0 ? '-' : ''}${parsedVal} ${labels[i]}`;
   }
   if (absoluteValue >= 1) {
-    const formattedVal = `${float2PointFormatter(value)} ${labels[0]}`;
-    return formattedVal;
+    return `${float2PointFormatter(value)} ${labels[0]}`;
   }
   if (absoluteValue >= 0.001) {
     return `${float4PointFormatter(value)} ${labels[0]}`;
