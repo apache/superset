@@ -89,9 +89,7 @@ export const D3_FORMAT_OPTIONS = [
   ['DURATION_SUB', t('Duration in ms (100.40008 => 100ms 400µs 80ns)')],
   ['BYTES_SI', 'Bytes in SI (kB, MB)'],
   ['BYTES_IEC', 'Bytes in IEC (kiB, MiB)'],
-  ['BITRATE_SI', 'Bitrate in SI (kb/s, Mb/s)'],
   ['BYTERATE_SI', 'Byterate in SI (kB/s, MB/s'],
-  ['BITRATE_IEC', 'Bitrate in IEC (kib/s, Mib/s'],
   ['BYTERATE_IEC', 'Byterate in IEC (kiB/s, MiB/s'],
 ];
 

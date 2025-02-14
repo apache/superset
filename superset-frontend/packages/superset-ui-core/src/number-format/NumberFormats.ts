@@ -56,9 +56,7 @@ const OVER_MAX_HIDDEN = 'OVER_MAX_HIDDEN';
 
 const BYTES_SI = 'BYTES_SI';
 const BYTES_IEC = 'BYTES_IEC';
-const BITRATE_SI = 'BITRATE_SI';
 const BYTERATE_SI = 'BYTERATE_SI';
-const BITRATE_IEC = 'BITRATE_IEC';
 const BYTERATE_IEC = 'BYTERATE_IEC';
 
 const NumberFormats = {
@@ -93,9 +91,7 @@ const NumberFormats = {
   OVER_MAX_HIDDEN,
   BYTES_SI,
   BYTES_IEC,
-  BITRATE_SI,
   BYTERATE_SI,
-  BITRATE_IEC,
   BYTERATE_IEC,
 };
 

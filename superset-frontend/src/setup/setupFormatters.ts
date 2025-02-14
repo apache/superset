@@ -94,16 +94,8 @@ export default function setupFormatters(
       createNetworkNumberFormatter({ id: NumberFormats.BYTES_IEC, n: 2 }),
     )
     .registerValue(
-      'BITRATE_SI',
-      createNetworkNumberFormatter({ id: NumberFormats.BITRATE_SI, n: 2 }),
-    )
-    .registerValue(
       'BYTERATE_SI',
       createNetworkNumberFormatter({ id: NumberFormats.BYTERATE_SI, n: 2 }),
-    )
-    .registerValue(
-      'BITRATE_IEC',
-      createNetworkNumberFormatter({ id: NumberFormats.BITRATE_IEC, n: 2 }),
     )
     .registerValue(
       'BYTERATE_IEC',

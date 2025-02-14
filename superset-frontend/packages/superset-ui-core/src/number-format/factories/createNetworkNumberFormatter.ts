@@ -18,26 +18,6 @@ const bytesIECLabels = [
   'EiB',
   'ZiB',
 ];
-const bitrateSILabels = [
-  'bits/s',
-  'kb/s',
-  'Mb/s',
-  'Gb/s',
-  'Tb/s',
-  'Pb/s',
-  'Eb/s',
-  'Zb/s',
-];
-const bitrateIECLabels = [
-  'bits/s',
-  'Kib/s',
-  'Mib/s',
-  'Gib/s',
-  'Tib/s',
-  'Pib/s',
-  'Eib/s',
-  'Zib/s',
-];
 const byterateSILabels = [
   'Bytes/s',
   'kB/s',
@@ -101,14 +81,6 @@ function formatBytesIEC(value: number, decimals: number) {
   return formatValue(value, bytesIECLabels, 1024, decimals);
 }
 
-function formatBitrateSI(value: number, decimals: number) {
-  return formatValue(value, bitrateSILabels, 1000, decimals);
-}
-
-function formatBitrateIEC(value: number, decimals: number) {
-  return formatValue(value, bitrateIECLabels, 1024, decimals);
-}
-
 function formatByterateSI(value: number, decimals: number) {
   return formatValue(value, byterateSILabels, 1000, decimals);
 }
@@ -134,22 +106,6 @@ export default function createNetworkNumberFormatter(
         formatFunc: value => formatBytesIEC(value, n),
         id,
         label: label ?? 'Bytes IEC Formatter',
-      });
-      break;
-    case NumberFormats.BITRATE_SI:
-      return new NumberFormatter({
-        description,
-        formatFunc: value => formatBitrateSI(value, n),
-        id,
-        label: label ?? 'Bitrate SI Formatter',
-      });
-      break;
-    case NumberFormats.BITRATE_IEC:
-      return new NumberFormatter({
-        description,
-        formatFunc: value => formatBitrateIEC(value, n),
-        id,
-        label: label ?? 'Bitrate IEC Formatter',
       });
       break;
     case NumberFormats.BYTERATE_SI:
