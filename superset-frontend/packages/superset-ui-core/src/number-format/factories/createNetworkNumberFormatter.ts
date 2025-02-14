@@ -39,6 +39,15 @@ const byterateIECLabels = [
   'ZiB/s',
 ];
 
+const formatterCache = new Map<number, Function>();
+
+function siFormatter(decimals: number) {
+  if (!formatterCache.has(decimals)) {
+    formatterCache.set(decimals, d3Format(`.${decimals}s`));
+  }
+  return formatterCache.get(decimals);
+}
+
 function formatValue(
   value: number,
   labels: any,
@@ -66,7 +75,6 @@ function formatValue(
     return `${float4PointFormatter(value)} ${labels[0]}`;
   }
 
-  const siFormatter = d3Format(`.${decimals}s`);
   if (absoluteValue > 0.000001) {
     return `${siFormatter(value * 1000000)}µ ${labels[0]}`;
   }

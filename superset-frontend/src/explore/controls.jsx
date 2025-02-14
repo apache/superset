@@ -89,8 +89,8 @@ export const D3_FORMAT_OPTIONS = [
   ['DURATION_SUB', t('Duration in ms (100.40008 => 100ms 400µs 80ns)')],
   ['BYTES_SI', 'Bytes in SI (kB, MB)'],
   ['BYTES_IEC', 'Bytes in IEC (kiB, MiB)'],
-  ['BYTERATE_SI', 'Byterate in SI (kB/s, MB/s'],
-  ['BYTERATE_IEC', 'Byterate in IEC (kiB/s, MiB/s'],
+  ['BYTERATE_SI', 'Byterate in SI (kB/s, MB/s)'],
+  ['BYTERATE_IEC', 'Byterate in IEC (kiB/s, MiB/s)'],
 ];
 
 const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
