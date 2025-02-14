@@ -220,32 +220,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     unzip
 
-# Add Google Chrome repository
-RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | gpg --dearmor > /usr/share/keyrings/google-chrome.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
+    wget -O google-chrome-stable_current_amd64.deb -q http://dl.google.com/linux/chrome/deb/pool/main/g/google-chrome-stable/google-chrome-stable_${CHROMEDRIVER_VERSION}-1_amd64.deb && \
+    apt-get install -y --no-install-recommends ./google-chrome-stable_current_amd64.deb && \
+    rm -f google-chrome-stable_current_amd64.deb
 
-# Install Google Chrome
-RUN apt-get update && apt-get install -y google-chrome-stable
-
-RUN CHROME_VERSION=$(google-chrome --version | awk '{print $3}' | cut -d'.' -f1-3) \
-    && echo "Chrome version: ${CHROME_VERSION}"
-
-
-RUN CHROMEDRIVER_VERSION=$(curl -s "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_${CHROME_VERSION}") \
-    && echo "ChromeDriver version: ${CHROMEDRIVER_VERSION}"
-
-
-RUN wget -q "https://chromedriver.storage.googleapis.com/${CHROMEDRIVER_VERSION}/chromedriver_linux64.zip" \
-    && echo "ChromeDriver downloaded successfully"
-
-
-RUN unzip chromedriver_linux64.zip -d /usr/local/bin \
-    && echo "ChromeDriver unzipped successfully"
-
-
-RUN rm chromedriver_linux64.zip \
-    && chmod +x /usr/local/bin/chromedriver \
-    && echo "ChromeDriver installed successfully"
+RUN export CHROMEDRIVER_VERSION=$(curl --silent https://googlechromelabs.github.io/chrome-for-testing/LATEST_RELEASE_116) && \
+    wget -q https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip && \
+    unzip -j chromedriver-linux64.zip -d /usr/bin && \
+    chmod 755 /usr/bin/chromedriver && \
+    rm -f chromedriver-linux64.zip
 
 # Clean up
 RUN apt-get clean \
