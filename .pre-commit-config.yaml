@@ -87,6 +87,15 @@ repos:
         language: node
         files: ^superset-websocket/
         types_or: [ts, tsx, javascript, jsx]
+  - repo: local
+    hooks:
+      - id: type-checking-embedded-sdk
+        name: Type-Checking (Embedded SDK)
+        entry: ./scripts/check-type.js
+        args: [package=superset-embedded-sdk]
+        language: node
+        files: ^superset-embedded-sdk/
+        types_or: [ts, tsx, javascript, jsx]
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
