@@ -219,7 +219,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gnupg \
     curl \
     unzip
-
+ARG GECKODRIVER_VERSION=v0.32.0
+ARG FIREFOX_VERSION=106.0.3
 RUN apt-get update -qq \
     && apt-get install -yqq --no-install-recommends \
         libnss3 \
