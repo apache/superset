@@ -234,6 +234,7 @@ export default function transformProps(
     onlyTotal,
     opacity,
     orientation,
+    overrideLineStyle,
     percentageThreshold,
     richTooltip,
     seriesType,
@@ -420,6 +421,10 @@ export default function transformProps(
 
       lineStyle.opacity = OpacityEnum.DerivedSeries;
       lineSymbol = visibleSymbols[patternIndex % visibleSymbols.length];
+    }
+
+    if (overrideLineStyle) {
+      lineStyle.type = overrideLineStyle;
     }
 
     // Calculate min/max from data for horizontal bar charts

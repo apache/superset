@@ -32,7 +32,10 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { EchartsTimeseriesChartProps } from '../../src/types';
+import {
+  EchartsTimeseriesChartProps,
+  EchartsTimeseriesLineStyle,
+} from '../../src/types';
 import type { SeriesOption } from 'echarts';
 import transformProps from '../../src/Timeseries/transformProps';
 import {
@@ -615,6 +618,7 @@ describe('Does transformProps transform series correctly', () => {
     label: { show: boolean; formatter: labelFormatterType };
     data: seriesDataType[];
     name: string;
+    lineStyle: { type: EchartsTimeseriesLineStyle };
   };
 
   const formData: SqlaFormData = {
@@ -810,6 +814,23 @@ describe('Does transformProps transform series correctly', () => {
       '1 year ago, foo2, bar2': ['foo2', 'bar2'],
       'foo1, bar1': ['foo1', 'bar1'],
       'foo2, bar2': ['foo2', 'bar2'],
+    });
+  });
+
+  test('should apply line style for all series when an overrideLineStyle is chosen', () => {
+    const chartProps = createTestChartProps({
+      formData: {
+        ...formData,
+        overrideLineStyle: EchartsTimeseriesLineStyle.Dashed,
+      },
+      queriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    transformedSeries.forEach(series => {
+      expect(series.lineStyle.type).toEqual(EchartsTimeseriesLineStyle.Dashed);
     });
   });
 });
