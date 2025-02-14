@@ -83,14 +83,15 @@ const rangeProps = {
 
 describe('RangeFilterPlugin', () => {
   const setDataMask = jest.fn();
-  const getWrapper = (props = {}) =>
+  const getWrapper = (props: any = {}) =>
     render(
       // @ts-ignore
       <RangeFilterPlugin
         // @ts-ignore
         {...transformProps({
           ...rangeProps,
-          formData: { ...rangeProps.formData, ...props },
+          ...props,
+          formData: { ...rangeProps.formData, ...props.formData },
         })}
         setDataMask={setDataMask}
       />,
@@ -149,22 +150,32 @@ describe('RangeFilterPlugin', () => {
         filters: [
           {
             col: 'SP_POP_TOTL',
+            op: '>=',
+            val: 10,
+          },
+          {
+            col: 'SP_POP_TOTL',
             op: '<=',
             val: 70,
           },
         ],
       },
       filterState: {
-        label: 'x ≤ 70',
+        label: '10 ≤ x ≤ 70',
         value: [10, 70],
+        validateMessage: '',
+        validateStatus: undefined,
       },
     });
   });
 
   it('should call setDataMask with correct greater than filter', () => {
     getWrapper({
-      enableSingleValue: SingleValueType.Minimum,
-      defaultValue: [20, 60],
+      filterState: { value: [20, null] },
+      formData: {
+        enableSingleValue: SingleValueType.Minimum,
+        defaultValue: undefined,
+      },
     });
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
@@ -177,8 +188,10 @@ describe('RangeFilterPlugin', () => {
         ],
       },
       filterState: {
+        validateStatus: undefined,
+        validateMessage: '',
         label: 'x ≥ 20',
-        value: [20, 100],
+        value: [20, null],
       },
     });
     const input = screen.getByRole('spinbutton');
@@ -187,8 +200,10 @@ describe('RangeFilterPlugin', () => {
 
   it('should call setDataMask with correct less than filter', () => {
     getWrapper({
-      enableSingleValue: SingleValueType.Maximum,
-      defaultValue: [20, 60],
+      filterState: { value: [null, 60] },
+      formData: {
+        enableSingleValue: SingleValueType.Maximum,
+      },
     });
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
@@ -202,7 +217,9 @@ describe('RangeFilterPlugin', () => {
       },
       filterState: {
         label: 'x ≤ 60',
-        value: [10, 60],
+        value: [null, 60],
+        validateMessage: '',
+        validateStatus: undefined,
       },
     });
     const input = screen.getByRole('spinbutton');
@@ -210,7 +227,12 @@ describe('RangeFilterPlugin', () => {
   });
 
   it('should call setDataMask with correct exact filter', () => {
-    getWrapper({ enableSingleValue: SingleValueType.Exact });
+    getWrapper({
+      formData: {
+        enableSingleValue: SingleValueType.Exact,
+      },
+      filterState: { value: [10, 10] },
+    });
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
         filters: [
@@ -224,6 +246,8 @@ describe('RangeFilterPlugin', () => {
       filterState: {
         label: 'x = 10',
         value: [10, 10],
+        validateStatus: undefined,
+        validateMessage: '',
       },
     });
   });

@@ -87,54 +87,46 @@ const validateRange = (
   enableEmptyFilter: boolean,
   enableSingleValue?: SingleValueType,
 ): { isValid: boolean; errorMessage: string | null } => {
-  const rangeError = t('Please provide a valid range');
-  const singleValueRangeError = t('Please provide a value within range');
-  const requiredValuError = t('Filter value is required');
-
+  const requiredError = t('Filter value is required');
+  const rangeError = t('Please provide a value within range');
   if (enableSingleValue !== undefined) {
-    if (
-      enableSingleValue === SingleValueType.Exact ||
-      enableSingleValue === SingleValueType.Minimum
-    ) {
-      if (!inputMin && enableEmptyFilter) {
-        return { isValid: false, errorMessage: requiredValuError };
-      }
-      if (isNumber(inputMin) && (inputMin < min || inputMin > max)) {
-        return { isValid: false, errorMessage: singleValueRangeError };
-      }
+    const isSingleMin =
+      enableSingleValue === SingleValueType.Minimum ||
+      enableSingleValue === SingleValueType.Exact;
+    const value = isSingleMin ? inputMin : inputMax;
+
+    if (!value && enableEmptyFilter) {
+      return { isValid: false, errorMessage: requiredError };
     }
 
-    if (enableSingleValue === SingleValueType.Maximum) {
-      if (!inputMax && enableEmptyFilter) {
-        return { isValid: false, errorMessage: requiredValuError };
-      }
-
-      if (isNumber(inputMax) && (inputMax < min || inputMax > max)) {
-        return { isValid: false, errorMessage: singleValueRangeError };
-      }
-    }
-  } else {
-    if (enableEmptyFilter && (inputMin === null || inputMax === null)) {
+    if (isNumber(value) && (value < min || value > max)) {
       return { isValid: false, errorMessage: rangeError };
     }
 
-    if (!enableEmptyFilter && (inputMin !== null) !== (inputMax !== null)) {
-      return { isValid: false, errorMessage: rangeError };
-    }
+    return { isValid: true, errorMessage: null };
+  }
 
-    if (inputMin !== null && inputMax !== null) {
-      if (inputMin > inputMax) {
-        return {
-          isValid: false,
-          errorMessage: t('Minimum value cannot be higher than maximum value'),
-        };
-      }
-      if (inputMin < min || inputMax > max) {
-        return {
-          isValid: false,
-          errorMessage: t('Your range is not within the dataset range'),
-        };
-      }
+  // Range validation
+  if (enableEmptyFilter && (inputMin === null || inputMax === null)) {
+    return { isValid: false, errorMessage: t('Please provide a valid range') };
+  }
+
+  if (!enableEmptyFilter && (inputMin !== null) !== (inputMax !== null)) {
+    return { isValid: false, errorMessage: t('Please provide a valid range') };
+  }
+
+  if (inputMin !== null && inputMax !== null) {
+    if (inputMin > inputMax) {
+      return {
+        isValid: false,
+        errorMessage: t('Minimum value cannot be higher than maximum value'),
+      };
+    }
+    if (inputMin < min || inputMax > max) {
+      return {
+        isValid: false,
+        errorMessage: t('Your range is not within the dataset range'),
+      };
     }
   }
 
@@ -160,7 +152,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [row] = data;
   // @ts-ignore
   const { min, max }: { min: number; max: number } = row;
-  const { groupby, enableSingleValue, enableEmptyFilter } = formData;
+  const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
+    formData;
   const minIndex = 0;
   const maxIndex = 1;
   const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
@@ -176,11 +169,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   ]);
   const [error, setError] = useState<string | null>(null);
 
+  console.log({ defaultValue, filterState });
+
   useEffect(() => {
     if (
       filterState.validateStatus === 'error' &&
       error !== filterState.validateMessage
     ) {
+      console.log('Inside filter state error case');
       setError(filterState.validateMessage);
 
       const inputMin = inputValue[minIndex];
@@ -225,8 +221,26 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setError(filterState.validateMessage);
       return;
     }
+
+    // Default value case
+    if (defaultValue && !filterState.value) {
+      console.log('Inside default value case');
+      setInputValue(defaultValue);
+      const [minVal, maxVal] = defaultValue;
+      setDataMask({
+        extraFormData: getRangeExtraFormData(col, minVal, maxVal),
+        filterState: {
+          value: defaultValue,
+          label: getLabel(minVal, maxVal, enableSingleExactValue),
+          validateStatus: undefined,
+          validateMessage: '',
+        },
+      });
+      return;
+    }
     // Clear all case
     if (!filterState.value && !filterState.validateStatus) {
+      console.log('Inside clear all case');
       setInputValue([null, null]);
       setDataMask({
         extraFormData: getRangeExtraFormData(col, null, null),
@@ -237,9 +251,11 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           validateMessage: '',
         },
       });
+      return;
     }
     // Filter state is pre-set case
     if (filterState.value && !filterState.validateStatus) {
+      console.log('Inside filter state pre-set case', { filterState });
       setInputValue(filterState.value);
       const [minVal, maxVal] = filterState.value;
       setDataMask({
@@ -288,6 +304,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         enableSingleValue,
       );
 
+      console.log('Inside handleChange');
+
       if (!isValid) {
         setError(errorMessage);
         setDataMask({
@@ -322,6 +340,20 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
     return undefined;
   }, [error]);
+
+  useEffect(() => {
+    switch (enableSingleValue) {
+      case SingleValueType.Minimum:
+      case SingleValueType.Exact:
+        setInputValue(prev => [prev[minIndex], null]);
+        break;
+      case SingleValueType.Maximum:
+        setInputValue(prev => [null, prev[maxIndex]]);
+        break;
+      default:
+        break;
+    }
+  }, [enableSingleValue]);
 
   return (
     <FilterPluginStyle height={height} width={width}>
