@@ -201,7 +201,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             text={partitionQuery}
             shouldShowText={false}
             tooltipText={tt}
-            copyNode={<Icons.CopyOutlined iconSize='s' />}
+            copyNode={<Icons.CopyOutlined iconSize="s" />}
           />
         );
       }
@@ -261,9 +261,8 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
               className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
             >
-              <Icons.KeyOutlined iconSize='s' />
+              <Icons.KeyOutlined iconSize="s" />
             </IconTooltip>
-
           }
         />
       );
@@ -285,7 +284,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           onClick={refreshTableMetadata}
           tooltip={t('Refresh table schema')}
         >
-          <Icons.SyncOutlined iconSize='m' />
+          <Icons.SyncOutlined iconSize="m" />
         </IconTooltip>
         {keyLink}
         <IconTooltip

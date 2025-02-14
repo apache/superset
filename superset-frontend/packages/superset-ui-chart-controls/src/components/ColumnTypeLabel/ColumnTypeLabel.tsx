@@ -19,7 +19,14 @@
  */
 import { ReactNode } from 'react';
 import { css, GenericDataType, styled, t } from '@superset-ui/core';
-import { ClockCircleOutlined, QuestionOutlined, FunctionOutlined, FieldBinaryOutlined, FieldStringOutlined, NumberOutlined } from '@ant-design/icons';
+import {
+  ClockCircleOutlined,
+  QuestionOutlined,
+  FunctionOutlined,
+  FieldBinaryOutlined,
+  FieldStringOutlined,
+  NumberOutlined,
+} from '@ant-design/icons';
 
 export type ColumnLabelExtendedType = 'expression' | '';
 

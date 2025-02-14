@@ -25,25 +25,25 @@ import { ToastType, ToastMeta } from './types';
 
 const ToastContainer = styled.div`
   ${({ theme }) => css`
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-  span {
-    padding: 0 ${theme.gridUnit * 2}px;
-  }
+    span {
+      padding: 0 ${theme.gridUnit * 2}px;
+    }
 
-  .toast__close,
-  .toast__close span {
-    padding: 0;
-  }
+    .toast__close,
+    .toast__close span {
+      padding: 0;
+    }
   `}
 `;
 
 const NotificationStyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.gridUnit * 5}px;
   color: ${theme.colors.grayscale.base};
-  margin-right:0;
+  margin-right: 0;
 `;
 
 interface ToastPresenterProps {

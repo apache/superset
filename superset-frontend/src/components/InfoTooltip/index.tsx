@@ -26,19 +26,19 @@ export interface InfoTooltipProps {
   iconStyle?: React.CSSProperties;
   tooltip: string;
   placement?:
-  | 'bottom'
-  | 'left'
-  | 'right'
-  | 'top'
-  | 'topLeft'
-  | 'topRight'
-  | 'bottomLeft'
-  | 'bottomRight'
-  | 'leftTop'
-  | 'leftBottom'
-  | 'rightTop'
-  | 'rightBottom'
-  | undefined;
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'top'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'leftTop'
+    | 'leftBottom'
+    | 'rightTop'
+    | 'rightBottom'
+    | undefined;
   trigger?: ActionType | ActionType[];
   overlayStyle?: any;
   bgColor?: string;
@@ -63,11 +63,11 @@ const defaultOverlayStyle = {
 };
 const InfoIconContainer = styled.div`
   ${({ theme }) => css`
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
-  margin-left:${theme.gridUnit}px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    margin-left: ${theme.gridUnit}px;
   `}
 `;
 const defaultColor = 'rgba(0,0,0,0.9)';
@@ -95,7 +95,11 @@ export default function InfoTooltip({
       color={bgColor}
     >
       <InfoIconContainer>
-        <Icons.InfoCircleFilled iconSize='m' style={alteredIconStyle} viewBox={viewBox} />
+        <Icons.InfoCircleFilled
+          iconSize="m"
+          style={alteredIconStyle}
+          viewBox={viewBox}
+        />
       </InfoIconContainer>
     </StyledTooltip>
   );

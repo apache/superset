@@ -101,7 +101,7 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
         text={partitionQuery}
         shouldShowText={false}
         tooltipText={tt}
-        copyNode={<Icons.CopyOutlined iconSize='s' />}
+        copyNode={<Icons.CopyOutlined iconSize="s" />}
       />
     );
   }
@@ -166,13 +166,13 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
     () =>
       (tableMetadata?.columns.length ?? 0) > 0
         ? tableMetadata?.columns.map(
-          ({ name, type, longType, keys, comment }) => ({
-            column_name: name,
-            column_type: longType || type,
-            keys,
-            comment,
-          }),
-        )
+            ({ name, type, longType, keys, comment }) => ({
+              column_name: name,
+              column_type: longType || type,
+              keys,
+              comment,
+            }),
+          )
         : undefined,
     [tableMetadata],
   );

@@ -151,8 +151,8 @@ const ResultSetButtons = styled.div`
 `;
 
 const copyButtonStyles = css`
-  &:hover{
-  text-decoration: underline
+  &:hover {
+    text-decoration: underline;
   }
   span > :first-of-type {
     margin: 0px;
@@ -421,14 +421,14 @@ const ResultSet = ({
     const displayMaxRowsReachedMessage = {
       withAdmin: t(
         'The number of results displayed is limited to %(rows)d by the configuration DISPLAY_MAX_ROW. ' +
-        'Please add additional limits/filters or download to csv to see more rows up to ' +
-        'the %(limit)d limit.',
+          'Please add additional limits/filters or download to csv to see more rows up to ' +
+          'the %(limit)d limit.',
         { rows: rowsCount, limit },
       ),
       withoutAdmin: t(
         'The number of results displayed is limited to %(rows)d. ' +
-        'Please add additional limits/filters, download to csv, or contact an admin ' +
-        'to see more rows up to the %(limit)d limit.',
+          'Please add additional limits/filters, download to csv, or contact an admin ' +
+          'to see more rows up to the %(limit)d limit.',
         { rows: rowsCount, limit },
       ),
     };

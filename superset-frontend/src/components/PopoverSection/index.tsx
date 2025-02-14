@@ -56,7 +56,10 @@ export default function PopoverSection({
       >
         <strong data-test="popover-title">{title}</strong>
         {info && (
-          <Tooltip title={info} css={{ marginLeft: theme.gridUnit, marginRight: theme.gridUnit }}>
+          <Tooltip
+            title={info}
+            css={{ marginLeft: theme.gridUnit, marginRight: theme.gridUnit }}
+          >
             <Icons.InfoCircleFilled
               role="img"
               iconSize="s"

@@ -33,7 +33,7 @@ const IconFileNames = [
   'sort_asc',
   'sort_desc',
   'sort',
-  
+
   'area-chart-tile',
   'bar-chart-tile',
   'big-number-chart-tile',

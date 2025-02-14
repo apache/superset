@@ -70,38 +70,38 @@ const propTypes = {
 };
 
 const defaultProps = {
-  setActiveTab() { },
-  onResizeStart() { },
-  onResize() { },
-  onResizeStop() { },
+  setActiveTab() {},
+  onResizeStart() {},
+  onResize() {},
+  onResizeStop() {},
 };
 
 const StyledTabsContainer = styled.div`
   ${({ theme }) => css`
-  width: 100%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+    width: 100%;
+    background-color: ${({ theme }) => theme.colors.grayscale.light5};
 
-  .dashboard-component-tabs-content {
-    min-height: ${theme.gridUnit * 12}px;
-    margin-top: ${theme.gridUnit / 4}px;
-    position: relative;
-  }
-
-  .ant-tabs {
-    overflow: visible;
-
-    .ant-tabs-nav-wrap {
-      min-height: ${theme.gridUnit * 12.5}px;
+    .dashboard-component-tabs-content {
+      min-height: ${theme.gridUnit * 12}px;
+      margin-top: ${theme.gridUnit / 4}px;
+      position: relative;
     }
 
-    .ant-tabs-content-holder {
+    .ant-tabs {
       overflow: visible;
-    }
-  }
 
-  div .ant-tabs-tab-btn {
-    text-transform: none;
-  }
+      .ant-tabs-nav-wrap {
+        min-height: ${theme.gridUnit * 12.5}px;
+      }
+
+      .ant-tabs-content-holder {
+        overflow: visible;
+      }
+    }
+
+    div .ant-tabs-tab-btn {
+      text-transform: none;
+    }
   `}
 `;
 const DropIndicator = styled.div`
@@ -114,18 +114,20 @@ const DropIndicator = styled.div`
   border-radius: 2px;
 `;
 
-const CloseIconWithDropIndicator = (props) => {
+const CloseIconWithDropIndicator = props => {
   const theme = useTheme();
   return (
     <>
-      <Icons.CloseOutlined iconSize="s" iconColor={theme.colors.grayscale.base} />
+      <Icons.CloseOutlined
+        iconSize="s"
+        iconColor={theme.colors.grayscale.base}
+      />
       {props.showDropIndicators.right && (
         <DropIndicator className="drop-indicator-right" pos="right" />
       )}
     </>
   );
 };
-
 
 const Tabs = props => {
   const nativeFilters = useSelector(state => state.nativeFilters);
@@ -305,7 +307,7 @@ const Tabs = props => {
           <span>
             {t(
               'Deleting a tab will remove all content within it and will deactivate any related alerts or reports. You may still ' +
-              'reverse this action with the',
+                'reverse this action with the',
             )}{' '}
             <b>{t('undo')}</b>{' '}
             {t('button (cmd + z) until you save your changes.')}

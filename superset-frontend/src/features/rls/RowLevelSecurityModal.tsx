@@ -50,50 +50,51 @@ const StyledModal = styled(Modal)`
 
 const StyledSectionContainer = styled.div`
   ${({ theme }) => css`
-  display: flex;
-  flex-direction: column;
-  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px ${theme.gridUnit * 2}px;
-
-  label,
-  .control-label {
     display: flex;
-    font-size: ${theme.typography.sizes.s}px;
-    color: ${theme.colors.grayscale.base};
-    aling-items:center;
-  }
+    flex-direction: column;
+    padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px
+      ${theme.gridUnit * 2}px;
 
-  .info-solid-small {
-    vertical-align: middle;
-    padding-bottom: ${theme.gridUnit / 2}px;
-  }
+    label,
+    .control-label {
+      display: flex;
+      font-size: ${theme.typography.sizes.s}px;
+      color: ${theme.colors.grayscale.base};
+      aling-items: center;
+    }
+
+    .info-solid-small {
+      vertical-align: middle;
+      padding-bottom: ${theme.gridUnit / 2}px;
+    }
   `}
 `;
 const StyledInputContainer = styled.div`
   ${({ theme }) => css`
-  display: flex;
-  flex-direction: column;
-  margin: ${theme.gridUnit}px;
-  margin-bottom: ${theme.gridUnit * 4}px;
-
-  .input-container {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    margin: ${theme.gridUnit}px;
+    margin-bottom: ${theme.gridUnit * 4}px;
 
-    > div {
-      width: 100%;
+    .input-container {
+      display: flex;
+      align-items: center;
+
+      > div {
+        width: 100%;
+      }
     }
-  }
 
-  input,
-  textarea {
-    flex: 1 1 auto;
-  }
+    input,
+    textarea {
+      flex: 1 1 auto;
+    }
 
-  .required {
-    margin-left: ${theme.gridUnit / 2}px;
-    color: ${theme.colors.error.base};
-  }
-`}
+    .required {
+      margin-left: ${theme.gridUnit / 2}px;
+      color: ${theme.colors.error.base};
+    }
+  `}
 `;
 
 const StyledTextArea = styled(TextArea)`
