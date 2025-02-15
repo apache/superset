@@ -187,12 +187,14 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         return get_description(self.crontab)
     
     def get_native_filters_params(self) -> Optional[str]:
-        params = None
+        params = {}
         dashboard = self.extra.get('dashboard')
         if dashboard and dashboard.get("nativeFilters"):
             for filter in dashboard.get("nativeFilters", []):
-                # todo(hugh): handle multiple nativeFilters + multi values
-                params = self._generate_native_filter(filter.get("nativeFilterId"), filter.get("columnName"), filter.get("filterValues"))
+                params = { 
+                    **params, 
+                    **self._generate_native_filter(filter.get("nativeFilterId"), filter.get("columnName"), filter.get("filterValues")),
+                }
         return prison.dumps(params)
     
     def _generate_native_filter(self, native_filter_id: str, column_name: str, values: list[str]) -> dict:

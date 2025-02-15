@@ -92,17 +92,18 @@ export type DashboardState = {
   activeTabs?: Array<string>;
   dataMask?: Object;
   anchor?: string;
+  nativeFilters?: Array<ExtraNativeFilter>;
 };
 
 export type ExtraNativeFilter = {
   columnName?: string;
+  columnLabel?: string;
   filterValues?: Array<any>;
-  // filterOp?: string; // assuming all operators are 'IN' for now
+  nativeFilterId: number;
 };
 
 export type Extra = {
   dashboard?: DashboardState;
-  nativeFilters?: Array<ExtraNativeFilter>;
 };
 
 export type Operator = '<' | '>' | '<=' | '>=' | '==' | '!=' | 'not null';
