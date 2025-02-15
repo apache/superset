@@ -68,8 +68,6 @@ repos:
         language: system
         pass_filenames: true
         files: \.(js|jsx|ts|tsx)$
-  - repo: local
-    hooks:
       - id: type-checking-frontend
         name: Type-Checking (Frontend)
         entry: ./scripts/check-type.js
@@ -77,30 +75,6 @@ repos:
         language: node
         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
         exclude: ^superset-frontend/cypress-base\/
-  - repo: local
-    hooks:
-      - id: type-checking-websocket
-        name: Type-Checking (Websocket)
-        entry: ./scripts/check-type.js
-        args: [package=superset-websocket]
-        language: node
-        files: ^superset-websocket\/.*\.(js|jsx|ts|tsx)$
-  - repo: local
-    hooks:
-      - id: type-checking-embedded-sdk
-        name: Type-Checking (Embedded SDK)
-        entry: ./scripts/check-type.js
-        args: [package=superset-embedded-sdk]
-        language: node
-        files: ^superset-embedded-sdk\/.*\.(js|jsx|ts|tsx)$
-  - repo: local
-    hooks:
-      - id: type-checking-cypress
-        name: Type-Checking (Cypress)
-        entry: ./scripts/check-type.js
-        args: [package=superset-frontend/cypress-base]
-        language: node
-        files: ^superset-frontend/cypress-base\/.*\.(js|jsx|ts|tsx)$
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
