@@ -21,7 +21,7 @@
 
 // @ts-check
 const { exit } = require("node:process");
-const { join, dirname } = require("node:path");
+const { join, dirname, normalize, sep } = require("node:path");
 const { readdir } = require("node:fs/promises");
 const { chdir, cwd } = require("node:process");
 const { createRequire } = require("node:module");
@@ -44,8 +44,7 @@ void (async () => {
   }
 
   const packageRootDir = getPackage(packageArg);
-  const packagePathRegex = new RegExp(`^${packageRootDir}\/`);
-  const updatedArgs = removePackageSegment(remainingArgs, packagePathRegex);
+  const updatedArgs = removePackageSegment(remainingArgs, packageRootDir);
   const argsStr = updatedArgs.join(" ");
 
   const excludedDeclarationDirs = getExcludedDeclarationDirs(
@@ -56,7 +55,7 @@ void (async () => {
     DECLARATION_FILE_REGEX,
     excludedDeclarationDirs
   );
-  declarationFiles = removePackageSegment(declarationFiles, packagePathRegex);
+  declarationFiles = removePackageSegment(declarationFiles, packageRootDir);
   const declarationFilesStr = declarationFiles.join(" ");
 
   const packageRootDirAbsolute = join(SUPERSET_ROOT, packageRootDir);
@@ -172,9 +171,17 @@ function extractArgs(args, regexes) {
  * For example: `superset-frontend/foo/bar.ts` -> `foo/bar.ts`
  *
  * @param {string[]} args
- * @param {RegExp} packagePathRegex
+ * @param {string} package
  * @returns {string[]}
  */
-function removePackageSegment(args, packagePathRegex) {
-  return args.map((arg) => arg.replace(packagePathRegex, ""));
+function removePackageSegment(args, package) {
+  const packageSegment = package.concat(sep);
+  return args.map((arg) => {
+    const normalizedPath = normalize(arg);
+
+    if (normalizedPath.startsWith(packageSegment)) {
+      return normalizedPath.slice(packageSegment.length);
+    }
+    return arg;
+  });
 }
