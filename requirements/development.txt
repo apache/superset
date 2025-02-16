@@ -206,7 +206,7 @@ flask-compress==1.17
     # via
     #   -c requirements/base.txt
     #   apache-superset
-flask-cors==4.0.0
+flask-cors==4.0.2
     # via apache-superset
 flask-jwt-extended==4.7.1
     # via
@@ -362,7 +362,7 @@ itsdangerous==2.2.0
     #   -c requirements/base.txt
     #   flask
     #   flask-wtf
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   -c requirements/base.txt
     #   flask
@@ -836,7 +836,7 @@ url-normalize==1.4.3
     # via
     #   -c requirements/base.txt
     #   requests-cache
-urllib3==1.26.18
+urllib3==1.26.20
     # via
     #   -c requirements/base.txt
     #   docker
