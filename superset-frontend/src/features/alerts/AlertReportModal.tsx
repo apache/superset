@@ -1055,11 +1055,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     formAddfunc();
   };
 
-  const handleRemoveFilterField = (formDelfunc: Function, index: number) => {
+  const handleRemoveFilterField = (filterIdx: number) => {
     const filters = nativeFilterData || [];
-    filters.splice(index, 1);
+    filters.splice(filterIdx, 1);
     setNativeFilterData(filters);
-    formDelfunc(index);
   };
 
   const onCustomWidthChange = (value: number | string | null | undefined) => {
@@ -1187,52 +1186,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     // Get values tied to the selected filter
     const filterValues = {
       formData: {
-        // enableEmptyFilter: false,
-        // defaultToFirstItem: false,
-        // multiSelect: true,
-        // searchAllOptions: false,
-        // inverseSelection: false,
         datasource: `${datasetId}__table`,
         groupby: [columnName],
-        // adhoc_filters: [],
-        // extra_filters: [],
-        // extra_form_data: {},
         metrics: ['count'],
         row_limit: 1000,
         showSearch: true,
-        // url_params: {
-        //   native_filters_key: "0ktJOz1FTTo"
-        // },
-        // inView: true,
         viz_type: 'filter_select',
-        // type: "NATIVE_FILTER",
-        dashboardId: dashboardId,
-        // native_filter_id: "NATIVE_FILTER-8jS1fx4hl"
+        type: 'NATIVE_FILTER',
+        dashboardId,
       },
       force: false,
       ownState: {},
     };
-    // setSelectedNativeFilter({
-    //   ...nativeFilter,
-    //   columnName,
-    //   columnLabel,
-    //   nativeFilterId,
-    // });
-    // setNativeFilterData(
-    //   nativeFilterData.map((filter, index) =>
-    //     index === idx
-    //       ? {
-    //           ...filter,
-    //           nativeFilterId,
-    //           columnLabel,
-    //           columnName,
-    //           optionFilterValues: filterValues,
-    //         }
-    //       : filter,
-    //   ),
-    // );
+
     getChartDataRequest(filterValues).then(response => {
-      const filterValues = nativeFilterValues || [];
       const newFilterValues = response.json.result[0].data.map((item: any) => ({
         value: item[columnName],
         label: item[columnName],
@@ -1252,8 +1219,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
             : filter,
         ),
       );
-
-      setNativeFilterValues(filterValues);
     });
   };
 
@@ -1451,8 +1416,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (resource) {
       // Add native filter settings
-      // todo(hughhh): refactor to handle multiple native filters
-      setSelectedNativeFilter(resource.extra?.dashboard.nativeFilters[0]);
+      setNativeFilterData(resource.extra?.dashboard.nativeFilters);
 
       // Add notification settings
       const settings = (resource.recipients || []).map(setting => {
@@ -1934,9 +1898,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 autoComplete="off"
                 style={{ margin: '5px 0' }}
               >
-                <AntdForm.List name="list1">
+                <AntdForm.List name="filters" initialValue={nativeFilterData}>
                   {(fields, { add, remove }) => (
                     <div>
+                      {console.log('fields', fields)}
                       {fields.map(({ key, name, ...restField }) => (
                         <div style={{ display: 'flex' }} key={key}>
                           <div
@@ -1952,7 +1917,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <Select
                               disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
-                              value={nativeFilterData[key].nativeFilterId}
+                              value={nativeFilterData[key]?.nativeFilterId}
                               options={nativeFilterOptions}
                               onChange={value =>
                                 onChangeDashboardFilter(key, value)
@@ -1971,17 +1936,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <div className="control-label">{t('Value')}</div>
                             <Select
                               ariaLabel={t('Value')}
-                              value={nativeFilterData[key].filterValues}
-                              options={nativeFilterData[key].optionFilterValues}
+                              value={nativeFilterData[key]?.filterValues}
+                              options={nativeFilterData[key]?.optionFilterValues}
                               onChange={value => onChangeDashboardFilterValue(key, value)}
                               mode="multiple"
                             />
                           </div>
                           <div style={{ display: 'flex' }}>
                             <Icons.Trash
-                              onClick={() =>
-                                handleRemoveFilterField(remove, key)
-                              }
+                              onClick={() => {
+                                handleRemoveFilterField(name);
+                                remove(name);
+                              }}
                               style={{ display: 'flex' }}
                             />
                           </div>

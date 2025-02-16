@@ -98,8 +98,8 @@ export type DashboardState = {
 export type ExtraNativeFilter = {
   columnName?: string;
   columnLabel?: string;
-  filterValues?: Array<any>;
-  nativeFilterId: number;
+  filterValues?: Array<any> | [];
+  nativeFilterId?: number;
 };
 
 export type Extra = {
