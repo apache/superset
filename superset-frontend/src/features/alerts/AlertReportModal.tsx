@@ -1898,10 +1898,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 autoComplete="off"
                 style={{ margin: '5px 0' }}
               >
-                <AntdForm.List name="filters" initialValue={nativeFilterData}>
+                <AntdForm.List
+                  name="filters"
+                  initialValue={isEditMode ? nativeFilterData : [{}]} // only show one filter field on create
+                >
                   {(fields, { add, remove }) => (
                     <div>
-                      {console.log('fields', fields)}
                       {fields.map(({ key, name, ...restField }) => (
                         <div style={{ display: 'flex' }} key={key}>
                           <div
