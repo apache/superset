@@ -222,7 +222,7 @@ const SliceHeaderControls = (
       props.forceRefresh(props.slice.slice_id, props.dashboardId);
     }
   };
-
+  const bulkActionLabel=props?.formData?.bulk_action_label;
   const nonSplitActions = parseJsonValue(props?.formData?.non_split_actions);
   const splitActions = parseJsonValue(props?.formData?.split_actions);
   const [selectedRows, setSelectedRows] = useState<Set<any>>(new Set());
@@ -584,7 +584,7 @@ const SliceHeaderControls = (
       )}
       {/* Add splitActions as a submenu */}
       {splitActions?.length > 0 && (
-        <Menu.SubMenu key="split-actions" title="Bulk Actions">
+        <Menu.SubMenu key="split-actions" title={bulkActionLabel}>
           {splitActions
             .map((action: any) => {
               const visible = isActionVisible(action, hasSelection);

@@ -42,6 +42,15 @@ const basicFormData: TableChartFormData = {
   timeseries_limit_metric: '',
   table_filter: false,
   table_timestamp_format: '%Y-%m-%d %H:%M:%S',
+  show_split_buttons_in_slice_header: false,
+  retain_selection_accross_navigation: false,
+  enable_bulk_actions: false,
+  include_row_numbers: false,
+  bulk_action_id_column: 'id',
+  selection_mode: 'multiple',
+  enable_table_actions: false,
+  table_actions_id_column: 'id',
+  split_actions: ''
 };
 
 const basicChartProps = {
@@ -56,7 +65,12 @@ const basicChartProps = {
     columnFormats: {},
     verboseMap: {},
   },
-  hooks: {},
+  hooks: {
+    onAddFilter: jest.fn(),
+    setDataMask: jest.fn(),
+    onContextMenu: jest.fn(),
+    onBulkActionClick: (actionKey: string, selectedIds: string[]) => {}, // Updated hooks type
+  },
   initialValues: {},
   queriesData: [
     {
@@ -68,6 +82,20 @@ const basicChartProps = {
   ],
   formData: basicFormData,
   theme: supersetTheme,
+  filterState: { filters: {} },
+  ownState: {},
+  emitCrossFilters: false,
+  enable_bulk_actions: false,
+  include_row_numbers: false,
+  bulk_action_id_column: 'id',
+  selection_mode: 'multiple',
+  split_actions:'' ,
+  non_split_actions:'' ,
+  enable_table_actions: false,
+  table_actions_id_column: '',
+  table_actions:'',
+  show_split_buttons_in_slice_header: false,
+  retain_selection_accross_navigation: false,
 };
 
 const basicQueryResult: ChartDataResponseResult = {
@@ -94,6 +122,10 @@ const basicQueryResult: ChartDataResponseResult = {
  */
 const basic: TableChartProps = {
   ...new ChartProps(basicChartProps),
+  hooks: {
+    onBulkActionClick: (actionKey: string, selectedIds: string[]) => {}, // Updated hooks type
+  },
+  formData: basicFormData,
   queriesData: [
     {
       ...basicQueryResult,
@@ -129,7 +161,7 @@ const basic: TableChartProps = {
       ],
     },
   ],
-} as any;
+};
 
 /**
  * Advanced data input with
@@ -245,15 +277,7 @@ const comparison: TableChartProps = {
       ],
     },
   ],
-  filterState: { filters: {} },
-  ownState: {},
-  hooks: {
-    onAddFilter: jest.fn(),
-    setDataMask: jest.fn(),
-    onContextMenu: jest.fn(),
-  },
-  emitCrossFilters: true,
-} as any;
+};
 
 const comparisonWithConfig: TableChartProps = {
   ...comparison,
@@ -292,15 +316,7 @@ const comparisonWithConfig: TableChartProps = {
       data: [{ rowcount: 1 }],
     },
   ],
-  filterState: { filters: {} },
-  ownState: {},
-  hooks: {
-    onAddFilter: jest.fn(),
-    setDataMask: jest.fn(),
-    onContextMenu: jest.fn(),
-  },
-  emitCrossFilters: false,
-} as any;
+};
 
 const raw = {
   ...advanced,

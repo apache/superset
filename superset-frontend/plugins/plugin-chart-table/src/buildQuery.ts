@@ -26,15 +26,12 @@ import {
   QueryObject,
   removeDuplicates,
 } from '@superset-ui/core';
-import { PostProcessingRule } from '@superset-ui/core/src/query/types/PostProcessing';
-import { BuildQuery } from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
-import {
-  isTimeComparison,
-  timeCompareOperator,
-} from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
-import { TableChartFormData } from './types';
-import { updateExternalFormData } from './DataTable/utils/externalAPIs';
+import {PostProcessingRule} from '@superset-ui/core/src/query/types/PostProcessing';
+import {BuildQuery} from '@superset-ui/core/src/chart/registries/ChartBuildQueryRegistrySingleton';
+import {isTimeComparison, timeCompareOperator,} from '@superset-ui/chart-controls';
+import {isEmpty} from 'lodash';
+import {TableChartFormData} from './types';
+import {updateExternalFormData} from './DataTable/utils/externalAPIs';
 
 /**
  * Infer query mode from form data. If `all_columns` is set, then raw records mode,
@@ -43,7 +40,7 @@ import { updateExternalFormData } from './DataTable/utils/externalAPIs';
  * The same logic is used in `controlPanel` with control values as well.
  */
 export function getQueryMode(formData: TableChartFormData) {
-  const { query_mode: mode } = formData;
+  const {query_mode: mode} = formData;
   if (mode === QueryMode.Aggregate || mode === QueryMode.Raw) {
     return mode;
   }
@@ -81,8 +78,8 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }, []);
 
   return buildQueryContext(formDataCopy, baseQueryObject => {
-    let { metrics, orderby = [], columns = [] } = baseQueryObject;
-    const { extras = {} } = baseQueryObject;
+    let {metrics, orderby = [], columns = []} = baseQueryObject;
+    const {extras = {}} = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
     const nonCustomNorInheritShifts = ensureIsArray(
       formData.time_compare,
@@ -134,9 +131,9 @@ const buildQuery: BuildQuery<TableChartFormData> = (
           baseQueryObject,
         )
           ? addComparisonPercentMetrics(
-              percentMetrics.map(getMetricLabel),
-              timeOffsets,
-            )
+            percentMetrics.map(getMetricLabel),
+            timeOffsets,
+          )
           : percentMetrics.map(getMetricLabel);
         const percentMetricLabels = removeDuplicates(
           percentMetricsLabelsWithTimeComparison,
@@ -191,11 +188,16 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     const moreProps: Partial<QueryObject> = {};
     const ownState = options?.ownState ?? {};
-    if (formDataCopy.server_pagination) {
-      moreProps.row_limit =
-        ownState.pageSize ?? formDataCopy.server_page_length;
-      moreProps.row_offset =
-        (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+    if (formDataCopy.result_type === 'full' && (formDataCopy.result_format === 'csv' || formDataCopy.result_format === 'xlsx') && formDataCopy.query_mode === 'raw') {
+      moreProps.row_limit = undefined; // Remove row limit for export
+      moreProps.row_offset = 0; // Reset offset for export
+    } else {
+      if (formDataCopy.server_pagination) {
+        moreProps.row_limit =
+          ownState.pageSize ?? formDataCopy.server_page_length;
+        moreProps.row_offset =
+          (ownState.currentPage ?? 0) * (ownState.pageSize ?? 0);
+      }
     }
 
     if (!temporalColumn) {
@@ -218,9 +220,9 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
-        JSON.stringify(queryObject.filters)
+      JSON.stringify(queryObject.filters)
     ) {
-      queryObject = { ...queryObject, row_offset: 0 };
+      queryObject = {...queryObject, row_offset: 0};
       updateExternalFormData(
         options?.hooks?.setDataMask,
         0,
@@ -258,7 +260,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     if (formData.server_pagination) {
       return [
-        { ...queryObject },
+        {...queryObject},
         {
           ...queryObject,
           time_offsets: [],
@@ -280,18 +282,19 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   let cachedChanges: any = {};
   const setCachedChanges = (newChanges: any) => {
-    cachedChanges = { ...cachedChanges, ...newChanges };
+    cachedChanges = {...cachedChanges, ...newChanges};
   };
 
   return (formData, options) =>
     buildQuery(
-      { ...formData },
+      {...formData},
       {
-        extras: { cachedChanges },
+        extras: {cachedChanges},
         ownState: options?.ownState ?? {},
         hooks: {
           ...options?.hooks,
-          setDataMask: () => {},
+          setDataMask: () => {
+          },
           setCachedChanges,
         },
       },

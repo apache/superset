@@ -30,11 +30,17 @@ export interface BulkAction {
   boundToSelection: boolean;
   visibilityCondition: 'all' | 'selected' | 'unselected';
   showInSliceHeader: boolean;
+  value?: string;
+  rowId?: string;
+  type?: any;
 }
 
 export interface BulkActionsConfig {
-  split: Set<BulkAction>;
-  nonSplit: Set<BulkAction>;
+  split: Set<any>;
+  nonSplit: Set<any>;
+  value?: string;
+  rowId?: string;
+  type?: any;
 }
 
 export interface DataTableProps<D extends object> extends TableOptions<D> {
@@ -64,6 +70,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   includeRowNumber?: boolean;
   enableTableActions?: boolean;
   tableActionsIdColumn?: string;
+  bulkActionLabel?: string;
   tableActions?: Set<any>;
   onTableActionClick?: (action?: string, id?: string, value?: string) => void;
   showSplitInSliceHeader?: boolean;
@@ -103,6 +110,7 @@ export default typedMemo(function DataTable<D extends object>({
                                                                 renderGroupingHeaders,
                                                                 renderTimeComparisonDropdown,
                                                                 selectedRows,
+                                                                bulkActionLabel,
                                                                 bulkActions,
                                                                 onBulkActionClick,
                                                                 enableBulkActions = false,
@@ -231,6 +239,7 @@ export default typedMemo(function DataTable<D extends object>({
       <div className="dt-bulk-actions">
         <BulkActions
           selectedRows={selectedRows}
+          bulkActionLabel={bulkActionLabel ?? 'Bulk Action'}
           actions={bulkActions}
           showSplitInSliceHeader={showSplitInSliceHeader}
           onActionClick={handleBulkAction}

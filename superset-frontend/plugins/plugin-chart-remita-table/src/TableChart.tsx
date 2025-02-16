@@ -206,14 +206,6 @@ function SelectPageSize({
 
 const getNoResultsMessage = (filter: string) =>
   filter ? t('No matching records found') : t('No records found');
-//
-// interface FormattedAction {
-//   key: string;
-//   label: string;
-//   boundToSelection: boolean;
-//   visibilityCondition: 'all' | 'selected' | 'unselected';
-//   style?: string;
-// }
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: TableChartTransformedProps<D> & {
@@ -221,6 +213,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     enable_bulk_actions?: boolean;
     include_row_numbers?: boolean;
     bulk_action_id_column?: string;
+    bulk_action_label?: string,
     selection_mode?: 'single' | 'multiple';
     split_actions?: Set<any>;
     non_split_actions?: Set<any>;
@@ -265,12 +258,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     enable_bulk_actions = false,
     include_row_numbers = false,
     bulk_action_id_column = 'id',
+    bulk_action_label = 'Bulk Action',
     selection_mode = 'multiple',
-    split_actions = new Set<any>(),
-    non_split_actions = new Set<any>(),
+    split_actions ,
+    non_split_actions ,
     enable_table_actions = false,
     table_actions_id_column = '',
-    table_actions = new Set<any>(),
+    table_actions,
     show_split_buttons_in_slice_header = false,
     retain_selection_accross_navigation = false,
   } = props;
@@ -472,10 +466,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   useEffect(() => {
     const handleMessage = (event: any) => {
       // Check if the event data is what you expect
+
       if (event.data && event.data.notification === 'alert-event') {
         doShowAlertMessge(event.data.data);
-      }
-      if (event.data && event.data.notification === 'publish-event') {
+      } else if (event.data && event.data.notification === 'publish-event') {
         doSendWindowPostMessge(event.data.data);
       }
     };
@@ -531,17 +525,19 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       );
 
       setSelectedRows(prev => {
-        const newSelected = new Set(prev);
-        const allVisibleSelected =
-          visibleIds.length > 0 && visibleIds.every(id => newSelected.has(id));
+        // Start with empty Set
+        const newSelected = new Set<string>();
 
-        if (allVisibleSelected) {
-          // If all visible rows are selected, deselect only visible rows
-          visibleIds.forEach(id => newSelected.delete(id));
-        } else {
-          // Otherwise, select all visible rows
+        // Check if all currently visible rows were selected in the previous state
+        const allVisibleSelected =
+          visibleIds.length > 0 && visibleIds.every(id => prev.has(id));
+
+        if (!allVisibleSelected) {
+          // If not all visible rows were selected, select all visible rows
           visibleIds.forEach(id => newSelected.add(id));
         }
+        // If all were selected, return empty Set
+
         return newSelected;
       });
     },
@@ -1453,6 +1449,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           enableTableActions={enable_table_actions}
           includeRowNumber={include_row_numbers}
           tableActionsIdColumn={table_actions_id_column}
+          bulkActionLabel={bulk_action_label}
           tableActions={table_actions}
           onBulkActionClick={handleBulkAction}
           showSplitInSliceHeader={show_split_buttons_in_slice_header}

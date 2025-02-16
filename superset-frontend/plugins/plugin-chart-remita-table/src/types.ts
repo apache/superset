@@ -48,7 +48,11 @@ export interface BulkAction {
   style?: ActionStyle;
   boundToSelection: boolean;
   visibilityCondition: VisibilityCondition;
+  showInSliceHeader: boolean;
+  value: any;
+  rowId: any
 }
+
 
 export interface RowAction {
   key: string;
@@ -87,31 +91,6 @@ export interface TableActionsProps {
   onActionClick: (action: string, selectedIds: string[]) => void;
 }
 
-// interface TableAction {
-//   label: string;
-//   action?: string;
-//   valueColumn?: string;
-// }
-
-// interface TableActionConfig {
-//   idColumn: string;
-//   actions: Record<string, TableAction>;
-// }
-
-// export interface TableChartProps<D extends DataRecord = DataRecord> {
-//   data: D[];
-//   height: number;
-//   width: number;
-//   enableBulkActions?: boolean;
-//   bulkActionIdColumn?: string;
-//   selectionMode?: SelectionMode;
-//   actions?: {
-//     split: BulkAction[];
-//     nonSplit: BulkAction[];
-//   };
-//   onBulkActionClick?: (event: BulkActionEvent) => void;
-//   onRowActionClick?: (event: RowActionEvent) => void;
-// }
 export type CustomFormatter = (value: DataRecordValue) => string;
 
 export type TableColumnConfig = {

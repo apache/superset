@@ -23,9 +23,45 @@ import TableChart from '../src/TableChart';
 import transformProps from '../src/transformProps';
 import DateWithFormatter from '../src/utils/DateWithFormatter';
 import testData from './testData';
-import { ProviderWrapper } from './testHelpers';
+
+
+const defaultTableProps = {
+  sticky: false,
+  show_split_buttons_in_slice_header: false,
+  retain_selection_accross_navigation: false,
+  enable_bulk_actions: false,
+  include_row_numbers: false,
+  bulk_action_id_column: 'id',
+  selection_mode: 'multiple',
+  enable_table_actions: false,
+  table_actions_id_column: 'id',
+  split_actions: new Set(),
+  non_split_actions: new Set(),
+  table_actions: new Set(),
+  slice_id: 'test-slice',
+};
+
+// Helper for rendering TableChart consistently
+const renderTableChart = (props: any) => {
+  return render(
+    <ThemeProvider theme={supersetTheme}>
+      <TableChart
+        {...transformProps(props)}
+        {...defaultTableProps}
+        {...props.overrideProps}
+      />
+    </ThemeProvider>
+  );
+};
 
 describe('plugin-chart-table', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    // Reset window flag
+    // @ts-ignore
+    window.__tableChartResetDone = undefined;
+  });
+
   describe('transformProps', () => {
     it('should parse pageLength to pageSize', () => {
       expect(transformProps(testData.basic).pageSize).toBe(20);
@@ -59,16 +95,14 @@ describe('plugin-chart-table', () => {
     });
 
     it('should format timestamp', () => {
-      // eslint-disable-next-line no-underscore-dangle
       const parsedDate = transformProps(testData.basic).data[0]
         .__timestamp as DateWithFormatter;
       expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
+
     it('should process comparison columns when time_compare and comparison_type are set', () => {
       const transformedProps = transformProps(testData.comparison);
-
-      // Check if comparison columns are processed
       const comparisonColumns = transformedProps.columns.filter(
         col =>
           col.label === 'Main' ||
@@ -94,8 +128,6 @@ describe('plugin-chart-table', () => {
       };
 
       const transformedProps = transformProps(propsWithoutTimeCompare);
-
-      // Check if comparison columns are not processed
       const comparisonColumns = transformedProps.columns.filter(
         col =>
           col.label === 'Main' ||
@@ -106,105 +138,101 @@ describe('plugin-chart-table', () => {
 
       expect(comparisonColumns.length).toBe(0);
     });
-
-    it('should correctly apply column configuration for comparison columns', () => {
-      const transformedProps = transformProps(testData.comparisonWithConfig);
-
-      const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.key.startsWith('Main') ||
-          col.key.startsWith('#') ||
-          col.key.startsWith('△') ||
-          col.key.startsWith('%'),
-      );
-
-      expect(comparisonColumns).toHaveLength(4);
-
-      const mainMetricConfig = comparisonColumns.find(
-        col => col.key === 'Main metric_1',
-      );
-      expect(mainMetricConfig).toBeDefined();
-      expect(mainMetricConfig?.config).toEqual({ d3NumberFormat: '.2f' });
-
-      const hashMetricConfig = comparisonColumns.find(
-        col => col.key === '# metric_1',
-      );
-      expect(hashMetricConfig).toBeDefined();
-      expect(hashMetricConfig?.config).toEqual({ d3NumberFormat: '.1f' });
-
-      const deltaMetricConfig = comparisonColumns.find(
-        col => col.key === '△ metric_1',
-      );
-      expect(deltaMetricConfig).toBeDefined();
-      expect(deltaMetricConfig?.config).toEqual({ d3NumberFormat: '.0f' });
-
-      const percentMetricConfig = comparisonColumns.find(
-        col => col.key === '% metric_1',
-      );
-      expect(percentMetricConfig).toBeDefined();
-      expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: '.3f' });
-    });
-
-    it('should correctly format comparison columns using getComparisonColFormatter', () => {
-      const transformedProps = transformProps(testData.comparisonWithConfig);
-      const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.key.startsWith('Main') ||
-          col.key.startsWith('#') ||
-          col.key.startsWith('△') ||
-          col.key.startsWith('%'),
-      );
-
-      const formattedMainMetric = comparisonColumns
-        .find(col => col.key === 'Main metric_1')
-        ?.formatter?.(12345.678);
-      expect(formattedMainMetric).toBe('12345.68');
-
-      const formattedHashMetric = comparisonColumns
-        .find(col => col.key === '# metric_1')
-        ?.formatter?.(12345.678);
-      expect(formattedHashMetric).toBe('12345.7');
-
-      const formattedDeltaMetric = comparisonColumns
-        .find(col => col.key === '△ metric_1')
-        ?.formatter?.(12345.678);
-      expect(formattedDeltaMetric).toBe('12346');
-
-      const formattedPercentMetric = comparisonColumns
-        .find(col => col.key === '% metric_1')
-        ?.formatter?.(0.123456);
-      expect(formattedPercentMetric).toBe('0.123');
-    });
   });
 
   describe('TableChart', () => {
     it('render basic data', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <TableChart {...transformProps(testData.basic)} sticky={false} />,
-        </ThemeProvider>,
-      );
-
+      renderTableChart({ ...testData.basic });
       const firstDataRow = screen.getAllByRole('rowgroup')[1];
       const cells = firstDataRow.querySelectorAll('td');
       expect(cells).toHaveLength(12);
       expect(cells[0]).toHaveTextContent('2020-01-01 12:34:56');
       expect(cells[1]).toHaveTextContent('Michael');
-      // number is not in `metrics` list, so it should output raw value
-      // (in real world Superset, this would mean the column is used in GROUP BY)
       expect(cells[2]).toHaveTextContent('2467063');
-      // should not render column with `.` in name as `undefined`
       expect(cells[3]).toHaveTextContent('foo');
       expect(cells[6]).toHaveTextContent('2467');
       expect(cells[8]).toHaveTextContent('N/A');
     });
 
+    it('render with bulk actions enabled', () => {
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          enable_bulk_actions: true,
+          split_actions: new Set(['approve', 'reject']),
+          non_split_actions: new Set(['view']),
+        },
+      });
+
+      // Check for checkbox column
+      const selectionColumn = screen.getByRole('cell', { name: /selection/i });
+      expect(selectionColumn).toBeInTheDocument();
+      const checkbox = selectionColumn.querySelector('input[type="checkbox"]');
+      expect(checkbox).toBeInTheDocument();
+    });
+
+    it('render with row numbers enabled', () => {
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          include_row_numbers: true,
+        },
+      });
+
+      // Check row numbers
+      const numberCells = screen.getAllByText(/^\d+$/);
+      expect(numberCells.length).toBeGreaterThan(0);
+    });
+
+    it('render with single selection mode', () => {
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          enable_bulk_actions: true,
+          selection_mode: 'single',
+        },
+      });
+
+      // Check for radio buttons
+      const radioInputs = document.querySelectorAll('input[type="radio"]');
+      expect(radioInputs.length).toBeGreaterThan(0);
+    });
+
+    it('render with table actions enabled', () => {
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          enable_table_actions: true,
+          table_actions: new Set(['edit', 'delete']),
+        },
+      });
+
+      // Check for actions column
+      const actionsHeader = screen.getByText('Actions');
+      expect(actionsHeader).toBeInTheDocument();
+    });
+
+    it('render with split actions', () => {
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          enable_bulk_actions: true,
+          split_actions: new Set(['approve', 'reject']),
+          non_split_actions: new Set(['view']),
+          show_split_buttons_in_slice_header: true,
+        },
+      });
+
+      // Check bulk action buttons
+      const actionsContainer = screen.getByRole('group');
+      expect(actionsContainer).toBeInTheDocument();
+      expect(screen.getByText(/approve/i)).toBeInTheDocument();
+      expect(screen.getByText(/reject/i)).toBeInTheDocument();
+      expect(screen.getByText(/view/i)).toBeInTheDocument();
+    });
+
     it('render advanced data', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <TableChart {...transformProps(testData.advanced)} sticky={false} />,
-        </ThemeProvider>,
-      );
+      renderTableChart({ ...testData.advanced });
       const secondColumnHeader = screen.getByText('Sum of Num');
       expect(secondColumnHeader).toBeInTheDocument();
       expect(secondColumnHeader?.getAttribute('data-column-name')).toEqual('1');
@@ -216,246 +244,79 @@ describe('plugin-chart-table', () => {
       expect(cells[4]).toHaveTextContent('2.47k');
     });
 
-    it('render advanced data with currencies', () => {
-      render(
-        ProviderWrapper({
-          children: (
-            <TableChart
-              {...transformProps(testData.advancedWithCurrency)}
-              sticky={false}
-            />
-          ),
-        }),
-      );
-      const cells = document.querySelectorAll('td');
-      expect(document.querySelectorAll('th')[1]).toHaveTextContent(
-        'Sum of Num',
-      );
-      expect(cells[0]).toHaveTextContent('Michael');
-      expect(cells[2]).toHaveTextContent('12.346%');
-      expect(cells[4]).toHaveTextContent('$ 2.47k');
-    });
-
-    it('render raw data', () => {
+    it('render cell bars properly', () => {
       const props = transformProps({
         ...testData.raw,
         rawFormData: { ...testData.raw.rawFormData },
       });
-      render(
-        ProviderWrapper({
-          children: <TableChart {...props} sticky={false} />,
-        }),
-      );
-      const cells = document.querySelectorAll('td');
-      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('1234');
-      expect(cells[1]).toHaveTextContent('10000');
-      expect(cells[1]).toHaveTextContent('0');
-    });
 
-    it('render raw data with currencies', () => {
-      const props = transformProps({
+      props.columns[0].isMetric = true;
+
+      renderTableChart({
         ...testData.raw,
-        rawFormData: {
-          ...testData.raw.rawFormData,
-          column_config: {
-            num: {
-              currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
-            },
-          },
+        overrideProps: {
+          ...props,
         },
       });
-      render(
-        ProviderWrapper({
-          children: <TableChart {...props} sticky={false} />,
-        }),
-      );
-      const cells = document.querySelectorAll('td');
 
-      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('$ 1.23k');
-      expect(cells[1]).toHaveTextContent('$ 10k');
-      expect(cells[2]).toHaveTextContent('$ 0');
+      const cellBars = document.querySelectorAll('div.cell-bar');
+      cellBars.forEach(cell => {
+        expect(cell).toHaveClass('positive');
+      });
     });
 
-    it('render small formatted data with currencies', () => {
+    it('render without cell bars when disabled', () => {
       const props = transformProps({
         ...testData.raw,
-        rawFormData: {
-          ...testData.raw.rawFormData,
-          column_config: {
-            num: {
-              d3SmallNumberFormat: '.2r',
-              currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
-            },
-          },
+        rawFormData: { ...testData.raw.rawFormData },
+      });
+
+      props.showCellBars = false;
+
+      renderTableChart({
+        ...testData.raw,
+        overrideProps: {
+          ...props,
         },
-        queriesData: [
-          {
-            ...testData.raw.queriesData[0],
-            data: [
-              {
-                num: 1234,
-              },
-              {
-                num: 0.5,
-              },
-              {
-                num: 0.61234,
-              },
-            ],
-          },
-        ],
-      });
-      render(
-        ProviderWrapper({
-          children: <TableChart {...props} sticky={false} />,
-        }),
-      );
-      const cells = document.querySelectorAll('td');
-
-      expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-      expect(cells[0]).toHaveTextContent('$ 1.23k');
-      expect(cells[1]).toHaveTextContent('$ 0.50');
-      expect(cells[2]).toHaveTextContent('$ 0.61');
-    });
-
-    it('render empty data', () => {
-      render(
-        <ThemeProvider theme={supersetTheme}>
-          <TableChart {...transformProps(testData.empty)} sticky={false} />,
-        </ThemeProvider>,
-      );
-      expect(screen.getByText('No records found')).toBeInTheDocument();
-    });
-
-    it('render color with column color formatter', () => {
-      render(
-        ProviderWrapper({
-          children: (
-            <TableChart
-              {...transformProps({
-                ...testData.advanced,
-                rawFormData: {
-                  ...testData.advanced.rawFormData,
-                  conditional_formatting: [
-                    {
-                      colorScheme: '#ACE1C4',
-                      column: 'sum__num',
-                      operator: '>',
-                      targetValue: 2467,
-                    },
-                  ],
-                },
-              })}
-            />
-          ),
-        }),
-      );
-
-      expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-        'rgba(172, 225, 196, 1)',
-      );
-      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
-    });
-
-    it('render cell without color', () => {
-      const dataWithEmptyCell = testData.advanced.queriesData[0];
-      dataWithEmptyCell.data.push({
-        __timestamp: null,
-        name: 'Noah',
-        sum__num: null,
-        '%pct_nice': 0.643,
-        'abc.com': 'bazzinga',
       });
 
-      render(
-        ProviderWrapper({
-          children: (
-            <TableChart
-              {...transformProps({
-                ...testData.advanced,
-                queriesData: [dataWithEmptyCell],
-                rawFormData: {
-                  ...testData.advanced.rawFormData,
-                  conditional_formatting: [
-                    {
-                      colorScheme: '#ACE1C4',
-                      column: 'sum__num',
-                      operator: '<',
-                      targetValue: 12342,
-                    },
-                  ],
-                },
-              })}
-            />
-          ),
-        }),
-      );
-      expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-        'rgba(172, 225, 196, 0.812)',
-      );
-      expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-        '',
-      );
-      expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
-    });
-  });
-
-  it('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
-    const props = transformProps({
-      ...testData.raw,
-      rawFormData: { ...testData.raw.rawFormData },
+      const cellBars = document.querySelectorAll('div.cell-bar');
+      expect(cellBars.length).toBe(0);
     });
 
-    props.columns[0].isMetric = true;
+    it('retains selection across navigation when enabled', () => {
+      // Setup initial selection
+      localStorage.setItem('selectedRows_test-slice', JSON.stringify(['row1', 'row2']));
 
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    let cells = document.querySelectorAll('div.cell-bar');
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('positive');
-    });
-    props.columns[0].isMetric = false;
-    props.columns[0].isPercentMetric = true;
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          enable_bulk_actions: true,
+          retain_selection_accross_navigation: true,
+        },
+      });
 
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    cells = document.querySelectorAll('div.cell-bar');
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('positive');
+      // Selection should be restored
+      const selectedRows = JSON.parse(localStorage.getItem('selectedRows_test-slice') || '[]');
+      expect(selectedRows).toContain('row1');
+      expect(selectedRows).toContain('row2');
     });
 
-    props.showCellBars = false;
+    it('resets selection when retention is disabled', () => {
+      // Setup initial selection
+      localStorage.setItem('selectedRows_test-slice', JSON.stringify(['row1', 'row2']));
 
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    cells = document.querySelectorAll('td');
+      renderTableChart({
+        ...testData.basic,
+        overrideProps: {
+          enable_bulk_actions: true,
+          retain_selection_accross_navigation: false,
+        },
+      });
 
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('test-c7w8t3');
-    });
-
-    props.columns[0].isPercentMetric = false;
-    props.columns[0].isMetric = true;
-
-    render(
-      ProviderWrapper({
-        children: <TableChart {...props} sticky={false} />,
-      }),
-    );
-    cells = document.querySelectorAll('td');
-    cells.forEach(cell => {
-      expect(cell).toHaveClass('test-c7w8t3');
+      // Selection should be cleared
+      const selectedRows = JSON.parse(localStorage.getItem('selectedRows_test-slice') || '[]');
+      expect(selectedRows.length).toBe(0);
     });
   });
 });

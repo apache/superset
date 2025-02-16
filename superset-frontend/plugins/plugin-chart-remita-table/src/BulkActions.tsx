@@ -2,6 +2,7 @@ import React from 'react';
 import {t} from '@superset-ui/core';
 import {Dropdown, Menu} from '@superset-ui/chart-controls';
 import {DownOutlined} from '@ant-design/icons';
+import { BulkAction } from '.';
 
 const styles = `
   .bulk-actions-container {
@@ -37,29 +38,20 @@ const styles = `
 
 export interface BulkActionProps {
   selectedRows: Set<any>;
+  bulkActionLabel?: string;
   actions: {
-    split: Set<{
-      key: string;
-      label: string;
-      boundToSelection: boolean;
-      visibilityCondition: 'all' | 'selected' | 'unselected';
-      showInSliceHeader: boolean;
-    }>;
-    nonSplit: Set<{
-      key: string;
-      label: string;
-      style?: 'default' | 'primary' | 'danger';
-      boundToSelection: boolean;
-      visibilityCondition: 'all' | 'selected' | 'unselected';
-      showInSliceHeader: boolean;
-    }>;
+    split: Set<BulkAction>;
+    nonSplit: Set<BulkAction>;
   };
-  onActionClick: (actionKey: any, selectedIds: any[]) => void;
+  onActionClick: (action: any) => void;
   showSplitInSliceHeader: boolean;
+  value?: string;
+  rowId?: string;
 }
 
 export const BulkActions: React.FC<BulkActionProps> = ({
                                                          selectedRows,
+                                                         bulkActionLabel,
                                                          actions,
                                                          onActionClick,
                                                          showSplitInSliceHeader,
@@ -67,18 +59,18 @@ export const BulkActions: React.FC<BulkActionProps> = ({
   const hasSelection = selectedRows.size > 0;
 
   // Convert Sets to Arrays for filtering.
-  const splitActions = Array.from(actions.split);
-  const nonSplitActions = Array.from(actions.nonSplit);
+  const splitActions = actions?.split?Array.from(actions.split):null;
+  const nonSplitActions = actions?.nonSplit?Array.from(actions.nonSplit):null;
   const splitInSliceHeader = showSplitInSliceHeader;
 
-  const dropdownActions = splitActions.filter(action => {
+  const dropdownActions = splitActions?.filter(action => {
     if (action.visibilityCondition === 'all') return true;
     if (action.visibilityCondition === 'selected') return true;
     if (action.visibilityCondition === 'unselected') return !hasSelection;
     return true;
   });
 
-  const buttonActions = nonSplitActions.filter(action => {
+  const buttonActions = nonSplitActions?.filter(action => {
     if (action.showInSliceHeader) return false;
     if (action.visibilityCondition === 'all') return true;
     if (action.visibilityCondition === 'selected') return true;
@@ -97,15 +89,17 @@ export const BulkActions: React.FC<BulkActionProps> = ({
           </span>
 
           {/* Show dropdown if there are dropdown actions */}
-          {dropdownActions.length > 0 && !splitInSliceHeader && (
+          {dropdownActions && dropdownActions?.length > 0 && !splitInSliceHeader && (
             <Dropdown
               overlay={
                 <Menu>
                   {Array.from(dropdownActions).map(action => (
                     <Menu.Item
                       key={action.key}
-                      onClick={() =>
-                        onActionClick(action, Array.from(selectedRows))
+                      onClick={() => {
+                          action.value= Array.from(selectedRows);
+                          onActionClick(action);
+                        }
                       }
                       disabled={action.boundToSelection && !hasSelection}
                     >
@@ -118,35 +112,37 @@ export const BulkActions: React.FC<BulkActionProps> = ({
               trigger={['click']}
               disabled={
                 !hasSelection &&
-                dropdownActions.every(a => a.boundToSelection)
+                dropdownActions?.every(a => a.boundToSelection)
               }
             >
               <button
                 className="btn btn-default"
                 disabled={
                   !hasSelection &&
-                  dropdownActions.every(a => a.boundToSelection)
+                  dropdownActions?.every(a => a.boundToSelection)
                 }
               >
-                {t('Actions')} <DownOutlined/>
+                {bulkActionLabel} <DownOutlined/>
               </button>
             </Dropdown>
           )}
           {/* Render button actions */}
           {
-            Array.from(buttonActions)
+            buttonActions && (Array.from(buttonActions)
               .map(action => (
                 <button
                   key={action.key}
                   className={`btn btn-${action.style || 'default'}`}
-                  onClick={() =>
-                    onActionClick(action.key, Array.from(selectedRows))
+                  onClick={() => {
+                    action.value= Array.from(selectedRows);
+                    onActionClick(action);
+                  }
                   }
                   disabled={action.boundToSelection && !hasSelection}
                 >
                   {action.label}
                 </button>
-              ))}
+              )))}
         </div>
       </span>
     </>

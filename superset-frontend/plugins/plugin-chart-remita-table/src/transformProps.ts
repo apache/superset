@@ -477,6 +477,7 @@ const transformProps = (
     comparison_type,
     enable_bulk_actions = false,
     bulk_action_id_column = 'id',
+    bulk_action_label = 'Bulk Action',
     selection_mode = 'multiple',
     split_actions,
     non_split_actions,
@@ -485,8 +486,8 @@ const transformProps = (
     table_actions ,
     include_row_numbers,
     slice_id,
-    show_split_buttons_in_slice_header,
-    retain_selection_accross_navigation,
+    show_split_buttons_in_slice_header=false,
+    retain_selection_accross_navigation=false,
   } = formData;
   const isUsingTimeComparison =
     !isEmpty(time_compare) &&
@@ -721,6 +722,7 @@ const transformProps = (
     // Add bulk action props
     enable_bulk_actions,
     bulk_action_id_column,
+    bulk_action_label,
     selection_mode,
     split_actions,
     non_split_actions,

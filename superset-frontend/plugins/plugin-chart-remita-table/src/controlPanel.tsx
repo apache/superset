@@ -233,10 +233,25 @@ const bulkActionsSection = {
     ],
     [
       {
+        name: 'bulk_action_label',
+        config: {
+          type: 'TextControl',
+          renderTrigger: true,
+          label: t('Bulk Action Label'),
+          description: t('Label to be used for bulk actions'),
+          default: 'Bulk Action',
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_bulk_actions?.value),
+        },
+      },
+    ],
+    [
+      {
         name: 'bulk_action_id_column',
         config: {
           type: 'SelectControl',
           renderTrigger: true,
+          triggers: ['split_actions', 'non_split_actions'],
           label: t('ID Column'),
           description: t('Column to use as unique identifier for bulk actions'),
           default: null,
@@ -276,11 +291,19 @@ const bulkActionsSection = {
         config: {
           type: SplitActionsControl,
           renderTrigger: true,
+          rerender: ['bulk_action_id_column'],
           label: t('Header Button Actions - Split Dropdown Actions'),
           description: t(
             'Actions to show in dropdown menu.',
           ),
           language: 'json',
+          mapStateToProps: ({ datasource,controls }: any) => ({
+            columns:
+              datasource?.columns?.map((col: any) => [
+                col.column_name
+              ]) || [],
+            valueColumn: controls.bulk_action_id_column.value,
+          }),
           visibility: ({ controls }: any) => Boolean(controls?.enable_bulk_actions?.value),
           offerEditInModal: true,
         },
@@ -293,11 +316,19 @@ const bulkActionsSection = {
         config: {
           type: NonSplitActionsControl,
           renderTrigger: true,
+          rerender: ['bulk_action_id_column'],
           label: t('Header Button Actions - Non Split'),
           description: t(
             'Actions as individual buttons.',
           ),
           language: 'json',
+          mapStateToProps: ({ datasource,controls }: any) => ({
+            columns:
+              datasource?.columns?.map((col: any) => [
+                col.column_name
+              ]) || [],
+            valueColumn: controls.bulk_action_id_column.value,
+          }),
           visibility: ({controls}: any) => Boolean(controls?.enable_bulk_actions?.value),
           offerEditInModal: true,
         }
@@ -319,6 +350,13 @@ const tableActionsSection = {
           default: false,
           renderTrigger: true,
           description: t('Enable actions column in the table'),
+          mapStateToProps: ({ datasource }: any) => ({
+            choices:
+              datasource?.columns?.map((col: any) => [
+                col.column_name,
+                col.verbose_name || col.column_name,
+              ]) || [],
+          }),
         },
       },
     ],
@@ -355,6 +393,13 @@ const tableActionsSection = {
           ),
           offerEditInModal: true,
           language: 'json',
+          mapStateToProps: ({ datasource,controls }: any) => ({
+            columns:
+              datasource?.columns?.map((col: any) => [
+                col.column_name
+              ]) || [],
+            valueColumn: controls.table_actions_id_column.value,
+          }),
           visibility: ({ controls }: any) =>
             Boolean(controls?.enable_table_actions?.value),
         },

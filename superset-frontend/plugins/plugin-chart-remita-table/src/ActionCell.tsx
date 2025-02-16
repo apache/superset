@@ -19,13 +19,12 @@ const MenuContainer = styled.div`
   top: 100%;
   z-index: 1050;
   min-width: 120px;
-  display: ${props => props.hidden ? 'none' : 'block'};
+  display: ${(props) => (props.hidden ? "none" : "block")};
 `;
 
 const ActionLink = styled.a`
   display: block;
   padding: 5px 12px;
-  //color: rgba(0, 0, 0, 0.85);
   transition: all 0.3s;
   cursor: pointer;
   text-decoration: none;
@@ -33,8 +32,9 @@ const ActionLink = styled.a`
     background-color: #f5f5f5;
     text-decoration: none !important;
   }
-
-  &:focus, &:active, &:visited {
+  &:focus,
+  &:active,
+  &:visited {
     text-decoration: none !important;
   }
 `;
@@ -44,7 +44,6 @@ const MenuTrigger = styled.span`
   padding: 4px 8px;
   display: inline-block;
   user-select: none;
-  
   &:hover {
     background-color: #f5f5f5;
     border-radius: 4px;
@@ -59,6 +58,51 @@ const MenuTrigger = styled.span`
   }
 `;
 
+/**
+ * Helper function to evaluate the visibility condition.
+ * Expects a condition object with properties: column, operator, value.
+ */
+const evaluateVisibilityCondition = (condition:any, row:any) => {
+  if (!condition || !condition.column || !condition.operator) return true;
+
+  const rowValue = row[condition.column[0]];
+  const operator = condition.operator;
+  const condValue = condition.value;
+
+  switch (operator) {
+    case "==":
+      return rowValue == condValue;
+    case "!=":
+      return rowValue != condValue;
+    case ">":
+      return rowValue > condValue;
+    case "<":
+      return rowValue < condValue;
+    case ">=":
+      return rowValue >= condValue;
+    case "<=":
+      return rowValue <= condValue;
+    case "IS NULL":
+      return rowValue === null || rowValue === undefined;
+    case "IS NOT NULL":
+      return rowValue !== null && rowValue !== undefined;
+    case "IN": {
+      const list = String(condValue)
+        .split(",")
+        .map((s) => s.trim());
+      return list.includes(String(rowValue));
+    }
+    case "NOT IN": {
+      const list = String(condValue)
+        .split(",")
+        .map((s) => s.trim());
+      return !list.includes(String(rowValue));
+    }
+    default:
+      return true;
+  }
+};
+
 export const ActionCell = ({
                              rowId,
                              actions,
@@ -69,7 +113,7 @@ export const ActionCell = ({
   actions: any;
   row: any;
   onActionClick: (action: string, id: string, value?: string) => void;
-}) => {
+                           }) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -93,7 +137,9 @@ export const ActionCell = ({
     e.stopPropagation();
     const configExtended = config as any;
     const value = configExtended.valueColumn ? String(row[configExtended.valueColumn]) : undefined;
-    onActionClick(configExtended.action || key, rowId, value);
+    config.value=value;
+    config.rowId=rowId;
+    onActionClick(configExtended.action || key, rowId, config);
     setMenuOpen(false);
   };
 
@@ -105,27 +151,31 @@ export const ActionCell = ({
   return (
     <td className="dt-is-filter right-border-only remita-action-col" width="70px">
       <ActionWrapper ref={wrapperRef} className="remita-action-wrapper">
-        <MenuTrigger
-          className="remita-menu-trigger"
-          onClick={toggleMenu}
-        >
+        <MenuTrigger className="remita-menu-trigger" onClick={toggleMenu}>
           <div className="dot" />
           <div className="dot" />
           <div className="dot" />
         </MenuTrigger>
         <MenuContainer className="remita-menu" hidden={!menuOpen}>
-          {Array.from(actions).map((config:any, index) => (
-            <ActionLink
-              key={config?.key || index}
-              href="#"
-              className={`remita-link remita-action-${config?.key || index}`}
-              data-action={config?.action || config?.key || index}
-              onClick={(e) => handleActionClick(e, config?.key || index, config)}
-            >
-              {config?.label}
-            </ActionLink>
-          ))}
-
+          {actions &&
+            Array.from(actions)
+              .filter((config:any) => {
+                // If there's no visibilityCondition, show the action.
+                if (!config.visibilityCondition) return true;
+                // Otherwise, evaluate the condition against the row.
+                return evaluateVisibilityCondition(config.visibilityCondition, row);
+              })
+              .map((config:any, index) => (
+                <ActionLink
+                  key={config?.key || index}
+                  href="#"
+                  className={`remita-link remita-action-${config?.key || index}`}
+                  data-action={config?.action || config?.key || index}
+                  onClick={(e) => handleActionClick(e, config?.key || index, config)}
+                >
+                  {config?.label}
+                </ActionLink>
+              ))}
         </MenuContainer>
       </ActionWrapper>
     </td>
