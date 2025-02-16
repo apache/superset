@@ -530,7 +530,7 @@ pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
-platformdirs==3.8.1
+platformdirs==3.9.1
     # via
     #   -c requirements/base.txt
     #   requests-cache
@@ -545,7 +545,7 @@ polyline==2.0.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
-pre-commit==4.0.1
+pre-commit==4.1.0
     # via apache-superset
 prison==0.2.1
     # via
@@ -849,7 +849,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==20.23.1
+virtualenv==20.29.2
     # via pre-commit
 wcwidth==0.2.13
     # via
