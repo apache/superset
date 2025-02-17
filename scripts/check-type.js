@@ -23,6 +23,7 @@
 const { exit } = require("node:process");
 const { join, dirname, normalize, sep } = require("node:path");
 const { readdir } = require("node:fs/promises");
+const { existsSync } = require("node:fs");
 const { chdir, cwd } = require("node:process");
 const { createRequire } = require("node:module");
 
@@ -59,19 +60,20 @@ void (async () => {
   const declarationFilesStr = declarationFiles.join(" ");
 
   const packageRootDirAbsolute = join(SUPERSET_ROOT, packageRootDir);
-  const tsConfig = join(packageRootDirAbsolute, "tsconfig.json");
+  const tsConfig = getTsConfig(packageRootDirAbsolute);
   const command = `--noEmit --allowJs --composite false --project ${tsConfig} ${argsStr} ${declarationFilesStr}`;
 
   try {
     chdir(packageRootDirAbsolute);
-    const packageRequire = createRequire(join(cwd(), "node_modules"));
     // Please ensure that tscw-config is installed in the package being type-checked.
     const tscw = packageRequire("tscw-config");
     const child = await tscw`${command}`;
 
     if (child.stdout) {
       console.log(child.stdout);
-    } else {
+    }
+
+    if (child.stderr) {
       console.error(child.stderr);
     }
 
@@ -184,4 +186,35 @@ function removePackageSegment(args, package) {
     }
     return arg;
   });
+}
+
+/**
+ *
+ * @param {string} dir
+ */
+function getTsConfig(dir) {
+  const defaultTsConfig = "tsconfig.json";
+  const tsConfig = join(dir, defaultTsConfig);
+
+  if (!existsSync(tsConfig)) {
+    console.error(`Error: ${defaultTsConfig} not found in ${dir}`);
+    exit(1);
+  }
+  return tsConfig;
+}
+
+/**
+ *
+ * @param {string} module
+ */
+function packageRequire(module) {
+  try {
+    const localRequire = createRequire(join(cwd(), "node_modules"));
+    return localRequire(module);
+  } catch (e) {
+    console.error(
+      `Error: ${module} is not installed in ${cwd()}. Please install it first.`
+    );
+    exit(1);
+  }
 }
