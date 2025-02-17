@@ -2289,67 +2289,59 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = viz.form_data
 
             assert datasource
-            #DEBUT CODE A SUPPRIMER POUR RBAC FONCTIONNE
-            # Check each condition separately
-            can_access_schema = self.can_access_schema(datasource)
-            can_access_datasource_permission = self.can_access("datasource_access", datasource.perm or "")
-            is_owner = self.is_owner(datasource)
 
-            # Check if dashboard RBAC is enabled or if the user is an embedded guest user
-            dashboard_accessible = False
-            dashboard_ = None  # Initialize dashboard_ to avoid unassigned variable error
-            if form_data:
-                dashboard_id = form_data.get("dashboardId")
-                if dashboard_id:
-                    dashboard_ = self.get_session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
-                    if dashboard_:
-                        is_dashboard_rbac_enabled = is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles
-                        is_embedded_guest_user = is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user()
-                        if is_dashboard_rbac_enabled or is_embedded_guest_user:
-                            # Check if native filter or chart access is granted
-                            native_filter_access = False
-                            chart_access = False
-                            if form_data.get("type") == "NATIVE_FILTER":
-                                native_filter_id = form_data.get("native_filter_id")
-                                if native_filter_id and dashboard_.json_metadata:
-                                    json_metadata = json.loads(dashboard_.json_metadata)
-                                    native_filter_access = any(
-                                        target.get("datasetId") == datasource.id
-                                        for fltr in json_metadata.get("native_filter_configuration", [])
-                                        for target in fltr.get("targets", [])
-                                        if native_filter_id == fltr.get("id")
-                                    )
-                            else:
-                                slice_id = form_data.get("slice_id")
-                                if slice_id:
-                                    slc = self.get_session.query(Slice).filter(Slice.id == slice_id).one_or_none()
-                                    if slc and slc in dashboard_.slices and slc.datasource == datasource:
-                                        chart_access = True
+            if datasource or query_context or viz:
+                form_data = None
 
-                            dashboard_accessible = native_filter_access or chart_access
-                    else:
-                        logging.error("Dashboard not found.")
-                else:
-                    logging.error("No dashboardId in form_data.")
-            else:
-                logging.error("No form_data provided.")
+                if query_context:
+                    datasource = query_context.datasource
+                    form_data = query_context.form_data
+                elif viz:
+                    datasource = viz.datasource
+                    form_data = viz.form_data
 
-            # Print the result of each condition
-            logging.error(f"can_access_schema: {can_access_schema}, can_access_datasource_permission: {can_access_datasource_permission}, "
-                f"is_owner: {is_owner}, dashboard_accessible: {dashboard_accessible}, "
-                f"can_access_dashboard: {self.can_access_dashboard(dashboard_)}")
-            
-            # Final access check
-            if not (
-                can_access_schema
-                or can_access_datasource_permission
-                or is_owner
-                or (dashboard_accessible or self.can_access_dashboard(dashboard_))
-            ):
-                raise SupersetSecurityException(self.get_datasource_access_error_object(datasource))
+                assert datasource
 
+                
+                can_access_schema = self.can_access_schema(datasource)
+                can_access_datasource_permission = self.can_access("datasource_access", datasource.perm or "")
+                is_owner = self.is_owner(datasource)
 
-            #FIN CODE A SUPPRIMER POUR RBAC FONCTIONNE
+                
+                dashboard_accessible = False
+                dashboard_ = None
+
+                if form_data and (dashboard_id := form_data.get("dashboardId")):
+                    try:
+                        dashboard_ = self.get_session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+                    except Exception as e:
+                        logging.error(f"Error fetching dashboard {dashboard_id}: {e}")
+
+                if dashboard_:
+                    is_dashboard_rbac_enabled = is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles
+                    is_embedded_guest_user = is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user()
+
+                    if is_dashboard_rbac_enabled or is_embedded_guest_user:
+                        if form_data.get("type") == "NATIVE_FILTER" and (native_filter_id := form_data.get("native_filter_id")):
+                            json_metadata = json.loads(dashboard_.json_metadata) if dashboard_.json_metadata else {}
+                            dashboard_accessible = any(
+                                target.get("datasetId") == datasource.id
+                                for fltr in json_metadata.get("native_filter_configuration", [])
+                                for target in fltr.get("targets", [])
+                                if native_filter_id == fltr.get("id")
+                            )
+                        elif (slice_id := form_data.get("slice_id")):
+                            slc = self.get_session.query(Slice).filter(Slice.id == slice_id).one_or_none()
+                            dashboard_accessible = slc and slc in dashboard_.slices and slc.datasource == datasource
+
+                
+                if not (
+                    can_access_schema
+                    or can_access_datasource_permission
+                    or is_owner
+                    or (dashboard_accessible or self.can_access_dashboard(dashboard_))
+                ):
+                    raise SupersetSecurityException(self.get_datasource_access_error_object(datasource))
 
         if dashboard:
             if self.is_guest_user():
