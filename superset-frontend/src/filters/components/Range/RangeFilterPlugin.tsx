@@ -35,6 +35,7 @@ import { getRangeExtraFormData } from '../../utils';
 import { SingleValueType } from './SingleValueType';
 
 type InputValue = number | null;
+type RangeValue = [InputValue, InputValue];
 
 const StyledDivider = styled.span`
   margin: 0 ${({ theme }) => theme.gridUnit * 3}px;
@@ -80,13 +81,13 @@ const getLabel = (
 };
 
 const validateRange = (
-  inputMin: InputValue,
-  inputMax: InputValue,
+  values: RangeValue,
   min: number,
   max: number,
   enableEmptyFilter: boolean,
   enableSingleValue?: SingleValueType,
 ): { isValid: boolean; errorMessage: string | null } => {
+  const [inputMin, inputMax] = values;
   const requiredError = t('Filter value is required');
   const rangeError = t('Please provide a value within range');
   if (enableSingleValue !== undefined) {
@@ -163,10 +164,43 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
-  const [inputValue, setInputValue] = useState<[InputValue, InputValue]>(
+  const [inputValue, setInputValue] = useState<RangeValue>(
     filterState.value || defaultValue || [null, null],
   );
   const [error, setError] = useState<string | null>(null);
+
+  const updateDataMaskError = useCallback(
+    (errorMessage: string | null) => {
+      setDataMask({
+        extraFormData: {},
+        filterState: {
+          value: null,
+          label: '',
+          validateStatus: 'error',
+          validateMessage: errorMessage || '',
+        },
+      });
+    },
+    [setDataMask],
+  );
+
+  const updateDataMaskValue = useCallback(
+    (value: RangeValue) => {
+      const [inputMin, inputMax] = value;
+      setDataMask({
+        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
+        filterState: {
+          value: enableSingleExactValue
+            ? [inputMin, inputMin]
+            : [inputMin, inputMax],
+          label: getLabel(inputMin, inputMax, enableSingleExactValue),
+          validateStatus: undefined,
+          validateMessage: '',
+        },
+      });
+    },
+    [setDataMask],
+  );
 
   useEffect(() => {
     if (row?.min === undefined && row?.max === undefined) {
@@ -179,12 +213,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     ) {
       setError(filterState.validateMessage);
 
-      const inputMin = inputValue[minIndex];
-      const inputMax = inputValue[maxIndex];
+      const [inputMin, inputMax] = inputValue;
 
       const { isValid, errorMessage } = validateRange(
-        inputMin,
-        inputMax,
+        inputValue,
         min,
         max,
         enableEmptyFilter,
@@ -198,30 +230,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
       if (!isValid || isDefaultError) {
         setError(errorMessage);
-        setDataMask({
-          extraFormData: getRangeExtraFormData(col, null, null),
-          filterState: {
-            value: null,
-            label: '',
-            validateStatus: 'error',
-            validateMessage: errorMessage,
-          },
-        });
+        updateDataMaskError(errorMessage);
         return;
       }
 
       setError(null);
-      setDataMask({
-        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
-        filterState: {
-          value: enableSingleExactValue
-            ? [inputMin, inputMin]
-            : [inputMin, inputMax],
-          label: getLabel(inputMin, inputMax, enableSingleExactValue),
-          validateStatus: undefined,
-          validateMessage: '',
-        },
-      });
+      updateDataMaskValue(inputValue);
       return;
     }
     if (filterState.validateStatus === 'error') {
@@ -232,30 +246,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     // Clear all case
     if (!filterState.value && !filterState.validateStatus) {
       setInputValue([null, null]);
-      setDataMask({
-        extraFormData: getRangeExtraFormData(col, null, null),
-        filterState: {
-          value: [null, null],
-          label: '',
-          validateStatus: undefined,
-          validateMessage: '',
-        },
-      });
+      updateDataMaskValue([null, null]);
       return;
     }
     // Filter state is pre-set case
     if (filterState.value && !filterState.validateStatus) {
       setInputValue(filterState.value);
-      const [minVal, maxVal] = filterState.value;
-      setDataMask({
-        extraFormData: getRangeExtraFormData(col, minVal, maxVal),
-        filterState: {
-          value: filterState.value,
-          label: getLabel(minVal, maxVal, enableSingleExactValue),
-          validateStatus: undefined,
-          validateMessage: '',
-        },
-      });
+      updateDataMaskValue(filterState.value);
     }
   }, [filterState.value]);
 
@@ -284,12 +281,8 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
       setInputValue(newInputValue);
 
-      const inputMin = newInputValue[minIndex];
-      const inputMax = newInputValue[maxIndex];
-
       const { isValid, errorMessage } = validateRange(
-        inputMin,
-        inputMax,
+        newInputValue,
         min,
         max,
         enableEmptyFilter,
@@ -298,30 +291,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
       if (!isValid) {
         setError(errorMessage);
-        setDataMask({
-          extraFormData: getRangeExtraFormData(col, null, null),
-          filterState: {
-            value: null,
-            label: '',
-            validateStatus: 'error',
-            validateMessage: errorMessage,
-          },
-        });
+        updateDataMaskError(errorMessage);
         return;
       }
 
       setError(null);
-      setDataMask({
-        extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
-        filterState: {
-          value: enableSingleExactValue
-            ? [inputMin, inputMin]
-            : [inputMin, inputMax],
-          label: getLabel(inputMin, inputMax, enableSingleExactValue),
-          validateStatus: undefined,
-          validateMessage: '',
-        },
-      });
+      updateDataMaskValue(newInputValue);
     },
     [col, min, max, enableEmptyFilter, enableSingleValue, setDataMask],
   );
