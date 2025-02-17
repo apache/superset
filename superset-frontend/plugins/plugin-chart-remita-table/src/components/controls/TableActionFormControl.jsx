@@ -57,6 +57,18 @@ const STYLE_COLORS = {
   warning: 'orange',
 };
 
+const renderingStyles = `
+    .remita-action-setup .ant-collapse-content-box {
+      padding: 0;
+    }
+    .remita-action-setup .ant-card-head-wrapper {
+      max-height: 1rem;
+    }
+    .remita-action-setup .ant-card-head {
+      min-height: 2rem;
+      padding: 5px 4px !important;
+    }
+  `;
 
 const parseInitialValue = (value, valueColumn) => {
   if (!value) return []; // Return empty array if value is null or undefined
@@ -369,73 +381,77 @@ const TableActionFormControl = ({
     );
   };
   const renderInlineContent = () => (
-    <Collapse
-      defaultActiveKey={['1']}
-      ghost
-      expandIconPosition="right" // Ensures the arrow is positioned on the right
-      expandIcon={({ isActive }) => (
-        <span
-          style={{
-            display: 'inline-block',
-            transform: isActive ? 'rotate(90deg)' : 'rotate(-90deg)',
-            transition: 'transform 0.2s ease',
-          }}
-        >
+    <>
+      <style>{renderingStyles}</style>
+      <Collapse
+        defaultActiveKey={['1']}
+        ghost
+        className={'remita-action-setup'}
+        expandIconPosition="right" // Ensures the arrow is positioned on the right
+        expandIcon={({ isActive }) => (
+          <span
+            style={{
+              display: 'inline-block',
+              transform: isActive ? 'rotate(90deg)' : 'rotate(-90deg)',
+              transition: 'transform 0.2s ease',
+            }}
+          >
         <svg viewBox="64 64 896 896" focusable="false" data-icon="right" width="1em" height="1em" fill="currentColor"
              aria-hidden="true" ><path
           d="M765.7 486.8L314.9 134.7A7.97 7.97 0 00302 141v77.3c0 4.9 2.3 9.6 6.1 12.6l360 281.1-360 281.1c-3.9 3-6.1 7.7-6.1 12.6V883c0 6.7 7.7 10.4 12.9 6.3l450.8-352.1a31.96 31.96 0 000-50.4z"></path></svg>
       </span>
 
-      )}
-      style={{width: '100%', padding: 0}}
-    >
-      <Collapse.Panel
-        key="1"
-        style={{padding: 0}}
-        header={
-          <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <span>Table Row Actions</span>
-            <Badge
-              count={actions.length}
-              style={{
-                padding: '0 8px',
-                marginLeft: '8px',
-                borderRadius: '4px',
-                fontSize: '12px',
-                backgroundColor: '#eee',
-                color: '#666',
-                fontWeight: 500,
-              }}
-            />
-          </div>
-        }
+        )}
+        style={{width: '100%', padding: 0}}
       >
-        <div direction="vertical" style={{ width: '100%', padding: 0 }}>
-          {actions.length === 0 ? (
-            <>
-              <Alert
-                message="No table  actions added yet."
-                type="info"
-                showIcon
-                style={{ marginBottom: '8px' }}
+        <Collapse.Panel
+          key="1"
+          style={{padding: 0}}
+          header={
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <span>Table Row Actions</span>
+              <Badge
+                count={actions.length}
+                style={{
+                  padding: '0 8px',
+                  marginLeft: '8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  backgroundColor: '#eee',
+                  color: '#666',
+                  fontWeight: 500,
+                }}
               />
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button
-                  size="small"
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={openAddModal}
-                >
-                  Add New Action
-                </Button>
-              </div>
-            </>
-          ) : (
-            actions.map((action, index) => renderCard(action, index))
-          )}
-        </div>
-      </Collapse.Panel>
-    </Collapse>
+            </div>
+          }
+        >
+          <div direction="vertical"  style={{ width: '100%', padding: 0 }}>
+            {actions.length === 0 ? (
+              <>
+                <Alert
+                  message="No table  actions added yet."
+                  type="info"
+                  showIcon
+                  style={{ marginBottom: '8px' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={openAddModal}
+                  >
+                    Add New Action
+                  </Button>
+                </div>
+              </>
+            ) : (
+              actions.map((action, index) => renderCard(action, index))
+            )}
+          </div>
+        </Collapse.Panel>
+      </Collapse>
+    </>
   );
 
   // Render a single action card (mirroring the Split UI)
