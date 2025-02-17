@@ -56,31 +56,6 @@ const byterateIECLabels = [
   'ZiB/s',
 ];
 
-const MAX_CACHE_SIZE = 100;
-const formatterCache = new Map<number, Function>();
-
-function siFormatter(decimals: number) {
-  if (formatterCache.size >= MAX_CACHE_SIZE) {
-    const iterator = formatterCache.keys();
-    const first = iterator.next();
-    if (!first.done) {
-      formatterCache.delete(first.value);
-    }
-  }
-
-  try {
-    if (!formatterCache.has(decimals)) {
-      formatterCache.set(decimals, d3Format(`.${decimals}s`));
-    }
-    return formatterCache.get(decimals);
-  } catch (error) {
-    throw new Error(
-      `Failed to create SI formatter for ${decimals} decimals: ${error.message}`,
-      { cause: error },
-    );
-  }
-}
-
 function formatValue(
   value: number,
   labels: string[],
@@ -90,6 +65,7 @@ function formatValue(
   if (value === 0) {
     return `0 ${labels[0]}`;
   }
+  const siFormatter = d3Format(`.${decimals}s`);
   const absoluteValue = Math.abs(value);
   if (absoluteValue >= 1000) {
     const i = Math.min(
@@ -108,7 +84,7 @@ function formatValue(
     return `${float4PointFormatter(value)} ${labels[0]}`;
   }
   if (absoluteValue > 0.000001) {
-    return `${siFormatter(decimals)(value * 1000000)}µ ${labels[0]}`;
+    return `${siFormatter(value * 1000000)}µ ${labels[0]}`;
   }
   return `${float4PointFormatter(value)} ${labels[0]}`;
 }
