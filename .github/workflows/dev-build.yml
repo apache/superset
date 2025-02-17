@@ -1,0 +1,53 @@
+name: Build and Deploy Dev Images
+
+on:
+  push:
+    branches: [ "develop" ]
+
+jobs:
+  build_core:
+    name: Build & Push Core Superset Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Core Code
+        uses: actions/checkout@v3
+        with:
+          ref: develop
+
+      - name: Set up Docker Buildx (Core)
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub (Core)
+        run: |
+          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Build & Push Core Image
+        run: |
+          docker build --no-cache -t ${{ secrets.DOCKERHUB_USERNAME }}/re-superset:develop-latest .
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/re-superset:develop-latest
+
+  deploy:
+    name: Deploy to Dev Server    
+    needs: [build_core]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH client
+        run: sudo apt-get update && sudo apt-get install -y openssh-client
+
+      - name: Add SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEV_SSH_KEY }}
+          known_hosts: ${{ secrets.DEV_SSH_HOST }}
+
+      - name: Deploy to Develop Server via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEV_SSH_USER }}@${{ secrets.DEV_SSH_HOST }} "
+            # Login to first Docker Hub account for core image:
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_PASSWORD }} &&
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/re-superset:develop-latest &&            
+            cd /home/supersetuser/re-superset && \
+            docker compose up -d 
+          "
+
+#
