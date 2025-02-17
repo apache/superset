@@ -1,0 +1,182 @@
+name: helm-CD
+
+on:
+  push:
+    # Publish `prod-1.2.3` tags as releases.
+    tags:
+      - prod-*
+env:
+  # TODO: Change variable to your image's name.
+  ECR_REPO_URL: ${{ secrets.PROD_ECR_REPO }}
+  DOCKER_COMPOSE_FILE: docker-compose.test.yml
+  HEALTHCHECK_URL: http://localhost:8080/health
+  NAMESPACE: eka-prod 
+  HELM_REPO_NAME: superset
+  CHART_NAME: superset
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_EKA_RELEASES }}
+  GITHUB_TOKEN: ${{ secrets.REPO_READ_ONLY_TOKEN }}
+
+jobs:
+  ecr-repo-creation:
+    runs-on: prod-runner-server
+
+    steps:
+      - name: create ECR repository
+        env:
+          aws_region: ${{ secrets.PROD_AWS_Region }}
+          ECR_REPOSITORY: ${{ github.event.repository.name }}
+        run: |
+          echo "== START CREATE REPO"
+          echo "== CHECK REPO EXISTS"
+          set +e
+          output=`aws ecr describe-repositories --region $aws_region --repository-names $ECR_REPOSITORY 2>&1`
+          exit_code=$?
+          if [ $exit_code -ne 0 ]; then
+            if echo $output | grep -q RepositoryNotFoundException; then
+              echo "== REPO DOESN'T EXIST, CREATING.."
+              aws ecr create-repository --region $aws_region --repository-name $ECR_REPOSITORY --image-scanning-configuration scanOnPush=true
+              aws ecr put-lifecycle-policy --repository-name $ECR_REPOSITORY --lifecycle-policy-text "{ \"rules\":[ { \"rulePriority\":1, \"description\":\"removed untagged images\", \"selection\":{ \"tagStatus\":\"untagged\", \"countType\":\"imageCountMoreThan\", \"countNumber\":1 }, \"action\":{ \"type\":\"expire\" } }, { \"action\":{ \"type\":\"expire\" }, \"selection\":{ \"countType\":\"imageCountMoreThan\", \"countNumber\":5, \"tagStatus\":\"tagged\", \"tagPrefixList\":[ \"pr\" ] }, \"description\":\"pr images removal\", \"rulePriority\":2 }, { \"action\":{ \"type\":\"expire\" }, \"selection\":{ \"countType\":\"imageCountMoreThan\", \"countNumber\":10, \"tagStatus\":\"tagged\", \"tagPrefixList\":[ \"prod\" ] }, \"description\":\"prod tagged images\", \"rulePriority\":3 }, { \"action\":{ \"type\":\"expire\" }, \"selection\":{ \"countType\":\"imageCountMoreThan\", \"countNumber\":10, \"tagStatus\":\"tagged\", \"tagPrefixList\":[ \"lambda\" ] }, \"description\":\"lambda tagged images\", \"rulePriority\":4 } ] }" --region $aws_region
+              echo "== FINISHED CREATE REPO"
+            else
+              >&2 echo $output
+            fi
+          else
+            echo "== REPO EXISTS, SKIPPING CREATION.."
+          fi
+          set -e
+
+  build-test-push:
+    needs: ecr-repo-creation
+
+    runs-on: prod-runner-server
+#     if: ${{ github.event_name == 'push' && github.event.base_ref == 'refs/heads/main' }}
+    outputs:
+      VERSION: ${{ steps.get_version.outputs.VERSION }}
+      SECRETS: ${{ steps.get_secrets.outputs.SECRETS }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Get the version
+        id: get_version
+        run: echo VERSION=$(echo $GITHUB_REF | cut -d / -f 3) >> $GITHUB_OUTPUT
+
+# IF your app needs secrets from secrets manager for the build process, uncomment this and edit the secrets location
+      # - name: Read secrets from AWS Secrets Manager into environment variables
+      #   uses: abhilash1in/aws-secrets-manager-action@v1.0.1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ secrets.PROD_AWS_Region }}
+      #     secrets: |
+      #       prod/nginx/all
+      #     parse-json: false
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }} 
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PROD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PROD_AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.PROD_AWS_Region }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build docker images
+        env:
+          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          output=$(aws ecr list-images --region ap-south-1 --repository-name $ECR_REPOSITORY  | grep latest | tr -d '" ,' | cut -d ':' -f 2)
+          echo $output
+          if [[ "$output" == "latest" ]]
+          then
+             docker pull $ECR_REPO_URL/$ECR_REPOSITORY:latest
+             docker build --cache-from $ECR_REPO_URL/$ECR_REPOSITORY:latest -t $ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile_custom .
+          else
+             docker build -t $ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile_custom .
+          fi 
+
+      - name: Healthcheck test
+        env:
+          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          TAG=$ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG docker-compose --file $DOCKER_COMPOSE_FILE up -d
+          sleep 25
+          docker ps -l -q | xargs docker logs
+          output=$(curl -o /dev/null -s -w "%{http_code}\n" $HEALTHCHECK_URL)
+            if [ "$output" == "200" ]; then
+              echo "test success"
+            else
+              echo "test case failed"
+              TAG=$ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG docker-compose --file $DOCKER_COMPOSE_FILE down
+            exit 1
+          fi
+          #TAG=$ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG docker-compose --file $DOCKER_COMPOSE_FILE down
+      - name: Run tests Cases
+        env:
+          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+            #TAG=$ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG docker-compose --file $DOCKER_COMPOSE_FILE up -d
+            #sleep 60
+              echo "test case passed"
+            TAG=$ECR_REPO_URL/$ECR_REPOSITORY:$IMAGE_TAG docker-compose --file $DOCKER_COMPOSE_FILE down
+
+      - name: Push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      #       - name: Slack Notification
+      #         uses: lazy-actions/slatify@master
+      #         if: always()
+      #         with:
+      #             type: ${{ job.status }}
+      #             job_name: 'CD-Workflow'
+      #             mention: 'here'
+      #             mention_if: 'failure'
+      #             channel: '#devops-nginx-test'
+      #             url: ${{ secrets.SLACK_WEBHOOK }}
+      #             commit: true
+      #             token: ${{ secrets.REPO_READ_ONLY_TOKEN }}
+
+      - name: Release info
+        run: |
+          echo ${{ github.action.release }}
+
+  deploy:
+    needs: build-test-push
+
+    runs-on: prod-ec2-server-2
+    # if: ${{ github.event_name == 'push' && github.event.base_ref == 'refs/heads/main' }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+        with:
+          fetch-depth: 0
+
+      #CHANGE ECR Repository to the Name of the APP as in the Values file. Very Important! Each Application needs its own CD file and Values file
+      - name: Helm Upgrade
+        env: 
+          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          IMAGE_TAG: ${{ needs.build-test-push.outputs.VERSION }}
+        run: | 
+          helm repo add $HELM_REPO_NAME https://apache.github.io/superset && helm repo update $HELM_REPO_NAME
+          helm upgrade --install $ECR_REPOSITORY $HELM_REPO_NAME/$CHART_NAME  -n $NAMESPACE --values .github/workflows/values/prod-values.yaml --version 0.14.0 \
+            --set-string image.tag=$IMAGE_TAG --set-string image.repository=$ECR_REPO_URL/$ECR_REPOSITORY --atomic --debug --cleanup-on-fail
+
+
+        

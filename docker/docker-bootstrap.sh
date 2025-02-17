@@ -58,6 +58,7 @@ fi
 case "${1}" in
   worker)
     echo "Starting Celery worker..."
+    pip install psycopg2
     # setting up only 2 workers by default to contain memory usage in dev environments
     celery --app=superset.tasks.celery_app:app worker -O fair -l INFO --concurrency=${CELERYD_CONCURRENCY:-2}
     ;;
