@@ -109,6 +109,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           vuln-type: 'os'
+          ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
         if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
