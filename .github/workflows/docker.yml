@@ -101,6 +101,24 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
+      - name: Run Trivy container image vulnerabity scan
+        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
+        uses: aquasecurity/trivy-action@0.29.0
+        with:
+          image-ref: $IMAGE_TAG
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
       - name: docker-compose sanity check
         if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && (matrix.build_preset == 'dev' || matrix.build_preset == 'lean')
         shell: bash
