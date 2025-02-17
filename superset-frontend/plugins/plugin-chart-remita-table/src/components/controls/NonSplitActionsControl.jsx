@@ -64,6 +64,19 @@ const STYLE_COLORS = {
   warning: 'orange',
 };
 
+const renderingStyles = `
+    .remita-action-setup .ant-collapse-content-box {
+      padding: 0;
+    }
+    .remita-action-setup .ant-card-head-wrapper {
+      max-height: 1rem;
+    }
+    .remita-action-setup .ant-card-head {
+      min-height: 2rem;
+      padding: 5px 4px !important;
+    }
+  `;
+
 const parseInitialValue = (value, valueColumn) => {
   if (!value) return []; // Return empty array if value is null or undefined
 
@@ -534,9 +547,12 @@ const NonSplitActionsControl = ({
     );
   };
   const renderInlineContent = () => (
+  <>
+    <style>{renderingStyles}</style>
     <Collapse
       defaultActiveKey={['1']}
       ghost
+      className={'remita-action-setup'}
       expandIconPosition="right" // Ensures the arrow is positioned on the right
       expandIcon={({ isActive }) => (
         <span
@@ -559,7 +575,7 @@ const NonSplitActionsControl = ({
         style={{padding: 0}}
         header={
           <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-            <span>Table Row Actions</span>
+            <span>Table Non-Split Actions</span>
             <Badge
               count={actions.length}
               style={{
@@ -601,6 +617,7 @@ const NonSplitActionsControl = ({
         </div>
       </Collapse.Panel>
     </Collapse>
+  </>
   );
 
 

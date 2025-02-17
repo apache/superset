@@ -552,7 +552,7 @@ const SplitActionsControl = ({
       style={{padding: 0}}
       header={
         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-          <span>Table Row Actions</span>
+          <span>Table Split Actions</span>
           <Badge
             count={actions.length}
             style={{
