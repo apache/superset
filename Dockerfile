@@ -230,7 +230,7 @@ RUN python -m compileall /app/superset
 USER superset
 
 ######################################################################
-# Dev image...
+# Prod image...
 ######################################################################
 FROM python-common AS prod
 
@@ -240,7 +240,7 @@ RUN /app/docker/apt-install.sh \
     pkg-config \
     default-libmysqlclient-dev
 
-# Copy development requirements and install them
+# Copy requirements-prod and install them
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
@@ -254,11 +254,11 @@ RUN python -m compileall /app/superset
 
 USER superset
 
-######################################################################
-# CI image...
-######################################################################
-FROM lean AS ci
-USER root
-RUN uv pip install .[postgres]
-USER superset
-CMD ["/app/docker/entrypoints/docker-ci.sh"]
+# ######################################################################
+# # CI image...
+# ######################################################################
+# FROM lean AS ci
+# USER root
+# RUN uv pip install .[postgres]
+# USER superset
+# CMD ["/app/docker/entrypoints/docker-ci.sh"]
