@@ -112,7 +112,7 @@ describe('RangeFilterPlugin', () => {
   });
 
   it('should set the data mask to error when the range is incorrect', () => {
-    getWrapper();
+    getWrapper({ filterState: { value: [null, null] } });
 
     const inputs = screen.getAllByRole('spinbutton');
     const fromInput = inputs[0];
