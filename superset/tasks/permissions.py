@@ -21,6 +21,7 @@ import logging
 from flask import current_app, g
 
 from superset import security_manager
+from superset.commands.database.exceptions import UserNotFoundInSessionError
 from superset.daos.database import DatabaseDAO
 from superset.extensions import celery_app
 
@@ -31,15 +32,21 @@ logger = logging.getLogger(__name__)
 def sync_database_permissions(
     database_id: int, username: str, original_database_name: str
 ) -> None:
+    # We need a local import here since the task imports the command, and the command
+    # also imports the task, which causes a circular import.
     from superset.commands.database.sync_permissions import SyncPermissionsCommand
 
-    logger.info("Syncing permissions for DB connection ID %s", database_id)
     with current_app.test_request_context():
         try:
             user = security_manager.get_user_by_username(username)
-            assert user
+            if not user:
+                raise UserNotFoundInSessionError()
             g.user = user
-            logger.info("Impersonating user ID %s", g.user.id)
+            logger.info(
+                "Syncing permissions for DB connection %s while impersonating user %s",
+                database_id,
+                user.id,
+            )
             db_connection = DatabaseDAO.find_by_id(database_id)
             ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
             cmmd = SyncPermissionsCommand(

@@ -26,7 +26,7 @@ from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseConnectionSyncPermissionsError,
     DatabaseNotFoundError,
-    UserNotFoundError,
+    UserNotFoundInSessionError,
 )
 from superset.commands.database.utils import ping
 from superset.daos.database import DatabaseDAO
@@ -96,10 +96,14 @@ class SyncPermissionsCommand(BaseCommand):
         # For async mode we'll need to pass the user to the Celery task in case of
         # OAuth connections.
         if self.async_mode:
-            if not self.username or not security_manager.get_user_by_username(
-                self.username
+            if (
+                not self.username
+                or not security_manager.get_user_by_username(self.username)
+                # The perm is already validated at the API layer, but checking here
+                # as well since Celery would also call this Command.
+                or not security_manager.can_access("can_write", "Database")
             ):
-                raise UserNotFoundError()
+                raise UserNotFoundInSessionError()
 
         with self.db_connection.get_sqla_engine() as engine:
             try:

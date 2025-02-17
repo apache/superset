@@ -98,9 +98,9 @@ class DatabaseNotFoundError(CommandException):
     message = _("Database not found.")
 
 
-class UserNotFoundError(CommandException):
-    status = 400
-    message = _("User not found.")
+class UserNotFoundInSessionError(CommandException):
+    status = 500
+    message = _("Could not validate the user in the current session.")
 
 
 class DatabaseSchemaUploadNotAllowed(CommandException):

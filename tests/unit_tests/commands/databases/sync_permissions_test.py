@@ -22,7 +22,7 @@ from pytest_mock import MockerFixture
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseNotFoundError,
-    UserNotFoundError,
+    UserNotFoundInSessionError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.db_engine_specs.base import GenericDBException
@@ -562,6 +562,10 @@ def test_sync_permissions_async_command_validate(mocker: MockerFixture) -> None:
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username",
     )
     mocker.patch("superset.commands.database.sync_permissions.ping", return_value=True)
+    mocker.patch(
+        "superset.commands.database.sync_permissions.security_manager.can_access",
+        return_value=True,
+    )
 
     command = SyncPermissionsCommand(1, username="username")
     command.validate()
@@ -587,6 +591,10 @@ def test_sync_permissions_async_command_validate_new_db_name(mocker: MockerFixtu
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username",
     )
     mocker.patch("superset.commands.database.sync_permissions.ping", return_value=True)
+    mocker.patch(
+        "superset.commands.database.sync_permissions.security_manager.can_access",
+        return_value=True,
+    )
 
     command = SyncPermissionsCommand(
         1,
@@ -637,7 +645,7 @@ def test_sync_permissions_async_command_validate_user_not_found(
     )
 
     command = SyncPermissionsCommand(1, username="username")
-    with pytest.raises(UserNotFoundError):
+    with pytest.raises(UserNotFoundInSessionError):
         command.validate()
 
 
@@ -656,6 +664,10 @@ def test_synsc_permissions_async_command_validate_db_connection_error(
     )
     mocker.patch(
         "superset.commands.database.sync_permissions.security_manager.get_user_by_username",
+    )
+    mocker.patch(
+        "superset.commands.database.sync_permissions.security_manager.can_access",
+        return_value=True,
     )
     mock_ping = mocker.patch(
         "superset.commands.database.sync_permissions.ping", return_value=False
