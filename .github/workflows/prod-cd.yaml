@@ -13,8 +13,7 @@ env:
   NAMESPACE: eka-prod 
   HELM_REPO_NAME: superset
   CHART_NAME: superset
-  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_EKA_RELEASES }}
-  GITHUB_TOKEN: ${{ secrets.REPO_READ_ONLY_TOKEN }}
+
 
 jobs:
   ecr-repo-creation:
@@ -52,7 +51,6 @@ jobs:
 #     if: ${{ github.event_name == 'push' && github.event.base_ref == 'refs/heads/main' }}
     outputs:
       VERSION: ${{ steps.get_version.outputs.VERSION }}
-      SECRETS: ${{ steps.get_secrets.outputs.SECRETS }}
     steps:
       - uses: actions/checkout@v3
 
