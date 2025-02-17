@@ -53,7 +53,6 @@ serviceAccount:
 # @default -- see `values.yaml`
 bootstrapScript: |
   #!/bin/bash
-  uv pip install psycopg2-binary
   uv pip install .[postgres] \
     .[bigquery]
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
@@ -216,7 +215,7 @@ initImage:
 
 service:
   type: ClusterIP
-  port: 8088
+  port: 80
   annotations: {}
     # cloud.google.com/load-balancer-type: "Internal"
   loadBalancerIP: ~
