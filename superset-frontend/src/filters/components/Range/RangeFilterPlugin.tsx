@@ -202,31 +202,24 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     [setDataMask],
   );
 
-  useEffect(() => {
-    if (row?.min === undefined && row?.max === undefined) {
-      return;
-    }
+  const isDefaultError = useMemo(() => {
+    const [inputMin, inputMax] = inputValue;
+    return (
+      inputMin === null &&
+      inputMax === null &&
+      filterState.validateStatus === 'error'
+    );
+  }, [inputValue, filterState.validateStatus]);
 
-    if (
-      filterState.validateStatus === 'error' &&
-      error !== filterState.validateMessage
-    ) {
-      setError(filterState.validateMessage);
-
-      const [inputMin, inputMax] = inputValue;
-
+  const handleAfterChange = useCallback(
+    (value: RangeValue) => {
       const { isValid, errorMessage } = validateRange(
-        inputValue,
+        value,
         min,
         max,
         enableEmptyFilter,
         enableSingleValue,
       );
-
-      const isDefaultError =
-        inputMin === null &&
-        inputMax === null &&
-        filterState.validateStatus === 'error';
 
       if (!isValid || isDefaultError) {
         setError(errorMessage);
@@ -235,7 +228,29 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       setError(null);
-      updateDataMaskValue(inputValue);
+      updateDataMaskValue(value);
+    },
+    [
+      enableEmptyFilter,
+      enableSingleValue,
+      isDefaultError,
+      max,
+      min,
+      updateDataMaskError,
+      updateDataMaskValue,
+    ],
+  );
+
+  useEffect(() => {
+    if (row?.min === undefined && row?.max === undefined) {
+      return;
+    }
+    if (
+      filterState.validateStatus === 'error' &&
+      error !== filterState.validateMessage
+    ) {
+      setError(filterState.validateMessage);
+      handleAfterChange(inputValue);
       return;
     }
     if (filterState.validateStatus === 'error') {
@@ -254,7 +269,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setInputValue(filterState.value);
       updateDataMaskValue(filterState.value);
     }
-  }, [JSON.stringify(filterState.value)]);
+  }, [JSON.stringify(filterState.value), handleAfterChange]);
 
   const metadataText = useMemo(() => {
     if (enableSingleMinValue) {
@@ -280,25 +295,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           : [inputValue[minIndex], newValue];
 
       setInputValue(newInputValue);
-
-      const { isValid, errorMessage } = validateRange(
-        newInputValue,
-        min,
-        max,
-        enableEmptyFilter,
-        enableSingleValue,
-      );
-
-      if (!isValid) {
-        setError(errorMessage);
-        updateDataMaskError(errorMessage);
-        return;
-      }
-
-      setError(null);
-      updateDataMaskValue(newInputValue);
+      handleAfterChange(newInputValue);
     },
-    [col, min, max, enableEmptyFilter, enableSingleValue, setDataMask],
+    [handleAfterChange, row?.max, row?.min],
   );
 
   const formItemExtra = useMemo(() => {
