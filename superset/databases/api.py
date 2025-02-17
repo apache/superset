@@ -624,7 +624,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/sync_permissions/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -662,20 +661,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         sync_perms_in_async_mode = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
-        try:
-            if sync_perms_in_async_mode:
-                current_username = get_username()
-                SyncPermissionsAsyncCommand(pk, current_username).run()
-                return self.response(
-                    202, message="Async task created to sync permissions"
-                )
+        if sync_perms_in_async_mode:
+            current_username = get_username()
+            SyncPermissionsAsyncCommand(pk, current_username).run()
+            return self.response(202, message="Async task created to sync permissions")
 
-            SyncPermissionsCommand(pk).run()
-            return self.response(200, message="Permissions successfully synced")
-        except DatabaseNotFoundError:
-            return self.response_404()
-        except SupersetException as ex:
-            return self.response(ex.status, message=ex.message)
+        SyncPermissionsCommand(pk).run()
+        return self.response(200, message="Permissions successfully synced")
 
     @expose("/<int:pk>/catalogs/")
     @protect()
