@@ -287,26 +287,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         enableSingleValue,
       );
 
-      const [inputMin, inputMax] = newInputValue;
-      let isDefaultError =
-        inputMin === null &&
-        inputMax === null &&
-        filterState.validateStatus === 'error';
-      switch (enableSingleValue) {
-        case SingleValueType.Minimum:
-          isDefaultError = inputMin === null;
-          break;
-        case SingleValueType.Maximum:
-          isDefaultError = inputMax === null;
-          break;
-        case SingleValueType.Exact:
-          isDefaultError = inputMin === null;
-          break;
-        default:
-          break;
-      }
-
-      if (!isValid || isDefaultError) {
+      if (!isValid) {
         setError(errorMessage);
         updateDataMaskError(errorMessage);
         return;
