@@ -224,6 +224,7 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
+
 RUN python -m compileall /app/superset
 
 USER superset
@@ -231,9 +232,9 @@ USER superset
 ######################################################################
 # Dev image...
 ######################################################################
-FROM python-common AS dev
+FROM python-common AS prod
 
-# Debian libs needed for dev
+# Debian libs needed for prod
 RUN /app/docker/apt-install.sh \
     git \
     pkg-config \
@@ -243,7 +244,7 @@ RUN /app/docker/apt-install.sh \
 COPY requirements/*.txt requirements/
 # Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
+    /app/docker/pip-install.sh --requires-build-essential -r requirements/requirements-prod.txt
 # Install the superset package
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .

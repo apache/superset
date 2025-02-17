@@ -1,0 +1,10 @@
+psycopg2-binary
+pandas-gbq
+sqlalchemy-bigquery
+google-cloud-bigquery
+shillelagh[gsheetsapi]
+pydynamodb
+pyathena[pandas]
+Authlib
+sqlglot
+curlify
