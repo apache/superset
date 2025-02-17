@@ -170,6 +170,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (row?.min === undefined && row?.max === undefined) {
+      return;
+    }
+
     if (
       filterState.validateStatus === 'error' &&
       error !== filterState.validateMessage
@@ -188,7 +192,12 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
         enableSingleValue,
       );
 
-      if (!isValid) {
+      const isDefaultError =
+        inputMin === null &&
+        inputMax === null &&
+        filterState.validateStatus === 'error';
+
+      if (!isValid || isDefaultError) {
         setError(errorMessage);
         setDataMask({
           extraFormData: getRangeExtraFormData(col, null, null),
@@ -206,7 +215,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setDataMask({
         extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
         filterState: {
-          value: [inputMin, inputMax],
+          value: enableSingleExactValue
+            ? [inputMin, inputMin]
+            : [inputMin, inputMax],
           label: getLabel(inputMin, inputMax, enableSingleExactValue),
           validateStatus: undefined,
           validateMessage: '',
@@ -279,6 +290,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const handleChange = useCallback(
     (newValue: number | null, index: 0 | 1) => {
+      if (row?.min === undefined && row?.max === undefined) {
+        return;
+      }
       const newInputValue: [number | null, number | null] =
         index === minIndex
           ? [newValue, inputValue[maxIndex]]
@@ -313,10 +327,13 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       setError(null);
+      console.log({ inputMin, inputMax });
       setDataMask({
         extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
         filterState: {
-          value: [inputMin, inputMax],
+          value: enableSingleExactValue
+            ? [inputMin, inputMin]
+            : [inputMin, inputMax],
           label: getLabel(inputMin, inputMax, enableSingleExactValue),
           validateStatus: undefined,
           validateMessage: '',
@@ -371,11 +388,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               enableSingleValue === undefined) && (
               <InputNumber
                 value={inputValue[minIndex]}
-                max={
-                  rangeInput && inputValue[maxIndex]
-                    ? inputValue[maxIndex]
-                    : undefined
-                }
                 onChange={val => handleChange(val, minIndex)}
                 placeholder={`${min}`}
                 status={filterState.validateStatus}
@@ -389,11 +401,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
               enableSingleValue === undefined) && (
               <InputNumber
                 value={inputValue[maxIndex]}
-                min={
-                  rangeInput && inputValue[minIndex]
-                    ? inputValue[minIndex]
-                    : undefined
-                }
                 onChange={val => handleChange(val, maxIndex)}
                 placeholder={`${max}`}
                 data-test="range-filter-to-input"

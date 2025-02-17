@@ -111,7 +111,7 @@ describe('RangeFilterPlugin', () => {
     expect(inputs[1]).toHaveValue('70');
   });
 
-  it('should set the "To" input to be equal to "From" when a lower value is entered', () => {
+  it('should set the data mask to error when the range is incorrect', () => {
     getWrapper();
 
     const inputs = screen.getAllByRole('spinbutton');
@@ -124,23 +124,15 @@ describe('RangeFilterPlugin', () => {
 
     fireEvent.blur(toInput);
 
-    expect(toInput).toHaveValue('20');
-  });
-
-  it('should set the "From" input to be equal to "To" when a higher value is entered', () => {
-    getWrapper();
-
-    const inputs = screen.getAllByRole('spinbutton');
-    const fromInput = inputs[0];
-    const toInput = inputs[1];
-
-    fireEvent.change(toInput, { target: { value: 30 } });
-
-    fireEvent.change(fromInput, { target: { value: 40 } });
-
-    fireEvent.blur(fromInput);
-
-    expect(fromInput).toHaveValue('30');
+    expect(setDataMask).toHaveBeenCalledWith({
+      extraFormData: {},
+      filterState: {
+        label: '',
+        validateMessage: 'Please provide a valid range',
+        validateStatus: 'error',
+        value: null,
+      },
+    });
   });
 
   it('should call setDataMask with correct filter', () => {
