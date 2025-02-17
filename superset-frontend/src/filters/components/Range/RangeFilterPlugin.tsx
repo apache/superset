@@ -254,7 +254,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setInputValue(filterState.value);
       updateDataMaskValue(filterState.value);
     }
-  }, [filterState.value]);
+  }, [JSON.stringify(filterState.value)]);
 
   const metadataText = useMemo(() => {
     if (enableSingleMinValue) {
