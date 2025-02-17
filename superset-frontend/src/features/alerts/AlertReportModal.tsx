@@ -1222,7 +1222,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     });
   };
 
-  const onChangeDashboardFilterValue = (idx: number, filterValues: string[]) => {
+  const onChangeDashboardFilterValue = (
+    idx: number,
+    filterValues: string[],
+  ) => {
     // todo(hughhh): refactor to handle multiple native filters
     setNativeFilterData(
       nativeFilterData.map((filter, index) =>
@@ -1904,13 +1907,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 >
                   {(fields, { add, remove }) => (
                     <div>
-                      {fields.map(({ key, name, ...restField }) => (
+                      {fields.map(({ key, name }) => (
                         <div style={{ display: 'flex' }} key={key}>
                           <div
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
                               flex: 1,
+                              marginRight: '12px',
                             }}
                           >
                             <div className="control-label" style={{ flex: 1 }}>
@@ -1939,8 +1943,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <Select
                               ariaLabel={t('Value')}
                               value={nativeFilterData[key]?.filterValues}
-                              options={nativeFilterData[key]?.optionFilterValues}
-                              onChange={value => onChangeDashboardFilterValue(key, value)}
+                              options={
+                                nativeFilterData[key]?.optionFilterValues
+                              }
+                              onChange={value =>
+                                onChangeDashboardFilterValue(key, value)
+                              }
                               mode="multiple"
                             />
                           </div>

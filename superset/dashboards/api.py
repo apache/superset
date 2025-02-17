@@ -473,8 +473,8 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             native_filters = DashboardDAO.get_native_filter_configuration(id_or_slug)
 
             result = self.tab_schema.dump(tabs)
-            result['native_filters'] = native_filters
-            
+            result["native_filters"] = native_filters
+
             return self.response(200, result=result)
 
         except (TypeError, ValueError) as err:

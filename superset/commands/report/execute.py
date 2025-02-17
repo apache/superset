@@ -229,7 +229,6 @@ class BaseReportState:
         """  # noqa: E501
         force = "true" if self._report_schedule.force_screenshot else "false"
 
-        
         if (
             dashboard_state := self._report_schedule.extra.get("dashboard")
         ) and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS"):
@@ -242,12 +241,17 @@ class BaseReportState:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
             native_filter_params = self._report_schedule.get_native_filters_params()
-            return [self._get_tab_url({
-                'anchor': anchor, 
-                'urlParams': [['native_filters', native_filter_params]],
-                'dataMask': None,
-                'activeTabs': None}, 
-                user_friendly=user_friendly)]
+            return [
+                self._get_tab_url(
+                    {
+                        "anchor": anchor,
+                        "urlParams": [["native_filters", native_filter_params]],
+                        "dataMask": None,
+                        "activeTabs": None,
+                    },
+                    user_friendly=user_friendly,
+                )
+            ]
 
         dashboard = self._report_schedule.dashboard
         dashboard_id_or_slug = (
@@ -274,7 +278,7 @@ class BaseReportState:
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
         ).run()
-        
+
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
@@ -282,21 +286,18 @@ class BaseReportState:
         )
 
     def _get_tabs_urls(
-        self, 
-        tab_anchors: list[str],
-        user_friendly: bool = False
+        self, tab_anchors: list[str], user_friendly: bool = False
     ) -> list[str]:
         """
         Get multple tabs urls
         """
-        print('hello5')
         return [
             self._get_tab_url(
                 {
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": url_params,
+                    "urlParams": None,
                 },
                 user_friendly=user_friendly,
             )
@@ -334,7 +335,7 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
-            print('urls', urls)
+            print("urls", urls)
 
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)

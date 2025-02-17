@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import contextlib
 import logging
-import prison
 from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
@@ -847,7 +846,7 @@ class Superset(BaseSupersetView):
             return redirect("/dashboard/list/")
         if not value:
             return json_error_response(_("permalink state not found"), status=404)
-        
+
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
         if url_params := state.get("urlParams"):
@@ -862,7 +861,7 @@ class Superset(BaseSupersetView):
             url = f"{url}&{original_params}"
         if hash_ := state.get("anchor", state.get("hash")):
             url = f"{url}#{hash_}"
-        
+
         return redirect(url)
 
     @api
