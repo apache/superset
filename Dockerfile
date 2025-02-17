@@ -213,7 +213,7 @@ CMD ["/app/docker/entrypoints/run-server.sh"]
 EXPOSE ${SUPERSET_PORT}
 
 ######################################################################
-# Final lean image...
+# Final lean image....
 ######################################################################
 FROM python-common AS lean
 
