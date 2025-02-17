@@ -111,6 +111,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     zip \
     unzip \
     libaio1 \
+    gcc \
     default-libmysqlclient-dev \
     build-essential \
     pkg-config \

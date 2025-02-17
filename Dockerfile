@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -18,7 +17,7 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11.11-slim-bookworm
+ARG PY_VER=3.11-slim-bookworm
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
@@ -56,10 +55,6 @@ RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
 
 # Mount package files and install dependencies if not in dev mode
-# NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
-# ideally we'd COPY only their package.json. Here npm ci will be cached as long
-# as the full content of these folders don't change, yielding a decent cache reuse rate.
-# Note that's it's not possible selectively COPY of mount using blobs.
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
@@ -97,7 +92,6 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
     rm -rf /app/superset/translations/*/*/*.po; \
     rm -rf /app/superset/translations/*/*/*.mo;
 
-
 ######################################################################
 # Base python layer
 ######################################################################
@@ -110,6 +104,36 @@ RUN mkdir -p $SUPERSET_HOME
 RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash superset \
     && chmod -R 1777 $SUPERSET_HOME \
     && chown -R superset:superset $SUPERSET_HOME
+
+# ============== CHANGE 1: BEGIN - Install Oracle and MySQL Dependencies ==============
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    wget \
+    zip \
+    unzip \
+    libaio1 \
+    gcc \
+    default-libmysqlclient-dev \
+    build-essential \
+    pkg-config \
+    python3-dev \
+    libsasl2-dev \
+    libsasl2-modules-gssapi-mit \
+    && mkdir -p /usr/share/oracle/network/admin \
+    && cd /usr/share/oracle \
+    && wget https://download.oracle.com/otn_software/linux/instantclient/1921000/instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip \
+    && unzip instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip \
+    && rm -f instantclient-basiclite-linux.x64-19.21.0.0.0dbru.zip \
+    && cd /usr/share/oracle/instantclient* \
+    && rm -f *jdbc* *occi* *mysql* *README *jar uidrvci genezi adrci \
+    && echo /usr/share/oracle/instantclient* > /etc/ld.so.conf.d/oracle-instantclient.conf \
+    && ldconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+# ============== CHANGE 2: BEGIN - Add Oracle Environment Variables ==============
+ENV ORACLE_HOME=/opt/oracle/instantclient_23_4 \
+    LD_LIBRARY_PATH=/opt/oracle/instantclient_23_4 \
+    PATH="/opt/oracle/instantclient_23_4:/app/superset_home/.local/bin:${PATH}"
+# ============== CHANGE 2: END ==============
 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
@@ -152,6 +176,11 @@ ENV SUPERSET_HOME="/app/superset_home" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_PORT="8088"
 
+# ============== CHANGE 3: BEGIN - Add SSL Environment Variables ==============
+ENV REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+# ============== CHANGE 3: END ==============
+
 # Copy the entrypoints, make them executable in userspace
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
@@ -165,6 +194,55 @@ RUN mkdir -p \
       apache_superset.egg-info \
       requirements \
     && touch superset/static/version_info.json
+# ============== CHANGE 4: BEGIN - Install Chrome and ChromeDriver ==============
+# Install Chrome and ChromeDriver
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xdg-utils \
+    libxshmfence1 \
+    wget \
+    gnupg \
+    curl \
+    unzip
+ARG GECKODRIVER_VERSION=v0.32.0
+ARG FIREFOX_VERSION=106.0.3
+RUN apt-get update -qq \
+    && apt-get install -yqq --no-install-recommends \
+        libnss3 \
+        libdbus-glib-1-2 \
+        libgtk-3-0 \
+        libx11-xcb1 \
+        libasound2 \
+        libxtst6 \
+        wget \
+    # Install GeckoDriver WebDriver
+    && wget -q https://github.com/mozilla/geckodriver/releases/download/${GECKODRIVER_VERSION}/geckodriver-${GECKODRIVER_VERSION}-linux64.tar.gz -O - | tar xfz - -C /usr/local/bin \
+    # Install Firefox
+    && wget -q https://download-installer.cdn.mozilla.net/pub/firefox/releases/${FIREFOX_VERSION}/linux-x86_64/en-US/firefox-${FIREFOX_VERSION}.tar.bz2 -O - | tar xfj - -C /opt \
+    && ln -s /opt/firefox/firefox /usr/local/bin/firefox \
+    && apt-get autoremove -yqq --purge wget && rm -rf /var/[log,tmp]/* /tmp/* /var/lib/apt/lists/*
+
+# Clean up
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /var/cache/apt/*
+# ============== CHANGE 4: END ==============
 
 # Install Playwright and optionally setup headless browsers
 ARG INCLUDE_CHROMIUM="true"
