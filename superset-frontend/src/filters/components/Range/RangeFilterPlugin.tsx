@@ -157,8 +157,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     formData;
   const minIndex = 0;
   const maxIndex = 1;
-  const enableSingleMinValue = enableSingleValue === SingleValueType.Minimum;
-  const enableSingleMaxValue = enableSingleValue === SingleValueType.Maximum;
   const enableSingleExactValue = enableSingleValue === SingleValueType.Exact;
   const rangeInput = enableSingleValue === undefined;
 
@@ -202,24 +200,31 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     [setDataMask],
   );
 
-  const isDefaultError = useMemo(() => {
-    const [inputMin, inputMax] = inputValue;
-    return (
-      inputMin === null &&
-      inputMax === null &&
-      filterState.validateStatus === 'error'
-    );
-  }, [inputValue, filterState.validateStatus]);
+  useEffect(() => {
+    if (row?.min === undefined && row?.max === undefined) {
+      return;
+    }
 
-  const handleAfterChange = useCallback(
-    (value: RangeValue) => {
+    if (
+      filterState.validateStatus === 'error' &&
+      error !== filterState.validateMessage
+    ) {
+      setError(filterState.validateMessage);
+
+      const [inputMin, inputMax] = inputValue;
+
       const { isValid, errorMessage } = validateRange(
-        value,
+        inputValue,
         min,
         max,
         enableEmptyFilter,
         enableSingleValue,
       );
+
+      const isDefaultError =
+        inputMin === null &&
+        inputMax === null &&
+        filterState.validateStatus === 'error';
 
       if (!isValid || isDefaultError) {
         setError(errorMessage);
@@ -228,29 +233,7 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       setError(null);
-      updateDataMaskValue(value);
-    },
-    [
-      enableEmptyFilter,
-      enableSingleValue,
-      isDefaultError,
-      max,
-      min,
-      updateDataMaskError,
-      updateDataMaskValue,
-    ],
-  );
-
-  useEffect(() => {
-    if (row?.min === undefined && row?.max === undefined) {
-      return;
-    }
-    if (
-      filterState.validateStatus === 'error' &&
-      error !== filterState.validateMessage
-    ) {
-      setError(filterState.validateMessage);
-      handleAfterChange(inputValue);
+      updateDataMaskValue(inputValue);
       return;
     }
     if (filterState.validateStatus === 'error') {
@@ -269,19 +252,19 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       setInputValue(filterState.value);
       updateDataMaskValue(filterState.value);
     }
-  }, [JSON.stringify(filterState.value), handleAfterChange]);
+  }, [JSON.stringify(filterState.value)]);
 
   const metadataText = useMemo(() => {
-    if (enableSingleMinValue) {
-      return t('Filters for values greater than or equal.');
+    switch (enableSingleValue) {
+      case SingleValueType.Minimum:
+        return t('Filters for values greater than or equal.');
+      case SingleValueType.Maximum:
+        return t('Filters for values less than or equal.');
+      case SingleValueType.Exact:
+        return t('Filters for values equal to this exact value.');
+      default:
+        return '';
     }
-    if (enableSingleMaxValue) {
-      return t('Filters for values less than or equal.');
-    }
-    if (enableSingleExactValue) {
-      return t('Filters for values equal to this exact value.');
-    }
-    return '';
   }, [enableSingleValue]);
 
   const handleChange = useCallback(
@@ -295,9 +278,44 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
           : [inputValue[minIndex], newValue];
 
       setInputValue(newInputValue);
-      handleAfterChange(newInputValue);
+
+      const { isValid, errorMessage } = validateRange(
+        newInputValue,
+        min,
+        max,
+        enableEmptyFilter,
+        enableSingleValue,
+      );
+
+      const [inputMin, inputMax] = newInputValue;
+      let isDefaultError =
+        inputMin === null &&
+        inputMax === null &&
+        filterState.validateStatus === 'error';
+      switch (enableSingleValue) {
+        case SingleValueType.Minimum:
+          isDefaultError = inputMin === null;
+          break;
+        case SingleValueType.Maximum:
+          isDefaultError = inputMax === null;
+          break;
+        case SingleValueType.Exact:
+          isDefaultError = inputMin === null;
+          break;
+        default:
+          break;
+      }
+
+      if (!isValid || isDefaultError) {
+        setError(errorMessage);
+        updateDataMaskError(errorMessage);
+        return;
+      }
+
+      setError(null);
+      updateDataMaskValue(newInputValue);
     },
-    [handleAfterChange, row?.max, row?.min],
+    [col, min, max, enableEmptyFilter, enableSingleValue, setDataMask],
   );
 
   const formItemExtra = useMemo(() => {
