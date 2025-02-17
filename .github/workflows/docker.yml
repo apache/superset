@@ -108,7 +108,7 @@ jobs:
           image-ref: ${{ env.IMAGE_TAG }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-          ignore-unfixed: true
+          vuln-type: 'os'
 
       - name: Upload Trivy scan results to GitHub Security tab
         if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
