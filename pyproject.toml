@@ -71,7 +71,7 @@ dependencies = [
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
     "pandas[excel]>=2.0.3, <2.1",
-    "bottleneck",
+    "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
     "parsedatetime",
     "paramiko>=3.4.0",
@@ -79,7 +79,7 @@ dependencies = [
     "polyline>=2.0.0, <3.0",
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
-    "python-dotenv",
+    "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "python-geohash",
     "pyarrow>=14.0.1, <15",
     "pyyaml>=6.0.0, <7.0.0",
