@@ -2296,11 +2296,13 @@ class PartitionViz(NVD3TimeSeriesViz):
 
         dim_level = levels[level][metric]
         for d in dims:
+            if d not in dim_level:
+                return []
             dim_level = dim_level[d]
 
         return [
             {
-                "name": dims + [i],
+                "name": [*dims, i],
                 "val": dim_level[i],
                 "children": self.nest_values(levels, level + 1, metric, dims + [i]),
             }
