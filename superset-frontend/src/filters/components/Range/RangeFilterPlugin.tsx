@@ -311,7 +311,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       }
 
       setError(null);
-      console.log({ inputMin, inputMax });
       setDataMask({
         extraFormData: getRangeExtraFormData(col, inputMin, inputMax),
         filterState: {
