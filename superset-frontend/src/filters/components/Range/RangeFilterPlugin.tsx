@@ -163,10 +163,9 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
 
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
 
-  const [inputValue, setInputValue] = useState<[InputValue, InputValue]>([
-    null,
-    null,
-  ]);
+  const [inputValue, setInputValue] = useState<[InputValue, InputValue]>(
+    filterState.value || defaultValue || [null, null],
+  );
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -230,21 +229,6 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       return;
     }
 
-    // Default value case
-    if (defaultValue && !filterState.value) {
-      setInputValue(defaultValue);
-      const [minVal, maxVal] = defaultValue;
-      setDataMask({
-        extraFormData: getRangeExtraFormData(col, minVal, maxVal),
-        filterState: {
-          value: defaultValue,
-          label: getLabel(minVal, maxVal, enableSingleExactValue),
-          validateStatus: undefined,
-          validateMessage: '',
-        },
-      });
-      return;
-    }
     // Clear all case
     if (!filterState.value && !filterState.validateStatus) {
       setInputValue([null, null]);
@@ -354,10 +338,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     switch (enableSingleValue) {
       case SingleValueType.Minimum:
       case SingleValueType.Exact:
-        setInputValue(prev => [prev[minIndex], null]);
+        handleChange(null, maxIndex);
         break;
       case SingleValueType.Maximum:
-        setInputValue(prev => [null, prev[maxIndex]]);
+        handleChange(null, minIndex);
         break;
       default:
         break;
