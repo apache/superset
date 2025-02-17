@@ -21,7 +21,6 @@ import logging
 from flask import current_app, g
 
 from superset import security_manager
-from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.daos.database import DatabaseDAO
 from superset.extensions import celery_app
 
@@ -32,6 +31,8 @@ logger = logging.getLogger(__name__)
 def sync_database_permissions(
     database_id: int, username: str, original_database_name: str
 ) -> None:
+    from superset.commands.database.sync_permissions import SyncPermissionsCommand
+
     logger.info("Syncing permissions for DB connection ID %s", database_id)
     with current_app.test_request_context():
         try:

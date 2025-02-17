@@ -49,8 +49,8 @@ from superset.models.core import Database, ConfigurationMethod
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils import json
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -4237,7 +4237,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
     @mock.patch(
-        "superset.commands.database.sync_permissions_async.SyncPermissionsAsyncCommand.run"
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run"
     )
     def test_sync_db_perms_async(self, mock_cmmd):
         """

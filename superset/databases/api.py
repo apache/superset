@@ -53,9 +53,6 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
-from superset.commands.database.sync_permissions_async import (
-    SyncPermissionsAsyncCommand,
-)
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
@@ -660,14 +657,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        sync_perms_in_async_mode = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
-        if sync_perms_in_async_mode:
-            current_username = get_username()
-            SyncPermissionsAsyncCommand(pk, current_username).run()
-            return self.response(202, message="Async task created to sync permissions")
-
-        SyncPermissionsCommand(pk).run()
-        return self.response(200, message="Permissions successfully synced")
+        current_username = get_username()
+        SyncPermissionsCommand(
+            pk,
+            username=current_username,
+        ).run()
+        return self.response(202, message="Async task created to sync permissions")
 
     @expose("/<int:pk>/catalogs/")
     @protect()

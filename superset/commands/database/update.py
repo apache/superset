@@ -21,7 +21,6 @@ import logging
 from functools import partial
 from typing import Any
 
-from flask import current_app as app
 from flask_appbuilder.models.sqla import Model
 
 from superset import is_feature_enabled
@@ -39,9 +38,6 @@ from superset.commands.database.ssh_tunnel.exceptions import (
 )
 from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
-from superset.commands.database.sync_permissions_async import (
-    SyncPermissionsAsyncCommand,
-)
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import OAuth2RedirectError
@@ -90,23 +86,15 @@ class UpdateDatabaseCommand(BaseCommand):
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
-        sync_perms_in_async_mode = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
         try:
-            if sync_perms_in_async_mode:
-                current_username = get_username()
-                SyncPermissionsAsyncCommand(
-                    self._model_id,
-                    current_username,
-                    old_db_connection_name=original_database_name,
-                ).run()
-
-            else:
-                SyncPermissionsCommand(
-                    self._model_id,
-                    old_db_connection_name=original_database_name,
-                    db_connection=database,
-                    ssh_tunnel=ssh_tunnel,
-                ).run()
+            current_username = get_username()
+            SyncPermissionsCommand(
+                self._model_id,
+                username=current_username,
+                old_db_connection_name=original_database_name,
+                db_connection=database,
+                ssh_tunnel=ssh_tunnel,
+            ).run()
         except OAuth2RedirectError:
             pass
 

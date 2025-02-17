@@ -24,7 +24,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.utils import ping
-from tests.integration_tests.conftest import with_config
+from tests.conftest import with_config
 
 
 @pytest.fixture
