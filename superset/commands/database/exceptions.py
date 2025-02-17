@@ -88,9 +88,9 @@ class DatabaseExtraValidationError(ValidationError):
         )
 
 
-class DatabaseConnectionResyncPermissionsError(CommandException):
+class DatabaseConnectionSyncPermissionsError(CommandException):
     status = 500
-    message = _("Unable to resync permissions for this database connection.")
+    message = _("Unable to sync permissions for this database connection.")
 
 
 class DatabaseNotFoundError(CommandException):

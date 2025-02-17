@@ -21,18 +21,18 @@ import logging
 from flask import current_app, g
 
 from superset import security_manager
-from superset.commands.database.resync_permissions import ResyncPermissionsCommand
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.daos.database import DatabaseDAO
 from superset.extensions import celery_app
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="resync_database_permissions", soft_time_limit=600)
-def resync_database_permissions(
+@celery_app.task(name="sync_database_permissions", soft_time_limit=600)
+def sync_database_permissions(
     database_id: int, username: str, original_database_name: str
 ) -> None:
-    logger.info("Resyncing permissions for DB connection ID %s", database_id)
+    logger.info("Syncing permissions for DB connection ID %s", database_id)
     with current_app.test_request_context():
         try:
             user = security_manager.get_user_by_username(username)
@@ -41,7 +41,7 @@ def resync_database_permissions(
             logger.info("Impersonating user ID %s", g.user.id)
             db_connection = DatabaseDAO.find_by_id(database_id)
             ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
-            cmmd = ResyncPermissionsCommand(
+            cmmd = SyncPermissionsCommand(
                 database_id,
                 old_db_connection_name=original_database_name,
                 db_connection=db_connection,
@@ -50,7 +50,7 @@ def resync_database_permissions(
             cmmd.run()
         except Exception:
             logger.error(
-                "An error occurred while resyncing permissions for DB connection ID %s",
+                "An error occurred while syncing permissions for DB connection ID %s",
                 database_id,
                 exc_info=True,
             )

@@ -32,16 +32,16 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
 )
-from superset.commands.database.resync_permissions import ResyncPermissionsCommand
-from superset.commands.database.resync_permissions_async import (
-    ResyncPermissionsAsyncCommand,
-)
 from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
+from superset.commands.database.sync_permissions_async import (
+    SyncPermissionsAsyncCommand,
+)
 from superset.daos.database import DatabaseDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.exceptions import OAuth2RedirectError
@@ -90,18 +90,18 @@ class UpdateDatabaseCommand(BaseCommand):
         database = DatabaseDAO.update(self._model, self._properties)
         database.set_sqlalchemy_uri(database.sqlalchemy_uri)
         ssh_tunnel = self._handle_ssh_tunnel(database)
-        async_resync_perms = app.config["RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
+        sync_perms_in_async_mode = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
         try:
-            if async_resync_perms:
+            if sync_perms_in_async_mode:
                 current_username = get_username()
-                ResyncPermissionsAsyncCommand(
+                SyncPermissionsAsyncCommand(
                     self._model_id,
                     current_username,
                     old_db_connection_name=original_database_name,
                 ).run()
 
             else:
-                ResyncPermissionsCommand(
+                SyncPermissionsCommand(
                     self._model_id,
                     old_db_connection_name=original_database_name,
                     db_connection=database,

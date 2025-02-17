@@ -46,15 +46,15 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.database.importers.dispatcher import ImportDatabasesCommand
-from superset.commands.database.resync_permissions import ResyncPermissionsCommand
-from superset.commands.database.resync_permissions_async import (
-    ResyncPermissionsAsyncCommand,
-)
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
+)
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
+from superset.commands.database.sync_permissions_async import (
+    SyncPermissionsAsyncCommand,
 )
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
@@ -173,7 +173,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "upload_metadata",
         "upload",
         "oauth2",
-        "resync_permissions",
+        "sync_permissions",
     }
 
     resource_name = "database"
@@ -622,17 +622,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
-    @expose("/<int:pk>/resync_permissions/", methods=("POST",))
+    @expose("/<int:pk>/sync_permissions/", methods=("POST",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".resync-permissions",
+        f".sync-permissions",
         log_to_statsd=False,
     )
-    def resync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
-        """Re-sync all permissions for a database connection.
+    def sync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Sync all permissions for a database connection.
         ---
         post:
           summary: Re-sync all permissions for a database connection
@@ -644,7 +644,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             description: The database connection ID
           responses:
             200:
-              description: Task created to resync permissions.
+              description: Task created to sync permissions.
               content:
                 application/json:
                   schema:
@@ -661,17 +661,17 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        async_resync_perms = app.config["RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
+        sync_perms_in_async_mode = app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]
         try:
-            if async_resync_perms:
+            if sync_perms_in_async_mode:
                 current_username = get_username()
-                ResyncPermissionsAsyncCommand(pk, current_username).run()
+                SyncPermissionsAsyncCommand(pk, current_username).run()
                 return self.response(
-                    202, message="Async task created to resync permissions"
+                    202, message="Async task created to sync permissions"
                 )
 
-            ResyncPermissionsCommand(pk).run()
-            return self.response(200, message="Permissions successfully resynced")
+            SyncPermissionsCommand(pk).run()
+            return self.response(200, message="Permissions successfully synced")
         except DatabaseNotFoundError:
             return self.response_404()
         except SupersetException as ex:

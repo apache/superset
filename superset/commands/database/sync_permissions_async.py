@@ -27,14 +27,14 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.utils import ping
 from superset.daos.database import DatabaseDAO
-from superset.tasks.permissions import resync_database_permissions
+from superset.tasks.permissions import sync_database_permissions
 
 logger = logging.getLogger(__name__)
 
 
-class ResyncPermissionsAsyncCommand(BaseCommand):
+class SyncPermissionsAsyncCommand(BaseCommand):
     """
-    Command to trigger an async task to resync database permissions.
+    Command to trigger an async task to sync database permissions.
     """
 
     def __init__(
@@ -84,10 +84,10 @@ class ResyncPermissionsAsyncCommand(BaseCommand):
         """
         Triggers the async task.
 
-        Delegates Celery to trigger the permission sync using the
-        ResyncPermissionsCommand command.
+        Delegates Celery to trigger the permission sync using the SyncPermissionsCommand
+        command.
         """
-        resync_database_permissions.delay(
+        sync_database_permissions.delay(
             self.db_connection_id,
             self.username,
             self.old_db_connection_name,

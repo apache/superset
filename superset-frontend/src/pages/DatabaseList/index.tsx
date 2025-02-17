@@ -123,8 +123,8 @@ function DatabaseList({
   const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
-  const shouldResyncPermsInAsyncMode = useSelector<any, boolean>(
-    state => state.common?.conf.RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
+  const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
+    state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
 
@@ -431,23 +431,23 @@ function DatabaseList({
             handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
-          const handleResync = () => {
-            shouldResyncPermsInAsyncMode
+          const handleSync = () => {
+            shouldSyncPermsInAsyncMode
               ? addInfoToast(
                   t('Validating connectivity for %s', original.database_name),
                 )
               : addInfoToast(
-                  t('Resyncing permissions for %s', original.database_name),
+                  t('Syncing permissions for %s', original.database_name),
                 );
             SupersetClient.post({
-              endpoint: `/api/v1/database/${original.id}/resync_permissions/`,
+              endpoint: `/api/v1/database/${original.id}/sync_permissions/`,
             })
               .then(({ response, json }) => {
                 // Sync request
                 if (response.status === 200) {
                   addSuccessToast(
                     t(
-                      'Permissions successfully resynced for %s',
+                      'Permissions successfully synced for %s',
                       original.database_name,
                     ),
                   );
@@ -466,7 +466,7 @@ function DatabaseList({
                 createErrorHandler(errMsg =>
                   addDangerToast(
                     t(
-                      'An error occurred while resyncing permissions for %s: %s',
+                      'An error occurred while syncing permissions for %s: %s',
                       original.database_name,
                       errMsg,
                     ),
@@ -531,16 +531,16 @@ function DatabaseList({
               )}
               {canEdit && (
                 <Tooltip
-                  id="resync-action-tooltip"
-                  title={t('Resync Permissions')}
+                  id="sync-action-tooltip"
+                  title={t('Sync Permissions')}
                   placement="bottom"
                 >
                   <span
                     role="button"
-                    data-test="database-resync-perm"
+                    data-test="database-sync-perm"
                     tabIndex={0}
                     className="action-button"
-                    onClick={handleResync}
+                    onClick={handleSync}
                   >
                     <Icons.Refresh />
                   </span>

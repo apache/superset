@@ -208,8 +208,8 @@ def test_rename_with_catalog(
     been renamed from `my_db` to `my_other_db`.
     """
     DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
-    resync_db_dao = mocker.patch(
-        "superset.commands.database.resync_permissions.DatabaseDAO"
+    sync_db_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
     )
     original_database = mocker.MagicMock()
     original_database.database_name = "my_db"
@@ -219,10 +219,8 @@ def test_rename_with_catalog(
 
     dataset = mocker.MagicMock()
     chart = mocker.MagicMock()
-    resync_db_dao.get_datasets.return_value = [dataset]
-    dataset_dao = mocker.patch(
-        "superset.commands.database.resync_permissions.DatasetDAO"
-    )  # noqa: N806
+    sync_db_dao.get_datasets.return_value = [dataset]
+    dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")  # noqa: N806
     dataset_dao.get_related_objects.return_value = {"charts": [chart]}
 
     find_permission_view_menu = mocker.patch.object(
@@ -285,15 +283,15 @@ def test_rename_without_catalog(
     is added. Additionally, the database has been renamed from `my_db` to `my_other_db`.
     """  # noqa: E501
     DatabaseDAO = mocker.patch("superset.commands.database.update.DatabaseDAO")  # noqa: N806
-    resync_db_dao = mocker.patch(
-        "superset.commands.database.resync_permissions.DatabaseDAO"
+    sync_db_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
     )
     original_database = mocker.MagicMock()
     original_database.database_name = "my_db"
     DatabaseDAO.find_by_id.return_value = original_database
     database_without_catalog.database_name = "my_other_db"
     DatabaseDAO.update.return_value = database_without_catalog
-    resync_db_dao.get_datasets.return_value = []
+    sync_db_dao.get_datasets.return_value = []
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,

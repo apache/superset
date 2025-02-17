@@ -24,7 +24,7 @@ from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
-    DatabaseConnectionResyncPermissionsError,
+    DatabaseConnectionSyncPermissionsError,
     DatabaseNotFoundError,
 )
 from superset.commands.database.utils import ping
@@ -39,9 +39,9 @@ from superset.utils.decorators import on_error, transaction
 logger = logging.getLogger(__name__)
 
 
-class ResyncPermissionsCommand(BaseCommand):
+class SyncPermissionsCommand(BaseCommand):
     """
-    Command to resync database permissions.
+    Command to sync database permissions.
     """
 
     def __init__(
@@ -84,11 +84,11 @@ class ResyncPermissionsCommand(BaseCommand):
             raise DatabaseConnectionFailedError()
 
     @transaction(
-        on_error=partial(on_error, reraise=DatabaseConnectionResyncPermissionsError)
+        on_error=partial(on_error, reraise=DatabaseConnectionSyncPermissionsError)
     )
     def run(self) -> None:
         """
-        Resyncs the permissions for a DB connection.
+        Syncs the permissions for a DB connection.
         """
         self.validate()
 

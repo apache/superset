@@ -4173,13 +4173,13 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(second_model)
         db.session.commit()
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
     @mock.patch(
-        "superset.commands.database.resync_permissions.ResyncPermissionsCommand.run"
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run"
     )
-    def test_resync_db_perms_sync(self, mock_cmmd):
+    def test_sync_db_perms_sync(self, mock_cmmd):
         """
-        Database API: Test resync permissions in sync mode.
+        Database API: Test sync permissions in sync mode.
         """
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
@@ -4187,36 +4187,36 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        uri = f"api/v1/database/{test_database.id}/resync_permissions/"
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert response == {"message": "Permissions successfully resynced"}
+        assert response == {"message": "Permissions successfully synced"}
 
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
         db.session.delete(model)
         db.session.commit()
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
-    @mock.patch("superset.commands.database.resync_permissions.DatabaseDAO.find_by_id")
-    def test_resync_db_perms_sync_db_not_found(self, mock_find_db):
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
+    @mock.patch("superset.commands.database.sync_permissions.DatabaseDAO.find_by_id")
+    def test_sync_db_perms_sync_db_not_found(self, mock_find_db):
         """
-        Database API: Test resync permissions in sync mode when the DB connection
+        Database API: Test sync permissions in sync mode when the DB connection
         is not found.
         """
         self.login(ADMIN_USERNAME)
         mock_find_db.return_value = None
 
-        uri = "api/v1/database/10/resync_permissions/"
+        uri = "api/v1/database/10/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
-    @mock.patch("superset.commands.database.resync_permissions.ping")
-    def test_resync_db_perms_sync_db_connection_failed(self, mock_ping):
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
+    @mock.patch("superset.commands.database.sync_permissions.ping")
+    def test_sync_db_perms_sync_db_connection_failed(self, mock_ping):
         """
-        Database API: Test resync permissions in sync mode when the DB connection
+        Database API: Test sync permissions in sync mode when the DB connection
         is not working.
         """
         self.login(ADMIN_USERNAME)
@@ -4226,7 +4226,7 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        uri = f"api/v1/database/{test_database.id}/resync_permissions/"
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 500
 
@@ -4235,13 +4235,13 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
     @mock.patch(
-        "superset.commands.database.resync_permissions_async.ResyncPermissionsAsyncCommand.run"
+        "superset.commands.database.sync_permissions_async.SyncPermissionsAsyncCommand.run"
     )
-    def test_resync_db_perms_async(self, mock_cmmd):
+    def test_sync_db_perms_async(self, mock_cmmd):
         """
-        Database API: Test resync permissions in async mode.
+        Database API: Test sync permissions in async mode.
         """
         self.login(ADMIN_USERNAME)
         example_db = get_example_database()
@@ -4249,38 +4249,38 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        uri = f"api/v1/database/{test_database.id}/resync_permissions/"
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 202
         response = json.loads(rv.data.decode("utf-8"))
-        assert response == {"message": "Async task created to resync permissions"}
+        assert response == {"message": "Async task created to sync permissions"}
 
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
         db.session.delete(model)
         db.session.commit()
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
     @mock.patch(
-        "superset.commands.database.resync_permissions_async.DatabaseDAO.find_by_id"
+        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id"
     )
-    def test_resync_db_perms_async_db_not_found(self, mock_find_db):
+    def test_sync_db_perms_async_db_not_found(self, mock_find_db):
         """
-        Database API: Test resync permissions in async mode when the DB connection
+        Database API: Test sync permissions in async mode when the DB connection
         is not found.
         """
         self.login(ADMIN_USERNAME)
         mock_find_db.return_value = None
 
-        uri = "api/v1/database/10/resync_permissions/"
+        uri = "api/v1/database/10/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 404
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-    @mock.patch("superset.commands.database.resync_permissions_async.ping")
-    def test_resync_db_perms_async_db_connection_failed(self, mock_ping):
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @mock.patch("superset.commands.database.sync_permissions_async.ping")
+    def test_sync_db_perms_async_db_connection_failed(self, mock_ping):
         """
-        Database API: Test resync permissions in async mode when the DB connection
+        Database API: Test sync permissions in async mode when the DB connection
         is not working.
         """
         self.login(ADMIN_USERNAME)
@@ -4290,7 +4290,7 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        uri = f"api/v1/database/{test_database.id}/resync_permissions/"
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 500
 
@@ -4299,13 +4299,13 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @with_config({"RESYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
     @mock.patch(
-        "superset.commands.database.resync_permissions_async.security_manager.get_user_by_username"
+        "superset.commands.database.sync_permissions_async.security_manager.get_user_by_username"
     )
-    def test_resync_db_perms_async_user_not_found(self, mock_get_user):
+    def test_sync_db_perms_async_user_not_found(self, mock_get_user):
         """
-        Database API: Test resync permissions in async mode when the user to be
+        Database API: Test sync permissions in async mode when the user to be
         impersonated can't be found.
         """
         self.login(ADMIN_USERNAME)
@@ -4315,7 +4315,7 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        uri = f"api/v1/database/{test_database.id}/resync_permissions/"
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 400
 
@@ -4325,11 +4325,11 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.commands.database.resync_permissions.ResyncPermissionsCommand.run"
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run"
     )
-    def test_resync_db_perms_no_access(self, mock_cmmd):
+    def test_sync_db_perms_no_access(self, mock_cmmd):
         """
-        Database API: Test resync permissions with a user without permission to do so.
+        Database API: Test sync permissions with a user without permission to do so.
         """
         self.login(GAMMA_USERNAME)
         example_db = get_example_database()
@@ -4337,7 +4337,7 @@ class TestDatabaseApi(SupersetTestCase):
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
 
-        uri = f"api/v1/database/{test_database.id}/resync_permissions/"
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 403
 

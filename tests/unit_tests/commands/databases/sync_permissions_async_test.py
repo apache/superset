@@ -24,29 +24,29 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     UserNotFoundError,
 )
-from superset.commands.database.resync_permissions_async import (
-    ResyncPermissionsAsyncCommand,
+from superset.commands.database.sync_permissions_async import (
+    SyncPermissionsAsyncCommand,
 )
 
 
-def test_resync_permissions_async_command_validate(mocker: MockerFixture) -> None:
+def test_sync_permissions_async_command_validate(mocker: MockerFixture) -> None:
     """
     Test the ``validate`` method.
     """
     mock_db = mocker.MagicMock()
     mock_db.database_name = "Connection Name"
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.DatabaseDAO.find_by_id",
+        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id",
         return_value=mock_db,
     )
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.security_manager.get_user_by_username",
+        "superset.commands.database.sync_permissions_async.security_manager.get_user_by_username",
     )
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.ping", return_value=True
+        "superset.commands.database.sync_permissions_async.ping", return_value=True
     )
 
-    command = ResyncPermissionsAsyncCommand(1, "username")
+    command = SyncPermissionsAsyncCommand(1, "username")
     command.validate()
 
     # Asserts
@@ -55,24 +55,24 @@ def test_resync_permissions_async_command_validate(mocker: MockerFixture) -> Non
     assert command.old_db_connection_name == "Connection Name"
 
 
-def test_resync_permissions_async_command_validate_new_db_name(mocker: MockerFixture):
+def test_sync_permissions_async_command_validate_new_db_name(mocker: MockerFixture):
     """
     Test the ``validate`` method when the DB connection has a new name.
     """
     mock_db = mocker.MagicMock()
     mock_db.database_name = "Connection Name"
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.DatabaseDAO.find_by_id",
+        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id",
         return_value=mock_db,
     )
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.security_manager.get_user_by_username",
+        "superset.commands.database.sync_permissions_async.security_manager.get_user_by_username",
     )
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.ping", return_value=True
+        "superset.commands.database.sync_permissions_async.ping", return_value=True
     )
 
-    command = ResyncPermissionsAsyncCommand(
+    command = SyncPermissionsAsyncCommand(
         1, "username", old_db_connection_name="Old Connection Name"
     )
     command.validate()
@@ -83,23 +83,23 @@ def test_resync_permissions_async_command_validate_new_db_name(mocker: MockerFix
     assert command.old_db_connection_name == "Old Connection Name"
 
 
-def test_resync_permissions_async_command_validate_database_not_found(
+def test_sync_permissions_async_command_validate_database_not_found(
     mocker: MockerFixture,
 ) -> None:
     """
     Test the ``validate`` method when the database connection is not found.
     """
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.DatabaseDAO.find_by_id",
+        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id",
         return_value=None,
     )
 
-    command = ResyncPermissionsAsyncCommand(1, "username")
+    command = SyncPermissionsAsyncCommand(1, "username")
     with pytest.raises(DatabaseNotFoundError):
         command.validate()
 
 
-def test_resync_permissions_async_command_validate_user_not_found(
+def test_sync_permissions_async_command_validate_user_not_found(
     mocker: MockerFixture,
 ) -> None:
     """
@@ -108,20 +108,20 @@ def test_resync_permissions_async_command_validate_user_not_found(
     mock_db = mocker.MagicMock()
     mock_db.database_name = "Connection Name"
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.DatabaseDAO.find_by_id",
+        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id",
         return_value=mock_db,
     )
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.security_manager.get_user_by_username",
+        "superset.commands.database.sync_permissions_async.security_manager.get_user_by_username",
         return_value=None,
     )
 
-    command = ResyncPermissionsAsyncCommand(1, "username")
+    command = SyncPermissionsAsyncCommand(1, "username")
     with pytest.raises(UserNotFoundError):
         command.validate()
 
 
-def test_reynsc_permissions_async_command_validate_db_connection_error(
+def test_synsc_permissions_async_command_validate_db_connection_error(
     mocker: MockerFixture,
 ):
     """
@@ -130,17 +130,17 @@ def test_reynsc_permissions_async_command_validate_db_connection_error(
     mock_db = mocker.MagicMock()
     mock_db.database_name = "Connection Name"
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.DatabaseDAO.find_by_id",
+        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id",
         return_value=mock_db,
     )
     mocker.patch(
-        "superset.commands.database.resync_permissions_async.security_manager.get_user_by_username",
+        "superset.commands.database.sync_permissions_async.security_manager.get_user_by_username",
     )
     mock_ping = mocker.patch(
-        "superset.commands.database.resync_permissions_async.ping", return_value=False
+        "superset.commands.database.sync_permissions_async.ping", return_value=False
     )
 
-    command = ResyncPermissionsAsyncCommand(1, "username")
+    command = SyncPermissionsAsyncCommand(1, "username")
     with pytest.raises(DatabaseConnectionFailedError):
         command.validate()
 
