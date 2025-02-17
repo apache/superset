@@ -1,9 +1,17 @@
 #!/bin/bash
 
-if $1 == "" ; then
+
+if [ -z "$1" ]; then
   echo "Please provide the image tag, format: prod-x.x.x"
   exit 1
 fi
+
+if [[ ! $1 =~ ^prod-[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "Error: Invalid tag format. Tag must match format: prod-x.x.x"
+  echo "Example: prod-0.0.1"
+  exit 1
+fi
+
 
 ECR_REPO=559615561845.dkr.ecr.ap-south-1.amazonaws.com
 IMAGE_TAG=$1
