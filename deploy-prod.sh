@@ -22,11 +22,14 @@ HELM_REPO_NAME=superset
 CHART_NAME=superset
 VALUES_FILE=.github/workflows/values/prod-values.yaml
 
-Dockerfile="Dockerfile_custom"
+Dockerfile="Dockerfile"
 
 set -e
-docker build -t $ECR_REPO/$REPO_NAME:$IMAGE_TAG -f $Dockerfile .
+docker pull $ECR_REPO/$REPO_NAME:latest
+docker build --cache-from $ECR_REPO/$REPO_NAME:latest  -t $ECR_REPO/$REPO_NAME:$IMAGE_TAG -f $Dockerfile .
 
+docker tag $ECR_REPO/$REPO_NAME:$IMAGE_TAG $ECR_REPO/$REPO_NAME:latest
+docker push $ECR_REPO/$REPO_NAME:latest 
 docker push $ECR_REPO/$REPO_NAME:$IMAGE_TAG
 
 helm upgrade --install $APP_NAME $HELM_REPO_NAME/$CHART_NAME -f $VALUES_FILE -n $NAMESPACE  --set-string image.tag=$IMAGE_TAG --set-string image.repository=$ECR_REPO/$REPO_NAME  --atomic --debug --cleanup-on-fail
