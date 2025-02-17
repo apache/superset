@@ -1,9 +1,9 @@
 # ARG UPSTREAM_VERSION
 
 FROM apachesuperset.docker.scarf.sh/apache/superset:4.1.1
-COPY --chown=superset superset-frontend/src/assets/images/superset-logo-horiz.png /app/superset/static/assets/images/superset-logo-horiz.png
+# COPY --chown=superset superset-frontend/src/assets/images/superset-logo-horiz.png /app/superset/static/assets/images/superset-logo-horiz.png
 # add css style
-COPY --chown=superset superset-frontend/src/assets/css/style.css /app/superset/static/assets/css/style.css
+# COPY --chown=superset superset-frontend/src/assets/css/style.css /app/superset/static/assets/css/style.css
 COPY --chown=superset superset/ /app/superset/
-COPY --chown=superset docker/run-server.sh /usr/bin/run-server.sh
+COPY --chown=superset docker/entrypoints/run-server.sh /usr/bin/run-server.sh
 RUN chmod +x /usr/bin/run-server.sh
