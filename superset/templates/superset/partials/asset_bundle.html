@@ -1,0 +1,36 @@
+{#
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+#}
+{% import "superset/macros.html" as macros %}
+{% macro js_bundle(filename) %}
+  {# HTML comment is needed for webpack-dev-server to replace assets
+     with development version #}
+  <!-- Bundle js {{ filename }} START -->
+  {% for entry in js_manifest(filename) %}
+    <script src="{{ entry }}" async nonce="{{ macros.get_nonce() }}"></script>
+  {% endfor %}
+  <!-- Bundle js {{ filename }} END -->
+{% endmacro %}
+
+{% macro css_bundle(filename) %}
+  <!-- Bundle css {{ filename }} START -->
+  {% for entry in css_manifest(filename) %}
+    <link rel="stylesheet" type="text/css" href="{{ entry }}" />
+  {% endfor %}
+  <!-- Bundle css {{ filename }} END -->
+{% endmacro %}

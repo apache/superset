@@ -1,0 +1,137 @@
+
+{# Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements. See the NOTICE file distributed with this work
+  for additional information regarding copyright ownership. The ASF licenses this
+  file to you under the Apache License, Version 2.0 (the "License"); you may not
+  use this file except in compliance with the License. You may obtain a copy of
+  the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by
+  applicable law or agreed to in writing, software distributed under the License
+  is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied. See the License for the specific language
+  governing permissions and limitations under the License. #}
+
+  <!DOCTYPE html>
+  {% import 'appbuilder/general/lib.html' as lib %} {% from
+  'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context
+  %} {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% import "superset/macros.html" as macros %}
+  <html>
+    <head>
+      {% include "head_custom_extra.html" %}
+      <title>
+        {% block title %} {% if title %} {{ title }} {% elif appbuilder and
+        appbuilder.app_name %} {{ appbuilder.app_name }} {% endif %} {% endblock
+        %}
+      </title>
+      {% block head_meta %}{% endblock %} {% block head_css %} {% for favicon in
+      favicons %} <link rel="{{favicon.rel if favicon.rel else "icon"}}"
+      type="{{favicon.type if favicon.type else "image/png"}}" {% if favicon.sizes
+      %}sizes={{favicon.sizes}}{% endif %} href="{{ "" if
+      favicon.href.startswith("http") else assets_prefix }}{{favicon.href}}" > {%
+      endfor %}
+      <link
+        rel="preload"
+        type="text/css"
+        href="{{ assets_prefix }}/static/appbuilder/css/flags/flags16.css"
+        as="style"
+      />
+      <link
+        rel="preload"
+        type="text/css"
+        href="{{ assets_prefix }}/static/appbuilder/css/fontawesome/fontawesome.min.css"
+        as="style"
+      />
+      <link
+        rel="preload"
+        type="text/css"
+        href="{{ assets_prefix }}/static/appbuilder/css/fontawesome/solid.min.css"
+        as="style"
+      />
+      <link
+        rel="preload"
+        type="text/css"
+        href="{{ assets_prefix }}/static/appbuilder/css/fontawesome/brands.min.css"
+        as="style"
+      />
+      <link
+        rel="preload"
+        type="text/css"
+        href="{{ assets_prefix }}/static/appbuilder/css/select2/select2.min.css"
+        as="style"
+      />
+
+      {{ css_bundle("theme") }} {% if entry %} {{ css_bundle(entry) }} {% endif %}
+      {% endblock %} {{ js_bundle("theme") }}
+
+      <input
+        type="hidden"
+        name="csrf_token"
+        id="csrf_token"
+        value="{{ csrf_token() if csrf_token else '' }}"
+      />
+    </head>
+
+    <body {% if standalone_mode %}class="standalone" {% endif %}>
+      {% block navbar %} {% if not standalone_mode %} {% include
+      'appbuilder/navbar.html' %} {% endif %} {% endblock %} {% block body %}
+      <div id="app" data-bootstrap="{{ bootstrap_data }}">
+        <img
+          src="{{ assets_prefix }}/static/assets/images/loading.gif"
+          style="
+            width: 50px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+          "
+        />
+      </div>
+      {% endblock %}
+
+      <!-- Modal for misc messages / alerts  -->
+      <div
+        class="misc-modal modal fade"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="myModalLabel"
+      >
+        <div class="modal-dialog" role="document">
+          <div class="modal-content" data-test="modal-content">
+            <div class="modal-header" data-test="modal-header">
+              <button
+                type="button"
+                class="close"
+                data-dismiss="modal"
+                aria-label="Close"
+                data-test="modal-header-close-button"
+              >
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 data-test="modal-title" class="modal-title"></h4>
+            </div>
+            <div data-test="modal-body" class="modal-body"></div>
+            <div data-test="modal-footer" class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% block tail_js %} {% if not standalone_mode %} {{ js_bundle('menu') }} {%
+      endif %} {% if entry %} {{ js_bundle(entry) }} {% endif %} {% include
+      "tail_js_custom_extra.html" %} {% endblock %}
+
+      <!-- Handle deferred stylesheets -->
+      <script nonce="{{ macros.get_nonce() }}">
+        document.addEventListener('DOMContentLoaded', function() {
+          var preloadLinks = document.querySelectorAll('link[rel="preload"][as="style"]');
+
+          preloadLinks.forEach(function(link) {
+            link.rel = 'stylesheet';
+          });
+        });
+      </script>
+    </body>
+  </html>

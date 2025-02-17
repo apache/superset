@@ -1,0 +1,68 @@
+{#
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements.  See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership.  The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+#}
+{% extends "appbuilder/base.html" %}
+
+{% block title %}{{ _("Import dashboards") }}{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <div class="panel">
+      <div class="panel-heading"><h3>{{ _("Import Dashboard(s)") }}</h3></div>
+      <div class="panel-body">
+
+        <form method="post" enctype="multipart/form-data">
+          <input
+          type="hidden"
+          name="csrf_token"
+          id="csrf_token"
+          value="{{ csrf_token() if csrf_token else '' }}" />
+          <table class="table table-bordered">
+            <tr>
+              <td>{{ _("File") }}</td>
+              <td>
+                <label class="btn btn-default btn-sm" for="my-file-selector">
+                  <input
+                    id="my-file-selector"
+                    type="file"
+                    name="file"
+                    accept=".json"
+                    style="display:none;"
+                    onchange="$('#upload-file-info').html(this.files[0].name)"/>
+                  {{ _("Choose File") }}
+                </label>
+                <span class='label label-info' id="upload-file-info"></span>
+              </td>
+            </tr>
+            <tr>
+              <td>{{ _("Database") }}</td>
+              <td>
+                <select id="db_id" name="db_id" class="form-control input-sm" style="width: 300px">
+                  {% for db in databases %}
+                    <option value="{{ db.id }}">{{ db.name }}</option>
+                  {% endfor %}
+                </select>
+              </td>
+            </tr>
+          </table>
+          <input type="submit" value="{{ _("Upload") }}" class="btn btn-primary btn-sm" />
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}
