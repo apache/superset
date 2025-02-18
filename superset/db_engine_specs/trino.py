@@ -74,7 +74,8 @@ class TrinoAuthError(HttpError, metaclass=CustomTrinoAuthErrorMeta):
 class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine = "trino"
     engine_name = "Trino"
-    allows_alias_to_source_column = False
+    order_by_require_unique_alias = True
+    group_by_require_unique_alias = True
 
     # OAuth 2.0
     supports_oauth2 = True
