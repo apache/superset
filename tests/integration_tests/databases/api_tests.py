@@ -438,7 +438,8 @@ class TestDatabaseApi(SupersetTestCase):
             == "A database port is required when connecting via SSH Tunnel."
         )
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @mock.patch("superset.extensions.ssh_manager_factory.instance")
+    @mock.patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
@@ -455,6 +456,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_test_connection_database_command_run,
         mock_ping,
         mock_engine,
+        mock_ssh_factory,
     ):
         """
         Database API: Test update Database with SSH Tunnel
@@ -630,7 +632,8 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @mock.patch("superset.extensions.ssh_manager_factory.instance")
+    @mock.patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch("superset.commands.database.utils.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
@@ -650,6 +653,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_test_connection_database_command_run,
         mock_ping,
         mock_engine,
+        mock_ssh_factory,
     ):
         """
         Database API: Test deleting a SSH tunnel via Database update
@@ -718,7 +722,8 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @patch("superset.models.core.Database._get_sqla_engine")
+    @mock.patch("superset.extensions.ssh_manager_factory.instance")
+    @mock.patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch("superset.commands.database.utils.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
@@ -736,6 +741,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_test_connection_database_command_run,
         mock_ping,
         mock_engine,
+        mock_ssh_factory,
     ):
         """
         Database API: Test update SSH Tunnel via Database API
@@ -2110,7 +2116,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert rv.status_code == 400
 
-    @patch("superset.utils.log.logger")
+    @mock.patch("superset.utils.log.logger")
     @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
     @mock.patch("superset.models.core.Database.get_all_table_names_in_schema")
     def test_database_tables_unexpected_error(
