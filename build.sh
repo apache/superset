@@ -28,7 +28,7 @@ docker build \
     --no-cache \
     .
 
-docker push
+docker push ${IMAGE_TAG}
 
 # Verify build
 if [ $? -eq 0 ]; then
