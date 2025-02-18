@@ -813,7 +813,15 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # CORS Options
-ENABLE_CORS = False
+ENABLE_CORS = True
+
+# Content Security Policy (CSP) to allow only *.eka.care
+CSP_HEADER = {
+    "Content-Security-Policy": "frame-ancestors 'self' https://*.eka.care;"
+}
+# Optionally remove X-Frame-Options (conflicts with CSP)
+X_FRAME_OPTIONS = None
+
 CORS_OPTIONS: dict[Any, Any] = {}
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
