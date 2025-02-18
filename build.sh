@@ -28,6 +28,7 @@ docker build \
     --no-cache \
     .
 
+docker push
 
 # Verify build
 if [ $? -eq 0 ]; then
