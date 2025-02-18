@@ -177,6 +177,16 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    pkg-config \
+    default-libmysqlclient-dev \
+    libmariadb-dev \
+    mariadb-client \
+    mariadb-server && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 ENV SUPERSET_HOME="/app/superset_home" \
     HOME="/app/superset_home" \
     SUPERSET_ENV="production" \
