@@ -25,8 +25,7 @@ DOCKER_BUILDKIT=1 docker build \
     --platform=linux/amd64 \
     --build-arg NODE_OPTIONS="--max-old-space-size=8192" \
     -t "${IMAGE_TAG}" \
-    --no-cache \
-    --progress=plain \
+    --no-cache
     .
 
 
