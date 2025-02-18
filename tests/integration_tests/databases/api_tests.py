@@ -438,15 +438,9 @@ class TestDatabaseApi(SupersetTestCase):
             == "A database port is required when connecting via SSH Tunnel."
         )
 
-    @with_config(
-        {
-            "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "test",
-            "SSH_TUNNEL_TIMEOUT_SEC": 123.0,
-            "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 321.0,
-            "SSH_TUNNEL_MANAGER_CLASS": "superset.extensions.ssh.SSHManager",
-        }
+    @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_nested_transaction",
     )
-    @mock.patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
@@ -461,8 +455,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
-        mock_ping,
-        mock_engine,
+        mock_sync_perms_command,
     ):
         """
         Database API: Test update Database with SSH Tunnel
@@ -638,16 +631,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @with_config(
-        {
-            "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "test",
-            "SSH_TUNNEL_TIMEOUT_SEC": 123.0,
-            "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 321.0,
-            "SSH_TUNNEL_MANAGER_CLASS": "superset.extensions.ssh.SSHManager",
-        }
+    @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_nested_transaction",
     )
-    @mock.patch("superset.models.core.Database._get_sqla_engine")
-    @mock.patch("superset.commands.database.utils.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
@@ -664,8 +650,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
-        mock_ping,
-        mock_engine,
+        mock_sync_perms_command,
     ):
         """
         Database API: Test deleting a SSH tunnel via Database update
@@ -734,16 +719,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @with_config(
-        {
-            "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "test",
-            "SSH_TUNNEL_TIMEOUT_SEC": 123.0,
-            "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 321.0,
-            "SSH_TUNNEL_MANAGER_CLASS": "superset.extensions.ssh.SSHManager",
-        }
+    @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_nested_transaction",
     )
-    @mock.patch("superset.models.core.Database._get_sqla_engine")
-    @mock.patch("superset.commands.database.utils.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
@@ -758,8 +736,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
-        mock_ping,
-        mock_engine,
+        mock_sync_perms_command,
     ):
         """
         Database API: Test update SSH Tunnel via Database API
