@@ -102,7 +102,9 @@ async function getFilesRecursively(dir, regex, excludedDirs) {
 
     for (const file of files) {
       const fullPath = join(dir, file.name);
-      const shouldExclude = excludedDirs.includes(file.name);
+      const shouldExclude = excludedDirs.some((excludedDir) =>
+        normalize(fullPath).includes(normalize(excludedDir))
+      );
 
       if (file.isDirectory() && !shouldExclude) {
         recursivePromises.push(
