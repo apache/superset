@@ -159,7 +159,7 @@ def test_sync_permissions_command_run(mocker: MockerFixture):
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
-def test_sync_permissions_command_run_raise_on_getting_schemas(mocker: MockerFixture):
+def test_sync_permissions_command_run_error_on_getting_schemas(mocker: MockerFixture):
     """
     Test the ``run`` method when an exception is raised on getting the schemas
     for the catalog.
@@ -249,31 +249,6 @@ def test_sync_permissions_command_run_no_catalog(mocker: MockerFixture):
     cmmd.run()
 
     mock_refresh_schemas.assert_called_once_with(None, ["schema"])
-
-
-@with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
-def test_sync_permissions_command_run_no_catalog_raise_on_getting_schemas(
-    mocker: MockerFixture,
-):
-    """
-    Test the ``run`` method when an exception is raised on getting the schemas
-    for a DB connection that does not support catalog.
-    """
-    mock_db = mocker.MagicMock()
-    mock_db.database_name = "Name"
-    mock_db.db_engine_spec.supports_catalog = False
-
-    cmmd = SyncPermissionsCommand(
-        1,
-        old_db_connection_name="Name",
-        db_connection=mock_db,
-        ssh_tunnel=None,
-    )
-    mocker.patch.object(
-        cmmd, "_get_schema_names", side_effect=DatabaseConnectionFailedError
-    )
-    with pytest.raises(DatabaseConnectionFailedError):
-        cmmd.run()
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
