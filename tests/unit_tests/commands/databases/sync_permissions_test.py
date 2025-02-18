@@ -548,7 +548,7 @@ def test_sync_permissions_command_rename_database_in_permissions(
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-def test_sync_permissions_async_command_validate(mocker: MockerFixture) -> None:
+def test_sync_permissions_command_async_mode_validate(mocker: MockerFixture) -> None:
     """
     Test the ``validate`` method.
     """
@@ -577,7 +577,9 @@ def test_sync_permissions_async_command_validate(mocker: MockerFixture) -> None:
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-def test_sync_permissions_async_command_validate_new_db_name(mocker: MockerFixture):
+def test_sync_permissions_command_async_mode_validate_new_db_name(
+    mocker: MockerFixture,
+):
     """
     Test the ``validate`` method when the DB connection has a new name.
     """
@@ -610,7 +612,7 @@ def test_sync_permissions_async_command_validate_new_db_name(mocker: MockerFixtu
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-def test_sync_permissions_async_command_validate_database_not_found(
+def test_sync_permissions_command_async_mode_validate_database_not_found(
     mocker: MockerFixture,
 ) -> None:
     """
@@ -627,7 +629,7 @@ def test_sync_permissions_async_command_validate_database_not_found(
 
 
 @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-def test_sync_permissions_async_command_validate_user_not_found(
+def test_sync_permissions_command_async_mode_validate_user_not_found(
     mocker: MockerFixture,
 ) -> None:
     """

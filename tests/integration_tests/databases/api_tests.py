@@ -4261,9 +4261,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-    @mock.patch(
-        "superset.commands.database.sync_permissions_async.DatabaseDAO.find_by_id"
-    )
+    @mock.patch("superset.commands.database.sync_permissions.DatabaseDAO.find_by_id")
     def test_sync_db_perms_async_db_not_found(self, mock_find_db):
         """
         Database API: Test sync permissions in async mode when the DB connection
@@ -4277,7 +4275,7 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 404
 
     @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
-    @mock.patch("superset.commands.database.sync_permissions_async.ping")
+    @mock.patch("superset.commands.database.sync_permissions.ping")
     def test_sync_db_perms_async_db_connection_failed(self, mock_ping):
         """
         Database API: Test sync permissions in async mode when the DB connection
@@ -4301,7 +4299,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
     @mock.patch(
-        "superset.commands.database.sync_permissions_async.security_manager.get_user_by_username"
+        "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
     )
     def test_sync_db_perms_async_user_not_found(self, mock_get_user):
         """
@@ -4317,7 +4315,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         uri = f"api/v1/database/{test_database.id}/sync_permissions/"
         rv = self.client.post(uri)
-        assert rv.status_code == 400
+        assert rv.status_code == 500
 
         # Cleanup
         model = db.session.query(Database).get(test_database.id)
