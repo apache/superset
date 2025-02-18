@@ -22,7 +22,7 @@
 // @ts-check
 const { exit } = require("node:process");
 const { join, dirname, normalize, sep } = require("node:path");
-const { readdir } = require("node:fs/promises");
+const { readdir, stat } = require("node:fs/promises");
 const { existsSync } = require("node:fs");
 const { chdir, cwd } = require("node:process");
 const { createRequire } = require("node:module");
@@ -44,7 +44,7 @@ void (async () => {
     exit(1);
   }
 
-  const packageRootDir = getPackage(packageArg);
+  const packageRootDir = await getPackage(packageArg);
   const updatedArgs = removePackageSegment(remainingArgs, packageRootDir);
   const argsStr = updatedArgs.join(" ");
 
@@ -95,32 +95,54 @@ void (async () => {
  */
 
 async function getFilesRecursively(dir, regex, excludedDirs) {
-  const files = await readdir(dir, { withFileTypes: true });
-  /** @type {string[]} */
-  let result = [];
+  try {
+    const files = await readdir(dir, { withFileTypes: true });
+    const recursivePromises = [];
+    const result = [];
 
-  for (const file of files) {
-    const fullPath = join(dir, file.name);
-    const shouldExclude = excludedDirs.includes(file.name);
+    for (const file of files) {
+      const fullPath = join(dir, file.name);
+      const shouldExclude = excludedDirs.includes(file.name);
 
-    if (file.isDirectory() && !shouldExclude) {
-      result = result.concat(
-        await getFilesRecursively(fullPath, regex, excludedDirs)
-      );
-    } else if (regex.test(file.name)) {
-      result.push(fullPath);
+      if (file.isDirectory() && !shouldExclude) {
+        recursivePromises.push(
+          getFilesRecursively(fullPath, regex, excludedDirs)
+        );
+      } else if (regex.test(file.name)) {
+        result.push(fullPath);
+      }
     }
+
+    const recursiveResults = await Promise.all(recursivePromises);
+    return result.concat(...recursiveResults);
+  } catch (e) {
+    console.error(`Error reading directory: ${dir}`);
+    console.error(e);
+    exit(1);
   }
-  return result;
 }
 
 /**
  *
  * @param {string} packageArg
- * @returns {string}
+ * @returns {Promise<string>}
  */
-function getPackage(packageArg) {
-  return packageArg.split("=")[1].replace(/\/$/, "");
+async function getPackage(packageArg) {
+  const packageDir = packageArg.split("=")[1].replace(/\/$/, "");
+  try {
+    const stats = await stat(packageDir);
+    if (!stats.isDirectory()) {
+      console.error(
+        `Please specify a valid package, ${packageDir} is not a directory.`
+      );
+      exit(1);
+    }
+  } catch (e) {
+    console.error(`Error reading package: ${packageDir}`);
+    console.error(e);
+    exit(1);
+  }
+  return packageDir;
 }
 
 /**
