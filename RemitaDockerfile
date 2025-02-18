@@ -265,15 +265,19 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
-# Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
     git \
     pkg-config \
     default-mysql-client \
     default-libmysqlclient-dev \
     libmariadb-dev \
+    mariadb-client \
+    mariadb-server \
+    libmariadb3 \
+    libmariadb-dev \
     wget \
     unzip
+
 # Copy Oracle client and browser dependencies
 COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
 COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
