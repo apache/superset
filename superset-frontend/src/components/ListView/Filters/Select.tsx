@@ -37,6 +37,7 @@ interface SelectFilterProps extends BaseFilter {
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
   paginate?: boolean;
   selects: Filter['selects'];
+  width?: number;
 }
 
 function SelectFilter(
@@ -47,6 +48,7 @@ function SelectFilter(
     initialValue,
     onSelect,
     selects = [],
+    width,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -86,9 +88,9 @@ function SelectFilter(
     },
     [fetchSelects],
   );
-
+  const placeholder = t('Select...');
   return (
-    <FilterContainer>
+    <FilterContainer width={width}>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
@@ -98,7 +100,7 @@ function SelectFilter(
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
           showSearch
           value={selectedOption}
         />
@@ -112,7 +114,7 @@ function SelectFilter(
           onChange={onChange}
           onClear={onClear}
           options={selects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
           showSearch
           value={selectedOption}
         />
