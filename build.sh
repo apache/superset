@@ -29,6 +29,7 @@ DOCKER_BUILDKIT=1 docker build \
     --progress=plain \
     .
 
+
 # Verify build
 if [ $? -eq 0 ]; then
     echo ">>> Build completed successfully"
