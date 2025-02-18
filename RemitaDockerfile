@@ -42,7 +42,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     python3 \
     zstd \
-    libmysqlclient-dev \  # Add MySQL development libraries
+    libmysqlclient-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
