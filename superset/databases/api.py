@@ -662,7 +662,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             pk,
             username=current_username,
         ).run()
-        return self.response(202, message="Async task created to sync permissions")
+        if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
+            return self.response(202, message="Async task created to sync permissions")
+        return self.response(200, message="Permissions successfully resynced")
 
     @expose("/<int:pk>/catalogs/")
     @protect()

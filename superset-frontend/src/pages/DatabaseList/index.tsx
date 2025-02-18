@@ -348,8 +348,8 @@ function DatabaseList({
     }
     SupersetClient.post({
       endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
-    })
-      .then(({ response, json }) => {
+    }).then(
+      ({ response }) => {
         // Sync request
         if (response.status === 200) {
           addSuccessToast(
@@ -365,18 +365,17 @@ function DatabaseList({
             ),
           );
         }
-      })
-      .catch(
-        createErrorHandler(errMsg =>
-          addDangerToast(
-            t(
-              'An error occurred while syncing permissions for %s: %s',
-              database.database_name,
-              errMsg,
-            ),
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t(
+            'An error occurred while syncing permissions for %s: %s',
+            database.database_name,
+            errMsg,
           ),
         ),
-      );
+      ),
+    );
   }
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
