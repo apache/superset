@@ -631,7 +631,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.models.core.Database._get_sqla_engine")
-    @mock.patch("superset.commands.database.sync_permissions.ping", return_value=True)
+    @mock.patch("superset.commands.database.utils.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
@@ -719,7 +719,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @patch("superset.models.core.Database._get_sqla_engine")
-    @mock.patch("superset.commands.database.sync_permissions.ping", return_value=True)
+    @mock.patch("superset.commands.database.utils.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
