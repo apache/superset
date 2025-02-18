@@ -318,6 +318,14 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
       default:
         break;
     }
+
+    setDataMask({
+      extraFormData: {},
+      filterState: {
+        value: null,
+        label: '',
+      },
+    });
   }, [enableSingleValue]);
 
   return (
