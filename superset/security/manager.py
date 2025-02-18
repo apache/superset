@@ -2301,22 +2301,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     form_data = viz.form_data
 
                 assert datasource
-
                 
                 can_access_schema = self.can_access_schema(datasource)
                 can_access_datasource_permission = self.can_access("datasource_access", datasource.perm or "")
                 is_owner = self.is_owner(datasource)
-
-                
                 dashboard_accessible = False
                 dashboard_ = None
 
                 if form_data and (dashboard_id := form_data.get("dashboardId")):
-                    try:
-                        dashboard_ = self.get_session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
-                    except Exception as e:
-                        logging.error(f"Error fetching dashboard {dashboard_id}: {e}")
-
+                    dashboard_ = self.get_session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+                    
                 if dashboard_:
                     is_dashboard_rbac_enabled = is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles
                     is_embedded_guest_user = is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user()
@@ -2333,8 +2327,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         elif (slice_id := form_data.get("slice_id")):
                             slc = self.get_session.query(Slice).filter(Slice.id == slice_id).one_or_none()
                             dashboard_accessible = slc and slc in dashboard_.slices and slc.datasource == datasource
-
-                
+       
                 if not (
                     can_access_schema
                     or can_access_datasource_permission
