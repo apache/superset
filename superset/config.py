@@ -983,7 +983,7 @@ SQLLAB_PAYLOAD_MAX_MB = None
 DASHBOARD_AUTO_REFRESH_MODE: Literal["fetch", "force"] = "force"
 # Dashboard auto refresh intervals
 DASHBOARD_AUTO_REFRESH_INTERVALS = [
-    [0, "Don't refresh"],
+    [0, "Do not refresh"],
     [10, "10 seconds"],
     [30, "30 seconds"],
     [60, "1 minute"],
