@@ -271,9 +271,9 @@ RUN /app/docker/apt-install.sh \
     pkg-config \
     default-mysql-client \
     default-libmysqlclient-dev \
+    libmariadb-dev \
     wget \
     unzip
-
 # Copy Oracle client and browser dependencies
 COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
 COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
