@@ -1,9 +1,9 @@
-from superset.stats_logger import BaseStatsLogger
 from typing import Optional
 
+from superset.stats_logger import BaseStatsLogger
+
 try:
-    from werkzeug.middleware.dispatcher import DispatcherMiddleware
-    from prometheus_client import make_wsgi_app, Counter, Gauge, Summary
+    from prometheus_client import Counter, Gauge, Summary
 
     class PrometheusStatsLogger(BaseStatsLogger):
         def __init__(self, prefix: str = "superset") -> None:
@@ -24,7 +24,7 @@ try:
 
             self._summary = Summary(
                 f"{self.prefix}_summary",
-                f"Summary metric for Superset",
+                "Summary metric for Superset",
                 labelnames=["key"],
             )
 

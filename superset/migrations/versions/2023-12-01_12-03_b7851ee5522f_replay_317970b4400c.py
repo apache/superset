@@ -17,14 +17,14 @@
 """replay 317970b4400c
 
 Revision ID: b7851ee5522f
-Revises: 4b85906e5b91
+Revises: 24505e69a987
 Create Date: 2023-12-01 12:03:27.538945
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "b7851ee5522f"
-down_revision = "4b85906e5b91"
+down_revision = "24505e69a987"  # DODO added 44994244
 
 from importlib import import_module  # noqa: E402
 

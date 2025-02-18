@@ -1,0 +1,29 @@
+@startuml
+' Libs
+!include ./lib/C4_Context.puml
+
+' ------------------------------
+' Define legend and title
+' ------------------------------
+
+title Global - Context Diagram
+
+' ------------------------------
+' Define participants
+' ------------------------------
+
+' Person
+Person(user__person, "User", "Пользователь аналитики")
+
+' System
+System(superset__sys, "Superset", "Платформа для визуализации данных")
+System_Ext(dodo_auth__ext_sys, "DODO Auth", "Сервис для авторизации в DODO")
+
+' ------------------------------
+' Define relations
+' ------------------------------
+
+Rel_R(user__person, superset__sys, "Изучает дашборды используя")
+Rel_D(superset__sys, dodo_auth__ext_sys, "Авторизирует пользователей используя")
+
+@enduml

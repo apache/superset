@@ -1,0 +1,20 @@
+{
+  "system": {
+    "superset": {
+      "key": "superset__sys",
+      "name": "Superset",
+      "isExternal": false
+    },
+    "dodoAuth": {
+      "key": "dodo_auth__ext_sys",
+      "name": "DODO Authentication Service",
+      "isExternal": true
+    }
+  },
+  "person": {
+    "user": {
+      "key": "user__person",
+      "name": "User"
+    }
+  }
+}

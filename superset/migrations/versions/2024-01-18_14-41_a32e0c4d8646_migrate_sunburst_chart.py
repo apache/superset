@@ -17,14 +17,14 @@
 """migrate-sunburst-chart
 
 Revision ID: a32e0c4d8646
-Revises: 59a1450b3c10
+Revises: 65a167d4c62e
 Create Date: 2023-12-22 14:41:43.638321
 
 """
 
 # revision identifiers, used by Alembic.
 revision = "a32e0c4d8646"
-down_revision = "59a1450b3c10"
+down_revision = "65a167d4c62e"  # DODO added 44994244
 
 from alembic import op  # noqa: E402
 

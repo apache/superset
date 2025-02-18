@@ -5,7 +5,7 @@
 ' ENABLE_ALL_PLANT_ELEMENTS
 '   If ENABLE_ALL_PLANT_ELEMENTS is set BEFORE the first C4_* file is loaded, nearly "all" PlantUML elements can be used like
 '     Component(StorageA, "Storage A ", $baseShape="storage")
-'   ENABLE_ALL_PLANT_ELEMENTS can be set via 
+'   ENABLE_ALL_PLANT_ELEMENTS can be set via
 '     !ENABLE_ALL_PLANT_ELEMENTS = 1
 '   or with additional command line argument -DENABLE_ALL_PLANT_ELEMENTS=1
 
@@ -278,7 +278,7 @@ skinparam package {
   !return $stereos
 !endfunction
 
-' if $sprite/$techn is an empty argument, try to calculate it via the defined $tag 
+' if $sprite/$techn is an empty argument, try to calculate it via the defined $tag
 !unquoted function $toRelArg($arg, $tags, $varPostfix)
   !if ($arg > "")
     !return $arg
@@ -345,7 +345,7 @@ skinparam package {
   !return $stereos
 !endfunction
 
-' if $sprite/$techn is an empty argument, try to calculate it via the defined $tag 
+' if $sprite/$techn is an empty argument, try to calculate it via the defined $tag
 !unquoted function $toElementArg($arg, $tags, $varPostfix, $elementType)
   !if ($arg > "")
     !return $arg
@@ -729,7 +729,7 @@ $elementSkin
     !endif
     !if ($fontColor == "" && $bgColor == "")
       !$tagDetails = $tagDetails + $LEGEND_NO_FONT_BG_TEXT + ", "
-    !else 
+    !else
       !if ($fontColor == "")
         !$tagDetails = $tagDetails + $LEGEND_NO_FONT_TEXT + ", "
       !endif
@@ -762,7 +762,7 @@ $elementSkin
     !else
       !$tagDetails = %substr($tagDetails, 0, %strlen($tagDetails)-2)
       !$tagDetails = $tagDetails + ")</size>"
-    !endif 
+    !endif
   !else
     !$brPos = %strpos($legendText, "\n")
     !if ($brPos > 0)
@@ -840,7 +840,7 @@ $elementSkin
     !else
       !$tagDetails = %substr($tagDetails, 0, %strlen($tagDetails)-2)
       !$tagDetails = $tagDetails + ")</size>"
-    !endif 
+    !endif
   !else
     !$brPos = %strpos($legendText, "\n")
     !if ($brPos > 0)
@@ -1065,7 +1065,7 @@ $elementSkin
     !if ($brPos > 0)
       !$multiLine = $multiLine + %substr($text, 0, $brPos) + $usedNewLine
     !else
-      ' <U+00A0> non breaking change that newLine breaks with formats can be used with \n\n 
+      ' <U+00A0> non breaking change that newLine breaks with formats can be used with \n\n
       !$multiLine = $multiLine + "<U+00A0>" + $usedNewLine
     !endif
     !$text = %substr($text, $brPos+2)
@@ -1148,7 +1148,7 @@ $elementSkin
   !$baseProp = $getElementBase($label, $techn, $descr, $sprite) + $getProps()
   !$stereo = $toStereos($elementType,$tags)
   !$calcLink = $getLink($link)
-  
+
   !$line = $umlShape + " " + %chr(34) + $baseProp + %chr(34) +" " + $stereo + " as " + $alias + $calcLink
   !return $line
 !endfunction
@@ -1228,7 +1228,7 @@ SetPropertyHeader("Property","Value")
 !function $getLegendDetailsSize($detailsFormat)
   !if $detailsFormat == $LEGEND_DETAILS_NONE
     !$size = 0
-  !elseif $detailsFormat == $LEGEND_DETAILS_SMALL 
+  !elseif $detailsFormat == $LEGEND_DETAILS_SMALL
     !$size = $LEGEND_DETAILS_SMALL_SIZE
   !else
     !$size = $LEGEND_DETAILS_NORMAL_SIZE
@@ -1354,12 +1354,12 @@ hide stereotype
 top to bottom direction
 !endprocedure
 
-!procedure LAYOUT_LEFT_RIGHT() 
+!procedure LAYOUT_LEFT_RIGHT()
 !global $fix_direction = %false()
 left to right direction
 !endprocedure
 
-!procedure LAYOUT_LANDSCAPE() 
+!procedure LAYOUT_LANDSCAPE()
 !global $fix_direction = %true()
 left to right direction
 !endprocedure
@@ -1374,7 +1374,7 @@ left to right direction
 !endfunction
 
 !function Small()
-!return $LEGEND_DETAILS_SMALL 
+!return $LEGEND_DETAILS_SMALL
 !endfunction
 
 ' has to be last call in diagram

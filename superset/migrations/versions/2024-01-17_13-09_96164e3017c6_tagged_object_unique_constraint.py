@@ -23,7 +23,7 @@ from sqlalchemy.sql import func, select
 
 # revision identifiers, used by Alembic.
 revision = "96164e3017c6"
-down_revision = "59a1450b3c10"
+down_revision = "65a167d4c62e"  # DODO added 44994244
 
 
 class ObjectType(enum.Enum):
