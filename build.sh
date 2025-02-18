@@ -25,6 +25,7 @@ DOCKER_BUILDKIT=1 docker build \
     --platform=linux/amd64 \
     --build-arg NODE_OPTIONS="--max-old-space-size=8192" \
     -t "${IMAGE_TAG}" \
+    --no-cache \
     --progress=plain \
     .
 
@@ -35,7 +36,7 @@ if [ $? -eq 0 ]; then
     
     # Cleanup builder cache
     echo ">>> Cleaning up builder cache"
-    docker builder prune -f --filter until=24h
+#    docker builder prune -f --filter until=24h
 
     # Optional: More aggressive cleanup
     # docker system prune -f --volumes
