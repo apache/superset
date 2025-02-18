@@ -270,7 +270,7 @@ RUN /app/docker/apt-install.sh \
     git \
     pkg-config \
     default-mysql-client \
-    default-libmysqlclient-dev
+    default-libmysqlclient-dev \
     wget \
     unzip
 
