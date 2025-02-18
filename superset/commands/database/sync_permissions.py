@@ -197,11 +197,8 @@ class SyncPermissionsCommand(BaseCommand):
                             )
                         continue
             except DatabaseConnectionFailedError:
-                # more than one catalog, move to next
-                if catalog:
-                    logger.warning("Error processing catalog %s", catalog)
-                    continue
-                raise
+                logger.warning("Error processing catalog %s", catalog or "(default)")
+                continue
 
             # add possible new schemas in catalog
             self._refresh_schemas(catalog, schemas)

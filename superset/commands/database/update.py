@@ -94,7 +94,7 @@ class UpdateDatabaseCommand(BaseCommand):
                 old_db_connection_name=original_database_name,
                 db_connection=database,
                 ssh_tunnel=ssh_tunnel,
-            ).run()
+            ).run_nested_transaction()
         except OAuth2RedirectError:
             pass
 
