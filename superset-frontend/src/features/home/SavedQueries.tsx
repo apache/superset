@@ -335,10 +335,7 @@ const SavedQueries = ({
                         trigger={['click', 'hover']}
                       >
                         <Button buttonSize="xsmall" type="link">
-                          <Icons.MoreOutlined
-                            iconSize="xl"
-                            iconColor={theme.colors.grayscale.base}
-                          />
+                          <Icons.MoreOutlined iconSize="xl" />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>

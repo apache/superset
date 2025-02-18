@@ -76,7 +76,7 @@ const StyledMenu = styled(Menu)`
         theme.gridUnit
       }px ${theme.gridUnit * 3}px;
     }
-    .ant-dropdown-menu-item-selected {
+    .antd5-dropdown-menu-item-selected {
       color: ${theme.colors.grayscale.dark1};
       background-color: ${theme.colors.primary.light5};
     }

@@ -447,7 +447,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 className="delete-button"
                 onClick={() => onRemove(index)}
               >
-                <Icons.DeleteOutlined iconColor={theme.colors.grayscale.base} />
+                <Icons.DeleteOutlined />
               </span>
             ) : null}
           </div>

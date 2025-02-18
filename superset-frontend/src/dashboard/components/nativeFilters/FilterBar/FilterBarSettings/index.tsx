@@ -19,13 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -75,7 +69,6 @@ const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
 
 const FilterBarSettings = () => {
   const dispatch = useDispatch();
-  const theme = useTheme();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -277,7 +270,6 @@ const FilterBarSettings = () => {
           <Icons.SettingOutlined
             iconSize="xl"
             name="gear"
-            iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"
           />
         </Button>

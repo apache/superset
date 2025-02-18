@@ -1920,7 +1920,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           ))}
           {
             // Prohibit 'add notification method' button if only one present
-            true && (
+            allowedNotificationMethodsCount > notificationSettings.length && (
               <NotificationMethodAdd
                 data-test="notification-add"
                 status={notificationAddState}

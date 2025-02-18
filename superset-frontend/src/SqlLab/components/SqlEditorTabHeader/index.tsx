@@ -46,7 +46,6 @@ const TabTitleWrapper = styled.div`
   [aria-label='check-circle'],
   .status-icon {
     margin: 0px;
-    margin-right: 0px;
   }
 `;
 const TabTitle = styled.span`

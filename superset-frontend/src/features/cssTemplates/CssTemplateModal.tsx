@@ -231,13 +231,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
-              iconColor={theme.colors.grayscale.base}
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="l"
-              iconColor={theme.colors.grayscale.base}
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />
           )}

@@ -118,10 +118,7 @@ const CloseIconWithDropIndicator = props => {
   const theme = useTheme();
   return (
     <>
-      <Icons.CloseOutlined
-        iconSize="s"
-        iconColor={theme.colors.grayscale.base}
-      />
+      <Icons.CloseOutlined iconSize="s" />
       {props.showDropIndicators.right && (
         <DropIndicator className="drop-indicator-right" pos="right" />
       )}

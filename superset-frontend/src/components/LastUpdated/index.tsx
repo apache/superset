@@ -50,13 +50,15 @@ const TextStyles = styled.span`
 `;
 
 const RefreshIcon = styled(Icons.SyncOutlined)`
-  color: ${({ theme }) => theme.colors.primary.base};
+  ${({ theme }) => `
+  color: ${theme.colors.primary.base};
   width: auto;
-  height: ${({ theme }) => theme.gridUnit * 5}px;
+  height: ${theme.gridUnit * 5}px;
   position: relative;
-  top: ${({ theme }) => theme.gridUnit}px;
-  left: ${({ theme }) => theme.gridUnit}px;
+  top: ${theme.gridUnit}px;
+  left: ${theme.gridUnit}px;
   cursor: pointer;
+`};
 `;
 
 export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({

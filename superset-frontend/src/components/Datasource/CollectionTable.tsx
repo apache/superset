@@ -153,7 +153,7 @@ const StyledButtonWrapper = styled.span`
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
     button>span>:first-of-type {
-      margin-right:0;
+      margin-right: 0;
     }
   `}
 `;

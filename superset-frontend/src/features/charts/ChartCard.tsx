@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -68,8 +68,6 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const theme = useTheme();
-
   const menu = (
     <Menu>
       {canEdit && (
@@ -187,10 +185,7 @@ export default function ChartCard({
             )}
             <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
               <Button buttonSize="xsmall" type="link">
-                <Icons.MoreOutlined
-                  iconSize="xl"
-                  iconColor={theme.colors.grayscale.base}
-                />
+                <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>
           </ListViewCard.Actions>

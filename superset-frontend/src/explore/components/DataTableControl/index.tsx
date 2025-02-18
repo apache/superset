@@ -68,7 +68,6 @@ export const CopyToClipboardButton = ({
   data?: Record<string, any>;
   columns?: string[];
 }) => {
-  const theme = useTheme();
   return (
     <CopyToClipboard
       text={
@@ -77,7 +76,6 @@ export const CopyToClipboardButton = ({
       wrapped={false}
       copyNode={
         <Icons.CopyOutlined
-          iconColor={theme.colors.grayscale.base}
           iconSize="l"
           aria-label={t('Copy')}
           role="button"
@@ -112,12 +110,7 @@ export const FilterInput = ({
   const debouncedChangeHandler = debounce(onChangeHandler, SLOW_DEBOUNCE);
   return (
     <Input
-      prefix={
-        <Icons.SearchOutlined
-          iconSize="l"
-          iconColor={theme.colors.grayscale.base}
-        />
-      }
+      prefix={<Icons.SearchOutlined iconSize="l" />}
       placeholder={t('Search')}
       onChange={(event: any) => {
         const filterText = event.target.value;

@@ -40,7 +40,7 @@ const ToastContainer = styled.div`
   `}
 `;
 
-const NotificationStyledIcon = (theme: SupersetTheme) => css`
+const notificationStyledIcon = (theme: SupersetTheme) => css`
   min-width: ${theme.gridUnit * 5}px;
   color: ${theme.colors.grayscale.base};
   margin-right: 0;
@@ -86,17 +86,17 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
 
   let className = 'toast--success';
   let icon = (
-    <Icons.CircleCheckSolid css={theme => NotificationStyledIcon(theme)} />
+    <Icons.CircleCheckSolid css={theme => notificationStyledIcon(theme)} />
   );
 
   if (toast.toastType === ToastType.Warning) {
-    icon = <Icons.ExclamationCircleFilled css={NotificationStyledIcon} />;
+    icon = <Icons.ExclamationCircleFilled css={notificationStyledIcon} />;
     className = 'toast--warning';
   } else if (toast.toastType === ToastType.Danger) {
-    icon = <Icons.ExclamationCircleFilled css={NotificationStyledIcon} />;
+    icon = <Icons.ExclamationCircleFilled css={notificationStyledIcon} />;
     className = 'toast--danger';
   } else if (toast.toastType === ToastType.Info) {
-    icon = <Icons.InfoCircleFilled css={NotificationStyledIcon} />;
+    icon = <Icons.InfoCircleFilled css={notificationStyledIcon} />;
     className = 'toast--info';
   }
 

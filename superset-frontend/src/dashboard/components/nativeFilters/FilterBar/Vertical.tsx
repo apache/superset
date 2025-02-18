@@ -206,7 +206,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             {...getFilterBarTestId('expand-button')}
           />
           <Icons.FilterOutlined
-            iconColor={theme.colors.grayscale.base}
             {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />

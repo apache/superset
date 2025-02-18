@@ -160,13 +160,11 @@ export const DataTablesPane = ({
     const caretIcon = panelOpen ? (
       <Icons.CaretUpOutlined
         iconSize="l"
-        iconColor={theme.colors.grayscale.base}
         aria-label={t('Collapse data panel')}
       />
     ) : (
       <Icons.CaretDownOutlined
         iconSize="l"
-        iconColor={theme.colors.grayscale.base}
         aria-label={t('Expand data panel')}
       />
     );

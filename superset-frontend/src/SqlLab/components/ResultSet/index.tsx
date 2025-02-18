@@ -688,8 +688,7 @@ const ResultSet = ({
                         width: 100%;
                         overflow: hidden;
                         white-space: nowrap !important;
-                        text-overflow: ellipsimport { CopyToClipboard } from '.';
-is;
+                        text-overflow: ellipsis;
                         display: block;
                       }
                     `,

@@ -302,7 +302,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       title={
         <span>
           <Icons.EditOutlined
-            iconColor={theme.colors.grayscale.base}
             css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             data-test="edit-alt"
           />

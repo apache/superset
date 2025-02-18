@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import { memo, FC } from 'react';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';
@@ -66,8 +66,6 @@ type HeaderProps = {
 };
 
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
-  const theme = useTheme();
-
   return (
     <Wrapper>
       <TitleArea>
@@ -82,7 +80,6 @@ const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
           <Icons.VerticalAlignTopOutlined
             iconSize="xl"
             css={{ transform: 'rotate(-90deg)' }}
-            iconColor={theme.colors.grayscale.base}
           />
         </HeaderButton>
       </TitleArea>

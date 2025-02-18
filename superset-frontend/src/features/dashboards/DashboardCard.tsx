@@ -22,7 +22,6 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   t,
-  useTheme,
   SupersetClient,
 } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
@@ -67,9 +66,6 @@ function DashboardCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-
-  const theme = useTheme();
-
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
   const [fetchingThumbnail, setFetchingThumbnail] = useState<boolean>(false);
 
@@ -195,10 +191,7 @@ function DashboardCard({
             )}
             <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
               <Button buttonSize="xsmall" type="link">
-                <Icons.MoreOutlined
-                  iconSize="xl"
-                  iconColor={theme.colors.grayscale.base}
-                />
+                <Icons.MoreOutlined iconSize="xl" />
               </Button>
             </Dropdown>
           </ListViewCard.Actions>

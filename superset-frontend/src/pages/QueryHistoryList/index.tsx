@@ -195,9 +195,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = (
-              <Icons.Queued iconColor={theme.colors.grayscale.base} />
-            );
+            statusConfig.name = <Icons.Queued />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -357,7 +355,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconColor={theme.colors.grayscale.base} />
+              <Icons.Full />
             </Link>
           </Tooltip>
         ),

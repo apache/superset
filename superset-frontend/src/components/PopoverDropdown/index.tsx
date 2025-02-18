@@ -112,7 +112,6 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
         {selected && renderButton(selected)}
         <Icons.DownOutlined
           iconSize="s"
-          iconColor={theme.colors.grayscale.base}
           css={{
             marginTop: theme.gridUnit * 0.5,
             marginLeft: theme.gridUnit * 0.5,

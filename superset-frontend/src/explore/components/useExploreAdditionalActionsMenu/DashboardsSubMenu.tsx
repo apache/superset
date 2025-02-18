@@ -105,7 +105,6 @@ const DashboardsSubMenu = ({
                 </div>
                 <Icons.Full
                   iconSize="l"
-                  iconColor={theme.colors.grayscale.base}
                   css={css`
                     margin-left: ${theme.gridUnit * 2}px;
                     visibility: ${hoveredItem === dashboard.id

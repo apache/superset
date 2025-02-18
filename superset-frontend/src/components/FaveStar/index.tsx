@@ -68,7 +68,7 @@ const FaveStar = ({
       role="button"
     >
       {isStarred ? (
-        <Icons.StarFilled iconColor={theme.colors.warning.base} />
+        <Icons.StarFilled iconSize="l" iconColor={theme.colors.warning.base} />
       ) : (
         <Icons.StarOutlined
           iconSize="l"

@@ -976,15 +976,13 @@ class DatasourceEditor extends PureComponent {
             {this.state.isEditMode ? (
               <Icons.UnlockOutlined
                 iconSize="xl"
-                iconColor={theme.colors.grayscale.base}
-                css={theme => ({
-                  margin: `auto ${theme.gridUnit}px auto 0`,
-                })}
+                css={theme => css`
+                  margin: auto ${theme.gridUnit}px auto 0;
+                `}
               />
             ) : (
               <Icons.LockOutlined
                 iconSize="xl"
-                iconColor={theme.colors.grayscale.base}
                 css={theme => ({
                   margin: `auto ${theme.gridUnit}px auto 0`,
                 })}

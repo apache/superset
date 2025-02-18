@@ -280,13 +280,11 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <h4 data-test="annotation-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
-              iconColor={theme.colors.grayscale.base}
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="l"
-              iconColor={theme.colors.grayscale.base}
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />
           )}
