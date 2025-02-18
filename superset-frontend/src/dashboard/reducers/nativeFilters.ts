@@ -25,14 +25,26 @@ import {
   SET_HOVERED_NATIVE_FILTER,
   UNSET_HOVERED_NATIVE_FILTER,
   UPDATE_CASCADE_PARENT_IDS,
+  // DODO added start 44211751
+  SET_FILTER_SETS_COMPLETE,
+  CREATE_FILTER_SET_BEGIN,
+  UPDATE_FILTER_SET_BEGIN,
+  DELETE_FILTER_SET_BEGIN,
+  // DODO added stop 44211751
 } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration, NativeFiltersState } from '@superset-ui/core';
+import {
+  FilterConfiguration,
+  FilterSet, // DODO added 44211751
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
+  filterSetsConfig, // DODO added 44211751
   filterConfig,
   state: prevState,
 }: {
+  filterSetsConfig?: FilterSet[]; // DODO added 44211751
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
@@ -48,6 +60,18 @@ export function getInitialState({
   } else {
     state.filters = prevState?.filters ?? {};
   }
+  // DODO added 44211751
+  if (filterSetsConfig) {
+    const filterSets = {};
+    filterSetsConfig.forEach(filtersSet => {
+      const { id } = filtersSet;
+      filterSets[id] = filtersSet;
+    });
+    state.filterSets = filterSets;
+    state.pendingFilterSetId = undefined;
+  } else {
+    state.filterSets = prevState?.filterSets;
+  }
   state.focusedFilterId = undefined;
   return state as NativeFiltersState;
 }
@@ -55,6 +79,7 @@ export function getInitialState({
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
+    filterSets: {}, // DODO added 44211751
   },
   action: AnyFilterAction,
 ) {
@@ -103,6 +128,28 @@ export default function nativeFilterReducer(
           },
         },
       };
+    // DODO added start 44211751
+    case SET_FILTER_SETS_COMPLETE:
+      return getInitialState({
+        filterSetsConfig: action.filterSets,
+        state,
+      });
+    case CREATE_FILTER_SET_BEGIN:
+      return {
+        ...state,
+        pendingFilterSetId: action.id,
+      };
+    case UPDATE_FILTER_SET_BEGIN:
+      return {
+        ...state,
+        pendingFilterSetId: action.id,
+      };
+    case DELETE_FILTER_SET_BEGIN:
+      return {
+        ...state,
+        pendingFilterSetId: action.id,
+      };
+    // DODO added stop 44211751
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;
