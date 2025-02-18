@@ -1126,7 +1126,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 dashboard_id=dashboard.id,
                 dashboard_url=dashboard_url,
                 thumb_size=thumb_size,
-                cache_key = cache_key,
+                cache_key=cache_key,
                 window_size=window_size,
                 force=force,
             )
