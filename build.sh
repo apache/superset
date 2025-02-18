@@ -20,12 +20,12 @@ fi
 
 # Build the image
 echo ">>> Starting build process"
-DOCKER_BUILDKIT=1 docker build \
+docker build \
     -f RemitaDockerfile \
     --platform=linux/amd64 \
     --build-arg NODE_OPTIONS="--max-old-space-size=8192" \
     -t "${IMAGE_TAG}" \
-    --no-cache
+    --no-cache \
     .
 
 
