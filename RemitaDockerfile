@@ -269,7 +269,8 @@ FROM python-common AS dev
 RUN /app/docker/apt-install.sh \
     git \
     pkg-config \
-    default-libmysqlclient-dev \
+    default-mysql-client \
+    default-libmysqlclient-dev
     wget \
     unzip
 
