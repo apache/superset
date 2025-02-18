@@ -347,6 +347,10 @@ class Dashboard(AuditMixinNullable, ImportExportMixin, Model):
         return {"all_tabs": all_tabs, "tab_tree": tab_tree}
 
     def update_thumbnail(self) -> None:
+        logger.info(
+            "******** Triggering thumbnail creation for dashboard %s - Dashboard modification",
+            self.id
+        )           
         cache_dashboard_thumbnail.delay(
             current_user=get_current_user(),
             dashboard_id=self.id,

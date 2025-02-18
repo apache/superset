@@ -938,6 +938,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # If force, request a screenshot from the workers
         current_user = get_current_user()
         if kwargs["rison"].get("force", False):
+            logger.info(
+                "******** Triggering thumbnail creation for dashboard %s - Forced",
+                dashboard.id
+            )
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
@@ -951,6 +955,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         # If the screenshot does not exist, request one from the workers
         if not screenshot:
             self.incr_stats("async", self.thumbnail.__name__)
+            logger.info(
+                "******** Triggering thumbnail creation for dashboard %s - Thumbnail not found",
+                dashboard.id
+            )            
             cache_dashboard_thumbnail.delay(
                 current_user=current_user,
                 dashboard_id=dashboard.id,
