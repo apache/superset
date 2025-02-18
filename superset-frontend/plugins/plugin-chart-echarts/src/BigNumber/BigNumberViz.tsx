@@ -288,7 +288,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
       return (
         <div className={className}>
           <div className="text-container" style={{ height: allTextHeight }}>
-            {/* {this.renderFallbackWarning()} */}
+            {this.renderFallbackWarning()}
             {this.renderKicker(
               Math.ceil(
                 (kickerFontSize || 0) * (1 - PROPORTION.TRENDLINE) * height,
@@ -303,7 +303,7 @@ class BigNumberVis extends React.PureComponent<BigNumberVizProps> {
               ),
             )}
           </div>
-          {/* {this.renderTrendline(chartHeight)} */}
+          {this.renderTrendline(chartHeight)}
         </div>
       );
     }

@@ -72,7 +72,6 @@ export type BigNumberVizProps = {
   width: number;
   height: number;
   bigNumber?: DataRecordValue;
-  bigNumberDisplayValue?: DataRecordValue;
   bigNumberFallback?: TimeSeriesDatum;
   headerFormatter: ValueFormatter | TimeFormatter;
   formatTime?: TimeFormatter;

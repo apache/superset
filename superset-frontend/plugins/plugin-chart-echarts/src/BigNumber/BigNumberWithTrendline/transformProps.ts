@@ -84,7 +84,6 @@ export default function transformProps(
     timeFormat,
     headerFontSize,
     metric = 'value',
-    metrics = [],
     showTimestamp,
     showTrendLine,
     startYAxisAtZero,
@@ -106,7 +105,6 @@ export default function transformProps(
   } = queriesData[0];
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
-  const bigNumberMetric = metrics.length > 0 ? metrics[0]?.label : metricName;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
@@ -117,7 +115,6 @@ export default function transformProps(
   let trendLineData: TimeSeriesDatum[] | undefined;
   let percentChange = 0;
   let bigNumber = data.length === 0 ? null : data[0][metricName];
-  let bigNumberDisplayValue = data.length === 0 ? null : data[0][bigNumberMetric]
   let timestamp = data.length === 0 ? null : data[0][xAxisLabel];
   let bigNumberFallback;
 
@@ -297,6 +294,5 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
-    bigNumberDisplayValue
   };
 }
