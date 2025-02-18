@@ -25,6 +25,7 @@ docker build \
     --platform=linux/amd64 \
     --build-arg NODE_OPTIONS="--max-old-space-size=8192" \
     -t "${IMAGE_TAG}" \
+    --no-cache \
     .
 
 docker push ${IMAGE_TAG}
