@@ -438,8 +438,7 @@ class TestDatabaseApi(SupersetTestCase):
             == "A database port is required when connecting via SSH Tunnel."
         )
 
-    @mock.patch("superset.daos.database.Database._get_sqla_engine")
-    @mock.patch("superset.commands.database.sync_permissions.ping", return_value=True)
+    @patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
@@ -631,7 +630,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @mock.patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch("superset.commands.database.sync_permissions.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
@@ -719,7 +718,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
-    @mock.patch("superset.daos.database.Database._get_sqla_engine")
+    @patch("superset.models.core.Database._get_sqla_engine")
     @mock.patch("superset.commands.database.sync_permissions.ping", return_value=True)
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
