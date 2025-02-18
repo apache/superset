@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
-import { styled } from "@superset-ui/core";
+import React, {useEffect, useRef, useState} from "react";
+import {styled} from "@superset-ui/core";
 
 const ActionWrapper = styled.div`
   position: relative;
   display: inline-block;
+
   &.remita-action-wrapper {
     position: relative;
   }
@@ -28,10 +29,12 @@ const ActionLink = styled.a`
   transition: all 0.3s;
   cursor: pointer;
   text-decoration: none;
+
   &:hover {
     background-color: #f5f5f5;
     text-decoration: none !important;
   }
+
   &:focus,
   &:active,
   &:visited {
@@ -44,10 +47,12 @@ const MenuTrigger = styled.span`
   padding: 4px 8px;
   display: inline-block;
   user-select: none;
+
   &:hover {
     background-color: #f5f5f5;
     border-radius: 4px;
   }
+
   .dot {
     display: block;
     height: 4px;
@@ -62,7 +67,7 @@ const MenuTrigger = styled.span`
  * Helper function to evaluate the visibility condition.
  * Expects a condition object with properties: column, operator, value.
  */
-const evaluateVisibilityCondition = (condition:any, row:any) => {
+const evaluateVisibilityCondition = (condition: any, row: any) => {
   if (!condition || !condition.column || !condition.operator) return true;
 
   const rowValue = row[condition.column[0]];
@@ -107,13 +112,17 @@ export const ActionCell = ({
                              rowId,
                              actions,
                              row,
+                             chartId,
+                             idColumn,
                              onActionClick,
                            }: {
   rowId: string;
   actions: any;
   row: any;
-  onActionClick: (action: string, id: string, value?: string) => void;
-                           }) => {
+  chartId?: any,
+  idColumn?: any,
+  onActionClick: (actionInfo?: any) => void;
+}) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -130,16 +139,18 @@ export const ActionCell = ({
 
   const handleActionClick = (
     e: React.MouseEvent<HTMLAnchorElement>,
-    key: string,
     config: any
   ) => {
     e.preventDefault();
     e.stopPropagation();
     const configExtended = config as any;
-    const value = configExtended.valueColumn ? String(row[configExtended.valueColumn]) : undefined;
-    config.value=value;
-    config.rowId=rowId;
-    onActionClick(configExtended.action || key, rowId, config);
+    const value =  String(row[rowId]);
+    onActionClick({
+      action: 'table-action',
+      chartId: chartId,
+      key: configExtended?.key,
+      value: value
+    });
     setMenuOpen(false);
   };
 
@@ -152,26 +163,26 @@ export const ActionCell = ({
     <td className="dt-is-filter right-border-only remita-action-col" width="70px">
       <ActionWrapper ref={wrapperRef} className="remita-action-wrapper">
         <MenuTrigger className="remita-menu-trigger" onClick={toggleMenu}>
-          <div className="dot" />
-          <div className="dot" />
-          <div className="dot" />
+          <div className="dot"/>
+          <div className="dot"/>
+          <div className="dot"/>
         </MenuTrigger>
         <MenuContainer className="remita-menu" hidden={!menuOpen}>
           {actions &&
             Array.from(actions)
-              .filter((config:any) => {
+              .filter((config: any) => {
                 // If there's no visibilityCondition, show the action.
                 if (!config.visibilityCondition) return true;
                 // Otherwise, evaluate the condition against the row.
                 return evaluateVisibilityCondition(config.visibilityCondition, row);
               })
-              .map((config:any, index) => (
+              .map((config: any, index) => (
                 <ActionLink
                   key={config?.key || index}
                   href="#"
                   className={`remita-link remita-action-${config?.key || index}`}
                   data-action={config?.action || config?.key || index}
-                  onClick={(e) => handleActionClick(e, config?.key || index, config)}
+                  onClick={(e) => handleActionClick(e, config)}
                 >
                   {config?.label}
                 </ActionLink>

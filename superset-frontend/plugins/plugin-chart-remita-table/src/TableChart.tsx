@@ -268,8 +268,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     show_split_buttons_in_slice_header = false,
     retain_selection_accross_navigation = false,
   } = props;
-
   const sliceId = props?.slice_id;
+  const chartId = props?.slice_id;
   const resetOnMount =!props?.retain_selection_accross_navigation;
 
 
@@ -441,24 +441,26 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   );
 
   const handleTableAction = useCallback(
-    (action: any, id: string, value?: string) => {
+    (action: any) => {
       sendWindowPostMessge({
-        action: 'remita-action',
-        actionType: action,
-        id,
-        value,
+        action: action.action,
+        chartId: action.chartId,
+        actionType: action?.key,
+        values: action.value
       });
     },
     [],
   );
 
   const handleBulkAction = useCallback(
-    (action: any, selectedIds?: string[]) => {
+    (action: any) => {
       sendWindowPostMessge({
-        action: 'remita-action',
-        actionType: action,
-        selectedIds,
+        action: action.action,
+        chartId: action.chartId,
+        actionType: action?.key,
+        values: action.value
       });
+
     },
     [],
   );
@@ -1375,14 +1377,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           </th>
         ),
         Cell: ({row}: { row: Row<D> }) => {
-          const rowId = String(
-            row.original[tableActionsConfig.idColumn as keyof D] ?? row.index,
-          );
           return (
             <ActionCell
-              rowId={rowId}
+              rowId={tableActionsConfig.idColumn}
               actions={tableActionsConfig.actions}
               row={row.original}
+              chartId={chartId}
+              idColumn ={table_actions_id_column}
               onActionClick={handleTableAction}
             />
           );

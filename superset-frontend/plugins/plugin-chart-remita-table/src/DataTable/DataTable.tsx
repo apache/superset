@@ -133,7 +133,6 @@ export default typedMemo(function DataTable<D extends object>({
   const pageSizeRef = useRef([initialPageSize, resultsSize]);
   const hasPagination = initialPageSize > 0 && resultsSize > 0; // pageSize == 0 means no pagination
   const hasGlobalControl = hasPagination || !!searchInput || renderTimeComparisonDropdown;
-
   const initialState = {
     ...initialState_,
     // zero length means all pages, the `usePagination` plugin does not
@@ -234,7 +233,7 @@ export default typedMemo(function DataTable<D extends object>({
   };
 
   const renderBulkActions = () => {
-    if (!enableBulkActions || !bulkActions || !selectedRows ) return null;
+    if (!enableBulkActions || !bulkActions || !selectedRows) return null;
     return (
       <div className="dt-bulk-actions">
         <BulkActions

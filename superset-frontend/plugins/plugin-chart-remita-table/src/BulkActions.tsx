@@ -64,6 +64,7 @@ export const BulkActions: React.FC<BulkActionProps> = ({
   const splitInSliceHeader = showSplitInSliceHeader;
 
   const dropdownActions = splitActions?.filter(action => {
+    if (action.showInSliceHeader) return false;
     if (action.visibilityCondition === 'all') return true;
     if (action.visibilityCondition === 'selected') return true;
     if (action.visibilityCondition === 'unselected') return !hasSelection;

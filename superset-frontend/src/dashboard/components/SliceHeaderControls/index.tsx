@@ -187,9 +187,10 @@ const SliceHeaderControls = (
 
   function onBulkActionClick(key: any, selectedIds: unknown[]) {
     sendWindowPostMessge({
-      action: 'remita-action',
+      action: 'bulk-action',
       actionType: key,
-      selectedIds,
+      chartId: slice.slice_id,
+      value:selectedIds,
     });
 
   }
