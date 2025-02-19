@@ -171,6 +171,10 @@ class DatabaseDAO(BaseDAO[Database]):
     
     @classmethod
     def is_odps_partitioned_table(cls, database: Database, table_name: str):
+        """
+        This function is used to determine and retrieve partition information of the odsp table.
+        The return values are whether the partition table is partitioned and the names of all partition fields.
+        """
         if not database:
             raise ValueError("Database not found")
         uri = database.sqlalchemy_uri
