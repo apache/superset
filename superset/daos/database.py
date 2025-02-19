@@ -30,6 +30,9 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
 from superset.utils.core import DatasourceType
 from superset.utils.ssh_tunnel import unmask_password_info
+import re
+from odps import ODPS
+from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +168,30 @@ class DatabaseDAO(BaseDAO[Database]):
         )
 
         return ssh_tunnel
-
+    
+    @classmethod
+    def is_odps_partitioned_table(cls, database: Database, table_name: str):
+        if not database:
+            raise ValueError("Database not found")
+        uri = database.sqlalchemy_uri
+        passwd = database.password
+        pattern = re.compile(
+            r'odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?endpoint=(?P<endpoint>[^&]+))'
+        )
+        match = pattern.match(unquote(uri))
+        if match:
+            access_id = match.group('username')
+            project = match.group('project')
+            endpoint = match.group('endpoint')
+        access_key = passwd
+        odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+        table = odps_client.get_table(table_name)
+        if table.exist_partition:
+            partition_spec = table.table_schema.partitions
+            partition_fields = [partition.name for partition in partition_spec]
+            return True, partition_fields
+        else:
+            return False, []
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod
