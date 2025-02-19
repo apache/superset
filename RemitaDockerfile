@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,7 +12,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 ######################################################################
 # Node stage to deal with static asset construction
@@ -69,30 +67,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node-ci
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
-ARG DEV_MODE="false"           # Skip frontend build in dev mode
+ARG DEV_MODE="false"
 ENV DEV_MODE=${DEV_MODE}
 
 COPY docker/ /app/docker/
-# Arguments for build configuration
 ARG NPM_BUILD_CMD="build"
 
-# Install system dependencies required for node-gyp
 RUN /app/docker/apt-install.sh build-essential python3 zstd
 
-# Define environment variables for frontend build
 ENV BUILD_CMD=${NPM_BUILD_CMD} \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-# Run the frontend memory monitoring script
 RUN /app/docker/frontend-mem-nag.sh
 
 WORKDIR /app/superset-frontend
 
-# Create necessary folders to avoid errors in subsequent steps
 RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
 
-# Mount package files and install dependencies if not in dev mode
 RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
     --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
     --mount=type=cache,target=/root/.cache \
@@ -103,7 +95,6 @@ RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.j
         echo "Skipping 'npm ci' in dev mode"; \
     fi
 
-# Runs the webpack build process
 COPY superset-frontend /app/superset-frontend
 
 ######################################################################
@@ -111,7 +102,6 @@ COPY superset-frontend /app/superset-frontend
 ######################################################################
 FROM superset-node-ci AS superset-node
 
-# Build the frontend if not in dev mode
 RUN --mount=type=cache,target=/root/.npm \
     if [ "$DEV_MODE" = "false" ]; then \
         echo "Running 'npm run ${BUILD_CMD}'"; \
@@ -120,10 +110,8 @@ RUN --mount=type=cache,target=/root/.npm \
         echo "Skipping 'npm run ${BUILD_CMD}' in dev mode"; \
     fi;
 
-# Copy translation files
 COPY superset/translations /app/superset/translations
 
-# Build the frontend if not in dev mode
 RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
         npm run build-translation; \
     fi; \
@@ -143,12 +131,10 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
     && chmod -R 1777 $SUPERSET_HOME \
     && chown -R superset:superset $SUPERSET_HOME
 
-# Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
 RUN pip install --no-cache-dir --upgrade uv
 
-# Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
 ENV PATH="/app/.venv/bin:${PATH}"
 
@@ -160,7 +146,6 @@ FROM python-base AS python-translation-compiler
 ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 
-# Install Python dependencies using docker/pip-install.sh
 COPY requirements/translations.txt requirements/
 RUN --mount=type=cache,target=/root/.cache/uv \
     . /app/.venv/bin/activate && /app/docker/pip-install.sh --requires-build-essential -r requirements/translations.txt
@@ -177,13 +162,20 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 ######################################################################
 FROM python-base AS python-common
 
+# Install build dependencies first
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+    build-essential \
     pkg-config \
     default-libmysqlclient-dev \
     libmariadb-dev \
     mariadb-client \
-    mariadb-server && \
+    mariadb-server \
+    git \
+    wget \
+    unzip \
+    libaio1 \
+    libaio-dev && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -194,11 +186,9 @@ ENV SUPERSET_HOME="/app/superset_home" \
     PYTHONPATH="/app/pythonpath" \
     SUPERSET_PORT="8088"
 
-# Copy the entrypoints, make them executable in userspace
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
 
 WORKDIR /app
-# Set up necessary directories and user
 RUN mkdir -p \
       ${PYTHONPATH} \
       superset/static \
@@ -208,7 +198,6 @@ RUN mkdir -p \
       requirements \
     && touch superset/static/version_info.json
 
-# Install Playwright and optionally setup headless browsers
 ARG INCLUDE_CHROMIUM="true"
 ARG INCLUDE_FIREFOX="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
@@ -221,38 +210,11 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
         echo "Skipping browser installation"; \
     fi
 
-# Copy required files for Python build
 COPY pyproject.toml setup.py MANIFEST.in README.md ./
 COPY superset-frontend/package.json superset-frontend/
 COPY scripts/check-env.py scripts/
 
-# keeping for backward compatibility
 COPY --chmod=755 ./docker/entrypoints/run-server.sh /usr/bin/
-
-# Some debian libs
-RUN /app/docker/apt-install.sh \
-      curl \
-      libsasl2-dev \
-      libsasl2-modules-gssapi-mit \
-      libpq-dev \
-      libecpg-dev \
-      libldap2-dev
-
-# Debian libs needed for dev
-RUN /app/docker/apt-install.sh \
-    git \
-    pkg-config \
-    default-mysql-client \
-    default-libmysqlclient-dev \
-    libmariadb-dev \
-    mariadb-client \
-    mariadb-server \
-    libmariadb3 \
-    libmariadb-dev \
-    wget \
-    unzip \
-    libaio1 \
-    libaio-dev
 
 # Copy Oracle client and browser dependencies
 COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
@@ -260,7 +222,7 @@ COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
 COPY --from=browser-deps /opt/firefox /opt/firefox
 COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
 
-# Set up Oracle environment variables
+# Set Oracle environment variables
 ENV ORACLE_HOME=/usr/share/oracle/instantclient \
     LD_LIBRARY_PATH=/usr/share/oracle/instantclient:/usr/lib \
     PATH="/usr/share/oracle/instantclient:/usr/local/bin:${PATH}" \
@@ -271,15 +233,10 @@ ENV ORACLE_HOME=/usr/share/oracle/instantclient \
 RUN echo "/usr/share/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf \
     && ldconfig
 
-# Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
-
-# TODO, when the next version comes out, use --exclude superset/translations
 COPY superset superset
-# TODO in the meantime, remove the .po files
 RUN rm superset/translations/*/*/*.po
 
-# Merging translations from backend and frontend stages
 COPY --from=superset-node /app/superset/translations superset/translations
 COPY --from=python-translation-compiler /app/translations_mo superset/translations
 
@@ -291,9 +248,14 @@ EXPOSE ${SUPERSET_PORT}
 # Final lean image...
 ######################################################################
 FROM python-common AS lean
-# Debian libs needed for dev
-RUN /app/docker/apt-install.sh \
-    git \
+
+# Install all required build dependencies first
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    make \
     pkg-config \
     default-mysql-client \
     default-libmysqlclient-dev \
@@ -305,32 +267,20 @@ RUN /app/docker/apt-install.sh \
     wget \
     unzip \
     libaio1 \
-    libaio-dev
-
-# Copy Oracle client and browser dependencies
-COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
-COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
-COPY --from=browser-deps /opt/firefox /opt/firefox
-COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
-
-# Set up Oracle environment variables
-ENV ORACLE_HOME=/usr/share/oracle/instantclient \
-    LD_LIBRARY_PATH=/usr/share/oracle/instantclient:/usr/lib \
-    PATH="/usr/share/oracle/instantclient:/usr/local/bin:${PATH}" \
-    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-
-# Ensure Oracle Instant Client dependencies are linked
-RUN echo "/usr/share/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf \
-    && ldconfig
+    libaio-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
-# Install the superset package
-RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+
+# Ensure Oracle environment is properly set before installing cx-oracle
+RUN ldconfig && \
+    --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
+
 RUN python -m compileall /app/superset
 
 USER superset
@@ -340,7 +290,12 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
-RUN /app/docker/apt-install.sh \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    gcc \
+    g++ \
+    make \
     git \
     pkg-config \
     default-mysql-client \
@@ -351,31 +306,18 @@ RUN /app/docker/apt-install.sh \
     libmariadb3 \
     libmariadb-dev \
     wget \
-    unzip
+    unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# Copy Oracle client and browser dependencies
-COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
-COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
-COPY --from=browser-deps /opt/firefox /opt/firefox
-COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
-
-# Set up Oracle environment variables
-ENV ORACLE_HOME=/usr/share/oracle/instantclient \
-    LD_LIBRARY_PATH=/usr/share/oracle/instantclient:/usr/lib \
-    PATH="/usr/share/oracle/instantclient:/usr/local/bin:${PATH}" \
-    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
-    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-
-# Copy development requirements and install them
 COPY requirements/*.txt requirements/
-# Install Python dependencies using docker/pip-install.sh
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/development.txt
-# Install the superset package
-RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install .
 
-RUN uv pip install .[postgres]
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+    uv pip install . && \
+    uv pip install .[postgres]
+
 RUN python -m compileall /app/superset
 
 USER superset
