@@ -277,8 +277,10 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
 
 # Ensure Oracle environment is properly set before installing cx-oracle
-RUN ldconfig && \
-    --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
+RUN ldconfig
+
+# Install the superset package
+RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
 RUN python -m compileall /app/superset
