@@ -92,6 +92,14 @@ export type DashboardState = {
   activeTabs?: Array<string>;
   dataMask?: Object;
   anchor?: string;
+  nativeFilters?: Array<ExtraNativeFilter>;
+};
+
+export type ExtraNativeFilter = {
+  columnName?: string;
+  columnLabel?: string;
+  filterValues?: Array<any> | [];
+  nativeFilterId?: number;
 };
 
 export type Extra = {

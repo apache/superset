@@ -16,6 +16,9 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 
+from typing import Optional
+
+import prison
 from cron_descriptor import get_description
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
@@ -182,6 +185,39 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     @renders("crontab")
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
+
+    def get_native_filters_params(self) -> Optional[str]:
+        params = {}
+        dashboard = self.extra.get("dashboard")
+        if dashboard and dashboard.get("nativeFilters"):
+            for filter in dashboard.get("nativeFilters", []):
+                params = {
+                    **params,
+                    **self._generate_native_filter(
+                        filter.get("nativeFilterId"),
+                        filter.get("columnName"),
+                        filter.get("filterValues"),
+                    ),
+                }
+        return prison.dumps(params)
+
+    def _generate_native_filter(
+        self, native_filter_id: str, column_name: str, values: list[str]
+    ) -> dict:
+        return {
+            native_filter_id: {
+                "id": native_filter_id,
+                "extraFormData": {
+                    "filters": [{"col": column_name, "op": "IN", "val": values}]
+                },
+                "filterState": {
+                    "label": column_name,
+                    "validateStatus": False,
+                    "value": values,
+                },
+                "ownState": {},
+            }
+        }
 
 
 class ReportRecipients(Model, AuditMixinNullable):
