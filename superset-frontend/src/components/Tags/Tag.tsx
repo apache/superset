@@ -43,11 +43,12 @@ const Tag = ({
   editable = false,
   onClick = undefined,
   toolTipTitle = name,
+  children,
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
   const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
 
-  const handleClose = () => (index ? onDelete?.(index) : null);
+  const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
 
   const whatRole = onClick ? (!id ? 'button' : 'link') : undefined;
 
@@ -59,7 +60,6 @@ const Tag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            color="blue"
             closeIcon={editable ? CustomCloseIcon : undefined}
           >
             {tagDisplay}
@@ -74,10 +74,10 @@ const Tag = ({
                 target="_blank"
                 rel="noreferrer"
               >
-                {tagDisplay}
+                {children || tagDisplay}
               </a>
             ) : (
-              tagDisplay
+              children || tagDisplay
             )}
           </StyledTag>
         </Tooltip>
