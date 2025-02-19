@@ -63,7 +63,7 @@ from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import DisallowedSQLFunction, OAuth2Error, OAuth2RedirectError
-from superset.sql.parse import BaseSQLStatement, SQLScript, Table
+from superset.sql.parse import BaseSQLStatement, Partition, SQLScript, Table
 from superset.sql_parse import ParsedQuery
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -1689,7 +1689,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
-
+        if database.backend == 'odps':
+            if partition.ispartitioned_table and partition.partition_column is not None and len(partition.partition_column) > 0:
+                partition_str = partition.partition_column[0]
+                partition_str_where = f"CAST({partition_str} AS STRING) LIKE '%'"
+                qry = qry.where(text(partition_str_where))
         if limit and cls.allow_limit_clause:
             qry = qry.limit(limit)
         if latest_partition:
