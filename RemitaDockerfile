@@ -238,6 +238,39 @@ RUN /app/docker/apt-install.sh \
       libecpg-dev \
       libldap2-dev
 
+# Debian libs needed for dev
+RUN /app/docker/apt-install.sh \
+    git \
+    pkg-config \
+    default-mysql-client \
+    default-libmysqlclient-dev \
+    libmariadb-dev \
+    mariadb-client \
+    mariadb-server \
+    libmariadb3 \
+    libmariadb-dev \
+    wget \
+    unzip \
+    libaio1 \
+    libaio-dev
+
+# Copy Oracle client and browser dependencies
+COPY --from=oracle-client /oracle/instantclient* /usr/share/oracle/instantclient
+COPY --from=browser-deps /usr/local/bin/geckodriver /usr/local/bin/
+COPY --from=browser-deps /opt/firefox /opt/firefox
+COPY --from=browser-deps /usr/local/bin/firefox /usr/local/bin/
+
+# Set up Oracle environment variables
+ENV ORACLE_HOME=/usr/share/oracle/instantclient \
+    LD_LIBRARY_PATH=/usr/share/oracle/instantclient:/usr/lib \
+    PATH="/usr/share/oracle/instantclient:/usr/local/bin:${PATH}" \
+    REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt \
+    SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+# Ensure Oracle Instant Client dependencies are linked
+RUN echo "/usr/share/oracle/instantclient" > /etc/ld.so.conf.d/oracle.conf \
+    && ldconfig
+
 # Copy compiled things from previous stages
 COPY --from=superset-node /app/superset/static/assets superset/static/assets
 
