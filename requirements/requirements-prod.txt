@@ -8,3 +8,4 @@ pyathena[pandas]
 Authlib
 sqlglot
 curlify
+flask_cors
