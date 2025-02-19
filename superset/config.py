@@ -1915,6 +1915,7 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+JWT_VERIFY_SUB = False
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
