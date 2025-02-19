@@ -87,6 +87,25 @@ void (async () => {
 })();
 
 /**
+ *
+ * @param {string} fullPath
+ * @param {string[]} excludedDirs
+ */
+function shouldExcludeDir(fullPath, excludedDirs) {
+  return excludedDirs.some((excludedDir) => {
+    const normalizedExcludedDir = normalize(excludedDir);
+    const normalizedPath = normalize(fullPath);
+    return (
+      normalizedExcludedDir === normalizedPath ||
+      normalizedPath
+        .split(sep)
+        .filter((segment) => segment)
+        .includes(normalizedExcludedDir)
+    );
+  });
+}
+
+/**
  * @param {string} dir
  * @param {RegExp} regex
  * @param {string[]} excludedDirs
@@ -102,11 +121,8 @@ async function getFilesRecursively(dir, regex, excludedDirs) {
 
     for (const file of files) {
       const fullPath = join(dir, file.name);
-      const shouldExclude = excludedDirs.some((excludedDir) =>
-        normalize(fullPath).includes(normalize(excludedDir))
-      );
 
-      if (file.isDirectory() && !shouldExclude) {
+      if (file.isDirectory() && !shouldExcludeDir(fullPath, excludedDirs)) {
         recursivePromises.push(
           getFilesRecursively(fullPath, regex, excludedDirs)
         );
