@@ -16,10 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { TableTab } from 'src/views/CRUD/types';
-import userEvent from '@testing-library/user-event';
 import ActivityTable from './ActivityTable';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';

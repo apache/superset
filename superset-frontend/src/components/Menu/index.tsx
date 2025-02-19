@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { addAlpha, styled } from '@superset-ui/core';
+import { styled } from '@superset-ui/core';
 import { ReactElement } from 'react';
 import { Menu as AntdMenu } from 'antd-v5';
 import { MenuProps as AntdMenuProps } from 'antd-v5/es/menu';
@@ -73,23 +73,11 @@ const StyledMenuItem = styled(AntdMenu.Item)`
   }
 `;
 
-// TODO: @geido - Move this to theme after fully migrating dropdown to Antd5
 const StyledMenu = styled(AntdMenu)`
-  ${({ theme }) => `
-    &.antd5-menu-horizontal {
-      background-color: inherit;
-      border-bottom: 1px solid transparent;
-    }
-    &.antd5-menu-vertical,
-    &.ant-dropdown-menu {
-      box-shadow:
-        0 3px 6px -4px ${addAlpha(theme.colors.grayscale.dark2, 0.12)},
-        0 6px 16px 0
-      ${addAlpha(theme.colors.grayscale.dark2, 0.08)},
-        0 9px 28px 8px
-      ${addAlpha(theme.colors.grayscale.dark2, 0.05)};
-    }
-    `}
+  &.antd5-menu-horizontal {
+    background-color: inherit;
+    border-bottom: 1px solid transparent;
+  }
 `;
 
 const StyledNav = styled(AntdMenu)`
@@ -144,11 +132,6 @@ const StyledSubMenu = styled(AntdMenu.SubMenu)`
       transform: translateX(-50%);
       transition: all ${({ theme }) => theme.transitionTiming}s;
     }
-  }
-
-  .ant-dropdown-menu-submenu-arrow:before,
-  .ant-dropdown-menu-submenu-arrow:after {
-    content: none !important;
   }
 `;
 

@@ -24,13 +24,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Bump version and publish package(s)
-
     runs-on: ubuntu-24.04
-
-    strategy:
-      matrix:
-        node-version: [20]
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,11 +40,11 @@ jobs:
           git fetch --prune --unshallow
           git tag -d `git tag | grep -E '^trigger-'`
 
-      - name: Use Node.js ${{ matrix.node-version }}
+      - name: Install Node.js
         if: env.HAS_TAGS
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version-file: './superset-frontend/.nvmrc'
 
       - name: Cache npm
         if: env.HAS_TAGS
