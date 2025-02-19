@@ -121,7 +121,7 @@ class SecurityRestApi(BaseSupersetApi):
     def guest_token(self) -> Response:
         """Get a guest token that can be used for auth in embedded Superset.
         ---
-        post:C
+        post:
           summary: Get a guest token
           requestBody:
             description: Parameters for the guest token
