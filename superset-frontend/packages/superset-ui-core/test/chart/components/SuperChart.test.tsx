@@ -185,7 +185,6 @@ describe('SuperChart', () => {
     });
   });
 
-  // Update the props tests to use className instead of data-testid
   // Helper function to find elements by class name
   const findByClassName = (container: HTMLElement, className: string) =>
     container.querySelector(`.${className}`);
