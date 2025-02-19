@@ -31,7 +31,6 @@ These features are considered **unfinished** and should only be used on developm
 - ENABLE_ADVANCED_DATA_TYPES
 - PRESTO_EXPAND_DATA
 - SHARE_QUERIES_VIA_KV_STORE
-- TAGGING_SYSTEM
 - CHART_PLUGINS_EXPERIMENTAL
 
 ## In Testing
@@ -65,6 +64,7 @@ These features flags are **safe for production**. They have been tested and will
 ### Flags on the path to feature launch and flag deprecation/removal
 
 - DASHBOARD_VIRTUALIZATION
+- TAGGING_SYSTEM
 
 ### Flags retained for runtime configuration
 
