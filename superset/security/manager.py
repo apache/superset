@@ -2328,7 +2328,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 or is_owner
                 or (dashboard_accessible or self.can_access_dashboard(dashboard_))
             ):
-                raise SupersetSecurityException(self.get_datasource_access_error_object(datasource))
+                raise SupersetSecurityException(
+                    self.get_datasource_access_error_object(datasource)
+                )
 
         if dashboard:
             if self.is_guest_user():
