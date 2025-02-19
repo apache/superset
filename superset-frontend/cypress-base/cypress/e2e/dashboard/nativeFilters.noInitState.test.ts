@@ -1,4 +1,5 @@
 /**
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -182,7 +183,7 @@ describe('Native filters', () => {
       validateFilterContentOnDashboard(testItems.topTenChart.filterColumnYear);
     });
 
-    it.only('User can create a numerical range filter', () => {
+    it('User can create a numerical range filter', () => {
       visitDashboard();
       enterNativeFilterEditModal(false);
       fillNativeFilterForm(
