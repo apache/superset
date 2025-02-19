@@ -1662,6 +1662,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         indent: bool = True,
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
+        partition: Partition | None = None,
     ) -> str:
         """
         Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
