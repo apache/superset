@@ -826,11 +826,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       })
         .then(response => {
           const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
-          tabTree.push({
-            title: 'All Tabs',
-            // select tree only works with string value
-            value: JSON.stringify(Object.keys(allTabs)),
-          });
+          const allTabsWithOrder = tabTree.map(
+            (tab: { value: string }) => tab.value,
+          );
+
+          // Only show all tabs when there are more than one tab
+          if (allTabsWithOrder.length > 1) {
+            tabTree.push({
+              title: 'All Tabs',
+              // select tree only works with string value
+              value: JSON.stringify(allTabsWithOrder),
+            });
+          }
+
           setTabOptions(tabTree);
 
           const anchor = currentAlert?.extra?.dashboard?.anchor;
