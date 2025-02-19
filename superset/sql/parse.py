@@ -126,6 +126,11 @@ class Table:
 
 @dataclass(eq=True, frozen=True)
 class Partition:
+    """
+    Partition object, with two attribute keys: ispartitioned_table and partition_comlumn, used to provide partition information
+    Here is an example of an object:
+    {"ispartitioned_table":true,"partition_column":["month","day"]}
+    """
     ispartitioned_table: bool
     partition_column: list | None = None
     def __str__(self) -> str:
