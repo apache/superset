@@ -133,6 +133,7 @@ from superset.views.base_api import (
 )
 from superset.views.error_handling import handle_api_exception, json_error_response
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.sql.parse import Partition
 
 logger = logging.getLogger(__name__)
 
@@ -1002,15 +1003,16 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = QualifiedTableSchema().load(request.args)
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
-
-        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        table_name = str(parameters["name"])
+        ispartitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(database,table_name)
+        table = Table(table_name, parameters["schema"], parameters["catalog"])
         try:
             security_manager.raise_for_access(database=database, table=table)
         except SupersetSecurityException as ex:
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
-
-        payload = database.db_engine_spec.get_table_metadata(database, table)
+        partition = Partition(ispartitioned_table, partition_fields)
+        payload = database.db_engine_spec.get_table_metadata(database, table, partition)
 
         return self.response(200, **payload)
 
