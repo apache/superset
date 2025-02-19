@@ -62,7 +62,7 @@ const Tag = ({
             onClose={handleClose}
             closeIcon={editable ? CustomCloseIcon : undefined}
           >
-            {tagDisplay}
+            {children || tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
