@@ -1,20 +1,31 @@
-// DODO was here
-import {
-  FilterConfiguration,
-  Filters,
-  FilterSet, // DODO added 44211751
-  makeApi,
-} from '@superset-ui/core';
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { FilterConfiguration, Filters, makeApi } from '@superset-ui/core';
 import { Dispatch } from 'redux';
 import { cloneDeep } from 'lodash';
 import {
   SET_DATA_MASK_FOR_FILTER_CONFIG_FAIL,
   setDataMaskForFilterConfigComplete,
 } from 'src/dataMask/actions';
-import { FilterSetFullData } from 'src/DodoExtensions/FilterSets/types'; // DODO added 44211751
 import { HYDRATE_DASHBOARD } from './hydrate';
 import { dashboardInfoChanged } from './dashboardInfo';
-import { DashboardInfo, RootState } from '../types';
+import { DashboardInfo } from '../types';
 
 export const SET_FILTER_CONFIG_BEGIN = 'SET_FILTER_CONFIG_BEGIN';
 export interface SetFilterConfigBegin {
@@ -209,237 +220,6 @@ export function updateCascadeParentIds(
   };
 }
 
-// DODO added start 44211751
-export const SET_FILTER_SETS_BEGIN = 'SET_FILTER_SETS_BEGIN';
-export interface SetFilterSetsBegin {
-  type: typeof SET_FILTER_SETS_BEGIN;
-}
-export const SET_FILTER_SETS_COMPLETE = 'SET_FILTER_SETS_COMPLETE';
-export interface SetFilterSetsComplete {
-  type: typeof SET_FILTER_SETS_COMPLETE;
-  filterSets: FilterSet[];
-}
-export const SET_FILTER_SETS_FAIL = 'SET_FILTER_SETS_FAIL';
-export interface SetFilterSetsFail {
-  type: typeof SET_FILTER_SETS_FAIL;
-}
-
-export const CREATE_FILTER_SET_BEGIN = 'CREATE_FILTER_SET_BEGIN';
-export interface CreateFilterSetBegin {
-  type: typeof CREATE_FILTER_SET_BEGIN;
-  id: number;
-}
-export const CREATE_FILTER_SET_COMPLETE = 'CREATE_FILTER_SET_COMPLETE';
-export interface CreateFilterSetComplete {
-  type: typeof CREATE_FILTER_SET_COMPLETE;
-  filterSet: FilterSet;
-}
-export const CREATE_FILTER_SET_FAIL = 'CREATE_FILTER_SET_FAIL';
-export interface CreateFilterSetFail {
-  type: typeof CREATE_FILTER_SET_FAIL;
-}
-
-export const DELETE_FILTER_SET_BEGIN = 'DELETE_FILTER_SET_BEGIN';
-export interface DeleteFilterSetBegin {
-  type: typeof DELETE_FILTER_SET_BEGIN;
-  id: number;
-}
-export const DELETE_FILTER_SET_COMPLETE = 'DELETE_FILTER_SET_COMPLETE';
-export interface DeleteFilterSetComplete {
-  type: typeof DELETE_FILTER_SET_COMPLETE;
-  filterSet: FilterSet;
-}
-export const DELETE_FILTER_SET_FAIL = 'DELETE_FILTER_SET_FAIL';
-export interface DeleteFilterSetFail {
-  type: typeof DELETE_FILTER_SET_FAIL;
-}
-
-export const UPDATE_FILTER_SET_BEGIN = 'UPDATE_FILTER_SET_BEGIN';
-export interface UpdateFilterSetBegin {
-  type: typeof UPDATE_FILTER_SET_BEGIN;
-  id: number;
-}
-export const UPDATE_FILTER_SET_COMPLETE = 'UPDATE_FILTER_SET_COMPLETE';
-export interface UpdateFilterSetComplete {
-  type: typeof UPDATE_FILTER_SET_COMPLETE;
-  filterSet: FilterSet;
-}
-export const UPDATE_FILTER_SET_FAIL = 'UPDATE_FILTER_SET_FAIL';
-export interface UpdateFilterSetFail {
-  type: typeof UPDATE_FILTER_SET_FAIL;
-}
-
-export const getFilterSets =
-  (dashboardId: number) => async (dispatch: Dispatch) => {
-    const fetchFilterSets = async () =>
-      // if (process.env.type === undefined) {
-      makeApi<
-        null,
-        {
-          count: number;
-          ids: number[];
-          result: FilterSetFullData[];
-        }
-      >({
-        method: 'GET',
-        endpoint: `/api/v1/dashboard/${dashboardId}/filtersets`,
-      })(null);
-    // }
-    // return API_HANDLER.SupersetClient({
-    //   method: 'get',
-    //   url: `/api/v1/dashboard/${dashboardId}/filtersets`,
-    // });
-    dispatch({
-      type: SET_FILTER_SETS_BEGIN,
-    });
-
-    const response: {
-      count: number;
-      ids: number[];
-      result: FilterSetFullData[];
-    } = await fetchFilterSets();
-
-    dispatch({
-      type: SET_FILTER_SETS_COMPLETE,
-      filterSets: response.ids.map((id, i) => ({
-        ...response.result[i].params,
-        id,
-        name: response.result[i].name,
-        isPrimary: response.result[i].is_primary,
-      })),
-    });
-  };
-
-export const createFilterSet =
-  (filterSet: Omit<FilterSet, 'id'>) =>
-  async (dispatch: Function, getState: () => RootState) => {
-    const dashboardId = getState().dashboardInfo.id;
-    const postFilterSets = (
-      data: Partial<FilterSetFullData & { json_metadata: any }>,
-    ) =>
-      // if (process.env.type === undefined) {
-      makeApi<
-        Partial<FilterSetFullData & { json_metadata: any }>,
-        {
-          count: number;
-          ids: number[];
-          result: FilterSetFullData[];
-        }
-      >({
-        method: 'POST',
-        endpoint: `/api/v1/dashboard/${dashboardId}/filtersets`,
-      })(data);
-    // }
-    // return API_HANDLER.SupersetClient({
-    //   method: 'post',
-    //   url: `/api/v1/dashboard/${dashboardId}/filtersets`,
-    //   body: data,
-    // });
-    dispatch({
-      type: CREATE_FILTER_SET_BEGIN,
-      id: -1, // -1 means the new filter set is being created
-    });
-
-    const serverFilterSet: Omit<FilterSet, 'id' | 'name' | 'isPrimary'> & {
-      name?: string;
-      isPrimary?: boolean;
-    } = {
-      ...filterSet,
-    };
-
-    delete serverFilterSet.name;
-    delete serverFilterSet.isPrimary;
-
-    await postFilterSets({
-      name: filterSet.name,
-      owner_type: 'Dashboard',
-      owner_id: dashboardId,
-      is_primary: filterSet.isPrimary,
-      json_metadata: JSON.stringify(serverFilterSet),
-    });
-
-    dispatch({
-      type: CREATE_FILTER_SET_COMPLETE,
-    });
-    dispatch(getFilterSets(dashboardId));
-  };
-
-export const updateFilterSet =
-  (filterSet: FilterSet) =>
-  async (dispatch: Function, getState: () => RootState) => {
-    const dashboardId = getState().dashboardInfo.id;
-    const postFilterSets = (
-      data: Partial<FilterSetFullData & { json_metadata: any }>,
-    ) =>
-      // if (process.env.type === undefined) {
-      makeApi<Partial<FilterSetFullData & { json_metadata: any }>, {}>({
-        method: 'PUT',
-        endpoint: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSet.id}`,
-      })(data);
-    // }
-    // return API_HANDLER.SupersetClient({
-    //   method: 'put',
-    //   url: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSet.id}`,
-    //   body: data,
-    // });
-    dispatch({
-      type: UPDATE_FILTER_SET_BEGIN,
-      id: filterSet.id,
-    });
-
-    const serverFilterSet: Omit<FilterSet, 'id' | 'name' | 'isPrimary'> & {
-      name?: string;
-      id?: number;
-      isPrimary?: boolean;
-    } = {
-      ...filterSet,
-    };
-
-    delete serverFilterSet.id;
-    delete serverFilterSet.name;
-    delete serverFilterSet.isPrimary;
-
-    await postFilterSets({
-      name: filterSet.name,
-      is_primary: filterSet.isPrimary,
-      json_metadata: JSON.stringify(serverFilterSet),
-    });
-
-    dispatch({
-      type: UPDATE_FILTER_SET_COMPLETE,
-    });
-    dispatch(getFilterSets(dashboardId));
-  };
-
-export const deleteFilterSet =
-  (filterSetId: number) =>
-  async (dispatch: Function, getState: () => RootState) => {
-    const dashboardId = getState().dashboardInfo.id;
-    const deleteFilterSets = () =>
-      // if (process.env.type === undefined) {
-      makeApi<{}, {}>({
-        method: 'DELETE',
-        endpoint: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSetId}`,
-      })({});
-    // }
-    // return API_HANDLER.SupersetClient({
-    //   method: 'delete',
-    //   url: `/api/v1/dashboard/${dashboardId}/filtersets/${filterSetId}`,
-    // });
-    dispatch({
-      type: DELETE_FILTER_SET_BEGIN,
-      id: filterSetId,
-    });
-
-    await deleteFilterSets();
-
-    dispatch({
-      type: DELETE_FILTER_SET_COMPLETE,
-    });
-    dispatch(getFilterSets(dashboardId));
-  };
-// DODO added stop 44211751
-
 export type AnyFilterAction =
   | SetFilterConfigBegin
   | SetFilterConfigComplete
@@ -450,19 +230,4 @@ export type AnyFilterAction =
   | UnsetFocusedNativeFilter
   | SetHoveredNativeFilter
   | UnsetHoveredNativeFilter
-  | UpdateCascadeParentIds
-  // DODO added start 44211751
-  // Filter sets
-  | SetFilterSetsBegin
-  | SetFilterSetsComplete
-  | SetFilterSetsFail
-  | CreateFilterSetBegin
-  | CreateFilterSetComplete
-  | CreateFilterSetFail
-  | DeleteFilterSetBegin
-  | DeleteFilterSetComplete
-  | DeleteFilterSetFail
-  | UpdateFilterSetBegin
-  | UpdateFilterSetComplete
-  | UpdateFilterSetFail;
-// DODO added stop 44211751
+  | UpdateCascadeParentIds;

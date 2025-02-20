@@ -1,8 +1,25 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { FeatureFlag, isFeatureEnabled, t, useTheme } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import Loading from 'src/components/Loading';
@@ -10,7 +27,6 @@ import {
   useDashboard,
   useDashboardCharts,
   useDashboardDatasets,
-  useDashboardFilterSets, // DODO added 44211751
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
@@ -27,11 +43,6 @@ import {
 import DashboardContainer from 'src/dashboard/containers/Dashboard';
 
 import { nanoid } from 'nanoid';
-// DODO added 44211751
-import {
-  getPrimaryFilterSetDataMask,
-  transformFilterSetFullData,
-} from 'src/DodoExtensions/FilterSets/utils';
 import { RootState } from '../types';
 import {
   chartContextMenuStyles,
@@ -80,30 +91,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     error: datasetsApiError,
     status,
   } = useDashboardDatasets(idOrSlug);
-
-  // DODO added start 44211751
-  const { result: filterSetsFullData, error: filterSetsApiError } =
-    useDashboardFilterSets(idOrSlug);
-  const filterSets = transformFilterSetFullData(filterSetsFullData);
-  const primaryFilterSetDataMask = getPrimaryFilterSetDataMask(filterSets);
-  // DODO added stop 44211751
-
   const isDashboardHydrated = useRef(false);
 
-  // DODO added 44211751
-  const filterSetEnabled = isFeatureEnabled(
-    FeatureFlag.DashboardNativeFiltersSet,
-  );
-
   const error = dashboardApiError || chartsApiError;
-
-  // const readyToRender = Boolean(dashboard && charts);
-  // DODO changed 44211751
-  const readyToRender = Boolean(
-    dashboard &&
-      charts &&
-      (!filterSetEnabled || filterSetsApiError || primaryFilterSetDataMask),
-  );
+  const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, css, id = 0 } = dashboard || {};
 
   useEffect(() => {
@@ -147,9 +138,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
-        // DODO added 44211751
-      } else if (primaryFilterSetDataMask) {
-        dataMask = primaryFilterSetDataMask;
       }
       if (isOldRison) {
         dataMask = isOldRison;
@@ -166,7 +154,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             charts,
             activeTabs,
             dataMask,
-            filterSets, // DODO added 44211751
           }),
         );
       }
@@ -203,17 +190,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       dispatch(setDatasources(datasets));
     }
   }, [addDangerToast, datasets, datasetsApiError, dispatch]);
-
-  // DODO added 44211751
-  useEffect(() => {
-    if (filterSetEnabled && filterSetsApiError) {
-      addDangerToast(
-        t(
-          "Error loading chart filter sets. Primary filter set won't be applied.",
-        ),
-      );
-    }
-  }, [addDangerToast, filterSetsApiError, filterSetEnabled, dispatch]);
 
   if (error) throw error; // caught in error boundary
   if (!readyToRender || !hasDashboardInfoInitiated) return <Loading />;

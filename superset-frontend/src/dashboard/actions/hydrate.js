@@ -1,4 +1,21 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint-disable camelcase */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
@@ -40,9 +57,7 @@ import { FilterBarOrientation } from '../types';
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 
 export const hydrateDashboard =
-  (
-    { history, dashboard, charts, dataMask, activeTabs, filterSets }, // DODO changed 44211751
-  ) =>
+  ({ history, dashboard, charts, dataMask, activeTabs }) =>
   (dispatch, getState) => {
     const { user, common, dashboardState } = getState();
     const { metadata, position_data: positionData } = dashboard;
@@ -213,7 +228,6 @@ export const hydrateDashboard =
 
     const nativeFilters = getInitialNativeFilterState({
       filterConfig: metadata?.native_filter_configuration || [],
-      filterSetsConfig: filterSets || [], // DODO added 44211751
     });
 
     if (isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {

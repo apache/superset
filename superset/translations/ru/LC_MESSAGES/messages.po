@@ -3264,9 +3264,6 @@ msgstr "Создать датасет"
 msgid "Create dataset and create chart"
 msgstr "Создать датасет и диаграмму"
 
-msgid "Create filter set"
-msgstr "Создать набор фильтров"
-
 msgid "Create new chart"
 msgstr "Создать диаграмму"
 
@@ -4635,9 +4632,6 @@ msgstr "Отредактировано"
 msgid "Editing 1 filter:"
 msgstr "Редактирование 1 фильтра:"
 
-msgid "Editing filter set:"
-msgstr "Редактирование набора фильтров:"
-
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Неверное или несуществующее имя базы данных"
 
@@ -5259,9 +5253,6 @@ msgstr "Фильтр имеет значение по умолчанию"
 msgid "Filter menu"
 msgstr "Имя фильтра"
 
-msgid "Filter metadata changed in dashboard. It will not be applied."
-msgstr "Метаданные фильтра изменились в дашборде. Они не будут применены."
-
 msgid "Filter name"
 msgstr "Имя фильтра"
 
@@ -5272,16 +5263,6 @@ msgstr ""
 
 msgid "Filter results"
 msgstr "Фильтровать результаты"
-
-msgid "Filter set already exists"
-msgstr "Набор фильтров уже существует"
-
-msgid "Filter set with this name already exists"
-msgstr "Набор фильтров с этим именем уже существует"
-
-#, python-format
-msgid "Filter sets (%(filterSetCount)d)"
-msgstr "Сохраненные (%(filterSetCount)d)"
 
 msgid "Filter type"
 msgstr "Тип фильтра"
@@ -5303,10 +5284,6 @@ msgstr "Фильтруемый"
 
 msgid "Filters"
 msgstr "Фильтры"
-
-#, python-format
-msgid "Filters (%d)"
-msgstr "Фильтры (%d)"
 
 msgid "Filters by columns"
 msgstr "Фильтры по столбцам"
@@ -7106,9 +7083,6 @@ msgstr "Новый датасет"
 msgid "New dataset name"
 msgstr "Новое имя датасета"
 
-msgid "New filter set"
-msgstr "Новый набор фильтров"
-
 #, fuzzy
 msgid "New header"
 msgstr "Подзаголовок"
@@ -8002,10 +7976,7 @@ msgid "Plain"
 msgstr "Простой"
 
 msgid "Please DO NOT overwrite the \"filter_scopes\" key."
-msgstr "Пожалуйста, НЕ перезаписывайте ключ \"filter_scopes\""
-
-msgid "Please apply filter changes"
-msgstr "Пожалуйста, примените изменения фильтров"
+msgstr ""
 
 msgid ""
 "Please check your query and confirm that all template parameters are "
@@ -8048,16 +8019,13 @@ msgid "Please confirm"
 msgstr "Пожалуйста, подтвердите действие"
 
 msgid "Please confirm the overwrite values."
-msgstr "Пожалуйста, подтвердите значения для перезаписи."
+msgstr ""
 
 msgid "Please enter a SQLAlchemy URI to test"
 msgstr "Введите SQLAlchemy URI для проверки"
 
 msgid "Please enter valid text. Spaces alone are not permitted."
-msgstr "Пожалуйста, введите правильный текст. Только пробелы не допускаются."
-
-msgid "Please filter set name"
-msgstr "Введите имя набора фильтров"
+msgstr ""
 
 msgid "Please re-enter the password."
 msgstr "Пожалуйста, введите пароль еще раз"
@@ -8435,9 +8403,6 @@ msgstr "Отношение"
 msgid "Raw records"
 msgstr "Сырые записи"
 
-msgid "Rebuild"
-msgstr "Обновить"
-
 msgid "Recently created charts, dashboards, and saved queries will appear here"
 msgstr "Недавно созданные диаграммы, дашборды и сохраненные запросы"
 
@@ -8560,9 +8525,6 @@ msgstr "Удалить"
 
 msgid "Remove cross-filter"
 msgstr "Удалить кросс-фильтр"
-
-msgid "Remove invalid filters"
-msgstr "Удалить недействующие фильтры"
 
 msgid "Remove item"
 msgstr "Удалить элемент"
@@ -9645,9 +9607,6 @@ msgstr "Серверная пагинация"
 
 msgid "Service Account"
 msgstr "Сервисный аккаунт"
-
-msgid "Set as primary"
-msgstr "Установить основным"
 
 msgid "Set auto-refresh interval"
 msgstr "Задать интервал обновления"
@@ -11172,9 +11131,6 @@ msgstr "Неверный порт"
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr "Основная мера используется для определения размера сегмента"
 
-msgid "The primary set of filters will be applied automatically"
-msgstr "Основной набор фильтров будет применяться автоматически"
-
 msgid "The provided table was not found in the provided database"
 msgstr "Таблица не найдена в базе данных"
 
@@ -11799,15 +11755,8 @@ msgstr ""
 "Эти поля аналогичны представлениям. Это значит, что Superset будет "
 "генерировать подзапрос при обращении к ним."
 
-msgid "This filter doesn't exist in dashboard. It will not be applied."
-msgstr "Этот фильтр не существует в дашборде. Он не будет применен."
-
 msgid "This filter might be incompatible with current dataset"
 msgstr "Этот фильтр может быть несовместим с этим датасетом"
-
-#, python-format
-msgid "This filter set is identical to: \"%s\""
-msgstr "Этот набор фильтров идентичен \"%s\""
 
 msgid "This functionality is disabled in your environment for security reasons."
 msgstr "Эта функция отключена по соображениям безопасности"
