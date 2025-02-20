@@ -238,6 +238,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "List Roles",
         "ResetPasswordView",
         "RoleModelView",
+        "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
@@ -731,14 +732,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         if not g.user.is_anonymous:
-            # filter by user id
-            view_menu_names = (
-                base_query.join(assoc_user_role)
-                .join(self.user_model)
+            from sqlalchemy.orm import aliased
+            from flask_appbuilder.security.sqla.models import assoc_user_group, assoc_group_role
+
+            user_group = aliased(assoc_user_group)
+            group_role = aliased(assoc_group_role)
+
+            # Query to fetch permissions via groups' roles
+            view_menu_names_group_roles = (
+                self.get_session.query(self.viewmenu_model.name)
+                .join(self.permissionview_model, self.viewmenu_model.id == self.permissionview_model.view_menu_id)
+                .join(self.permission_model, self.permission_model.id == self.permissionview_model.permission_id)
+                .join(assoc_permissionview_role, assoc_permissionview_role.c.permission_view_id == self.permissionview_model.id)
+                .join(self.role_model, self.role_model.id == assoc_permissionview_role.c.role_id)
+                .join(group_role, group_role.c.role_id == self.role_model.id)
+                .join(self.group_model, self.group_model.id == group_role.c.group_id)
+                .join(user_group, user_group.c.group_id == self.group_model.id)
+                .join(self.user_model, self.user_model.id == user_group.c.user_id)
                 .filter(self.user_model.id == get_user_id())
                 .filter(self.permission_model.name == permission_name)
             ).all()
-            return {s.name for s in view_menu_names}
+            return {s.name for s in view_menu_names_group_roles}
+
+            # filter by user id
+            # view_menu_names_user_roles = (
+            #     base_query.join(assoc_user_role)
+            #     .join(self.user_model)
+            #     .filter(self.user_model.id == get_user_id())
+            #     .filter(self.permission_model.name == permission_name)
+            # ).all()
+            # return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
         if public_role := self.get_public_role():
