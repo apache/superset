@@ -1,4 +1,5 @@
 /**
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -192,23 +193,34 @@ describe('Native filters', () => {
         testItems.filterNumericalColumn,
       );
       saveNativeFilterSettings([]);
-      // assertions
-      cy.get(nativeFilters.slider.slider).should('be.visible').click('center');
+
+      // Assertions
+      cy.get('[data-test="range-filter-from-input"]')
+        .should('be.visible')
+        .click();
+
+      cy.get('[data-test="range-filter-from-input"]').type('{selectall}5');
+
+      cy.get('[data-test="range-filter-to-input"]')
+        .should('be.visible')
+        .click();
+
+      cy.get('[data-test="range-filter-to-input"]').type('{selectall}50');
       cy.get(nativeFilters.applyFilter).click();
-      // assert that the url contains 'native_filters' in the url
+
+      // Assert that the URL contains 'native_filters'
       cy.url().then(u => {
         const ur = new URL(u);
         expect(ur.search).to.include('native_filters');
-        // assert that the start handle has a value
-        cy.get(nativeFilters.slider.startHandle)
-          .invoke('attr', 'aria-valuenow')
-          .should('exist');
-        // assert that the end handle has a value
-        cy.get(nativeFilters.slider.endHandle)
-          .invoke('attr', 'aria-valuenow')
-          .should('exist');
-        // assert slider text matches what we should have
-        cy.get(nativeFilters.slider.sliderText).should('have.text', '49');
+
+        cy.get('[data-test="range-filter-from-input"]')
+          .invoke('val')
+          .should('equal', '5');
+
+        // Assert that the "To" input has the correct value
+        cy.get('[data-test="range-filter-to-input"]')
+          .invoke('val')
+          .should('equal', '50');
       });
     });
 
