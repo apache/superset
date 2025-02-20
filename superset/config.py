@@ -1915,6 +1915,12 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+# Configure JWT subsystem to not enforce that the sub claim is a string
+# Set this variable to avoid breaking `/api/security` endpoints
+# TODO: remove this variable once pyjwt resolved the issue.
+# https://github.com/jpadilla/pyjwt/issues/1017
+# https://github.com/dpgaspar/Flask-AppBuilder/issues/2287
+JWT_VERIFY_SUB = False
 
 # -------------------------------------------------------------------
 # *                WARNING:  STOP EDITING  HERE                    *
