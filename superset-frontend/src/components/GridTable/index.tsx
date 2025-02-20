@@ -20,7 +20,7 @@ import { useCallback, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
 
-import type { Column } from 'ag-grid-community';
+import type { Column, GridOptions } from 'ag-grid-community';
 import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
 
 import 'ag-grid-community/styles/ag-grid.css';
@@ -159,14 +159,29 @@ function GridTable<RecordType extends object>({
       ].slice(showRowNumber ? 0 : 1),
     [rowIndexLength, columnReorderable, columns, showRowNumber, sortable],
   );
-  const defaultColDef: AgGridReactProps['defaultColDef'] = {
-    ...(!columnReorderable && { suppressMovable: true }),
-    resizable: true,
-    sortable,
-    filter: Boolean(enableActions),
-  };
+  const defaultColDef: AgGridReactProps['defaultColDef'] = useMemo(
+    () => ({
+      ...(!columnReorderable && { suppressMovable: true }),
+      resizable: true,
+      sortable,
+      filter: Boolean(enableActions),
+    }),
+    [columnReorderable, enableActions, sortable],
+  );
 
   const rowHeight = theme.gridUnit * (size === GridSize.Middle ? 9 : 7);
+
+  const gridOptions = useMemo<GridOptions>(
+    () => ({
+      enableCellTextSelection: true,
+      ensureDomOrder: true,
+      suppressFieldDotNotation: true,
+      headerHeight: rowHeight,
+      rowSelection: 'multiple',
+      rowHeight,
+    }),
+    [rowHeight],
+  );
 
   return (
     <ErrorBoundary>
@@ -223,14 +238,7 @@ function GridTable<RecordType extends object>({
           isExternalFilterPresent={isExternalFilterPresent}
           doesExternalFilterPass={externalFilter}
           components={gridComponents}
-          gridOptions={{
-            enableCellTextSelection: true,
-            ensureDomOrder: true,
-            suppressFieldDotNotation: true,
-            headerHeight: rowHeight,
-            rowSelection: 'multiple',
-            rowHeight,
-          }}
+          gridOptions={gridOptions}
           onCellKeyDown={onKeyDown}
         />
       </div>
