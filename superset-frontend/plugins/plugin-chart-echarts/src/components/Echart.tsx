@@ -62,6 +62,7 @@ import {
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import { DEFAULT_LOCALE } from '../constants';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
 // TODO: to move the type to @superset-ui/core
@@ -134,7 +135,7 @@ function Echart(
   }));
 
   const locale = useSelector(
-    (state: ExplorePageState) => state?.common?.locale ?? 'en',
+    (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
   ).toUpperCase();
 
   const handleSizeChange = useCallback(
