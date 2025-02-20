@@ -93,7 +93,7 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
-    rollingType,
+    rollingType
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
