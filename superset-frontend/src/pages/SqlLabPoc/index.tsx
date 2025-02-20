@@ -1,23 +1,6 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+import React, { useEffect, useState } from 'react';
 import { CSSObject } from '@emotion/react';
-import { css, styled } from '@superset-ui/core';
+import { css, styled, SupersetClient } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 const PlaceholderStyles: CSSObject = css`
@@ -50,36 +33,20 @@ const Toolbar = () => {
   );
 };
 
-const LeftPanel = () => {
-  const plugins = [];
-  for (let i = 0; i < 3; i++) {
-    plugins.push(
-      <div
-        css={theme => css`
-          ${PlaceholderStyles};
-          border-bottom: 1px solid ${theme.colors.grayscale.light2};
-        `}
-      >
-        <Icons.Cards />
-        {`Plugin ${i + 1}`}
-      </div>,
-    );
-  }
-  return (
-    <div
-      css={theme => css`
-        width: 400px;
-        gap: 12px;
-        display: flex;
-        flex-direction: column;
-        border-left: 1px solid ${theme.colors.grayscale.light2};
-        border-right: 1px solid ${theme.colors.grayscale.light2};
-      `}
-    >
-      {plugins}
-    </div>
-  );
-};
+const LeftPanel = ({ extensions }: { extensions: React.ReactElement[] }) => (
+  <div
+    css={theme => css`
+      width: 400px;
+      gap: 12px;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid ${theme.colors.grayscale.light2};
+      border-right: 1px solid ${theme.colors.grayscale.light2};
+    `}
+  >
+    {extensions}
+  </div>
+);
 
 const CenterPanel = styled.div`
   flex: 1;
@@ -128,11 +95,81 @@ const RightPanel = () => {
   );
 };
 
+interface Extension {
+  scope: string;
+  exposedModules: string[];
+  remoteEntry: string;
+}
+
+const loadExtension = async ({
+  scope,
+  exposedModules,
+  remoteEntry,
+}: Extension) => {
+  await new Promise<void>((resolve, reject) => {
+    const element = document.createElement('script');
+    element.src = remoteEntry;
+    element.type = 'text/javascript';
+    element.async = true;
+    element.onload = () => {
+      resolve();
+    };
+    element.onerror = () => {
+      reject(new Error(`Failed to load ${remoteEntry}`));
+    };
+    document.head.appendChild(element);
+  });
+
+  // @ts-ignore
+  await __webpack_init_sharing__('default');
+  const container = (window as any)[scope];
+
+  // @ts-ignore
+  await container.init(__webpack_share_scopes__.default);
+
+  return exposedModules.map(async module => {
+    const factory = await container.get(module);
+    const Module = factory();
+    return Module;
+  });
+};
+
 const SqlLabPoc = () => {
+  const [extensions, setExtensions] = useState<React.ReactElement[]>([]);
+
+  useEffect(() => {
+    const fetchExtensions = async () => {
+      try {
+        const response = await SupersetClient.get({
+          endpoint: '/api/v1/extensions',
+        });
+        const extensions: Extension[] = response.json.result;
+        const loadedExtensionsArray = await Promise.all(
+          extensions.map(async extension => {
+            const Modules = await loadExtension(extension);
+            const resolvedModules = await Promise.all(
+              Modules.map(Module => Module),
+            );
+            return resolvedModules.map(resolvedModule => {
+              const ExtensionComponent = resolvedModule.default;
+              return <ExtensionComponent />;
+            });
+          }),
+        );
+
+        setExtensions(loadedExtensionsArray.flat());
+      } catch (error) {
+        console.error('Failed to load extensions:', error);
+      }
+    };
+
+    fetchExtensions();
+  }, []);
+
   return (
     <MainPanel>
       <Toolbar />
-      <LeftPanel />
+      <LeftPanel extensions={extensions} />
       <CenterPanel>
         <CenterTopPanel />
         <CenterBottomPanel />
