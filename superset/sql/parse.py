@@ -131,7 +131,7 @@ class Partition:
     Here is an example of an object:
     {"ispartitioned_table":true,"partition_column":["month","day"]}
     """
-    ispartitioned_table: bool
+    is_partitioned_table: bool
     partition_column: list | None = None
     def __str__(self) -> str:
         """
@@ -139,7 +139,7 @@ class Partition:
         """
         return ".".join(
             urllib.parse.quote(part, safe="").replace(".", "%2E")
-            for part in [self.ispartitioned_table, self.partition_column]
+            for part in [self.is_partitioned_table, self.partition_column]
             if part
         )
     def __eq__(self, other: Any) -> bool:
