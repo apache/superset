@@ -41,7 +41,7 @@ const initialState = {
     common: {
       conf: {
         DASHBOARD_AUTO_REFRESH_INTERVALS: [
-          [0, "Don't refresh"],
+          [0, 'Do not refresh'],
           [10, '10 seconds'],
         ],
       },
