@@ -3056,9 +3056,8 @@ msgstr "Configuratie"
 msgid "Configure Advanced Time Range "
 msgstr "Configureer geavanceerd tijdbereik "
 
-#, fuzzy
 msgid "Configure Time Range: Current..."
-msgstr "Configureer Tijdbereik: Laatste..."
+msgstr "Configureer Tijdbereik: Huidige..."
 
 msgid "Configure Time Range: Last..."
 msgstr "Configureer Tijdbereik: Laatste..."
@@ -3366,29 +3365,23 @@ msgstr "Valuta voorvoegsel of achtervoegsel"
 msgid "Currency symbol"
 msgstr "Valuta symbool"
 
-#, fuzzy
 msgid "Current"
-msgstr "Valuta"
+msgstr "Huidig"
 
-#, fuzzy
 msgid "Current day"
-msgstr "Valuta"
+msgstr "Huidige dag"
 
-#, fuzzy
 msgid "Current month"
-msgstr "Valuta symbool"
+msgstr "Huidige maand"
 
-#, fuzzy
 msgid "Current quarter"
-msgstr "Voer huidige query uit"
+msgstr "Huidig kwartaal"
 
-#, fuzzy
 msgid "Current week"
-msgstr "Voer huidige query uit"
+msgstr "Huidige week"
 
-#, fuzzy
 msgid "Current year"
-msgstr "Valuta"
+msgstr "Huidig jaar"
 
 #, python-format
 msgid "Currently rendered: %s"
