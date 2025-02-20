@@ -48,7 +48,7 @@ const renderDisabledSaveButton = () => (
     disabled
     css={disabledSaveBtnStyles}
   >
-    <Icons.Save iconSize="m" />
+    <Icons.SaveOutlined iconSize="m" />
     {t('Save')}
   </Button>
 );

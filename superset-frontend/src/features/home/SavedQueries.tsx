@@ -207,6 +207,10 @@ const SavedQueries = ({
             }
           }}
         >
+          <Icons.UploadOutlined
+            iconSize="l"
+            css={{ verticalAlign: 'baseline' }}
+          />
           {t('Share')}
         </Menu.Item>
         {canDelete && (
@@ -258,7 +262,14 @@ const SavedQueries = ({
           {
             name: (
               <Link to="/sqllab?new=true">
-                <i className="fa fa-plus" />
+                <Icons.PlusOutlined
+                  css={{
+                    margin: `auto ${theme.gridUnit * 2}px auto 0`,
+                    verticalAlign: 'baseline',
+                  }}
+                  iconSize="s"
+                  iconColor={theme.colors.primary.dark1}
+                />
                 {t('SQL Query')}
               </Link>
             ),
@@ -324,9 +335,7 @@ const SavedQueries = ({
                         trigger={['click', 'hover']}
                       >
                         <Button buttonSize="xsmall" type="link">
-                          <Icons.MoreVert
-                            iconColor={theme.colors.grayscale.base}
-                          />
+                          <Icons.MoreOutlined iconSize="xl" />
                         </Button>
                       </Dropdown>
                     </ListViewCard.Actions>

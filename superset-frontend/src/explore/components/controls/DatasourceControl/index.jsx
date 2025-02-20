@@ -110,6 +110,7 @@ const Styles = styled.div`
     overflow: hidden;
   }
   .datasource-svg {
+    color: ${({ theme }) => theme.colors.grayscale.base};
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
@@ -136,7 +137,7 @@ export const datasourceIconLookup = {
   [DatasourceType.Query]: (
     <Icons.ConsoleSqlOutlined className="datasource-svg" />
   ),
-  [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+  [DatasourceType.Table]: <Icons.TableOutlined className="datasource-svg" />,
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
@@ -400,7 +401,10 @@ class DatasourceControl extends PureComponent {
           {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icons.AlertSolid iconColor={theme.colors.warning.base} />
+              <Icons.WarningOutlined
+                css={{ marginLeft: theme.gridUnit * 2 }}
+                iconColor={theme.colors.warning.base}
+              />
             </Tooltip>
           )}
           {extra?.warning_markdown && (
@@ -415,7 +419,9 @@ class DatasourceControl extends PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Icons.MoreVert
+            <Icons.MoreOutlined
+              IconSize="xl"
+              iconColor={theme.colors.primary.base}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />

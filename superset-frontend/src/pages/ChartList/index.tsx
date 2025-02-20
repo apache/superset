@@ -485,7 +485,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash />
+                        <Icons.DeleteOutlined />
                       </span>
                     </Tooltip>
                   )}
@@ -503,7 +503,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -519,7 +519,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
@@ -760,7 +760,14 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Chart')}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {t('Chart')}
         </>
       ),
       buttonStyle: 'primary',
@@ -776,7 +783,7 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined iconSize="xl" data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

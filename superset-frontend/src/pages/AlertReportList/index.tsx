@@ -55,6 +55,7 @@ import AlertReportModal from 'src/features/alerts/AlertReportModal';
 import { AlertObject, AlertState } from 'src/features/alerts/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
+import Icons from 'src/components/Icons';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -380,7 +381,7 @@ function AlertList({
                   label: allowEdit ? 'edit-action' : 'preview-action',
                   tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: allowEdit ? 'Edit' : 'Binoculars',
+                  icon: allowEdit ? 'EditOutlined' : 'Binoculars',
                   onClick: handleEdit,
                 }
               : null,
@@ -389,7 +390,7 @@ function AlertList({
                   label: 'delete-action',
                   tooltip: t('Delete'),
                   placement: 'bottom',
-                  icon: 'Trash',
+                  icon: 'DeleteOutlined',
                   onClick: handleDelete,
                 }
               : null,
@@ -417,7 +418,14 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {title}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {title}
         </>
       ),
       buttonStyle: 'primary',
@@ -441,7 +449,15 @@ function AlertList({
     buttonAction: () => handleAlertEdit(null),
     buttonText: canCreate ? (
       <>
-        <i className="fa fa-plus" /> {title}{' '}
+        <Icons.PlusOutlined
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+          data-test="add-annotation-layer-button"
+        />
+        {title}{' '}
       </>
     ) : null,
   };

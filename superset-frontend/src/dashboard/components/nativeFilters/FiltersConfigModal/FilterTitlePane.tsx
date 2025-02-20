@@ -109,7 +109,7 @@ const FilterTitlePane: FC<Props> = ({
         <Button
           buttonSize="default"
           buttonStyle="secondary"
-          icon={<Icons.Filter iconSize="m" />}
+          icon={<Icons.FilterOutlined iconSize="m" />}
           data-test="add-new-filter-button"
           onClick={() => handleOnAdd(NativeFilterType.NativeFilter)}
         >

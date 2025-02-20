@@ -421,7 +421,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDelete}
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -437,7 +437,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined
+                      iconSize="xl"
+                      css={{ verticalAlign: 'middle' }}
+                    />
                   </span>
                 </Tooltip>
               )}
@@ -459,7 +462,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className={allowEdit ? 'action-button' : 'disabled'}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditAlt />
+                    <Icons.EditOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -475,7 +478,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.Copy />
+                    <Icons.CopyOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -624,7 +627,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     buttonArr.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Dataset')}{' '}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {t('Dataset')}
         </>
       ),
       onClick: () => {
@@ -640,7 +650,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           title={t('Import datasets')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

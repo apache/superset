@@ -196,7 +196,14 @@ function SavedQueryList({
   subMenuButtons.push({
     name: (
       <Link to="/sqllab?new=true">
-        <i className="fa fa-plus" /> {t('Query')}
+        <Icons.PlusOutlined
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+        />
+        {t('Query')}
       </Link>
     ),
     buttonStyle: 'primary',
@@ -211,7 +218,7 @@ function SavedQueryList({
           placement="bottomRight"
           data-test="import-tooltip-test"
         >
-          <Icons.Import data-test="import-icon" />
+          <Icons.DownloadOutlined data-test="import-icon" />
         </Tooltip>
       ),
       buttonStyle: 'link',
@@ -423,28 +430,28 @@ function SavedQueryList({
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
-              icon: 'Edit',
+              icon: 'EditOutlined',
               onClick: handleEdit,
             },
             {
               label: 'copy-action',
               tooltip: t('Copy query URL'),
               placement: 'bottom',
-              icon: 'Copy',
+              icon: 'CopyOutlined',
               onClick: handleCopy,
             },
             canExport && {
               label: 'export-action',
               tooltip: t('Export query'),
               placement: 'bottom',
-              icon: 'Share',
+              icon: 'UploadOutlined',
               onClick: handleExport,
             },
             canDelete && {
               label: 'delete-action',
               tooltip: t('Delete query'),
               placement: 'bottom',
-              icon: 'Trash',
+              icon: 'DeleteOutlined',
               onClick: handleDelete,
             },
           ].filter(item => !!item);

@@ -19,7 +19,7 @@
 
 import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
 
-import { css, styled, useTheme, t } from '@superset-ui/core';
+import { css, styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 export type DateLabelProps = {
@@ -86,7 +86,6 @@ const LabelContainer = styled.div<{
 
 export const DateLabel = forwardRef(
   (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
-    const theme = useTheme();
     return (
       <LabelContainer {...props} tabIndex={0} role="button">
         <span
@@ -96,10 +95,7 @@ export const DateLabel = forwardRef(
         >
           {typeof props.label === 'string' ? t(props.label) : props.label}
         </span>
-        <Icons.CalendarOutlined
-          iconSize="s"
-          iconColor={theme.colors.grayscale.base}
-        />
+        <Icons.CalendarOutlined iconSize="s" />
       </LabelContainer>
     );
   },

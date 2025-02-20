@@ -41,7 +41,8 @@ const SaveDatasetActionButton = ({
       onClick={() => setShowSave(true)}
       dropdownRender={() => overlayMenu}
       icon={
-        <Icons.CaretDown
+        <Icons.DownOutlined
+          iconSize="m"
           iconColor={theme.colors.grayscale.light5}
           name="caret-down"
         />

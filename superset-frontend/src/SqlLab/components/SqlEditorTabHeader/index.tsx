@@ -22,7 +22,13 @@ import { bindActionCreators } from 'redux';
 import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import { MenuDotsDropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
-import { styled, t, QueryState } from '@superset-ui/core';
+import {
+  styled,
+  t,
+  QueryState,
+  SupersetTheme,
+  useTheme,
+} from '@superset-ui/core';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -31,11 +37,16 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import TabStatusIcon from '../TabStatusIcon';
+import Icons, { IconType } from 'src/components/Icons';
 
 const TabTitleWrapper = styled.div`
   display: flex;
   align-items: center;
+
+  [aria-label='check-circle'],
+  .status-icon {
+    margin: 0px;
+  }
 `;
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.gridUnit * 2}px;
@@ -47,12 +58,24 @@ const IconContainer = styled.div`
   width: ${({ theme }) => theme.gridUnit * 8}px;
   text-align: center;
 `;
-
 interface Props {
   queryEditor: QueryEditor;
 }
 
+const STATE_ICONS: Record<string, FC<IconType>> = {
+  started: Icons.CircleSolid,
+  stopped: Icons.StopOutlined,
+  pending: Icons.CircleSolid,
+  scheduled: Icons.CalendarOutlined,
+  fetching: Icons.CircleSolid,
+  timedOut: Icons.FieldTimeOutlined,
+  running: Icons.CircleSolid,
+  success: Icons.CheckCircleOutlined,
+  failed: Icons.CloseCircleOutlined,
+};
+
 const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
+  const theme = useTheme();
   const qe = useSelector<SqlLabRootState, QueryEditor>(
     ({ sqlLab: { unsavedQueryEditor } }) => ({
       ...queryEditor,
@@ -63,6 +86,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   const queryState = useSelector<SqlLabRootState, QueryState>(
     ({ sqlLab }) => sqlLab.queries[qe.latestQueryId || '']?.state || '',
   );
+  const StatusIcon = queryState ? STATE_ICONS[queryState] : STATE_ICONS.running;
+
   const dispatch = useDispatch();
   const actions = useMemo(
     () =>
@@ -85,7 +110,21 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       actions.queryEditorSetTitle(qe, newTitle, qe.id);
     }
   }
+  const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
+    const statusColors: Record<QueryState, string> = {
+      [QueryState.Running]: theme.colors.info.base,
+      [QueryState.Success]: theme.colors.success.base,
+      [QueryState.Failed]: theme.colors.error.base,
+      [QueryState.Started]: theme.colors.primary.base,
+      [QueryState.Stopped]: theme.colors.warning.base,
+      [QueryState.Pending]: theme.colors.grayscale.light1,
+      [QueryState.Scheduled]: theme.colors.grayscale.light2,
+      [QueryState.Fetching]: theme.colors.secondary.base,
+      [QueryState.TimedOut]: theme.colors.error.dark1,
+    };
 
+    return statusColors[state] || theme.colors.grayscale.light2;
+  };
   return (
     <TabTitleWrapper>
       <MenuDotsDropdown
@@ -99,7 +138,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="close-tab-menu-option"
             >
               <IconContainer>
-                <i className="fa fa-close" />
+                <Icons.CloseOutlined
+                  iconSize="xs"
+                  css={{ verticalAlign: 'middle' }}
+                />
               </IconContainer>
               {t('Close tab')}
             </Menu.Item>
@@ -146,7 +188,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           </Menu>
         }
       />
-      <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryState} />{' '}
+      <TabTitle>{qe.name}</TabTitle>
+      <StatusIcon
+        className="status-icon"
+        iconSize="s"
+        iconColor={getStatusColor(queryState, theme)}
+      />
     </TabTitleWrapper>
   );
 };

@@ -45,6 +45,7 @@ import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
+import Icons from 'src/components/Icons';
 
 export interface Column {
   name: string;
@@ -200,7 +201,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             text={partitionQuery}
             shouldShowText={false}
             tooltipText={tt}
-            copyNode={<i className="fa fa-clipboard" />}
+            copyNode={<Icons.CopyOutlined iconSize="s" />}
           />
         );
       }
@@ -257,9 +258,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           ))}
           triggerNode={
             <IconTooltip
-              className="fa fa-key pull-left m-l-2"
+              className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
-            />
+            >
+              <Icons.KeyOutlined iconSize="s" />
+            </IconTooltip>
           }
         />
       );
@@ -277,10 +280,12 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         `}
       >
         <IconTooltip
-          className="fa fa-refresh pull-left m-l-2 pointer"
+          className="pull-left m-l-2 pointer"
           onClick={refreshTableMetadata}
           tooltip={t('Refresh table schema')}
-        />
+        >
+          <Icons.SyncOutlined iconSize="m" />
+        </IconTooltip>
         {keyLink}
         <IconTooltip
           className={
@@ -301,7 +306,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
                 aria-label="Copy"
                 tooltip={t('Copy SELECT statement to the clipboard')}
               >
-                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
+                <Icons.CopyOutlined iconSize="s" aria-hidden />
               </IconTooltip>
             }
             text={tableData.selectStar}

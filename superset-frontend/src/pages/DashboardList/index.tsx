@@ -437,7 +437,10 @@ function DashboardList(props: DashboardListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash data-test="dashboard-list-trash-icon" />
+                        <Icons.DeleteOutlined
+                          iconSize="xl"
+                          data-test="dashboard-list-trash-icon"
+                        />
                       </span>
                     </Tooltip>
                   )}
@@ -455,7 +458,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="xl" />
                   </span>
                 </Tooltip>
               )}
@@ -471,7 +474,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined iconSize="xl" data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
@@ -677,7 +680,14 @@ function DashboardList(props: DashboardListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Dashboard')}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+          />
+          {t('Dashboard')}
         </>
       ),
       buttonStyle: 'primary',
@@ -693,7 +703,7 @@ function DashboardList(props: DashboardListProps) {
           title={t('Import dashboards')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',
