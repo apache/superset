@@ -54,6 +54,11 @@ const SMART_NUMBER = 'SMART_NUMBER';
 const SMART_NUMBER_SIGNED = 'SMART_NUMBER_SIGNED';
 const OVER_MAX_HIDDEN = 'OVER_MAX_HIDDEN';
 
+const BYTES_SI = 'BYTES_SI';
+const BYTES_IEC = 'BYTES_IEC';
+const BYTERATE_SI = 'BYTERATE_SI';
+const BYTERATE_IEC = 'BYTERATE_IEC';
+
 const NumberFormats = {
   DOLLAR,
   DOLLAR_ROUND,
@@ -84,6 +89,10 @@ const NumberFormats = {
   SMART_NUMBER,
   SMART_NUMBER_SIGNED,
   OVER_MAX_HIDDEN,
+  BYTES_SI,
+  BYTES_IEC,
+  BYTERATE_SI,
+  BYTERATE_IEC,
 };
 
 export default NumberFormats;
