@@ -64,8 +64,7 @@ import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
 
 // Define this interface here to avoid creating a dependency back to superset-frontend,
-// and to appease the compiler.
-// ref: superset-frontend/src/explore/types
+// TODO: to move the type to @superset-ui/core
 interface ExplorePageState {
   common: {
     locale: string;
