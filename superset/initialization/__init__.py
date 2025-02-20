@@ -148,6 +148,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
+        from superset.extensions.api import ExtensionsRestApi
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -216,6 +217,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
+        appbuilder.add_api(ExtensionsRestApi)
         appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)

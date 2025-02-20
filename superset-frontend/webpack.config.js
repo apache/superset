@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const webpack = require('webpack');
+const { ModuleFederationPlugin } = webpack.container;
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
 const CopyPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -143,6 +144,32 @@ const plugins = [
     inject: true,
     chunks: [],
     filename: '500.html',
+  }),
+  new ModuleFederationPlugin({
+    name: 'superset',
+    filename: 'remoteEntry.js',
+    exposes: {
+      './Avatar': './src/components/Avatar/index.tsx',
+      './formatNumber':
+        './packages/superset-ui-core/src/number-format/NumberFormatterRegistrySingleton.ts',
+    },
+    shared: {
+      react: {
+        singleton: true,
+        eager: true,
+        requiredVersion: '^17.0.0',
+      },
+      'react-dom': {
+        singleton: true,
+        eager: true,
+        requiredVersion: '^17.0.0',
+      },
+      'antd-v5': {
+        singleton: true,
+        eager: true,
+        requiredVersion: 'npm:antd@^5.18.0',
+      },
+    },
   }),
 ];
 
