@@ -37,7 +37,7 @@ const TitleLabel = styled.span`
 const StyledInput = styled(Input)`
   border-radius: ${({ theme }) => theme.borderRadius};
   height: 26px;
-  padding-left: ${({ theme }) => theme.gridUnit * 2.5}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 2.5}px;
 `;
 
 export interface AdhocMetricEditPopoverTitleProps {

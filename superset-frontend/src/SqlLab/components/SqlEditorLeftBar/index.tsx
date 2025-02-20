@@ -62,7 +62,7 @@ const StyledScrollbarContainer = styled.div`
 
 const collapseStyles = (theme: SupersetTheme) => css`
   .ant-collapse-item {
-    margin-bottom: ${theme.gridUnit * 3}px;
+    margin-bottom: ${theme.sizeUnit * 3}px;
   }
   .ant-collapse-header {
     padding: 0px !important;
@@ -70,15 +70,15 @@ const collapseStyles = (theme: SupersetTheme) => css`
     align-items: center;
   }
   .ant-collapse-content-box {
-    padding: 0px ${theme.gridUnit * 4}px 0px 0px !important;
+    padding: 0px ${theme.sizeUnit * 4}px 0px 0px !important;
   }
   .ant-collapse-arrow {
     padding: 0 !important;
-    bottom: ${theme.gridUnit}px !important;
-    right: ${theme.gridUnit * 4}px !important;
-    color: ${theme.colors.primary.dark1} !important;
+    bottom: ${theme.sizeUnit}px !important;
+    right: ${theme.sizeUnit * 4}px !important;
+    color: ${theme.colorPrimaryText} !important;
     &:hover {
-      color: ${theme.colors.primary.dark2} !important;
+      color: ${theme.colorPrimaryTextHover} !important;
     }
   }
 `;
@@ -90,8 +90,8 @@ const LeftBarStyles = styled.div`
     flex-direction: column;
 
     .divider {
-      border-bottom: 1px solid ${theme.colors.grayscale.light4};
-      margin: ${theme.gridUnit * 4}px 0;
+      border-bottom: 1px solid ${theme.colorSplit};
+      margin: ${theme.sizeUnit * 4}px 0;
     }
   `}
 `;

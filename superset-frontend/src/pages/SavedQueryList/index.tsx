@@ -87,7 +87,7 @@ interface SavedQueryListProps {
 const StyledTableLabel = styled.div`
   .count {
     margin-left: 5px;
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
     cursor: pointer;
   }

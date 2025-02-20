@@ -61,18 +61,18 @@ import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 
 // TODO: replace 3 dots with an icon
 const VerticalDotsContainer = styled.div`
-  padding: ${({ theme }) => theme.gridUnit / 4}px
-    ${({ theme }) => theme.gridUnit * 1.5}px;
+  padding: ${({ theme }) => theme.sizeUnit / 4}px
+    ${({ theme }) => theme.sizeUnit * 1.5}px;
 
   .dot {
     display: block;
 
-    height: ${({ theme }) => theme.gridUnit}px;
-    width: ${({ theme }) => theme.gridUnit}px;
+    height: ${({ theme }) => theme.sizeUnit}px;
+    width: ${({ theme }) => theme.sizeUnit}px;
     border-radius: 50%;
-    margin: ${({ theme }) => theme.gridUnit / 2}px 0;
+    margin: ${({ theme }) => theme.sizeUnit / 2}px 0;
 
-    background-color: ${({ theme }) => theme.colors.text.label};
+    background-color: ${({ theme }) => theme.colorTextLabel};
   }
 
   &:hover {
@@ -82,7 +82,7 @@ const VerticalDotsContainer = styled.div`
 
 const RefreshTooltip = styled.div`
   height: auto;
-  margin: ${({ theme }) => theme.gridUnit}px 0;
+  margin: ${({ theme }) => theme.sizeUnit}px 0;
   color: ${({ theme }) => theme.colors.grayscale.base};
   line-height: 21px;
   display: flex;

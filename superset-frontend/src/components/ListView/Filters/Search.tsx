@@ -48,7 +48,7 @@ const SearchIcon = styled(Icons.Search)`
 `;
 
 const StyledInput = styled(AntdInput)`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
+  border-radius: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 function SearchFilter(

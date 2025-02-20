@@ -183,6 +183,7 @@ function ChartTable({
       <SubMenu
         activeChild={activeTab}
         tabs={menuTabs}
+        backgroundColor="transparent"
         buttons={[
           {
             name: (
@@ -191,7 +192,7 @@ function ChartTable({
                 {t('Chart')}
               </>
             ),
-            buttonStyle: 'tertiary',
+            buttonStyle: 'secondary',
             onClick: () => {
               window.location.assign('/chart/add');
             },

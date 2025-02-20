@@ -155,9 +155,7 @@ export default function ChartCard({
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={
-          <Label type="secondary">{chart.datasource_name_text}</Label>
-        }
+        coverRight={<Label type="primary">{chart.datasource_name_text}</Label>}
         linkComponent={Link}
         actions={
           <ListViewCard.Actions

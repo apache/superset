@@ -148,7 +148,7 @@ const emptyStateButtonText = (
 );
 
 const StyledEmptyState = styled(EmptyState)`
-  margin: ${({ theme }) => 13 * theme.gridUnit}px 0;
+  margin: ${({ theme }) => 13 * theme.sizeUnit}px 0;
 `;
 
 /**

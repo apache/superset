@@ -65,7 +65,7 @@ const Button = styled.button`
   background: none;
   border: none;
   text-decoration: underline;
-  color: ${({ theme }) => theme.colors.primary.dark1};
+  color: ${({ theme }) => theme.colorPrimaryText};
 `;
 
 const ButtonContainer = styled.div`
@@ -77,11 +77,11 @@ const LabelWrapper = styled.div`
   ${({ theme }) => css`
     overflow: hidden;
     text-overflow: ellipsis;
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     background-color: ${theme.colors.grayscale.light4};
-    margin: ${theme.gridUnit * 2}px 0;
+    margin: ${theme.sizeUnit * 2}px 0;
     border-radius: 4px;
-    padding: 0 ${theme.gridUnit}px;
+    padding: 0 ${theme.sizeUnit}px;
 
     &:first-of-type {
       margin-top: 0;
@@ -106,7 +106,7 @@ const LabelWrapper = styled.div`
 
     .metric-option {
       & > svg {
-        min-width: ${theme.gridUnit * 4}px;
+        min-width: ${theme.sizeUnit * 4}px;
       }
       & > .option-label {
         overflow: hidden;
@@ -128,7 +128,7 @@ const SectionHeaderButton = styled.button`
 
 const SectionHeader = styled.span`
   ${({ theme }) => `
-    font-size: ${theme.typography.sizes.m}px;
+    font-size: ${theme.fontSize}px;
     line-height: 1.3;
   `}
 `;
@@ -136,9 +136,9 @@ const SectionHeader = styled.span`
 const Box = styled.div`
   ${({ theme }) => `
     border: 1px ${theme.colors.grayscale.light4} solid;
-    border-radius: ${theme.gridUnit}px;
-    font-size: ${theme.typography.sizes.s}px;
-    padding: ${theme.gridUnit}px;
+    border-radius: ${theme.sizeUnit}px;
+    font-size: ${theme.fontSizeSM}px;
+    padding: ${theme.sizeUnit}px;
     color: ${theme.colors.grayscale.light1};
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -193,7 +193,7 @@ const DatasourcePanelItem: FC<Props> = ({ index, style, data }) => {
     <div
       style={style}
       css={css`
-        padding: 0 ${theme.gridUnit * 4}px;
+        padding: 0 ${theme.sizeUnit * 4}px;
       `}
     >
       {index === HEADER_LINE && (
@@ -212,7 +212,7 @@ const DatasourcePanelItem: FC<Props> = ({ index, style, data }) => {
         <div
           css={css`
             display: flex;
-            gap: ${theme.gridUnit * 2}px;
+            gap: ${theme.sizeUnit * 2}px;
             justify-content: space-between;
             align-items: baseline;
           `}

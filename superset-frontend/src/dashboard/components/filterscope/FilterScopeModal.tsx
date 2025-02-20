@@ -25,9 +25,9 @@ type FilterScopeModalProps = {
   triggerNode: JSX.Element;
 };
 
-const FilterScopeModalBody = styled.div(({ theme: { gridUnit } }) => ({
-  padding: gridUnit * 2,
-  paddingBottom: gridUnit * 3,
+const FilterScopeModalBody = styled.div(({ theme: { sizeUnit } }) => ({
+  padding: sizeUnit * 2,
+  paddingBottom: sizeUnit * 3,
 }));
 
 export default class FilterScopeModal extends PureComponent<

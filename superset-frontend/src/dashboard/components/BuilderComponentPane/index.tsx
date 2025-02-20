@@ -57,7 +57,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         id="tabs"
         css={(theme: SupersetTheme) => css`
           line-height: inherit;
-          margin-top: ${theme.gridUnit * 2}px;
+          margin-top: ${theme.sizeUnit * 2}px;
           height: 100%;
 
           & .ant-tabs-content-holder {

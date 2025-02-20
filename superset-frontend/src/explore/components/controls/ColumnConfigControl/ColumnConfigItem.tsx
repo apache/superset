@@ -33,8 +33,8 @@ export default memo(function ColumnConfigItem({
   width,
   height,
 }: ColumnConfigItemProps) {
-  const { colors, gridUnit } = useTheme();
-  const caretWidth = gridUnit * 6;
+  const { colors, sizeUnit } = useTheme();
+  const caretWidth = sizeUnit * 6;
   return (
     <Popover
       title={column.name}
@@ -55,7 +55,7 @@ export default memo(function ColumnConfigItem({
           display: 'flex',
           alignItems: 'center',
           cursor: 'pointer',
-          padding: `${gridUnit}px ${2 * gridUnit}px`,
+          padding: `${sizeUnit}px ${2 * sizeUnit}px`,
           borderBottom: `1px solid ${colors.grayscale.light2}`,
           position: 'relative',
           paddingRight: caretWidth,
@@ -79,8 +79,8 @@ export default memo(function ColumnConfigItem({
           className="fa fa-caret-right"
           css={{
             position: 'absolute',
-            right: 3 * gridUnit,
-            top: 3 * gridUnit,
+            right: 3 * sizeUnit,
+            top: 3 * sizeUnit,
           }}
         />
       </div>

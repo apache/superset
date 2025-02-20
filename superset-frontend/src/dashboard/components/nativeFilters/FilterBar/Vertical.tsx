@@ -41,7 +41,7 @@ import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 
 const BarWrapper = styled.div<{ width: number }>`
-  width: ${({ theme }) => theme.gridUnit * 8}px;
+  width: ${({ theme }) => theme.sizeUnit * 8}px;
 
   & .ant-tabs-top > .ant-tabs-nav {
     margin: 0;
@@ -81,15 +81,15 @@ const CollapsedBar = styled.div<{ offset: number }>`
     top: ${offset}px;
     left: 0;
     height: 100%;
-    width: ${theme.gridUnit * 8}px;
-    padding-top: ${theme.gridUnit * 2}px;
+    width: ${theme.sizeUnit * 8}px;
+    padding-top: ${theme.sizeUnit * 2}px;
     display: none;
     text-align: center;
     &.open {
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: ${theme.gridUnit * 2}px;
+      padding: ${theme.sizeUnit * 2}px;
     }
     svg {
       cursor: pointer;
@@ -99,8 +99,8 @@ const CollapsedBar = styled.div<{ offset: number }>`
 
 const StyledCollapseIcon = styled(Icons.Collapse)`
   ${({ theme }) => `
-    color: ${theme.colors.primary.base};
-    margin-bottom: ${theme.gridUnit * 3}px;
+    color: ${theme.colorPrimary};
+    margin-bottom: ${theme.sizeUnit * 3}px;
   `}
 `;
 
@@ -109,13 +109,13 @@ const StyledFilterIcon = styled(Icons.Filter)`
 `;
 
 const FilterBarEmptyStateContainer = styled.div`
-  margin-top: ${({ theme }) => theme.gridUnit * 8}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
 `;
 
 const FilterControlsWrapper = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
   // 108px padding to make room for buttons with position: absolute
-  padding-bottom: ${({ theme }) => theme.gridUnit * 27}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 27}px;
 `;
 
 export const FilterBarScrollContext = createContext(false);

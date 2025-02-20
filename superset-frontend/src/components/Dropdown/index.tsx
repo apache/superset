@@ -32,21 +32,21 @@ import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 const MenuDots = styled.div`
-  width: ${({ theme }) => theme.gridUnit * 0.75}px;
-  height: ${({ theme }) => theme.gridUnit * 0.75}px;
+  width: ${({ theme }) => theme.sizeUnit * 0.75}px;
+  height: ${({ theme }) => theme.sizeUnit * 0.75}px;
   border-radius: 50%;
   background-color: ${({ theme }) => theme.colors.grayscale.light1};
 
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
   display: inline-flex;
   position: relative;
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.primary.base};
+    background-color: ${({ theme }) => theme.colorPrimary};
 
     &::before,
     &::after {
-      background-color: ${({ theme }) => theme.colors.primary.base};
+      background-color: ${({ theme }) => theme.colorPrimary};
     }
   }
 
@@ -54,26 +54,26 @@ const MenuDots = styled.div`
   &::after {
     position: absolute;
     content: ' ';
-    width: ${({ theme }) => theme.gridUnit * 0.75}px;
-    height: ${({ theme }) => theme.gridUnit * 0.75}px;
+    width: ${({ theme }) => theme.sizeUnit * 0.75}px;
+    height: ${({ theme }) => theme.sizeUnit * 0.75}px;
     border-radius: 50%;
     background-color: ${({ theme }) => theme.colors.grayscale.light1};
   }
 
   &::before {
-    top: ${({ theme }) => theme.gridUnit}px;
+    top: ${({ theme }) => theme.sizeUnit}px;
   }
 
   &::after {
-    bottom: ${({ theme }) => theme.gridUnit}px;
+    bottom: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
 const MenuDotsWrapper = styled.div`
   display: flex;
   align-items: center;
-  padding: ${({ theme }) => theme.gridUnit * 2}px;
-  padding-left: ${({ theme }) => theme.gridUnit}px;
+  padding: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding-left: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 export enum IconOrientation {

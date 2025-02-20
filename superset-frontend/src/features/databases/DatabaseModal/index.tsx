@@ -129,13 +129,13 @@ const TabsStyled = styled(Tabs)`
 
 const ErrorAlertContainer = styled.div`
   ${({ theme }) => `
-    margin: ${theme.gridUnit * 8}px ${theme.gridUnit * 4}px;
+    margin: ${theme.sizeUnit * 8}px ${theme.sizeUnit * 4}px;
   `};
 `;
 
 const SSHTunnelContainer = styled.div`
   ${({ theme }) => `
-    padding: 0px ${theme.gridUnit * 4}px;
+    padding: 0px ${theme.sizeUnit * 4}px;
   `};
 `;
 
@@ -240,8 +240,8 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
-  margin-left: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 export function dbReducer(
@@ -1605,12 +1605,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         <ErrorAlertContainer>
           <ErrorMessageWithStackTrace
             title={t('Database Creation Error')}
-            description={t(
-              'We are unable to connect to your database. Click "See more" for database-provided information that may help troubleshoot the issue.',
-            )}
+            subtitle={t('We are unable to connect to your database.')}
             descriptionDetails={
               alertErrors?.[0] || validationErrors?.description
             }
+            copyText={validationErrors?.description}
           />
         </ErrorAlertContainer>
       );

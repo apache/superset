@@ -31,17 +31,14 @@ const StyledToastPresenter = styled.div<VisualProps>`
   right: 0px;
   margin-right: 50px;
   margin-bottom: 50px;
-  z-index: ${({ theme }) => theme.zIndex.max};
+  z-index: ${({ theme }) => theme.zIndexPopupBase};
   word-break: break-word;
 
   .toast {
-    background: ${({ theme }) => theme.colors.grayscale.dark1};
+    background: ${({ theme }) => theme.colorText};
     border-radius: ${({ theme }) => theme.borderRadius};
     box-shadow: 0 2px 4px 0
-      fade(
-        ${({ theme }) => theme.colors.grayscale.dark2},
-        ${({ theme }) => theme.opacity.mediumLight}
-      );
+      fade(${({ theme }) => theme.colors.grayscale.dark2}, 35%);
     color: ${({ theme }) => theme.colors.grayscale.light5};
     opacity: 0;
     position: relative;
@@ -49,8 +46,8 @@ const StyledToastPresenter = styled.div<VisualProps>`
     white-space: pre-line;
     will-change: transform, opacity;
     transition:
-      transform ${({ theme }) => theme.transitionTiming}s,
-      opacity ${({ theme }) => theme.transitionTiming}s;
+      transform ${({ theme }) => theme.motionDurationMid},
+      opacity ${({ theme }) => theme.motionDurationMid};
 
     &:after {
       content: '';

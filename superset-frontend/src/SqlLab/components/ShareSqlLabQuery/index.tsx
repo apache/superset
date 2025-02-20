@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  styled,
-  t,
-  useTheme,
-  getClientErrorObject,
-  SupersetClient,
-} from '@superset-ui/core';
+import { t, getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -36,21 +30,10 @@ interface ShareSqlLabQueryProps {
   addDangerToast: (msg: string) => void;
 }
 
-const StyledIcon = styled(Icons.Link)`
-  &:first-of-type {
-    margin: 0;
-    display: flex;
-    svg {
-      margin: 0;
-    }
-  }
-`;
-
 const ShareSqlLabQuery = ({
   queryEditorId,
   addDangerToast,
 }: ShareSqlLabQueryProps) => {
-  const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
   const { dbId, name, schema, autorun, sql, templateParams } = useQueryEditor(
     queryEditorId,
@@ -85,8 +68,11 @@ const ShareSqlLabQuery = ({
   const buildButton = () => {
     const tooltip = t('Copy query link to your clipboard');
     return (
-      <Button buttonSize="small" tooltip={tooltip}>
-        <StyledIcon iconColor={theme.colors.primary.base} iconSize="xl" />
+      <Button
+        tooltip={tooltip}
+        buttonStyle="secondary"
+        icon={<Icons.Link iconSize="m" />}
+      >
         {t('Copy link')}
       </Button>
     );

@@ -166,7 +166,7 @@ function GridTable<RecordType extends object>({
     filter: Boolean(enableActions),
   };
 
-  const rowHeight = theme.gridUnit * (size === GridSize.Middle ? 9 : 7);
+  const rowHeight = theme.sizeUnit * (size === GridSize.Middle ? 9 : 7);
 
   return (
     <ErrorBoundary>
@@ -174,11 +174,11 @@ function GridTable<RecordType extends object>({
         styles={() => css`
           #grid-table.ag-theme-quartz {
             --ag-icon-font-family: agGridMaterial;
-            --ag-grid-size: ${theme.gridUnit}px;
-            --ag-font-size: ${theme.typography.sizes[
-              size === GridSize.Middle ? 'm' : 's'
-            ]}px;
-            --ag-font-family: ${theme.typography.families.sansSerif};
+            --ag-grid-size: ${theme.sizeUnit}px;
+            --ag-font-size: ${GridSize.Middle === size
+              ? theme.fontSize
+              : theme.fontSizeSM}px;
+            --ag-font-family: ${theme.fontFamily};
             --ag-row-height: ${rowHeight}px;
             ${!striped &&
             `--ag-odd-row-background-color: ${theme.colors.grayscale.light5};`}

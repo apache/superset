@@ -151,7 +151,7 @@ export default function TimezoneSelector({
   return (
     <Select
       ariaLabel={t('Timezone selector')}
-      css={{ minWidth }}
+      // css={{ minWidth }}
       onChange={tz => onTimezoneChange(tz as string)}
       value={validTimezone}
       options={TIMEZONE_OPTIONS}

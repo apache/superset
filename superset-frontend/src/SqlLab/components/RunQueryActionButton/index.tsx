@@ -83,11 +83,11 @@ const StyledButton = styled.span`
     // this is to over ride a previous transition built into the component
     transition: background-color 0ms;
     &:last-of-type {
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
     }
     span[name='caret-down'] {
       display: flex;
-      margin-left: ${({ theme }) => theme.gridUnit * 1}px;
+      margin-left: ${({ theme }) => theme.sizeUnit * 1}px;
     }
   }
 `;
@@ -150,9 +150,7 @@ const RunQueryActionButton = ({
               icon: (
                 <Icons.CaretDown
                   iconColor={
-                    isDisabled
-                      ? theme.colors.grayscale.base
-                      : theme.colors.grayscale.light5
+                    isDisabled ? theme.colorTextDisabled : theme.colorIcon
                   }
                   name="caret-down"
                 />
@@ -160,7 +158,7 @@ const RunQueryActionButton = ({
               trigger: 'click',
             }
           : {
-              buttonStyle: shouldShowStopBtn ? 'warning' : 'primary',
+              buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
             })}
       >
         {buildText(shouldShowStopBtn, selectedText)}

@@ -168,8 +168,8 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     }
 
     th.ant-table-cell {
-      font-weight: ${theme.typography.weights.bold};
-      color: ${theme.colors.grayscale.dark1};
+      font-weight: ${theme.fontWeightStrong};
+      color: ${theme.colorText};
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -183,11 +183,11 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     }
 
     .ant-pagination-item-active {
-      border-color: ${theme.colors.primary.base};
+      border-color: ${theme.colorPrimary};
     }
 
     .ant-table.ant-table-small {
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
     }
   `,
 );
@@ -199,7 +199,7 @@ const StyledVirtualTable = styled(VirtualTable)(
   }
   .virtual-table-cell {
     box-sizing: border-box;
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -37,7 +37,7 @@ const ModalContentContainer = styled.div`
     display: flex;
     height: 100%;
     & > div {
-      padding: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit * 4}px;
     }
   `}
 `;

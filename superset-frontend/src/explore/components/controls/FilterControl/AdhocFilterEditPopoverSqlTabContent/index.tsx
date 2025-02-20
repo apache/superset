@@ -29,8 +29,8 @@ import { Clauses, ExpressionTypes } from '../types';
 
 const StyledSelect = styled(Select)`
   ${({ theme }) => `
-    width: ${theme.gridUnit * 30}px;
-    marginRight: ${theme.gridUnit}px;
+    width: ${theme.sizeUnit * 30}px;
+    marginRight: ${theme.sizeUnit}px;
   `}
 `;
 
@@ -115,7 +115,7 @@ export default function AdhocFilterEditPopoverSqlTabContent({
           <strong>HAVING</strong> {t('Filters by metrics')}
         </span>
       </div>
-      <div css={{ marginTop: theme.gridUnit * 4 }}>
+      <div css={{ marginTop: theme.sizeUnit * 4 }}>
         <SQLEditor
           ref={aceEditorRef}
           keywords={keywords}
