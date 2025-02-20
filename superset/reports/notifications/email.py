@@ -34,6 +34,7 @@ from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
 
+currentYear = datetime.now().year
 logger = logging.getLogger(__name__)
 
 TABLE_TAGS = {"table", "th", "tr", "td", "thead", "tbody", "tfoot"}
@@ -102,8 +103,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
-            <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
-            """,  # noqa: E501
+            """,
             text=text,
             url=self._content.url,
             call_to_action=call_to_action,
@@ -160,25 +160,93 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             f"""
             <html>
               <head>
-                <style type="text/css">
-                  table, th, td {{
-                    border-collapse: collapse;
-                    border-color: rgb(200, 212, 227);
-                    color: rgb(42, 63, 95);
-                    padding: 4px 8px;
-                  }}
-                  .image{{
-                      margin-bottom: 18px;
-                      min-width: 1000px;
-                  }}
+                <meta http-equiv="content-type" content="text/html; charset=windows-1252" />
+                <meta charset="UTF-8" />
+            
+                <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+            
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="preconnect" target="_blank" href="https://fonts.gstatic.com" />
+                <link
+                  target="_blank"
+                  href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Freehand&family=Montserrat:wght@300;400;500;600;700&display=swap"
+                  rel="stylesheet"
+                />
+                <style>
+                  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500&display=swap");
                 </style>
               </head>
-              <body>
+            
+              <body style="background-color: #ececec; padding: 30px 0; margin: 0">
+                <table
+                  style="background-color: #ffffff; padding: 0 0px"
+                  cellspacing="0"
+                  cellpadding="10"
+                  border="0"
+                  align="center"
+                >
+                  <tbody>
+                    <tr>
+                      <td style="padding: 0px 30px 50 30px">
+                        <table
+                          style="
+                            font-family: Inter, 'Helvetica Neue Light', 'Helvetica Regular',
+                              Arial, sans-serif;
+                            font-size: 16px;
+                            line-height: 26px;
+                          "
+                          cellspacing="0"
+                          cellpadding="10"
+                          border="0"
+                          align="center"
+                        >
+                          <tbody>
+                            <tr>
+                              <td style="padding: 40px 50px" align="center">
+                                <img
+                                  src="https://www.remita.net/assets/minimal/images/remita_orange_new_logo.svg"
+                                  width="100px;"
+                                />
+                              </td>
+                            </tr>
+                            <tr>
+                              <td
+                                style="
+                                  background: #fff;
+                                  border-top-left-radius: 16px;
+                                  border-top-right-radius: 16px;
+                                  line-height: 23px !important;
+                                "
+                              >
+                                <div>Hello ,</div>
+                                <br />
                 <div>{description}</div>
-                <br>
-                <b><a href="{self._content.url}">{call_to_action}</a></b><p></p>
-                {html_table}
-                {img_tag}
+                                <br />
+                                <p></p>
+                                {html_table} {img_tag}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td
+                                style="
+                                  padding: 10px 20px;
+                                  background: #f7f9fc;
+                                  text-align: center;
+                                  font-size: 14px;
+                                "
+                              >
+                                <p style="margin-bottom: 30px">
+                                  You received this email because you signed up to Remita.Please do not reply this email as it is automatically generated and unmanned.
+                                </p>
+                                <p>&copy; {currentYear} Remita Payment Services Limited</p>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </body>
             </html>
             """
