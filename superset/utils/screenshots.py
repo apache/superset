@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import datetime
 from enum import Enum
@@ -64,7 +65,7 @@ class StatusValues(Enum):
 
 
 class ScreenshotCachePayloadType(TypedDict):
-    image: bytes | None
+    image: str | None
     timestamp: str
     status: str
 
@@ -83,14 +84,16 @@ class ScreenshotCachePayload:
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
         return cls(
-            image=payload["image"],
+            image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
         return {
-            "image": self._image,
+            "image": base64.b64encode(self._image).decode("utf-8")
+            if self._image
+            else None,
             "timestamp": self._timestamp,
             "status": self.status.value,
         }
