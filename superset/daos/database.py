@@ -170,7 +170,7 @@ class DatabaseDAO(BaseDAO[Database]):
         return ssh_tunnel
     
     @classmethod
-    def is_odps_partitioned_table(cls, database: Database, table_name: str):
+    def is_odps_partitioned_table(cls, database: Database, table_name: str) -> Tuple[bool, List[int]]:
         """
         This function is used to determine and retrieve partition information of the odsp table.
         The return values are whether the partition table is partitioned and the names of all partition fields.
@@ -178,7 +178,7 @@ class DatabaseDAO(BaseDAO[Database]):
         if not database:
             raise ValueError("Database not found")
         uri = database.sqlalchemy_uri
-        passwd = database.password
+        access_key = database.password
         pattern = re.compile(
             r'odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?endpoint=(?P<endpoint>[^&]+))'
         )
@@ -187,7 +187,6 @@ class DatabaseDAO(BaseDAO[Database]):
             access_id = match.group('username')
             project = match.group('project')
             endpoint = match.group('endpoint')
-        access_key = passwd
         odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
         table = odps_client.get_table(table_name)
         if table.exist_partition:
