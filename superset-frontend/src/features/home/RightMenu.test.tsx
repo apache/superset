@@ -160,7 +160,7 @@ beforeEach(async () => {
   );
 });
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
