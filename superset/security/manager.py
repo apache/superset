@@ -330,6 +330,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
         ("menu_access", "Query Search"),
+        ("can_read", "SqlLabPermalinkRestApi"),
+        ("can_write", "SqlLabPermalinkRestApi"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
