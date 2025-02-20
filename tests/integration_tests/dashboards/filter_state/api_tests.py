@@ -14,12 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from unittest.mock import patch  # noqa: F401
 
 import pytest
 from flask.ctx import AppContext
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.dashboard.exceptions import (
@@ -34,7 +32,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app  # noqa: F401
 
 KEY = "test-key"
 INITIAL_VALUE = json.dumps({"test": "initial value"})

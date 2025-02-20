@@ -41,10 +41,6 @@ from superset.utils.webdriver import WebDriverSelenium
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
 from tests.integration_tests.test_app import app
 
 CHART_URL = "/api/v1/chart/"

@@ -18,7 +18,6 @@ from unittest.mock import patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import User
-from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.commands.dataset.exceptions import DatasetAccessDeniedError

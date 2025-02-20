@@ -51,18 +51,7 @@ from superset.utils.database import get_example_database, get_main_database
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_with_slice,  # noqa: F401
-    load_energy_table_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,  # noqa: F401
-    load_world_bank_data,  # noqa: F401
-)
+
 from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,

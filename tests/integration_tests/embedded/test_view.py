@@ -24,10 +24,6 @@ import pytest
 from superset import db
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
 from tests.integration_tests.fixtures.client import client  # noqa: F401
 
 if TYPE_CHECKING:

@@ -21,7 +21,6 @@ from datetime import timedelta
 from typing import Any, Optional
 from unittest.mock import patch
 
-from flask import current_app  # noqa: F401
 from freezegun import freeze_time
 
 from superset import security_manager

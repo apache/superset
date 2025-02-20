@@ -18,8 +18,6 @@
 
 from typing import Optional
 
-from pandas import DataFrame  # noqa: F401
-
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database

@@ -62,14 +62,7 @@ from tests.integration_tests.fixtures.tags import (
     get_filter_params,
 )
 from tests.integration_tests.utils.get_dashboards import get_dashboards_ids
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,  # noqa: F401
-    load_world_bank_data,  # noqa: F401
-)
+
 
 DASHBOARDS_FIXTURE_COUNT = 10
 

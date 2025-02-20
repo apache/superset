@@ -19,7 +19,6 @@ from typing import Any
 from uuid import uuid3
 
 import pytest
-from sqlalchemy.orm import Session  # noqa: F401
 
 from superset import db
 from superset.explore.permalink.schemas import ExplorePermalinkSchema
@@ -33,7 +32,6 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
 )
-from tests.integration_tests.test_app import app  # noqa: F401
 
 
 @pytest.fixture

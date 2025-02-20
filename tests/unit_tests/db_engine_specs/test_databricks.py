@@ -26,7 +26,6 @@ from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
-from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 def test_get_parameters_from_uri() -> None:

@@ -18,7 +18,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-from flask import g  # noqa: F401
 
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
@@ -42,14 +41,6 @@ from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,  # noqa: F401
-    load_birth_names_data,  # noqa: F401
-)
-from tests.integration_tests.fixtures.energy_dashboard import (
-    load_energy_table_data,  # noqa: F401
-    load_energy_table_with_slice,  # noqa: F401
-)
 from tests.integration_tests.fixtures.importexport import (
     chart_config,
     chart_metadata_config,
