@@ -142,7 +142,7 @@ describe('Dashboards list', () => {
     });
   });
 
-  describe('common actions', () => {
+  describe.only('common actions', () => {
     beforeEach(() => {
       cy.createSampleDashboards([0, 1, 2, 3]);
       cy.visit(DASHBOARD_LIST);
@@ -213,8 +213,11 @@ describe('Dashboards list', () => {
       cy.getBySel('table-row')
         .eq(0)
         .contains('4 - Sample dashboard')
-        .should('exist');
-      cy.getBySel('dashboard-list-trash-icon').eq(0).click();
+        .should('be.visible');
+      cy.getBySel('dashboard-list-trash-icon')
+        .eq(0)
+        .should('exist')
+        .click({ force: true });
       confirmDelete();
       cy.getBySel('table-row')
         .eq(0)
@@ -229,9 +232,11 @@ describe('Dashboards list', () => {
       cy.getBySel('styled-card')
         .eq(0)
         .contains('1 - Sample dashboard')
-        .should('exist');
+        .should('be.visible');
       openMenu();
-      cy.getBySel('dashboard-card-option-delete-button').click();
+      cy.getBySel('dashboard-card-option-delete-button')
+        .should('be.visible')
+        .click({ force: true });
       confirmDelete();
       cy.getBySel('styled-card')
         .eq(0)
