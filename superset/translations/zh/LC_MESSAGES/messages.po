@@ -8782,7 +8782,7 @@ msgstr "行限制"
 msgid "Rows"
 msgstr "行"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "每页行数，0 表示没有分页"
 
 msgid "Rows subtotal position"
