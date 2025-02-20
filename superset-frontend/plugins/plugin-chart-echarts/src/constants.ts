@@ -122,4 +122,4 @@ export const TOOLTIP_POINTER_MARGIN = 10;
 // from the edge of the window should the tooltip be kept
 export const TOOLTIP_OVERFLOW_MARGIN = 5;
 
-export const DEFAULT_LOCALE = 'en'
+export const DEFAULT_LOCALE = 'en';
