@@ -86,7 +86,7 @@ test('should return errors when not a float', async () => {
   expect(changeProps.onChange).toHaveBeenCalledWith('!', [
     'is expected to be a number',
   ]);
-}, 20000);
+});
 
 test('should return errors when not an int', async () => {
   const changeProps = {

@@ -67,7 +67,7 @@ test('Should render', async () => {
   const props = createProps();
   render(<SelectAsyncControl {...props} />, { useRedux: true });
   expect(await screen.findByTestId('select-test')).toBeInTheDocument();
-}, 20000);
+});
 
 test('Should send correct props to Select component - value props', async () => {
   const props = createProps();

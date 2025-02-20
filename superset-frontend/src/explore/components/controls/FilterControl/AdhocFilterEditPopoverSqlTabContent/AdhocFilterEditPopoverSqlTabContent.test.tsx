@@ -65,7 +65,7 @@ test('calls onChange when the SQL clause changes', async () => {
   expect(onChange).toHaveBeenCalledWith(
     expect.objectContaining({ clause: Clauses.Having }),
   );
-}, 20000);
+});
 
 test('calls onChange when the SQL expression changes', async () => {
   const onChange = jest.fn();

@@ -254,7 +254,7 @@ describe('ResultSet', () => {
     await waitFor(() =>
       expect(fetchMock.calls(reRunQueryEndpoint)).toHaveLength(1),
     );
-  }, 10000);
+  });
 
   test('should not call reRunQuery if no error', async () => {
     const query = queries[0];
@@ -532,7 +532,7 @@ describe('ResultSet', () => {
         within(warningModal).getByText(`Download is on the way`),
       ).toBeInTheDocument();
     });
-  }, 20000);
+  });
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {
     const { queryByTestId } = setup(
