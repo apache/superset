@@ -46,7 +46,7 @@
     "url-loader": "^4.1.1"
   },
   "devDependencies": {
-    "@docusaurus/module-type-aliases": "^3.6.3",
+    "@docusaurus/module-type-aliases": "^3.7.0",
     "@docusaurus/tsconfig": "^3.6.3",
     "@types/react": "^18.3.12",
     "typescript": "^5.7.3",
