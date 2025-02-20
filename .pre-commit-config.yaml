@@ -75,6 +75,7 @@ repos:
         language: node
         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
         exclude: ^superset-frontend/cypress-base\/
+        require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
     rev: e2f070289d8eddcaec0b580d3bde29437e7c8221
