@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   AnyFilterAction,
   SET_FILTER_CONFIG_COMPLETE,
@@ -25,14 +8,26 @@ import {
   SET_HOVERED_NATIVE_FILTER,
   UNSET_HOVERED_NATIVE_FILTER,
   UPDATE_CASCADE_PARENT_IDS,
+  // DODO added start 44211751
+  SET_FILTER_SETS_COMPLETE,
+  CREATE_FILTER_SET_BEGIN,
+  UPDATE_FILTER_SET_BEGIN,
+  DELETE_FILTER_SET_BEGIN,
+  // DODO added stop 44211751
 } from 'src/dashboard/actions/nativeFilters';
-import { FilterConfiguration, NativeFiltersState } from '@superset-ui/core';
+import {
+  FilterConfiguration,
+  FilterSet, // DODO added 44211751
+  NativeFiltersState,
+} from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
 export function getInitialState({
+  filterSetsConfig, // DODO added 44211751
   filterConfig,
   state: prevState,
 }: {
+  filterSetsConfig?: FilterSet[]; // DODO added 44211751
   filterConfig?: FilterConfiguration;
   state?: NativeFiltersState;
 }): NativeFiltersState {
@@ -48,6 +43,18 @@ export function getInitialState({
   } else {
     state.filters = prevState?.filters ?? {};
   }
+  // DODO added 44211751
+  if (filterSetsConfig) {
+    const filterSets: Record<number, FilterSet> = {};
+    filterSetsConfig.forEach(filtersSet => {
+      const { id } = filtersSet;
+      filterSets[id] = filtersSet;
+    });
+    state.filterSets = filterSets;
+    state.pendingFilterSetId = undefined;
+  } else {
+    state.filterSets = prevState?.filterSets;
+  }
   state.focusedFilterId = undefined;
   return state as NativeFiltersState;
 }
@@ -55,6 +62,7 @@ export function getInitialState({
 export default function nativeFilterReducer(
   state: NativeFiltersState = {
     filters: {},
+    filterSets: {}, // DODO added 44211751
   },
   action: AnyFilterAction,
 ) {
@@ -62,6 +70,7 @@ export default function nativeFilterReducer(
     case HYDRATE_DASHBOARD:
       return {
         filters: action.data.nativeFilters.filters,
+        filterSets: action.data.nativeFilters.filterSets, // DODO added 44211751
       };
 
     case SET_FILTER_CONFIG_COMPLETE:
@@ -103,6 +112,28 @@ export default function nativeFilterReducer(
           },
         },
       };
+    // DODO added start 44211751
+    case SET_FILTER_SETS_COMPLETE:
+      return getInitialState({
+        filterSetsConfig: action.filterSets,
+        state,
+      });
+    case CREATE_FILTER_SET_BEGIN:
+      return {
+        ...state,
+        pendingFilterSetId: action.id,
+      };
+    case UPDATE_FILTER_SET_BEGIN:
+      return {
+        ...state,
+        pendingFilterSetId: action.id,
+      };
+    case DELETE_FILTER_SET_BEGIN:
+      return {
+        ...state,
+        pendingFilterSetId: action.id,
+      };
+    // DODO added stop 44211751
     // TODO handle SET_FILTER_CONFIG_FAIL action
     default:
       return state;
