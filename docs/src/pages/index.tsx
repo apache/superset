@@ -207,7 +207,6 @@ const StyledFeaturesList = styled('ul')`
   .item {
     text-align: left;
     border: 1px solid var(--ifm-border-color);
-    background-color: #ffffff;
     border-radius: 10px;
     overflow: hidden;
     display: flex;
@@ -230,7 +229,6 @@ const StyledFeaturesList = styled('ul')`
     }
     .title {
       font-size: 24px;
-      color: var(--ifm-primary-text);
       margin: 10px 0 0;
       ${mq[1]} {
         font-size: 23px;
@@ -240,7 +238,6 @@ const StyledFeaturesList = styled('ul')`
     .description {
       font-size: 17px;
       line-height: 23px;
-      color: var(--ifm-secondary-text);
       margin: 5px 0 0;
       ${mq[1]} {
         font-size: 16px;
