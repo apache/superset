@@ -17,7 +17,7 @@
 import re
 from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_dump, post_load, pre_load, Schema
+from marshmallow import fields, post_dump, post_load, pre_load, Schema, validate
 from marshmallow.validate import Length, ValidationError
 
 from superset import security_manager
@@ -331,12 +331,12 @@ class DashboardPostSchema(BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
-        validate=Length(0, 500),
+        validate=[validate.And(Length(0, 500),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     slug = fields.String(
         metadata={"description": slug_description},
         allow_none=True,
-        validate=[Length(1, 255)],
+        validate=[validate.And(Length(1, 255),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     roles = fields.List(fields.Integer(metadata={"description": roles_description}))
@@ -350,10 +350,10 @@ class DashboardPostSchema(BaseDashboardSchema):
     )
     published = fields.Boolean(metadata={"description": published_description})
     certified_by = fields.String(
-        metadata={"description": certified_by_description}, allow_none=True
+        metadata={"description": certified_by_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     certification_details = fields.String(
-        metadata={"description": certification_details_description}, allow_none=True
+        metadata={"description": certification_details_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
@@ -363,7 +363,7 @@ class DashboardCopySchema(Schema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
-        validate=Length(0, 500),
+        validate=[validate.And(Length(0, 500),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     css = fields.String(metadata={"description": css_description})
     json_metadata = fields.String(
@@ -382,12 +382,12 @@ class DashboardPutSchema(BaseDashboardSchema):
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
-        validate=Length(0, 500),
+        validate=[validate.And(Length(0, 500),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     slug = fields.String(
         metadata={"description": slug_description},
         allow_none=True,
-        validate=Length(0, 255),
+        validate=[validate.And(Length(0, 255),validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _'))],
     )
     owners = fields.List(
         fields.Integer(metadata={"description": owners_description}, allow_none=True)
@@ -410,10 +410,10 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": published_description}, allow_none=True
     )
     certified_by = fields.String(
-        metadata={"description": certified_by_description}, allow_none=True
+        metadata={"description": certified_by_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     certification_details = fields.String(
-        metadata={"description": certification_details_description}, allow_none=True
+        metadata={"description": certification_details_description}, allow_none=True, validate=validate.Regexp(regex='^[a-zA-Z0-9%#_]+$',error='Field must contain only alphanumeric characters, %, #, or _')
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)

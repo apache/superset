@@ -77,6 +77,18 @@ from superset.utils.core import (
 )
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
+# Customized User Info Edit with validation
+from flask import flash, g, request
+from flask_appbuilder._compat import as_unicode
+from flask_appbuilder.security.forms import (
+    DynamicForm,
+)
+from flask_appbuilder.views import SimpleFormView
+from flask_babel import lazy_gettext
+from wtforms import StringField
+from wtforms.validators import DataRequired, Regexp
+ 
+from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -94,6 +106,43 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
+
+class CustomUserInfoEdit(DynamicForm):
+    first_name = StringField(
+        lazy_gettext("First Name"),
+        validators=[DataRequired(), Regexp(regex='^[a-zA-Z0-9%#_]+$', message='Field must contain only alphanumeric characters, %, #, or _')],
+        widget=BS3TextFieldWidget(),
+        description=lazy_gettext("Write the user first name or names"),
+    )
+    last_name = StringField(
+        lazy_gettext("Last Name"),
+        validators=[DataRequired(), Regexp(regex='^[a-zA-Z0-9%#_]+$', message='Field must contain only alphanumeric characters, %, #, or _')],
+        widget=BS3TextFieldWidget(),
+        description=lazy_gettext("Write the user last name"),
+    )
+ 
+ 
+class NewUserInfoEditView(SimpleFormView):
+    form = CustomUserInfoEdit
+    form_title = lazy_gettext("Edit User Information")
+    redirect_url = "/"
+    message = lazy_gettext("User information changed")
+ 
+    def form_get(self, form: DynamicForm) -> None:
+        item = self.appbuilder.sm.get_user_by_id(g.user.id)
+        # fills the form generic solution
+        for key, value in form.data.items():
+            if key == "csrf_token":
+                continue
+            form_field = getattr(form, key)
+            form_field.data = getattr(item, key)
+ 
+    def form_post(self, form: DynamicForm) -> None:
+        form = self.form.refresh(request.form)
+        item = self.appbuilder.sm.get_user_by_id(g.user.id)
+        form.populate_obj(item)
+        self.appbuilder.sm.update_user(item)
+        flash(as_unicode(self.message), "info")
 
 
 class DatabaseCatalogSchema(NamedTuple):
@@ -213,6 +262,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     SecurityManager
 ):
     userstatschartview = None
+    userinfoeditview = NewUserInfoEditView
     READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
 
     USER_MODEL_VIEWS = {
