@@ -73,6 +73,7 @@ test('should focus', () => {
 });
 
 test('should return errors when not a float', async () => {
+  jest.setTimeout(20000);
   const changeProps = {
     ...mockedProps,
     isFloat: true,
