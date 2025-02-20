@@ -26,7 +26,7 @@
     "access": "public"
   },
   "dependencies": {
-    "d3": "^3.5.17",
+    "d3": "^7.9.0",
     "d3-array": "^2.0.3",
     "prop-types": "^15.8.1"
   },
