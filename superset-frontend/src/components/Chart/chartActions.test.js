@@ -75,7 +75,7 @@ describe('chart actions', () => {
     setupDefaultFetchMock();
   });
 
-  afterAll(fetchMock.restore);
+  afterAll(() => fetchMock.restore());
 
   beforeEach(() => {
     dispatch = sinon.spy();

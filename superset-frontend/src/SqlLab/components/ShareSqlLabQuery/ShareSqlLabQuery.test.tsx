@@ -119,7 +119,7 @@ describe('ShareSqlLabQuery', () => {
     jest.clearAllMocks();
   });
 
-  afterAll(fetchMock.reset);
+  afterAll(() => fetchMock.reset());
 
   describe('via permalink api', () => {
     beforeAll(() => {
