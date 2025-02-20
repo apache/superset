@@ -75,6 +75,7 @@ class DatasetColumnsPutSchema(Schema):
         allow_none=True, validate=[Length(1, 255), validate_python_date_format]
     )
     uuid = fields.UUID(allow_none=True)
+    override_columns = fields.Boolean(required=False, load_default=False)
 
 class DatasetMetricsPutSchema(Schema):
     id = fields.Integer()
