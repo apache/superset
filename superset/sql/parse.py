@@ -124,6 +124,26 @@ class Table:
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
 
+@dataclass(eq=True, frozen=True)
+class Partition:
+    """
+    Partition object, with two attribute keys: ispartitioned_table and partition_comlumn, used to provide partition information
+    Here is an example of an object:
+    {"ispartitioned_table":true,"partition_column":["month","day"]}
+    """
+    is_partitioned_table: bool
+    partition_column: list | None = None
+    def __str__(self) -> str:
+        """
+        Return the partition columns of table name.
+        """
+        return ".".join(
+            urllib.parse.quote(part, safe="").replace(".", "%2E")
+            for part in [self.is_partitioned_table, self.partition_column]
+            if part
+        )
+    def __eq__(self, other: Any) -> bool:
+        return str(self) == str(other)
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
 # an "internal representation", which is the AST of the SQL statement. For most of the
