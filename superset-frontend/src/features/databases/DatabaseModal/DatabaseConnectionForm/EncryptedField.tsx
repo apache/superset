@@ -53,10 +53,7 @@ export const EncryptedField = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
-  const [isPublic, setIsPublic] = useState<boolean>(true);
-  const showCredentialsInfo =
-    db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
+  const showCredentialsInfo = !isEditMode;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
@@ -68,33 +65,9 @@ export const EncryptedField = ({
       : paramValue;
   return (
     <CredentialInfoForm>
-      {db?.engine === 'gsheets' && (
-        <div className="catalog-type-select">
-          <FormLabel
-            css={(theme: SupersetTheme) => labelMarginBottom(theme)}
-            required
-          >
-            {t('Type of Google Sheets allowed')}
-          </FormLabel>
-          <AntdSelect
-            style={{ width: '100%' }}
-            defaultValue={isEncrypted ? 'false' : 'true'}
-            onChange={(value: string) =>
-              setIsPublic(castStringToBoolean(value))
-            }
-          >
-            <AntdSelect.Option value="true" key={1}>
-              {t('Publicly shared sheets only')}
-            </AntdSelect.Option>
-            <AntdSelect.Option value="false" key={2}>
-              {t('Public and privately shared sheets')}
-            </AntdSelect.Option>
-          </AntdSelect>
-        </div>
-      )}
       {showCredentialsInfo && (
         <>
-          <FormLabel required>
+          <FormLabel>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
           <AntdSelect
@@ -116,7 +89,7 @@ export const EncryptedField = ({
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
-          <FormLabel required>{t('Service Account')}</FormLabel>
+          <FormLabel>{t('Service Account')}</FormLabel>
           <textarea
             className="input-form"
             name={encryptedField}
@@ -141,7 +114,7 @@ export const EncryptedField = ({
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
             <div css={{ display: 'flex', alignItems: 'center' }}>
-              <FormLabel required>{t('Upload Credentials')}</FormLabel>
+              <FormLabel>{t('Upload Credentials')}</FormLabel>
               <InfoTooltip
                 tooltip={t(
                   'Use the JSON file you automatically downloaded when creating your service account.',

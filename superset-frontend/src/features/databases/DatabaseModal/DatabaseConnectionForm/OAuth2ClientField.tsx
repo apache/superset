@@ -22,7 +22,7 @@ import { useState } from 'react';
 import Collapse from 'src/components/Collapse';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
-import { FieldPropTypes } from '../../types';
+import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {
   CLIENT_ID: 'Client ID',
@@ -40,16 +40,25 @@ interface OAuth2ClientInfo {
   scope: string;
 }
 
-export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
+export const OAuth2ClientField = ({
+  changeMethods,
+  db,
+  default_value: defaultValue,
+}: FieldPropTypes) => {
   const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
   const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>({
     id: encryptedExtra.oauth2_client_info?.id || '',
     secret: encryptedExtra.oauth2_client_info?.secret || '',
     authorization_request_uri:
-      encryptedExtra.oauth2_client_info?.authorization_request_uri || '',
+      encryptedExtra.oauth2_client_info?.authorization_request_uri ||
+      defaultValue?.authorization_request_uri ||
+      '',
     token_request_uri:
-      encryptedExtra.oauth2_client_info?.token_request_uri || '',
-    scope: encryptedExtra.oauth2_client_info?.scope || '',
+      encryptedExtra.oauth2_client_info?.token_request_uri ||
+      defaultValue?.token_request_uri ||
+      '',
+    scope:
+      encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
   });
 
   const handleChange = (key: any) => (e: any) => {
@@ -60,13 +69,14 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
 
     setOauth2ClientInfo(updatedInfo);
 
-    const event = {
+    const event: CustomParametersChangeType = {
       target: {
+        type: 'object',
         name: 'oauth2_client_info',
         value: updatedInfo,
       },
     };
-    changeMethods.onEncryptedExtraInputChange(event);
+    changeMethods.onParametersChange(event);
   };
 
   return (
