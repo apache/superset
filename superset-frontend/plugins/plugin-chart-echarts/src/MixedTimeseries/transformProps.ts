@@ -23,6 +23,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  convertKeysToCamelCase,
   CurrencyFormatter,
   ensureIsArray,
   GenericDataType,
@@ -207,7 +208,11 @@ export default function transformProps(
     percentageThreshold,
     metrics = [],
     metricsB = [],
-  }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
+  }: EchartsMixedTimeseriesFormData = {
+    ...DEFAULT_FORM_DATA,
+    ...formData,
+    ...convertKeysToCamelCase(formData.extraFormData),
+  };
 
   const refs: Refs = {};
   const colorScale = CategoricalColorNamespace.getScale(colorScheme as string);
@@ -484,11 +489,11 @@ export default function transformProps(
 
   const tooltipFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getTooltipTimeFormatter(tooltipTimeFormat)
+      ? getTooltipTimeFormatter(tooltipTimeFormat, timeGrainSqla)
       : String;
   const xAxisFormatter =
     xAxisDataType === GenericDataType.Temporal
-      ? getXAxisFormatter(xAxisTimeFormat)
+      ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
 
   const addYAxisTitleOffset = !!(yAxisTitle || yAxisTitleSecondary);
