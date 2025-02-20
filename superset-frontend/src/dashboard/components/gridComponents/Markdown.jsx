@@ -123,6 +123,7 @@ class Markdown extends PureComponent {
       markdownSource: props.component.meta.code,
       editor: null,
       editorMode: 'preview',
+      isEditing: false,
       undoLength: props.undoLength,
       redoLength: props.redoLength,
     };
@@ -215,17 +216,32 @@ class Markdown extends PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
+    if(this.state.isEditing){
     const nextFocused = !!nextFocus;
     const nextEditMode = nextFocused ? 'edit' : 'preview';
     this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
+    this.handleChangeEditorMode(nextEditMode);}
   }
 
   handleChangeEditorMode(mode) {
-    const nextState = {
+    let nextState = {
       ...this.state,
       editorMode: mode,
+      isEditing: mode === 'edit',
     };
+
+    if(mode == 'edit') {
+      nextState = {
+        ...this.state,
+        editorMode: 'edit',
+        isEditing: true,
+      };
+      console.log('here');
+    }
+
+    console.log('is editing', mode == 'edit');
+    console.log('editor mode', mode);
+    
     if (mode === 'preview') {
       this.updateMarkdownContent();
       nextState.hasError = false;
@@ -308,7 +324,7 @@ class Markdown extends PureComponent {
   }
 
   render() {
-    const { isFocused, editorMode } = this.state;
+    const { isFocused, editorMode, isEditing } = this.state;
 
     const {
       component,
@@ -328,8 +344,6 @@ class Markdown extends PureComponent {
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
-
-    const isEditing = editorMode === 'edit';
 
     return (
       <Draggable
@@ -382,6 +396,17 @@ class Markdown extends PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
+                  onClick={() => {
+                    // Only trigger edit mode if we're in editMode but not yet editing
+                    
+                    
+                    console.log('clicky');
+                    if (editMode && !isEditing) {
+                      console.log('clicked got performed');
+                      this.handleChangeFocus(true);
+                      // this.handleChangeEditorMode('edit');
+                    }
+                  }}
                 >
                   {editMode && (
                     <HoverMenu position="top">
@@ -390,7 +415,8 @@ class Markdown extends PureComponent {
                       />
                     </HoverMenu>
                   )}
-                  {editMode && isEditing
+                  {/* {this.renderPreviewMode()} */}
+                  {isEditing
                     ? this.renderEditMode()
                     : this.renderPreviewMode()}
                 </div>
