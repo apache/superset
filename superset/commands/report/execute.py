@@ -139,15 +139,21 @@ class BaseReportState:
                     slack_recipients = json.loads(recipient.recipient_config_json)
                     # we need to ensure that existing reports can also fetch
                     # ids from private channels
+                    current_target_count = slack_recipients["target"].split(",")
+                    channels = get_channels_with_search(
+                        slack_recipients["target"],
+                        types=[
+                            SlackChannelTypes.PRIVATE,
+                            SlackChannelTypes.PUBLIC,
+                        ],
+                        exact_match=True,
+                    )
+                    if len(current_target_count) != len(channels):
+                        raise UpdateFailedError("Not all channels could be found")
+                    channel_ids = ", ".join(channel["id"] for channel in channels)
                     recipient.recipient_config_json = json.dumps(
                         {
-                            "target": get_channels_with_search(
-                                slack_recipients["target"],
-                                types=[
-                                    SlackChannelTypes.PRIVATE,
-                                    SlackChannelTypes.PUBLIC,
-                                ],
-                            )
+                            "target": channel_ids,
                         }
                     )
         except Exception as ex:
