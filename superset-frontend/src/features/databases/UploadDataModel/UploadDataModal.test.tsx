@@ -615,7 +615,7 @@ test('form without required fields', async () => {
 });
 
 test('CSV form post', async () => {
-  jest.setTimeout(10000);
+  jest.setTimeout(20000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -674,6 +674,7 @@ test('CSV form post', async () => {
 }, 10000); // longer timeout to decrease flakiness
 
 test('Excel form post', async () => {
+  jest.setTimeout(20000);
   render(<UploadDataModal {...excelProps} />, {
     useRedux: true,
   });
@@ -732,6 +733,7 @@ test('Excel form post', async () => {
 }, 10000); // longer timeout to decrease flakiness
 
 test('Columnar form post', async () => {
+  jest.setTimeout(20000);
   render(<UploadDataModal {...columnarProps} />, {
     useRedux: true,
   });

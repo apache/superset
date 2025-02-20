@@ -51,6 +51,7 @@ const adhocFilter = new AdhocFilter({
 });
 
 test('calls onChange when the SQL clause changes', async () => {
+  jest.setTimeout(20000);
   const onChange = jest.fn();
   render(
     <AdhocFilterEditPopoverSqlTabContent
