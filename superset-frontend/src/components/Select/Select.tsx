@@ -36,7 +36,7 @@ import {
   usePrevious,
 } from '@superset-ui/core';
 import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
-import { debounce, isEqual, uniq } from 'lodash';
+import { debounce, isEqual } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,
@@ -583,7 +583,9 @@ const Select = forwardRef(
         }
       } else {
         const token = tokenSeparators.find(token => pastedText.includes(token));
-        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const array = token
+          ? [...new Set(pastedText.split(token))]
+          : [pastedText];
         const values = array
           .map(item => getPastedTextValue(item))
           .filter(item => item !== undefined);
