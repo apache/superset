@@ -40,7 +40,7 @@ stages:
       inputs:
         targetType: inline
         script: |
-          docker pull $(containerRegistry)/$(imageRepository):$(Build.SourceBranchName) || exit 0
+          docker pull $(dockerRegistryServiceConnection)/$(imageRepository):$(Build.SourceBranchName) || exit 0
     - task: Docker@2
       displayName: Build image from dockerfile
       inputs:
@@ -51,7 +51,7 @@ stages:
           latest
           $(tag)
           $(Build.SourceBranchName)
-        arguments: '--cache-from $(containerRegistry)/$(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1'
+        arguments: '--cache-from $(dockerRegistryServiceConnection)/$(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1'
 
     - task: Docker@2
       displayName: push image to container registry
@@ -62,7 +62,7 @@ stages:
           $(tag)
           $(Build.SourceBranchName)
 - stage: Development
-  condition: and(succeeded(), eq(variables['build.sourceBranchName'], 'development'))
+  condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'development'))
   displayName: Development Deploy stage
   dependsOn: Build
 
