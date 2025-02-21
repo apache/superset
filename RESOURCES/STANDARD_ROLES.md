@@ -94,9 +94,9 @@ under the License.
 | can available domains on Superset                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can request access on Superset                   |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can dashboard on Superset                        |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can post on TableSchemaView                      |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can expanded on TableSchemaView                  |:heavy_check_mark:|:heavy_check_mark:|O|O|
-| can delete on TableSchemaView                    |:heavy_check_mark:|:heavy_check_mark:|O|O|
+| can post on TableSchemaView                      |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+| can expanded on TableSchemaView                  |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+| can delete on TableSchemaView                    |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can get on TabStateView                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can post on TabStateView                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
 | can delete query on TabStateView                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
