@@ -219,6 +219,10 @@ class ClickHouseParametersSchema(Schema):
         values=fields.Raw(),
         metadata={"description": __("Additional parameters")},
     )
+    ssh = fields.Boolean(
+        required=False,
+        metadata={"description": __("Use an ssh tunnel connection to the database")},
+    )
 
 
 try:
@@ -313,6 +317,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
         url_params.pop("encryption", None)
+        url_params.pop("ssh", None)
         return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
 
     @classmethod
