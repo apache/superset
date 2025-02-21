@@ -121,12 +121,12 @@ export default function transformProps(
   const metricColtypeIndex = colnames.findIndex(name => name === metricName);
   const metricColtype =
     metricColtypeIndex > -1 ? coltypes[metricColtypeIndex] : null;
-
-  if (data.length > 0) {
-    const sortedData = (data as BigNumberDatum[])
-      .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
-      // sort in time descending order
-      .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
+  
+    if (data.length > 0) {
+      const sortedData = (data as BigNumberDatum[])
+        .map(d => [d[xAxisLabel], parseMetricValue(d[metricName])])
+        // sort in time descending order
+        .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
     bigNumber = sortedData[0][1];
     timestamp = sortedData[0][0];

@@ -28,6 +28,7 @@ import {
 } from 'src/explore/components/controls/DateFilterControl/types';
 
 export const FRAME_OPTIONS: SelectOptionType[] = [
+  { value: 'Custom Calendar', label: t('Custom Calendar') },
   { value: 'Common', label: t('Last') },
   { value: 'Calendar', label: t('Previous') },
   { value: 'Custom', label: t('Custom') },
@@ -140,3 +141,87 @@ export enum DateFilterTestKey {
   CancelButton = 'cancel-button',
   ApplyButton = 'date-filter-control__apply-button',
 }
+
+moment.locale('en', {
+  week: {
+    dow: 1,
+  },
+});
+
+export const CUSTOM_CALENDAR_RANGE_OPTIONS: Record<
+  string,
+  [moment.Moment, moment.Moment]
+> = {
+  [t('Today')]: [moment(), moment().add(1, 'days')],
+  [t('Current Week')]: [
+    moment().startOf('week'),
+    moment().endOf('week').add(1, 'days'),
+  ],
+  [t('Current Month')]: [
+    moment().startOf('month'),
+    moment().endOf('month').add(1, 'days'),
+  ],
+  [t('Current Quarter')]: [
+    moment().startOf('quarter'),
+    moment().endOf('quarter').add(1, 'days'),
+  ],
+  [t('Current Year')]: [
+    moment().startOf('year'),
+    moment().endOf('year').add(1, 'days'),
+  ],
+  [t('Week-to-Date')]: [
+    moment().startOf('week'),
+    moment(),
+  ],
+  [t('Month-to-Date')]: [
+    moment().startOf('month'),
+    moment(),
+  ],
+  [t('Quarter-to-Date')]: [
+    moment().startOf('quarter'),
+    moment(),
+  ],
+  [t('Year-to-Date')]: [
+    moment().startOf('year'),
+    moment(),
+  ],
+  [t('Yesterday')]: [
+    moment().subtract(1, 'days'),
+    moment().subtract(1, 'days').add(1, 'days'),
+  ],
+  [t('Previous Week')]: [
+    moment().subtract(1, 'weeks').startOf('week'),
+    moment().subtract(1, 'weeks').endOf('week').add(1, 'days'),
+  ],
+  [t('Previous Month')]: [
+    moment().subtract(1, 'months').startOf('month'),
+    moment().subtract(1, 'months').endOf('month').add(1, 'days'),
+  ],
+  [t('Previous Quarter')]: [
+    moment().subtract(1, 'quarters').startOf('quarter'),
+    moment().subtract(1, 'quarters').endOf('quarter').add(1, 'days'),
+  ],
+  [t('Previous Year')]: [
+    moment().subtract(1, 'years').startOf('year'),
+    moment().subtract(1, 'years').endOf('year').add(1, 'days'),
+  ],
+  [t('Last Week')]: [
+    moment().subtract(7, 'days'),
+    moment().subtract(1, 'days').add(1, 'days'),
+  ],
+  [t('Last Month')]: [
+    moment().subtract(1, 'months'),
+    moment().subtract(1, 'days').add(1, 'days'),
+  ],
+  [t('Last Quarter')]: [
+    moment().subtract(3, 'months'),
+    moment().subtract(1, 'days').add(1, 'days'),
+  ],
+  [t('Last Year')]: [
+    moment().subtract(1, 'years'),
+    moment().subtract(1, 'days').add(1, 'days'),
+  ],
+};
+export const CUSTOM_CALENDAR_RANGE_VALUES_SET = new Set(
+  Object.keys(CUSTOM_CALENDAR_RANGE_OPTIONS)
+);

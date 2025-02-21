@@ -60,7 +60,7 @@ export const guessFrame = (timeRange: string): FrameType => {
   if (customTimeRangeDecode(timeRange).matchedFlag) {
     return 'Custom';
   }
-  return 'Advanced';
+  return 'Custom Calendar';
 };
 
 export const fetchTimeRange = async (

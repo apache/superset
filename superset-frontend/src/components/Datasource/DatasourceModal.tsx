@@ -180,6 +180,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             is_dttm: column.is_dttm,
             python_date_format: column.python_date_format || null,
             uuid: column.uuid,
+            override_columns: true,
             extra: buildExtraJsonObject(column),
           }),
         ),
