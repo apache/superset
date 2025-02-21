@@ -135,7 +135,6 @@ const StyledContent = styled.div<{
 const DashboardContentWrapper = styled.div`
   ${({ theme }) => css`
     &.dashboard {
-      padding-top: 30px;
       position: relative;
       flex-grow: 1;
       display: flex;
