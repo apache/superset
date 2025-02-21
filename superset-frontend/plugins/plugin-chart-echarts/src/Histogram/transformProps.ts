@@ -57,6 +57,7 @@ export default function transformProps(
     groupby = [],
     normalize,
     showLegend,
+    showLegendToggle,
     showValue,
     sliceId,
     xAxisFormat,
@@ -152,6 +153,8 @@ export default function transformProps(
 
   type EChartsOption = ComposeOption<GridComponentOption | BarSeriesOption>;
 
+  console.log('🚀 DEBUG transformProps.ts - Avant envoi à getLegendProps:', { showLegend, showLegendToggle });
+
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
@@ -186,6 +189,8 @@ export default function transformProps(
         theme,
         false,
         legendState,
+        undefined,
+        showLegendToggle,
       ),
       data: legendOptions,
     },
@@ -195,7 +200,7 @@ export default function transformProps(
       formatter: tooltipFormatter,
     },
   };
-
+  console.log('🚀 transformProps.ts - Après envoi à getLegendProps:', { showLegend, showLegendToggle });
   return {
     refs,
     formData,
