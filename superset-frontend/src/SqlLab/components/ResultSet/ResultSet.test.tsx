@@ -27,6 +27,7 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
+import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
@@ -143,6 +144,10 @@ const setup = (props?: any, store?: Store) =>
   });
 
 describe('ResultSet', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
   // Add cleanup after each test
   afterEach(async () => {
     fetchMock.resetHistory();

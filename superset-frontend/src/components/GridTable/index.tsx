@@ -231,6 +231,8 @@ function GridTable<RecordType extends object>({
         `}
       >
         <AgGridReact
+          // TODO: migrate to Theme API - https://www.ag-grid.com/react-data-grid/theming-migration/
+          theme="legacy"
           rowData={data}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
