@@ -282,7 +282,10 @@ class Markdown extends PureComponent {
         width="100%"
         height="100%"
         showGutter={false}
-        editorProps={{ $blockScrolling: true }}
+        editorProps={{ 
+          $blockScrolling: true,
+          role: 'textbox'
+         }}
         value={
           // this allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
