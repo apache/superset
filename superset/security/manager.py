@@ -2289,62 +2289,44 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = viz.form_data
 
             assert datasource
+                
+            can_access_schema = self.can_access_schema(datasource)
+            can_access_datasource_permission = self.can_access("datasource_access", datasource.perm or "")
+            is_owner = self.is_owner(datasource)
+            # Grant access to the datasource only if dashboard RBAC is enabled
+            # or the user is an embedded guest user with access to the dashboard
+            # and said datasource is associated with the dashboard chart in
+            # question.
+            dashboard_accessible = False
+            dashboard_ = None
 
+            if form_data and (dashboard_id := form_data.get("dashboardId")):
+                dashboard_ = self.get_session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+                
+            if dashboard_:
+                is_dashboard_rbac_enabled = is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles
+                is_embedded_guest_user = is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user()
+
+                if is_dashboard_rbac_enabled or is_embedded_guest_user:
+                    # Native filter.
+                    if form_data.get("type") == "NATIVE_FILTER" and (native_filter_id := form_data.get("native_filter_id")):
+                        json_metadata = json.loads(dashboard_.json_metadata) if dashboard_.json_metadata else {}
+                        dashboard_accessible = any(
+                            target.get("datasetId") == datasource.id
+                            for fltr in json_metadata.get("native_filter_configuration", [])
+                            for target in fltr.get("targets", [])
+                            if native_filter_id == fltr.get("id")
+                        )
+                    # Chart.
+                    elif (slice_id := form_data.get("slice_id")):
+                        slc = self.get_session.query(Slice).filter(Slice.id == slice_id).one_or_none()
+                        dashboard_accessible = slc and slc in dashboard_.slices and slc.datasource == datasource
+       
             if not (
-                self.can_access_schema(datasource)
-                or self.can_access("datasource_access", datasource.perm or "")
-                or self.is_owner(datasource)
-                or (
-                    # Grant access to the datasource only if dashboard RBAC is enabled
-                    # or the user is an embedded guest user with access to the dashboard
-                    # and said datasource is associated with the dashboard chart in
-                    # question.
-                    form_data
-                    and (dashboard_id := form_data.get("dashboardId"))
-                    and (
-                        dashboard_ := self.get_session.query(Dashboard)
-                        .filter(Dashboard.id == dashboard_id)
-                        .one_or_none()
-                    )
-                    and (
-                        (is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles)
-                        or (
-                            is_feature_enabled("EMBEDDED_SUPERSET")
-                            and self.is_guest_user()
-                        )
-                    )
-                    and (
-                        (
-                            # Native filter.
-                            form_data.get("type") == "NATIVE_FILTER"
-                            and (native_filter_id := form_data.get("native_filter_id"))
-                            and dashboard_.json_metadata
-                            and (json_metadata := json.loads(dashboard_.json_metadata))
-                            and any(
-                                target.get("datasetId") == datasource.id
-                                for fltr in json_metadata.get(
-                                    "native_filter_configuration",
-                                    [],
-                                )
-                                for target in fltr.get("targets", [])
-                                if native_filter_id == fltr.get("id")
-                            )
-                        )
-                        or (
-                            # Chart.
-                            form_data.get("type") != "NATIVE_FILTER"
-                            and (slice_id := form_data.get("slice_id"))
-                            and (
-                                slc := self.get_session.query(Slice)
-                                .filter(Slice.id == slice_id)
-                                .one_or_none()
-                            )
-                            and slc in dashboard_.slices
-                            and slc.datasource == datasource
-                        )
-                    )
-                    and self.can_access_dashboard(dashboard_)
-                )
+                can_access_schema
+                or can_access_datasource_permission
+                or is_owner
+                or (dashboard_accessible or self.can_access_dashboard(dashboard_))
             ):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(datasource)
