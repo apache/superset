@@ -23,7 +23,6 @@
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { ScreenGridLayer } from '@deck.gl/aggregation-layers';
 import { JsonObject, JsonValue, QueryFormData, t } from '@superset-ui/core';
-import { noop } from 'lodash';
 import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
@@ -135,7 +134,7 @@ const DeckGLScreenGrid = (props: DeckGLScreenGridProps) => {
   }, []);
 
   const getLayers = useCallback(() => {
-    const layer = getLayer(props.formData, props.payload, noop, setTooltip);
+    const layer = getLayer(props.formData, props.payload, () => {}, setTooltip);
 
     return [layer];
   }, [props.formData, props.payload, setTooltip]);
