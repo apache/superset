@@ -1,0 +1,64 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+from __future__ import annotations
+
+import logging
+
+from flask import current_app, g
+
+from superset import security_manager
+from superset.commands.database.exceptions import UserNotFoundInSessionError
+from superset.daos.database import DatabaseDAO
+from superset.extensions import celery_app
+
+logger = logging.getLogger(__name__)
+
+
+@celery_app.task(name="sync_database_permissions", soft_time_limit=600)
+def sync_database_permissions(
+    database_id: int, username: str, original_database_name: str
+) -> None:
+    # We need a local import here since the task imports the command, and the command
+    # also imports the task, which causes a circular import.
+    from superset.commands.database.sync_permissions import SyncPermissionsCommand
+
+    with current_app.test_request_context():
+        try:
+            user = security_manager.get_user_by_username(username)
+            if not user:
+                raise UserNotFoundInSessionError()
+            g.user = user
+            logger.info(
+                "Syncing permissions for DB connection %s while impersonating user %s",
+                database_id,
+                user.id,
+            )
+            db_connection = DatabaseDAO.find_by_id(database_id)
+            ssh_tunnel = DatabaseDAO.get_ssh_tunnel(database_id)
+            cmmd = SyncPermissionsCommand(
+                database_id,
+                old_db_connection_name=original_database_name,
+                db_connection=db_connection,
+                ssh_tunnel=ssh_tunnel,
+            )
+            cmmd.run()
+        except Exception:
+            logger.error(
+                "An error occurred while syncing permissions for DB connection ID %s",
+                database_id,
+                exc_info=True,
+            )

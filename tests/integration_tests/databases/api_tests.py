@@ -49,6 +49,7 @@ from superset.models.core import Database, ConfigurationMethod
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils import json
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -392,6 +393,9 @@ class TestDatabaseApi(SupersetTestCase):
         )
 
     @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_nested_transaction",
+    )
+    @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
@@ -405,6 +409,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
+        mock_sync_perms_command,
     ):
         """
         Database API: Test update Database with SSH Tunnel
@@ -517,6 +522,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_nested_transaction",
+    )
+    @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
@@ -532,6 +540,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
+        mock_sync_perms_command,
     ):
         """
         Database API: Test deleting a SSH tunnel via Database update
@@ -601,6 +610,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_nested_transaction",
+    )
+    @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
@@ -614,6 +626,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
+        mock_sync_perms_command,
     ):
         """
         Database API: Test update SSH Tunnel via Database API
@@ -1988,7 +2001,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert rv.status_code == 400
 
-    @patch("superset.utils.log.logger")
+    @mock.patch("superset.utils.log.logger")
     @mock.patch("superset.security.manager.SupersetSecurityManager.can_access_database")
     @mock.patch("superset.models.core.Database.get_all_table_names_in_schema")
     def test_database_tables_unexpected_error(
@@ -4069,4 +4082,175 @@ class TestDatabaseApi(SupersetTestCase):
         second_model = db.session.query(Database).get(second_response.get("id"))
         db.session.delete(first_model)
         db.session.delete(second_model)
+        db.session.commit()
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
+    def test_sync_db_perms_sync(self):
+        """
+        Database API: Test sync permissions in sync mode.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {"message": "Permissions successfully synced"}
+
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
+    @mock.patch("superset.commands.database.sync_permissions.DatabaseDAO.find_by_id")
+    def test_sync_db_perms_sync_db_not_found(self, mock_find_db):
+        """
+        Database API: Test sync permissions in sync mode when the DB connection
+        is not found.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_find_db.return_value = None
+
+        uri = "api/v1/database/10/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": False})
+    @mock.patch("superset.commands.database.sync_permissions.ping")
+    def test_sync_db_perms_sync_db_connection_failed(self, mock_ping):
+        """
+        Database API: Test sync permissions in sync mode when the DB connection
+        is not working.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_ping.return_value = False
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 500
+
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @mock.patch(
+        "superset.commands.database.sync_permissions.sync_database_permissions.delay"
+    )
+    def test_sync_db_perms_async(self, mock_task):
+        """
+        Database API: Test sync permissions in async mode.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 202
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {"message": "Async task created to sync permissions"}
+        mock_task.assert_called_once_with(
+            test_database.id, ADMIN_USERNAME, test_database.database_name
+        )
+
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @mock.patch("superset.commands.database.sync_permissions.DatabaseDAO.find_by_id")
+    def test_sync_db_perms_async_db_not_found(self, mock_find_db):
+        """
+        Database API: Test sync permissions in async mode when the DB connection
+        is not found.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_find_db.return_value = None
+
+        uri = "api/v1/database/10/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 404
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @mock.patch("superset.commands.database.sync_permissions.ping")
+    def test_sync_db_perms_async_db_connection_failed(self, mock_ping):
+        """
+        Database API: Test sync permissions in async mode when the DB connection
+        is not working.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_ping.return_value = False
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 500
+
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
+    @mock.patch(
+        "superset.commands.database.sync_permissions.security_manager.get_user_by_username"
+    )
+    def test_sync_db_perms_async_user_not_found(self, mock_get_user):
+        """
+        Database API: Test sync permissions in async mode when the user to be
+        impersonated can't be found.
+        """
+        self.login(ADMIN_USERNAME)
+        mock_get_user.return_value = False
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 500
+
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
+        db.session.commit()
+
+    @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run"
+    )
+    def test_sync_db_perms_no_access(self, mock_cmmd):
+        """
+        Database API: Test sync permissions with a user without permission to do so.
+        """
+        self.login(GAMMA_USERNAME)
+        example_db = get_example_database()
+        test_database = self.insert_database(
+            "test-database", example_db.sqlalchemy_uri_decrypted
+        )
+
+        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        rv = self.client.post(uri)
+        assert rv.status_code == 403
+
+        # Cleanup
+        model = db.session.query(Database).get(test_database.id)
+        db.session.delete(model)
         db.session.commit()

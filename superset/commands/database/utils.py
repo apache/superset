@@ -17,13 +17,31 @@
 from __future__ import annotations
 
 import logging
+import sqlite3
+from contextlib import closing
+
+from flask import current_app as app
+from sqlalchemy.engine import Engine
 
 from superset import security_manager
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.db_engine_specs.base import GenericDBException
 from superset.models.core import Database
+from superset.utils.core import timeout
 
 logger = logging.getLogger(__name__)
+
+
+def ping(engine: Engine) -> bool:
+    try:
+        time_delta = app.config["TEST_DATABASE_CONNECTION_TIMEOUT"]
+        with timeout(int(time_delta.total_seconds())):
+            with closing(engine.raw_connection()) as conn:
+                return engine.dialect.do_ping(conn)
+    except (sqlite3.ProgrammingError, RuntimeError):
+        # SQLite can't run on a separate thread, so ``utils.timeout`` fails
+        # RuntimeError catches the equivalent error from duckdb.
+        return engine.dialect.do_ping(engine)
 
 
 def add_permissions(database: Database, ssh_tunnel: SSHTunnel | None) -> None:
