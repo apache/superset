@@ -17,24 +17,15 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import { styledMount as mount } from 'spec/helpers/theming';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import ListView from 'src/components/ListView';
 import ExecutionLog from 'src/pages/ExecutionLogList';
-
-// store needed for withToasts(ExecutionLog)
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
+import { render, screen } from 'spec/helpers/testing-library';
 
 const executionLogsEndpoint = 'glob:*/api/v1/report/*/log*';
 const reportEndpoint = 'glob:*/api/v1/report/*';
 
 fetchMock.delete(executionLogsEndpoint, {});
 
-const mockannotations = [...new Array(3)].map((_, i) => ({
+const mockAnnotations = [...new Array(3)].map((_, i) => ({
   end_dttm: new Date().toISOString,
   error_message: `report ${i} error message`,
   id: i,
@@ -47,7 +38,7 @@ const mockannotations = [...new Array(3)].map((_, i) => ({
 
 fetchMock.get(executionLogsEndpoint, {
   ids: [2, 0, 1],
-  result: mockannotations,
+  result: mockAnnotations,
   count: 3,
 });
 
@@ -61,30 +52,22 @@ jest.mock('react-router-dom', () => ({
   useParams: () => ({ alertId: '1' }),
 }));
 
-async function mountAndWait(props) {
-  const mounted = mount(
-    <Provider store={store}>
-      <ExecutionLog {...props} />
-    </Provider>,
-  );
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
+const renderAndWait = (props = {}) =>
+  render(<ExecutionLog {...props} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+  });
 
 describe('ExecutionLog', () => {
-  let wrapper;
+  beforeAll(() => renderAndWait());
 
-  beforeAll(async () => {
-    wrapper = await mountAndWait();
-  });
-
-  it('renders', () => {
-    expect(wrapper.find(ExecutionLog)).toExist();
-  });
-
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+  it('renders with a ListView', () => {
+    expect(screen.getByText('Back to all')).toHaveAttribute(
+      'href',
+      '/alert/list/',
+    );
+    expect(screen.getByTestId('execution-log-list-view')).toBeVisible();
   });
 
   it('fetches report/alert', () => {

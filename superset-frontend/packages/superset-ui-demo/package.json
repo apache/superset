@@ -43,7 +43,7 @@
     "@storybook/types": "8.4.7",
     "@types/react-loadable": "^5.5.11",
     "antd": "4.10.3",
-    "core-js": "3.39.0",
+    "core-js": "3.40.0",
     "gh-pages": "^6.2.0",
     "jquery": "^3.7.1",
     "memoize-one": "^5.2.1",
@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.26.0",
-    "@babel/preset-env": "^7.23.9",
+    "@babel/preset-env": "^7.26.7",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.23.3",
     "@storybook/react-webpack5": "8.2.9",

@@ -25,11 +25,10 @@ import FlashProvider, { FlashMessage } from './index';
 test('Rerendering correctly with default props', () => {
   const messages: FlashMessage[] = [];
   render(
-    <Provider store={store}>
-      <FlashProvider messages={messages}>
-        <div data-test="my-component">My Component</div>
-      </FlashProvider>
-    </Provider>,
+    <FlashProvider messages={messages}>
+      <div data-test="my-component">My Component</div>
+    </FlashProvider>,
+    { store },
   );
   expect(screen.getByTestId('my-component')).toBeInTheDocument();
 });
