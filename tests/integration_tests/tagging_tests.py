@@ -30,6 +30,7 @@ from superset.utils.database import get_main_database
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.tags import (
+    clear_sqla_event_listeners,
     with_tagging_system_feature,  # noqa: F401
 )
 
@@ -235,6 +236,8 @@ class TestTagging(SupersetTestCase):
         Test to make sure that when the TAGGING_SYSTEM
         feature flag is false, that no tags are created
         """
+        # We need to clear the event listeners when the feature is disabled
+        clear_sqla_event_listeners()
 
         # Remove all existing rows in the tagged_object table
         self.clear_tagged_object_table()
