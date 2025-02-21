@@ -4135,6 +4135,12 @@ msgstr "Устарело"
 msgid "Description"
 msgstr "Описание"
 
+msgid "Description EN"
+msgstr "Описание EN"
+
+msgid "Description RU"
+msgstr "Описание RU"
+
 msgid "Description (this can be seen in the list)"
 msgstr "Описание (будет видно в списке)"
 

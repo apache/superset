@@ -1,21 +1,4 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 /** Type checking is disabled for this file due to reselect only supporting
  * TS declarations for selectors with up to 12 arguments. */
@@ -105,6 +88,8 @@ export interface ChartPropsConfig {
   inputRef?: RefObject<any>;
   /** Theme object */
   theme: SupersetTheme;
+  /** User's language */
+  locale?: string; // DODO added 44728892
 }
 
 const DEFAULT_WIDTH = 800;
@@ -155,6 +140,8 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   theme: SupersetTheme;
 
+  locale: string; // DODO added 44728892
+
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {
       annotationData = {},
@@ -176,6 +163,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
       inContextMenu = false,
       emitCrossFilters = false,
       theme,
+      locale, // DODO added 44728892
     } = config;
     this.width = width;
     this.height = height;
@@ -198,6 +186,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
     this.inContextMenu = inContextMenu;
     this.emitCrossFilters = emitCrossFilters;
     this.theme = theme;
+    this.locale = locale; // DODO added 44728892
   }
 }
 
@@ -223,6 +212,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
     input => input.inContextMenu,
     input => input.emitCrossFilters,
     input => input.theme,
+    input => input.locale, // DODO added 44728892
     (
       annotationData,
       datasource,
@@ -243,6 +233,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
       inContextMenu,
       emitCrossFilters,
       theme,
+      locale, // DODO added 44728892
     ) =>
       new ChartProps({
         annotationData,
@@ -264,6 +255,7 @@ ChartProps.createSelector = function create(): ChartPropsSelector {
         inContextMenu,
         emitCrossFilters,
         theme,
+        locale, // DODO added 44728892
       }),
   );
 };

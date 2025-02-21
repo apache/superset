@@ -1,25 +1,9 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import { Component } from 'react';
 import { t } from '@superset-ui/core';
 import PropTypes from 'prop-types';
+import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls'; // DODO added 44728892
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
@@ -40,8 +24,26 @@ function displayHeaderCell(
   onArrowClick,
   value,
   namesMapping,
+  datasourceDescriptions, // DODO added 44728892
 ) {
   const name = namesMapping[value] || value;
+
+  // DODO added start 44728892
+  const datasourceDescription = datasourceDescriptions?.[value];
+  const cellValue = (
+    <>
+      {datasourceDescription && (
+        <InfoTooltipWithTrigger
+          tooltip={datasourceDescription}
+          placement="top"
+          iconsStyle={{ marginRight: '4px' }}
+        />
+      )}
+      {parseLabel(name)}
+    </>
+  );
+  // DODO added stop 44728892
+
   return needToggle ? (
     <span className="toggle-wrapper">
       <span
@@ -52,10 +54,13 @@ function displayHeaderCell(
       >
         {ArrowIcon}
       </span>
-      <span className="toggle-val">{parseLabel(name)}</span>
+      {/* <span className="toggle-val">{parseLabel(name)}</span> */}
+      {/* DODO changed 44728892 */}
+      <span className="toggle-val">{cellValue}</span>
     </span>
   ) : (
-    parseLabel(name)
+    // parseLabel(name)
+    cellValue // DODO changed 44728892
   );
 }
 
@@ -78,6 +83,7 @@ export class TableRenderer extends Component {
     const { props } = this;
     const colAttrs = props.cols;
     const rowAttrs = props.rows;
+    const { datasourceDescriptions } = props; // DODO added 44728892
 
     const tableOptions = {
       rowTotals: true,
@@ -179,6 +185,7 @@ export class TableRenderer extends Component {
       colTotalCallbacks,
       grandTotalCallback,
       namesMapping,
+      datasourceDescriptions, // DODO added 44728892
     };
   }
 
@@ -351,6 +358,7 @@ export class TableRenderer extends Component {
       maxColVisible,
       pivotData,
       namesMapping,
+      datasourceDescriptions, // DODO added 44728892
     } = pivotSettings;
     const {
       highlightHeaderCellsOnHover,
@@ -388,6 +396,7 @@ export class TableRenderer extends Component {
           arrowClickHandle,
           attrName,
           namesMapping,
+          datasourceDescriptions, // DODO added 44728892
         )}
       </th>
     );
@@ -523,6 +532,7 @@ export class TableRenderer extends Component {
       maxRowVisible,
       pivotData,
       namesMapping,
+      datasourceDescriptions, // DODO added 44728892
     } = pivotSettings;
     return (
       <tr key="rowHdr">
@@ -546,6 +556,7 @@ export class TableRenderer extends Component {
                 arrowClickHandle,
                 r,
                 namesMapping,
+                datasourceDescriptions, // DODO added 44728892
               )}
             </th>
           );
@@ -590,6 +601,7 @@ export class TableRenderer extends Component {
       cellCallbacks,
       rowTotalCallbacks,
       namesMapping,
+      datasourceDescriptions, // DODO added 44728892
     } = pivotSettings;
 
     const {
@@ -659,6 +671,7 @@ export class TableRenderer extends Component {
               onArrowClick,
               headerCellFormattedValue,
               namesMapping,
+              datasourceDescriptions, // DODO added 44728892
             )}
           </th>
         );

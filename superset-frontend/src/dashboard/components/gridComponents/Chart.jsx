@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import cx from 'classnames';
 import { Component } from 'react';
 import PropTypes from 'prop-types';
@@ -23,6 +6,7 @@ import { styled, t, logging } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
 import { withRouter } from 'react-router-dom';
 
+import { bootstrapData } from 'src/preamble'; // DODO added 44728892
 import { exportChart, mountExploreUrl } from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import {
@@ -35,10 +19,13 @@ import {
 import { areObjectsEqual } from 'src/reduxUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
+import { getMetricDescription } from 'src/DodoExtensions/dashboard/utils/getMetricDescription'; // DODO added 44728892
 
 import SliceHeader from '../SliceHeader';
 import MissingChart from '../MissingChart';
 import { slicePropShape, chartPropShape } from '../../util/propShapes';
+
+const locale = bootstrapData?.common?.locale || 'en'; // DODO added 44728892
 
 const propTypes = {
   id: PropTypes.number.isRequired,
@@ -434,6 +421,13 @@ class Chart extends Component {
       queriesResponse?.map(({ cached_dttm }) => cached_dttm) || [];
     const initialValues = {};
 
+    // DODO added 44728892
+    const metricDescription = getMetricDescription(
+      formData,
+      datasource,
+      locale,
+    );
+
     return (
       <SliceContainer
         className="chart-slice"
@@ -477,6 +471,7 @@ class Chart extends Component {
           formData={formData}
           width={width}
           height={this.getHeaderHeight()}
+          metricDescription={metricDescription} // DODO added 44728892
         />
 
         {/*

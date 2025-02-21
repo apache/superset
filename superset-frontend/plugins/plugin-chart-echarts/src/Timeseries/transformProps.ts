@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint-disable camelcase */
 import { invert } from 'lodash';
 import {
@@ -42,6 +25,7 @@ import {
   NumberFormats,
 } from '@superset-ui/core';
 import {
+  extractDatasourceDescriptions, // DODO added 44728892
   extractExtraMetrics,
   getOriginalSeries,
   isDerivedSeries,
@@ -105,6 +89,7 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+import { extendDatasourceDescriptions } from '../DodoExtensions/utils/extendDatasourceDescriptions'; // DODO added 44728892
 
 export default function transformProps(
   chartProps: EchartsTimeseriesChartProps,
@@ -121,6 +106,7 @@ export default function transformProps(
     theme,
     inContextMenu,
     emitCrossFilters,
+    locale, // DODO added 44728892
   } = chartProps;
 
   let focusedSeries: string | null = null;
@@ -129,6 +115,8 @@ export default function transformProps(
     verboseMap = {},
     columnFormats = {},
     currencyFormats = {},
+    metrics: datasourceMetrics = [], // DODO added 44728892
+    columns: datasourceColumns = [], // DODO added 44728892
   } = datasource;
   const [queryData] = queriesData;
   const { data = [], label_map = {} } =
@@ -531,6 +519,20 @@ export default function transformProps(
     [padding.bottom, padding.left] = [padding.left, padding.bottom];
   }
 
+  // DODO added start 44728892
+  const datasourceDescriptions = extractDatasourceDescriptions(
+    metrics,
+    datasourceMetrics,
+    datasourceColumns,
+    locale,
+  );
+  const extendedDatasourceDescriptions = extendDatasourceDescriptions(
+    datasourceDescriptions,
+    groupBy,
+    series,
+  );
+  // DODO added stop 44728892
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -624,8 +626,23 @@ export default function transformProps(
         theme,
         zoomable,
         legendState,
+        extendedDatasourceDescriptions,
       ),
-      data: legendData as string[],
+      // data: legendData as string[],
+      // DODO changed 44728892
+      data: (legendData as string[]).map(option => ({
+        name: option,
+        textStyle: {
+          rich: {
+            icon: {
+              height: 14,
+              backgroundColor: {
+                image: '/static/assets/images/icons/info-grayscale-dark1.svg',
+              },
+            },
+          },
+        },
+      })),
     },
     series: dedupSeries(series),
     toolbox: {

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   CSSProperties,
   useCallback,
@@ -52,7 +35,12 @@ import {
   tn,
   useTheme,
 } from '@superset-ui/core';
-import { Dropdown, Menu, Tooltip } from '@superset-ui/chart-controls';
+import {
+  Dropdown,
+  InfoTooltipWithTrigger, // DODO added 44728892
+  Menu,
+  Tooltip,
+} from '@superset-ui/chart-controls';
 import {
   CheckOutlined,
   InfoCircleOutlined,
@@ -264,6 +252,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     isUsingTimeComparison,
     basicColorFormatters,
     basicColorColumnFormatters,
+    datasourceDescriptions, // DODO added 44728892
   } = props;
   const comparisonColumns = [
     { key: 'all', label: t('Display all') },
@@ -736,6 +725,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         }
       }
 
+      // DODO added start 44728892
+      const headerDescription = datasourceDescriptions[key.replace(/^%/, '')];
+      const headerTitle = headerDescription
+        ? undefined
+        : t('Shift + Click to sort by multiple columns');
+      // DODO added stop 44728892
+
       return {
         id: String(i), // to allow duplicate column keys
         // must use custom accessor to allow `.` in column names
@@ -922,7 +918,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         Header: ({ column: col, onClick, style, onDragStart, onDrop }) => (
           <th
             id={`header-${column.key}`}
-            title={t('Shift + Click to sort by multiple columns')}
+            title={headerTitle} // DODO changed 44728892
             className={[className, col.isSorted ? 'is-sorted' : ''].join(' ')}
             style={{
               ...sharedStyle,
@@ -963,6 +959,14 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 alignItems: 'flex-end',
               }}
             >
+              {/* DODO added 44728892 */}
+              {headerDescription && (
+                <InfoTooltipWithTrigger
+                  tooltip={headerDescription}
+                  placement="top"
+                  iconsStyle={{ marginRight: '4px', marginBottom: '2px' }}
+                />
+              )}
               <span data-column-name={col.id}>{label}</span>
               <SortIcon column={col} />
             </div>
