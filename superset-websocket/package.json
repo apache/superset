@@ -19,7 +19,7 @@
   "dependencies": {
     "cookie": "^0.7.0",
     "hot-shots": "^10.2.1",
-    "ioredis": "^4.28.0",
+    "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",
     "uuid": "^11.0.2",
@@ -30,7 +30,7 @@
     "@eslint/js": "^9.16.0",
     "@types/cookie": "^0.6.0",
     "@types/eslint__js": "^8.42.3",
-    "@types/ioredis": "^4.27.8",
+    "@types/ioredis": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/lodash": "^4.17.13",
