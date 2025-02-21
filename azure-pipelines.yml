@@ -59,6 +59,7 @@ stages:
         command: push
         repository: $(imageRepository)
         tags: |
+	  latest
           $(tag)
           $(Build.SourceBranchName)
 - stage: Development
