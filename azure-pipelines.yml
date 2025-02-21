@@ -21,6 +21,7 @@ variables:
   dockerRegistryServiceConnection: 'dockerhub-service-connection'
   k8sNamespace: 'default'
   k8sDeploymentName: 'superset'
+  dockerfilePath: '**/Dockerfile'
   
 stages:
 - stage: Build
@@ -45,7 +46,7 @@ stages:
       inputs:
         command: build
         repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
+        dockerfile: '**/Dockerfile'
         tags: |
           latest
           $(tag)
