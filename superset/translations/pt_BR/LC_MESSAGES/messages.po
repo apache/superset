@@ -8992,7 +8992,7 @@ msgstr "Limite de linhas"
 msgid "Rows"
 msgstr "Linhas"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "Linhas por página, 0 significa sem paginação"
 
 msgid "Rows subtotal position"

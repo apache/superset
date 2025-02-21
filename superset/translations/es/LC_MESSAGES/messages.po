@@ -9135,7 +9135,7 @@ msgstr "Límite filas"
 msgid "Rows"
 msgstr "Filas"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr ""
 
 msgid "Rows subtotal position"
