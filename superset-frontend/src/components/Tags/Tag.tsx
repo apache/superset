@@ -44,6 +44,7 @@ const Tag = ({
   onClick = undefined,
   toolTipTitle = name,
   children,
+  ...rest
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
   const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
@@ -61,13 +62,21 @@ const Tag = ({
             closable={editable}
             onClose={handleClose}
             closeIcon={editable ? CustomCloseIcon : undefined}
+            {...rest}
           >
             {children || tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
+          <StyledTag
+            data-test="tag"
+            key={id}
+            onClick={onClick}
+            role={whatRole}
+            {...rest}
+          >
+            {' '}
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
