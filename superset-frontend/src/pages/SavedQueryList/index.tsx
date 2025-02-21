@@ -23,6 +23,8 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
@@ -102,6 +104,7 @@ function SavedQueryList({
   addSuccessToast,
   user,
 }: SavedQueryListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -195,13 +198,22 @@ function SavedQueryList({
 
   subMenuButtons.push({
     name: (
-      <Link to="/sqllab?new=true">
+      <Link
+        to="/sqllab?new=true"
+        css={css`
+          &:hover {
+            color: currentColor;
+            text-decoration: none;
+          }
+        `}
+      >
         <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
           iconSize="s"
-          css={theme => ({
-            margin: `auto ${theme.gridUnit * 2}px auto 0`,
-            verticalAlign: 'baseline',
-          })}
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: baseline;
+          `}
         />
         {t('Query')}
       </Link>

@@ -85,18 +85,16 @@ const LabelContainer = styled.div<{
 `;
 
 export const DateLabel = forwardRef(
-  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => {
-    return (
-      <LabelContainer {...props} tabIndex={0} role="button">
-        <span
-          id={`date-label-${props.name}`}
-          className="date-label-content"
-          ref={ref}
-        >
-          {typeof props.label === 'string' ? t(props.label) : props.label}
-        </span>
-        <Icons.CalendarOutlined iconSize="s" />
-      </LabelContainer>
-    );
-  },
+  (props: DateLabelProps, ref: RefObject<HTMLSpanElement>) => (
+    <LabelContainer {...props} tabIndex={0} role="button">
+      <span
+        id={`date-label-${props.name}`}
+        className="date-label-content"
+        ref={ref}
+      >
+        {typeof props.label === 'string' ? t(props.label) : props.label}
+      </span>
+      <Icons.CalendarOutlined iconSize="s" />
+    </LabelContainer>
+  ),
 );

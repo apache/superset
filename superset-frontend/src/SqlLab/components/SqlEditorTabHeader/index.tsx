@@ -24,6 +24,7 @@ import { MenuDotsDropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import {
   styled,
+  css,
   t,
   QueryState,
   SupersetTheme,
@@ -54,9 +55,10 @@ const TabTitle = styled.span`
 `;
 
 const IconContainer = styled.div`
-  display: inline-block;
-  width: ${({ theme }) => theme.gridUnit * 8}px;
-  text-align: center;
+  ${({ theme }) => css`
+    display: inline-block;
+    margin: 0 ${theme.gridUnit * 2}px 0 0px;
+  `}
 `;
 interface Props {
   queryEditor: QueryEditor;
@@ -139,8 +141,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
             >
               <IconContainer>
                 <Icons.CloseOutlined
-                  iconSize="xs"
-                  css={{ verticalAlign: 'middle' }}
+                  iconSize="l"
+                  css={css`
+                    verticalalign: middle;
+                  `}
                 />
               </IconContainer>
               {t('Close tab')}
@@ -151,7 +155,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="rename-tab-menu-option"
             >
               <IconContainer>
-                <i className="fa fa-i-cursor" />
+                <Icons.EditOutlined
+                  css={css`
+                    verticalalign: middle;
+                  `}
+                  iconSize="l"
+                />
               </IconContainer>
               {t('Rename tab')}
             </Menu.Item>
@@ -161,7 +170,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="toggle-menu-option"
             >
               <IconContainer>
-                <i className="fa fa-cogs" />
+                <Icons.VerticalAlignBottomOutlined
+                  iconSize="l"
+                  css={css`
+                    rotate: ${qe.hideLeftBar ? '-90deg;' : '90deg;'};
+                  `}
+                />
               </IconContainer>
               {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
             </Menu.Item>
@@ -171,7 +185,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="close-all-other-menu-option"
             >
               <IconContainer>
-                <i className="fa fa-times-circle-o" />
+                <Icons.CloseOutlined
+                  iconSize="l"
+                  css={css`
+                    vertical-align: middle;
+                  `}
+                />
               </IconContainer>
               {t('Close all other tabs')}
             </Menu.Item>
@@ -181,7 +200,12 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="clone-tab-menu-option"
             >
               <IconContainer>
-                <i className="fa fa-files-o" />
+                <Icons.CopyOutlined
+                  iconSize="l"
+                  css={css`
+                    vertical-align: middle;
+                  `}
+                />
               </IconContainer>
               {t('Duplicate tab')}
             </Menu.Item>

@@ -235,6 +235,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
             />
           ) : (
             <Icons.PlusOutlined
+              iconColor={theme.colors.primary.light5}
               iconSize="l"
               css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
             />

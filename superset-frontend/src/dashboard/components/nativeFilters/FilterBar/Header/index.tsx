@@ -65,26 +65,24 @@ type HeaderProps = {
   toggleFiltersBar: (arg0: boolean) => void;
 };
 
-const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => {
-  return (
-    <Wrapper>
-      <TitleArea>
-        <span>{t('Filters')}</span>
-        <FilterBarSettings />
-        <HeaderButton
-          {...getFilterBarTestId('collapse-button')}
-          buttonStyle="link"
-          buttonSize="xsmall"
-          onClick={() => toggleFiltersBar(false)}
-        >
-          <Icons.VerticalAlignTopOutlined
-            iconSize="xl"
-            css={{ transform: 'rotate(-90deg)' }}
-          />
-        </HeaderButton>
-      </TitleArea>
-    </Wrapper>
-  );
-};
+const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => (
+  <Wrapper>
+    <TitleArea>
+      <span>{t('Filters')}</span>
+      <FilterBarSettings />
+      <HeaderButton
+        {...getFilterBarTestId('collapse-button')}
+        buttonStyle="link"
+        buttonSize="xsmall"
+        onClick={() => toggleFiltersBar(false)}
+      >
+        <Icons.VerticalAlignTopOutlined
+          iconSize="xl"
+          css={{ transform: 'rotate(-90deg)' }}
+        />
+      </HeaderButton>
+    </TitleArea>
+  </Wrapper>
+);
 
 export default memo(Header);

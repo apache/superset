@@ -21,6 +21,7 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
   useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
@@ -108,6 +109,7 @@ function DatabaseList({
   addSuccessToast,
   user,
 }: DatabaseListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -317,11 +319,12 @@ function DatabaseList({
         name: (
           <>
             <Icons.PlusOutlined
+              iconColor={theme.colors.primary.light5}
               iconSize="s"
-              css={theme => ({
-                margin: `auto ${theme.gridUnit * 2}px auto 0`,
-                verticalAlign: 'baseline',
-              })}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+                vertical-align: baseline;
+              `}
             />
             {t('Database')}
           </>

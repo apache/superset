@@ -67,28 +67,26 @@ export const CopyToClipboardButton = ({
 }: {
   data?: Record<string, any>;
   columns?: string[];
-}) => {
-  return (
-    <CopyToClipboard
-      text={
-        data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
-      }
-      wrapped={false}
-      copyNode={
-        <Icons.CopyOutlined
-          iconSize="l"
-          aria-label={t('Copy')}
-          role="button"
-          css={css`
-            &.anticon > * {
-              line-height: 0;
-            }
-          `}
-        />
-      }
-    />
-  );
-};
+}) => (
+  <CopyToClipboard
+    text={
+      data && columns ? prepareCopyToClipboardTabularData(data, columns) : ''
+    }
+    wrapped={false}
+    copyNode={
+      <Icons.CopyOutlined
+        iconSize="l"
+        aria-label={t('Copy')}
+        role="button"
+        css={css`
+          &.anticon > * {
+            line-height: 0;
+          }
+        `}
+      />
+    }
+  />
+);
 
 export const FilterInput = ({
   onChangeHandler,

@@ -21,6 +21,8 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
+  css,
+  useTheme,
   SupersetClient,
   makeApi,
   styled,
@@ -110,6 +112,7 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
+  const theme = useTheme();
   const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
@@ -419,11 +422,12 @@ function AlertList({
       name: (
         <>
           <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
             iconSize="s"
-            css={theme => ({
-              margin: `auto ${theme.gridUnit * 2}px auto 0`,
-              verticalAlign: 'baseline',
-            })}
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: baseline;
+            `}
           />
           {title}
         </>

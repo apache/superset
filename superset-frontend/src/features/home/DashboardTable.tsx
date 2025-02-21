@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, useTheme } from '@superset-ui/core';
 import { filter } from 'lodash';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
@@ -56,6 +56,7 @@ function DashboardTable({
   otherTabFilters,
   otherTabTitle,
 }: DashboardTableProps) {
+  const theme = useTheme();
   const history = useHistory();
   const defaultTab = getItem(
     LocalStorageKeys.HomepageDashboardFilter,
@@ -192,6 +193,7 @@ function DashboardTable({
             name: (
               <>
                 <Icons.PlusOutlined
+                  iconColor={theme.colors.primary.dark1}
                   iconSize="s"
                   css={theme => ({
                     margin: `auto ${theme.gridUnit * 2}px auto 0`,

@@ -18,7 +18,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
 
 import rison from 'rison';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -56,6 +56,7 @@ function CssTemplatesList({
   addSuccessToast,
   user,
 }: CssTemplatesListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -198,11 +199,12 @@ function CssTemplatesList({
       name: (
         <>
           <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
             iconSize="s"
-            css={theme => ({
-              margin: `auto ${theme.gridUnit * 2}px auto 0`,
-              verticalAlign: 'baseline',
-            })}
+            css={css`
+              margin: 'auto ${theme.gridUnit * 2}px auto 0';
+              vertical-align: 'baseline';
+            `}
           />
           {t('CSS template')}
         </>

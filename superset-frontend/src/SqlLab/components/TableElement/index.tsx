@@ -43,9 +43,9 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
+import Icons from 'src/components/Icons';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
-import Icons from 'src/components/Icons';
 
 export interface Column {
   name: string;
@@ -321,10 +321,12 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           />
         )}
         <IconTooltip
-          className="fa fa-times table-remove pull-left m-l-2 pointer"
+          className=" table-remove pull-left m-l-2 pointer"
           onClick={removeTable}
           tooltip={t('Remove table preview')}
-        />
+        >
+          <Icons.CloseOutlined iconSize="s" aria-hidden />
+        </IconTooltip>
       </ButtonGroup>
     );
   };

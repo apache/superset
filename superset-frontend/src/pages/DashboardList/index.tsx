@@ -22,6 +22,8 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
@@ -135,7 +137,7 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
-
+  const theme = useTheme();
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -681,11 +683,12 @@ function DashboardList(props: DashboardListProps) {
       name: (
         <>
           <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
             iconSize="s"
-            css={theme => ({
-              margin: `auto ${theme.gridUnit * 2}px auto 0`,
-              verticalAlign: 'baseline',
-            })}
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: baseline;
+            `}
           />
           {t('Dashboard')}
         </>

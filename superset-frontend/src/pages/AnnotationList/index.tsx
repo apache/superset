@@ -22,6 +22,7 @@ import { useParams, Link, useHistory } from 'react-router-dom';
 import {
   css,
   t,
+  useTheme,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -68,6 +69,7 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
+  const theme = useTheme();
   const { annotationLayerId }: any = useParams();
   const {
     state: {
@@ -228,6 +230,7 @@ function AnnotationList({
     name: (
       <>
         <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
           iconSize="s"
           css={theme => ({
             margin: `auto ${theme.gridUnit * 2}px auto 0`,
@@ -268,11 +271,12 @@ function AnnotationList({
     buttonText: (
       <>
         <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
           iconSize="s"
-          css={theme => ({
-            margin: `auto ${theme.gridUnit * 2}px auto 0`,
-            verticalAlign: 'baseline',
-          })}
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: baseline;
+          `}
         />
         {t('Annotation')}
       </>

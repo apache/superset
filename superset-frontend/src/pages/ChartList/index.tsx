@@ -24,6 +24,8 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -157,6 +159,7 @@ const StyledActions = styled.div`
 `;
 
 function ChartList(props: ChartListProps) {
+  const theme = useTheme();
   const {
     addDangerToast,
     addSuccessToast,
@@ -761,11 +764,12 @@ function ChartList(props: ChartListProps) {
       name: (
         <>
           <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
             iconSize="s"
-            css={theme => ({
-              margin: `auto ${theme.gridUnit * 2}px auto 0`,
-              verticalAlign: 'baseline',
-            })}
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: baseline;
+            `}
           />
           {t('Chart')}
         </>

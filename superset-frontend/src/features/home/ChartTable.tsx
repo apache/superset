@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import { filter } from 'lodash';
 import {
   useChartEditModal,
@@ -71,6 +71,7 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
+  const theme = useTheme();
   const history = useHistory();
   const initialTab = getItem(
     LocalStorageKeys.HomepageChartFilter,
@@ -189,6 +190,7 @@ function ChartTable({
             name: (
               <>
                 <Icons.PlusOutlined
+                  iconColor={theme.colors.primary.dark1}
                   iconSize="s"
                   css={theme => ({
                     margin: `auto ${theme.gridUnit * 2}px auto 0`,

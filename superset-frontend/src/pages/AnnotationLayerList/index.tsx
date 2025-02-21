@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t, SupersetClient, css, useTheme } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -56,6 +56,7 @@ function AnnotationLayersList({
   addSuccessToast,
   user,
 }: AnnotationLayersListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -216,10 +217,11 @@ function AnnotationLayersList({
       name: (
         <>
           <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
             iconSize="m"
-            css={theme => ({
-              margin: `auto ${theme.gridUnit * 2}px auto 0`,
-            })}
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
           />
           {t('Annotation layer')}
         </>

@@ -18,7 +18,7 @@
  */
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
+import { styled, SupersetClient, t, useTheme, css } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
 import sql from 'react-syntax-highlighter/dist/cjs/languages/hljs/sql';
 import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
@@ -209,7 +209,10 @@ const SavedQueries = ({
         >
           <Icons.UploadOutlined
             iconSize="l"
-            css={{ verticalAlign: 'baseline' }}
+            css={css`
+              margin-right: ${theme.gridUnit}px;
+              vertical-align: 'baseline';
+            `}
           />
           {t('Share')}
         </Menu.Item>
@@ -261,12 +264,20 @@ const SavedQueries = ({
         buttons={[
           {
             name: (
-              <Link to="/sqllab?new=true">
+              <Link
+                to="/sqllab?new=true"
+                css={css`
+                  &:hover {
+                    color: currentColor;
+                    text-decoration: none;
+                  }
+                `}
+              >
                 <Icons.PlusOutlined
-                  css={{
-                    margin: `auto ${theme.gridUnit * 2}px auto 0`,
-                    verticalAlign: 'baseline',
-                  }}
+                  css={css`
+                    margin: auto ${theme.gridUnit * 2}px auto 0;
+                    vertical-align: baseline;
+                  `}
                   iconSize="s"
                   iconColor={theme.colors.primary.dark1}
                 />
