@@ -229,7 +229,7 @@ def server_cert_validator(value: str) -> str:
     return value
 
 
-def encrypted_extra_validator(value: str) -> str:
+def encrypted_extra_validator(value: str | None) -> None:
     """
     Validate that encrypted extra is a valid JSON string
     """
@@ -240,7 +240,6 @@ def encrypted_extra_validator(value: str) -> str:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
-    return value
 
 
 def extra_validator(value: str) -> str:
@@ -855,6 +854,7 @@ class ImportV1DatabaseSchema(Schema):
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
+    encrypted_extra = fields.String(allow_none=True, validate=encrypted_extra_validator)
     cache_timeout = fields.Integer(allow_none=True)
     expose_in_sqllab = fields.Boolean()
     allow_run_async = fields.Boolean()
