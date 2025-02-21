@@ -652,7 +652,6 @@ const DashboardBuilder = () => {
           {renderDraggableContent}
         </Droppable>
       </StyledHeader>
-     
       <StyledContent fullSizeChartId={fullSizeChartId}>
         {!editMode &&
           !topLevelTabs &&
@@ -717,7 +716,6 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
-      
       {dashboardIsSaving && (
         <Loading
           css={css`

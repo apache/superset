@@ -216,11 +216,12 @@ class Markdown extends PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    if(this.state.isEditing){
-    const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);}
+    if (this.state.isEditing) {
+      const nextFocused = !!nextFocus;
+      const nextEditMode = nextFocused ? 'edit' : 'preview';
+      this.setState(() => ({ isFocused: nextFocused }));
+      this.handleChangeEditorMode(nextEditMode);
+    }
   }
 
   handleChangeEditorMode(mode) {
@@ -230,18 +231,6 @@ class Markdown extends PureComponent {
       isEditing: mode === 'edit',
     };
 
-    if(mode == 'edit') {
-      nextState = {
-        ...this.state,
-        editorMode: 'edit',
-        isEditing: true,
-      };
-      console.log('here');
-    }
-
-    console.log('is editing', mode == 'edit');
-    console.log('editor mode', mode);
-    
     if (mode === 'preview') {
       this.updateMarkdownContent();
       nextState.hasError = false;
@@ -397,14 +386,8 @@ class Markdown extends PureComponent {
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
                   onClick={() => {
-                    // Only trigger edit mode if we're in editMode but not yet editing
-                    
-                    
-                    console.log('clicky');
                     if (editMode && !isEditing) {
-                      console.log('clicked got performed');
                       this.handleChangeFocus(true);
-                      // this.handleChangeEditorMode('edit');
                     }
                   }}
                 >
@@ -415,10 +398,7 @@ class Markdown extends PureComponent {
                       />
                     </HoverMenu>
                   )}
-                  {/* {this.renderPreviewMode()} */}
-                  {isEditing
-                    ? this.renderEditMode()
-                    : this.renderPreviewMode()}
+                  {isEditing ? this.renderEditMode() : this.renderPreviewMode()}
                 </div>
               </ResizableContainer>
             </MarkdownStyles>
