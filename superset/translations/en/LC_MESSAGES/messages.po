@@ -13380,3 +13380,8 @@ msgstr ""
 
 msgid "zoom area"
 msgstr ""
+
+msgid "All option"
+msgid_plural "All options"
+msgstr[0] ""
+msgstr[1] ""
