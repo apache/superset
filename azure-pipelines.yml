@@ -40,7 +40,7 @@ stages:
       inputs:
         targetType: inline
         script: |
-          docker pull $(dockerRegistryServiceConnection)/$(imageRepository):$(Build.SourceBranchName) || exit 0
+          docker pull $(imageRepository):$(Build.SourceBranchName) || exit 0
     - task: Docker@2
       displayName: Build image from dockerfile
       inputs:
@@ -51,10 +51,10 @@ stages:
           latest
           $(tag)
           $(Build.SourceBranchName)
-        arguments: '--cache-from $(dockerRegistryServiceConnection)/$(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1'
+        arguments: '--cache-from $(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1'
 
     - task: Docker@2
-      displayName: push image to container registry
+      displayName: push image to container registry 
       inputs:
         command: push
         repository: $(imageRepository)
