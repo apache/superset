@@ -24,7 +24,6 @@
     "lib"
   ],
   "dependencies": {
-    "@types/react-redux": "^7.1.10",
     "d3-array": "^1.2.0",
     "lodash": "^4.17.21",
     "dayjs": "^1.11.13"
@@ -34,7 +33,8 @@
     "@superset-ui/core": "*",
     "echarts": "*",
     "memoize-one": "*",
-    "react": "^17.0.2"
+    "react": "^17.0.2",
+    "@types/react-redux": "^7.1.10"
   },
   "publishConfig": {
     "access": "public"
