@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Key, ReactNode, PureComponent } from 'react';
+import { Dropdown } from 'src/components/Dropdown';
 import rison from 'rison';
-import { AntdDropdown } from 'src/components';
 import { Menu } from 'src/components/Menu';
 import Button from 'src/components/Button';
 import { t, styled, SupersetClient } from '@superset-ui/core';
@@ -115,9 +115,9 @@ class CssEditor extends PureComponent<CssEditorProps, CssEditorState> {
         </Menu>
       );
       return (
-        <AntdDropdown overlay={menu} placement="bottomRight">
+        <Dropdown dropdownRender={() => menu} placement="bottomRight">
           <Button>{t('Load a CSS template')}</Button>
-        </AntdDropdown>
+        </Dropdown>
       );
     }
     return null;

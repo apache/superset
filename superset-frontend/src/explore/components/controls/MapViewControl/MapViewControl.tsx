@@ -18,7 +18,8 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import { Button, Popover } from 'antd';
+import Button from 'src/components/Button';
+import Popover from 'src/components/Popover';
 import { FC, useState } from 'react';
 import { mix } from 'polished';
 import { MapViewConfigs, MapViewConfigsControlProps } from './types';
@@ -159,7 +160,7 @@ export const MapViewControl: FC<MapViewConfigsControlProps> = ({
 
       {isCustomMode() && value && (
         <Popover
-          visible={popoverVisible}
+          open={popoverVisible}
           trigger="click"
           title={popoverTitle}
           placement="right"

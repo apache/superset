@@ -20,7 +20,6 @@ import { isValidElement } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import QueryTable from 'src/SqlLab/components/QueryTable';
-import { Provider } from 'react-redux';
 import { runningQuery, successfulQuery, user } from 'src/SqlLab/fixtures';
 import { render, screen } from 'spec/helpers/testing-library';
 
@@ -29,27 +28,55 @@ const mockedProps = {
   displayLimit: 100,
   latestQueryId: 'ryhMUZCGb',
 };
-test('is valid', () => {
-  expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
-});
-test('is valid with props', () => {
-  expect(isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
-});
-test('renders a proper table', () => {
-  const mockStore = configureStore([thunk]);
-  const store = mockStore({
-    user,
+
+describe('QueryTable', () => {
+  test('is valid', () => {
+    expect(isValidElement(<QueryTable displayLimit={100} />)).toBe(true);
   });
 
-  const { container } = render(
-    <Provider store={store}>
-      <QueryTable {...mockedProps} />
-    </Provider>,
-  );
+  test('is valid with props', () => {
+    expect(isValidElement(<QueryTable {...mockedProps} />)).toBe(true);
+  });
 
-  expect(screen.getByTestId('listview-table')).toBeVisible(); // Presence of TableCollection
-  expect(screen.getByRole('table')).toBeVisible();
-  expect(container.querySelector('.table-condensed')).toBeVisible(); // Presence of TableView signature class
-  expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
-  expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(2);
+  test('renders a proper table', () => {
+    const mockStore = configureStore([thunk]);
+    const { container } = render(<QueryTable {...mockedProps} />, {
+      store: mockStore({ user }),
+    });
+
+    expect(screen.getByTestId('listview-table')).toBeVisible();
+    expect(screen.getByRole('table')).toBeVisible();
+    expect(container.querySelector('.table-condensed')).toBeVisible();
+    expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
+    expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(2);
+  });
+
+  test('renders empty table when no queries provided', () => {
+    const mockStore = configureStore([thunk]);
+    const { container } = render(
+      <QueryTable {...{ ...mockedProps, queries: [] }} />,
+      { store: mockStore({ user }) },
+    );
+
+    expect(screen.getByTestId('listview-table')).toBeVisible();
+    expect(screen.getByRole('table')).toBeVisible();
+    expect(container.querySelector('.table-condensed')).toBeVisible();
+    expect(container.querySelectorAll('table > thead > tr')).toHaveLength(1);
+    expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(0);
+  });
+
+  test('renders with custom displayLimit', () => {
+    const mockStore = configureStore([thunk]);
+    const customProps = {
+      ...mockedProps,
+      displayLimit: 1,
+      queries: [runningQuery], // Modify to only include one query
+    };
+    const { container } = render(<QueryTable {...customProps} />, {
+      store: mockStore({ user }),
+    });
+
+    expect(screen.getByTestId('listview-table')).toBeVisible();
+    expect(container.querySelectorAll('table > tbody > tr')).toHaveLength(1);
+  });
 });

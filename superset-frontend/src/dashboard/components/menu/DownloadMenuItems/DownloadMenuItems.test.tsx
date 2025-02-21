@@ -26,11 +26,13 @@ const createProps = () => ({
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
   dashboardId: 123,
+  title: 'Download',
+  submenuKey: 'download',
 });
 
 const renderComponent = () => {
   render(
-    <Menu>
+    <Menu forceSubMenuRender>
       <DownloadMenuItems {...createProps()} />
     </Menu>,
     {
@@ -41,10 +43,6 @@ const renderComponent = () => {
 
 test('Should render menu items', () => {
   renderComponent();
-  expect(
-    screen.getByRole('menuitem', { name: 'Export to PDF' }),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByRole('menuitem', { name: 'Download as Image' }),
-  ).toBeInTheDocument();
+  expect(screen.getByText('Export to PDF')).toBeInTheDocument();
+  expect(screen.getByText('Download as Image')).toBeInTheDocument();
 });

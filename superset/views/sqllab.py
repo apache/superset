@@ -37,16 +37,24 @@ class SqllabView(BaseSupersetView):
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
 
     @expose("/", methods=["GET", "POST"])
-    @expose("/p/<string:permalink>/", methods=["GET"])
     @has_access
     @permission_name("read")
     @event_logger.log_this
     def root(self, **kwargs: Any) -> FlaskResponse:
+        """Handles the default SQL Lab page."""
         payload = {}
         if form_data := request.form.get("form_data"):
             with contextlib.suppress(json.JSONDecodeError):
                 payload["requested_query"] = json.loads(form_data)
         return self.render_app_template(payload)
+
+    @expose("/p/<string:permalink>/", methods=["GET"])
+    @has_access
+    @permission_name("read")
+    @event_logger.log_this
+    def permalink_view(self, permalink: str, **kwargs: Any) -> FlaskResponse:
+        """Handles permalinks for SQL Lab."""
+        return self.root(permalink=permalink, **kwargs)
 
     @expose("/history/", methods=("GET",))
     @has_access

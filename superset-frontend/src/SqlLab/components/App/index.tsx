@@ -47,7 +47,7 @@ const SqlLabStyles = styled.div`
       left: 0;
       padding: 0 ${theme.gridUnit * 2}px;
 
-      pre {
+      pre:not(.code) {
         padding: 0 !important;
         margin: 0;
         border: none;

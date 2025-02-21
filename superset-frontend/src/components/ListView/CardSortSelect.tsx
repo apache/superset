@@ -86,6 +86,7 @@ export const CardSortSelect = ({
         options={formattedOptions}
         showSearch
         value={value}
+        data-test="card-sort-select"
       />
     </SortContainer>
   );

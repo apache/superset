@@ -32,33 +32,21 @@ export const useDisplayModeToggle = () => {
       <div
         css={(theme: SupersetTheme) => css`
           margin-bottom: ${theme.gridUnit * 6}px;
-          .ant-radio-button-wrapper-checked:not(
-              .ant-radio-button-wrapper-disabled
-            ):focus-within {
-            box-shadow: none;
-          }
         `}
         data-test="drill-by-display-toggle"
       >
-        <Radio.Group
+        <Radio.GroupWrapper
           onChange={({ target: { value } }) => {
             setDrillByDisplayMode(value);
           }}
           defaultValue={DrillByType.Chart}
-        >
-          <Radio.Button
-            value={DrillByType.Chart}
-            data-test="drill-by-chart-radio"
-          >
-            {t('Chart')}
-          </Radio.Button>
-          <Radio.Button
-            value={DrillByType.Table}
-            data-test="drill-by-table-radio"
-          >
-            {t('Table')}
-          </Radio.Button>
-        </Radio.Group>
+          options={[
+            { label: t('Chart'), value: DrillByType.Chart },
+            { label: t('Table'), value: DrillByType.Table },
+          ]}
+          optionType="button"
+          buttonStyle="outline"
+        />
       </div>
     ),
     [],

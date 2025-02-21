@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { AGGREGATES } from 'src/explore/constants';
 import AdhocMetricOption from 'src/explore/components/controls/MetricControl/AdhocMetricOption';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
-import userEvent from '@testing-library/user-event';
 
 const columns = [
   { type: 'VARCHAR(255)', column_name: 'source' },

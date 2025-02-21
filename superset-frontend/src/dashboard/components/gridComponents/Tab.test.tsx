@@ -17,12 +17,12 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
 import {
   fireEvent,
   render,
   screen,
   waitFor,
+  userEvent,
 } from 'spec/helpers/testing-library';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import EditableTitle from 'src/components/EditableTitle';

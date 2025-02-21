@@ -27,7 +27,6 @@ export default function DownloadAsImage({
   text,
   logEvent,
   dashboardTitle,
-  ...rest
 }: {
   text: string;
   dashboardTitle: string;
@@ -46,10 +45,13 @@ export default function DownloadAsImage({
   };
 
   return (
-    <Menu.Item key="download-image" {...rest}>
-      <div onClick={onDownloadImage} role="button" tabIndex={0}>
-        {text}
-      </div>
+    <Menu.Item
+      key="download-image"
+      onClick={e => {
+        onDownloadImage(e.domEvent);
+      }}
+    >
+      {text}
     </Menu.Item>
   );
 }

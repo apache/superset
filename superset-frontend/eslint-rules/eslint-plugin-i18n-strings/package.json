@@ -1,5 +1,5 @@
 {
-  "name": "eslint-plugin-translation-vars",
+  "name": "eslint-plugin-i18n-strings",
   "version": "1.0.0",
   "description": "Warns about translation variables",
   "main": "index.js",

@@ -347,7 +347,7 @@ function ListView<T extends object = any>({
           {cardViewEnabled && (
             <ViewModeToggle mode={viewMode} setMode={setViewMode} />
           )}
-          <div className="controls">
+          <div className="controls" data-test="filters-select">
             {filterable && (
               <FilterControls
                 ref={filterControlsRef}
@@ -446,7 +446,7 @@ function ListView<T extends object = any>({
             />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper className={viewMode}>
+            <EmptyWrapper className={viewMode} data-test="empty-state">
               {query.filters ? (
                 <EmptyState
                   title={t('No results match your filter criteria')}

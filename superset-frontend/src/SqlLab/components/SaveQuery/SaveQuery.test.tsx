@@ -18,8 +18,12 @@
  */
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import SaveQuery from 'src/SqlLab/components/SaveQuery';
 import { initialState, databases } from 'src/SqlLab/fixtures';
 

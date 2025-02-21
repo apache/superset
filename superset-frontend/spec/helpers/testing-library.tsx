@@ -109,6 +109,7 @@ export function sleep(time: number) {
 
 export * from '@testing-library/react';
 export { customRender as render };
+export { default as userEvent } from '@testing-library/user-event';
 
 export async function selectOption(option: string, selectName?: string) {
   const select = screen.getByRole(

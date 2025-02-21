@@ -23,6 +23,7 @@ from typing import Any, Type, Union
 
 import sqlalchemy as sa
 from alembic import op
+from flask import current_app
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
@@ -425,9 +426,13 @@ def upgrade_database_catalogs(
     # update `schema_perm` and `catalog_perm` for tables and charts
     update_schema_catalog_perms(session, database, catalog_perm, default_catalog, False)
 
-    # add any new catalogs discovered and their schemas
-    new_catalog_pvms = add_non_default_catalogs(database, default_catalog, session)
-    pvms.update(new_catalog_pvms)
+    if (
+        not current_app.config["CATALOGS_SIMPLIFIED_MIGRATION"]
+        and not database.is_oauth2_enabled()
+    ):
+        # add any new catalogs discovered and their schemas
+        new_catalog_pvms = add_non_default_catalogs(database, default_catalog, session)
+        pvms.update(new_catalog_pvms)
 
     # add default catalog permission and permissions for any new found schemas, and also
     # permissions for new catalogs and their schemas

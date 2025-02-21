@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import { Filter, NativeFilterType } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FormInstance } from 'src/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
 import { getControlItems, setNativeFilterFieldValues } from './utils';

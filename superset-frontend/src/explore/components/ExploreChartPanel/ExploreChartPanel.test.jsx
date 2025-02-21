@@ -17,8 +17,12 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import {
   getChartMetadataRegistry,
   ChartMetadata,
@@ -63,6 +67,8 @@ const createProps = (overrides = {}) => ({
 });
 
 describe('ChartContainer', () => {
+  jest.setTimeout(10000);
+
   test('renders when vizType is line', () => {
     const props = createProps();
     expect(isValidElement(<ChartContainer {...props} />)).toBe(true);

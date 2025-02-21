@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  styledMount as mount,
-  styledShallow as shallow,
-} from 'spec/helpers/theming';
-import sinon from 'sinon';
+import { render } from 'spec/helpers/testing-library';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import {
@@ -45,75 +42,222 @@ describe('DragDroppable', () => {
     dragPreviewRef() {},
   };
 
-  function setup(overrideProps, shouldMount = false) {
-    const method = shouldMount ? mount : shallow;
-    const wrapper = method(<DragDroppable {...props} {...overrideProps} />);
-    return wrapper;
+  function setup(overrideProps = {}) {
+    const defaultChildren = provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    );
+
+    const utils = render(
+      <DragDroppable {...props} {...overrideProps}>
+        {overrideProps.children || defaultChildren}
+      </DragDroppable>,
+    );
+    return {
+      ...utils,
+      children: overrideProps.children || defaultChildren,
+    };
   }
 
-  it('should render a div with class dragdroppable', () => {
-    const wrapper = setup();
-    expect(wrapper.find('.dragdroppable')).toExist();
-  });
-
-  it('should add class dragdroppable--dragging when dragging', () => {
-    const wrapper = setup({ isDragging: true });
-    expect(wrapper.find('.dragdroppable')).toExist();
-  });
-
   it('should call its child function', () => {
-    const childrenSpy = sinon.spy();
-    setup({ children: childrenSpy });
-    expect(childrenSpy.callCount).toBe(1);
-  });
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
 
-  it('should call onDropIndicatorChange when isDraggingOver changes', () => {
-    const onDropIndicatorChange = sinon.spy();
-    const wrapper = setup({
-      onDropIndicatorChange,
-      component: newComponentFactory(TAB_TYPE),
-    });
-    wrapper.setProps({ isDraggingOver: true });
-    expect(onDropIndicatorChange.callCount).toBe(1);
+    setup({ children: renderChild });
+    expect(renderChild).toHaveBeenCalled();
+    expect(renderChild.mock.calls[0][0]).toEqual(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+      }),
+    );
   });
 
   it('should call its child function with "dragSourceRef" if editMode=true', () => {
-    const children = sinon.spy();
+    const renderChild = jest.fn().mockImplementation(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
     const dragSourceRef = () => {};
-    setup({ children, editMode: false, dragSourceRef });
-    setup({ children, editMode: true, dragSourceRef });
 
-    expect(children.getCall(0).args[0].dragSourceRef).toBeUndefined();
-    expect(children.getCall(1).args[0].dragSourceRef).toBe(dragSourceRef);
+    setup({ children: renderChild, editMode: false });
+    expect(renderChild).toHaveBeenCalledWith(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+      }),
+    );
+
+    setup({ children: renderChild, editMode: true, dragSourceRef });
+    expect(renderChild).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        'data-test': 'dragdroppable-content',
+        dragSourceRef,
+      }),
+    );
   });
 
-  it('should call its child function with "dropIndicatorProps" dependent on editMode, isDraggingOver, state.dropIndicator is set', () => {
-    const children = sinon.spy();
-    const wrapper = setup({ children, editMode: false, isDraggingOver: false });
-    wrapper.setState({ dropIndicator: 'nonsense' });
-    wrapper.setProps({ ...props, editMode: true, isDraggingOver: true });
+  it('should call its child function with "dropIndicatorProps" dependent on editMode and isDraggingOver', () => {
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
 
-    expect(children.callCount).toBe(3); // initial + setState + setProps
-    expect(children.getCall(0).args[0].dropIndicatorProps).toBeUndefined();
-    expect(children.getCall(2).args[0].dropIndicatorProps).toEqual({
-      className: 'drop-indicator',
+    // Create a mock component with the dropIndicator state already set
+    class MockDragDroppable extends DragDroppable {
+      constructor(props) {
+        super(props);
+        this.state = { dropIndicator: true };
+      }
+    }
+
+    render(
+      <MockDragDroppable
+        {...props}
+        editMode
+        isDraggingOver
+        component={newComponentFactory(TAB_TYPE)}
+      >
+        {renderChild}
+      </MockDragDroppable>,
+    );
+
+    // Verify the last render included dropIndicatorProps
+    expect(
+      renderChild.mock.calls[renderChild.mock.calls.length - 1][0],
+    ).toMatchObject({
+      'data-test': 'dragdroppable-content',
+      dropIndicatorProps: { className: 'drop-indicator' },
     });
   });
 
   it('should call props.dragPreviewRef and props.droppableRef on mount', () => {
-    const dragPreviewRef = sinon.spy();
-    const droppableRef = sinon.spy();
+    const dragPreviewRef = jest.fn();
+    const droppableRef = jest.fn();
 
-    setup({ dragPreviewRef, droppableRef }, true);
-    expect(dragPreviewRef.callCount).toBe(1);
-    expect(droppableRef.callCount).toBe(1);
+    setup({ dragPreviewRef, droppableRef });
+    expect(dragPreviewRef).toHaveBeenCalledTimes(1);
+    expect(droppableRef).toHaveBeenCalledTimes(1);
   });
 
-  it('should set this.mounted dependent on life cycle', () => {
-    const wrapper = setup({}, true);
-    const instance = wrapper.instance();
-    expect(instance.mounted).toBe(true);
-    wrapper.unmount();
-    expect(instance.mounted).toBe(false);
+  it('should handle forbidden drops correctly', () => {
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
+
+    class MockDragDroppable extends DragDroppable {
+      constructor(props) {
+        super(props);
+        this.state = { dropIndicator: 'DROP_FORBIDDEN' };
+      }
+    }
+
+    render(
+      <MockDragDroppable
+        {...props}
+        editMode
+        isDraggingOver
+        component={newComponentFactory(TAB_TYPE)}
+      >
+        {renderChild}
+      </MockDragDroppable>,
+    );
+
+    expect(
+      renderChild.mock.calls[renderChild.mock.calls.length - 1][0],
+    ).toMatchObject({
+      dropIndicatorProps: {
+        className: expect.stringContaining('drop-indicator--forbidden'),
+      },
+    });
+  });
+
+  it('should handle orientation prop correctly', () => {
+    const { container } = setup({ orientation: 'column' });
+    expect(container.firstChild).toHaveClass('dragdroppable-column');
+
+    const { container: container2 } = setup({ orientation: 'row' });
+    expect(container2.firstChild).toHaveClass('dragdroppable-row');
+  });
+
+  it('should handle disabled drag and drop', () => {
+    const renderChild = jest.fn(provided => (
+      <div data-test="child-content" {...provided}>
+        Test Content
+      </div>
+    ));
+
+    class MockDragDroppable extends DragDroppable {
+      constructor(props) {
+        super(props);
+        this.state = { dropIndicator: true };
+      }
+    }
+
+    render(
+      <MockDragDroppable
+        {...props}
+        editMode
+        isDraggingOver
+        disableDragDrop
+        component={newComponentFactory(TAB_TYPE)}
+      >
+        {renderChild}
+      </MockDragDroppable>,
+    );
+
+    expect(
+      renderChild.mock.calls[renderChild.mock.calls.length - 1][0],
+    ).toMatchObject({
+      'data-test': 'dragdroppable-content',
+      dropIndicatorProps: null,
+    });
+  });
+
+  // Later in the file, remove the require and use the imported getEmptyImage
+  it('should handle empty drag preview correctly', () => {
+    const dragPreviewRef = jest.fn();
+
+    setup({
+      dragPreviewRef,
+      useEmptyDragPreview: true,
+    });
+
+    expect(dragPreviewRef).toHaveBeenCalledWith(
+      getEmptyImage(),
+      expect.objectContaining({
+        captureDraggingState: true,
+      }),
+    );
+  });
+
+  it('should call onDropIndicatorChange when appropriate', () => {
+    const onDropIndicatorChange = jest.fn();
+    const { rerender } = setup({
+      component: newComponentFactory(TAB_TYPE),
+      onDropIndicatorChange,
+    });
+
+    rerender(
+      <DragDroppable
+        {...props}
+        component={newComponentFactory(TAB_TYPE)}
+        onDropIndicatorChange={onDropIndicatorChange}
+        isDraggingOver
+        editMode
+      />,
+    );
+
+    expect(onDropIndicatorChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isDraggingOver: true,
+      }),
+    );
   });
 });

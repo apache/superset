@@ -26,24 +26,23 @@ export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
 export { default as Button } from './Button';
 export { default as Card } from './Card';
-/*
- * Components that don't conflict with the ones in src/components.
- * As Superset progresses to support full theming, this list should
- * decrease in favor of the components defined in src/components.
- */
+
+// Vanilla Ant Design components from v5
 export {
   AutoComplete,
   Col,
   Grid,
+  Layout,
   Row,
   Skeleton,
   Tag,
   Tree,
   TreeSelect,
   Typography,
-  Upload,
-} from 'antd';
-export { Layout } from 'antd-v5';
+} from 'antd-v5';
+
+// Vanilla Ant Design components from v4 that require migration
+export { Upload } from 'antd';
 
 /*
  * Components that conflict with the ones in src/components.
@@ -56,7 +55,6 @@ export {
   Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
-  Dropdown as AntdDropdown,
   Form as AntdForm,
   Input as AntdInput,
   Select as AntdSelect,
@@ -67,5 +65,4 @@ export {
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
-export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';

@@ -18,8 +18,13 @@
  */
 
 import { renderHook } from '@testing-library/react-hooks';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { useResultsTableView } from './useResultsTableView';
 
 const MOCK_CHART_DATA_RESULT = [

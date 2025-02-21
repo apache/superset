@@ -84,6 +84,12 @@ export interface Dataset {
   filter_select?: boolean;
   filter_select_enabled?: boolean;
   column_names?: string[];
+  catalog?: string;
+  schema?: string;
+  table_name?: string;
+  database?: Record<string, unknown>;
+  normalize_columns?: boolean;
+  always_filter_main_dttm?: boolean;
 }
 
 export interface ControlPanelState {
@@ -514,6 +520,13 @@ export enum SortSeriesType {
   Sum = 'sum',
   Avg = 'avg',
 }
+
+export type LegendPaddingType = {
+  top?: number;
+  bottom?: number;
+  left?: number;
+  right?: number;
+};
 
 export type SortSeriesData = {
   sort_series_type: SortSeriesType;

@@ -217,8 +217,11 @@ export class UnwrappedDragDroppable extends PureComponent {
           dragSourceRef,
           dropIndicatorProps,
           draggingTabOnTab,
+          'data-test': 'dragdroppable-content',
         }
-      : {};
+      : {
+          'data-test': 'dragdroppable-content',
+        };
 
     return (
       <DragDroppableStyles

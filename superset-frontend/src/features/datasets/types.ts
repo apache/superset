@@ -1,4 +1,5 @@
-import { Currency } from '@superset-ui/core';
+import { Currency, type DatasourceType } from '@superset-ui/core';
+import { Owner } from '@superset-ui/chart-controls';
 
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -32,37 +33,52 @@ export type ColumnObject = {
   python_date_format?: string;
   uuid?: string;
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  warning_markdown?: string;
+  advanced_data_type?: string;
 };
 
 type MetricObject = {
   id: number;
+  uuid: number;
   expression?: string;
   description?: string;
   metric_name: string;
+  verbose_name?: string;
   metric_type: string;
   d3format?: string;
   currency?: Currency;
   warning_text?: string;
+  certified_by?: string;
+  certification_details?: string;
+  warning_markdown?: string;
 };
 
 export type DatasetObject = {
+  id: number;
   table_name?: string;
   sql?: string;
   filter_select_enabled?: boolean;
   fetch_values_predicate?: string;
   schema?: string;
-  description?: string;
-  main_dttm_col?: string;
+  description: string | null;
+  main_dttm_col: string;
   offset?: number;
   default_endpoint?: string;
   cache_timeout?: number;
   is_sqllab_view?: boolean;
   template_params?: string;
-  owners: number[];
+  owners: Owner[];
   columns: ColumnObject[];
   metrics: MetricObject[];
   extra?: string;
   is_managed_externally: boolean;
   normalize_columns: boolean;
   always_filter_main_dttm: boolean;
+  type: DatasourceType;
+  column_formats: Record<string, string>;
+  currency_formats: Record<string, Currency>;
+  datasource_name: string | null;
+  verbose_map: Record<string, string>;
 };

@@ -35,10 +35,10 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Set up Node.js 20
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: './docs/.nvmrc'
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
       - uses: actions/setup-java@v4

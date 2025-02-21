@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { ReactNode } from 'react';
-import { shallow } from 'enzyme';
+import '@testing-library/jest-dom';
+import { render, screen, act } from '@testing-library/react';
 import ChartClient from '../../../src/chart/clients/ChartClient';
 import ChartDataProvider, {
   ChartDataProviderProps,
 } from '../../../src/chart/components/ChartDataProvider';
 import { bigNumberFormData } from '../fixtures/formData';
 
-// Note: the mock implementation of these function directly affects the expected results below
+// Keep existing mock setup
 const defaultMockLoadFormData = jest.fn(({ formData }: { formData: unknown }) =>
   Promise.resolve(formData),
 );
@@ -50,7 +49,6 @@ const mockLoadQueryData = jest.fn<Promise<unknown>, unknown[]>(
 );
 
 const actual = jest.requireActual('../../../src/chart/clients/ChartClient');
-// ChartClient is now a mock
 jest.spyOn(actual, 'default').mockImplementation(() => ({
   loadDatasource: mockLoadDatasource,
   loadFormData: mockLoadFormData,
@@ -62,7 +60,6 @@ const ChartClientMock = ChartClient as jest.Mock<ChartClient>;
 describe('ChartDataProvider', () => {
   beforeEach(() => {
     ChartClientMock.mockClear();
-
     mockLoadFormData = defaultMockLoadFormData;
     mockLoadFormData.mockClear();
     mockLoadDatasource.mockClear();
@@ -71,11 +68,17 @@ describe('ChartDataProvider', () => {
 
   const props: ChartDataProviderProps = {
     formData: { ...bigNumberFormData },
-    children: () => <div />,
+    children: ({ loading, payload, error }) => (
+      <div>
+        {loading && <span role="status">Loading...</span>}
+        {payload && <pre role="contentinfo">{JSON.stringify(payload)}</pre>}
+        {error && <div role="alert">{error.message}</div>}
+      </div>
+    ),
   };
 
   function setup(overrideProps?: Partial<ChartDataProviderProps>) {
-    return shallow(<ChartDataProvider {...props} {...overrideProps} />);
+    return render(<ChartDataProvider {...props} {...overrideProps} />);
   }
 
   it('instantiates a new ChartClient()', () => {
@@ -86,7 +89,7 @@ describe('ChartDataProvider', () => {
   describe('ChartClient.loadFormData', () => {
     it('calls method on mount', () => {
       setup();
-      expect(mockLoadFormData.mock.calls).toHaveLength(1);
+      expect(mockLoadFormData).toHaveBeenCalledTimes(1);
       expect(mockLoadFormData.mock.calls[0][0]).toEqual({
         sliceId: props.sliceId,
         formData: props.formData,
@@ -96,234 +99,231 @@ describe('ChartDataProvider', () => {
     it('should pass formDataRequestOptions to ChartClient.loadFormData', () => {
       const options = { host: 'override' };
       setup({ formDataRequestOptions: options });
-      expect(mockLoadFormData.mock.calls).toHaveLength(1);
+      expect(mockLoadFormData).toHaveBeenCalledTimes(1);
       expect(mockLoadFormData.mock.calls[0][1]).toEqual(options);
     });
 
-    it('calls ChartClient.loadFormData when formData or sliceId change', () => {
-      const wrapper = setup();
+    it('calls ChartClient.loadFormData when formData or sliceId change', async () => {
+      const { rerender } = setup();
       const newProps = { sliceId: 123, formData: undefined };
-      expect(mockLoadFormData.mock.calls).toHaveLength(1);
+      expect(mockLoadFormData).toHaveBeenCalledTimes(1);
 
-      wrapper.setProps(newProps);
-      expect(mockLoadFormData.mock.calls).toHaveLength(2);
+      rerender(<ChartDataProvider {...props} {...newProps} />);
+      expect(mockLoadFormData).toHaveBeenCalledTimes(2);
       expect(mockLoadFormData.mock.calls[1][0]).toEqual(newProps);
     });
   });
 
   describe('ChartClient.loadDatasource', () => {
-    it('does not method if loadDatasource is false', () =>
-      new Promise(done => {
-        expect.assertions(1);
-        setup({ loadDatasource: false });
-        setTimeout(() => {
-          expect(mockLoadDatasource.mock.calls).toHaveLength(0);
-          done(undefined);
-        }, 0);
-      }));
+    it('does not call method if loadDatasource is false', async () => {
+      setup({ loadDatasource: false });
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      expect(mockLoadDatasource).not.toHaveBeenCalled();
+    });
 
-    it('calls method on mount if loadDatasource is true', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        setup({ loadDatasource: true });
-        setTimeout(() => {
-          expect(mockLoadDatasource.mock.calls).toHaveLength(1);
-          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(
-            props.formData.datasource,
-          );
-          done(undefined);
-        }, 0);
-      }));
+    it('calls method on mount if loadDatasource is true', async () => {
+      setup({ loadDatasource: true });
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      expect(mockLoadDatasource).toHaveBeenCalledTimes(1);
+      expect(mockLoadDatasource.mock.calls[0]).toEqual([
+        props.formData.datasource,
+        undefined,
+      ]);
+    });
 
-    it('should pass datasourceRequestOptions to ChartClient.loadDatasource', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const options = { host: 'override' };
-        setup({ loadDatasource: true, datasourceRequestOptions: options });
-        setTimeout(() => {
-          expect(mockLoadDatasource.mock.calls).toHaveLength(1);
-          expect(mockLoadDatasource.mock.calls[0][1]).toEqual(options);
-          done(undefined);
-        }, 0);
-      }));
+    it('should pass datasourceRequestOptions to ChartClient.loadDatasource', async () => {
+      const options = { host: 'override' };
+      setup({ loadDatasource: true, datasourceRequestOptions: options });
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      expect(mockLoadDatasource).toHaveBeenCalledTimes(1);
+      expect(mockLoadDatasource.mock.calls[0][1]).toEqual(options);
+    });
 
-    it('calls ChartClient.loadDatasource if loadDatasource is true and formData or sliceId change', () =>
-      new Promise(done => {
-        expect.assertions(3);
-        const newDatasource = 'test';
-        const wrapper = setup({ loadDatasource: true });
-        wrapper.setProps({
-          formData: { datasource: newDatasource },
-          sliceId: undefined,
-        });
+    it('calls ChartClient.loadDatasource if loadDatasource is true and formData or sliceId change', async () => {
+      const { rerender } = setup({ loadDatasource: true });
+      const newDatasource = 'test';
 
-        setTimeout(() => {
-          expect(mockLoadDatasource.mock.calls).toHaveLength(2);
-          expect(mockLoadDatasource.mock.calls[0][0]).toEqual(
-            props.formData.datasource,
-          );
-          expect(mockLoadDatasource.mock.calls[1][0]).toEqual(newDatasource);
-          done(undefined);
-        }, 0);
-      }));
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      await act(async () => {
+        rerender(
+          <ChartDataProvider
+            {...props}
+            formData={{ ...props.formData, datasource: newDatasource }}
+            loadDatasource
+          />,
+        );
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(mockLoadDatasource).toHaveBeenCalledTimes(2);
+      expect(mockLoadDatasource.mock.calls[0]).toEqual([
+        props.formData.datasource,
+        undefined,
+      ]);
+      expect(mockLoadDatasource.mock.calls[1]).toEqual([
+        newDatasource,
+        undefined,
+      ]);
+    });
   });
 
   describe('ChartClient.loadQueryData', () => {
-    it('calls method on mount', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        setup();
-        setTimeout(() => {
-          expect(mockLoadQueryData.mock.calls).toHaveLength(1);
-          expect(mockLoadQueryData.mock.calls[0][0]).toEqual(props.formData);
-          done(undefined);
-        }, 0);
-      }));
+    it('calls method on mount', async () => {
+      setup();
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      expect(mockLoadQueryData).toHaveBeenCalledTimes(1);
+      expect(mockLoadQueryData.mock.calls[0]).toEqual([
+        props.formData,
+        undefined,
+      ]);
+    });
 
-    it('should pass queryDataRequestOptions to ChartClient.loadQueryData', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const options = { host: 'override' };
-        setup({ queryRequestOptions: options });
-        setTimeout(() => {
-          expect(mockLoadQueryData.mock.calls).toHaveLength(1);
-          expect(mockLoadQueryData.mock.calls[0][1]).toEqual(options);
-          done(undefined);
-        }, 0);
-      }));
+    it('should pass queryDataRequestOptions to ChartClient.loadQueryData', async () => {
+      const options = { host: 'override' };
+      setup({ queryRequestOptions: options });
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+      expect(mockLoadQueryData).toHaveBeenCalledTimes(1);
+      expect(mockLoadQueryData).toHaveBeenCalledWith(
+        expect.anything(),
+        options,
+      );
+    });
 
-    it('calls ChartClient.loadQueryData when formData or sliceId change', () =>
-      new Promise(done => {
-        expect.assertions(3);
-        const newFormData = { key: 'test' };
-        const wrapper = setup();
-        wrapper.setProps({ formData: newFormData, sliceId: undefined });
+    it('calls ChartClient.loadQueryData when formData or sliceId change', async () => {
+      const { rerender } = setup();
+      const newFormData = { key: 'test' };
 
-        setTimeout(() => {
-          expect(mockLoadQueryData.mock.calls).toHaveLength(2);
-          expect(mockLoadQueryData.mock.calls[0][0]).toEqual(props.formData);
-          expect(mockLoadQueryData.mock.calls[1][0]).toEqual(newFormData);
-          done(undefined);
-        }, 0);
-      }));
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      await act(async () => {
+        rerender(<ChartDataProvider {...props} formData={newFormData} />);
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(mockLoadQueryData).toHaveBeenCalledTimes(2);
+      expect(mockLoadQueryData.mock.calls[0]).toEqual([
+        props.formData,
+        undefined,
+      ]);
+      expect(mockLoadQueryData.mock.calls[1]).toEqual([newFormData, undefined]);
+    });
   });
 
   describe('children', () => {
-    it('calls children({ loading: true }) when loading', () => {
-      const children = jest.fn<ReactNode, unknown[]>();
-      setup({ children });
+    it('shows loading state initially', async () => {
+      mockLoadFormData.mockImplementation(() => new Promise(() => {}));
+      mockLoadQueryData.mockImplementation(() => new Promise(() => {}));
+      mockLoadDatasource.mockImplementation(() => new Promise(() => {}));
 
-      // during the first tick (before more promises resolve) loading is true
-      expect(children.mock.calls).toHaveLength(1);
-      expect(children.mock.calls[0][0]).toEqual({ loading: true });
+      setup();
+      await screen.findByRole('status');
     });
 
-    it('calls children({ payload }) when loaded', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const children = jest.fn<ReactNode, unknown[]>();
-        setup({ children, loadDatasource: true });
+    it('shows payload when loaded', async () => {
+      mockLoadFormData.mockResolvedValue(props.formData);
+      mockLoadQueryData.mockResolvedValue([props.formData]);
+      mockLoadDatasource.mockResolvedValue(props.formData.datasource);
 
-        setTimeout(() => {
-          expect(children.mock.calls).toHaveLength(2);
-          expect(children.mock.calls[1][0]).toEqual({
-            payload: {
-              formData: props.formData,
-              datasource: props.formData.datasource,
-              queriesData: [props.formData],
-            },
-          });
-          done(undefined);
-        }, 0);
-      }));
+      setup({ loadDatasource: true });
 
-    it('calls children({ error }) upon request error', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const children = jest.fn<ReactNode, unknown[]>();
-        mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
+      const payloadElement = await screen.findByRole('contentinfo');
+      const actualPayload = JSON.parse(payloadElement.textContent || '');
 
-        setup({ children });
+      expect(actualPayload).toEqual({
+        formData: props.formData,
+        datasource: props.formData.datasource,
+        queriesData: [props.formData],
+      });
+    });
 
-        setTimeout(() => {
-          expect(children.mock.calls).toHaveLength(2); // loading + error
-          expect(children.mock.calls[1][0]).toEqual({
-            error: new Error('error'),
-          });
-          done(undefined);
-        }, 0);
-      }));
+    it('shows error message upon request error', async () => {
+      const errorMessage = 'error';
+      mockLoadFormData.mockRejectedValue(new Error(errorMessage));
 
-    it('calls children({ error }) upon JS error', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const children = jest.fn<ReactNode, unknown[]>();
+      setup();
 
-        mockLoadFormData = jest.fn(() => {
-          throw new Error('non-async error');
-        });
+      const errorElement = await screen.findByRole('alert');
+      expect(errorElement).toHaveAttribute('role', 'alert');
+      expect(errorElement).toHaveTextContent(errorMessage);
+    });
 
-        setup({ children });
+    it('shows error message upon JS error', async () => {
+      mockLoadFormData.mockImplementation(() => {
+        throw new Error('non-async error');
+      });
 
-        setTimeout(() => {
-          expect(children.mock.calls).toHaveLength(2); // loading + error
-          expect(children.mock.calls[1][0]).toEqual({
-            error: new Error('non-async error'),
-          });
-          done(undefined);
-        }, 0);
-      }));
+      setup();
+
+      const errorElement = await screen.findByRole('alert');
+      expect(errorElement).toHaveAttribute('role', 'alert');
+      expect(errorElement).toHaveTextContent('non-async error');
+    });
   });
 
   describe('callbacks', () => {
-    it('calls onLoad(payload) when loaded', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const onLoaded = jest.fn<void, unknown[]>();
-        setup({ onLoaded, loadDatasource: true });
+    it('calls onLoaded when loaded', async () => {
+      const onLoaded = jest.fn();
+      mockLoadFormData.mockResolvedValue(props.formData);
+      mockLoadQueryData.mockResolvedValue([props.formData]);
+      mockLoadDatasource.mockResolvedValue(props.formData.datasource);
 
-        setTimeout(() => {
-          expect(onLoaded.mock.calls).toHaveLength(1);
-          expect(onLoaded.mock.calls[0][0]).toEqual({
-            formData: props.formData,
-            datasource: props.formData.datasource,
-            queriesData: [props.formData],
-          });
-          done(undefined);
-        }, 0);
-      }));
+      setup({ onLoaded, loadDatasource: true });
 
-    it('calls onError(error) upon request error', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const onError = jest.fn<void, unknown[]>();
-        mockLoadFormData = jest.fn(() => Promise.reject(new Error('error')));
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
 
-        setup({ onError });
-        setTimeout(() => {
-          expect(onError.mock.calls).toHaveLength(1);
-          expect(onError.mock.calls[0][0]).toEqual(new Error('error'));
-          done(undefined);
-        }, 0);
-      }));
+      expect(onLoaded).toHaveBeenCalledTimes(1);
+      expect(onLoaded).toHaveBeenCalledWith({
+        formData: props.formData,
+        datasource: props.formData.datasource,
+        queriesData: [props.formData],
+      });
+    });
 
-    it('calls onError(error) upon JS error', () =>
-      new Promise(done => {
-        expect.assertions(2);
-        const onError = jest.fn<void, unknown[]>();
+    it('calls onError upon request error', async () => {
+      const onError = jest.fn();
+      mockLoadFormData.mockRejectedValue(new Error('error'));
 
-        mockLoadFormData = jest.fn(() => {
-          throw new Error('non-async error');
-        });
+      setup({ onError });
 
-        setup({ onError });
-        setTimeout(() => {
-          expect(onError.mock.calls).toHaveLength(1);
-          expect(onError.mock.calls[0][0]).toEqual(
-            new Error('non-async error'),
-          );
-          done(undefined);
-        }, 0);
-      }));
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(new Error('error'));
+    });
+
+    it('calls onError upon JS error', async () => {
+      const onError = jest.fn();
+      mockLoadFormData.mockImplementation(() => {
+        throw new Error('non-async error');
+      });
+
+      setup({ onError });
+
+      await act(async () => {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      });
+
+      expect(onError).toHaveBeenCalledTimes(1);
+      expect(onError).toHaveBeenCalledWith(new Error('non-async error'));
+    });
   });
 });

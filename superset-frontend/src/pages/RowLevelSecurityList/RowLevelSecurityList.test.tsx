@@ -17,8 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import { act } from 'react-dom/test-utils';
+import { act, render, screen, within } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import userEvent from '@testing-library/user-event';
@@ -165,7 +164,7 @@ describe('RuleList RTL', () => {
     expect(searchFilters).toHaveLength(2);
 
     const typeFilter = screen.queryAllByTestId('filters-select');
-    expect(typeFilter).toHaveLength(2);
+    expect(typeFilter).toHaveLength(3); // Update to expect 3 select filters
   });
 
   it('renders correct list columns', async () => {

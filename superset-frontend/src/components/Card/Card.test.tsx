@@ -16,10 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, waitFor } from 'spec/helpers/testing-library';
 import Card from '.';
 
-test('should render', () => {
+afterEach(async () => {
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+test('should render', async () => {
   const { container } = render(<Card />);
-  expect(container).toBeInTheDocument();
+  await waitFor(() => {
+    expect(container).toBeInTheDocument();
+  });
 });

@@ -54,7 +54,7 @@ export const titleControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('X AXIS TITLE BOTTOM MARGIN'),
+          label: t('X Axis Title Margin'),
           renderTrigger: true,
           default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),

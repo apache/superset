@@ -18,7 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
-import { Dropdown, IconOrientation } from 'src/components/Dropdown';
+import { MenuDotsDropdown, IconOrientation } from 'src/components/Dropdown';
 import { Menu, MenuProps } from 'src/components/Menu';
 
 /**
@@ -126,7 +126,7 @@ export function ActionCell(props: ActionCellProps) {
     setVisible(flag);
   };
   return (
-    <Dropdown
+    <MenuDotsDropdown
       iconOrientation={IconOrientation.Horizontal}
       onVisibleChange={handleVisibleChange}
       trigger={['click']}

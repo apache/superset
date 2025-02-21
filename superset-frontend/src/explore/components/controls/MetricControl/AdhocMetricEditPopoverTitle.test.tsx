@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import {
+  fireEvent,
   screen,
   render,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 

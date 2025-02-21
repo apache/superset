@@ -653,7 +653,7 @@ const config: ControlPanelConfig = {
                           value: colname,
                           label: Array.isArray(verboseMap)
                             ? colname
-                            : verboseMap[colname],
+                            : (verboseMap[colname] ?? colname),
                         }))
                     : [];
                 const columnOptions = explore?.controls?.time_compare?.value

@@ -17,8 +17,9 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Any, TYPE_CHECKING
+from typing import Any, Iterator, TYPE_CHECKING
 
 import backoff
 import jwt
@@ -32,7 +33,7 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import DatabaseUserOAuth2Tokens
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
@@ -197,3 +198,16 @@ class OAuth2ClientConfigSchema(Schema):
         load_default=lambda: "json",
         validate=validate.OneOf(["json", "data"]),
     )
+
+
+@contextmanager
+def check_for_oauth2(database: Database) -> Iterator[None]:
+    """
+    Run code and check if OAuth2 is needed.
+    """
+    try:
+        yield
+    except Exception as ex:
+        if database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex):
+            database.db_engine_spec.start_oauth2_dance(database)
+        raise

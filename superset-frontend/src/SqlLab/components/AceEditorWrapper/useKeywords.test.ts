@@ -202,6 +202,7 @@ test('returns column keywords among selected tables', async () => {
             {
               name: expectColumn,
               type: 'VARCHAR',
+              longType: 'VARCHAR',
             },
           ],
         },
@@ -223,6 +224,7 @@ test('returns column keywords among selected tables', async () => {
             {
               name: unexpectedColumn,
               type: 'VARCHAR',
+              longType: 'VARCHAR',
             },
           ],
         },

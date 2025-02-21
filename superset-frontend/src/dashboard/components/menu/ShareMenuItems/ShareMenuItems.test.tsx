@@ -18,8 +18,12 @@
  */
 
 import { Menu } from 'src/components/Menu';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import * as copyTextToClipboard from 'src/utils/copy';
 import fetchMock from 'fetch-mock';
 import ShareMenuItems from '.';
@@ -37,6 +41,7 @@ const createProps = () => ({
   emailBody: 'Check out this dashboard: ',
   dashboardId: DASHBOARD_ID,
   title: 'Test Dashboard',
+  submenuKey: 'share',
 });
 
 const { location } = window;

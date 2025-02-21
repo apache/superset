@@ -16,9 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { cleanup } from 'spec/helpers/testing-library';
 import { withinRange } from './utils';
 
-test('withinRange supported positive numbers', () => {
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
+
+// Make tests async
+test('withinRange supported positive numbers', async () => {
   // Valid inputs within range
   expect(withinRange(50, 60, 16)).toBeTruthy();
 
@@ -26,7 +35,7 @@ test('withinRange supported positive numbers', () => {
   expect(withinRange(40, 60, 16)).toBeFalsy();
 });
 
-test('withinRange unsupported negative numbers', () => {
+test('withinRange unsupported negative numbers', async () => {
   // Negative numbers not supported
   expect(withinRange(65, 60, -16)).toBeFalsy();
   expect(withinRange(-60, -65, 16)).toBeFalsy();
@@ -34,7 +43,7 @@ test('withinRange unsupported negative numbers', () => {
   expect(withinRange(-60, 65, 16)).toBeFalsy();
 });
 
-test('withinRange invalid inputs', () => {
+test('withinRange invalid inputs', async () => {
   // Invalid inputs should return falsy and not throw an error
   // We need ts-ignore here to be able to pass invalid values and pass linting
   // @ts-ignore

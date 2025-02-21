@@ -24,11 +24,12 @@ import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
 import { handleChartDelete, CardStyles } from 'src/views/CRUD/utils';
+import Button from 'src/components/Button';
 
 interface ChartCardProps {
   chart: Chart;
@@ -172,9 +173,11 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </AntdDropdown>
+            <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
+              <Button buttonSize="xsmall" type="link">
+                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+              </Button>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

@@ -28,9 +28,6 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        node: [20]
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4
@@ -41,7 +38,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version-file: './superset-frontend/.nvmrc'
       - name: Install eyes-storybook dependencies
         uses: ./.github/actions/cached-dependencies
         with:

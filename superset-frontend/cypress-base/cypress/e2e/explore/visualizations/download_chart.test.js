@@ -36,10 +36,10 @@ describe('Download Chart > Bar chart', () => {
     };
 
     cy.visitChartByParams(formData);
-    cy.get('.header-with-actions .ant-dropdown-trigger').click();
-    cy.get(':nth-child(3) > .ant-dropdown-menu-submenu-title').click();
+    cy.get('.header-with-actions .antd5-dropdown-trigger').click();
+    cy.get(':nth-child(3) > .antd5-dropdown-menu-submenu-title').click();
     cy.get(
-      '.ant-dropdown-menu-submenu > .ant-dropdown-menu li:nth-child(3)',
+      '.antd5-dropdown-menu-submenu > .antd5-dropdown-menu li:nth-child(3)',
     ).click();
     cy.verifyDownload('.jpg', {
       contains: true,

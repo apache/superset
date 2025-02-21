@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from '@testing-library/react';
-import '@testing-library/jest-dom'; // For advanced DOM assertions
+import { render } from 'spec/helpers/testing-library';
 import { CurrentCalendarFrame } from '../components/CurrentCalendarFrame';
 import { CurrentWeek } from '../types';
 

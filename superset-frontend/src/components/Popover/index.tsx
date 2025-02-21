@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export type { PopoverProps } from 'antd/lib/popover';
-export type { TooltipPlacement } from 'antd/lib/tooltip';
+import { Popover as AntdPopover } from 'antd-v5';
+import { PopoverProps as AntdPopoverProps } from 'antd-v5/lib/popover';
 
-// Eventually Popover can be wrapped and customized in this file
-// for now we're just redirecting
-export { Popover as default } from './Popover';
+export interface PopoverProps extends AntdPopoverProps {
+  forceRender?: boolean;
+}
+
+const Popover = (props: PopoverProps) => <AntdPopover {...props} />;
+
+export default Popover;

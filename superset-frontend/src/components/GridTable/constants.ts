@@ -16,12 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export const PIVOT_COL_ID = '-1';
 
-import { Popover as AntdPopover } from 'antd';
-import type { PopoverProps as AntdPopoverProps } from 'antd/lib/popover';
-
-export interface PopoverProps extends AntdPopoverProps {
-  forceRender?: boolean;
+export enum GridSize {
+  Small = 'small',
+  Middle = 'middle',
 }
-
-export const Popover = (props: PopoverProps) => <AntdPopover {...props} />;

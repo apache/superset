@@ -21,10 +21,10 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { AsyncSelect } from 'src/components';
 
 const ARIA_LABEL = 'Test';

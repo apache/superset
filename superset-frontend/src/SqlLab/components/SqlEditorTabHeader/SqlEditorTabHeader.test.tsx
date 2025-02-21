@@ -22,9 +22,9 @@ import {
   fireEvent,
   screen,
   render,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { QueryEditor } from 'src/SqlLab/types';
 import {
   initialState,

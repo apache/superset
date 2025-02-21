@@ -17,15 +17,15 @@
  * under the License.
  */
 
-import { act } from 'react-dom/test-utils';
 import fetchMock from 'fetch-mock';
 import {
+  act,
+  defaultStore as store,
   render,
   screen,
+  userEvent,
   waitFor,
-  defaultStore as store,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import { api } from 'src/hooks/apiResources/queryApi';
 import DatabaseSelector, { DatabaseSelectorProps } from '.';
 import { EmptyState } from '../EmptyState';

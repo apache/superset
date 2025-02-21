@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import * as resizeDetector from 'react-resize-detector';
 import { supersetTheme, hexToRgb } from '@superset-ui/core';
 import MetadataBar, {

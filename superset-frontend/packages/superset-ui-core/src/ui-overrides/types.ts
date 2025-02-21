@@ -144,6 +144,13 @@ export interface SQLResultTableExtensionProps {
   allowHTML?: boolean;
 }
 
+export interface SQLTablePreviewExtensionProps {
+  dbId: number;
+  catalog?: string;
+  schema: string;
+  tableName: string;
+}
+
 /**
  * Interface for extensions to Slice Header
  */
@@ -229,4 +236,8 @@ export type Extensions = Partial<{
   'sqleditor.extension.customAutocomplete': (
     args: CustomAutoCompleteArgs,
   ) => CustomAutocomplete[] | undefined;
+  'sqleditor.extension.tablePreview': [
+    string,
+    ComponentType<SQLTablePreviewExtensionProps>,
+  ][];
 }>;

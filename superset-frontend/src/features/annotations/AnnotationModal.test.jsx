@@ -69,11 +69,11 @@ describe('AnnotationModal', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(AnnotationModal)).toExist();
+    expect(wrapper.find(AnnotationModal)).toBeTruthy();
   });
 
   it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
+    expect(wrapper.find(Modal)).toBeTruthy();
   });
 
   it('renders add header when no annotation prop is included', async () => {
@@ -90,10 +90,10 @@ describe('AnnotationModal', () => {
   });
 
   it('renders input elements for annotation name', () => {
-    expect(wrapper.find('input[name="short_descr"]')).toExist();
+    expect(wrapper.find('input[name="short_descr"]')).toBeTruthy();
   });
 
   it('renders json editor for json metadata', () => {
-    expect(wrapper.find(JsonEditor)).toExist();
+    expect(wrapper.find(JsonEditor)).toBeTruthy();
   });
 });

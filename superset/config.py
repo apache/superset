@@ -729,8 +729,10 @@ THUMBNAIL_CHART_DIGEST_FUNC: Callable[[Slice, ExecutorType, str], str | None] | 
 
 THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_TYPE": "NullCache",
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(days=7).total_seconds()),
     "CACHE_NO_NULL_WARNING": True,
 }
+THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1903,6 +1905,15 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
+
+# The migrations that add catalog permissions might take a considerably long time
+# to execute as it has to create permissions to all schemas and catalogs from all
+# other catalogs accessible by the credentials. This flag allows to skip the
+# creation of these secondary perms, and focus only on permissions for the default
+# catalog. These secondary permissions can be created later by editing the DB
+# connection via the UI (without downtime).
+CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
 
 # -------------------------------------------------------------------

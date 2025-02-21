@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { RefObject } from 'react';
+import { ComponentProps, RefObject } from 'react';
 import copyTextToClipboard from 'src/utils/copy';
 import { t, logging } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
@@ -24,7 +24,7 @@ import { getDashboardPermalink } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 
-interface ShareMenuItemProps {
+interface ShareMenuItemProps extends ComponentProps<typeof Menu.SubMenu> {
   url?: string;
   copyMenuItemTitle: string;
   emailMenuItemTitle: string;
@@ -38,8 +38,8 @@ interface ShareMenuItemProps {
   shareByEmailMenuItemRef?: RefObject<any>;
   selectedKeys?: string[];
   setOpenKeys?: Function;
-  key?: string;
   title: string;
+  disabled?: boolean;
 }
 
 const ShareMenuItems = (props: ShareMenuItemProps) => {
@@ -52,8 +52,9 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
     addSuccessToast,
     dashboardId,
     dashboardComponentId,
-    key,
     title,
+    disabled,
+    ...rest
   } = props;
   const { dataMask, activeTabs } = useSelector(
     (state: RootState) => ({
@@ -96,7 +97,12 @@ const ShareMenuItems = (props: ShareMenuItemProps) => {
   }
 
   return (
-    <Menu.SubMenu title={title} key={key}>
+    <Menu.SubMenu
+      title={title}
+      key={MenuKeys.Share}
+      disabled={disabled}
+      {...rest}
+    >
       <Menu.Item key={MenuKeys.CopyLink} onClick={() => onCopyLink()}>
         {copyMenuItemTitle}
       </Menu.Item>

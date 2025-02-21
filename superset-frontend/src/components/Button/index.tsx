@@ -67,7 +67,7 @@ const decideType = (buttonStyle: ButtonStyle) => {
     success: 'primary',
     secondary: 'default',
     default: 'default',
-    tertiary: 'dashed',
+    tertiary: 'default',
     dashed: 'dashed',
     link: 'link',
   };

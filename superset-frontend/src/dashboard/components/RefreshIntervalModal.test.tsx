@@ -17,21 +17,20 @@
  * under the License.
  */
 import { isValidElement } from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
-import { HeaderActionsDropdown } from 'src/dashboard/components/Header/HeaderActionsDropdown';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
+import { useHeaderActionsMenu } from './Header/useHeaderActionsDropdownMenu';
 
 const createProps = () => ({
   addSuccessToast: jest.fn(),
   addDangerToast: jest.fn(),
   customCss:
-    '.header-with-actions .right-button-panel .ant-dropdown-trigger{margin-left: 100px;}',
+    '.header-with-actions .right-button-panel .antd5-dropdown-trigger{margin-left: 100px;}',
   dashboardId: 1,
   dashboardInfo: {
     id: 1,
@@ -85,12 +84,22 @@ const editModeOnProps = {
 };
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({
+  dashboardState: {
+    dashboardInfo: createProps().dashboardInfo,
+  },
+});
+
+const HeaderActionsMenu = (props: any) => {
+  const [menu] = useHeaderActionsMenu(props);
+
+  return <>{menu}</>;
+};
 
 const setup = (overrides?: any) => (
   <Provider store={store}>
     <div className="dashboard-header">
-      <HeaderActionsDropdown {...editModeOnProps} {...overrides} />
+      <HeaderActionsMenu {...editModeOnProps} {...overrides} />
     </div>
   </Provider>
 );

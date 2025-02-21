@@ -75,6 +75,7 @@ export const styleControlSetItem: ControlSetItem = {
     description: t('CSS applied to the chart'),
     isInt: false,
     renderTrigger: true,
+    valueKey: null,
 
     validators: [],
     mapStateToProps: ({ controls }) => ({

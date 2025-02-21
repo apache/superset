@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { screen } from '@testing-library/react';
+import { render, screen } from 'spec/helpers/testing-library';
 import TagType from 'src/types/TagType';
 import Tag from './Tag';
 

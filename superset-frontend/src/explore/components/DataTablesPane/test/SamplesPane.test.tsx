@@ -17,9 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import {
   render,
+  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';

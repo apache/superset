@@ -63,6 +63,8 @@ time_map = {
 
 
 def upgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
+    if not slice_params or not isinstance(slice_params, dict):
+        return {}
     params = deepcopy(slice_params)
 
     # Update time_comparison to time_compare
@@ -103,6 +105,8 @@ def upgrade():
         )
     ):
         try:
+            if not slc.params:  # Noop if there's no params on the slice
+                continue
             params = json.loads(slc.params)
             updated_slice_params = upgrade_comparison_params(params)
             slc.params = json.dumps(updated_slice_params)
@@ -119,6 +123,8 @@ def upgrade():
 
 
 def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
+    if not slice_params or not isinstance(slice_params, dict):
+        return {}
     params = deepcopy(slice_params)
     params["enable_time_comparison"] = False
 
@@ -199,6 +205,8 @@ def downgrade():
         )
     ):
         try:
+            if not slc.params:  # Noop if there's no params on the slice
+                continue
             params = json.loads(slc.params)
             updated_slice_params = downgrade_comparison_params(params)
             slc.params = json.dumps(updated_slice_params)

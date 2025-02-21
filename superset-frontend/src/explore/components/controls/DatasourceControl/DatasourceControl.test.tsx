@@ -19,9 +19,14 @@
 
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
-import { render, screen, act, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  act,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import DatasourceControl from '.';
 

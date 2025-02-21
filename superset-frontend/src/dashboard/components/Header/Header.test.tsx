@@ -17,8 +17,12 @@
  * under the License.
  */
 import * as redux from 'redux';
-import { render, screen, fireEvent } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';

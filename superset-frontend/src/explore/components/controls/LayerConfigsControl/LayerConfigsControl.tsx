@@ -18,7 +18,7 @@
  */
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { css, styled, t } from '@superset-ui/core';
-import { Popover } from 'antd';
+import Popover from 'src/components/Popover';
 import { FC, useState } from 'react';
 import { EditItem, LayerConf, LayerConfigsControlProps } from './types';
 import LayerConfigsPopoverContent from './LayerConfigsPopoverContent';
@@ -160,7 +160,7 @@ export const LayerConfigsControl: FC<LayerConfigsControlProps> = ({
     <div>
       <ControlHeader {...controlHeaderProps} />
       <Popover
-        visible={popoverVisible}
+        open={popoverVisible}
         trigger="click"
         title={popoverTitle}
         placement="right"
