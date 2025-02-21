@@ -225,7 +225,7 @@ class Markdown extends PureComponent {
   }
 
   handleChangeEditorMode(mode) {
-    let nextState = {
+    const nextState = {
       ...this.state,
       editorMode: mode,
       isEditing: mode === 'edit',
@@ -313,7 +313,7 @@ class Markdown extends PureComponent {
   }
 
   render() {
-    const { isFocused, editorMode, isEditing } = this.state;
+    const { isFocused, isEditing } = this.state;
 
     const {
       component,
@@ -385,6 +385,8 @@ class Markdown extends PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
+                  role="button"
+                  tabIndex="0"
                   onClick={() => {
                     if (editMode && !isEditing) {
                       this.handleChangeFocus(true);
