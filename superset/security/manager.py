@@ -271,7 +271,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Manage",
         "Queries",
         "ReportSchedule",
-        "TableSchemaView",
     }
 
     ALPHA_ONLY_PMVS = {
