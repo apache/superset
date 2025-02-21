@@ -19,7 +19,13 @@
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import { makeApi, t, logging } from '@superset-ui/core';
+import {
+  makeApi,
+  t,
+  logging,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -212,5 +218,14 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.start();
   }
 });
+
+if (isFeatureEnabled(FeatureFlag.EmbeddedSupersetEmitDataMasks)) {
+  log('setting up Switchboard event emitter');
+
+  store.subscribe(() => {
+    const state = store.getState();
+    Switchboard.emit('getDataMasks', state.dataMask);
+  });
+}
 
 log('embed page is ready to receive messages');
