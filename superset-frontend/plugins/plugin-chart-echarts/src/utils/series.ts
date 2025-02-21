@@ -434,7 +434,6 @@ export function getLegendProps(
   padding?: LegendPaddingType,
   showLegendToggle?: boolean,  // ✅ Ajout de l'option ici
 ): LegendComponentOption | LegendComponentOption[] {
-  console.log('📌 LEGEND PROPS:', { show, showLegendToggle });
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
       orientation,

@@ -173,4 +173,3 @@ const config: ControlPanelConfig = {
 };
 
 export default config;
-console.log('✅ controlPanel.tsx is loaded! Test');
