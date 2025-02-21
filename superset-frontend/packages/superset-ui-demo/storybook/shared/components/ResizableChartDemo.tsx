@@ -19,7 +19,7 @@
 
 import { useState, ReactNode } from 'react';
 import { styled } from '@superset-ui/core';
-import type { DecoratorFunction } from '@storybook/types';
+import type { Decorator } from '@storybook/react';
 import ResizablePanel, { Size } from './ResizablePanel';
 
 export const SupersetBody = styled.div`
@@ -58,10 +58,10 @@ export default function ResizableChartDemo({
   );
 }
 
-export const withResizableChartDemo: DecoratorFunction<ReactNode> = (
-  storyFn,
-  context,
-) => {
+export const withResizableChartDemo: Decorator<{
+  width: number;
+  height: number;
+}> = (storyFn, context) => {
   const {
     parameters: { initialSize, panelPadding },
   } = context;

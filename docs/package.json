@@ -14,7 +14,8 @@
     "serve": "yarn run _init && docusaurus serve",
     "write-translations": "docusaurus write-translations",
     "write-heading-ids": "docusaurus write-heading-ids",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "eslint": "eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
@@ -39,7 +40,14 @@
     "@docusaurus/module-type-aliases": "^3.7.0",
     "@docusaurus/tsconfig": "^3.6.3",
     "@types/react": "^18.3.12",
-    "typescript": "^5.7.3",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^8.0.0",
+    "eslint-plugin-prettier": "^4.0.0",
+    "eslint-plugin-react": "^7.0.0",
+    "prettier": "^2.0.0",
+    "typescript": "~5.1.6",
     "webpack": "^5.97.1"
   },
   "browserslist": {
