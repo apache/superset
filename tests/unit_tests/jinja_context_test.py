@@ -566,7 +566,6 @@ def test_metric_macro_recursive(mocker: MockerFixture) -> None:
         sql=None,
     )
 
-    mocker.patch("superset.jinja_context.get_user_id", return_value=42)
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {"datasource": {"id": 1}}
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
@@ -625,7 +624,6 @@ def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:
         sql=None,
     )
 
-    mocker.patch("superset.jinja_context.get_user_id", return_value=42)
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {"datasource": {"id": 1}}
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
@@ -655,7 +653,6 @@ def test_metric_macro_recursive_cyclic(mocker: MockerFixture) -> None:
         sql=None,
     )
 
-    mocker.patch("superset.jinja_context.get_user_id", return_value=42)
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {"datasource": {"id": 1}}
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
@@ -685,7 +682,6 @@ def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
         sql=None,
     )
 
-    mocker.patch("superset.jinja_context.get_user_id", return_value=42)
     mock_g = mocker.patch("superset.jinja_context.g")
     mock_g.form_data = {"datasource": {"id": 1}}
     DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
