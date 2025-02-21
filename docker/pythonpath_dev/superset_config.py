@@ -60,7 +60,14 @@ REDIS_CELERY_DB = os.getenv("REDIS_CELERY_DB", "0")
 REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
-
+FRONTEND_BASEURL = "http://localhost:9000"
+ENABLE_CORS = True
+CORS_OPTIONS = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "resources": [r"/*"],
+    "origins": ["http://localhost:9000"],
+}
 CACHE_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": 300,
@@ -92,18 +99,32 @@ class CeleryConfig:
 
 CELERY_CONFIG = CeleryConfig
 
-FEATURE_FLAGS = {"ALERT_REPORTS": True}
+FEATURE_FLAGS = {"ALERT_REPORTS": True,"CHART_PLUGINS_EXPERIMENTAL":True,"ENABLE_TEMPLATE_PROCESSING":True}
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = "http://superset:8088/"
 # The base URL for the email report hyperlinks.
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SQLLAB_CTAS_NO_LIMIT = True
-
+SECRET_KEY = "HOrfcYmVX4S1fWjK06roD7jhofDKRAhZRSGzk7qhz3muxSd5vG356wqf"
 #
 # Optionally import superset_config_docker.py (which will have been included on
 # the PYTHONPATH) in order to allow for local settings to be overridden
 #
+
+print("_________new__________")
+EXTRA_CATEGORICAL_COLOR_SCHEMES = [
+    {
+        "id": "shipmnts_colors",
+        "description": "shipmnts colors",
+        "label": "Shipmnts",
+        "isDefault": True,
+        "colors": [
+            "#5ac189",
+        ],
+    }
+]
+
 try:
     import superset_config_docker
     from superset_config_docker import *  # noqa
