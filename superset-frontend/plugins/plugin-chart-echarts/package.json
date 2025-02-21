@@ -33,7 +33,9 @@
     "@superset-ui/core": "*",
     "echarts": "*",
     "memoize-one": "*",
-    "react": "^17.0.2",
+    "react": "^17.0.2"
+  },
+  "devDependencies": {
     "@types/react-redux": "^7.1.10"
   },
   "publishConfig": {
