@@ -61,25 +61,20 @@ def permalink_salt(app_context) -> Iterator[str]:
 def test_sqllab_user_can_access_shared_query(
     tab_state_data: dict[str, Any], permalink_salt: str, test_client, login_as
 ):
-    # Log in as a SQL Lab user
     login_as(GAMMA_SQLLAB_USERNAME)
 
-    # Create a permalink for the query
     resp = test_client.post("api/v1/sqllab/permalink", json=tab_state_data)
     assert resp.status_code == 201, "Failed to create permalink"
 
     data = resp.json
     key = data["key"]
 
-    # Fetch the permalink
     resp = test_client.get(f"api/v1/sqllab/permalink/{key}")
     assert resp.status_code == 200, "SQL Lab user access expected"
 
-    # Verify the returned data matches the expected query data
     result = json.loads(resp.data.decode("utf-8"))
     assert result == tab_state_data, "Query data mismatch"
 
-    # Clean up the stored permalink entry
     id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()
