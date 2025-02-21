@@ -1,0 +1,84 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - development
+
+pr:
+  branches:
+    exclude:
+      - '*'
+    include: []
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  imageRepository: 'shipmnts/superset'
+  tag: '$(Build.BuildId)'
+  dockerRegistryServiceConnection: 'dockerhub-service-connection'
+  k8sNamespace: 'default'
+  k8sDeploymentName: 'superset'
+  
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:
+  - job: Build
+    displayName: Build
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - task: Docker@2
+      displayName: Login to registry
+      inputs:
+        command: login
+        containerRegistry: $(dockerRegistryServiceConnection)
+    - task: Bash@3
+      displayName: Pulling docker image
+      inputs:
+        targetType: inline
+        script: |
+          docker pull $(containerRegistry)/$(imageRepository):$(Build.SourceBranchName) || exit 0
+    - task: Docker@2
+      displayName: Build image from dockerfile
+      inputs:
+        command: build
+        repository: $(imageRepository)
+        dockerfile: $(dockerfilePath)
+        tags: |
+          latest
+          $(tag)
+          $(Build.SourceBranchName)
+        arguments: '--cache-from $(containerRegistry)/$(imageRepository):$(Build.SourceBranchName) --build-arg BUILDKIT_INLINE_CACHE=1'
+
+    - task: Docker@2
+      displayName: push image to container registry
+      inputs:
+        command: push
+        repository: $(imageRepository)
+        tags: |
+          $(tag)
+          $(Build.SourceBranchName)
+- stage: Development
+  condition: and(succeeded(), eq(variables['build.sourceBranchName'], 'development'))
+  displayName: Development Deploy stage
+  dependsOn: Build
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
+    environment: 'development.default'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - script: |
+                echo "Restarting Kubernetes deployment: $(k8sDeploymentName)"
+                kubectl rollout restart deployment/$(k8sDeploymentName) -n $(k8sNamespace)
+              displayName: 'Restart Kubernetes Deployment'
+    
