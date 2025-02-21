@@ -17,14 +17,13 @@
  * under the License.
  */
 
-// @ts-check
-// Note: type annotations allow type checking and IDEs autocompletion
+import type {Config} from '@docusaurus/types'
+import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
+import { themes } from 'prism-react-renderer'
 
-const lightCodeTheme = require("prism-react-renderer").themes.github;
-const darkCodeTheme = require("prism-react-renderer").themes.vsDark;
+const { github: lightCodeTheme, vsDark: darkCodeTheme } = themes;
 
-/** @type {import('@docusaurus/types').Config} */
-const config = {
+const config: Config = {
   title: 'Superset',
   tagline:
     'Apache Superset is a modern data exploration and visualization platform',
@@ -33,8 +32,8 @@ const config = {
   onBrokenLinks: 'throw',
   onBrokenMarkdownLinks: 'throw',
   favicon: '/img/favicon.ico',
-  organizationName: 'apache', // Usually your GitHub org/user name.
-  projectName: 'superset', // Usually your repo name.
+  organizationName: 'apache',
+  projectName: 'superset',
   themes: ['@saucelabs/theme-github-codeblock'],
   plugins: [
     [
@@ -199,8 +198,7 @@ const config = {
   presets: [
     [
       '@docusaurus/preset-classic',
-      /** @type {import('@docusaurus/preset-classic').Options} */
-      ({
+      {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           editUrl:
@@ -219,16 +217,16 @@ const config = {
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),
         },
-      }),
+      } satisfies Options,
     ],
   ],
 
   themeConfig:
-    /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
-    ({
+    {
       colorMode: {
-        defaultMode: 'light',
-        disableSwitch: true,
+        defaultMode: 'dark',
+        disableSwitch: false,
+        respectPrefersColorScheme: true,
       },
       algolia: {
         appId: 'WR5FASX5ED',
@@ -330,7 +328,7 @@ const config = {
           hideable: true,
         }
       },
-    }),
+    } satisfies ThemeConfig,
   scripts: [
     '/script/matomo.js',
     // {
@@ -340,4 +338,4 @@ const config = {
   ],
 };
 
-module.exports = config;
+export default config;
