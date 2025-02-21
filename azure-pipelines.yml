@@ -48,7 +48,7 @@ stages:
       inputs:
         command: build
         repository: $(imageRepository)
-        dockerfile: $(dockerfilePath)
+        dockerfile: '**/Dockerfile'
         tags: |
           latest
           $(tag)
