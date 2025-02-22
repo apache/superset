@@ -56,19 +56,19 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: bash -c 'cd superset-frontend && yarn prettier --log-level error --check $(echo "$@" | sed "s|superset-frontend/||g")'
+        entry: bash -c 'cd superset-frontend && yarn install && yarn prettier --log-level error --check $(echo "$@" | sed "s|superset-frontend/||g")'
         language: system
         files: '^superset-frontend/(src|spec|cypress-base|plugins|packages|.storybook)/.+\.(js|jsx|ts|tsx|css|less|scss|sass)$|^superset-frontend/package\.json$'
         pass_filenames: true
       - id: eslint-frontend
         name: eslint (frontend)
-        entry: bash -c 'cd superset-frontend && yarn eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx --quiet --rule "file-progress/activate:0" $(echo "$@" | sed "s|superset-frontend/||g")'
+        entry: bash -c 'cd superset-frontend && yarn install && yarn eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx --quiet --rule "file-progress/activate:0" $(echo "$@" | sed "s|superset-frontend/||g")'
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'cd docs && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $(echo "$@" | sed "s|docs/||g")'
+        entry: bash -c 'cd docs && yarn install && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $(echo "$@" | sed "s|docs/||g")'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
