@@ -1358,8 +1358,7 @@ class HorizonViz(NVD3TimeSeriesViz):
     viz_type = "horizon"
     verbose_name = _("Horizon Charts")
     credits = (
-        '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
-        "d3-horizon-chart</a>"
+        '<a href="https://www.npmjs.com/package/d3-horizon-chart">d3-horizon-chart</a>'
     )
 
 

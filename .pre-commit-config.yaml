@@ -20,7 +20,7 @@ repos:
     hooks:
       - id: auto-walrus
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+    rev: v1.15.0
     hooks:
       - id: mypy
         args: [--check-untyped-defs]
@@ -56,27 +56,26 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: bash -c 'FILES=$(echo "$@" | sed "s|superset-frontend/||g"); cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run format -- --log-level error $FILES; else npm run prettier-check -- $FILES; fi'
+        entry: bash -c 'cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run format -- --log-level error; else npm run prettier-check; fi'
         language: system
         files: '^superset-frontend/(src|spec|cypress-base|plugins|packages|.storybook)/.+\.(js|jsx|ts|tsx|css|less|scss|sass)$|^superset-frontend/package\.json$'
         pass_filenames: true
       - id: eslint-frontend
         name: eslint (frontend)
-        entry: bash -c 'FILES=$(echo "$@" | sed "s|superset-frontend/||g"); cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run lint-fix -- $FILES; else npm run eslint -- $FILES; fi'
+        entry: bash -c 'cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run lint-fix; else npm run eslint; fi'
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'FILES=$(echo "$@" | sed "s|docs/||g"); cd docs && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $([ -z "$SKIP_FIX" ] && echo "--fix") $FILES'
+        entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $([ -z "$SKIP_FIX" ] && echo "--fix") $FILES'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
       - id: type-checking-frontend
         name: Type-Checking (Frontend)
-        entry: ./scripts/check-type.js
-        args: [package=superset-frontend, excludeDeclarationDir=cypress-base]
-        language: node
+        entry: bash -c './scripts/check-type.js package=superset-frontend excludeDeclarationDir=cypress-base'
+        language: system
         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
         exclude: ^superset-frontend/cypress-base\/
         require_serial: true
@@ -94,7 +93,7 @@ repos:
         verbose: false
         args: ["--log-level", "error"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: v0.9.7
     hooks:
       - id: ruff
         args: [--fix]
