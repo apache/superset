@@ -25,7 +25,7 @@ import {
   useCallback,
 } from 'react';
 import { styled, SupersetClient, SupersetError, t } from '@superset-ui/core';
-import type { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import type { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
 import rison from 'rison';
 import { AsyncSelect, Select } from 'src/components';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
