@@ -148,7 +148,7 @@ const RunQueryActionButton = ({
           ? {
               overlay: overlayCreateAsMenu,
               icon: (
-                <Icons.CaretDown
+                <Icons.DownOutlined
                   iconColor={
                     isDisabled
                       ? theme.colors.grayscale.base

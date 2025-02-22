@@ -193,7 +193,7 @@ function RowLevelSecurityList(props: RLSProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash data-test="rls-list-trash-icon" />
+                        <Icons.DeleteOutlined data-test="rls-list-trash-icon" />
                       </span>
                     </Tooltip>
                   )}
@@ -211,7 +211,7 @@ function RowLevelSecurityList(props: RLSProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
@@ -246,7 +246,15 @@ function RowLevelSecurityList(props: RLSProps) {
     buttonAction: () => handleRuleEdit(null),
     buttonText: canEdit ? (
       <>
-        <i className="fa fa-plus" data-test="add-rule-empty" /> {'Rule'}{' '}
+        <Icons.PlusOutlined
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+          data-test="add-rule-empty"
+        />
+        Rule
       </>
     ) : null,
   };
@@ -312,7 +320,15 @@ function RowLevelSecurityList(props: RLSProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" data-test="add-rule" /> {t('Rule')}
+          <Icons.PlusOutlined
+            iconSize="s"
+            css={theme => ({
+              margin: `auto ${theme.gridUnit * 2}px auto 0`,
+              verticalAlign: 'baseline',
+            })}
+            data-test="add-rule"
+          />
+          {t('Rule')}
         </>
       ),
       buttonStyle: 'primary',

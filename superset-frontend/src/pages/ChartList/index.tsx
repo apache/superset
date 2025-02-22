@@ -24,6 +24,8 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -157,6 +159,7 @@ const StyledActions = styled.div`
 `;
 
 function ChartList(props: ChartListProps) {
+  const theme = useTheme();
   const {
     addDangerToast,
     addSuccessToast,
@@ -485,7 +488,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash />
+                        <Icons.DeleteOutlined />
                       </span>
                     </Tooltip>
                   )}
@@ -503,7 +506,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -519,7 +522,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
@@ -760,7 +763,15 @@ function ChartList(props: ChartListProps) {
     subMenuButtons.push({
       name: (
         <>
-          <i className="fa fa-plus" /> {t('Chart')}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="s"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: baseline;
+            `}
+          />
+          {t('Chart')}
         </>
       ),
       buttonStyle: 'primary',
@@ -776,7 +787,7 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined iconSize="xl" data-test="import-button" />
         </Tooltip>
       ),
       buttonStyle: 'link',

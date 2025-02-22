@@ -117,11 +117,10 @@ const NewChartButtonContainer = styled.div`
 const NewChartButton = styled(Button)`
   ${({ theme }) => css`
     height: auto;
-    & > .anticon + span {
-      margin-left: 0;
+    & > .anticon > span {
+      margin: auto -${theme.gridUnit}px auto 0;
     }
     & > [role='img']:first-of-type {
-      margin-right: ${theme.gridUnit}px;
       padding-bottom: 1px;
       line-height: 0;
     }
@@ -366,7 +365,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
               )
             }
           >
-            <Icons.PlusSmall />
+            <Icons.PlusOutlined iconSize="s" />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>
