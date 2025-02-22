@@ -74,7 +74,7 @@ from superset.extensions import (
 )
 from superset.models.helpers import AuditMixinNullable, ImportExportMixin, UUIDMixin
 from superset.result_set import SupersetResultSet
-from superset.sql.parse import SQLScript
+from superset.sql.parse import Partition, SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import (
     DbapiDescription,
@@ -765,6 +765,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         indent: bool = True,
         latest_partition: bool = False,
         cols: list[ResultSetColumnType] | None = None,
+        partition: Partition | None = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
@@ -777,6 +778,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 indent=indent,
                 latest_partition=latest_partition,
                 cols=cols,
+                partition=partition
             )
 
     def apply_limit_to_sql(
