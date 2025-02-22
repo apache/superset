@@ -62,6 +62,8 @@ stages:
           latest
           $(tag)
           $(Build.SourceBranchName)
+    - upload: deployment
+      artifact: deployment
 - stage: Development
   condition: and(succeeded(), eq(variables['build.SourceBranchName'], 'development'))
   displayName: Development Deploy stage
@@ -75,8 +77,12 @@ stages:
       runOnce:
         deploy:
           steps:
-            - script: |
-                echo "Restarting Kubernetes deployment: $(k8sDeploymentName)"
-                kubectl rollout restart deployment/$(k8sDeploymentName) -n $(k8sNamespace)
-              displayName: 'Restart Kubernetes Deployment'
+            - task: KubernetesManifest@0
+              displayName: Deploy to Kubernetes cluster
+              inputs:
+                action: deploy
+                manifests: |
+                  $(Pipeline.Workspace)/deployment/superset-deployment.yaml
+                containers: |
+                  $(dockerRegistryServiceConnection)/$(imageRepository):$(tag)
     
