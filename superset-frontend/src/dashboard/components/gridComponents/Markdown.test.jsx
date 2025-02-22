@@ -97,11 +97,18 @@ describe('Markdown', () => {
   it('should render editor when in edit mode and clicked', async () => {
     await setup({ editMode: true });
     const container = screen.getByTestId('dashboard-component-chart-holder');
+
     await act(async () => {
       fireEvent.click(container);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+    const editor = screen.getByTestId('dashboard-markdown-editor');
+    expect(editor).toBeInTheDocument();
+
+    const aceEditor = editor.querySelector('.ace_text-input');
+    expect(aceEditor).toBeInTheDocument();
   });
 
   it('should switch between edit and preview modes', async () => {
@@ -143,53 +150,27 @@ describe('Markdown', () => {
       },
     });
 
-    // Enter edit mode and change content
     await act(async () => {
       const markdownHolder = screen.getByTestId(
         'dashboard-component-chart-holder',
       );
       fireEvent.click(markdownHolder);
 
-      // Wait for editor to be fully mounted
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Find the actual textarea/input element
-      const editor = container.querySelector('.ace_text-input');
-      console.log('Editor element:', editor);
+      const aceEditor = container.querySelector('.ace_text-input');
+      expect(aceEditor).toBeInTheDocument();
 
-      // Simulate direct input
-      fireEvent.input(editor, { target: { value: mockCode } });
-      console.log('After input:', editor.value);
+      aceEditor.value = mockCode;
+      fireEvent.change(aceEditor, { target: { value: mockCode } });
 
-      // Force blur and change events
-      fireEvent.change(editor, { target: { value: mockCode } });
-      fireEvent.blur(editor);
-
-      // Wait for state update
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // Click the Edit dropdown button
       const editDropdown = screen.getByText('Edit');
       fireEvent.click(editDropdown);
 
-      // Wait for dropdown to open
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // Find and click preview in dropdown
       const previewOption = await screen.findByText(/preview/i);
       fireEvent.click(previewOption);
-
-      // Wait for update to complete
-      await new Promise(resolve => setTimeout(resolve, 50));
     });
 
-    console.log('Component state:', {
-      updateCalls: updateComponents.mock.calls,
-      editorVisible: screen.queryByRole('textbox') !== null,
-      dropdownOpen: screen.queryByText(/preview/i) !== null,
-    });
-
-    // Update assertion to match actual component structure
     expect(updateComponents).toHaveBeenCalledWith({
       test: {
         id: 'test',

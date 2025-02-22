@@ -83,7 +83,7 @@ const PopoverMenuStyles = styled.div`
       )};
     font-size: ${theme.typography.sizes.m}px;
     cursor: default;
-    z-index: 3000;
+    z-index: 100000;
 
     &,
     .menu-item {
