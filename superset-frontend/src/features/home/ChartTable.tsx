@@ -18,7 +18,6 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { t, useTheme } from '@superset-ui/core';
-import { filter } from 'lodash';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -78,7 +77,7 @@ function ChartTable({
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(otherTabData, obj => 'viz_type' in obj);
+  const filteredOtherTabData = otherTabData?.filter(obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
