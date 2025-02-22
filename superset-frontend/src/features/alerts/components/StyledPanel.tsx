@@ -28,7 +28,7 @@ const antdPanelStyles = (theme: SupersetTheme) => css`
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    padding: 0px ${theme.gridUnit * 4}px;
+    padding: 0px ${theme.sizeUnit * 4}px;
 
     .anticon.anticon-right.ant-collapse-arrow {
       padding: 0;
@@ -36,28 +36,28 @@ const antdPanelStyles = (theme: SupersetTheme) => css`
     }
 
     .collapse-panel-title {
-      font-size: ${theme.gridUnit * 4}px;
-      font-weight: ${theme.typography.weights.bold};
+      font-size: ${theme.sizeUnit * 4}px;
+      font-weight: ${theme.fontWeightStrong};
       line-height: 130%;
     }
 
     .collapse-panel-subtitle {
       color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.s}px;
-      font-weight: ${theme.typography.weights.normal};
+      font-size: ${theme.fontSizeSM}px;
+      font-weight: ${theme.fontWeightNormal};
       line-height: 150%;
       margin-bottom: 0;
-      padding-top: ${theme.gridUnit}px;
+      padding-top: ${theme.sizeUnit}px;
     }
 
     .collapse-panel-asterisk {
       color: var(--semantic-error-base, ${theme.colors.warning.dark1});
     }
     .validation-checkmark {
-      width: ${theme.gridUnit * 4}px;
-      height: ${theme.gridUnit * 4}px;
-      margin-left: ${theme.gridUnit}px;
-      color: ${theme.colors.success.base};
+      width: ${theme.sizeUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
+      margin-left: ${theme.sizeUnit}px;
+      color: ${theme.colorSuccess};
     }
   }
 `;

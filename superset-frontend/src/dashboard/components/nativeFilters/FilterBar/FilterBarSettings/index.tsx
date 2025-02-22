@@ -51,7 +51,7 @@ const StyledMenuLabel = styled.span`
   justify-content: space-between;
 
   .enable-cross-filters-text {
-    padding-left: ${({ theme }) => `${theme.gridUnit * 2}px`};
+    padding-left: ${({ theme }) => `${theme.sizeUnit * 2}px`};
   }
 `;
 
@@ -60,8 +60,8 @@ const StyledCheckbox = styled(Checkbox)`
   &,
   svg {
     display: inline-block;
-    width: ${theme.gridUnit * 4}px;
-    height: ${theme.gridUnit * 4}px;
+    width: ${theme.sizeUnit * 4}px;
+    height: ${theme.sizeUnit * 4}px;
   }
 `}
 `;

@@ -42,7 +42,7 @@ const Container = styled.div`
 
 const ContentHolder = styled.div`
   flex-grow: 3;
-  margin-left: ${({ theme }) => theme.gridUnit * -1 - 1};
+  margin-left: ${({ theme }) => theme.sizeUnit * -1 - 1};
 `;
 
 const TitlesContainer = styled.div`

@@ -52,9 +52,9 @@ interface ScopingTreePanelProps {
 
 const InfoText = styled.div`
   ${({ theme }) => css`
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     color: ${theme.colors.grayscale.base};
-    margin-bottom: ${theme.gridUnit * 7}px;
+    margin-bottom: ${theme.sizeUnit * 7}px;
   `}
 `;
 
@@ -98,20 +98,20 @@ const ChartSelect = ({
   return (
     <div
       css={css`
-        margin-bottom: ${theme.gridUnit * 6}px;
+        margin-bottom: ${theme.sizeUnit * 6}px;
       `}
     >
       <div
         css={css`
           display: flex;
           align-items: center;
-          margin-bottom: ${theme.gridUnit}px;
+          margin-bottom: ${theme.sizeUnit}px;
         `}
       >
         <InfoText
           css={css`
-            color: ${theme.colors.grayscale.dark1};
-            margin-right: ${theme.gridUnit}px;
+            color: ${theme.colorText};
+            margin-right: ${theme.sizeUnit}px;
             margin-bottom: 0;
           `}
         >{`${t('Chart')} *`}</InfoText>
@@ -163,7 +163,7 @@ export const ScopingTreePanel = ({
           message={
             <span
               css={css`
-                font-weight: ${theme.typography.weights.bold};
+                font-weight: ${theme.fontWeightStrong};
               `}
             >
               {t('Cross-filtering is not enabled in this dashboard')}
@@ -172,7 +172,7 @@ export const ScopingTreePanel = ({
           type="info"
           closable={false}
           css={css`
-            margin-bottom: ${theme.gridUnit * 6}px;
+            margin-bottom: ${theme.sizeUnit * 6}px;
           `}
         />
       )}

@@ -27,7 +27,7 @@ export interface BaseFilter {
 
 export const FilterContainer = styled.div`
   display: inline-flex;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   align-items: center;
   width: ${SELECT_WIDTH}px;
 `;

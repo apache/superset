@@ -109,7 +109,7 @@ import DependencyList from './DependencyList';
 const FORM_ITEM_WIDTH = 260;
 
 const TabPane = styled(Tabs.TabPane)`
-  padding: ${({ theme }) => theme.gridUnit * 4}px 0px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px 0px;
 `;
 
 const StyledContainer = styled.div`
@@ -117,7 +117,7 @@ const StyledContainer = styled.div`
     display: flex;
     flex-direction: row-reverse;
     justify-content: space-between;
-    padding: 0px ${theme.gridUnit * 4}px;
+    padding: 0px ${theme.sizeUnit * 4}px;
   `}
 `;
 
@@ -126,7 +126,7 @@ const StyledRowContainer = styled.div`
   flex-direction: row;
   justify-content: space-between;
   width: 100%;
-  padding: 0px ${({ theme }) => theme.gridUnit * 4}px;
+  padding: 0px ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 type ControlKey = keyof PluginFilterSelectCustomizeProps;
@@ -141,14 +141,14 @@ const controlsOrder: ControlKey[] = [
 
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
-  margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
   & .ant-form-item-label {
     padding-bottom: 0;
   }
 
   & .ant-form-item-control-input {
-    min-height: ${({ theme }) => theme.gridUnit * 10}px;
+    min-height: ${({ theme }) => theme.sizeUnit * 10}px;
   }
 `;
 
@@ -166,7 +166,7 @@ export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
   }
 
   & .ant-form-item-control-input {
-    min-height: ${({ theme }) => theme.gridUnit * 10}px;
+    min-height: ${({ theme }) => theme.sizeUnit * 10}px;
   }
 `;
 
@@ -196,7 +196,7 @@ export const StyledRowSubFormItem = styled(FormItem)<{ expanded: boolean }>`
 
 export const StyledLabel = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
 `;
 
 const CleanFormItem = styled(FormItem)`
@@ -210,8 +210,8 @@ const DefaultValueContainer = styled.div`
 `;
 
 const RefreshIcon = styled(Icons.Refresh)`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  color: ${({ theme }) => theme.colors.primary.base};
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  color: ${({ theme }) => theme.colorPrimary};
 `;
 
 const StyledCollapse = styled(Collapse)`
@@ -231,7 +231,7 @@ const StyledCollapse = styled(Collapse)`
   }
 
   .ant-collapse-content-box {
-    padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+    padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
   &.ant-collapse > .ant-collapse-item {
@@ -258,9 +258,9 @@ const StyledTabs = styled(Tabs)`
 `;
 
 const StyledAsterisk = styled.span`
-  color: ${({ theme }) => theme.colors.error.base};
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
-  margin-left: ${({ theme }) => theme.gridUnit - 1}px;
+  color: ${({ theme }) => theme.colorError};
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
+  margin-left: ${({ theme }) => theme.sizeUnit - 1}px;
   &:before {
     content: '*';
   }
@@ -269,13 +269,13 @@ const StyledAsterisk = styled.span`
 const FilterTypeInfo = styled.div<{ expanded: boolean }>`
   ${({ theme, expanded }) => `
     width: ${expanded ? '49%' : `${FORM_ITEM_WIDTH}px`};
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     color: ${theme.colors.grayscale.light1};
     margin:
-      ${-theme.gridUnit * 2}px
+      ${-theme.sizeUnit * 2}px
       0px
-      ${theme.gridUnit * 4}px
-      ${theme.gridUnit * 4}px;
+      ${theme.sizeUnit * 4}px
+      ${theme.sizeUnit * 4}px;
   `}
 `;
 

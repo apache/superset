@@ -105,18 +105,19 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     responsive &&
     css`
       max-width: ${maxWidth ?? '900px'};
-      padding-left: ${theme.gridUnit * 3}px;
-      padding-right: ${theme.gridUnit * 3}px;
+      padding-left: ${theme.sizeUnit * 3}px;
+      padding-right: ${theme.sizeUnit * 3}px;
       padding-bottom: 0;
       top: 0;
     `}
 
   .antd5-modal-content {
+    background-color: ${({ theme }) => theme.colorBgContainer};
     display: flex;
     flex-direction: column;
-    max-height: ${({ theme }) => `calc(100vh - ${theme.gridUnit * 8}px)`};
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
-    margin-top: ${({ theme }) => theme.gridUnit * 4}px;
+    max-height: ${({ theme }) => `calc(100vh - ${theme.sizeUnit * 8}px)`};
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
     padding: 0;
   }
 
@@ -124,11 +125,11 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     flex: 0 0 auto;
     border-radius: ${({ theme }) => theme.borderRadius}px
       ${({ theme }) => theme.borderRadius}px 0 0;
-    padding: ${({ theme }) => theme.gridUnit * 4}px
-      ${({ theme }) => theme.gridUnit * 6}px;
+    padding: ${({ theme }) => theme.sizeUnit * 4}px
+      ${({ theme }) => theme.sizeUnit * 6}px;
 
     .antd5-modal-title {
-      font-weight: ${({ theme }) => theme.typography.weights.medium};
+      font-weight: ${({ theme }) => theme.fontWeightMedium};
     }
 
     .antd5-modal-title h4 {
@@ -139,8 +140,8 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   }
 
   .antd5-modal-close {
-    width: ${({ theme }) => theme.gridUnit * 14}px;
-    height: ${({ theme }) => theme.gridUnit * 14}px;
+    width: ${({ theme }) => theme.sizeUnit * 14}px;
+    height: ${({ theme }) => theme.sizeUnit * 14}px;
     top: 0;
     right: 0;
   }
@@ -155,24 +156,24 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
 
     .close {
       flex: 1 1 auto;
-      margin-bottom: ${({ theme }) => theme.gridUnit}px;
-      color: ${({ theme }) => theme.colors.secondary.dark1};
+      margin-bottom: ${({ theme }) => theme.sizeUnit}px;
+      color: ${({ theme }) => theme.colorPrimaryText};
       font-size: 32px;
-      font-weight: ${({ theme }) => theme.typography.weights.light};
+      font-weight: ${({ theme }) => theme.fontWeightLight};
     }
   }
 
   .antd5-modal-body {
     flex: 0 1 auto;
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => theme.sizeUnit * 4}px;
     overflow: auto;
     ${({ resizable, height }) => !resizable && height && `height: ${height};`}
   }
   .antd5-modal-footer {
     flex: 0 0 1;
-    border-top: ${({ theme }) => theme.gridUnit / 4}px solid
+    border-top: ${({ theme }) => theme.sizeUnit / 4}px solid
       ${({ theme }) => theme.colors.grayscale.light2};
-    padding: ${({ theme }) => theme.gridUnit * 4}px;
+    padding: ${({ theme }) => theme.sizeUnit * 4}px;
     margin-top: 0;
 
     .btn {
@@ -180,7 +181,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
     }
 
     .btn + .btn {
-      margin-left: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 
@@ -188,7 +189,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
   // Aaron note 20-11-19: this seems to be exclusively here for the Edit Database modal.
   // TODO: remove this as it is a special case.
   .ant-tabs-top {
-    margin-top: -${({ theme }) => theme.gridUnit * 4}px;
+    margin-top: -${({ theme }) => theme.sizeUnit * 4}px;
   }
 
   &.no-content-padding .antd5-modal-body {
@@ -202,7 +203,7 @@ export const StyledModal = styled(BaseModal)<StyledModalProps>`
       padding: 0;
       .draggable-trigger {
           cursor: move;
-          padding: ${theme.gridUnit * 4}px;
+          padding: ${theme.sizeUnit * 4}px;
           width: 100%;
         }
     }

@@ -31,10 +31,10 @@ import { fetchObjectsByTagIds } from 'src/features/tags/tags';
 
 const StyledModalBody = styled.div`
   .ant-select-dropdown {
-    max-height: ${({ theme }) => theme.gridUnit * 40}px;
+    max-height: ${({ theme }) => theme.sizeUnit * 40}px;
   }
   .tag-input {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 3}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   }
 `;
 

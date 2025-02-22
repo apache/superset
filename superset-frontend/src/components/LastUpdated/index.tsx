@@ -50,12 +50,12 @@ const TextStyles = styled.span`
 `;
 
 const Refresh = styled(Icons.Refresh)`
-  color: ${({ theme }) => theme.colors.primary.base};
+  color: ${({ theme }) => theme.colorPrimary};
   width: auto;
-  height: ${({ theme }) => theme.gridUnit * 5}px;
+  height: ${({ theme }) => theme.sizeUnit * 5}px;
   position: relative;
-  top: ${({ theme }) => theme.gridUnit}px;
-  left: ${({ theme }) => theme.gridUnit}px;
+  top: ${({ theme }) => theme.sizeUnit}px;
+  left: ${({ theme }) => theme.sizeUnit}px;
   cursor: pointer;
 `;
 

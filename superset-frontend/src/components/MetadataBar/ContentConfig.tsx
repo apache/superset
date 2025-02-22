@@ -21,7 +21,7 @@ import Icons from 'src/components/Icons';
 import { ContentType, MetadataType } from '.';
 
 const Header = styled.div`
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
 const Info = ({

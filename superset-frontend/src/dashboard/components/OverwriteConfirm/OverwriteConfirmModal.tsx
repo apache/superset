@@ -36,7 +36,7 @@ const STICKY_HEADER_HEIGHT = 32;
 
 const StyledTitle = styled.h2`
   ${({ theme }) => `
-     color:  ${theme.colors.grayscale.dark1}
+     color:  ${theme.colorText}
    `}
 `;
 
@@ -169,7 +169,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                   <div ref={anchors[index]} />
                   <StackableHeader
                     top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
-                    buttonStyle="tertiary"
+                    buttonStyle="secondary"
                     onClick={() => onAnchorClicked(index)}
                   >
                     {keyPath}

@@ -41,7 +41,7 @@ import { DataTablesPaneProps, ResultTypes } from './types';
 const SouthPane = styled.div`
   ${({ theme }) => `
     position: relative;
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     z-index: 5;
     overflow: hidden;
 
@@ -65,10 +65,10 @@ const SouthPane = styled.div`
       .table-condensed {
         height: 100%;
         overflow: auto;
-        margin-bottom: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 4}px;
 
         .table {
-          margin-bottom: ${theme.gridUnit * 2}px;
+          margin-bottom: ${theme.sizeUnit * 2}px;
         }
       }
 

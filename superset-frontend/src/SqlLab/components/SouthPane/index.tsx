@@ -75,11 +75,11 @@ const StyledPane = styled.div<StyledPaneProps>`
   }
   .tab-content {
     .alert {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
 
     button.fetch {
-      margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 `;

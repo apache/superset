@@ -81,15 +81,15 @@ export default function TableControls({
       css={css`
         display: flex;
         justify-content: space-between;
-        padding: ${theme.gridUnit / 2}px 0;
-        margin-bottom: ${theme.gridUnit * 2}px;
+        padding: ${theme.sizeUnit / 2}px 0;
+        margin-bottom: ${theme.sizeUnit * 2}px;
       `}
     >
       <div
         css={css`
           display: flex;
           flex-wrap: wrap;
-          margin-bottom: -${theme.gridUnit * 4}px;
+          margin-bottom: -${theme.sizeUnit * 4}px;
         `}
       >
         {filterTags.map(({ colName, val }) => (
@@ -98,19 +98,19 @@ export default function TableControls({
             onClose={removeFilter.bind(null, colName)}
             key={colName}
             css={css`
-              height: ${theme.gridUnit * 6}px;
+              height: ${theme.sizeUnit * 6}px;
               display: flex;
               align-items: center;
-              padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-              margin-right: ${theme.gridUnit * 4}px;
-              margin-bottom: ${theme.gridUnit * 4}px;
+              padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px;
+              margin-right: ${theme.sizeUnit * 4}px;
+              margin-bottom: ${theme.sizeUnit * 4}px;
               line-height: 1.2;
             `}
             data-test="filter-col"
           >
             <span
               css={css`
-                margin-right: ${theme.gridUnit}px;
+                margin-right: ${theme.sizeUnit}px;
               `}
             >
               {colName}

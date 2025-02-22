@@ -41,8 +41,8 @@ export type DynamicEditableTitleProps = {
 
 const titleStyles = (theme: SupersetTheme) => css`
   display: flex;
-  font-size: ${theme.typography.sizes.xl}px;
-  font-weight: ${theme.typography.weights.bold};
+  font-size: ${theme.fontSizeXL}px;
+  font-weight: ${theme.fontWeightStrong};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -63,9 +63,11 @@ const titleStyles = (theme: SupersetTheme) => css`
     border: none;
     padding: 0;
     outline: none;
+    color: ${theme.colorText};
+    background-color: ${theme.colorBgContainer};
 
     &::placeholder {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorTextTertiary};
     }
   }
 
@@ -77,7 +79,7 @@ const titleStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-export const DynamicEditableTitle = memo(
+const DynamicEditableTitle = memo(
   ({
     title,
     placeholder,
@@ -224,3 +226,4 @@ export const DynamicEditableTitle = memo(
     );
   },
 );
+export default DynamicEditableTitle;

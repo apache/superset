@@ -31,7 +31,7 @@ export const VizTile = ({
   const { mountedPluginMetadata } = usePluginContext();
   const chartNameRef = useRef<HTMLSpanElement>(null);
   const theme = useTheme();
-  const TILE_TRANSITION_TIME = theme.transitionTiming * 2;
+  const TILE_TRANSITION_TIME = theme.motionDurationSlow;
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -45,7 +45,7 @@ export const VizTile = ({
     setTooltipVisible(false);
     setTimeout(() => {
       setIsTransitioning(false);
-    }, TILE_TRANSITION_TIME * 1000);
+    }, 300);
   }, [onTileClick, TILE_TRANSITION_TIME, vizMeta.name]);
 
   // Antd tooltip seems to be bugged - when elements move, the tooltip sometimes
@@ -91,7 +91,7 @@ export const VizTile = ({
           display: flex;
           align-items: center;
           color: ${theme.colors.grayscale.base};
-          font-weight: ${theme.typography.weights.bold};
+          font-weight: ${theme.fontWeightStrong};
           border-radius: 6px;
           white-space: nowrap;
           overflow: hidden;
@@ -100,12 +100,12 @@ export const VizTile = ({
           ${!isActive &&
           css`
             flex-shrink: 0;
-            width: ${theme.gridUnit * 6}px;
+            width: ${theme.sizeUnit * 6}px;
             background-color: transparent;
             transition: none;
             &:hover svg path {
-              fill: ${theme.colors.primary.base};
-              transition: fill ${theme.transitionTiming}s ease-out;
+              fill: ${theme.colorPrimary};
+              transition: fill ${theme.motionDurationMid} ease-out;
             }
           `}
 
@@ -114,11 +114,11 @@ export const VizTile = ({
             width: 100%;
             background-color: ${theme.colors.grayscale.light4};
             transition:
-              width ${TILE_TRANSITION_TIME}s ease-out,
-              background-color ${TILE_TRANSITION_TIME}s ease-out;
+              width ${TILE_TRANSITION_TIME} ease-out,
+              background-color ${TILE_TRANSITION_TIME} ease-out;
             cursor: default;
             svg path {
-              fill: ${theme.colors.primary.base};
+              fill: ${theme.colorPrimary};
             }
           `}
         `}
@@ -129,7 +129,7 @@ export const VizTile = ({
             overflow: hidden;
             text-overflow: ellipsis;
             min-width: 0;
-            padding-right: ${theme.gridUnit}px;
+            padding-right: ${theme.sizeUnit}px;
           `}
           ref={chartNameRef}
         >

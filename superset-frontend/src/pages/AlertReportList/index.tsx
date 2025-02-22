@@ -86,8 +86,8 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 
 const RefreshContainer = styled.div`
   width: 100%;
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 3}px;
+  padding: 0 ${({ theme }) => theme.sizeUnit * 4}px
+    ${({ theme }) => theme.sizeUnit * 3}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
@@ -97,7 +97,7 @@ const StyledHeaderWithIcon = styled.div`
   justify-content: space-between;
   align-items: center;
   > *:first-child {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 

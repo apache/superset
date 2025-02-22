@@ -98,16 +98,16 @@ interface SaveDatasetModalProps {
 const Styles = styled.div`
   ${({ theme }) => `
   .sdm-body {
-    margin: 0 ${theme.gridUnit * 2}px;
+    margin: 0 ${theme.sizeUnit * 2}px;
   }
   .sdm-input {
-    margin-left: ${theme.gridUnit * 10}px;
+    margin-left: ${theme.sizeUnit * 10}px;
     width: 401px;
   }
   .sdm-autocomplete {
     width: 401px;
     align-self: center;
-    margin-left: ${theme.gridUnit}px;
+    margin-left: ${theme.sizeUnit}px;
   }
   .sdm-radio {
     height: 30px;
@@ -119,7 +119,7 @@ const Styles = styled.div`
     padding-right: 0px;
   }
   .sdm-overwrite-msg {
-    margin: ${theme.gridUnit * 2}px;
+    margin: ${theme.sizeUnit * 2}px;
   }
   .sdm-overwrite-container {
     flex: 1 1 auto;

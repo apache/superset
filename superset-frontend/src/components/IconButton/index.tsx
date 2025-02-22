@@ -35,13 +35,13 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledImage = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  height: ${({ theme }) => theme.gridUnit * 18}px;
-  margin: ${({ theme }) => theme.gridUnit * 3}px 0;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+  height: ${({ theme }) => theme.sizeUnit * 18}px;
+  margin: ${({ theme }) => theme.sizeUnit * 3}px 0;
 
   .default-db-icon {
     font-size: 36px;
-    color: ${({ theme }) => theme.colors.grayscale.base};
+    color: ${({ theme }) => theme.colorIcon};
     margin-right: 0;
     span:first-of-type {
       margin-right: 0;
@@ -53,8 +53,8 @@ const StyledImage = styled.div`
   }
 
   img {
-    width: ${({ theme }) => theme.gridUnit * 10}px;
-    height: ${({ theme }) => theme.gridUnit * 10}px;
+    width: ${({ theme }) => theme.sizeUnit * 10}px;
+    height: ${({ theme }) => theme.sizeUnit * 10}px;
     margin: 0;
     &:first-of-type {
       margin-right: 0;
@@ -83,10 +83,10 @@ const StyledInner = styled.div`
 `;
 
 const StyledBottom = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 4}px 0;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px 0;
   border-radius: 0 0 ${({ theme }) => theme.borderRadius}px
     ${({ theme }) => theme.borderRadius}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light4};
+  background-color: ${({ theme }) => theme.colorBgContainer};
   width: 100%;
   line-height: 1.5em;
   overflow: hidden;
@@ -125,19 +125,19 @@ const IconButton = styled(
   ),
 )`
   text-transform: none;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
-  font-weight: ${({ theme }) => theme.typography.weights.normal};
-  color: ${({ theme }) => theme.colors.grayscale.dark2};
-  border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
+  background-color: ${({ theme }) => theme.colorBgContainer};
+  font-weight: ${({ theme }) => theme.fontWeightNormal};
+  color: ${({ theme }) => theme.colorText};
+  border: 1px solid ${({ theme }) => theme.colorBorder};
   margin: 0;
   width: 100%;
 
   &:hover,
   &:focus {
-    background-color: ${({ theme }) => theme.colors.grayscale.light5};
-    color: ${({ theme }) => theme.colors.grayscale.dark2};
-    border: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
-    box-shadow: 4px 4px 20px ${({ theme }) => theme.colors.grayscale.light2};
+    background-color: ${({ theme }) => theme.colorBgTextHover};
+    color: ${({ theme }) => theme.colorText};
+    border: 1px solid ${({ theme }) => theme.colorBorder};
+    box-shadow: ${({ theme }) => theme.boxShadowSecondary};
   }
 `;
 

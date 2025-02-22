@@ -55,26 +55,26 @@ export const FiltersOutOfScopeCollapsible = ({
               }
 
               & .ant-collapse-content-box {
-                padding: ${theme.gridUnit * 4}px 0 0;
-                margin-bottom: ${theme.gridUnit * -4}px;
+                padding: ${theme.sizeUnit * 4}px 0 0;
+                margin-bottom: ${theme.sizeUnit * -4}px;
               }
             }
           `
         : css`
             &.ant-collapse {
-              margin-top: ${hasTopMargin ? theme.gridUnit * 6 : 0}px;
+              margin-top: ${hasTopMargin ? theme.sizeUnit * 6 : 0}px;
               & > .ant-collapse-item {
                 & > .ant-collapse-header {
                   padding-left: 0;
-                  padding-bottom: ${theme.gridUnit * 2}px;
+                  padding-bottom: ${theme.sizeUnit * 2}px;
 
                   & > .ant-collapse-arrow {
-                    right: ${theme.gridUnit}px;
+                    right: ${theme.sizeUnit}px;
                   }
                 }
 
                 & .ant-collapse-content-box {
-                  padding: ${theme.gridUnit * 4}px 0 0;
+                  padding: ${theme.sizeUnit * 4}px 0 0;
                 }
               }
             }
@@ -86,7 +86,7 @@ export const FiltersOutOfScopeCollapsible = ({
       header={
         <span
           css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.s}px;
+            font-size: ${theme.fontSizeSM}px;
           `}
         >
           {t('Filters out of scope (%d)', filtersOutOfScope.length)}

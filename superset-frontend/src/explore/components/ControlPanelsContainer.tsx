@@ -115,11 +115,11 @@ const actionButtonsContainerStyles = (theme: SupersetTheme) => css`
   bottom: 0;
   flex-direction: column;
   align-items: center;
-  padding: ${theme.gridUnit * 4}px;
+  padding: ${theme.sizeUnit * 4}px;
   z-index: 999;
   background: linear-gradient(
-    ${rgba(theme.colors.grayscale.light5, 0)},
-    ${theme.colors.grayscale.light5} ${theme.opacity.mediumLight}
+    ${rgba(theme.colorBgLayout, 0)},
+    ${theme.colorBgLayout} 35%
   );
 
   & > button {
@@ -150,11 +150,11 @@ const Styles = styled.div`
     max-width: 100%;
   }
   .type-label {
-    margin-right: ${({ theme }) => theme.gridUnit * 3}px;
-    width: ${({ theme }) => theme.gridUnit * 7}px;
+    margin-right: ${({ theme }) => theme.sizeUnit * 3}px;
+    width: ${({ theme }) => theme.sizeUnit * 7}px;
     display: inline-block;
     text-align: center;
-    font-weight: ${({ theme }) => theme.typography.weights.bold};
+    font-weight: ${({ theme }) => theme.fontWeightStrong};
   }
 `;
 
@@ -172,21 +172,21 @@ const ControlPanelsTabs = styled(Tabs)`
       height: 100%;
     }
     .ant-tabs-content-holder {
-      padding-top: ${theme.gridUnit * 4}px;
+      padding-top: ${theme.sizeUnit * 4}px;
     }
 
     .ant-collapse-ghost > .ant-collapse-item {
       &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colors.grayscale.light3};
+        border-bottom: 1px solid ${theme.colorSplit};
       }
 
       & > .ant-collapse-header {
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.fontSizeSM}px;
       }
 
       & > .ant-collapse-content > .ant-collapse-content-box {
         padding-bottom: 0;
-        font-size: ${theme.typography.sizes.s}px;
+        font-size: ${theme.fontSizeSM}px;
       }
     }
   `}
@@ -269,7 +269,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
 }
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
-  const { colors } = useTheme();
+  const theme = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
@@ -587,16 +587,16 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     }
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
-      ? colors.error.base
-      : colors.warning.base;
+      ? theme.colorWarningText
+      : theme.colorErrorText;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
         <span
           css={(theme: SupersetTheme) => css`
-            font-size: ${theme.typography.sizes.m}px;
+            font-size: ${theme.fontSize}px;
             line-height: 1.3;
-            font-weight: ${theme.typography.weights.medium};
+            font-weight: ${theme.fontWeightMedium};
           `}
         >
           {label}
@@ -645,12 +645,12 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               box-shadow: none;
 
               &:last-child {
-                padding-bottom: ${theme.gridUnit * 16}px;
+                padding-bottom: ${theme.sizeUnit * 16}px;
                 border-bottom: 0;
               }
 
               .panel-body {
-                margin-left: ${theme.gridUnit * 4}px;
+                margin-left: ${theme.sizeUnit * 4}px;
                 padding-bottom: 0;
               }
 
@@ -746,8 +746,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     }
 
     const errorColor = dataTabHasHadNoErrors.current
-      ? colors.error.base
-      : colors.warning.base;
+      ? theme.colorWarningText
+      : theme.colorErrorText;
 
     return (
       <>
@@ -755,7 +755,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         {props.errorMessage && (
           <span
             css={(theme: SupersetTheme) => css`
-              margin-left: ${theme.gridUnit * 2}px;
+              margin-left: ${theme.sizeUnit * 2}px;
             `}
           >
             {' '}
@@ -776,8 +776,8 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </>
     );
   }, [
-    colors.error.base,
-    colors.warning.base,
+    theme.colorErrorText,
+    theme.colorWarningText,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);

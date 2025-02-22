@@ -25,7 +25,7 @@ const DATA_SIZE = 15;
 const PaginationContainer = styled.div`
   ${({ theme }) => css`
     & .pagination-container {
-      bottom: ${-theme.gridUnit * 4}px;
+      bottom: ${-theme.sizeUnit * 4}px;
     }
   `}
 `;

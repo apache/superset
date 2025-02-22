@@ -26,7 +26,7 @@ export const StyledHeader = styled.span<{ headerPosition: string }>`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-right: ${headerPosition === 'left' ? theme.gridUnit * 2 : 0}px;
+    margin-right: ${headerPosition === 'left' ? theme.sizeUnit * 2 : 0}px;
   `}
 `;
 
@@ -45,7 +45,7 @@ export const StyledSelect = styled(AntdSelect, {
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
     && .ant-select-selector {
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.sizeUnit}px;
     }
     // Open the dropdown when clicking on the suffix
     // This is fixed in version 4.16
@@ -64,7 +64,7 @@ export const StyledSelect = styled(AntdSelect, {
 
         .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
           flex-shrink: 1;
-          min-width: ${theme.gridUnit * 13}px;
+          min-width: ${theme.sizeUnit * 13}px;
         }
 
         .ant-select-selection-overflow-item-suffix {
@@ -83,7 +83,7 @@ export const NoElement = styled.span`
 export const StyledTag = styled(Tag)`
   ${({ theme }) => `
     background: ${theme.colors.grayscale.light3};
-    font-size: ${theme.typography.sizes.m}px;
+    font-size: ${theme.fontSize}px;
     border: none;
   `}
 `;
@@ -97,22 +97,22 @@ export const StyledCheckOutlined = styled(Icons.CheckOutlined)`
 `;
 
 export const StyledSpin = styled(Spin)`
-  margin-top: ${({ theme }) => -theme.gridUnit}px;
+  margin-top: ${({ theme }) => -theme.sizeUnit}px;
 `;
 
 export const StyledLoadingText = styled.div`
   ${({ theme }) => `
-   margin-left: ${theme.gridUnit * 3}px;
-   line-height: ${theme.gridUnit * 8}px;
+   margin-left: ${theme.sizeUnit * 3}px;
+   line-height: ${theme.sizeUnit * 8}px;
    color: ${theme.colors.grayscale.light1};
  `}
 `;
 
 export const StyledHelperText = styled.div`
   ${({ theme }) => `
-   padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+   padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
    color: ${theme.colors.grayscale.base};
-   font-size: ${theme.typography.sizes.s}px;
+   font-size: ${theme.fontSizeSM}px;
    cursor: default;
    border-bottom: 1px solid ${theme.colors.grayscale.light2};
  `}
@@ -124,10 +124,10 @@ export const StyledError = styled.div`
     justify-content: center;
     align-items: flex-start;
     width: 100%;
-    padding: ${theme.gridUnit * 2}px;
-    color: ${theme.colors.error.base};
+    padding: ${theme.sizeUnit * 2}px;
+    color: ${theme.colorError};
     & svg {
-      margin-right: ${theme.gridUnit * 2}px;
+      margin-right: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
