@@ -1,4 +1,5 @@
-/*
+/* eslint-env node */
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,28 +17,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import { SuperChart, VizType } from '@superset-ui/core';
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
-import data from './data';
-import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
-
-new ChordChartPlugin().configure({ key: VizType.Chord }).register();
-
-export default {
-  title: 'Legacy Chart Plugins/legacy-plugin-chart-chord',
-  decorators: [withResizableChartDemo],
+module.exports = {
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:prettier/recommended',
+  ],
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true,
+    },
+    ecmaVersion: 2020,
+    sourceType: 'module',
+  },
+  plugins: ['@typescript-eslint', 'react', 'prettier'],
+  rules: {
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+  },
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
+  ignorePatterns: ['build/**/*', '.docusaurus/**/*', 'node_modules/**/*'],
 };
-
-export const basic = ({ width, height }: { width: number; height: number }) => (
-  <SuperChart
-    chartType={VizType.Chord}
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      colorScheme: 'd3Category10',
-      yAxisFormat: '.2f',
-    }}
-  />
-);
