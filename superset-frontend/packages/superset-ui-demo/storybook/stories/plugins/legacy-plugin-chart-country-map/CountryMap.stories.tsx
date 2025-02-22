@@ -42,10 +42,16 @@ export default {
 };
 
 function generateData(geojson: JsonObject) {
-  return geojson.features.map((feat: { properties: { ISO: string } }) => ({
-    metric: Math.round(Number(seed(feat.properties.ISO)()) * 10000) / 100,
-    country_id: feat.properties.ISO,
-  }));
+  return geojson.features.map(
+    (feat: {
+      properties: { ISO: string };
+      type: string;
+      geometry: JsonObject;
+    }) => ({
+      metric: Math.round(Number(seed(feat.properties.ISO)()) * 10000) / 100,
+      country_id: feat.properties.ISO,
+    }),
+  );
 }
 
 export const BasicCountryMapStory = (

@@ -76,10 +76,12 @@ export const ThemeColors = () => {
                 <strong>{category}</strong>
               </td>
               {tones.map(tone => {
-                const categoryColors = colors[category as ColorCategory] as any;
+                const categoryColors = colors[category as ColorCategory];
                 const color =
-                  typeof categoryColors === 'object' && 'base' in categoryColors
-                    ? categoryColors[tone]
+                  typeof categoryColors === 'object' &&
+                  categoryColors !== null &&
+                  tone in categoryColors
+                    ? (categoryColors as Record<string, string>)[tone]
                     : undefined;
                 return (
                   <td
