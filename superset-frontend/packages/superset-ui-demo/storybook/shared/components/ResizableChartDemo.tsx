@@ -17,9 +17,10 @@
  * under the License.
  */
 
-import { useState, ReactNode } from 'react';
+import { useState, ReactNode, SyntheticEvent } from 'react';
 import { styled } from '@superset-ui/core';
 import type { Decorator } from '@storybook/react';
+import { ResizeCallbackData } from 'react-resizable';
 import ResizablePanel, { Size } from './ResizablePanel';
 
 export const SupersetBody = styled.div`
@@ -47,7 +48,9 @@ export default function ResizableChartDemo({
     <SupersetBody>
       <ResizablePanel
         initialSize={initialSize}
-        onResize={(e, data) => setSize(data.size)}
+        onResize={(e: SyntheticEvent, data: ResizeCallbackData) =>
+          setSize(data.size)
+        }
       >
         {children({
           width: size.width - panelPadding,
