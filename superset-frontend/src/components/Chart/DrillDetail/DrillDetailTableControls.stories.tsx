@@ -16,19 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
-import { MouseEventHandler } from 'react';
+export default {
+  title: 'DrillDetailTableControls',
+  component: TableControls,
+};
 
-export interface TagType {
-  id?: number;
-  type?: string | number;
-  editable?: boolean;
-  onDelete?: (index: number) => void;
-  onClick?: MouseEventHandler<HTMLSpanElement>;
-  name: string;
-  index?: number | undefined;
-  toolTipTitle?: string;
-  children?: React.ReactNode;
-}
+export const InteractiveTableControls = (args: TableControlsProps) => (
+  <TableControls {...args} />
+);
 
-export default TagType;
+InteractiveTableControls.args = {
+  totalCount: 100,
+  filters: [
+    { op: '>', col: 'tz_offset', val: 200 },
+    { op: '==', col: 'platform', val: 'GB' },
+  ],
+};
