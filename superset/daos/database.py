@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, List, Tuple
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
