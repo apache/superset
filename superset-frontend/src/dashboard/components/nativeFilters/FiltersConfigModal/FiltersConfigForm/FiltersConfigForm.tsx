@@ -1275,7 +1275,7 @@ const FiltersConfigForm = (
                             return [...prevErroredFilters, filterId];
                           });
                           return Promise.reject(
-                            new Error(t('Default value is required')),
+                            new Error(t('Please choose a valid value')),
                           );
                         },
                       },

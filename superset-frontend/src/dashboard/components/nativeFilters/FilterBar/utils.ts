@@ -42,11 +42,19 @@ export const checkIsMissingRequiredValue = (
   );
 };
 
+export const checkIsValidateError = (dataMask: DataMaskStateWithId) => {
+  const values = Object.values(dataMask);
+  return values.every(value => value.filterState?.validateStatus !== 'error');
+};
+
 export const checkIsApplyDisabled = (
   dataMaskSelected: DataMaskStateWithId,
   dataMaskApplied: DataMaskStateWithId,
   filters: Filter[],
 ) => {
+  if (!checkIsValidateError(dataMaskSelected)) {
+    return true;
+  }
   const dataSelectedValues = Object.values(dataMaskSelected);
   const dataAppliedValues = Object.values(dataMaskApplied);
   return (
