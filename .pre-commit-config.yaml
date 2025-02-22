@@ -56,21 +56,19 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: bash -c 'cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run format; else npm run prettier-check; fi $(echo "$@" | sed "s|superset-frontend/||g")'
+        entry: bash -c 'FILES=$(echo "$@" | sed "s|superset-frontend/||g"); cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run format -- $FILES; else npm run prettier-check -- $FILES; fi'
         language: system
         files: '^superset-frontend/(src|spec|cypress-base|plugins|packages|.storybook)/.+\.(js|jsx|ts|tsx|css|less|scss|sass)$|^superset-frontend/package\.json$'
         pass_filenames: true
-        auto_fix: true
       - id: eslint-frontend
         name: eslint (frontend)
-        entry: bash -c 'cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run lint-fix; else npm run eslint; fi $(echo "$@" | sed "s|superset-frontend/||g")'
+        entry: bash -c 'FILES=$(echo "$@" | sed "s|superset-frontend/||g"); cd superset-frontend && if [ -z "$SKIP_FIX" ]; then npm run lint-fix -- $FILES; else npm run eslint -- $FILES; fi'
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
-        auto_fix: true
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'cd docs && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $([ -z "$SKIP_FIX" ] && echo "--fix") $(echo "$@" | sed "s|docs/||g")'
+        entry: bash -c 'FILES=$(echo "$@" | sed "s|docs/||g"); cd docs && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $([ -z "$SKIP_FIX" ] && echo "--fix") $FILES'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
