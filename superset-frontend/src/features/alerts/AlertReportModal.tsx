@@ -35,6 +35,7 @@ import {
   SupersetTheme,
   t,
   VizType,
+  useTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -466,6 +467,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
     [],
   );
+  const theme = useTheme();
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -1963,15 +1965,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           </div>
                         </div>
                       ))}
-                      <AntdForm.Item>
+                      <div style={{ flex: '.25', padding: '7px 0' }}>
                         <Button
-                          type="dashed"
+                          type="link"
                           onClick={() => handleAddFilterField(add)}
-                          block
+                          style={{
+                            padding: 0,
+                            color: `${theme.colors.primary.base}`,
+                          }}
                         >
                           + {t('Apply another dashboard filter')}
                         </Button>
-                      </AntdForm.Item>
+                      </div>
                     </div>
                   )}
                 </AntdForm.List>
