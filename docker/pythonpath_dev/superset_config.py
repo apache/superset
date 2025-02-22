@@ -129,7 +129,7 @@ try:
     from superset_config_docker import *  # noqa
 
     logger.info(
-        f"Loaded your Docker configuration at " f"[{superset_config_docker.__file__}]"
+        f"Loaded your Docker configuration at [{superset_config_docker.__file__}]"
     )
 except ImportError:
     logger.info("Using default Docker config...")

@@ -261,8 +261,9 @@ class HiveEngineSpec(PrestoEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"CAST('{dttm.date().isoformat()}' AS DATE)"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""CAST('{dttm
-                .isoformat(sep=" ", timespec="microseconds")}' AS TIMESTAMP)"""
+            return f"""CAST('{
+                dttm.isoformat(sep=" ", timespec="microseconds")
+            }' AS TIMESTAMP)"""
         return None
 
     @classmethod

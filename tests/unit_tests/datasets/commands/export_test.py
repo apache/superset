@@ -126,7 +126,7 @@ extra:
   warning_markdown: '*WARNING*'
 normalize_columns: false
 always_filter_main_dttm: false
-uuid: {payload['uuid']}
+uuid: {payload["uuid"]}
 metrics:
 - metric_name: cnt
   verbose_name: null

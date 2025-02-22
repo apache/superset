@@ -2330,30 +2330,27 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert (
-            response
-            == {
-                "errors": [
-                    {
-                        "message": "Error importing database",
-                        "error_type": "GENERIC_COMMAND_ERROR",
-                        "level": "warning",
-                        "extra": {
-                            "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed",  # noqa: E501
-                            "issue_codes": [
-                                {
-                                    "code": 1010,
-                                    "message": (
-                                        "Issue 1010 - Superset encountered an "
-                                        "error while running a command."
-                                    ),
-                                }
-                            ],
-                        },
-                    }
-                ]
-            }
-        )
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": "Database already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
 
         # import with overwrite flag
         buf = self.create_database_import()
@@ -2681,35 +2678,32 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert (
-            response
-            == {
-                "errors": [
-                    {
-                        "message": "Error importing database",
-                        "error_type": "GENERIC_COMMAND_ERROR",
-                        "level": "warning",
-                        "extra": {
-                            "databases/imported_database.yaml": {
-                                "_schema": [
-                                    "Must provide a private key for the ssh tunnel",
-                                    "Must provide a private key password for the ssh tunnel",  # noqa: E501
-                                ]
-                            },
-                            "issue_codes": [
-                                {
-                                    "code": 1010,
-                                    "message": (
-                                        "Issue 1010 - Superset encountered an "
-                                        "error while running a command."
-                                    ),
-                                }
-                            ],
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": [
+                                "Must provide a private key for the ssh tunnel",
+                                "Must provide a private key password for the ssh tunnel",  # noqa: E501
+                            ]
                         },
-                    }
-                ]
-            }
-        )
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
 
     @mock.patch("superset.databases.schemas.is_feature_enabled")
     @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
@@ -2976,35 +2970,32 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert (
-            response
-            == {
-                "errors": [
-                    {
-                        "message": "Error importing database",
-                        "error_type": "GENERIC_COMMAND_ERROR",
-                        "level": "warning",
-                        "extra": {
-                            "databases/imported_database.yaml": {
-                                "_schema": [
-                                    "Must provide a private key for the ssh tunnel",
-                                    "Must provide a private key password for the ssh tunnel",  # noqa: E501
-                                ]
-                            },
-                            "issue_codes": [
-                                {
-                                    "code": 1010,
-                                    "message": (
-                                        "Issue 1010 - Superset encountered an "
-                                        "error while running a command."
-                                    ),
-                                }
-                            ],
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing database",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "databases/imported_database.yaml": {
+                            "_schema": [
+                                "Must provide a private key for the ssh tunnel",
+                                "Must provide a private key password for the ssh tunnel",  # noqa: E501
+                            ]
                         },
-                    }
-                ]
-            }
-        )
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
 
     @mock.patch(
         "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",

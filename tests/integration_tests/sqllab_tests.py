@@ -132,30 +132,27 @@ class TestSqlLab(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         data = self.run_sql("DELETE FROM birth_names", "1")
-        assert (
-            data
-            == {
-                "errors": [
-                    {
-                        "message": (
-                            "This database does not allow for DDL/DML, and the query "
-                            "could not be parsed to confirm it is a read-only query. Please "  # noqa: E501
-                            "contact your administrator for more assistance."
-                        ),
-                        "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
-                        "level": ErrorLevel.ERROR,
-                        "extra": {
-                            "issue_codes": [
-                                {
-                                    "code": 1022,
-                                    "message": "Issue 1022 - Database does not allow data manipulation.",  # noqa: E501
-                                }
-                            ]
-                        },
-                    }
-                ]
-            }
-        )
+        assert data == {
+            "errors": [
+                {
+                    "message": (
+                        "This database does not allow for DDL/DML, and the query "
+                        "could not be parsed to confirm it is a read-only query. Please "  # noqa: E501
+                        "contact your administrator for more assistance."
+                    ),
+                    "error_type": SupersetErrorType.DML_NOT_ALLOWED_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1022,
+                                "message": "Issue 1022 - Database does not allow data manipulation.",  # noqa: E501
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
 
     @parameterized.expand([CtasMethod.TABLE, CtasMethod.VIEW])
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -848,33 +845,30 @@ class TestSqlLab(SupersetTestCase):
             handle_cursor.side_effect = SoftTimeLimitExceeded()
             data = self.run_sql("SELECT * FROM birth_names LIMIT 1", "1")
 
-        assert (
-            data
-            == {
-                "errors": [
-                    {
-                        "message": (
-                            "The query was killed after 21600 seconds. It might be too complex, "  # noqa: E501
-                            "or the database might be under heavy load."
-                        ),
-                        "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
-                        "level": ErrorLevel.ERROR,
-                        "extra": {
-                            "issue_codes": [
-                                {
-                                    "code": 1026,
-                                    "message": "Issue 1026 - Query is too complex and takes too long to run.",  # noqa: E501
-                                },
-                                {
-                                    "code": 1027,
-                                    "message": "Issue 1027 - The database is currently running too many queries.",  # noqa: E501
-                                },
-                            ]
-                        },
-                    }
-                ]
-            }
-        )
+        assert data == {
+            "errors": [
+                {
+                    "message": (
+                        "The query was killed after 21600 seconds. It might be too complex, "  # noqa: E501
+                        "or the database might be under heavy load."
+                    ),
+                    "error_type": SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                    "level": ErrorLevel.ERROR,
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1026,
+                                "message": "Issue 1026 - Query is too complex and takes too long to run.",  # noqa: E501
+                            },
+                            {
+                                "code": 1027,
+                                "message": "Issue 1027 - The database is currently running too many queries.",  # noqa: E501
+                            },
+                        ]
+                    },
+                }
+            ]
+        }
 
     def test_apply_limit_if_exists_when_incremented_limit_is_none(self):
         sql = """

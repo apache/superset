@@ -359,7 +359,7 @@ class TestTagApi(SupersetTestCase):
             TaggedObject.object_type == dashboard_type.name,
         )
         assert tagged_objects.count() == 2
-        uri = f'api/v1/tag/get_objects/?tags={",".join(tag_names)}'
+        uri = f"api/v1/tag/get_objects/?tags={','.join(tag_names)}"
         rv = self.client.get(uri)
         # successful request
         assert rv.status_code == 200

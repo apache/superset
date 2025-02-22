@@ -157,7 +157,7 @@ def test_execute_task(update_state_mock, command_mock, init_mock, owners):
 
     report_schedule = insert_report_schedule(
         type=ReportScheduleType.ALERT,
-        name=f"report-{randint(0,1000)}",  # noqa: S311
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
         crontab="0 4 * * *",
         timezone="America/New_York",
         owners=owners,
@@ -184,7 +184,7 @@ def test_execute_task_with_command_exception(
 
     report_schedule = insert_report_schedule(
         type=ReportScheduleType.ALERT,
-        name=f"report-{randint(0,1000)}",  # noqa: S311
+        name=f"report-{randint(0, 1000)}",  # noqa: S311
         crontab="0 4 * * *",
         timezone="America/New_York",
         owners=owners,

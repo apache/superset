@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { supersetTheme } from '@superset-ui/core';
+import { supersetTheme, SupersetTheme } from '@superset-ui/core';
 
+type ColorCategory = keyof SupersetTheme['colors'];
 export default {
   title: 'Core Packages/@superset-ui-style',
 };
@@ -75,7 +76,13 @@ export const ThemeColors = () => {
                 <strong>{category}</strong>
               </td>
               {tones.map(tone => {
-                const color = colors[category][tone];
+                const categoryColors = colors[category as ColorCategory];
+                const color =
+                  typeof categoryColors === 'object' &&
+                  categoryColors !== null &&
+                  tone in categoryColors
+                    ? (categoryColors as Record<string, string>)[tone]
+                    : undefined;
                 return (
                   <td
                     key={tone}
