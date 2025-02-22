@@ -56,7 +56,7 @@ repos:
     hooks:
       - id: prettier
         name: prettier
-        entry: bash -c 'cd superset-frontend && npx prettier --loglevel error $(echo "$@" | sed "s|superset-frontend/||g")'
+        entry: bash -c 'cd superset-frontend && npx prettier --log-level error --check $(echo "$@" | sed "s|superset-frontend/||g")'
         language: system
         files: '^superset-frontend/(src|spec|cypress-base|plugins|packages|.storybook)/.+\.(js|jsx|ts|tsx|css|less|scss|sass)$|^superset-frontend/package\.json$'
         pass_filenames: true
@@ -68,7 +68,7 @@ repos:
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'cd docs && npx eslint . --ext .js,.jsx,.ts,.tsx --quiet'
+        entry: bash -c 'cd docs && npx eslint --ext .js,.jsx,.ts,.tsx --quiet $(echo "$@" | sed "s|docs/||g")'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
