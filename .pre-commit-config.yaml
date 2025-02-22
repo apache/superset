@@ -62,13 +62,13 @@ repos:
         pass_filenames: true
       - id: eslint-frontend
         name: eslint (frontend)
-        entry: bash -c 'cd superset-frontend && npx eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx --quiet --rule "file-progress/activate:0" $(echo "$@" | sed "s|superset-frontend/||g")'
+        entry: bash -c 'cd superset-frontend && npx eslint --ignore-path=.eslintignore --ext .js,.jsx,.ts,.tsx --quiet --rule "file-progress/activate:0" -c .eslintrc.js $(echo "$@" | sed "s|superset-frontend/||g")'
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
-        entry: bash -c 'cd docs && npx eslint --ext .js,.jsx,.ts,.tsx --quiet $(echo "$@" | sed "s|docs/||g")'
+        entry: bash -c 'cd docs && npx eslint --ext .js,.jsx,.ts,.tsx --quiet -c .eslintrc.js $(echo "$@" | sed "s|docs/||g")'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
