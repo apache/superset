@@ -86,7 +86,7 @@ test('should display a certification icon if saved metric is certified', async (
     },
     { timeout: 10000 },
   );
-}, 20000); // Add specific timeout for this test
+});
 
 test('triggers onMoveLabel on drop', async () => {
   render(

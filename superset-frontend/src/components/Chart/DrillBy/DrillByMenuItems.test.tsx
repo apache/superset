@@ -246,7 +246,7 @@ test('Do not display excluded column in the menu', async () => {
   excludedColNames.forEach(colName => {
     expect(screen.queryByText(colName)).not.toBeInTheDocument();
   });
-}, 20000);
+});
 
 test('When menu item is clicked, call onSelection with clicked column and drill by filters', async () => {
   fetchMock
@@ -275,4 +275,4 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
     },
     { filters: defaultFilters, groupbyFieldName: 'groupby' },
   );
-}, 20000);
+});
