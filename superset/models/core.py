@@ -30,7 +30,7 @@ from copy import deepcopy
 from datetime import datetime
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, TYPE_CHECKING
+from typing import Any, Callable, cast, TYPE_CHECKING, Optional
 
 import numpy
 import pandas as pd
@@ -765,7 +765,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         indent: bool = True,
         latest_partition: bool = False,
         cols: list[ResultSetColumnType] | None = None,
-        partition: Partition | None = None,
+        partition: Optional[Partition] = None,
     ) -> str:
         """Generates a ``select *`` statement in the proper dialect"""
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
