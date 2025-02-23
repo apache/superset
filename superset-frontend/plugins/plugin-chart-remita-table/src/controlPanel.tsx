@@ -302,7 +302,7 @@ const bulkActionsSection = {
               datasource?.columns?.map((col: any) => [
                 col.column_name
               ]) || [],
-            valueColumn: controls?.bulk_action_id_column.value,
+            valueColumn: controls?.bulk_action_id_column?.value,
           }),
           visibility: ({ controls }: any) => Boolean(controls?.enable_bulk_actions?.value),
           offerEditInModal: true,
@@ -327,7 +327,7 @@ const bulkActionsSection = {
               datasource?.columns?.map((col: any) => [
                 col.column_name
               ]) || [],
-            valueColumn: controls.bulk_action_id_column.value,
+            valueColumn: controls?.bulk_action_id_column?.value,
           }),
           visibility: ({controls}: any) => Boolean(controls?.enable_bulk_actions?.value),
           offerEditInModal: true,
