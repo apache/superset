@@ -1692,7 +1692,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
         if database.backend == 'odps':
-            if partition is not None and partition.is_partitioned_table and partition.partition_column is not None and len(partition.partition_column) > 0:
+            if (partition is not None and
+                partition.is_partitioned_table and
+                partition.partition_column is not None and
+                len(partition.partition_column) > 0):
                 partition_str = partition.partition_column[0]
                 partition_str_where = f"CAST({partition_str} AS STRING) LIKE '%'"
                 qry = qry.where(text(partition_str_where))
