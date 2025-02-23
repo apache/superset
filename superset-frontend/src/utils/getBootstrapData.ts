@@ -17,11 +17,19 @@
  * under the License.
  */
 
+import { jsonrepair } from 'jsonrepair';
 import { BootstrapData } from 'src/types/bootstrapTypes';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
 
 export default function getBootstrapData(): BootstrapData {
   const appContainer = document.getElementById('app');
-  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
-  return dataBootstrap ? JSON.parse(dataBootstrap) : DEFAULT_BOOTSTRAP_DATA;
+  const dataBootstrapString = appContainer?.getAttribute('data-bootstrap');
+  if (!dataBootstrapString) {
+    return DEFAULT_BOOTSTRAP_DATA;
+  }
+  try {
+    return JSON.parse(dataBootstrapString);
+  } catch (error) {
+    return JSON.parse(jsonrepair(dataBootstrapString));
+  }
 }

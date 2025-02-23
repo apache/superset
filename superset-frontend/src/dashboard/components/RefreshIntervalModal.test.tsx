@@ -41,7 +41,7 @@ const createProps = () => ({
     common: {
       conf: {
         DASHBOARD_AUTO_REFRESH_INTERVALS: [
-          [0, "Don't refresh"],
+          [0, 'Do not refresh'],
           [10, '10 seconds'],
           [30, '30 seconds'],
           [60, '1 minute'],
@@ -113,7 +113,7 @@ const openRefreshIntervalModal = async () => {
 
 const displayOptions = async () => {
   // Click default refresh interval option to display other options
-  userEvent.click(screen.getByText(/don't refresh/i));
+  userEvent.click(screen.getByText(/do not refresh/i));
 };
 
 const defaultRefreshIntervalModalProps = {
@@ -148,9 +148,9 @@ test('renders refresh interval options', async () => {
   await openRefreshIntervalModal();
   await displayOptions();
 
-  // Assert that both "Don't refresh" instances exist
+  // Assert that both "Do not refresh" instances exist
   // - There will be two at this point, the default option and the dropdown option
-  const dontRefreshInstances = screen.getAllByText(/don't refresh/i);
+  const dontRefreshInstances = screen.getAllByText(/do not refresh/i);
   expect(dontRefreshInstances).toHaveLength(2);
   dontRefreshInstances.forEach(option => {
     expect(option).toBeInTheDocument();
@@ -177,9 +177,9 @@ test('should change selected value', async () => {
   render(setup(editModeOnProps));
   await openRefreshIntervalModal();
 
-  // Initial selected value should be "Don't refresh"
-  const selectedValue = screen.getByText(/don't refresh/i);
-  expect(selectedValue.title).toMatch(/don't refresh/i);
+  // Initial selected value should be "Do not refresh"
+  const selectedValue = screen.getByText(/do not refresh/i);
+  expect(selectedValue.title).toMatch(/do not refresh/i);
 
   // Display options and select "10 seconds"
   await displayOptions();
@@ -187,16 +187,16 @@ test('should change selected value', async () => {
 
   // Selected value should now be "10 seconds"
   expect(selectedValue.title).toMatch(/10 seconds/i);
-  expect(selectedValue.title).not.toMatch(/don't refresh/i);
+  expect(selectedValue.title).not.toMatch(/do not refresh/i);
 });
 
 test('should change selected value to custom value', async () => {
   render(setup(editModeOnProps));
   await openRefreshIntervalModal();
 
-  // Initial selected value should be "Don't refresh"
-  const selectedValue = screen.getByText(/don't refresh/i);
-  expect(selectedValue.title).toMatch(/don't refresh/i);
+  // Initial selected value should be "Do not refresh"
+  const selectedValue = screen.getByText(/do not refresh/i);
+  expect(selectedValue.title).toMatch(/do not refresh/i);
 
   // Display options and select "Custom interval"
   await displayOptions();
@@ -204,7 +204,7 @@ test('should change selected value to custom value', async () => {
 
   // Selected value should now be "Custom interval"
   expect(selectedValue.title).toMatch(/Custom interval/i);
-  expect(selectedValue.title).not.toMatch(/don't refresh/i);
+  expect(selectedValue.title).not.toMatch(/do not refresh/i);
 });
 
 test('should save a newly-selected value', async () => {
