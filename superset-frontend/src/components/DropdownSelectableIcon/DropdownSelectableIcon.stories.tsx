@@ -17,32 +17,49 @@
  * under the License.
  */
 import Icons from 'src/components/Icons';
-import Label from 'src/components/Label';
-import { t } from '@superset-ui/core';
+import { useTheme } from '@superset-ui/core';
+import DropdownSelectableIcon, { DropDownSelectableProps } from '.';
 
-// Define props for the PublishedLabel component
-interface PublishedLabelProps {
-  isPublished: boolean; // Whether the item is published
-  onClick?: () => void; // Optional click handler
-}
-
-const PublishedLabel: React.FC<PublishedLabelProps> = ({
-  isPublished,
-  onClick,
-}) => {
-  const label = isPublished ? t('Published') : t('Draft');
-  const icon = isPublished ? (
-    <Icons.CheckCircleOutlined iconSize="s" />
-  ) : (
-    <Icons.MinusCircleOutlined iconSize="s" />
-  );
-  const labelType = isPublished ? 'primary' : 'secondary';
-
-  return (
-    <Label type={labelType} icon={icon} onClick={onClick}>
-      {label}
-    </Label>
-  );
+export default {
+  title: 'DropdownSelectableIcon',
+  component: DropdownSelectableIcon,
 };
 
-export default PublishedLabel;
+export const Component = (props: DropDownSelectableProps) => {
+  const theme = useTheme();
+  return (
+    <DropdownSelectableIcon
+      {...props}
+      icon={
+        <Icons.SettingOutlined
+          iconSize="xl"
+          name="gear"
+          iconColor={theme.colors.grayscale.dark2}
+        />
+      }
+    />
+  );
+};
+Component.args = {
+  info: 'Info go here',
+  selectedKeys: ['vertical'],
+  menuItems: [
+    {
+      key: 'vertical',
+      label: 'Vertical',
+    },
+    {
+      key: 'horizontal',
+      label: 'Horizontal',
+    },
+  ],
+};
+
+Component.argTypes = {
+  onSelect: {
+    action: 'onSelect',
+    table: {
+      disable: true,
+    },
+  },
+};

@@ -56,16 +56,19 @@ export default function PopoverSection({
       >
         <strong data-test="popover-title">{title}</strong>
         {info && (
-          <Tooltip title={info} css={{ marginLeft: theme.gridUnit }}>
-            <Icons.InfoSolidSmall
+          <Tooltip
+            title={info}
+            css={{ marginLeft: theme.gridUnit, marginRight: theme.gridUnit }}
+          >
+            <Icons.InfoCircleFilled
               role="img"
-              width={14}
-              height={14}
+              iconSize="s"
               iconColor={theme.colors.grayscale.light1}
             />
           </Tooltip>
         )}
-        <Icons.Check
+        <Icons.CheckOutlined
+          iconSize="s"
           role="img"
           iconColor={
             isSelected ? theme.colors.primary.base : theme.colors.grayscale.base

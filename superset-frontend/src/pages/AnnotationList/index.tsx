@@ -22,6 +22,7 @@ import { useParams, Link, useHistory } from 'react-router-dom';
 import {
   css,
   t,
+  useTheme,
   styled,
   SupersetClient,
   getClientErrorObject,
@@ -40,6 +41,7 @@ import { createErrorHandler } from 'src/views/CRUD/utils';
 
 import { AnnotationObject } from 'src/features/annotations/types';
 import AnnotationModal from 'src/features/annotations/AnnotationModal';
+import Icons from 'src/components/Icons';
 
 const PAGE_SIZE = 25;
 
@@ -67,6 +69,7 @@ function AnnotationList({
   addDangerToast,
   addSuccessToast,
 }: AnnotationListProps) {
+  const theme = useTheme();
   const { annotationLayerId }: any = useParams();
   const {
     state: {
@@ -207,7 +210,7 @@ function AnnotationList({
               label: 'delete-action',
               tooltip: t('Delete annotation'),
               placement: 'bottom',
-              icon: 'Trash',
+              icon: 'DeleteOutlined',
               onClick: handleDelete,
             },
           ];
@@ -226,7 +229,15 @@ function AnnotationList({
   subMenuButtons.push({
     name: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation')}
+        <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
+          iconSize="s"
+          css={theme => ({
+            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            verticalAlign: 'baseline',
+          })}
+        />
+        {t('Annotation')}
       </>
     ),
     buttonStyle: 'primary',
@@ -259,7 +270,15 @@ function AnnotationList({
     },
     buttonText: (
       <>
-        <i className="fa fa-plus" /> {t('Annotation')}
+        <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
+          iconSize="s"
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: baseline;
+          `}
+        />
+        {t('Annotation')}
       </>
     ),
   };

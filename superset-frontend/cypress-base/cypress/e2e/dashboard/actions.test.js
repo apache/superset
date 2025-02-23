@@ -30,15 +30,17 @@ describe('Dashboard actions', () => {
     interceptUnfav();
 
     cy.getBySel('dashboard-header-container')
-      .find("[aria-label='favorite-unselected']")
-      .click();
+      .find("[aria-label='star']")
+      .as('starIcon');
+    cy.get('@starIcon').click();
     cy.wait('@select');
-    cy.getBySel('dashboard-header-container')
-      .find("[aria-label='favorite-selected']")
-      .click();
+    cy.get('@starIcon')
+      .should('have.css', 'color')
+      .and('eq', 'rgb(252, 199, 0)');
+    cy.get('@starIcon').click();
     cy.wait('@unselect');
-    cy.getBySel('dashboard-header-container')
-      .find("[aria-label='favorite-selected']")
-      .should('not.exist');
+    cy.get('@starIcon')
+      .should('have.css', 'color')
+      .and('not.eq', 'rgb(252, 199, 0)');
   });
 });

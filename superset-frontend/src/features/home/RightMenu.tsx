@@ -65,9 +65,6 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
   font-size: ${theme.typography.sizes.xs}px;
   white-space: nowrap;
 `;
-const StyledI = styled.div`
-  color: ${({ theme }) => theme.colors.primary.dark1};
-`;
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
@@ -412,7 +409,10 @@ const RightMenu = ({
             key="sub1"
             data-test="new-dropdown"
             title={
-              <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
+              <Icons.PlusOutlined
+                iconColor={theme.colors.primary.dark1}
+                data-test="new-dropdown-icon"
+              />
             }
             icon={<Icons.TriangleDown />}
           >
@@ -474,6 +474,7 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
+        {/* TODO replace TriangleDown with ANTD5 icons */}
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}

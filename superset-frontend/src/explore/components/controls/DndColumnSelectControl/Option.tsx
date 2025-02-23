@@ -53,11 +53,15 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
+          css={{ textAlign: 'center' }}
           role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
         >
-          <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+          <Icons.CloseOutlined
+            iconSize="xs"
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CloseContainer>
       )}
       <Label data-test="control-label">{children}</Label>
@@ -77,7 +81,11 @@ export default function Option({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+          <Icons.CaretRightOutlined
+            iconSize="l"
+            css={{ marginTop: theme.gridUnit * 1 }}
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

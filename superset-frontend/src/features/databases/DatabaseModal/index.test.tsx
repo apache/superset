@@ -677,9 +677,7 @@ describe('DatabaseModal', () => {
       const checkboxOffSVGs = screen.getAllByRole('img', {
         name: /checkbox-off/i,
       });
-      const tooltipIcons = screen.getAllByRole('img', {
-        name: /info-solid_small/i,
-      });
+      const tooltipIcons = screen.getAllByTestId('info-circle-filled');
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {
         name: /expose database in sql lab/i,
       });

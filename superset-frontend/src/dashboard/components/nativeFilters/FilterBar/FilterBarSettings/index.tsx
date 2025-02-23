@@ -19,13 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -75,7 +69,6 @@ const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
 
 const FilterBarSettings = () => {
   const dispatch = useDispatch();
-  const theme = useTheme();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -221,7 +214,12 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Vertical (Left)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Vertical && <Icons.Check />}
+                  FilterBarOrientation.Vertical && (
+                  <Icons.CheckOutlined
+                    iconSize="m"
+                    css={{ verticalAlign: 'middle' }}
+                  />
+                )}
               </Space>
             ),
           },
@@ -231,7 +229,12 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Horizontal (Top)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Horizontal && <Icons.Check />}
+                  FilterBarOrientation.Horizontal && (
+                  <Icons.CheckOutlined
+                    iconSize="m"
+                    css={{ verticalAlign: 'middle' }}
+                  />
+                )}
               </Space>
             ),
           },
@@ -264,9 +267,9 @@ const FilterBarSettings = () => {
         trigger={['click']}
       >
         <Button type="link">
-          <Icons.Gear
+          <Icons.SettingOutlined
+            iconSize="xl"
             name="gear"
-            iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"
           />
         </Button>

@@ -21,6 +21,8 @@ import {
   styled,
   SupersetClient,
   t,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
@@ -78,14 +80,6 @@ interface DatabaseListProps {
   };
 }
 
-const IconCheck = styled(Icons.Check)`
-  color: ${({ theme }) => theme.colors.grayscale.dark1};
-`;
-
-const IconCancelX = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 
@@ -96,7 +90,18 @@ const Actions = styled.div`
 `;
 
 function BooleanDisplay({ value }: { value: Boolean }) {
-  return value ? <IconCheck /> : <IconCancelX />;
+  const theme = useTheme();
+  return value ? (
+    <Icons.CheckOutlined
+      iconSize="m"
+      iconColor={theme.colors.grayscale.dark1}
+    />
+  ) : (
+    <Icons.CloseOutlined
+      iconSize="m"
+      iconColor={theme.colors.grayscale.light1}
+    />
+  );
 }
 
 function DatabaseList({
@@ -104,6 +109,7 @@ function DatabaseList({
   addSuccessToast,
   user,
 }: DatabaseListProps) {
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -312,7 +318,15 @@ function DatabaseList({
         'data-test': 'btn-create-database',
         name: (
           <>
-            <i className="fa fa-plus" /> {t('Database')}{' '}
+            <Icons.PlusOutlined
+              iconColor={theme.colors.primary.light5}
+              iconSize="s"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+                vertical-align: baseline;
+              `}
+            />
+            {t('Database')}
           </>
         ),
         buttonStyle: 'primary',
@@ -444,7 +458,7 @@ function DatabaseList({
                     title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined />
                   </Tooltip>
                 </span>
               )}
@@ -460,7 +474,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined css={{ verticalAlign: 'baseline' }} />
                   </span>
                 </Tooltip>
               )}
@@ -477,7 +491,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" />
                   </span>
                 </Tooltip>
               )}
