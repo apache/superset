@@ -96,6 +96,7 @@ export default function InfoTooltip({
     >
       <InfoIconContainer>
         <Icons.InfoCircleFilled
+          data-test="info-circle-filled"
           iconSize="m"
           style={alteredIconStyle}
           viewBox={viewBox}

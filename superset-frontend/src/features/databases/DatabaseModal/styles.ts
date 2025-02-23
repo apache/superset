@@ -131,6 +131,7 @@ export const infoTooltip = (theme: SupersetTheme) => css`
   svg {
     margin-bottom: ${theme.gridUnit * 0.25}px;
   }
+  display: flex;
 `;
 
 export const toggleStyle = (theme: SupersetTheme) => css`
