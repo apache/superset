@@ -8888,7 +8888,7 @@ msgstr "Rij limiet"
 msgid "Rows"
 msgstr "Rijen"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "Rijen per pagina, 0 betekent geen paginering"
 
 msgid "Rows subtotal position"

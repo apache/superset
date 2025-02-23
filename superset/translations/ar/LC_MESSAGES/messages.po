@@ -8793,7 +8793,7 @@ msgstr "حد الصفوف"
 msgid "Rows"
 msgstr "صفوف"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "الصفوف لكل صفحة، 0 يعني عدم وجود ترقيم للصفحات"
 
 msgid "Rows subtotal position"

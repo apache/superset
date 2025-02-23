@@ -9606,7 +9606,7 @@ msgstr "Nombre de rangées maximum"
 msgid "Rows"
 msgstr "Rangées"
 
-msgid "Rows per page, 0 means no pagination"
+msgid "Rows per page, All means no pagination"
 msgstr "Rangées par page, 0 signifie aucune pagination"
 
 msgid "Rows subtotal position"
