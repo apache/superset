@@ -1004,7 +1004,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
         table_name = str(parameters["name"])
-        is_partitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(database,table_name)
+        is_partitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(
+        database,table_name)
         table = Table(table_name, parameters["schema"], parameters["catalog"])
         try:
             security_manager.raise_for_access(database=database, table=table)
