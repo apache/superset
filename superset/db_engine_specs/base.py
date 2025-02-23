@@ -32,6 +32,7 @@ from typing import (
     TYPE_CHECKING,
     TypedDict,
     Union,
+    Optional,
 )
 from urllib.parse import urlencode, urljoin
 from uuid import uuid4
@@ -1662,7 +1663,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         indent: bool = True,
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
-        partition: Partition | None = None,
+        partition: Optional[Partition] = None,
     ) -> str:
         """
         Generate a "SELECT * from [schema.]table_name" query with appropriate limit.
