@@ -123,6 +123,7 @@ class Markdown extends PureComponent {
       markdownSource: props.component.meta.code,
       editor: null,
       editorMode: 'preview',
+      isEditing: false,
       undoLength: props.undoLength,
       redoLength: props.redoLength,
     };
@@ -215,17 +216,21 @@ class Markdown extends PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    const nextFocused = !!nextFocus;
-    const nextEditMode = nextFocused ? 'edit' : 'preview';
-    this.setState(() => ({ isFocused: nextFocused }));
-    this.handleChangeEditorMode(nextEditMode);
+    if (this.state.isEditing) {
+      const nextFocused = !!nextFocus;
+      const nextEditMode = nextFocused ? 'edit' : 'preview';
+      this.setState(() => ({ isFocused: nextFocused }));
+      this.handleChangeEditorMode(nextEditMode);
+    }
   }
 
   handleChangeEditorMode(mode) {
     const nextState = {
       ...this.state,
       editorMode: mode,
+      isEditing: mode === 'edit',
     };
+
     if (mode === 'preview') {
       this.updateMarkdownContent();
       nextState.hasError = false;
@@ -277,7 +282,10 @@ class Markdown extends PureComponent {
         width="100%"
         height="100%"
         showGutter={false}
-        editorProps={{ $blockScrolling: true }}
+        editorProps={{
+          $blockScrolling: true,
+          role: 'textbox',
+        }}
         value={
           // this allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
@@ -308,7 +316,7 @@ class Markdown extends PureComponent {
   }
 
   render() {
-    const { isFocused, editorMode } = this.state;
+    const { isFocused, isEditing } = this.state;
 
     const {
       component,
@@ -328,8 +336,6 @@ class Markdown extends PureComponent {
       parentComponent.type === COLUMN_TYPE
         ? parentComponent.meta.width || GRID_MIN_COLUMN_COUNT
         : component.meta.width || GRID_MIN_COLUMN_COUNT;
-
-    const isEditing = editorMode === 'edit';
 
     return (
       <Draggable
@@ -382,6 +388,13 @@ class Markdown extends PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
+                  role="button"
+                  tabIndex="0"
+                  onClick={() => {
+                    if (editMode && !isEditing) {
+                      this.handleChangeFocus(true);
+                    }
+                  }}
                 >
                   {editMode && (
                     <HoverMenu position="top">
@@ -390,9 +403,7 @@ class Markdown extends PureComponent {
                       />
                     </HoverMenu>
                   )}
-                  {editMode && isEditing
-                    ? this.renderEditMode()
-                    : this.renderPreviewMode()}
+                  {isEditing ? this.renderEditMode() : this.renderPreviewMode()}
                 </div>
               </ResizableContainer>
             </MarkdownStyles>
