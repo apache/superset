@@ -170,10 +170,15 @@ class DatabaseDAO(BaseDAO[Database]):
         return ssh_tunnel
     
     @classmethod
-    def is_odps_partitioned_table(cls, database: Database, table_name: str) -> Tuple[bool, List[int]]:
+    def is_odps_partitioned_table(
+        cls, 
+        database: Database,
+        table_name: str) -> Tuple[bool, List[int]]:
         """
-        This function is used to determine and retrieve partition information of the odsp table.
-        The return values are whether the partition table is partitioned and the names of all partition fields.
+        This function is used to determine and retrieve 
+        partition information of the odsp table.
+        The return values are whether the partition 
+        table is partitioned and the names of all partition fields.
         """
         if not database:
             raise ValueError("Database not found")
