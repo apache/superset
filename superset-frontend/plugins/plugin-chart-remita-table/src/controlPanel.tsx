@@ -412,7 +412,7 @@ const tableActionsSection = {
               datasource?.columns?.map((col: any) => [
                 col.column_name
               ]) || [],
-            valueColumn: controls.table_actions_id_column.value,
+            valueColumn: controls?.table_actions_id_column?.value,
           }),
           visibility: ({ controls }: any) =>
             Boolean(controls?.enable_table_actions?.value),
