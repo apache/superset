@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Optional
 
 from sqlalchemy.engine.url import make_url, URL
 
