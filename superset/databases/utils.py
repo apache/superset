@@ -63,7 +63,7 @@ def get_col_type(col: dict[Any, Any]) -> str:
     return dtype
 
 
-def get_table_metadata(database: Any, table: Table, partition: Partition) -> TableMetadataResponse:
+def get_table_metadata(database: Any, table: Table, partition: Optional[Partition] = None) -> TableMetadataResponse:
     """
     Get table metadata information, including type, pk, fks.
     This function raises SQLAlchemyError when a schema is not found.
