@@ -70,6 +70,7 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   includeRowNumber?: boolean;
   enableTableActions?: boolean;
   tableActionsIdColumn?: string;
+  hideTableActionsIdColumn?: boolean;
   bulkActionLabel?: string;
   tableActions?: Set<any>;
   onTableActionClick?: (action?: string, id?: string, value?: string) => void;
@@ -113,6 +114,8 @@ export default typedMemo(function DataTable<D extends object>({
                                                                 bulkActionLabel,
                                                                 bulkActions,
                                                                 onBulkActionClick,
+                                                                tableActionsIdColumn,
+                                                                hideTableActionsIdColumn =  false,
                                                                 enableBulkActions = false,
                                                                 showSplitInSliceHeader = false,
                                                                 ...moreUseTableOptions
@@ -127,7 +130,9 @@ export default typedMemo(function DataTable<D extends object>({
   ].flat();
 
   const columnNames = Object.keys(data?.[0] || {});
+
   const previousColumnNames = usePrevious(columnNames);
+
   const resultsSize = serverPagination ? rowCount : data.length;
   const sortByRef = useRef([]); // cache initial `sortby` so sorting doesn't trigger page reset
   const pageSizeRef = useRef([initialPageSize, resultsSize]);
@@ -288,23 +293,50 @@ export default typedMemo(function DataTable<D extends object>({
     e.preventDefault();
   };
 
+  const getColumnIdByName = (columnNames: string[], tableActionsIdColumn: string): number => {
+    if (!columnNames?.length || !tableActionsIdColumn) {
+      return -1;
+    }
+
+    const index = columnNames.findIndex(name =>
+      name.toLowerCase() === tableActionsIdColumn.toLowerCase()
+    );
+
+    return index;
+  };
+
+  const effectiveTableActionsIdColumn = tableActionsIdColumn
+    ? getColumnIdByName(columnNames, tableActionsIdColumn)
+    : '';
+
   const renderTable = () => (
     <table {...getTableProps({className: tableClassName})}>
       <thead>
       {renderGroupingHeaders ? renderGroupingHeaders() : null}
       {headerGroups.map(headerGroup => {
+        // @ts-ignore
         const {key: headerGroupKey, ...headerGroupProps} =
           headerGroup.getHeaderGroupProps();
         return (
-          <tr key={headerGroupKey || headerGroup.id} {...headerGroupProps}>
-            {headerGroup.headers.map(column =>
-              column.render('Header', {
+          <tr
+            {...headerGroup.getHeaderGroupProps()}
+            key={headerGroup.id}
+            role="row"
+          >
+            {headerGroup.headers.map(column => {
+              if (hideTableActionsIdColumn && (column.id == effectiveTableActionsIdColumn)) {
+                return null;
+              }
+              return column.render('Header', {
                 key: column.id,
                 ...column.getSortByToggleProps(),
                 onDragStart,
                 onDrop,
-              }),
-            )}
+                'aria-sort': column.isSorted
+                  ? column.isSortedDesc ? 'descending' : 'ascending'
+                  : undefined
+              });
+            })}
           </tr>
         );
       })}
@@ -313,12 +345,23 @@ export default typedMemo(function DataTable<D extends object>({
       {page && page.length > 0 ? (
         page.map(row => {
           prepareRow(row);
-          const {key: rowKey, ...rowProps} = row.getRowProps();
           return (
-            <tr key={rowKey || row.id} {...rowProps} role="row">
-              {row.cells.map(cell =>
-                cell.render('Cell', {key: cell.column.id}),
-              )}
+            <tr
+              {...row.getRowProps()}
+              key={row.id}
+              role="row"
+              data-action-id={
+                 effectiveTableActionsIdColumn
+                  ? row.values[effectiveTableActionsIdColumn]
+                  : undefined
+              }
+            >
+              {row.cells.map(cell => {
+                if (hideTableActionsIdColumn && cell.column.id == effectiveTableActionsIdColumn) {
+                  return null;
+                }
+                return cell.render('Cell', {key: cell.column.id});
+              })}
             </tr>
           );
         })
@@ -457,3 +500,5 @@ export default typedMemo(function DataTable<D extends object>({
     </div>
   );
 });
+
+

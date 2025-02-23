@@ -383,6 +383,20 @@ const tableActionsSection = {
     ],
     [
       {
+        name: 'hide_table_actions_id_column',
+        config: {
+          type: 'CheckboxControl',
+          label: t('Hide Id Column'),
+          renderTrigger: true,
+          description: t('Dont display Id column in table'),
+          default: false,
+          visibility: ({ controls }: any) =>
+            Boolean(controls?.enable_table_actions?.value),
+        },
+      },
+    ],
+    [
+      {
         name: 'table_actions',
         config: {
           type: TableActionFormControl,

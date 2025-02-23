@@ -220,6 +220,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onBulkActionClick?: (actionKey?: string, selectedIds?: string[]) => void;
     enable_table_actions?: boolean;
     table_actions_id_column?: string;
+    hide_table_actions_id_column?: boolean;
     table_actions?: Set<any>;
     onTableActionClick?: (action?: string, id?: string, value?: string) => void;
     slice_id?: string;
@@ -264,10 +265,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     non_split_actions ,
     enable_table_actions = false,
     table_actions_id_column = '',
+    hide_table_actions_id_column = false,
     table_actions,
     show_split_buttons_in_slice_header = false,
     retain_selection_accross_navigation = false,
   } = props;
+
   const sliceId = props?.slice_id;
   const chartId = props?.slice_id;
   const resetOnMount =!props?.retain_selection_accross_navigation;
@@ -1383,7 +1386,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               actions={tableActionsConfig.actions}
               row={row.original}
               chartId={chartId}
-              idColumn ={table_actions_id_column}
+              idColumn ={tableActionsConfig.idColumn}
               onActionClick={handleTableAction}
             />
           );
@@ -1450,6 +1453,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           enableTableActions={enable_table_actions}
           includeRowNumber={include_row_numbers}
           tableActionsIdColumn={table_actions_id_column}
+          hideTableActionsIdColumn={hide_table_actions_id_column}
           bulkActionLabel={bulk_action_label}
           tableActions={table_actions}
           onBulkActionClick={handleBulkAction}
