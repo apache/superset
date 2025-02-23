@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -58,6 +58,7 @@ interface TagListProps {
 function TagList(props: TagListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const { userId } = user;
+  const theme = useTheme();
 
   const initialFilters = useMemo(
     () => [
@@ -328,7 +329,12 @@ function TagList(props: TagListProps) {
   subMenuButtons.push({
     name: (
       <>
-        <Icons.PlusOutlined iconSize="m" css={{ margin: 0 }} /> {t('Tag')}
+        <Icons.PlusOutlined
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+          css={{ margin: 0 }}
+        />{' '}
+        {t('Tag')}
       </>
     ),
     buttonStyle: 'primary',
