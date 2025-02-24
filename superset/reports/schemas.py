@@ -233,6 +233,13 @@ class ReportSchedulePostSchema(Schema):
         dump_default=None,
     )
     force_screenshot = fields.Boolean(dump_default=False)
+    include_index = fields.Boolean(
+        metadata={
+            "description": _("Include index column in report"),
+            "example": False,
+        },
+        dump_default=False,
+    )
     custom_width = fields.Integer(
         metadata={
             "description": _("Custom width of the screenshot in pixels"),
@@ -370,7 +377,14 @@ class ReportSchedulePutSchema(Schema):
     )
     extra = fields.Dict(dump_default=None)
     force_screenshot = fields.Boolean(dump_default=False)
-
+    include_index = fields.Boolean(
+        metadata={
+            "description": _("Include index column in report"),
+            "example": False,
+        },
+        dump_default=False,
+        required=False,
+    )
     custom_width = fields.Integer(
         metadata={
             "description": _("Custom width of the screenshot in pixels"),

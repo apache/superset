@@ -442,6 +442,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_FORMAT,
   );
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
+  const [includeIndex, setIncludeIndex] = useState<boolean>(false);
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
@@ -669,6 +670,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      include_index: includeIndex,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -1119,6 +1121,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setForceScreenshot(event.target.checked);
   };
 
+  const onIncludeIndexChange = (event: any) => {
+    setIncludeIndex(event.target.checked);
+  };
+
   // Make sure notification settings has the required info
   const checkNotificationSettings = () => {
     if (!notificationSettings.length) {
@@ -1339,6 +1345,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         setChartVizType((resource.chart as ChartObject).viz_type);
       }
       setForceScreenshot(resource.force_screenshot);
+      setIncludeIndex(resource.include_index || false);
 
       setCurrentAlert({
         ...resource,
@@ -1810,6 +1817,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledCheckbox>
             </div>
           )}
+          {isReport &&
+            contentType === ContentType.Chart &&
+            reportFormat === 'CSV' && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="include-index"
+                  className="checkbox"
+                  checked={includeIndex}
+                  onChange={onIncludeIndexChange}
+                >
+                  {t('Include index column')}
+                </StyledCheckbox>
+              </div>
+            )}
         </StyledPanel>
         <StyledPanel
           header={

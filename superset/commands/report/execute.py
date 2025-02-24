@@ -44,6 +44,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
 )
+from superset.commands.report.utils import remove_post_processed
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
     REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
@@ -363,6 +364,8 @@ class BaseReportState:
 
     def _get_csv_data(self) -> bytes:
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
+        if not self._report_schedule.include_index:
+            url = remove_post_processed(url)
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,

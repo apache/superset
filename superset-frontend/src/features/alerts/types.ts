@@ -119,6 +119,7 @@ export type AlertObject = {
   error?: string;
   extra?: Extra;
   force_screenshot: boolean;
+  include_index?: boolean;
   grace_period?: number;
   id: number;
   last_eval_dttm?: number;
