@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
+import pandas as pd
 from datetime import datetime
 from re import Pattern
 from typing import Any, Optional
@@ -22,9 +23,12 @@ from typing import Any, Optional
 from flask_babel import gettext as __
 from sqlalchemy import types
 
+from superset import is_feature_enabled
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
+from superset.common.chart_data import ChartDataResultLocation
+from superset.utils.aws import run_query_and_get_s3_url
 
 SYNTAX_ERROR_REGEX = re.compile(
     ": mismatched input '(?P<syntax_error>.*?)'. Expecting: "
@@ -80,6 +84,18 @@ class AthenaEngineSpec(BaseEngineSpec):
     @classmethod
     def epoch_to_dttm(cls) -> str:
         return "from_unixtime({col})"
+
+    @classmethod
+    def supports_remote_download(cls, result_location: ChartDataResultLocation) -> bool:
+        return is_feature_enabled("DOWNLOAD_CSV_FROM_S3") and result_location == ChartDataResultLocation.S3
+
+    @classmethod
+    def get_remote_download_url(cls, query: list[str]) -> str:
+        if is_feature_enabled("DOWNLOAD_CSV_FROM_S3"):
+            s3_url = run_query_and_get_s3_url(query)
+            df = pd.DataFrame()
+            df.output_location = s3_url
+            return df
 
     @staticmethod
     def _mutate_label(label: str) -> str:

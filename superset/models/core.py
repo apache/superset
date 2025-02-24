@@ -691,11 +691,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     security_manager,
                 )
 
-        if self.db_engine_spec.engine == 'awsathena' and is_feature_enabled("DOWNLOAD_CSV_FROM_S3") and result_location == ChartDataResultLocation.S3:
-                s3_url = run_query_and_get_s3_url(sqls[-1])
-                df = pd.DataFrame()
-                df.output_location = s3_url
-                return df
+        if self.db_engine_spec.supports_remote_download(result_location):
+            return self.db_engine_spec.get_remote_download_url(sqls[-1])
 
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
