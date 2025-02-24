@@ -30,7 +30,7 @@ import DeleteModal from 'src/components/DeleteModal';
 import Button from 'src/components/Button';
 import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(DatabaseList)
 const mockStore = configureStore([thunk]);
@@ -87,15 +87,15 @@ describe('CssTemplatesList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(CssTemplatesList)).toExist();
+    expect(wrapper.find(CssTemplatesList)).toBeTruthy();
   });
 
   it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches templates', () => {
@@ -107,7 +107,7 @@ describe('CssTemplatesList', () => {
   });
 
   it('renders Filters', () => {
-    expect(wrapper.find(Filters)).toExist();
+    expect(wrapper.find(Filters)).toBeTruthy();
   });
 
   it('searches', async () => {
@@ -127,7 +127,7 @@ describe('CssTemplatesList', () => {
   });
 
   it('renders a DeleteModal', () => {
-    expect(wrapper.find(DeleteModal)).toExist();
+    expect(wrapper.find(DeleteModal)).toBeTruthy();
   });
 
   it('deletes', async () => {

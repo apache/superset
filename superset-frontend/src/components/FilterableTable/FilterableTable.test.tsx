@@ -18,8 +18,12 @@
  */
 import { isValidElement } from 'react';
 import FilterableTable from 'src/components/FilterableTable';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 
 describe('FilterableTable', () => {
   const mockedProps = {

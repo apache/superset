@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
@@ -29,11 +28,7 @@ const defaultProps: ControlProps = {
   },
 };
 
-const setup = (overrides = {}) => (
-  <ThemeProvider theme={supersetTheme}>
-    <Control {...defaultProps} {...overrides} />
-  </ThemeProvider>
-);
+const setup = (overrides = {}) => <Control {...defaultProps} {...overrides} />;
 
 test('render a control', () => {
   render(setup());

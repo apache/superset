@@ -24,10 +24,14 @@ import fetchMock from 'fetch-mock';
 import { VizType, isFeatureEnabled } from '@superset-ui/core';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import { styledMount as mount } from 'spec/helpers/theming';
-import { render, screen, cleanup } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { QueryParamProvider } from 'use-query-params';
-import { act } from 'react-dom/test-utils';
 
 import ChartList from 'src/pages/ChartList';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
@@ -154,11 +158,11 @@ describe('ChartList', () => {
   });
 
   it('renders', () => {
-    expect(wrapper.find(ChartList)).toExist();
+    expect(wrapper.find(ChartList)).toBeTruthy();
   });
 
   it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   it('fetches info', () => {
@@ -176,38 +180,38 @@ describe('ChartList', () => {
   });
 
   it('renders a card view', () => {
-    expect(wrapper.find(ListViewCard)).toExist();
+    expect(wrapper.find(ListViewCard)).toBeTruthy();
   });
 
   it('renders a table view', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find('table')).toExist();
+    expect(wrapper.find('table')).toBeTruthy();
   });
 
   it('edits', async () => {
-    expect(wrapper.find(PropertiesModal)).not.toExist();
+    expect(wrapper.find(PropertiesModal).length).toBe(0);
     wrapper.find('[data-test="edit-alt"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(PropertiesModal)).toExist();
+    expect(wrapper.find(PropertiesModal).length).toBeGreaterThan(0);
   });
 
   it('delete', async () => {
     wrapper.find('[data-test="trash"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(ConfirmStatusChange)).toExist();
+    expect(wrapper.find(ConfirmStatusChange)).toBeTruthy();
   });
 
   it('renders the Favorite Star column in list view for logged in user', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).toExist();
+    expect(wrapper.find(TableCollection).find(FaveStar)).toBeTruthy();
   });
 
   it('renders the Favorite Star in card view for logged in user', async () => {
     wrapper.find('[aria-label="card-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).toExist();
+    expect(wrapper.find(CardCollection).find(FaveStar)).toBeTruthy();
   });
 });
 
@@ -275,12 +279,12 @@ describe('ChartList - anonymous view', () => {
   it('does not render the Favorite Star column in list view for anonymous user', async () => {
     wrapper.find('[aria-label="list-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(TableCollection).find(FaveStar)).not.toExist();
+    expect(wrapper.find(TableCollection).find(FaveStar).length).toBe(0);
   });
 
   it('does not render the Favorite Star in card view for anonymous user', async () => {
     wrapper.find('[aria-label="card-view"]').first().simulate('click');
     await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(CardCollection).find(FaveStar)).not.toExist();
+    expect(wrapper.find(CardCollection).find(FaveStar).length).toBe(0);
   });
 });

@@ -41,8 +41,8 @@ jobs:
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
-          # Skip eslint as it requires `npm ci` and is executed in another job
-          export SKIP=eslint
+          # Skip eslint and type-checking-frontend as they requires `npm ci`. Both eslint and type-check are handled in other jobs.
+          export SKIP=eslint,type-checking-frontend
           pre-commit run --all-files
           if [ $? -ne 0 ] || ! git diff --quiet --exit-code; then
             echo "❌ Pre-commit check failed."

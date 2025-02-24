@@ -27,7 +27,6 @@ import {
   TimeFormats,
   useTheme,
 } from '@superset-ui/core';
-import { Global } from '@emotion/react';
 import { Column } from 'react-table';
 import { debounce } from 'lodash';
 import { Input } from 'src/components/Input';
@@ -195,13 +194,6 @@ const DataTableTemporalHeaderCell = ({
       datasourceId ? ( // eslint-disable-next-line jsx-a11y/no-static-element-interactions
         <FormatPickerContainer onClick={e => e.stopPropagation()}>
           {/* hack to disable click propagation from popover content to table header, which triggers sorting column */}
-          <Global
-            styles={css`
-              .column-formatting-popover .ant-popover-inner-content {
-                padding: 0;
-              }
-            `}
-          />
           <FormatPickerLabel>{t('Column Formatting')}</FormatPickerLabel>
           <FormatPicker
             onChange={onChange}
@@ -219,11 +211,10 @@ const DataTableTemporalHeaderCell = ({
   return datasourceId ? (
     <span>
       <Popover
-        overlayClassName="column-formatting-popover"
         trigger="click"
         content={overlayContent}
         placement="bottomLeft"
-        arrowPointAtCenter
+        arrow={{ pointAtCenter: true }}
       >
         <Icons.SettingOutlined
           iconSize="m"
