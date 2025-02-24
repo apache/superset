@@ -604,7 +604,9 @@ class BaseTemplateProcessor:
         try:
             return template.render(context)
         except RecursionError as ex:
-            raise SupersetTemplateException("Infinite recursion detected in template") from ex
+            raise SupersetTemplateException(
+                "Infinite recursion detected in template"
+            ) from ex
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):

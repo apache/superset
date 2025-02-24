@@ -661,7 +661,7 @@ def test_metric_macro_recursive_cyclic(mocker: MockerFixture) -> None:
     processor = get_template_processor(database=database)
     with pytest.raises(SupersetTemplateException) as excinfo:
         processor.process_template("{{ metric('c') }}")
-    assert str(excinfo.value) == "Cyclic filters detected"
+    assert str(excinfo.value) == "Infinite recursion detected in template"
 
 
 def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
@@ -690,7 +690,7 @@ def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
     processor = get_template_processor(database=database)
     with pytest.raises(SupersetTemplateException) as excinfo:
         processor.process_template("{{ metric('a') }}")
-    assert str(excinfo.value) == "Cyclic filters detected"
+    assert str(excinfo.value) == "Infinite recursion detected in template"
 
 
 def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:
