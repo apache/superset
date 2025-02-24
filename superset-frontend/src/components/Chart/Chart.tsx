@@ -285,7 +285,6 @@ class Chart extends PureComponent<ChartProps, {}> {
   }
 
   renderSpinner(databaseName: string | undefined) {
-    console.log('Database Name:', databaseName);
     const message = 'Processing data,please wait...';
     return (
       <LoadingDiv>
