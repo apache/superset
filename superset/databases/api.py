@@ -660,7 +660,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         current_username = get_username()
         SyncPermissionsCommand(
             pk,
-            username=current_username,
+            current_username,
         ).run()
         if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
             return self.response(202, message="Async task created to sync permissions")

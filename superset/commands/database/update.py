@@ -90,11 +90,11 @@ class UpdateDatabaseCommand(BaseCommand):
             current_username = get_username()
             SyncPermissionsCommand(
                 self._model_id,
-                username=current_username,
+                current_username,
                 old_db_connection_name=original_database_name,
                 db_connection=database,
                 ssh_tunnel=ssh_tunnel,
-            ).run_nested_transaction()
+            ).run_without_transaction()
         except OAuth2RedirectError:
             pass
 
