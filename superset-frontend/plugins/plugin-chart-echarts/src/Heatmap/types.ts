@@ -33,6 +33,7 @@ export interface HeatmapFormData extends QueryFormData {
   metric: QueryFormMetric;
   normalizeAcross: 'heatmap' | 'x' | 'y';
   normalized?: boolean;
+  enableBorders?: boolean;
   showLegend?: boolean;
   showPercentage?: boolean;
   showValues?: boolean;
