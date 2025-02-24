@@ -61,7 +61,6 @@ from superset.result_set import destringify
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
-from superset.sql.parse import Partition
 
 if TYPE_CHECKING:
     # prevent circular imports
@@ -1113,7 +1112,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         indent: bool = True,
         latest_partition: bool = True,
         cols: list[ResultSetColumnType] | None = None,
-        partition: Optional[Partition] = None
     ) -> str:
         """
         Include selecting properties of row objects. We cannot easily break arrays into
@@ -1138,7 +1136,6 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             indent,
             latest_partition,
             presto_cols,
-            partition
         )
 
     @classmethod
