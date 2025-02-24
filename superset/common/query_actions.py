@@ -109,9 +109,7 @@ def _get_full(
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
     presigned_output_location = None
 
-    if datasource.database.backend == "awsathena" and "presto" in datasource.database.name.lower() \
-    and query_context.result_location == ChartDataResultLocation.S3 and feature_flag_manager.is_feature_enabled("DOWNLOAD_CSV_FROM_S3"):
-        logger.info("ATHENA OUTPUT LOCATION %s", payload["output_location"])
+    if datasource.database.db_engine_spec.supports_remote_download(query_context.result_location):
         # Generate presigned URL for output CSV
         presigned_output_location = generate_presigned_url(payload["output_location"])
         logger.info("ATHENA OUTPUT LOCATION PRESIGNED %s", presigned_output_location)
