@@ -316,9 +316,18 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             url_params["query"] = query
         if not url_params.get("database"):
             url_params["database"] = "__default__"
-        url_params.pop("encryption", None)
-        url_params.pop("ssh", None)
-        return str(URL.create(f"{cls.engine}+{cls.default_driver}", **url_params))
+
+        return str(
+            URL.create(
+                f"{cls.engine}+{cls.default_driver}",
+                username=url_params.get("username"),
+                password=url_params.get("password"),
+                host=url_params.get("host"),
+                port=url_params.get("port"),
+                database=url_params.get("database"),
+                query=url_params.get("query"),
+            )
+        )
 
     @classmethod
     def get_parameters_from_uri(
