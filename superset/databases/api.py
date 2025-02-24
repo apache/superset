@@ -563,7 +563,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
@@ -618,7 +618,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".catalogs",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.catalogs",
         log_to_statsd=False,
     )
     def catalogs(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -683,7 +683,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".schemas",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schemas",
         log_to_statsd=False,
     )
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -751,7 +751,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".tables",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.tables",
         log_to_statsd=False,
     )
     def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -1618,8 +1618,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=(
-            lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-            ".upload_metadata"
+            lambda self, *args, **kwargs: f"{self.__class__.__name__}.upload_metadata"
         ),
         log_to_statsd=False,
     )
@@ -1784,7 +1783,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".available",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.available",
         log_to_statsd=False,
     )
     def available(self) -> Response:

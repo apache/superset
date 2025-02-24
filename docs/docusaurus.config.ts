@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import type {Config} from '@docusaurus/types'
+import type { Config } from '@docusaurus/types';
 import type { Options, ThemeConfig } from '@docusaurus/preset-classic';
-import { themes } from 'prism-react-renderer'
+import { themes } from 'prism-react-renderer';
 
 const { github: lightCodeTheme, vsDark: darkCodeTheme } = themes;
 
@@ -201,18 +201,18 @@ const config: Config = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl:
-          ({versionDocsDirPath, docPath}) => {
+          editUrl: ({ versionDocsDirPath, docPath }) => {
             if (docPath === 'intro.md') {
-              return 'https://github.com/apache/superset/edit/master/README.md'
+              return 'https://github.com/apache/superset/edit/master/README.md';
             }
-            return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`
-          }
+            return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
+          },
         },
         blog: {
           showReadingTime: true,
           // Please change this to your repo.
-          editUrl: 'https://github.com/facebook/docusaurus/edit/main/website/blog/',
+          editUrl:
+            'https://github.com/facebook/docusaurus/edit/main/website/blog/',
         },
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),
@@ -221,81 +221,80 @@ const config: Config = {
     ],
   ],
 
-  themeConfig:
-    {
-      colorMode: {
-        defaultMode: 'dark',
-        disableSwitch: false,
-        respectPrefersColorScheme: true,
+  themeConfig: {
+    colorMode: {
+      defaultMode: 'dark',
+      disableSwitch: false,
+      respectPrefersColorScheme: true,
+    },
+    algolia: {
+      appId: 'WR5FASX5ED',
+      apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
+      indexName: 'superset-apache',
+    },
+    navbar: {
+      logo: {
+        alt: 'Superset Logo',
+        src: '/img/superset-logo-horiz.svg',
+        srcDark: '/img/superset-logo-horiz-dark.svg',
       },
-      algolia: {
-        appId: 'WR5FASX5ED',
-        apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
-        indexName: 'superset-apache',
-      },
-      navbar: {
-        logo: {
-          alt: 'Superset Logo',
-          src: '/img/superset-logo-horiz.svg',
-          srcDark: '/img/superset-logo-horiz-dark.svg',
+      items: [
+        {
+          label: 'Documentation',
+          to: '/docs/intro',
+          items: [
+            {
+              label: 'Getting Started',
+              to: '/docs/intro',
+            },
+            {
+              label: 'FAQ',
+              to: '/docs/faq',
+            },
+          ],
         },
-        items: [
-          {
-            label: 'Documentation',
-            to: '/docs/intro',
-            items: [
-              {
-                label: 'Getting Started',
-                to: '/docs/intro',
-              },
-              {
-                label: 'FAQ',
-                to: '/docs/faq',
-              },
-            ],
-          },
-          {
-            label: 'Community',
-            to: '/community',
-            items: [
-              {
-                label: 'Resources',
-                href: '/community',
-              },
-              {
-                label: 'GitHub',
-                href: 'https://github.com/apache/superset',
-              },
-              {
-                label: 'Slack',
-                href: 'http://bit.ly/join-superset-slack',
-              },
-              {
-                label: 'Mailing List',
-                href: 'https://lists.apache.org/list.html?dev@superset.apache.org',
-              },
-              {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/apache-superset',
-              },
-            ],
-          },
-          {
-            href: '/docs/intro',
-            position: 'right',
-            className: 'default-button-theme get-started-button',
-            label: 'Get Started',
-          },
-          {
-            href: 'https://github.com/apache/superset',
-            position: 'right',
-            className: 'github-button',
-          },
-        ],
-      },
-      footer: {
-        links: [],
-        copyright: `
+        {
+          label: 'Community',
+          to: '/community',
+          items: [
+            {
+              label: 'Resources',
+              href: '/community',
+            },
+            {
+              label: 'GitHub',
+              href: 'https://github.com/apache/superset',
+            },
+            {
+              label: 'Slack',
+              href: 'http://bit.ly/join-superset-slack',
+            },
+            {
+              label: 'Mailing List',
+              href: 'https://lists.apache.org/list.html?dev@superset.apache.org',
+            },
+            {
+              label: 'Stack Overflow',
+              href: 'https://stackoverflow.com/questions/tagged/apache-superset',
+            },
+          ],
+        },
+        {
+          href: '/docs/intro',
+          position: 'right',
+          className: 'default-button-theme get-started-button',
+          label: 'Get Started',
+        },
+        {
+          href: 'https://github.com/apache/superset',
+          position: 'right',
+          className: 'github-button',
+        },
+      ],
+    },
+    footer: {
+      links: [],
+      copyright: `
           <div class="footer__applitools">
             We use &nbsp;<a href="https://applitools.com/" target="_blank" rel="nofollow"><img src="/img/applitools.png" title="Applitools" /></a>
           </div>
@@ -318,17 +317,17 @@ const config: Config = {
           <!-- telemetry/analytics pixel: -->
           <img referrerPolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=39ae6855-95fc-4566-86e5-360d542b0a68" />
           `,
+    },
+    prism: {
+      theme: lightCodeTheme,
+      darkTheme: darkCodeTheme,
+    },
+    docs: {
+      sidebar: {
+        hideable: true,
       },
-      prism: {
-        theme: lightCodeTheme,
-        darkTheme: darkCodeTheme,
-      },
-      docs: {
-        sidebar: {
-          hideable: true,
-        }
-      },
-    } satisfies ThemeConfig,
+    },
+  } satisfies ThemeConfig,
   scripts: [
     '/script/matomo.js',
     // {

@@ -801,8 +801,7 @@ class ChartDataPivotOptionsSchema(ChartDataPostProcessingOperationOptionsSchema)
     )
     marginal_distribution_name = fields.String(
         metadata={
-            "description": "Name of marginal distribution row/column. "
-            "(default: `All`)"
+            "description": "Name of marginal distribution row/column. (default: `All`)"
         },
     )
     aggregates = ChartDataAggregateConfigField()

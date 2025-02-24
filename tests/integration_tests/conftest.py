@@ -396,7 +396,7 @@ def physical_dataset():
             col4 VARCHAR(255),
             col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
             col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-            {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+            {quoter("time column with spaces")} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
             );
             """
         )

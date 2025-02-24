@@ -867,15 +867,17 @@ new_tables: sa.Table = [
 
 
 def reset_postgres_id_sequence(table: str) -> None:
+    """Reset PostgreSQL sequence ID for a table's id column."""
     op.execute(
-        f"""
+        """
         SELECT setval(
-            pg_get_serial_sequence('{table}', 'id'),
+            pg_get_serial_sequence(:table, 'id'),
             COALESCE(max(id) + 1, 1),
             false
         )
-        FROM {table};
-    """
+        FROM :table;
+        """,
+        {"table": table},
     )
 
 

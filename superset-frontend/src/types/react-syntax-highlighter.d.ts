@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,28 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+declare module 'react-syntax-highlighter/dist/cjs/light' {
+  import SyntaxHighlighter from 'react-syntax-highlighter';
+  export default SyntaxHighlighter;
+}
 
-import { SuperChart, VizType } from '@superset-ui/core';
-import ChordChartPlugin from '@superset-ui/legacy-plugin-chart-chord';
-import data from './data';
-import { withResizableChartDemo } from '../../../shared/components/ResizableChartDemo';
+declare module 'react-syntax-highlighter/dist/cjs/styles/hljs/github' {
+  const style: any;
+  export default style;
+}
 
-new ChordChartPlugin().configure({ key: VizType.Chord }).register();
+type SupportedLanguages = 'markdown' | 'htmlbars' | 'sql' | 'json';
 
-export default {
-  title: 'Legacy Chart Plugins/legacy-plugin-chart-chord',
-  decorators: [withResizableChartDemo],
-};
-
-export const basic = ({ width, height }: { width: number; height: number }) => (
-  <SuperChart
-    chartType={VizType.Chord}
-    width={width}
-    height={height}
-    queriesData={[{ data }]}
-    formData={{
-      colorScheme: 'd3Category10',
-      yAxisFormat: '.2f',
-    }}
-  />
-);
+// For type checking when importing languages
+function importLanguage<T extends SupportedLanguages>(language: T) {
+  return import(`react-syntax-highlighter/dist/cjs/languages/hljs/${language}`);
+}

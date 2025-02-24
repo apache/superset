@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { PropsWithChildren, ReactNode } from 'react';
+import { PropsWithChildren, ReactNode, SyntheticEvent } from 'react';
 import {
   ResizableBox,
   ResizableBoxProps,
@@ -48,7 +48,7 @@ export default function ResizablePanel({
       minConstraints={minConstraints}
       onResize={
         onResize
-          ? (e, data) => {
+          ? (e: SyntheticEvent, data: ResizeCallbackData) => {
               const { size } = data;
               onResize(e, { ...data, size });
             }

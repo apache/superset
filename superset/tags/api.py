@@ -146,8 +146,8 @@ class TagRestApi(BaseSupersetModelRestApi):
         """Deterministic string representation of the API instance for etag_cache."""
         return (
             "Superset.tags.api.TagRestApi@v"
-            f'{self.appbuilder.app.config["VERSION_STRING"]}'
-            f'{self.appbuilder.app.config["VERSION_SHA"]}'
+            f"{self.appbuilder.app.config['VERSION_STRING']}"
+            f"{self.appbuilder.app.config['VERSION_SHA']}"
         )
 
     @expose("/", methods=("POST",))
@@ -653,8 +653,7 @@ class TagRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".add_favorite",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.add_favorite",
         log_to_statsd=False,
     )
     def add_favorite(self, pk: int) -> Response:

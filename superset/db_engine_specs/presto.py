@@ -664,7 +664,7 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
         if len(kwargs.keys()) != len(part_fields) - 1:
             # pylint: disable=consider-using-f-string
             msg = (
-                "A filter needs to be specified for {} out of the " "{} fields."
+                "A filter needs to be specified for {} out of the {} fields."
             ).format(len(part_fields) - 1, len(part_fields))
             raise SupersetTemplateException(msg)
 

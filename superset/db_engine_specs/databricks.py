@@ -288,7 +288,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
         if missing := sorted(cls.required_parameters - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -328,8 +328,7 @@ class DatabricksDynamicBaseEngineSpec(BasicParametersMixin, DatabricksBaseEngine
             errors.append(
                 SupersetError(
                     message=(
-                        "The port must be an integer between 0 and 65535 "
-                        "(inclusive)."
+                        "The port must be an integer between 0 and 65535 (inclusive)."
                     ),
                     error_type=SupersetErrorType.CONNECTION_INVALID_PORT_ERROR,
                     level=ErrorLevel.ERROR,

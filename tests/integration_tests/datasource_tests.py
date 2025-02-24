@@ -557,7 +557,7 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
 
     sql = (
         f"select * from ({virtual_dataset.sql}) as tbl "  # noqa: S608
-        f'limit {app.config["SAMPLES_ROW_LIMIT"]}'
+        f"limit {app.config['SAMPLES_ROW_LIMIT']}"
     )
     eager_samples = virtual_dataset.database.get_df(sql)
 

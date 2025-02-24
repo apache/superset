@@ -217,7 +217,7 @@ def cancel_github_workflows(  # noqa: C901
         seen = set()
         dups = []
         for item in reversed(runs):
-            key = f'{item["event"]}_{item["head_branch"]}_{item["workflow_id"]}'
+            key = f"{item['event']}_{item['head_branch']}_{item['workflow_id']}"
             if key in seen:
                 dups.append(item)
             else:

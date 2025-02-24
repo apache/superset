@@ -1367,7 +1367,7 @@ class SqlaTable(
         df.columns = ["field", "type"]
         return df.to_html(
             index=False,
-            classes=("dataframe table table-striped table-bordered " "table-condensed"),
+            classes=("dataframe table table-striped table-bordered table-condensed"),
         )
 
     @property

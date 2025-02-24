@@ -29,7 +29,7 @@ export default {
 
 new PivotTableChartPlugin().configure({ key: VizType.PivotTable }).register();
 
-export const Basic = ({ width, height }) => (
+export const Basic = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
     chartType={VizType.PivotTable}
     datasource={{
@@ -48,7 +48,13 @@ Basic.parameters = {
   },
 };
 
-export const MaximumAggregation = ({ width, height }) => (
+export const MaximumAggregation = ({
+  width,
+  height,
+}: {
+  width: number;
+  height: number;
+}) => (
   <SuperChart
     chartType={VizType.PivotTable}
     datasource={{

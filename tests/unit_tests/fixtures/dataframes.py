@@ -116,8 +116,8 @@ names_df = DataFrame(
 categories_df = DataFrame(
     {
         "constant": ["dummy" for _ in range(0, 101)],
-        "category": [f"cat{i%3}" for i in range(0, 101)],
-        "dept": [f"dept{i%5}" for i in range(0, 101)],
+        "category": [f"cat{i % 3}" for i in range(0, 101)],
+        "dept": [f"dept{i % 5}" for i in range(0, 101)],
         "name": [f"person{i}" for i in range(0, 101)],
         "asc_idx": [i for i in range(0, 101)],  # noqa: C416
         "desc_idx": [i for i in range(100, -1, -1)],  # noqa: C416

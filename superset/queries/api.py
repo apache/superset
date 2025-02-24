@@ -225,8 +225,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".stop_query",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
     @backoff.on_exception(
