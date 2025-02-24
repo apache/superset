@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { ReactNode, useCallback, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
 
@@ -56,7 +56,7 @@ export interface TableProps<RecordType> {
     headerName?: string;
     width?: number;
     comparator?: (valueA: string | number, valueB: string | number) => number;
-    render?: (value: any) => React.ReactNode;
+    render?: (value: any) => ReactNode;
   }[];
 
   size?: GridSize;
@@ -232,7 +232,6 @@ function GridTable<RecordType extends object>({
       >
         <AgGridReact
           // TODO: migrate to Theme API - https://www.ag-grid.com/react-data-grid/theming-migration/
-          theme="legacy"
           rowData={data}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
