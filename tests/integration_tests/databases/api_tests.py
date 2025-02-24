@@ -4195,15 +4195,16 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
+        db_conn_id = test_database.id
 
-        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        uri = f"api/v1/database/{db_conn_id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": "Permissions successfully synced"}
 
         # Cleanup
-        model = db.session.query(Database).get(test_database.id)
+        model = db.session.query(Database).get(db_conn_id)
         db.session.delete(model)
         db.session.commit()
 
@@ -4257,8 +4258,9 @@ class TestDatabaseApi(SupersetTestCase):
         test_database = self.insert_database(
             "test-database", example_db.sqlalchemy_uri_decrypted
         )
+        db_conn_id = test_database.id
 
-        uri = f"api/v1/database/{test_database.id}/sync_permissions/"
+        uri = f"api/v1/database/{db_conn_id}/sync_permissions/"
         rv = self.client.post(uri)
         assert rv.status_code == 202
         response = json.loads(rv.data.decode("utf-8"))
@@ -4268,7 +4270,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
 
         # Cleanup
-        model = db.session.query(Database).get(test_database.id)
+        model = db.session.query(Database).get(db_conn_id)
         db.session.delete(model)
         db.session.commit()
 
