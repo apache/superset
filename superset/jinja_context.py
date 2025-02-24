@@ -604,7 +604,7 @@ class BaseTemplateProcessor:
         try:
             return template.render(context)
         except RecursionError as ex:
-            raise SupersetTemplateException("Cyclic filters detected") from ex
+            raise SupersetTemplateException("Infinite recursion detected in template") from ex
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
