@@ -28,7 +28,6 @@ from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
-    assoc_user_role,
     Permission,
     PermissionView,
     Role,
@@ -236,6 +235,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Log",
         "List Users",
         "List Roles",
+        "List Groups",
         "ResetPasswordView",
         "RoleModelView",
         "UserGroupModelView",
@@ -734,8 +734,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         if not g.user.is_anonymous:
+            from flask_appbuilder.security.sqla.models import (
+                assoc_group_role,
+                assoc_user_group,
+            )
             from sqlalchemy.orm import aliased
-            from flask_appbuilder.security.sqla.models import assoc_user_group, assoc_group_role
 
             user_group = aliased(assoc_user_group)
             group_role = aliased(assoc_group_role)
@@ -743,10 +746,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # Query to fetch permissions via groups' roles
             view_menu_names_group_roles = (
                 self.get_session.query(self.viewmenu_model.name)
-                .join(self.permissionview_model, self.viewmenu_model.id == self.permissionview_model.view_menu_id)
-                .join(self.permission_model, self.permission_model.id == self.permissionview_model.permission_id)
-                .join(assoc_permissionview_role, assoc_permissionview_role.c.permission_view_id == self.permissionview_model.id)
-                .join(self.role_model, self.role_model.id == assoc_permissionview_role.c.role_id)
+                .join(
+                    self.permissionview_model,
+                    self.viewmenu_model.id == self.permissionview_model.view_menu_id,
+                )
+                .join(
+                    self.permission_model,
+                    self.permission_model.id == self.permissionview_model.permission_id,
+                )
+                .join(
+                    assoc_permissionview_role,
+                    assoc_permissionview_role.c.permission_view_id
+                    == self.permissionview_model.id,
+                )
+                .join(
+                    self.role_model,
+                    self.role_model.id == assoc_permissionview_role.c.role_id,
+                )
                 .join(group_role, group_role.c.role_id == self.role_model.id)
                 .join(self.group_model, self.group_model.id == group_role.c.group_id)
                 .join(user_group, user_group.c.group_id == self.group_model.id)
@@ -2447,7 +2463,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user.is_anonymous:
             public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
-        return user.roles
+        return super().get_user_roles(user)
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource"
