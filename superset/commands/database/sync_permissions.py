@@ -110,8 +110,8 @@ class SyncPermissionsCommand(BaseCommand):
             sync_database_permissions(*args)
 
     # This command can be called either via its dedicated endpoint, or as part of
-    # another command. In the latter, we don't to start a nested transaction to
-    # ensure an atomic operation, so ``run_without_transaction`` should be used.
+    # another command. In the latter, we don't want to start a nested transaction
+    # to ensure an atomic operation, so ``run_without_transaction`` should be used.
     run = transaction(
         on_error=partial(on_error, reraise=DatabaseConnectionSyncPermissionsError)
     )(_run)
