@@ -28,6 +28,7 @@ from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
+    assoc_user_role,
     Permission,
     PermissionView,
     Role,
@@ -738,13 +739,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 assoc_group_role,
                 assoc_user_group,
             )
-            from sqlalchemy.orm import aliased
 
-            user_group = aliased(assoc_user_group)
-            group_role = aliased(assoc_group_role)
-
-            # Query to fetch permissions via groups' roles
-            view_menu_names_group_roles = (
+            view_menu_names = (
                 self.get_session.query(self.viewmenu_model.name)
                 .join(
                     self.permissionview_model,
@@ -763,23 +759,32 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.role_model,
                     self.role_model.id == assoc_permissionview_role.c.role_id,
                 )
-                .join(group_role, group_role.c.role_id == self.role_model.id)
-                .join(self.group_model, self.group_model.id == group_role.c.group_id)
-                .join(user_group, user_group.c.group_id == self.group_model.id)
-                .join(self.user_model, self.user_model.id == user_group.c.user_id)
-                .filter(self.user_model.id == get_user_id())
+                .outerjoin(
+                    assoc_group_role, assoc_group_role.c.role_id == self.role_model.id
+                )  # Keep roles without groups
+                .outerjoin(
+                    self.group_model, self.group_model.id == assoc_group_role.c.group_id
+                )
+                .outerjoin(
+                    assoc_user_group, assoc_user_group.c.group_id == self.group_model.id
+                )
+                .outerjoin(
+                    self.user_model, self.user_model.id == assoc_user_group.c.user_id
+                )
+                .outerjoin(
+                    assoc_user_role, assoc_user_role.c.role_id == self.role_model.id
+                )  # Direct role assignment
+                .filter(
+                    or_(
+                        self.user_model.id == get_user_id(),  # Either through groups
+                        assoc_user_role.c.user_id
+                        == get_user_id(),  # Or directly assigned
+                    )
+                )
                 .filter(self.permission_model.name == permission_name)
             ).all()
-            return {s.name for s in view_menu_names_group_roles}
 
-            # filter by user id
-            # view_menu_names_user_roles = (
-            #     base_query.join(assoc_user_role)
-            #     .join(self.user_model)
-            #     .filter(self.user_model.id == get_user_id())
-            #     .filter(self.permission_model.name == permission_name)
-            # ).all()
-            # return {s.name for s in view_menu_names}
+            return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
         if public_role := self.get_public_role():
