@@ -27,21 +27,24 @@ function formatMemory(
 ): NumberFormatFunction {
   return value => {
     let formatted = '';
-    if (value === 0) formatted = '0B';
+    if (value === 0) {
+      formatted = '0B';
+    } else {
+      const sign = value > 0 ? '' : '-';
+      const absValue = Math.abs(value);
 
-    const sign = value > 0 ? '' : '-';
-    const absValue = Math.abs(value);
+      const suffixes = binary
+        ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
+        : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB'];
+      const base = binary ? 1024 : 1000;
 
-    const suffixes = binary
-      ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']
-      : ['B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB', 'RB', 'QB'];
-    const base = binary ? 1024 : 1000;
+      const i = Math.min(
+        suffixes.length - 1,
+        Math.floor(Math.log(absValue) / Math.log(base)),
+      );
+      formatted = `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
+    }
 
-    const i = Math.min(
-      suffixes.length - 1,
-      Math.floor(Math.log(absValue) / Math.log(base)),
-    );
-    formatted = `${sign}${parseFloat((absValue / Math.pow(base, i)).toFixed(decimals))}${suffixes[i]}`;
     if (transfer) {
       formatted = `${formatted}/s`;
     }
