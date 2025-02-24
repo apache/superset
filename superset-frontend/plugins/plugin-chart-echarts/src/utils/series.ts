@@ -432,7 +432,7 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
-  showLegendToggle?: boolean,  // ✅ Ajout de l'option ici
+  showLegendToggle?: boolean,
 ): LegendComponentOption | LegendComponentOption[] {
   const legend: LegendComponentOption | LegendComponentOption[] = {
     orient: [LegendOrientation.Top, LegendOrientation.Bottom].includes(
@@ -443,7 +443,7 @@ export function getLegendProps(
     show,
     type,
     selected: legendState,
-    selector: showLegendToggle === false ? [] : ['all', 'inverse'],  // ✅ Activation conditionnelle
+    selector: showLegendToggle === false ? [] : ['all', 'inverse'], // ✅ Conditionnal activation
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
