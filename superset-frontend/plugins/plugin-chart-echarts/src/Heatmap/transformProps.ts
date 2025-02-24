@@ -164,8 +164,9 @@ export default function transformProps(
         },
       },
       itemStyle: {
-        borderColor: enableBorders ? supersetTheme.colors.grayscale.dark2
-        :undefined,
+        borderColor: enableBorders
+          ? supersetTheme.colors.grayscale.dark2
+          : undefined,
       },
       emphasis: {
         itemStyle: {
