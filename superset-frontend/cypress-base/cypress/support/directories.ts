@@ -286,8 +286,6 @@ export const chartListView = {
     card: dataTestLocator('styled-card'),
     cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
-    selectedStarIcon: "[aria-label='favorite-selected']",
-    unselectedStarIcon: "[aria-label='favorite-unselected']",
     starIcon: dataTestLocator('fave-unfave-icon'),
   },
   deleteModal: {
@@ -330,7 +328,7 @@ export const nativeFilters = {
       filterItemsContainer: dataTestLocator('filter-title-container'),
       tabsContainer: '[class="ant-tabs-nav-list"]',
       tab: '.ant-tabs-tab',
-      removeTab: '[aria-label="trash"]',
+      removeTab: '[aria-label="delete"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
@@ -375,7 +373,7 @@ export const nativeFilters = {
     listItemNotActive: '[class="ant-tabs-tab ant-tabs-tab-with-remove"]',
     listItemActive:
       '[class="ant-tabs-tab ant-tabs-tab-with-remove ant-tabs-tab-active"]',
-    removeIcon: '[aria-label="trash"]',
+    removeIcon: '[aria-label="delete"]',
   },
   filterItem: dataTestLocator('form-item-value'),
   filterItemDropdown: '.ant-select-selection-search',
@@ -402,8 +400,8 @@ export const dashboardListView = {
     card: dataTestLocator('styled-card'),
     cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
-    selectedStarIcon: "[aria-label='favorite-selected']",
-    unselectedStarIcon: "[aria-label='favorite-unselected']",
+    selectedStarIcon: "[aria-label='star']",
+    unselectedStarIcon: "[aria-label='star']",
     starIcon: dataTestLocator('fave-unfave-icon'),
   },
   deleteModal: {
@@ -412,8 +410,8 @@ export const dashboardListView = {
   },
   table: {
     starIcon: dataTestLocator('fave-unfave-icon'),
-    selectedStarIcon: "[aria-label='favorite-selected']",
-    unselectedStarIcon: "[aria-label='favorite-unselected']",
+    selectedStarIcon: "[aria-label='star']",
+    unselectedStarIcon: "[aria-label='star']",
     bulkSelect: {
       checkboxOff: '[aria-label="checkbox-off"]',
       checkboxOn: '[aria-label="checkbox-on"]',

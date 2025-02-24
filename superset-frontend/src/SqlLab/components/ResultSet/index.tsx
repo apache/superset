@@ -152,7 +152,7 @@ const ResultSetButtons = styled.div`
 
 const copyButtonStyles = css`
   &:hover {
-    text-decoration: underline;
+    text-decoration: unset;
   }
   span > :first-of-type {
     margin: 0px;

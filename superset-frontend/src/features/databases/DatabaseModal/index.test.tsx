@@ -668,7 +668,10 @@ describe('DatabaseModal', () => {
       });
       // <Tabs> - Basic/Advanced tabs
       const basicTab = screen.getByRole('tab', { name: /basic/i });
-      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      const advancedTab = await screen.findByRole('tab', { name: /advanced/i });
+      const advancedTabPanel = await screen.findByRole('tabpanel', {
+        name: /advanced/i,
+      });
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByRole('tab', {
         name: /right sql lab adjust how this database will interact with sql lab\./i,
@@ -677,7 +680,11 @@ describe('DatabaseModal', () => {
       const checkboxOffSVGs = screen.getAllByRole('img', {
         name: /checkbox-off/i,
       });
-      const tooltipIcons = screen.getAllByTestId('info-circle-filled');
+      // const tooltipIcons = within(advancedTabPanel).getAllByTestId('info-circle-filled');
+      const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
+        name: /InfoCircleFilled/i,
+      });
+
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {
         name: /expose database in sql lab/i,
       });

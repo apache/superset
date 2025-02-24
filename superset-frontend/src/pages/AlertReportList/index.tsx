@@ -454,6 +454,7 @@ function AlertList({
     buttonText: canCreate ? (
       <>
         <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
           iconSize="s"
           css={theme => ({
             margin: `auto ${theme.gridUnit * 2}px auto 0`,

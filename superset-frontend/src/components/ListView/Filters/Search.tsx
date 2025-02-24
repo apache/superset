@@ -24,7 +24,7 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t, styled, useTheme, css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { AntdInput } from 'src/components';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
@@ -80,10 +80,17 @@ function SearchFilter(
 
   return (
     <Container>
-      <FormLabel>{Header}</FormLabel>
-      {toolTipDescription && (
-        <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
-      )}
+      <div
+        css={css`
+          display: flex;
+          align-items: start;
+        `}
+      >
+        <FormLabel>{Header}</FormLabel>
+        {toolTipDescription && (
+          <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
+        )}
+      </div>
       <StyledInput
         allowClear
         data-test="filters-search"

@@ -23,20 +23,47 @@ import { styled } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
-const AntdIconComponent = ({
+const BaseIconComponent: React.FC<
+  IconType & { component?: React.ComponentType<any> }
+> = ({
+  component: Component,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconColor,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconSize,
   viewBox,
+  // @ts-ignore
+  customIcons,
   ...rest
-}: Omit<IconType, 'ref' | 'css'>) => (
-  <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
-);
+}) => {
+  if (!Component) return null;
+  const isCustomIcon = Component && customIcons;
 
-export const StyledIcon = styled(AntdIconComponent)<IconType>`
+  return isCustomIcon ? (
+    <span
+      role="img"
+      style={{
+        fontSize: iconSize ? `${iconSize}px` : '24px',
+        color: iconColor || 'inherit',
+        display: 'inline-flex',
+        alignItems: 'center',
+      }}
+    >
+      <AntdIcon
+        viewBox={viewBox || '0 0 24 24'}
+        component={Component as any}
+        {...rest}
+      />
+    </span>
+  ) : (
+    Component && <Component {...rest} />
+  );
+};
+
+// Ora definiamo StyledIcon come una versione stilizzata di BaseIcon.
+export const StyledIcon = styled(BaseIconComponent)<IconType>`
   ${({ iconColor, theme }) =>
-    `color: ${iconColor || theme.colors.grayscale.base};`};
+    `color: ${iconColor || theme.colors.grayscale.base};`}
   span {
     // Fixing alignement on some of the icons
     line-height: 0px;
@@ -49,9 +76,10 @@ export const StyledIcon = styled(AntdIconComponent)<IconType>`
 
 export interface IconProps extends IconType {
   fileName: string;
+  customIcons?: boolean;
 }
 
-export const Icon = (props: IconProps) => {
+export const Icon = (props: IconProps & IconType) => {
   const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
@@ -74,7 +102,6 @@ export const Icon = (props: IconProps) => {
   }, [fileName, ImportedSVG]);
 
   const whatRole = props?.onClick ? 'button' : 'img';
-
   return (
     <StyledIcon
       component={ImportedSVG.current || TransparentIcon}

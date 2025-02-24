@@ -33,6 +33,7 @@ const IconFileNames = [
   'sort_asc',
   'sort_desc',
   'sort',
+  'triangle_down',
 
   'area-chart-tile',
   'bar-chart-tile',
@@ -108,7 +109,6 @@ const IconFileNames = [
   'list_view',
   'card_view',
   'table',
-  'triangle_down',
   'triangle_up',
   'plus',
   'plus_large',
@@ -170,7 +170,7 @@ const iconOverrides: Record<string, FC<IconType>> = {};
 IconFileNames.forEach(fileName => {
   const keyName = startCase(fileName).replace(/ /g, '');
   iconOverrides[keyName] = (props: IconType) => (
-    <Icon fileName={fileName} {...props} />
+    <Icon customIcons fileName={fileName} {...props} />
   );
 });
 

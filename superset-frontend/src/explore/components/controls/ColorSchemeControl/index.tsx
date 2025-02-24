@@ -103,6 +103,7 @@ const Label = ({
   | 'hasSharedLabelsColor'
   | 'hasDashboardColorScheme'
 >) => {
+  const theme = useTheme();
   if (hasSharedLabelsColor || hasCustomLabelsColor || hasDashboardColorScheme) {
     const alertTitle =
       hasCustomLabelsColor && !hasSharedLabelsColor
@@ -110,7 +111,6 @@ const Label = ({
         : dashboardId && hasDashboardColorScheme
           ? DASHBOARD_ALERT
           : DASHBOARD_CONTEXT_ALERT;
-    const theme = useTheme();
     return (
       <>
         {label}{' '}

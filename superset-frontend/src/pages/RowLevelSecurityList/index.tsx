@@ -256,7 +256,7 @@ function RowLevelSecurityList(props: RLSProps) {
           `}
           data-test="add-rule-empty"
         />
-        Rule
+        {t('Rule')}
       </>
     ) : null,
   };
