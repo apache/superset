@@ -216,12 +216,10 @@ class Markdown extends PureComponent {
   }
 
   handleChangeFocus(nextFocus) {
-    if (this.state.isEditing) {
-      const nextFocused = !!nextFocus;
-      const nextEditMode = nextFocused ? 'edit' : 'preview';
-      this.setState(() => ({ isFocused: nextFocused }));
-      this.handleChangeEditorMode(nextEditMode);
-    }
+    const nextFocused = !!nextFocus;
+    const nextEditMode = nextFocused ? 'edit' : 'preview';
+    this.setState(() => ({ isFocused: nextFocused }));
+    this.handleChangeEditorMode(nextEditMode);
   }
 
   handleChangeEditorMode(mode) {
@@ -391,8 +389,9 @@ class Markdown extends PureComponent {
                   role="button"
                   tabIndex="0"
                   onClick={() => {
-                    if (editMode && !isEditing) {
+                    if (editMode) {
                       this.handleChangeFocus(true);
+                      this.handleChangeEditorMode('edit');
                     }
                   }}
                 >

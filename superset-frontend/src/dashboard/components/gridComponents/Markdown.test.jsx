@@ -81,6 +81,126 @@ describe('Markdown', () => {
     jest.clearAllMocks();
   });
 
+  it('should render the markdown component', async () => {
+    await setup();
+    expect(screen.getByTestId('dashboard-markdown-editor')).toBeInTheDocument();
+  });
+
+  it('should render the markdown content in preview mode by default', async () => {
+    await setup();
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId('dashboard-component-chart-holder'),
+    ).toBeInTheDocument();
+  });
+
+  it('should render editor when in edit mode and clicked', async () => {
+    await setup({ editMode: true });
+    const container = screen.getByTestId('dashboard-component-chart-holder');
+    await act(async () => {
+      fireEvent.click(container);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+  });
+
+  it('should switch between edit and preview modes', async () => {
+    await setup({ editMode: true });
+    const container = screen.getByTestId('dashboard-component-chart-holder');
+
+    await act(async () => {
+      fireEvent.click(container);
+    });
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+
+    // Find and click edit dropdown by role
+    const editButton = screen.getByRole('button', { name: /edit/i });
+    await act(async () => {
+      fireEvent.click(editButton);
+    });
+
+    // Click preview option in dropdown
+    const previewOption = await screen.findByText(/preview/i);
+    await act(async () => {
+      fireEvent.click(previewOption);
+    });
+
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+
+  it('should call updateComponents when switching from edit to preview with changes', async () => {
+    const updateComponents = jest.fn();
+    const mockCode = 'new markdown!';
+
+    const { container } = await setup({
+      editMode: true,
+      updateComponents,
+      component: {
+        ...mockLayout.present.MARKDOWN_ID,
+        id: 'test',
+        meta: { code: '' },
+      },
+    });
+
+    // Enter edit mode and change content
+    await act(async () => {
+      const markdownHolder = screen.getByTestId(
+        'dashboard-component-chart-holder',
+      );
+      fireEvent.click(markdownHolder);
+
+      // Wait for editor to be fully mounted
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Find the actual textarea/input element
+      const editor = container.querySelector('.ace_text-input');
+      console.log('Editor element:', editor);
+
+      // Simulate direct input
+      fireEvent.input(editor, { target: { value: mockCode } });
+      console.log('After input:', editor.value);
+
+      // Force blur and change events
+      fireEvent.change(editor, { target: { value: mockCode } });
+      fireEvent.blur(editor);
+
+      // Wait for state update
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Click the Edit dropdown button
+      const editDropdown = screen.getByText('Edit');
+      fireEvent.click(editDropdown);
+
+      // Wait for dropdown to open
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Find and click preview in dropdown
+      const previewOption = await screen.findByText(/preview/i);
+      fireEvent.click(previewOption);
+
+      // Wait for update to complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    console.log('Component state:', {
+      updateCalls: updateComponents.mock.calls,
+      editorVisible: screen.queryByRole('textbox') !== null,
+      dropdownOpen: screen.queryByText(/preview/i) !== null,
+    });
+
+    // Update assertion to match actual component structure
+    expect(updateComponents).toHaveBeenCalledWith({
+      test: {
+        id: 'test',
+        meta: { code: mockCode },
+        type: 'MARKDOWN',
+        children: [],
+        parents: [],
+      },
+    });
+  });
+
   it('should show placeholder text when markdown is empty', async () => {
     await setup({
       component: {
