@@ -64,10 +64,10 @@ repos:
     hooks:
       - id: eslint
         name: eslint
-        entry: bash -c 'cd superset-frontend && npm run eslint -- $(echo "$@" | sed "s|superset-frontend/||g")'
-        language: system
+        entry: ./scripts/eslint.sh
+        language: script
         pass_filenames: true
-        files: \.(js|jsx|ts|tsx)$
+        files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
       - id: type-checking-frontend
         name: Type-Checking (Frontend)
         entry: ./scripts/check-type.js
