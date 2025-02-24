@@ -334,7 +334,7 @@ export default typedMemo(function DataTable<D extends object>({
                 onDrop,
                 'aria-sort': column.isSorted
                   ? column.isSortedDesc ? 'descending' : 'ascending'
-                  : undefined
+                  : undefined,
               });
             })}
           </tr>

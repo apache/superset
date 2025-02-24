@@ -324,7 +324,10 @@ const FilterBar: FC<FiltersBarProps> = ({
         width={verticalConfig.width}
       />
     ) : null;
-
+   const isEmbedded =  window !== window.parent;
+  if(isEmbedded && filterValues.length === 0){
+    hidden=true;
+  }
   return hidden ? (
     <HiddenFilterBar>{filterBarComponent}</HiddenFilterBar>
   ) : (

@@ -200,8 +200,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     }, [sliceName, width, height, canExplore]);
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
-    const isEmbedded = uiConfig.hideTitle || window !== window.parent;
-    const showTitle = !isEmbedded;
+    const showTitle = true;
     return (
       <ChartHeaderStyles data-test="slice-header" ref={ref}  $showTitle={showTitle}>
         {showTitle && (
