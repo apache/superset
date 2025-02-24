@@ -32,7 +32,7 @@ export type HistogramFormData = QueryFormData & {
   xAxisTitle: string;
   yAxisFormat: string;
   yAxisTitle: string;
-  showLegendToggle: boolean; // ✅ Ajout de l'option ici
+  showLegendToggle: boolean;
 };
 
 export interface HistogramChartProps extends BaseChartProps<HistogramFormData> {
