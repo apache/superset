@@ -1164,3 +1164,24 @@ def test_firebolt_old() -> None:
   *
 FROM t1 UNNEST(col1 AS foo)"""
     )
+
+
+def test_firebolt_old_escape_string() -> None:
+    """
+    Test the dialect for the old Firebolt syntax.
+    """
+    from superset.sql.dialects import FireboltOld
+    from superset.sql.parse import SQLGLOT_DIALECTS
+
+    SQLGLOT_DIALECTS["firebolt"] = FireboltOld
+
+    # both '' and \' are valid escape sequences
+    sql = r"SELECT 'foo''bar', 'foo\'bar'"
+
+    # but they normalize to ''
+    assert (
+        SQLStatement(sql, "firebolt").format()
+        == """SELECT
+  'foo''bar',
+  'foo''bar'"""
+    )
