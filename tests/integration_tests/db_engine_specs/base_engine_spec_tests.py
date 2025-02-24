@@ -432,8 +432,7 @@ def test_validate_parameters_missing():
         assert errors == [
             SupersetError(
                 message=(
-                    "One or more parameters are missing: "
-                    "database, host, port, username"
+                    "One or more parameters are missing: database, host, port, username"
                 ),
                 error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                 level=ErrorLevel.WARNING,
