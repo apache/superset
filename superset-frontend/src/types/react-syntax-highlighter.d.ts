@@ -26,22 +26,9 @@ declare module 'react-syntax-highlighter/dist/cjs/styles/hljs/github' {
   export default style;
 }
 
-declare module 'react-syntax-highlighter/dist/cjs/languages/hljs/markdown' {
-  const language: any;
-  export default language;
-}
+type SupportedLanguages = 'markdown' | 'htmlbars' | 'sql' | 'json';
 
-declare module 'react-syntax-highlighter/dist/cjs/languages/hljs/htmlbars' {
-  const language: any;
-  export default language;
-}
-
-declare module 'react-syntax-highlighter/dist/cjs/languages/hljs/sql' {
-  const language: any;
-  export default language;
-}
-
-declare module 'react-syntax-highlighter/dist/cjs/languages/hljs/json' {
-  const language: any;
-  export default language;
+// For type checking when importing languages
+function importLanguage<T extends SupportedLanguages>(language: T) {
+  return import(`react-syntax-highlighter/dist/cjs/languages/hljs/${language}`);
 }
