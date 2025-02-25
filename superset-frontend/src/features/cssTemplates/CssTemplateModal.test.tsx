@@ -20,7 +20,6 @@ import fetchMock from 'fetch-mock';
 import {
   render,
   screen,
-  userEvent,
   within,
 } from 'spec/helpers/testing-library';
 import CssTemplateModal from './CssTemplateModal';

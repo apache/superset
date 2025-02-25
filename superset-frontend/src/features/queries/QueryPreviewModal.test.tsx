@@ -25,7 +25,6 @@ import {
   screen,
   fireEvent,
   waitFor,
-  within,
 } from 'spec/helpers/testing-library';
 import QueryPreviewModal from './QueryPreviewModal';
 
