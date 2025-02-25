@@ -38,7 +38,7 @@ type Params = {
   pinnedRight?: boolean;
   invisibleColumns: Column[];
   isMain?: boolean;
-  onVisibleChange: DropdownProps['onVisibleChange'];
+  onVisibleChange: DropdownProps['onOpenChange'];
 };
 
 const HeaderMenu: React.FC<Params> = ({
@@ -170,7 +170,7 @@ const HeaderMenu: React.FC<Params> = ({
     <MenuDotsDropdown
       placement="bottomRight"
       trigger={['click']}
-      onVisibleChange={onVisibleChange}
+      onOpenChange={onVisibleChange}
       overlay={
         <Menu style={{ width: 180 }} mode="vertical">
           <Menu.Item
