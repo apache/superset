@@ -64,7 +64,6 @@ These features flags are **safe for production**. They have been tested and will
 ### Flags on the path to feature launch and flag deprecation/removal
 
 - DASHBOARD_VIRTUALIZATION
-- HORIZONTAL_FILTER_BAR
 
 ### Flags retained for runtime configuration
 
