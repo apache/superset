@@ -173,7 +173,7 @@ describe('BigNumberWithTrendline', () => {
               label: 'value',
               metric_name: 'value',
               d3format: '.2f',
-              currency: `{symbol: 'USD', symbolPosition: 'prefix' }`,
+              currency: { symbol: 'USD', symbolPosition: 'prefix' },
             },
           ],
         },

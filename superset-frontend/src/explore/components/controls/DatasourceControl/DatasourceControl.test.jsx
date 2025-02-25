@@ -20,11 +20,11 @@ import configureStore from 'redux-mock-store';
 import { DatasourceType } from '@superset-ui/core';
 import {
   fireEvent,
-  waitFor,
-  screen,
   render,
+  screen,
+  userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
 import DatasourceControl, {
   getDatasourceTitle,
 } from 'src/explore/components/controls/DatasourceControl';
@@ -105,6 +105,12 @@ describe('DatasourceControl', () => {
     userEvent.click(screen.getByLabelText('more-vert'));
     await waitFor(() => {
       expect(screen.queryAllByRole('menuitem')).toHaveLength(3);
+    });
+
+    // Close the menu
+    userEvent.click(document.body);
+    await waitFor(() => {
+      expect(screen.queryAllByRole('menuitem')).toHaveLength(0);
     });
 
     rerender(<DatasourceControl {...{ ...props, isEditable: false }} />, {

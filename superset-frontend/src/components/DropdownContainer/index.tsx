@@ -137,7 +137,6 @@ const DropdownContainer = forwardRef(
     const { current } = ref;
     const [itemsWidth, setItemsWidth] = useState<number[]>([]);
     const [popoverVisible, setPopoverVisible] = useState(false);
-
     // We use React.useState to be able to mock the state in Jest
     const [overflowingIndex, setOverflowingIndex] = useState<number>(-1);
 
@@ -181,11 +180,13 @@ const DropdownContainer = forwardRef(
     );
 
     useLayoutEffect(() => {
+      if (popoverVisible) {
+        return;
+      }
       const container = current?.children.item(0);
       if (container) {
         const { children } = container;
         const childrenArray = Array.from(children);
-
         // If items length change, add all items to the container
         // and recalculate the widths
         if (itemsWidth.length !== items.length) {
@@ -341,11 +342,7 @@ const DropdownContainer = forwardRef(
           <>
             <Global
               styles={css`
-                .ant-popover-inner-content {
-                  max-height: ${MAX_HEIGHT}px;
-                  overflow: ${showOverflow ? 'auto' : 'visible'};
-                  padding: ${theme.gridUnit * 3}px ${theme.gridUnit * 4}px;
-
+                .antd5-popover-inner {
                   // Some OS versions only show the scroll when hovering.
                   // These settings will make the scroll always visible.
                   ::-webkit-scrollbar {
@@ -365,11 +362,16 @@ const DropdownContainer = forwardRef(
                 }
               `}
             />
+
             <Popover
+              overlayInnerStyle={{
+                maxHeight: `${MAX_HEIGHT}px`,
+                overflow: showOverflow ? 'auto' : 'visible',
+              }}
               content={popoverContent}
               trigger="click"
-              visible={popoverVisible}
-              onVisibleChange={visible => setPopoverVisible(visible)}
+              open={popoverVisible}
+              onOpenChange={visible => setPopoverVisible(visible)}
               placement="bottom"
               forceRender={forceRender}
             >

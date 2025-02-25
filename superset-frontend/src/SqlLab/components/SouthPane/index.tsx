@@ -136,7 +136,7 @@ const SouthPane = ({
         dispatch(removeTables([table]));
       }
     },
-    [dispatch, queryEditorId],
+    [dispatch, pinnedTables],
   );
 
   return offline ? (

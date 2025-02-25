@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { styled, SupersetClient, t, useTheme } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
@@ -25,7 +25,7 @@ import github from 'react-syntax-highlighter/dist/cjs/styles/hljs/github';
 import { LoadingCards } from 'src/pages/Home';
 import { TableTab } from 'src/views/CRUD/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { copyQueryLink, useListViewResource } from 'src/views/CRUD/hooks';
 import ListViewCard from 'src/components/ListViewCard';
@@ -39,6 +39,7 @@ import {
   PAGE_SIZE,
   shortenSQL,
 } from 'src/views/CRUD/utils';
+import { Button } from 'src/components';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
 import { WelcomeTable } from './types';
@@ -191,33 +192,36 @@ const SavedQueries = ({
       filters: getFilterValues(tab, WelcomeTable.SavedQueries, user),
     });
 
-  const renderMenu = (query: Query) => (
-    <Menu>
-      {canEdit && (
-        <Menu.Item>
-          <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
-        </Menu.Item>
-      )}
-      <Menu.Item
-        onClick={() => {
-          if (query.id) {
-            copyQueryLink(query.id, addDangerToast, addSuccessToast);
-          }
-        }}
-      >
-        {t('Share')}
-      </Menu.Item>
-      {canDelete && (
+  const renderMenu = useCallback(
+    (query: Query) => (
+      <Menu>
+        {canEdit && (
+          <Menu.Item>
+            <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>
+          </Menu.Item>
+        )}
         <Menu.Item
           onClick={() => {
-            setQueryDeleteModal(true);
-            setCurrentlyEdited(query);
+            if (query.id) {
+              copyQueryLink(query.id, addDangerToast, addSuccessToast);
+            }
           }}
         >
-          {t('Delete')}
+          {t('Share')}
         </Menu.Item>
-      )}
-    </Menu>
+        {canDelete && (
+          <Menu.Item
+            onClick={() => {
+              setQueryDeleteModal(true);
+              setCurrentlyEdited(query);
+            }}
+          >
+            {t('Delete')}
+          </Menu.Item>
+        )}
+      </Menu>
+    ),
+    [],
   );
 
   if (loading) return <LoadingCards cover={showThumbnails} />;
@@ -315,11 +319,16 @@ const SavedQueries = ({
                         e.preventDefault();
                       }}
                     >
-                      <AntdDropdown overlay={renderMenu(q)}>
-                        <Icons.MoreVert
-                          iconColor={theme.colors.grayscale.base}
-                        />
-                      </AntdDropdown>
+                      <Dropdown
+                        dropdownRender={() => renderMenu(q)}
+                        trigger={['click', 'hover']}
+                      >
+                        <Button buttonSize="xsmall" type="link">
+                          <Icons.MoreVert
+                            iconColor={theme.colors.grayscale.base}
+                          />
+                        </Button>
+                      </Dropdown>
                     </ListViewCard.Actions>
                   </QueryData>
                 }

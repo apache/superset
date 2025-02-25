@@ -18,16 +18,19 @@
 ######################################################################
 # Node stage to deal with static asset construction
 ######################################################################
-ARG PY_VER=3.11-slim-bookworm
+ARG PY_VER=3.11.11-slim-bookworm
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
+
+# Include translations in the final build
+ARG BUILD_TRANSLATIONS="false"
 
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
 FROM --platform=${BUILDPLATFORM} node:20-bullseye-slim AS superset-node-ci
-ARG BUILD_TRANSLATIONS="false" # Include translations in the final build
+ARG BUILD_TRANSLATIONS
 ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 ARG DEV_MODE="false"           # Skip frontend build in dev mode
 ENV DEV_MODE=${DEV_MODE}
@@ -121,6 +124,9 @@ ENV PATH="/app/.venv/bin:${PATH}"
 # Python translation compiler layer
 ######################################################################
 FROM python-base AS python-translation-compiler
+
+ARG BUILD_TRANSLATIONS
+ENV BUILD_TRANSLATIONS=${BUILD_TRANSLATIONS}
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/translations.txt requirements/

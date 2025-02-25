@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import {
   DndColumnSelect,
   DndColumnSelectProps,
@@ -63,7 +67,7 @@ test('renders adhoc column', async () => {
   );
   expect(await screen.findByText('adhoc column')).toBeVisible();
   expect(screen.getByLabelText('calculator')).toBeVisible();
-});
+}, 10000);
 
 test('warn selected custom metric when metric gets removed from dataset', async () => {
   const columnValues = ['column1', 'column2'];

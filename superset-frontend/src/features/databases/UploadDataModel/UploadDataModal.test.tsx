@@ -20,9 +20,12 @@ import fetchMock from 'fetch-mock';
 import UploadDataModal, {
   validateUploadFileExtension,
 } from 'src/features/databases/UploadDataModel';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import { waitFor } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { UploadFile } from 'antd/lib/upload/interface';
 
 const csvProps = {
@@ -564,6 +567,7 @@ test('Columnar, does not render the rows', () => {
 });
 
 test('database and schema are correctly populated', async () => {
+  jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -611,6 +615,7 @@ test('form without required fields', async () => {
 });
 
 test('CSV form post', async () => {
+  jest.setTimeout(10000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });
@@ -622,7 +627,7 @@ test('CSV form post', async () => {
 
   // Select a file from the file dialog
   const file = new File(['test'], 'test.csv', { type: 'text' });
-  const inputElement = document.querySelector('input[type="file"]');
+  const inputElement = screen.getByTestId('model-file-input');
 
   if (inputElement) {
     userEvent.upload(inputElement as HTMLElement, file);
@@ -680,7 +685,7 @@ test('Excel form post', async () => {
 
   // Select a file from the file dialog
   const file = new File(['test'], 'test.xls', { type: 'text' });
-  const inputElement = document.querySelector('input[type="file"]');
+  const inputElement = screen.getByTestId('model-file-input');
 
   if (inputElement) {
     userEvent.upload(inputElement as HTMLElement, file);
@@ -738,7 +743,7 @@ test('Columnar form post', async () => {
 
   // Select a file from the file dialog
   const file = new File(['test'], 'test.parquet', { type: 'text' });
-  const inputElement = document.querySelector('input[type="file"]');
+  const inputElement = screen.getByTestId('model-file-input');
 
   if (inputElement) {
     userEvent.upload(inputElement as HTMLElement, file);

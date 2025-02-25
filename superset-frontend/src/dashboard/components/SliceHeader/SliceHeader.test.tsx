@@ -19,8 +19,7 @@
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
 import { getExtensionsRegistry, VizType } from '@superset-ui/core';
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SliceHeader from '.';
 
 jest.mock('src/dashboard/components/SliceHeaderControls', () => ({

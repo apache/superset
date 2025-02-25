@@ -38,11 +38,26 @@ jobs:
           echo "HOMEBREW_CELLAR=$HOMEBREW_CELLAR" >>"${GITHUB_ENV}"
           echo "HOMEBREW_REPOSITORY=$HOMEBREW_REPOSITORY" >>"${GITHUB_ENV}"
           brew install norwoodj/tap/helm-docs
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd superset-frontend
+          npm install
+
+      - name: Install Docs Dependencies
+        run: |
+          cd docs
+          yarn install
+
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
-          # Skip eslint as it requires `npm ci` and is executed in another job
-          export SKIP=eslint
+          # Skip auto-fixing in CI to ensure changes are committed locally
+          export SKIP_FIX=1
           pre-commit run --all-files
           if [ $? -ne 0 ] || ! git diff --quiet --exit-code; then
             echo "❌ Pre-commit check failed."

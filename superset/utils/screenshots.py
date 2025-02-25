@@ -16,11 +16,12 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import TYPE_CHECKING
+from typing import cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app
 
@@ -63,13 +64,39 @@ class StatusValues(Enum):
     ERROR = "Error"
 
 
+class ScreenshotCachePayloadType(TypedDict):
+    image: str | None
+    timestamp: str
+    status: str
+
+
 class ScreenshotCachePayload:
-    def __init__(self, image: bytes | None = None):
+    def __init__(
+        self,
+        image: bytes | None = None,
+        status: StatusValues = StatusValues.PENDING,
+        timestamp: str = "",
+    ):
         self._image = image
-        self._timestamp = datetime.now().isoformat()
-        self.status = StatusValues.PENDING
-        if image:
-            self.status = StatusValues.UPDATED
+        self._timestamp = timestamp or datetime.now().isoformat()
+        self.status = StatusValues.UPDATED if image else status
+
+    @classmethod
+    def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
+        return cls(
+            image=base64.b64decode(payload["image"]) if payload["image"] else None,
+            status=StatusValues(payload["status"]),
+            timestamp=payload["timestamp"],
+        )
+
+    def to_dict(self) -> ScreenshotCachePayloadType:
+        return {
+            "image": base64.b64encode(self._image).decode("utf-8")
+            if self._image
+            else None,
+            "timestamp": self._timestamp,
+            "status": self.status.value,
+        }
 
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
@@ -177,9 +204,16 @@ class BaseScreenshot:
     def get_from_cache_key(cls, cache_key: str) -> ScreenshotCachePayload | None:
         logger.info("Attempting to get from cache: %s", cache_key)
         if payload := cls.cache.get(cache_key):
-            # for backwards compatability, byte objects should be converted
-            if not isinstance(payload, ScreenshotCachePayload):
+            # Initially, only bytes were stored. This was changed to store an instance
+            # of ScreenshotCachePayload, but since it can't be serialized in all
+            # backends it was further changed to a dict of attributes.
+            if isinstance(payload, bytes):
                 payload = ScreenshotCachePayload(payload)
+            elif isinstance(payload, ScreenshotCachePayload):
+                pass
+            elif isinstance(payload, dict):
+                payload = cast(ScreenshotCachePayloadType, payload)
+                payload = ScreenshotCachePayload.from_dict(payload)
             return payload
         logger.info("Failed at getting from cache: %s", cache_key)
         return None
@@ -217,7 +251,7 @@ class BaseScreenshot:
         thumb_size = thumb_size or self.thumb_size
         logger.info("Processing url for thumbnail: %s", cache_key)
         cache_payload.computing()
-        self.cache.set(cache_key, cache_payload)
+        self.cache.set(cache_key, cache_payload.to_dict())
         image = None
         # Assuming all sorts of things can go wrong with Selenium
         try:
@@ -239,7 +273,7 @@ class BaseScreenshot:
             logger.info("Caching thumbnail: %s", cache_key)
             with event_logger.log_context(f"screenshot.cache.{self.thumbnail_type}"):
                 cache_payload.update(image)
-        self.cache.set(cache_key, cache_payload)
+        self.cache.set(cache_key, cache_payload.to_dict())
         logger.info("Updated thumbnail cache; Status: %s", cache_payload.get_status())
         return
 

@@ -17,13 +17,25 @@
  * under the License.
  */
 
-import { screen, render, selectOption } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  cleanup,
+  screen,
+  render,
+  selectOption,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import MetricsControl from 'src/explore/components/controls/MetricControl/MetricsControl';
 import AdhocMetric, {
   EXPRESSION_TYPES,
 } from 'src/explore/components/controls/MetricControl/AdhocMetric';
 import { AGGREGATES } from 'src/explore/constants';
+
+// Add cleanup after each test
+afterEach(async () => {
+  cleanup();
+  // Wait for any pending effects to complete
+  await new Promise(resolve => setTimeout(resolve, 0));
+});
 
 const defaultProps = {
   name: 'metrics',
@@ -49,8 +61,8 @@ function setup(overrides) {
     ...defaultProps,
     ...overrides,
   };
-  render(<MetricsControl {...props} />, { useDnd: true });
-  return { onChange };
+  const result = render(<MetricsControl {...props} />, { useDnd: true });
+  return { onChange, ...result };
 }
 
 const valueColumn = { type: 'double', column_name: 'value' };

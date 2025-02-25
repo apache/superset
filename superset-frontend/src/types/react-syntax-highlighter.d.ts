@@ -16,41 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
-import DropdownSelectableIcon, { DropDownSelectableProps } from '.';
+declare module 'react-syntax-highlighter/dist/cjs/light' {
+  import SyntaxHighlighter from 'react-syntax-highlighter';
+  export default SyntaxHighlighter;
+}
 
-export default {
-  title: 'DropdownSelectableIcon',
-  component: DropdownSelectableIcon,
-};
+declare module 'react-syntax-highlighter/dist/cjs/styles/hljs/github' {
+  const style: any;
+  export default style;
+}
 
-export const Component = (props: DropDownSelectableProps) => (
-  <DropdownSelectableIcon
-    {...props}
-    icon={<Icons.Gear name="gear" iconColor="#000000" />}
-  />
-);
+type SupportedLanguages = 'markdown' | 'htmlbars' | 'sql' | 'json';
 
-Component.args = {
-  info: 'Info go here',
-  selectedKeys: ['vertical'],
-  menuItems: [
-    {
-      key: 'vertical',
-      label: 'Vertical',
-    },
-    {
-      key: 'horizontal',
-      label: 'Horizontal',
-    },
-  ],
-};
-
-Component.argTypes = {
-  onSelect: {
-    action: 'onSelect',
-    table: {
-      disable: true,
-    },
-  },
-};
+// For type checking when importing languages
+function importLanguage<T extends SupportedLanguages>(language: T) {
+  return import(`react-syntax-highlighter/dist/cjs/languages/hljs/${language}`);
+}
