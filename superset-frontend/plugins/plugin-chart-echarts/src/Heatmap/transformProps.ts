@@ -25,6 +25,7 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
+  rgbToHex,
   supersetTheme,
   tooltipHtml,
 } from '@superset-ui/core';
@@ -87,7 +88,7 @@ export default function transformProps(
     metric = '',
     normalizeAcross,
     normalized,
-    enableBorders,
+    elementBorder = { r: 255, g: 255, b: 255 },
     showLegend,
     showPercentage,
     showValues,
@@ -164,9 +165,11 @@ export default function transformProps(
         },
       },
       itemStyle: {
-        borderColor: enableBorders
-          ? supersetTheme.colors.grayscale.dark2
-          : undefined,
+        borderColor: rgbToHex(
+          elementBorder.r,
+          elementBorder.g,
+          elementBorder.b,
+        ),
       },
       emphasis: {
         itemStyle: {

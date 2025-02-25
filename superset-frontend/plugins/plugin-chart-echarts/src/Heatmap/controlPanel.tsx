@@ -226,6 +226,20 @@ const config: ControlPanelConfig = {
         ['currency_format'],
         [
           {
+            name: 'element_border',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Border Color'),
+              renderTrigger: true,
+              description: t(
+                'Select border color for Heatmap elements. Initial opacity is 0. Remember to change as per need',
+              ),
+              default: { r: 255, g: 255, b: 255, a: 0 },
+            },
+          },
+        ],
+        [
+          {
             name: 'show_legend',
             config: {
               type: 'CheckboxControl',
@@ -273,20 +287,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               description: t(
                 'Whether to apply a normal distribution based on rank on the color scale',
-              ),
-              default: false,
-            },
-          },
-        ],
-        [
-          {
-            name: 'enable_borders',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Enable Borders'),
-              renderTrigger: true,
-              description: t(
-                'To enable black borders to Heatmap elements',
               ),
               default: false,
             },
