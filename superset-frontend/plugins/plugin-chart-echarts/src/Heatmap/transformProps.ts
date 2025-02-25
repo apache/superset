@@ -89,6 +89,7 @@ export default function transformProps(
     normalizeAcross,
     normalized,
     elementBorder = { r: 255, g: 255, b: 255 },
+    enableBorder,
     showLegend,
     showPercentage,
     showValues,
@@ -165,11 +166,9 @@ export default function transformProps(
         },
       },
       itemStyle: {
-        borderColor: rgbToHex(
-          elementBorder.r,
-          elementBorder.g,
-          elementBorder.b,
-        ),
+        borderColor: enableBorder
+          ? rgbToHex(elementBorder.r, elementBorder.g, elementBorder.b)
+          : undefined,
       },
       emphasis: {
         itemStyle: {

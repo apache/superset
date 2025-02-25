@@ -19,6 +19,7 @@
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
+  ControlSubSectionHeader,
   formatSelectOptionsForRange,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
@@ -224,6 +225,7 @@ const config: ControlPanelConfig = {
         ['y_axis_format'],
         ['x_axis_time_format'],
         ['currency_format'],
+        [<ControlSubSectionHeader>Border</ControlSubSectionHeader>],
         [
           {
             name: 'element_border',
@@ -234,7 +236,19 @@ const config: ControlPanelConfig = {
               description: t(
                 'Select border color for Heatmap elements. Initial opacity is 0. Remember to change as per need',
               ),
-              default: { r: 255, g: 255, b: 255, a: 0 },
+              default: { r: 255, g: 255, b: 255, a: 1 },
+            },
+          },
+        ],
+        [
+          {
+            name: 'enable_border',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Enable Border'),
+              renderTrigger: true,
+              description: t('Enable element border'),
+              default: false,
             },
           },
         ],
