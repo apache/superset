@@ -96,6 +96,7 @@ class RedisCacheBackend(RedisCache):
             "ssl_ca_certs": config.get("CACHE_REDIS_SSL_CA_CERTS", None),
         }
 
+        # Handle username separately as it's optional for Redis authentication.
         if configured_username := config.get("CACHE_REDIS_USER", ""):
             kwargs["username"] = configured_username
 
