@@ -1,6 +1,0 @@
-{
-  "devDependencies": {
-    "@types/react-resizable": "^3.0.8",
-    "@types/react-syntax-highlighter": "^15.5.13"
-  }
-}
