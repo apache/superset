@@ -31,7 +31,11 @@ import {
   D3_FORMAT_DOCS,
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
 } from '@superset-ui/chart-controls';
-import { showLegendControl, showLegendToggleControl, showValueControl } from '../controls';
+import {
+  showLegendControl,
+  showLegendToggleControl,
+  showValueControl,
+} from '../controls';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
