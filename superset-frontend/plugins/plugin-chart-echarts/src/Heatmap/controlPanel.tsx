@@ -233,9 +233,7 @@ const config: ControlPanelConfig = {
               type: 'ColorPickerControl',
               label: t('Border Color'),
               renderTrigger: true,
-              description: t(
-                'Select border color for Heatmap elements. Initial opacity is 0. Remember to change as per need',
-              ),
+              description: t('Select border color for Heatmap elements'),
               default: { r: 255, g: 255, b: 255, a: 1 },
             },
           },
