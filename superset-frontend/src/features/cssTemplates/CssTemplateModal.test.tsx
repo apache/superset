@@ -17,11 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  within,
-} from 'spec/helpers/testing-library';
+import { render, screen, within } from 'spec/helpers/testing-library';
 import CssTemplateModal from './CssTemplateModal';
 import { TemplateObject } from './types';
 

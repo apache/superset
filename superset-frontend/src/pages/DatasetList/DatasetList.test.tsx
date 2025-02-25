@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { ReactNode, createElement } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -139,10 +140,10 @@ jest.mock('@superset-ui/core', () => {
 // Mock Form
 jest.mock('src/components/Form', () => ({
   __esModule: true,
-  FormItem: ({ children }: { children: React.ReactNode }) => (
+  FormItem: ({ children }: { children: ReactNode }) => (
     <div data-test="form-item">{children}</div>
   ),
-  Form: ({ children }: { children: React.ReactNode }) => (
+  Form: ({ children }: { children: ReactNode }) => (
     <form data-test="form">{children}</form>
   ),
 }));
@@ -151,7 +152,7 @@ jest.mock('src/components/Form', () => ({
 jest.mock('antd', () => ({
   ...jest.requireActual('antd'),
   Form: {
-    Item: ({ children }: { children: React.ReactNode }) => (
+    Item: ({ children }: { children: ReactNode }) => (
       <div data-test="antd-form-item">{children}</div>
     ),
   },
@@ -244,15 +245,15 @@ const ListView = ({
   data,
   columns,
 }: ListViewProps) =>
-  React.createElement(
+  createElement(
     'div',
     { 'data-test': 'list-view', role: 'table' },
     [
       bulkActions.length > 0 &&
-        React.createElement(
+        createElement(
           'div',
           { key: 'bulk-select', 'data-test': 'bulk-select' },
-          React.createElement(
+          createElement(
             'button',
             {
               type: 'button',
@@ -262,11 +263,11 @@ const ListView = ({
           ),
         ),
       ...(data?.map((row, i) =>
-        React.createElement(
+        createElement(
           'div',
           { key: i, role: 'row' },
           columns?.map((col, j) =>
-            React.createElement(
+            createElement(
               'div',
               { key: j, role: 'cell' },
               col.Cell

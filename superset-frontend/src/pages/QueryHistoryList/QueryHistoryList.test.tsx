@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { createElement } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
@@ -227,15 +228,15 @@ interface ListViewProps {
 }
 
 const ListView = ({ children, data, columns }: ListViewProps) =>
-  React.createElement(
+  createElement(
     'div',
     { 'data-test': 'list-view', role: 'table' },
     data?.map((row, i) =>
-      React.createElement(
+      createElement(
         'div',
         { key: i, role: 'row' },
         columns?.map((col, j) =>
-          React.createElement(
+          createElement(
             'div',
             { key: j, role: 'cell' },
             col.Cell

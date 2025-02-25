@@ -1,4 +1,4 @@
-import { theme } from '@superset-ui/core';
+import { supersetTheme as theme } from '@superset-ui/core';
 
 // Mock Menu component
 const Menu = ({ children, ...props }: any) => (
