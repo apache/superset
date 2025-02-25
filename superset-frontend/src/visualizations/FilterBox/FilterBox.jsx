@@ -19,7 +19,8 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { debounce } from 'lodash';
+import { cloneDeep, debounce } from 'lodash';
+import { connect } from 'react-redux';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 // import Button from 'src/components/Button';
@@ -56,6 +57,7 @@ import {
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
 
 const propTypes = {
+  ikigaiOrigin: PropTypes.string,
   chartId: PropTypes.number.isRequired,
   origSelectedValues: PropTypes.object,
   datasource: PropTypes.object.isRequired,
@@ -212,6 +214,7 @@ class FilterBox extends React.PureComponent {
           this.props.onChange({ [fltr]: vals }, false);
         }
         this.clickApply();
+        this.sendFilterToDynamicMarkdown();
       },
     );
   }
@@ -289,6 +292,31 @@ class FilterBox extends React.PureComponent {
       });
     }
     return this.transformOptions(options, this.getKnownMax(key, options));
+  }
+
+  /**
+   * Post message with updated filters to all Dynamic Markdown instances within the dashboard
+   */
+  sendFilterToDynamicMarkdown() {
+    const crossWindowMessage = {
+      info: 'widget-to-parent/send-global-filter',
+      dataType: 'object',
+      data: {
+        filters: this.state.selectedValues,
+        chartId: this.props?.chartId,
+      },
+    };
+    const iframes = document.querySelectorAll('iframe');
+    const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+    iframes.forEach(iframe => {
+      if (!iframe.name.includes('dynamic-markdown')) return;
+
+      const targetMarkdown = iframe.attributes?.getNamedItem('src');
+      iframe.contentWindow.postMessage(
+        crossBrowserInfoString,
+        this.props.ikigaiOrigin,
+      );
+    });
   }
 
   renderDateFilter() {
@@ -495,4 +523,10 @@ class FilterBox extends React.PureComponent {
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-export default withTheme(FilterBox);
+function mapStateToProps(state) {
+  return {
+    ikigaiOrigin: state.dashboardState.ikigaiOrigin,
+  };
+}
+
+export default withTheme(connect(mapStateToProps)(FilterBox));
