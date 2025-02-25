@@ -60,6 +60,14 @@ export const D3_FORMAT_OPTIONS: [string, string][] = [
   ['DURATION_COL', t('Duration in ms (10500 => 0:10.5)')],
   ['MEMORY_DECIMAL', t('Memory in bytes - decimal (1024B => 1.024kB)')],
   ['MEMORY_BINARY', t('Memory in bytes - binary (1024B => 1KiB)')],
+  [
+    'MEMORY_TRANSFER_RATE_DECIMAL',
+    t('Memory transfer rate in bytes - decimal (1024B => 1.024kB/s)'),
+  ],
+  [
+    'MEMORY_TRANSFER_RATE_BINARY',
+    t('Memory transfer rate in bytes - binary (1024B => 1KiB/s)'),
+  ],
 ];
 
 export const D3_TIME_FORMAT_DOCS = t(
