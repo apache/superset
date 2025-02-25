@@ -1871,11 +1871,35 @@ class TestSecurityManager(SupersetTestCase):
                     }
                 )
 
-    def test_get_user_roles(self):
+    def test_get_admin_user_roles(self):
         admin = security_manager.find_user("admin")
         with override_user(admin):
             roles = security_manager.get_user_roles()
             assert admin.roles == roles
+
+    def test_get_gamma_user_roles(self):
+        admin = security_manager.find_user("gamma")
+        with override_user(admin):
+            roles = security_manager.get_user_roles()
+            assert admin.roles == roles
+
+    # def test_get_user_roles_with_groups(self):
+    #     gamma_role = security_manager.find_role("Gamma")
+    #     group = security_manager.add_group("group1","","", roles=[gamma_role])
+    #     user = security_manager.add_user(
+    #         "gamma_with_groups",
+    #         "gamma",
+    #         "user",
+    #         "gamma_with_groups",
+    #         role=[],
+    #         groups=[group],
+    #     )
+    #     with override_user(user):
+    #         roles = security_manager.get_user_roles()
+    #         assert user.roles == roles
+    #     security_manager.get_session.delete(user)
+    #     security_manager.get_session.delete(group)
+    #     security_manager.get_session.commit()
 
     def test_get_anonymous_roles(self):
         with override_user(security_manager.get_anonymous_user()):
