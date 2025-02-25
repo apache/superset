@@ -1,9 +1,7 @@
-import React from 'react';
-
 const SubMenu = ({ tabs, buttons }: any) => (
   <div data-test="submenu">
     {tabs?.map((tab: any) => (
-      <div key={tab.name} role="tab" onClick={tab.onClick}>
+      <div key={tab.name} role="tab" tabIndex={0} onClick={tab.onClick}>
         {tab.label}
       </div>
     ))}

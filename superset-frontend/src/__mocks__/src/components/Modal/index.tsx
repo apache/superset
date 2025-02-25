@@ -1,5 +1,3 @@
-import React from 'react';
-
 const Modal = ({
   title,
   children,
@@ -17,11 +15,13 @@ const Modal = ({
     <div data-testid="css-template-modal-title">{title}</div>
     <div className="modal-content">{children}</div>
     <div className="modal-footer">
-      <button onClick={onHide}>Cancel</button>
+      <button type="button" onClick={onHide}>
+        Cancel
+      </button>
       <button
+        type="button"
         onClick={onHandledPrimaryAction}
         disabled={disablePrimaryButton}
-        role="button"
         aria-disabled={disablePrimaryButton}
       >
         {primaryButtonName}

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import CssTemplateModal from './CssTemplateModal';
@@ -76,7 +75,9 @@ describe('CssTemplateModal', () => {
   it('renders css editor', async () => {
     renderModal();
     const dialog = await screen.findByRole('dialog');
-    const cssContainer = within(dialog).getByText('css').closest('.control-label');
+    const cssContainer = within(dialog)
+      .getByText('css')
+      .closest('.control-label');
     expect(cssContainer).toBeInTheDocument();
     const requiredIndicator = within(cssContainer).getByText('*');
     expect(requiredIndicator).toHaveClass('required');
@@ -113,7 +114,9 @@ describe('CssTemplateModal', () => {
   it('shows name label with required indicator', async () => {
     renderModal();
     const dialog = await screen.findByRole('dialog');
-    const nameContainer = within(dialog).getByText('Name').closest('.control-label');
+    const nameContainer = within(dialog)
+      .getByText('Name')
+      .closest('.control-label');
     expect(nameContainer).toBeInTheDocument();
     const requiredIndicator = within(nameContainer).getByText('*');
     expect(requiredIndicator).toHaveClass('required');

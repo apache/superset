@@ -17,15 +17,27 @@
  * under the License.
  */
 
-import React from 'react';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+import fetchMock from 'fetch-mock';
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
+
+// Import QueryList after mocking dependencies
+import QueryList from '.';
 
 // Mock syntax highlighter before any imports
 jest.mock('react-syntax-highlighter/dist/cjs/light', () => ({
   __esModule: true,
   default: ({ children }: { children: React.ReactNode }) => (
-    <code role="button" data-test="sql-preview">
+    <button type="button" data-test="sql-preview">
       {children}
-    </code>
+    </button>
   ),
 }));
 
@@ -37,7 +49,8 @@ jest.mock('react-syntax-highlighter/dist/cjs/languages/hljs/sql', () => ({
 // Mock hooks before any imports
 jest.mock('src/hooks/apiResources', () => ({
   getDatabaseDocumentationLinks: () => ({
-    support: 'https://superset.apache.org/docs/databases/installing-database-drivers',
+    support:
+      'https://superset.apache.org/docs/databases/installing-database-drivers',
   }),
 }));
 
@@ -56,8 +69,8 @@ const QueryState = {
 jest.mock('@superset-ui/core', () => {
   const supersetTheme = {
     colors: {
-      grayscale: { 
-        base: '#000', 
+      grayscale: {
+        base: '#000',
         light1: '#ccc',
         dark1: '#1b1b1b',
         dark2: '#444444',
@@ -72,13 +85,10 @@ jest.mock('@superset-ui/core', () => {
     },
   };
 
-  const styledMock = Object.assign(
-    (component: any) => component,
-    {
-      div: () => 'div',
-      span: () => 'span',
-    },
-  );
+  const styledMock = Object.assign((component: any) => component, {
+    div: () => 'div',
+    span: () => 'span',
+  });
   return {
     styled: styledMock,
     supersetTheme,
@@ -104,13 +114,30 @@ jest.mock('@superset-ui/core', () => {
       }),
     }),
     Registry: class {
-      get() { return null; }
+      get() {
+        return null;
+      }
+
       registerValue() {}
-      keys() { return []; }
-      values() { return []; }
-      entries() { return []; }
-      has() { return false; }
+
+      keys() {
+        return [];
+      }
+
+      values() {
+        return [];
+      }
+
+      entries() {
+        return [];
+      }
+
+      has() {
+        return false;
+      }
+
       remove() {}
+
       clear() {}
     },
     theme: supersetTheme,
@@ -159,22 +186,12 @@ jest.mock('src/utils/common', () => ({
   getTimeFormatter: () => (value: any) => value,
 }));
 
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
-import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  waitFor,
-  within,
-  fireEvent,
-  userEvent,
-} from 'spec/helpers/testing-library';
-
 // Mock styled-components
 jest.mock('@emotion/styled', () => ({
   default: (Component: any) =>
-    typeof Component === 'string' ? Component : (props: any) => <Component {...props} />,
+    typeof Component === 'string'
+      ? Component
+      : (props: any) => <Component {...props} />,
 }));
 
 // Mock components that use styled-components
@@ -209,8 +226,8 @@ interface ListViewProps {
   columns?: Column[];
 }
 
-const ListView = ({ children, data, columns }: ListViewProps) => {
-  return React.createElement(
+const ListView = ({ children, data, columns }: ListViewProps) =>
+  React.createElement(
     'div',
     { 'data-test': 'list-view', role: 'table' },
     data?.map((row, i) =>
@@ -229,7 +246,6 @@ const ListView = ({ children, data, columns }: ListViewProps) => {
       ),
     ),
   );
-};
 
 jest.mock('src/components/ListView', () => ({
   __esModule: true,
@@ -258,9 +274,6 @@ jest.mock('@superset-ui/chart-controls', () => ({
   default: {},
 }));
 
-// Import QueryList after mocking dependencies
-import QueryList from '.';
-
 interface SubMenuProps {
   name?: string;
   tabs?: { label: string; url: string }[];
@@ -272,7 +285,7 @@ jest.mock('src/features/home/SubMenu', () => ({
     <div data-test="submenu">
       <div>{name}</div>
       {tabs?.map(tab => (
-        <a key={tab.label} href={tab.url} role="link">
+        <a key={tab.label} href={tab.url}>
           {tab.label}
         </a>
       ))}
@@ -369,69 +382,79 @@ describe('QueryList', () => {
     await waitFor(() => {
       const calls = fetchMock.calls(/query\/\?q/);
       expect(calls).toHaveLength(1);
-      expect(calls[0][0]).toMatchInlineSnapshot(
-        `"http://localhost/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
-      );
     });
+    const calls = fetchMock.calls(/query\/\?q/);
+    expect(calls[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 
   it('renders syntax highlighted SQL', async () => {
     renderQueryList();
     const codeBlocks = await screen.findAllByTestId('sql-preview');
     expect(codeBlocks).toHaveLength(mockQueries.length);
-    
+
     // Each SQL preview should contain the correct query
     codeBlocks.forEach((block, index) => {
-      expect(block.textContent).toContain(`SELECT ${index} FROM table`);
+      expect(block).toHaveTextContent(new RegExp(`SELECT ${index} FROM table`));
     });
   });
 
   it('opens a query preview modal when clicking SQL', async () => {
     renderQueryList();
     const sqlPreviewButtons = await screen.findAllByTestId('sql-preview');
-    
+
     userEvent.click(sqlPreviewButtons[0]);
-    
+
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(/SELECT 0 FROM table/)).toBeInTheDocument();
   });
 
   it('allows searching queries', async () => {
     renderQueryList();
-    
+
     // Wait for the search input to be available
     const searchInput = await screen.findByPlaceholderText(/Search/i);
-    
+
     // Type search term and submit
     fireEvent.change(searchInput, { target: { value: 'fooo' } });
     fireEvent.keyDown(searchInput, { key: 'Enter', code: 'Enter' });
 
     await waitFor(() => {
-      const lastCall = fetchMock.lastCall();
-      expect(lastCall?.[0]).toMatchInlineSnapshot(
-        `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
-      );
+      expect(fetchMock.lastCall()).toBeTruthy();
     });
+    const lastCall = fetchMock.lastCall();
+    expect(lastCall?.[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 
   it('renders the correct SubMenu tabs', async () => {
     renderQueryList();
-    
+
     // Check for expected tabs
-    expect(await screen.findByRole('link', { name: /Saved queries/i })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Query history/i })).toBeInTheDocument();
-    
+    expect(
+      await screen.findByRole('link', { name: /Saved queries/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /Query history/i }),
+    ).toBeInTheDocument();
+
     // Check that database/dataset tabs are not present
-    expect(screen.queryByRole('link', { name: /Databases/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /Datasets/i })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Databases/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /Datasets/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('shows query status indicators', async () => {
     renderQueryList();
-    
+
     // Wait for status icons to be rendered
     await screen.findAllByRole('img', { hidden: true });
-    
+
     // Each query should have a success icon (based on mock data)
     const successIcons = await screen.findAllByTitle('Success');
     expect(successIcons).toHaveLength(mockQueries.length);
@@ -439,14 +462,14 @@ describe('QueryList', () => {
 
   it('displays query duration in correct format', async () => {
     renderQueryList();
-    
+
     // Wait for timer elements
     const timerElements = await screen.findAllByRole('timer');
     expect(timerElements).toHaveLength(mockQueries.length);
-    
+
     // Check timer format (00:00:00.000)
     timerElements.forEach(timer => {
-      expect(timer.textContent).toMatch(/^\d{2}:\d{2}:\d{2}\.\d{3}$/);
+      expect(timer).toHaveTextContent(/^\d{2}:\d{2}:\d{2}\.\d{3}$/);
     });
   });
 });

@@ -169,7 +169,9 @@ describe('QueryPreviewModal', () => {
         store,
       });
 
-      const openButton = screen.getByRole('button', { name: 'Open in SQL Lab' });
+      const openButton = screen.getByRole('button', {
+        name: 'Open in SQL Lab',
+      });
       fireEvent.click(openButton);
 
       expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(query.id);

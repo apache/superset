@@ -1,34 +1,27 @@
-import React from 'react';
+import { Children, ReactNode, cloneElement, isValidElement } from 'react';
 
 interface MenuProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 interface MenuItemProps {
-  children: React.ReactNode;
+  children: ReactNode;
   onClick?: () => void;
 }
 
 const MenuItem = ({ children, onClick }: MenuItemProps) => (
-  <div data-test="menu-item" role="menuitem" onClick={onClick}>
+  <div data-test="menu-item" role="menuitem" onClick={onClick} tabIndex={0}>
     {children}
   </div>
 );
 
 const Menu = ({ children }: MenuProps) => (
   <div data-test="menu">
-    {React.Children.map(children, child => {
-      if (React.isValidElement<MenuItemProps>(child) && child.type === MenuItem) {
-        return React.cloneElement<MenuItemProps>(child, {
+    {Children.map(children, child => {
+      if (isValidElement<MenuItemProps>(child) && child.type === MenuItem) {
+        return cloneElement<MenuItemProps>(child, {
           onClick: async () => {
-            if (child.props.onClick) {
-              try {
-                await child.props.onClick();
-              } catch (error) {
-                // Let the error propagate
-                throw error;
-              }
-            }
+            await child.props.onClick?.();
           },
         });
       }

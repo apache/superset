@@ -92,23 +92,27 @@ describe('SavedQueryPreviewModal', () => {
   it('renders sql from saved query', () => {
     renderModal();
     const container = screen.getByTestId('Query preview-modal');
-    expect(container.textContent).toMatch(/SELECT 1 FROM table/i);
+    expect(container).toHaveTextContent(/SELECT 1 FROM table/i);
   });
 
   it('renders buttons with correct text', () => {
     renderModal();
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Previous' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Open in SQL Lab' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Open in SQL Lab' }),
+    ).toBeInTheDocument();
   });
 
   it('handles next saved query', async () => {
     renderModal();
     const nextButton = screen.getByRole('button', { name: 'Next' });
-    expect(nextButton).not.toBeDisabled();
-    
+    expect(nextButton).toBeEnabled();
+
     fireEvent.click(nextButton);
-    
+
     await waitFor(() => {
       expect(mockedProps.fetchData).toHaveBeenCalledWith(2);
     });
@@ -117,10 +121,10 @@ describe('SavedQueryPreviewModal', () => {
   it('handles previous saved query', async () => {
     renderModal();
     const prevButton = screen.getByRole('button', { name: 'Previous' });
-    expect(prevButton).not.toBeDisabled();
-    
+    expect(prevButton).toBeEnabled();
+
     fireEvent.click(prevButton);
-    
+
     await waitFor(() => {
       expect(mockedProps.fetchData).toHaveBeenCalledWith(0);
     });
@@ -130,19 +134,25 @@ describe('SavedQueryPreviewModal', () => {
     const { savedQuery } = mockedProps;
     renderModal();
     const openButton = screen.getByRole('button', { name: 'Open in SQL Lab' });
-    
+
     // Simulate a normal click (no meta key)
     fireEvent.click(openButton, { metaKey: false });
-    
+
     await waitFor(() => {
-      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(savedQuery.id, false);
+      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(
+        savedQuery.id,
+        false,
+      );
     });
 
     // Simulate a meta key click
     fireEvent.click(openButton, { metaKey: true });
-    
+
     await waitFor(() => {
-      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(savedQuery.id, true);
+      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(
+        savedQuery.id,
+        true,
+      );
     });
   });
 });

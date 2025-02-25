@@ -29,8 +29,6 @@ import {
 } from 'spec/helpers/testing-library';
 
 import AnnotationList from 'src/pages/AnnotationList';
-import SubMenu from 'src/features/home/SubMenu';
-
 // store needed for withToasts(AnnotationList)
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -88,12 +86,14 @@ describe('AnnotationList', () => {
         useRedux: true,
         useQueryParams: true,
         store,
-      }
+      },
     );
 
   it('renders', async () => {
     renderList();
-    expect(await screen.findByText('Annotation Layer Test 0')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Annotation Layer Test 0'),
+    ).toBeInTheDocument();
   });
 
   it('renders a SubMenu', async () => {
@@ -111,10 +111,11 @@ describe('AnnotationList', () => {
     await waitFor(() => {
       const callsQ = fetchMock.calls(/annotation_layer\/1/);
       expect(callsQ).toHaveLength(2);
-      expect(callsQ[1][0]).toMatchInlineSnapshot(
-        `"http://localhost/api/v1/annotation_layer/1"`,
-      );
     });
+    const callsQ = fetchMock.calls(/annotation_layer\/1/);
+    expect(callsQ[1][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/annotation_layer/1"`,
+    );
   });
 
   it('fetches annotations', async () => {
@@ -122,25 +123,28 @@ describe('AnnotationList', () => {
     await waitFor(() => {
       const callsQ = fetchMock.calls(/annotation_layer\/1\/annotation/);
       expect(callsQ).toHaveLength(1);
-      expect(callsQ[0][0]).toMatchInlineSnapshot(
-        `"http://localhost/api/v1/annotation_layer/1/annotation/?q=(order_column:short_descr,order_direction:desc,page:0,page_size:25)"`,
-      );
     });
+    const callsQ = fetchMock.calls(/annotation_layer\/1\/annotation/);
+    expect(callsQ[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/annotation_layer/1/annotation/?q=(order_column:short_descr,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 
   it('deletes an annotation', async () => {
     renderList();
-    
+
     // Wait for the list to load
     const table = await screen.findByRole('table');
-    
+
     // Find the first row and click its delete button
     const firstRow = within(table).getAllByRole('row')[1]; // Skip header row
     const deleteButton = within(firstRow).getByLabelText('trash');
     fireEvent.click(deleteButton);
 
     // Check delete modal content
-    expect(screen.getByText(/Are you sure you want to delete annotation 0 label?/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Are you sure you want to delete annotation 0 label?/),
+    ).toBeInTheDocument();
 
     // Type DELETE to confirm
     const input = screen.getByTestId('delete-modal-input');
@@ -159,12 +163,14 @@ describe('AnnotationList', () => {
 
   it('shows bulk actions when bulk select is clicked', async () => {
     renderList();
-    
+
     // Wait for the list to load
     await screen.findByRole('table');
 
     // Find and click bulk select button
-    const bulkSelectButton = await screen.findByTestId('annotation-bulk-select');
+    const bulkSelectButton = await screen.findByTestId(
+      'annotation-bulk-select',
+    );
     fireEvent.click(bulkSelectButton);
 
     // After clicking bulk select, a bulk select controls alert should appear

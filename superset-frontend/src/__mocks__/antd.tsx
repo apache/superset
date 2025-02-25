@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Mock Menu component
 const Menu = ({ children, ...props }: any) => (
   <div data-test="antd-menu" {...props}>
@@ -15,9 +13,11 @@ Menu.Item = ({ children, ...props }: any) => (
 
 // Add emotion styled support for Menu.Item
 const MenuItemComponent = Menu.Item as any;
-MenuItemComponent.__emotion_real = MenuItemComponent;
-MenuItemComponent.__emotion_base = 'div';
-MenuItemComponent.__emotion_styles = [];
-MenuItemComponent.withComponent = (nextTag: string) => MenuItemComponent;
+Object.defineProperties(MenuItemComponent, {
+  withComponent: {
+    value: () => MenuItemComponent,
+    writable: true,
+  },
+});
 
 export { Menu };

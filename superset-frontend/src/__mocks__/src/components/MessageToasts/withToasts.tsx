@@ -1,9 +1,7 @@
-import React from 'react';
+import { ComponentType } from 'react';
 
-const withToasts = (WrappedComponent: React.ComponentType<any>) => {
-  const WithToastsWrapper = (props: any) => {
-    return <WrappedComponent {...props} />;
-  };
+const withToasts = (WrappedComponent: ComponentType<any>) => {
+  const WithToastsWrapper = (props: any) => <WrappedComponent {...props} />;
   WithToastsWrapper.displayName = `WithToasts(${WrappedComponent.displayName || WrappedComponent.name || 'Component'})`;
   return WithToastsWrapper;
 };

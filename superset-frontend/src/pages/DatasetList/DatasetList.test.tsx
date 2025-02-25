@@ -17,26 +17,25 @@
  * under the License.
  */
 
-import React from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
 import {
   render,
   screen,
-  waitFor,
-  within,
-  act,
   cleanup,
-  fireEvent,
   userEvent,
 } from 'spec/helpers/testing-library';
 import * as reactRedux from 'react-redux';
 
+// Import actual component instead of mocking it
+import DatasetList from '.';
+
 // Mock hooks before any imports
 jest.mock('src/hooks/apiResources', () => ({
   getDatabaseDocumentationLinks: () => ({
-    support: 'https://superset.apache.org/docs/databases/installing-database-drivers',
+    support:
+      'https://superset.apache.org/docs/databases/installing-database-drivers',
   }),
 }));
 
@@ -44,7 +43,7 @@ jest.mock('src/hooks/apiResources', () => ({
 jest.mock('@superset-ui/core', () => {
   const supersetTheme = {
     colors: {
-      grayscale: { 
+      grayscale: {
         light1: '#ccc',
         dark1: '#1b1b1b',
         dark2: '#444444',
@@ -60,13 +59,10 @@ jest.mock('@superset-ui/core', () => {
     },
   };
 
-  const styledMock = Object.assign(
-    (component: any) => component,
-    {
-      div: () => 'div',
-      span: () => 'span',
-    },
-  );
+  const styledMock = Object.assign((component: any) => component, {
+    div: () => 'div',
+    span: () => 'span',
+  });
 
   const registryMock = {
     get: () => null,
@@ -109,13 +105,30 @@ jest.mock('@superset-ui/core', () => {
       }),
     }),
     Registry: class {
-      get() { return null; }
+      get() {
+        return null;
+      }
+
       registerValue() {}
-      keys() { return []; }
-      values() { return []; }
-      entries() { return []; }
-      has() { return false; }
+
+      keys() {
+        return [];
+      }
+
+      values() {
+        return [];
+      }
+
+      entries() {
+        return [];
+      }
+
+      has() {
+        return false;
+      }
+
       remove() {}
+
       clear() {}
     },
     theme: supersetTheme,
@@ -184,7 +197,9 @@ jest.mock('src/utils/common', () => ({
 // Mock styled-components
 jest.mock('@emotion/styled', () => ({
   default: (Component: any) =>
-    typeof Component === 'string' ? Component : (props: any) => <Component {...props} />,
+    typeof Component === 'string'
+      ? Component
+      : (props: any) => <Component {...props} />,
 }));
 
 // Mock components that use styled-components
@@ -223,8 +238,13 @@ interface ListViewProps {
   }[];
 }
 
-const ListView = ({ children, bulkActions = [], data, columns }: ListViewProps) => {
-  return React.createElement(
+const ListView = ({
+  children,
+  bulkActions = [],
+  data,
+  columns,
+}: ListViewProps) =>
+  React.createElement(
     'div',
     { 'data-test': 'list-view', role: 'table' },
     [
@@ -235,6 +255,7 @@ const ListView = ({ children, bulkActions = [], data, columns }: ListViewProps) 
           React.createElement(
             'button',
             {
+              type: 'button',
               onClick: () => bulkActions[0].onSelect(data || []),
             },
             bulkActions[0].name,
@@ -257,7 +278,6 @@ const ListView = ({ children, bulkActions = [], data, columns }: ListViewProps) 
       ) || []),
     ].filter(Boolean),
   );
-};
 
 jest.mock('src/components/ListView', () => ({
   __esModule: true,
@@ -286,9 +306,6 @@ jest.mock('@superset-ui/chart-controls', () => ({
   default: {},
 }));
 
-// Import actual component instead of mocking it
-import DatasetList from '.';
-
 interface SubMenuProps {
   name?: string;
   tabs?: { label: string; url: string }[];
@@ -305,12 +322,17 @@ jest.mock('src/features/home/SubMenu', () => ({
     <div data-test="submenu">
       <div>{name}</div>
       {buttons?.map((btn, i) => (
-        <button key={i} onClick={btn.onClick} data-test={btn['data-test']}>
+        <button
+          type="button"
+          key={i}
+          onClick={btn.onClick}
+          data-test={btn['data-test']}
+        >
           {btn.name}
         </button>
       ))}
       {tabs?.map(tab => (
-        <a key={tab.label} href={tab.url} role="link">
+        <a key={tab.label} href={tab.url}>
           {tab.label}
         </a>
       ))}
@@ -402,7 +424,9 @@ describe('DatasetList', () => {
 
 describe('RTL', () => {
   beforeEach(async () => {
-    (jest.requireMock('@superset-ui/core').isFeatureEnabled as jest.Mock).mockReturnValue(true);
+    (
+      jest.requireMock('@superset-ui/core').isFeatureEnabled as jest.Mock
+    ).mockReturnValue(true);
   });
 
   afterEach(() => {

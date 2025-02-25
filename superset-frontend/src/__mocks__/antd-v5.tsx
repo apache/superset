@@ -1,4 +1,4 @@
-import React from 'react';
+import { theme } from '@superset-ui/core';
 
 // Mock Menu component
 const Menu = ({ children, ...props }: any) => (
@@ -33,7 +33,13 @@ Menu.ItemGroup = ({ children, ...props }: any) => (
 
 // Mock Card component
 const Card = ({ children, css, ...props }: any) => {
-  const style = typeof css === 'function' ? css({ colors: { grayscale: { light2: '#eee' } }, gridUnit: 4 }) : css;
+  const style =
+    typeof css === 'function'
+      ? css({
+          colors: { grayscale: { light2: theme.colors.grayscale.light2 } },
+          gridUnit: 4,
+        })
+      : css;
   return (
     <div data-test="antd-card" style={style} {...props}>
       {children}
@@ -48,10 +54,8 @@ Card.Meta = ({ children, ...props }: any) => (
 );
 
 // Mock Input component
-const Input = ({ children, ...props }: any) => (
-  <input data-test="antd-input" {...props}>
-    {children}
-  </input>
+const Input = ({ ...props }: any) => (
+  <input data-test="antd-input" {...props} />
 );
 
 Input.TextArea = ({ children, ...props }: any) => (
@@ -60,10 +64,8 @@ Input.TextArea = ({ children, ...props }: any) => (
   </textarea>
 );
 
-Input.Password = ({ children, ...props }: any) => (
-  <input type="password" data-test="antd-input-password" {...props}>
-    {children}
-  </input>
+Input.Password = ({ ...props }: any) => (
+  <input type="password" data-test="antd-input-password" {...props} />
 );
 
 // Mock Modal component
@@ -75,7 +77,7 @@ const Modal = ({ children, ...props }: any) => (
 
 // Mock Button component
 const Button = ({ children, ...props }: any) => (
-  <button data-test="antd-button" {...props}>
+  <button type="button" data-test="antd-button" {...props}>
     {children}
   </button>
 );
@@ -91,10 +93,15 @@ Empty.PRESENTED_IMAGE_SIMPLE = 'simple-image';
 Empty.PRESENTED_IMAGE_DEFAULT = 'default-image';
 
 // Mock Dropdown component
-const Dropdown = ({ children, dropdownRender, trigger = ['click'], ...props }: any) => (
+const Dropdown = ({
+  children,
+  dropdownRender,
+  trigger = ['click'],
+  ...props
+}: any) => (
   <div data-test="antd-dropdown" {...props}>
     {children}
-    {dropdownRender && dropdownRender()}
+    {dropdownRender?.()}
   </div>
 );
 
@@ -108,11 +115,15 @@ const Tooltip = ({ children, title, ...props }: any) => (
 
 // Add emotion styled support
 const addEmotionSupport = (Component: any) => {
-  Component.__emotion_base = 'div';
-  Component.__emotion_real = Component;
-  Component.__emotion_styles = [];
-  Component.withComponent = (nextTag: string) => Component;
-  return Component;
+  const emotionComponent = Component;
+  // Using Object.defineProperties to avoid direct assignment
+  Object.defineProperties(emotionComponent, {
+    withComponent: {
+      value: () => emotionComponent,
+      writable: true,
+    },
+  });
+  return emotionComponent;
 };
 
 [
@@ -129,13 +140,4 @@ const addEmotionSupport = (Component: any) => {
   Tooltip,
 ].forEach(addEmotionSupport);
 
-export {
-  Menu,
-  Card,
-  Input,
-  Modal,
-  Button,
-  Empty,
-  Dropdown,
-  Tooltip,
-};
+export { Menu, Card, Input, Modal, Button, Empty, Dropdown, Tooltip };

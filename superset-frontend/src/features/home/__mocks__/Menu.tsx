@@ -1,16 +1,10 @@
-import React from 'react';
-
 const MenuItem = ({ children, onClick }: any) => (
-  <div onClick={onClick} role="menuitem">
+  <div onClick={onClick} role="menuitem" tabIndex={0}>
     {children}
   </div>
 );
 
-export const Menu = ({ children }: any) => (
-  <div role="menu">
-    {children}
-  </div>
-);
+export const Menu = ({ children }: any) => <div role="menu">{children}</div>;
 
 Menu.Item = MenuItem;
 

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
@@ -75,7 +74,7 @@ jest.mock('./SubMenu', () => ({
   default: ({ tabs, buttons }: any) => (
     <div data-test="submenu">
       {tabs?.map((tab: any) => (
-        <div key={tab.name} role="tab" onClick={tab.onClick}>
+        <div key={tab.name} role="tab" tabIndex={0} onClick={tab.onClick}>
           {tab.label}
         </div>
       ))}
@@ -161,11 +160,12 @@ describe('SavedQueries', () => {
       result: mockQueries,
       count: mockQueries.length,
     });
-    mockSupersetDelete.mockImplementation(() => 
+    mockSupersetDelete.mockImplementation(() =>
       Promise.resolve({
         json: { message: 'ok' },
         response: new Response(),
-      }));
+      }),
+    );
   });
 
   afterEach(() => {
@@ -175,33 +175,42 @@ describe('SavedQueries', () => {
 
   it('renders the saved queries list view', async () => {
     setup();
-    
+
     // Verify navigation elements
-    expect(await screen.findByRole('tab', { name: 'Mine' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('tab', { name: 'Mine' }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/SQL Query/)).toBeInTheDocument();
     expect(screen.getByText(/View All/)).toBeInTheDocument();
 
     // Verify queries are displayed
-    for (let i = 0; i < mockQueries.length; i++) {
-      expect(await screen.findByText(`query ${i}`)).toBeInTheDocument();
+    // Verify queries are displayed
+    const queryPromises = mockQueries.map(async (_, i) => {
+      const queryText = await screen.findByText(`query ${i}`);
+      expect(queryText).toBeInTheDocument();
       expect(screen.getAllByText('Modified 1 day ago')[i]).toBeInTheDocument();
-    }
+    });
+    await Promise.all(queryPromises);
   });
 
   it('shows empty state when no queries exist', async () => {
-    fetchMock.get(queriesEndpoint, {
-      result: [],
-      count: 0,
-    }, { overwriteRoutes: true });
+    fetchMock.get(
+      queriesEndpoint,
+      {
+        result: [],
+        count: 0,
+      },
+      { overwriteRoutes: true },
+    );
 
     setup({ mine: [] });
-    
+
     expect(await screen.findByText('Nothing here yet')).toBeInTheDocument();
   });
 
   it('shows loading state while fetching queries', async () => {
     setup();
-    
+
     // Wait for loading state to disappear
     await waitFor(() => {
       expect(screen.queryByTestId('loading-cards')).not.toBeInTheDocument();
@@ -213,11 +222,15 @@ describe('SavedQueries', () => {
 
     // Wait for queries to load
     const firstQuery = await screen.findByText('query 0');
-    const queryCard = firstQuery.closest('[data-test="list-view-card"]') as HTMLElement;
+    const queryCard = firstQuery.closest(
+      '[data-test="list-view-card"]',
+    ) as HTMLElement;
     expect(queryCard).toBeInTheDocument();
 
     // Open actions menu for first query
-    const moreButton = within(queryCard).getByRole('img', { name: 'more-vert' });
+    const moreButton = within(queryCard).getByRole('img', {
+      name: 'more-vert',
+    });
     await userEvent.click(moreButton);
 
     // Click delete option
@@ -227,7 +240,9 @@ describe('SavedQueries', () => {
     // Verify delete modal
     const modal = await screen.findByRole('dialog');
     expect(modal).toHaveTextContent('Delete Query?');
-    expect(modal).toHaveTextContent('This action will permanently delete the saved query.');
+    expect(modal).toHaveTextContent(
+      'This action will permanently delete the saved query.',
+    );
 
     // Confirm deletion
     const confirmButton = screen.getByRole('button', { name: /confirm/i });
@@ -244,11 +259,15 @@ describe('SavedQueries', () => {
 
     // Wait for queries to load
     const firstQuery = await screen.findByText('query 0');
-    const queryCard = firstQuery.closest('[data-test="list-view-card"]') as HTMLElement;
+    const queryCard = firstQuery.closest(
+      '[data-test="list-view-card"]',
+    ) as HTMLElement;
     expect(queryCard).toBeInTheDocument();
 
     // Open actions menu
-    const moreButton = within(queryCard).getByRole('img', { name: 'more-vert' });
+    const moreButton = within(queryCard).getByRole('img', {
+      name: 'more-vert',
+    });
     await userEvent.click(moreButton);
 
     // Verify menu options
@@ -258,7 +277,10 @@ describe('SavedQueries', () => {
     expect(shareButton).toBeInTheDocument();
 
     // Verify edit link
-    expect(editButton.closest('a')).toHaveAttribute('href', '/sqllab?savedQueryId=0');
+    expect(editButton.closest('a')).toHaveAttribute(
+      'href',
+      '/sqllab?savedQueryId=0',
+    );
   });
 
   it('handles errors when deleting queries', async () => {
@@ -269,11 +291,15 @@ describe('SavedQueries', () => {
 
     // Wait for queries to load
     const firstQuery = await screen.findByText('query 0');
-    const queryCard = firstQuery.closest('[data-test="list-view-card"]') as HTMLElement;
+    const queryCard = firstQuery.closest(
+      '[data-test="list-view-card"]',
+    ) as HTMLElement;
     expect(queryCard).toBeInTheDocument();
 
     // Open actions menu
-    const moreButton = within(queryCard).getByRole('img', { name: 'more-vert' });
+    const moreButton = within(queryCard).getByRole('img', {
+      name: 'more-vert',
+    });
     await userEvent.click(moreButton);
 
     // Click delete option
@@ -285,10 +311,13 @@ describe('SavedQueries', () => {
     await userEvent.click(confirmButton);
 
     // Wait for error handler to be called
-    await waitFor(() => {
-      expect(addDangerToast).toHaveBeenCalledWith(
-        'There was an issue deleting query 0: Error'
-      );
-    }, { interval: 100, timeout: 2000 });
+    await waitFor(
+      () => {
+        expect(addDangerToast).toHaveBeenCalledWith(
+          'There was an issue deleting query 0: Error',
+        );
+      },
+      { interval: 100, timeout: 2000 },
+    );
   });
 });

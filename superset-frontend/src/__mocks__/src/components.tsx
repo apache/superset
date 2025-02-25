@@ -1,7 +1,11 @@
-import React from 'react';
-
 // Mock Button component
-export const Button = ({ children, onClick, buttonSize, buttonStyle, ...rest }: any) => (
+export const Button = ({
+  children,
+  onClick,
+  buttonSize,
+  buttonStyle,
+  ...rest
+}: any) => (
   <button
     onClick={onClick}
     data-size={buttonSize}

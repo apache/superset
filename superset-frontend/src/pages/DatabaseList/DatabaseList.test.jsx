@@ -20,7 +20,6 @@ import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { MemoryRouter } from 'react-router-dom';
 import {
   render,
   screen,
@@ -152,10 +151,11 @@ describe('DatabaseList', () => {
     await waitFor(() => {
       const callsD = fetchMock.calls(/database\/\?q/);
       expect(callsD).toHaveLength(2);
-      expect(callsD[0][0]).toMatchInlineSnapshot(
-        `"http://localhost/api/v1/database/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-      );
     });
+    const callsD = fetchMock.calls(/database\/\?q/);
+    expect(callsD[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 
   it('deletes a database', async () => {
@@ -182,7 +182,9 @@ describe('DatabaseList', () => {
 
     // Verify delete request was made
     await waitFor(() => {
-      expect(fetchMock.calls(/database\/0\/related_objects/, 'GET')).toHaveLength(1);
+      expect(
+        fetchMock.calls(/database\/0\/related_objects/, 'GET'),
+      ).toHaveLength(1);
       expect(fetchMock.calls(/database\/0/, 'DELETE')).toHaveLength(1);
     });
   });
@@ -194,11 +196,15 @@ describe('DatabaseList', () => {
     await screen.findByRole('table');
 
     // Set expose_in_sqllab filter
-    const exposeSqlLabFilter = screen.getByRole('combobox', { name: /expose in sql lab/i });
+    const exposeSqlLabFilter = screen.getByRole('combobox', {
+      name: /expose in sql lab/i,
+    });
     fireEvent.change(exposeSqlLabFilter, { target: { value: 'Yes' } });
 
     // Set allow_run_async filter
-    const allowRunAsyncFilter = screen.getByRole('combobox', { name: /async query/i });
+    const allowRunAsyncFilter = screen.getByRole('combobox', {
+      name: /async query/i,
+    });
     fireEvent.change(allowRunAsyncFilter, { target: { value: 'No' } });
 
     // Set database_name filter
@@ -208,10 +214,11 @@ describe('DatabaseList', () => {
 
     // Verify filter request was made
     await waitFor(() => {
-      expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
-        `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:ct,value:fooo),(col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-      );
+      expect(fetchMock.lastCall()).toBeTruthy();
     });
+    expect(fetchMock.lastCall()[0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/database/?q=(filters:!((col:database_name,opr:ct,value:fooo),(col:expose_in_sqllab,opr:eq,value:!t),(col:allow_run_async,opr:eq,value:!f)),order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
   });
 
   it('should not render dropdown menu button if user is not admin', async () => {

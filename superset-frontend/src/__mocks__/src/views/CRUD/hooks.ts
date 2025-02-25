@@ -1,4 +1,10 @@
-const mockData = { id: 1, template_name: 'test', css: 'body { color: red; }' };
+import { supersetTheme } from '@superset-ui/core';
+
+const mockData = {
+  id: 1,
+  template_name: 'test',
+  css: `body { color: ${supersetTheme.colors.error.base}; }`,
+};
 
 export const useSingleViewResource = (
   resource: string,
@@ -8,18 +14,19 @@ export const useSingleViewResource = (
   resourceData = null,
 ) => {
   // Return mockData in edit mode, null in create mode
-  const isEditMode = window.location.search.includes('cssTemplate') || resourceData;
-  
+  const isEditMode =
+    window.location.search.includes('cssTemplate') || resourceData;
+
   return {
     state: {
       loading: false,
       resource: isEditMode ? mockData : null,
     },
-    fetchResource: jest.fn().mockImplementation(() => {
-      return Promise.resolve({
+    fetchResource: jest.fn().mockImplementation(() =>
+      Promise.resolve({
         json: { result: isEditMode ? mockData : null },
-      });
-    }),
+      }),
+    ),
     createResource: jest.fn().mockResolvedValue({}),
     updateResource: jest.fn().mockResolvedValue({}),
     clearError: jest.fn(),

@@ -1,12 +1,4 @@
-import React from 'react';
-
-const ListViewCard = ({
-  title,
-  description,
-  cover,
-  url,
-  actions,
-}: any) => (
+const ListViewCard = ({ title, description, cover, url, actions }: any) => (
   <div data-test="list-view-card">
     {cover && <div data-test="card-cover">{cover}</div>}
     <div data-test="card-body">

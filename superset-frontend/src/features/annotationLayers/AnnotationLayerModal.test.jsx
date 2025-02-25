@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen } from 'spec/helpers/testing-library';
 import AnnotationLayerModal from './AnnotationLayerModal';
 
 const mockData = { id: 1, name: 'test', descr: 'test description' };

@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
 import { mockStore } from 'spec/fixtures/mockStore';
 import PropertiesModal from '.';
 
@@ -251,9 +249,7 @@ describe('PropertiesModal', () => {
       renderModal();
       await waitFor(() => {
         const rolesSelect = screen.queryByRole('combobox', { name: 'Roles' });
-        if (rolesSelect) {
-          expect(rolesSelect).toBeInTheDocument();
-        }
+        expect(rolesSelect).toBeInTheDocument();
       });
       spy.mockRestore();
     });

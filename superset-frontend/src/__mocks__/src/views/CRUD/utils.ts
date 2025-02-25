@@ -1,8 +1,9 @@
-export const createErrorHandler = (errMsg: (message: string) => void) => (error: any) => {
-  const message = error.error || error.message || error.statusText;
-  errMsg(`There was an issue deleting query 0: ${message}`);
-  return error;
-};
+export const createErrorHandler =
+  (errMsg: (message: string) => void) => (error: any) => {
+    const message = error.error || error.message || error.statusText;
+    errMsg(`There was an issue deleting query 0: ${message}`);
+    return error;
+  };
 
 export const getFilterValues = () => ({});
 

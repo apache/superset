@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import AnnotationModal from './AnnotationModal';
@@ -28,7 +27,8 @@ const mockData = {
   end_dttm: '2019-06-11T10:25:00',
 };
 
-const FETCH_ANNOTATION_ENDPOINT = 'glob:*/api/v1/annotation_layer/*/annotation/*';
+const FETCH_ANNOTATION_ENDPOINT =
+  'glob:*/api/v1/annotation_layer/*/annotation/*';
 const ANNOTATION_PAYLOAD = { result: mockData };
 
 fetchMock.get(FETCH_ANNOTATION_ENDPOINT, ANNOTATION_PAYLOAD);

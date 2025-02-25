@@ -16,9 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render, screen, userEvent, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import CssTemplateModal from './CssTemplateModal';
 import { TemplateObject } from './types';
 
@@ -55,11 +59,10 @@ interface RenderModalProps {
   cssTemplate?: TemplateObject | null;
 }
 
-const renderModal = (props: RenderModalProps = {}) => {
-  return render(<CssTemplateModal {...mockedProps} {...props} />, {
+const renderModal = (props: RenderModalProps = {}) =>
+  render(<CssTemplateModal {...mockedProps} {...props} />, {
     useRedux: true,
   });
-};
 
 describe('CssTemplateModal', () => {
   beforeEach(() => {
@@ -97,9 +100,13 @@ describe('CssTemplateModal', () => {
   it('renders css editor', () => {
     renderModal();
     const dialog = screen.getByRole('dialog');
-    const cssContainer = within(dialog).getByText('css').closest('.control-label');
+    const cssContainer = within(dialog)
+      .getByText('css')
+      .closest('.control-label');
     expect(cssContainer).toBeInTheDocument();
-    const requiredIndicator = within(cssContainer as HTMLElement).getByText('*');
+    const requiredIndicator = within(cssContainer as HTMLElement).getByText(
+      '*',
+    );
     expect(requiredIndicator).toHaveClass('required');
   });
 
@@ -134,9 +141,13 @@ describe('CssTemplateModal', () => {
   it('shows name label with required indicator', () => {
     renderModal();
     const dialog = screen.getByRole('dialog');
-    const nameContainer = within(dialog).getByText('Name').closest('.control-label');
+    const nameContainer = within(dialog)
+      .getByText('Name')
+      .closest('.control-label');
     expect(nameContainer).toBeInTheDocument();
-    const requiredIndicator = within(nameContainer as HTMLElement).getByText('*');
+    const requiredIndicator = within(nameContainer as HTMLElement).getByText(
+      '*',
+    );
     expect(requiredIndicator).toHaveClass('required');
   });
 });
