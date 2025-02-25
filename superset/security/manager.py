@@ -2289,9 +2289,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = viz.form_data
 
             assert datasource
-                
+
             can_access_schema = self.can_access_schema(datasource)
-            can_access_datasource_permission = self.can_access("datasource_access", datasource.perm or "")
+            can_access_datasource_permission = self.can_access(
+                "datasource_access", datasource.perm or ""
+            )
             is_owner = self.is_owner(datasource)
             # Grant access to the datasource only if dashboard RBAC is enabled
             # or the user is an embedded guest user with access to the dashboard
@@ -2301,27 +2303,51 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             dashboard_ = None
 
             if form_data and (dashboard_id := form_data.get("dashboardId")):
-                dashboard_ = self.get_session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
-                
+                dashboard_ = (
+                    self.get_session.query(Dashboard)
+                    .filter(Dashboard.id == dashboard_id)
+                    .one_or_none()
+                )
+
             if dashboard_:
-                is_dashboard_rbac_enabled = is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles
-                is_embedded_guest_user = is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user()
+                is_dashboard_rbac_enabled = (
+                    is_feature_enabled("DASHBOARD_RBAC") and dashboard_.roles
+                )
+                is_embedded_guest_user = (
+                    is_feature_enabled("EMBEDDED_SUPERSET") and self.is_guest_user()
+                )
 
                 if is_dashboard_rbac_enabled or is_embedded_guest_user:
-                    # Native filter.
-                    if form_data.get("type") == "NATIVE_FILTER" and (native_filter_id := form_data.get("native_filter_id")):
-                        json_metadata = json.loads(dashboard_.json_metadata) if dashboard_.json_metadata else {}
-                        dashboard_accessible = any(
-                            target.get("datasetId") == datasource.id
-                            for fltr in json_metadata.get("native_filter_configuration", [])
-                            for target in fltr.get("targets", [])
-                            if native_filter_id == fltr.get("id")
-                        )
-                    # Chart.
-                    elif (slice_id := form_data.get("slice_id")):
-                        slc = self.get_session.query(Slice).filter(Slice.id == slice_id).one_or_none()
-                        dashboard_accessible = slc and slc in dashboard_.slices and slc.datasource == datasource
-       
+                    if form_data:
+                        # Native filter.
+                        if form_data.get("type") == "NATIVE_FILTER" and (
+                            native_filter_id := form_data.get("native_filter_id")
+                        ):
+                            json_metadata = (
+                                json.loads(dashboard_.json_metadata)
+                                if dashboard_.json_metadata
+                                else {}
+                            )
+                            dashboard_accessible = any(
+                                target.get("datasetId") == datasource.id
+                                for fltr in json_metadata.get(
+                                    "native_filter_configuration", []
+                                )
+                                for target in fltr.get("targets", [])
+                                if native_filter_id == fltr.get("id")
+                            )
+                        # Chart.
+                        elif slice_id := form_data.get("slice_id"):
+                            slc = (
+                                self.get_session.query(Slice)
+                                .filter(Slice.id == slice_id)
+                                .one_or_none()
+                            )
+                            dashboard_accessible = (
+                                slc
+                                and slc in dashboard_.slices
+                                and slc.datasource == datasource
+                            )
             if not (
                 can_access_schema
                 or can_access_datasource_permission
