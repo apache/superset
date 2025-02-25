@@ -310,8 +310,6 @@ class FilterBox extends React.PureComponent {
     const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
     iframes.forEach(iframe => {
       if (!iframe.name.includes('dynamic-markdown')) return;
-
-      const targetMarkdown = iframe.attributes?.getNamedItem('src');
       iframe.contentWindow.postMessage(
         crossBrowserInfoString,
         this.props.ikigaiOrigin,
