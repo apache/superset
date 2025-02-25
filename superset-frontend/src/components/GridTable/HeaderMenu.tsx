@@ -112,7 +112,6 @@ const HeaderMenu: React.FC<Params> = ({
               }}
               icon={<Icons.CopyOutlined iconSize="m" />}
             >
-              {' '}
               {t('Copy the current data')}
             </Menu.Item>
             <Menu.Item
@@ -226,7 +225,6 @@ const HeaderMenu: React.FC<Params> = ({
             }}
             icon={<Icons.ColumnWidthOutlined iconSize="m" />}
           >
-            {' '}
             {t('Autosize Column')}
           </Menu.Item>
           <Menu.Item
