@@ -84,5 +84,6 @@ class GuestUser(AnonymousUserMixin):
         self.first_name = user.get("first_name", "Guest")
         self.last_name = user.get("last_name", "User")
         self.roles = roles
+        self.groups = []  # Guest users don't belong to any groups
         self.resources = token["resources"]
         self.rls = token.get("rls_rules", [])
