@@ -51,6 +51,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
+from sqlalchemy.sql import exists
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -740,50 +741,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 assoc_user_group,
             )
 
-            view_menu_names = (
-                self.get_session.query(self.viewmenu_model.name)
-                .join(
-                    self.permissionview_model,
-                    self.viewmenu_model.id == self.permissionview_model.view_menu_id,
-                )
-                .join(
-                    self.permission_model,
-                    self.permission_model.id == self.permissionview_model.permission_id,
-                )
-                .join(
-                    assoc_permissionview_role,
-                    assoc_permissionview_role.c.permission_view_id
-                    == self.permissionview_model.id,
-                )
-                .join(
-                    self.role_model,
-                    self.role_model.id == assoc_permissionview_role.c.role_id,
-                )
-                .outerjoin(
-                    assoc_group_role, assoc_group_role.c.role_id == self.role_model.id
-                )  # Keep roles without groups
-                .outerjoin(
-                    self.group_model, self.group_model.id == assoc_group_role.c.group_id
-                )
-                .outerjoin(
-                    assoc_user_group, assoc_user_group.c.group_id == self.group_model.id
-                )
-                .outerjoin(
-                    self.user_model, self.user_model.id == assoc_user_group.c.user_id
-                )
-                .outerjoin(
-                    assoc_user_role, assoc_user_role.c.role_id == self.role_model.id
-                )  # Direct role assignment
-                .filter(
-                    or_(
-                        self.user_model.id == get_user_id(),  # Either through groups
-                        assoc_user_role.c.user_id
-                        == get_user_id(),  # Or directly assigned
-                    )
-                )
-                .filter(self.permission_model.name == permission_name)
-            ).all()
+            user_id = get_user_id()
 
+            user_roles_filter = or_(
+                exists().where(
+                    (assoc_user_role.c.user_id == user_id)
+                    & (assoc_user_role.c.role_id == self.role_model.id)
+                ),
+                exists().where(
+                    (assoc_user_group.c.user_id == user_id)
+                    & (assoc_user_group.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.role_id == Role.id)
+                ),
+            )
+
+            view_menu_names = base_query.filter(user_roles_filter).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
