@@ -19,11 +19,10 @@
 import { useRef, useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { Button, AntdSelect } from 'src/components';
-import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
-import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
+import { infoTooltip, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
   JsonUpload,
@@ -37,8 +36,6 @@ export const encryptedCredentialsMap = {
   gsheets: 'service_account_info',
   bigquery: 'credentials_info',
 };
-
-const castStringToBoolean = (optionValue: string) => optionValue === 'true';
 
 export const EncryptedField = ({
   changeMethods,
@@ -111,17 +108,17 @@ export const EncryptedField = ({
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
             {!fileToUpload && (
-              <Button
-                className="input-upload-btn"
-                onClick={() => selectedFileInputRef.current?.click()}
-              >
-                <i className="short-link-trigger fa fa-link" />
+              <Button onClick={() => selectedFileInputRef.current?.click()}>
+                <Icons.Link iconSize="m" />
                 {t('Upload credentials')}
               </Button>
             )}
             {fileToUpload && (
-              <div className="input-upload-current">
-                {fileToUpload}
+              <div className="credentials-uploaded">
+                <Button block disabled>
+                  <Icons.Link iconSize="m" />
+                  {t('Credentials uploaded')}
+                </Button>
                 <Icons.DeleteFilled
                   iconSize="m"
                   onClick={() => {

@@ -236,9 +236,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # via parameters for validation
         parameters = properties.get("parameters", {})
         if parameters and parameters.get("catalog"):
-            table_catalog = parameters.get("catalog", {})
+            table_catalog = parameters.get("catalog") or {}
         else:
-            table_catalog = properties.get("catalog", {})
+            table_catalog = properties.get("catalog") or {}
 
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 

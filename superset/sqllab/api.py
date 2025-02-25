@@ -412,8 +412,6 @@ class SqlLabRestApi(BaseSupersetApi):
             )
             # return the execution result without special encoding
             return json_success(command_result["payload"], response_status)
-        except Exception:
-            raise
         except SqlLabException as ex:
             payload = {"errors": [ex.to_dict()]}
 

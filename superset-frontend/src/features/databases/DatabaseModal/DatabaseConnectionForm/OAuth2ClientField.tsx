@@ -18,6 +18,7 @@
  */
 
 import { useState } from 'react';
+import { css, SupersetTheme } from '@superset-ui/core';
 
 import Collapse from 'src/components/Collapse';
 import { Input } from 'src/components/Input';
@@ -31,6 +32,16 @@ const LABELS = {
   TOKEN_URI: 'Token Request URI',
   SCOPE: 'Scope',
 };
+
+const collapseStyle = (theme: SupersetTheme) => css`
+  .ant-collapse-header {
+    padding-bottom: ${theme.gridUnit * 1.5}px !important;
+    padding-top: ${theme.gridUnit * 1.5}px !important;
+  }
+  .anticon.ant-collapse-arrow {
+    top: 0 !important;
+  }
+`;
 
 interface OAuth2ClientInfo {
   id: string;
@@ -81,7 +92,11 @@ export const OAuth2ClientField = ({
 
   return (
     <Collapse>
-      <Collapse.Panel header="OAuth2 client information" key="1">
+      <Collapse.Panel
+        header="OAuth2 client information"
+        key="1"
+        css={collapseStyle}
+      >
         <FormItem label={LABELS.CLIENT_ID}>
           <Input
             data-test="client-id"
