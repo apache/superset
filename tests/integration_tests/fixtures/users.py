@@ -23,6 +23,70 @@ from tests.integration_tests.constants import GAMMA_SQLLAB_NO_DATA_USERNAME
 
 
 @pytest.fixture
+def create_gamma_user_group(app_context: AppContext):
+    gamma_role = security_manager.find_role("Gamma")
+    group = security_manager.add_group("group1", "", "", roles=[gamma_role])
+    user = security_manager.add_user(
+        "gamma_with_groups",
+        "gamma",
+        "user",
+        "gamma_with_groups",
+        password="password1",  # noqa: S106
+        role=[],
+        groups=[group],
+    )
+    yield
+    security_manager.get_session.delete(user)
+    security_manager.get_session.delete(group)
+    security_manager.get_session.commit()
+
+
+@pytest.fixture
+def create_user_group_with_dar(app_context: AppContext):
+    pvm = security_manager.add_permission_view_menu(
+        "datasource_access", "[examples].[birth_names](id:1)]"
+    )
+    dar_role = security_manager.add_role("dar", [pvm])
+    group = security_manager.add_group("group1", "", "", roles=[dar_role])
+    user = security_manager.add_user(
+        "gamma_with_groups",
+        "gamma",
+        "user",
+        "gamma_with_groups",
+        password="password1",  # noqa: S106
+        role=[],
+        groups=[group],
+    )
+    yield
+    security_manager.get_session.delete(user)
+    security_manager.get_session.delete(group)
+    security_manager.get_session.commit()
+
+
+@pytest.fixture
+def create_gamma_user_group_with_dar(app_context: AppContext):
+    pvm = security_manager.add_permission_view_menu(
+        "datasource_access", "[examples].[birth_names](id:1)]"
+    )
+    dar_role = security_manager.add_role("dar", [pvm])
+    gamma_role = security_manager.find_role("Gamma")
+    group = security_manager.add_group("group1", "", "", roles=[dar_role, gamma_role])
+    user = security_manager.add_user(
+        "gamma_with_groups",
+        "gamma",
+        "user",
+        "gamma_with_groups",
+        password="password1",  # noqa: S106
+        role=[],
+        groups=[group],
+    )
+    yield
+    security_manager.get_session.delete(user)
+    security_manager.get_session.delete(group)
+    security_manager.get_session.commit()
+
+
+@pytest.fixture
 def create_gamma_sqllab_no_data(app_context: AppContext):
     gamma_role = db.session.query(Role).filter(Role.name == "Gamma").one_or_none()
     sqllab_role = db.session.query(Role).filter(Role.name == "sql_lab").one_or_none()

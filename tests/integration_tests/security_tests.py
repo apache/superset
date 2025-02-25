@@ -63,6 +63,11 @@ from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.users import (
+    create_gamma_user_group,  # noqa: F401
+    create_user_group_with_dar,  # noqa: F401
+    create_gamma_user_group_with_dar,  # noqa: F401
+)
 
 NEW_SECURITY_CONVERGE_VIEWS = (
     "Annotation",
@@ -1883,23 +1888,44 @@ class TestSecurityManager(SupersetTestCase):
             roles = security_manager.get_user_roles()
             assert admin.roles == roles
 
-    # def test_get_user_roles_with_groups(self):
-    #     gamma_role = security_manager.find_role("Gamma")
-    #     group = security_manager.add_group("group1","","", roles=[gamma_role])
-    #     user = security_manager.add_user(
-    #         "gamma_with_groups",
-    #         "gamma",
-    #         "user",
-    #         "gamma_with_groups",
-    #         role=[],
-    #         groups=[group],
-    #     )
-    #     with override_user(user):
-    #         roles = security_manager.get_user_roles()
-    #         assert user.roles == roles
-    #     security_manager.get_session.delete(user)
-    #     security_manager.get_session.delete(group)
-    #     security_manager.get_session.commit()
+    @pytest.mark.usefixtures("create_gamma_user_group")
+    def test_get_user_roles_with_groups(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            roles = security_manager.get_user_roles()
+            assert user.groups[0].roles == roles
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_dar")
+    def test_get_user_roles_with_groups_dar(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            roles = security_manager.get_user_roles()
+            assert roles[0].name == "Gamma"
+            assert roles[1].name == "dar"
+
+    @pytest.mark.usefixtures("create_user_group_with_dar")
+    def test_user_view_menu_names_with_groups_dar(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            assert security_manager.user_view_menu_names("datasource_access") == {
+                "[examples].[birth_names](id:1)]"
+            }
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_dar")
+    def test_gamma_user_view_menu_names_with_groups_dar(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            # assert pvm for dar role
+            assert security_manager.user_view_menu_names("datasource_access") == {
+                "[examples].[birth_names](id:1)]"
+            }
+            # assert pvm for gamma role
+            assert security_manager.user_view_menu_names("can_external_metadata") == {
+                "Datasource"
+            }
+            assert security_manager.user_view_menu_names("can_recent_activity") == {
+                "Log"
+            }
 
     def test_get_anonymous_roles(self):
         with override_user(security_manager.get_anonymous_user()):

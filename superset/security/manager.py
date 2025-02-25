@@ -747,12 +747,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 exists().where(
                     (assoc_user_role.c.user_id == user_id)
                     & (assoc_user_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
                 ),
                 exists().where(
                     (assoc_user_group.c.user_id == user_id)
                     & (assoc_user_group.c.group_id == self.group_model.id)
                     & (assoc_group_role.c.group_id == self.group_model.id)
                     & (assoc_group_role.c.role_id == Role.id)
+                    & (self.permission_model.name == permission_name)
                 ),
             )
 
