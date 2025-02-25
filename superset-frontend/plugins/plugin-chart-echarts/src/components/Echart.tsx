@@ -139,7 +139,6 @@ function Echart(
       chartRef.current?.getZr().on(name, handler);
     });
 
-
     chartRef.current.setOption(echartOptions, true);
   }, [echartOptions, eventHandlers, zrEventHandlers]);
 
