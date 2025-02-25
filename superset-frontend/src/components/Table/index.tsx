@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useRef, Key } from 'react';
+import { useState, useEffect, useRef, Key, FC } from 'react';
 
 // eslint-disable-next-line no-restricted-imports
 import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
-} from 'antd/lib/table'; // TODO: Remove antd
-// eslint-disable-next-line no-restricted-imports
-import { PaginationProps } from 'antd/lib/pagination'; // TODO: Remove antd
+} from 'antd-v5/lib/table';
+import { PaginationProps } from 'antd-v5/lib/pagination';
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-// eslint-disable-next-line no-restricted-imports
-import { RowSelectionType } from 'antd/lib/table/interface'; // TODO: Remove antd
+import { RowSelectionType } from 'antd-v5/lib/table/interface';
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
-import VirtualTable from './VirtualTable';
+import VirtualTable, { VirtualTableProps } from './VirtualTable';
 
 export const SUPERSET_TABLE_COLUMN = 'superset/table-column';
 
@@ -163,16 +161,18 @@ const defaultRowSelection: Key[] = [];
 const PAGINATION_HEIGHT = 40;
 const HEADER_HEIGHT = 68;
 
-const StyledTable = styled(AntTable)<{ height?: number }>(
+const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
   ({ theme, height }) => `
     .ant-table-body {
       overflow: auto;
-      height: ${height ? `${height}px` : undefined};
     }
 
-    th.ant-table-cell {
-      font-weight: ${theme.fontWeightStrong};
-      color: ${theme.colorText};
+    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+      width: ${theme.gridUnit * 12}px;
+      height: unset;
+    }
+
+   th.ant-table-cell {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -181,12 +181,6 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     .ant-table-tbody > tr > td {
       white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis;
-      border-bottom: 1px solid ${theme.colors.grayscale.light3};
-    }
-
-    .ant-pagination-item-active {
-      border-color: ${theme.colorPrimary};
     }
 
     .ant-table.ant-table-small {
@@ -194,7 +188,9 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     }
   `,
 );
-const StyledVirtualTable = styled(VirtualTable)(
+const StyledVirtualTable = styled(
+  VirtualTable as React.FC<VirtualTableProps<any>>,
+)(
   ({ theme }) => `
   .virtual-table .ant-table-container:before,
   .virtual-table .ant-table-container:after {
