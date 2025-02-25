@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEvent } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { styledMount as mount } from 'spec/helpers/theming';
-
 import { QueryObject } from 'src/views/CRUD/types';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import { act } from 'spec/helpers/testing-library';
 import { QueryState } from '@superset-ui/core';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import QueryPreviewModal from './QueryPreviewModal';
 
 // store needed for withToasts
@@ -63,120 +63,116 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
 }));
 
 describe('QueryPreviewModal', () => {
-  let currentIndex = 0;
-  let currentQuery = mockQueries[currentIndex];
   const mockedProps = {
     onHide: jest.fn(),
     openInSqlLab: jest.fn(),
     queries: mockQueries,
-    query: currentQuery,
-    fetchData: jest.fn(() => {
-      currentIndex += 1;
-      currentQuery = mockQueries[currentIndex];
+    query: mockQueries[0],
+    fetchData: jest.fn((index: number) => {
+      mockedProps.query = mockQueries[index];
     }),
     show: true,
   };
-  const wrapper = mount(<QueryPreviewModal store={store} {...mockedProps} />);
 
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('renders a SyntaxHighlighter', () => {
-    expect(wrapper.find(SyntaxHighlighter)).toBeTruthy();
-  });
+  const getSqlContent = () => {
+    // Find the container div that wraps the SyntaxHighlighter
+    const container = screen.getByTestId('Query preview-modal');
+    // Get all text content, which will include the SQL regardless of syntax highlighting
+    return container.textContent;
+  };
 
-  it('toggles between user sql and executed sql', () => {
-    expect(
-      wrapper.find(SyntaxHighlighter).props().children,
-    ).toMatchInlineSnapshot(`"SELECT 0 FROM table"`);
-
-    act(() => {
-      const props = wrapper
-        .find('[data-test="toggle-executed-sql"]')
-        .first()
-        .props();
-
-      if (typeof props.onClick === 'function') {
-        props.onClick({} as MouseEvent);
-      }
+  it('renders a SyntaxHighlighter with initial SQL', async () => {
+    render(<QueryPreviewModal {...mockedProps} />, {
+      useRedux: true,
+      store,
     });
 
-    wrapper.update();
+    expect(getSqlContent()).toMatch(/SELECT 0 FROM table/i);
+  });
 
-    expect(
-      wrapper.find(SyntaxHighlighter).props().children,
-    ).toMatchInlineSnapshot(`"SELECT 0 FROM table LIMIT 1000"`);
+  it('toggles between user sql and executed sql', async () => {
+    render(<QueryPreviewModal {...mockedProps} />, {
+      useRedux: true,
+      store,
+    });
+
+    // Initial state shows user SQL
+    expect(getSqlContent()).toMatch(/SELECT 0 FROM table/i);
+
+    // Click executed SQL tab
+    const executedTab = screen.getByRole('button', { name: 'Executed query' });
+    fireEvent.click(executedTab);
+
+    // Should show executed SQL
+    await waitFor(() => {
+      expect(getSqlContent()).toMatch(/SELECT 0 FROM table LIMIT 1000/i);
+    });
   });
 
   describe('Previous button', () => {
-    it('disabled when query is the first in list', () => {
-      expect(
-        wrapper.find('[data-test="previous-query"]').first().props().disabled,
-      ).toBe(true);
-    });
-
-    it('falls fetchData with previous index', () => {
-      const mockedProps2 = {
-        ...mockedProps,
-        query: mockQueries[1],
-      };
-      const wrapper2 = mount(
-        <QueryPreviewModal store={store} {...mockedProps2} />,
-      );
-      act(() => {
-        const props = wrapper2
-          .find('[data-test="previous-query"]')
-          .first()
-          .props();
-        if (typeof props.onClick === 'function') {
-          props.onClick({} as MouseEvent);
-        }
+    it('is disabled when query is the first in list', () => {
+      render(<QueryPreviewModal {...mockedProps} />, {
+        useRedux: true,
+        store,
       });
 
-      expect(mockedProps2.fetchData).toHaveBeenCalledWith(0);
+      const prevButton = screen.getByRole('button', { name: 'Previous' });
+      expect(prevButton).toBeDisabled();
+    });
+
+    it('calls fetchData with previous index', async () => {
+      render(<QueryPreviewModal {...mockedProps} query={mockQueries[1]} />, {
+        useRedux: true,
+        store,
+      });
+
+      const prevButton = screen.getByRole('button', { name: 'Previous' });
+      fireEvent.click(prevButton);
+
+      expect(mockedProps.fetchData).toHaveBeenCalledWith(0);
     });
   });
 
   describe('Next button', () => {
-    it('calls fetchData with next index', () => {
-      act(() => {
-        const props = wrapper.find('[data-test="next-query"]').first().props();
-        if (typeof props.onClick === 'function') {
-          props.onClick({} as MouseEvent);
-        }
+    it('calls fetchData with next index', async () => {
+      render(<QueryPreviewModal {...mockedProps} />, {
+        useRedux: true,
+        store,
       });
+
+      const nextButton = screen.getByRole('button', { name: 'Next' });
+      fireEvent.click(nextButton);
 
       expect(mockedProps.fetchData).toHaveBeenCalledWith(1);
     });
 
-    it('disabled when query is last in list', () => {
-      const mockedProps2 = {
-        ...mockedProps,
-        query: mockQueries[2],
-      };
-      const wrapper2 = mount(
-        <QueryPreviewModal store={store} {...mockedProps2} />,
-      );
+    it('is disabled when query is last in list', () => {
+      render(<QueryPreviewModal {...mockedProps} query={mockQueries[2]} />, {
+        useRedux: true,
+        store,
+      });
 
-      expect(
-        wrapper2.find('[data-test="next-query"]').first().props().disabled,
-      ).toBe(true);
+      const nextButton = screen.getByRole('button', { name: 'Next' });
+      expect(nextButton).toBeDisabled();
     });
   });
 
   describe('Open in SQL Lab button', () => {
-    it('calls openInSqlLab prop', () => {
-      const props = wrapper
-        .find('[data-test="open-in-sql-lab"]')
-        .first()
-        .props();
+    it('calls openInSqlLab prop', async () => {
+      const { query } = mockedProps;
+      render(<QueryPreviewModal {...mockedProps} />, {
+        useRedux: true,
+        store,
+      });
 
-      if (typeof props.onClick === 'function') {
-        props.onClick({} as MouseEvent);
-      }
+      const openButton = screen.getByRole('button', { name: 'Open in SQL Lab' });
+      fireEvent.click(openButton);
 
-      expect(mockedProps.openInSqlLab).toHaveBeenCalled();
+      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(query.id);
     });
   });
 });

@@ -19,17 +19,17 @@
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { Provider } from 'react-redux';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { MemoryRouter } from 'react-router-dom';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 
 import AnnotationList from 'src/pages/AnnotationList';
-import DeleteModal from 'src/components/DeleteModal';
-import IndeterminateCheckbox from 'src/components/IndeterminateCheckbox';
-import ListView from 'src/components/ListView';
 import SubMenu from 'src/features/home/SubMenu';
-
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(AnnotationList)
 const mockStore = configureStore([thunk]);
@@ -69,94 +69,109 @@ fetchMock.get(annotationLayerEndpoint, {
 });
 
 jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+  ...jest.requireActual('react-router-dom'),
   useParams: () => ({ annotationLayerId: '1' }),
 }));
 
-async function mountAndWait(props) {
-  const mounted = mount(
-    <Provider store={store}>
-      <AnnotationList {...props} />
-    </Provider>,
-  );
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
-
 describe('AnnotationList', () => {
-  let wrapper;
-
-  beforeAll(async () => {
-    wrapper = await mountAndWait();
+  beforeEach(() => {
+    jest.clearAllMocks();
+    fetchMock.resetHistory();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(AnnotationList)).toBeTruthy();
-  });
-
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toBeTruthy();
-  });
-
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toBeTruthy();
-  });
-
-  it('fetches annotation layer', () => {
-    const callsQ = fetchMock.calls(/annotation_layer\/1/);
-    expect(callsQ).toHaveLength(2);
-    expect(callsQ[1][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/annotation_layer/1"`,
-    );
-  });
-
-  it('fetches annotations', () => {
-    const callsQ = fetchMock.calls(/annotation_layer\/1\/annotation/);
-    expect(callsQ).toHaveLength(1);
-    expect(callsQ[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/annotation_layer/1/annotation/?q=(order_column:short_descr,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-
-  it('renders a DeleteModal', () => {
-    expect(wrapper.find(DeleteModal)).toBeTruthy();
-  });
-
-  it('deletes', async () => {
-    act(() => {
-      wrapper.find('[data-test="delete-action"]').first().props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
-
-    expect(
-      wrapper.find(DeleteModal).first().props().description,
-    ).toMatchInlineSnapshot(
-      `"Are you sure you want to delete annotation 0 label?"`,
+  const renderList = () =>
+    render(
+      <MemoryRouter>
+        <AnnotationList />
+      </MemoryRouter>,
+      {
+        useRedux: true,
+        useQueryParams: true,
+        store,
+      }
     );
 
-    act(() => {
-      wrapper
-        .find('#delete')
-        .first()
-        .props()
-        .onChange({ target: { value: 'DELETE' } });
-    });
-    await waitForComponentToPaint(wrapper);
-    act(() => {
-      wrapper.find('button').last().props().onClick();
-    });
-    await waitForComponentToPaint(wrapper);
+  it('renders', async () => {
+    renderList();
+    expect(await screen.findByText('Annotation Layer Test 0')).toBeInTheDocument();
   });
 
-  it('shows/hides bulk actions when bulk actions is clicked', async () => {
-    const button = wrapper.find('[data-test="annotation-bulk-select"]').first();
-    act(() => {
-      button.props().onClick();
+  it('renders a SubMenu', async () => {
+    renderList();
+    expect(await screen.findByRole('navigation')).toBeInTheDocument();
+  });
+
+  it('renders a ListView', async () => {
+    renderList();
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
+
+  it('fetches annotation layer', async () => {
+    renderList();
+    await waitFor(() => {
+      const callsQ = fetchMock.calls(/annotation_layer\/1/);
+      expect(callsQ).toHaveLength(2);
+      expect(callsQ[1][0]).toMatchInlineSnapshot(
+        `"http://localhost/api/v1/annotation_layer/1"`,
+      );
     });
-    await waitForComponentToPaint(wrapper);
-    expect(wrapper.find(IndeterminateCheckbox)).toHaveLength(
-      mockannotations.length + 1, // 1 for each row and 1 for select all
-    );
+  });
+
+  it('fetches annotations', async () => {
+    renderList();
+    await waitFor(() => {
+      const callsQ = fetchMock.calls(/annotation_layer\/1\/annotation/);
+      expect(callsQ).toHaveLength(1);
+      expect(callsQ[0][0]).toMatchInlineSnapshot(
+        `"http://localhost/api/v1/annotation_layer/1/annotation/?q=(order_column:short_descr,order_direction:desc,page:0,page_size:25)"`,
+      );
+    });
+  });
+
+  it('deletes an annotation', async () => {
+    renderList();
+    
+    // Wait for the list to load
+    const table = await screen.findByRole('table');
+    
+    // Find the first row and click its delete button
+    const firstRow = within(table).getAllByRole('row')[1]; // Skip header row
+    const deleteButton = within(firstRow).getByLabelText('trash');
+    fireEvent.click(deleteButton);
+
+    // Check delete modal content
+    expect(screen.getByText(/Are you sure you want to delete annotation 0 label?/)).toBeInTheDocument();
+
+    // Type DELETE to confirm
+    const input = screen.getByTestId('delete-modal-input');
+    fireEvent.change(input, { target: { value: 'DELETE' } });
+
+    // Click confirm button
+    const confirmButton = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(confirmButton);
+
+    // Verify delete request was made
+    await waitFor(() => {
+      const deleteCalls = fetchMock.calls(/annotation_layer\/1\/annotation/);
+      expect(deleteCalls.some(call => call[1].method === 'DELETE')).toBe(true);
+    });
+  });
+
+  it('shows bulk actions when bulk select is clicked', async () => {
+    renderList();
+    
+    // Wait for the list to load
+    await screen.findByRole('table');
+
+    // Find and click bulk select button
+    const bulkSelectButton = await screen.findByTestId('annotation-bulk-select');
+    fireEvent.click(bulkSelectButton);
+
+    // After clicking bulk select, a bulk select controls alert should appear
+    await waitFor(() => {
+      const bulkSelectAlert = screen.getByTestId('bulk-select-controls');
+      expect(bulkSelectAlert).toBeInTheDocument();
+      expect(screen.getByText('0 Selected')).toBeInTheDocument();
+    });
   });
 });

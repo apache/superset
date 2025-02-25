@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
+import React from 'react';
 import fetchMock from 'fetch-mock';
-import Modal from 'src/components/Modal';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import AnnotationLayerModal from './AnnotationLayerModal';
 
 const mockData = { id: 1, name: 'test', descr: 'test description' };
@@ -31,61 +27,104 @@ const ANNOTATION_LAYER_PAYLOAD = { result: mockData };
 
 fetchMock.get(FETCH_ANNOTATION_LAYER_ENDPOINT, ANNOTATION_LAYER_PAYLOAD);
 
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
-
 const mockedProps = {
-  addDangerToast: () => {},
+  addDangerToast: jest.fn(),
+  addSuccessToast: jest.fn(),
   onLayerAdd: jest.fn(() => []),
-  onHide: () => {},
+  onHide: jest.fn(),
   show: true,
   layer: mockData,
 };
 
-async function mountAndWait(props = mockedProps) {
-  const mounted = mount(
-    <Provider store={store}>
-      <AnnotationLayerModal show {...props} />
-    </Provider>,
-  );
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
+const renderModal = (props = {}) =>
+  render(<AnnotationLayerModal {...mockedProps} {...props} />, {
+    useRedux: true,
+  });
 
 describe('AnnotationLayerModal', () => {
-  let wrapper;
-
-  beforeAll(async () => {
-    wrapper = await mountAndWait();
+  beforeEach(() => {
+    jest.resetAllMocks();
+    fetchMock.resetHistory();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(AnnotationLayerModal)).toBeTruthy();
-  });
-
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toBeTruthy();
+  it('renders the modal', async () => {
+    renderModal();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('renders add header when no layer is included', async () => {
-    const addWrapper = await mountAndWait({});
+    renderModal({ layer: null });
     expect(
-      addWrapper.find('[data-test="annotation-layer-modal-title"]').text(),
-    ).toEqual('Add annotation layer');
+      await screen.findByTestId('annotation-layer-modal-title'),
+    ).toHaveTextContent('Add annotation layer');
   });
 
-  it('renders edit header when layer prop is included', () => {
+  it('renders edit header when layer prop is included', async () => {
+    renderModal();
     expect(
-      wrapper.find('[data-test="annotation-layer-modal-title"]').text(),
-    ).toEqual('Edit annotation layer properties');
+      await screen.findByTestId('annotation-layer-modal-title'),
+    ).toHaveTextContent('Edit annotation layer properties');
   });
 
-  it('renders input element for name', () => {
-    expect(wrapper.find('input[name="name"]')).toBeTruthy();
+  it('renders input element for name', async () => {
+    renderModal();
+    const nameInput = await screen.findByRole('textbox', {
+      name: /annotation layer name/i,
+    });
+    expect(nameInput).toBeInTheDocument();
+    expect(nameInput).toHaveAttribute('name', 'name');
+    expect(nameInput).toHaveValue('test');
   });
 
-  it('renders textarea element for description', () => {
-    expect(wrapper.find('textarea[name="descr"]')).toBeTruthy();
+  it('renders textarea element for description', async () => {
+    renderModal();
+    const descriptionTextarea = await screen.findByRole('textbox', {
+      name: /description/i,
+    });
+    expect(descriptionTextarea).toBeInTheDocument();
+    expect(descriptionTextarea).toHaveAttribute('name', 'descr');
+    expect(descriptionTextarea).toHaveValue('test description');
+  });
+
+  it('disables save button when name is empty', async () => {
+    renderModal({ layer: { ...mockData, name: '' } });
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    expect(saveButton).toBeDisabled();
+  });
+
+  it('enables save button when name is provided', async () => {
+    renderModal();
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    expect(saveButton).toBeEnabled();
+  });
+
+  it('shows "Add" button in create mode', async () => {
+    renderModal({ layer: null });
+    const addButton = await screen.findByRole('button', { name: 'Add' });
+    expect(addButton).toBeInTheDocument();
+  });
+
+  it('shows "Save" button in edit mode', async () => {
+    renderModal();
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    expect(saveButton).toBeInTheDocument();
+  });
+
+  it('shows required indicator for name field', async () => {
+    renderModal();
+    const requiredIndicator = await screen.findByText('*');
+    expect(requiredIndicator).toBeInTheDocument();
+    expect(requiredIndicator).toHaveClass('required');
+  });
+
+  it('shows description placeholder text', async () => {
+    renderModal({ layer: null });
+    const descriptionTextarea = await screen.findByRole('textbox', {
+      name: /description/i,
+    });
+    expect(descriptionTextarea).toHaveAttribute(
+      'placeholder',
+      'Description (this can be seen in the list)',
+    );
   });
 });

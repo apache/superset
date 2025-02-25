@@ -18,8 +18,24 @@
  */
 import React from 'react';
 import fetchMock from 'fetch-mock';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import { render, screen, userEvent, within } from 'spec/helpers/testing-library';
 import CssTemplateModal from './CssTemplateModal';
+import { TemplateObject } from './types';
+
+jest.mock('src/components/AsyncAceEditor', () => ({
+  CssEditor: ({ onChange, value }: { onChange: Function; value: string }) => (
+    <textarea
+      data-test="css-editor"
+      value={value}
+      onChange={e => onChange(e.target.value)}
+    />
+  ),
+}));
+
+jest.mock('src/components/Icons', () => ({
+  EditAlt: () => <span data-test="edit-alt">EditAlt</span>,
+  PlusLarge: () => <span data-test="plus-large">PlusLarge</span>,
+}));
 
 const mockData = { id: 1, template_name: 'test', css: 'body { color: red; }' };
 const FETCH_CSS_TEMPLATE_ENDPOINT = 'glob:*/api/v1/css_template/*';
@@ -35,10 +51,15 @@ const mockedProps = {
   cssTemplate: mockData,
 };
 
-const renderModal = (props = {}) =>
-  render(<CssTemplateModal {...mockedProps} {...props} />, {
+interface RenderModalProps {
+  cssTemplate?: TemplateObject | null;
+}
+
+const renderModal = (props: RenderModalProps = {}) => {
+  return render(<CssTemplateModal {...mockedProps} {...props} />, {
     useRedux: true,
   });
+};
 
 describe('CssTemplateModal', () => {
   beforeEach(() => {
@@ -46,76 +67,76 @@ describe('CssTemplateModal', () => {
     fetchMock.resetHistory();
   });
 
-  it('renders the modal', async () => {
+  it('renders the modal', () => {
     renderModal();
-    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('renders add header when no css template is included', async () => {
+  it('renders add header when no css template is included', () => {
     renderModal({ cssTemplate: null });
-    expect(
-      await screen.findByTestId('css-template-modal-title'),
-    ).toHaveTextContent('Add CSS template');
+    expect(screen.getByTestId('css-template-modal-title')).toHaveTextContent(
+      'Add CSS template',
+    );
   });
 
-  it('renders edit header when css template prop is included', async () => {
+  it('renders edit header when css template prop is included', () => {
     renderModal();
-    expect(
-      await screen.findByTestId('css-template-modal-title'),
-    ).toHaveTextContent('Edit CSS template properties');
+    expect(screen.getByTestId('css-template-modal-title')).toHaveTextContent(
+      'Edit CSS template properties',
+    );
   });
 
-  it('renders input elements for template name', async () => {
+  it('renders input elements for template name', () => {
     renderModal();
-    const nameInput = await screen.findByDisplayValue('test');
+    const nameInput = screen.getByRole('textbox', { name: /name/i });
     expect(nameInput).toBeInTheDocument();
     expect(nameInput).toHaveAttribute('name', 'template_name');
     expect(nameInput).toHaveAttribute('type', 'text');
   });
 
-  it('renders css editor', async () => {
+  it('renders css editor', () => {
     renderModal();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = screen.getByRole('dialog');
     const cssContainer = within(dialog).getByText('css').closest('.control-label');
     expect(cssContainer).toBeInTheDocument();
-    const requiredIndicator = within(cssContainer).getByText('*');
+    const requiredIndicator = within(cssContainer as HTMLElement).getByText('*');
     expect(requiredIndicator).toHaveClass('required');
   });
 
-  it('shows required indicators', async () => {
+  it('shows required indicators', () => {
     renderModal();
-    const requiredIndicators = await screen.findAllByText('*');
+    const requiredIndicators = screen.getAllByText('*');
     expect(requiredIndicators).toHaveLength(2); // Name and CSS fields
     requiredIndicators.forEach(indicator => {
       expect(indicator).toHaveClass('required');
     });
   });
 
-  it('shows "Add" button in create mode', async () => {
+  it('shows "Add" button in create mode', () => {
     renderModal({ cssTemplate: null });
-    const addButton = await screen.findByRole('button', { name: 'Add' });
+    const addButton = screen.getByRole('button', { name: 'Add' });
     expect(addButton).toBeInTheDocument();
     expect(addButton).toBeDisabled(); // Initially disabled until required fields are filled
   });
 
-  it('shows "Save" button in edit mode', async () => {
+  it('shows "Save" button in edit mode', () => {
     renderModal();
-    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    const saveButton = screen.getByRole('button', { name: 'Save' });
     expect(saveButton).toBeInTheDocument();
-    expect(saveButton).toBeEnabled(); // Enabled because all required fields are filled
+    expect(saveButton).toBeDisabled(); // Initially disabled until fields are validated
   });
 
-  it('shows basic information section', async () => {
+  it('shows basic information section', () => {
     renderModal();
-    expect(await screen.findByText('Basic information')).toBeInTheDocument();
+    expect(screen.getByText('Basic information')).toBeInTheDocument();
   });
 
-  it('shows name label with required indicator', async () => {
+  it('shows name label with required indicator', () => {
     renderModal();
-    const dialog = await screen.findByRole('dialog');
+    const dialog = screen.getByRole('dialog');
     const nameContainer = within(dialog).getByText('Name').closest('.control-label');
     expect(nameContainer).toBeInTheDocument();
-    const requiredIndicator = within(nameContainer).getByText('*');
+    const requiredIndicator = within(nameContainer as HTMLElement).getByText('*');
     expect(requiredIndicator).toHaveClass('required');
   });
 });

@@ -19,14 +19,15 @@
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import { styledMount as mount } from 'spec/helpers/theming';
-import Button from 'src/components/Button';
-import Modal from 'src/components/Modal';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import SavedQueryPreviewModal from './SavedQueryPreviewModal';
 
-// store needed for withToasts(DatabaseList)
+// store needed for withToasts
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
@@ -71,66 +72,77 @@ const SAVED_QUERY_PAYLOAD = { result: mockqueries[1] };
 
 fetchMock.get(FETCH_SAVED_QUERY_ENDPOINT, SAVED_QUERY_PAYLOAD);
 
-async function mountAndWait(props = mockedProps) {
-  const mounted = mount(<SavedQueryPreviewModal store={store} {...props} />);
-  await waitForComponentToPaint(mounted);
-
-  return mounted;
-}
-
 describe('SavedQueryPreviewModal', () => {
-  let wrapper;
-
-  beforeAll(async () => {
-    wrapper = await mountAndWait();
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(SavedQueryPreviewModal)).toBeTruthy();
-  });
+  const renderModal = () =>
+    render(<SavedQueryPreviewModal {...mockedProps} />, {
+      useRedux: true,
+      store,
+    });
 
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toBeTruthy();
+  it('renders the modal with correct title', async () => {
+    renderModal();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Query preview')).toBeInTheDocument();
   });
 
   it('renders sql from saved query', () => {
-    expect(wrapper.find('pre').text()).toEqual('SELECT 1 FROM table');
+    renderModal();
+    const container = screen.getByTestId('Query preview-modal');
+    expect(container.textContent).toMatch(/SELECT 1 FROM table/i);
   });
 
   it('renders buttons with correct text', () => {
-    expect(wrapper.find(Button).contains('Previous')).toBe(true);
-    expect(wrapper.find(Button).contains('Next')).toBe(true);
-    expect(wrapper.find(Button).contains('Open in SQL Lab')).toBe(true);
+    renderModal();
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Open in SQL Lab' })).toBeInTheDocument();
   });
 
-  it('handle next save query', () => {
-    const button = wrapper.find('button[data-test="next-saved-query"]');
-    expect(button.props().disabled).toBe(false);
-    act(() => {
-      button.props().onClick(false);
+  it('handles next saved query', async () => {
+    renderModal();
+    const nextButton = screen.getByRole('button', { name: 'Next' });
+    expect(nextButton).not.toBeDisabled();
+    
+    fireEvent.click(nextButton);
+    
+    await waitFor(() => {
+      expect(mockedProps.fetchData).toHaveBeenCalledWith(2);
     });
-    expect(mockedProps.fetchData).toHaveBeenCalled();
-    expect(mockedProps.fetchData.mock.calls[0][0]).toEqual(2);
   });
 
-  it('handle previous save query', () => {
-    const button = wrapper
-      .find('[data-test="previous-saved-query"]')
-      .find(Button);
-    expect(button.props().disabled).toBe(false);
-    act(() => {
-      button.props().onClick(true);
+  it('handles previous saved query', async () => {
+    renderModal();
+    const prevButton = screen.getByRole('button', { name: 'Previous' });
+    expect(prevButton).not.toBeDisabled();
+    
+    fireEvent.click(prevButton);
+    
+    await waitFor(() => {
+      expect(mockedProps.fetchData).toHaveBeenCalledWith(0);
     });
-    wrapper.update();
-    expect(mockedProps.fetchData).toHaveBeenCalled();
-    expect(mockedProps.fetchData.mock.calls[0][0]).toEqual(2);
   });
 
-  it('handle open in sql lab', async () => {
-    act(() => {
-      wrapper.find('[data-test="open-in-sql-lab"]').first().props().onClick({});
+  it('handles open in sql lab', async () => {
+    const { savedQuery } = mockedProps;
+    renderModal();
+    const openButton = screen.getByRole('button', { name: 'Open in SQL Lab' });
+    
+    // Simulate a normal click (no meta key)
+    fireEvent.click(openButton, { metaKey: false });
+    
+    await waitFor(() => {
+      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(savedQuery.id, false);
     });
-    expect(mockedProps.openInSqlLab).toHaveBeenCalled();
-    expect(mockedProps.openInSqlLab.mock.calls[0][0]).toEqual(1);
+
+    // Simulate a meta key click
+    fireEvent.click(openButton, { metaKey: true });
+    
+    await waitFor(() => {
+      expect(mockedProps.openInSqlLab).toHaveBeenCalledWith(savedQuery.id, true);
+    });
   });
 });

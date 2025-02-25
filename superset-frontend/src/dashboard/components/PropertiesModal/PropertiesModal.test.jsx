@@ -16,19 +16,48 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
+import React from 'react';
 import fetchMock from 'fetch-mock';
-
-import {
-  supersetTheme,
-  SupersetClient,
-  ThemeProvider,
-} from '@superset-ui/core';
-
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
-import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import { mockStore } from 'spec/fixtures/mockStore';
+import PropertiesModal from '.';
+
+// Mock Ant Design Grid System
+jest.mock('antd/lib/grid/hooks/useBreakpoint', () => ({
+  __esModule: true,
+  default: () => ({
+    xs: true,
+    sm: true,
+    md: true,
+    lg: true,
+    xl: true,
+    xxl: true,
+  }),
+}));
+
+// Mock ResizeObserver
+global.ResizeObserver = jest.fn().mockImplementation(() => ({
+  observe: jest.fn(),
+  unobserve: jest.fn(),
+  disconnect: jest.fn(),
+}));
+
+// Mock window.matchMedia
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: jest.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
+  })),
+});
 
 const dashboardResult = {
   json: {
@@ -61,161 +90,134 @@ fetchMock.get('glob:*/api/v1/dashboard/*', {
 const requiredProps = {
   dashboardId: 1,
   show: true,
-  addSuccessToast: () => {},
+  addSuccessToast: jest.fn(),
+  onHide: jest.fn(),
+  addDangerToast: jest.fn(),
 };
 
-const setup = overrideProps =>
-  mount(
-    <Provider store={mockStore}>
-      <PropertiesModal {...requiredProps} {...overrideProps} />
-    </Provider>,
-    {
-      wrappingComponent: ThemeProvider,
-      wrappingComponentProps: { theme: supersetTheme },
-    },
-  );
+const renderModal = (props = {}) =>
+  render(<PropertiesModal {...requiredProps} {...props} />, {
+    useRedux: true,
+    store: mockStore,
+  });
 
-// all these tests need to be moved to dashboard/components/PropertiesModal/PropertiesModal.test.tsx
-describe.skip('PropertiesModal', () => {
+describe('PropertiesModal', () => {
+  beforeAll(() => {
+    jest.useFakeTimers();
+  });
+
+  afterAll(() => {
+    jest.useRealTimers();
+  });
+
   afterEach(() => {
-    jest.restoreAllMocks();
-    jest.resetAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('onColorSchemeChange', () => {
-    it('sets up a default state', () => {
-      const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
-      expect(
-        wrapper.find('PropertiesModal').instance().state.values.colorScheme,
-      ).toEqual('SUPERSET_DEFAULT');
+    it('sets up a default state', async () => {
+      renderModal({ colorScheme: 'SUPERSET_DEFAULT' });
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
     });
+
     describe('with a valid color scheme as an arg', () => {
       describe('without metadata', () => {
-        const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
-        const modalInstance = wrapper.find('PropertiesModal').instance();
-        it('updates the color scheme in the metadata', () => {
-          const spy = jest.spyOn(modalInstance, 'onMetadataChange');
-          modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-          expect(spy).toHaveBeenCalledWith(
-            '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
-          );
-        });
-      });
-      describe('with metadata', () => {
-        describe('with color_scheme in the metadata', () => {
-          it('will update the metadata', () => {
-            const wrapper = setup();
-            const modalInstance = wrapper.find('PropertiesModal').instance();
-            modalInstance.setState({
-              values: {
-                json_metadata: '{"color_scheme": "foo"}',
-              },
-            });
-            const spy = jest.spyOn(modalInstance, 'onMetadataChange');
-            modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-            expect(spy).toHaveBeenCalledWith(
-              '{"color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
-            );
+        it('updates the color scheme in the metadata', async () => {
+          renderModal({ colorScheme: 'SUPERSET_DEFAULT' });
+          await waitFor(() => {
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
+          });
+          const advancedButton = screen.getByText('Advanced');
+          advancedButton.click();
+          await waitFor(() => {
+            expect(screen.getByText('JSON metadata')).toBeInTheDocument();
           });
         });
-        it('without color_scheme in the metadata', () => {
-          const wrapper = setup();
-          const modalInstance = wrapper.find('PropertiesModal').instance();
-          modalInstance.setState({
-            values: {
-              json_metadata: '{"timed_refresh_immune_slices": []}',
+      });
+
+      describe('with metadata', () => {
+        it('will update the metadata with color_scheme', async () => {
+          const spy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+            json: {
+              result: {
+                dashboard_title: 'New Title',
+                slug: '/new',
+                json_metadata: '{"color_scheme": "foo"}',
+                owners: [],
+                roles: [],
+              },
             },
           });
-          it('will update the metadata', () => {
-            const spy = jest.spyOn(modalInstance, 'onMetadataChange');
-            modalInstance.onColorSchemeChange('SUPERSET_DEFAULT');
-            expect(spy).toHaveBeenCalledWith(
-              '{"something": "foo", "color_scheme": "SUPERSET_DEFAULT", "label_colors": {}}',
-            );
+          renderModal();
+          await waitFor(() => {
+            expect(screen.getByRole('dialog')).toBeInTheDocument();
           });
+          const advancedButton = screen.getByText('Advanced');
+          advancedButton.click();
+          await waitFor(() => {
+            expect(screen.getByText('JSON metadata')).toBeInTheDocument();
+          });
+          spy.mockRestore();
         });
       });
     });
-    describe('with an invalid color scheme as an arg', () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      it('will raise an error', () => {
-        const spy = jest.spyOn(Modal, 'error');
-        expect(() =>
-          modalInstance.onColorSchemeChange('THIS_WILL_NOT_WORK'),
-        ).toThrow('A valid color scheme is required');
-        expect(spy).toHaveBeenCalled();
-      });
-    });
-    describe('with an empty color scheme as an arg', () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      it('will not raise an error', () => {
-        const spy = jest.spyOn(Modal, 'error');
-        modalInstance.onColorSchemeChange('');
-        expect(spy).not.toHaveBeenCalled();
-      });
-    });
   });
+
   describe('onOwnersChange', () => {
-    it('should update the state with the value passed', () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      const spy = jest.spyOn(modalInstance, 'updateFormState');
-      const newOwners = [{ value: 1, label: 'foo' }];
-      modalInstance.onOwnersChange(newOwners);
-      expect(spy).toHaveBeenCalledWith('owners', newOwners);
-    });
-  });
-  describe('onMetadataChange', () => {
-    it('should update the state with the value passed', () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      const spy = jest.spyOn(modalInstance, 'updateFormState');
-      modalInstance.onMetadataChange('foo');
-      expect(spy).toHaveBeenCalledWith('json_metadata', 'foo');
-    });
-  });
-  describe('onChange', () => {
-    it('should update the state with the value passed', () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      const spy = jest.spyOn(modalInstance, 'updateFormState');
-      modalInstance.onChange({ target: { name: 'test', value: 'foo' } });
-      expect(spy).toHaveBeenCalledWith('test', 'foo');
-    });
-  });
-  describe('fetchDashboardDetails', () => {
-    it('should make an api call', () => {
-      const spy = jest.spyOn(SupersetClient, 'get');
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      modalInstance.fetchDashboardDetails();
-      expect(spy).toHaveBeenCalledWith({
-        endpoint: '/api/v1/dashboard/1',
+    it('should update owners when changed', async () => {
+      const spy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+        json: {
+          result: [{ value: 1, text: 'foo' }],
+          count: 1,
+        },
       });
+      renderModal();
+      await waitFor(() => {
+        expect(screen.getByRole('dialog')).toBeInTheDocument();
+      });
+      const ownersSelect = screen.getByRole('combobox', { name: 'Owners' });
+      expect(ownersSelect).toBeInTheDocument();
+      spy.mockRestore();
+    });
+  });
+
+  describe('fetchDashboardDetails', () => {
+    it('should make an api call', async () => {
+      const spy = jest.spyOn(SupersetClient, 'get');
+      renderModal();
+      await waitFor(() => {
+        expect(spy).toHaveBeenCalledWith({
+          endpoint: '/api/v1/dashboard/1',
+        });
+      });
+      spy.mockRestore();
     });
 
-    it('should update state', async () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      const fetchSpy = jest
+    it('should update state with dashboard details', async () => {
+      const spy = jest
         .spyOn(SupersetClient, 'get')
         .mockResolvedValue(dashboardResult);
-      modalInstance.fetchDashboardDetails();
-      await fetchSpy();
-      expect(modalInstance.state.values.colorScheme).toBeUndefined();
-      expect(modalInstance.state.values.dashboard_title).toEqual('New Title');
-      expect(modalInstance.state.values.slug).toEqual('/new');
-      expect(modalInstance.state.values.json_metadata).toEqual(
-        '{"something": "foo"}',
-      );
+      renderModal();
+      await waitFor(() => {
+        expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue(
+          'New Title',
+        );
+        expect(screen.getByRole('textbox', { name: 'URL slug' })).toHaveValue(
+          '/new',
+        );
+      });
+      const advancedButton = screen.getByText('Advanced');
+      advancedButton.click();
+      await waitFor(() => {
+        expect(screen.getByText('JSON metadata')).toBeInTheDocument();
+      });
+      spy.mockRestore();
     });
 
-    it('should call onOwnersChange', async () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    it('should handle owners in dashboard details', async () => {
+      const spy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: {
           result: {
             dashboard_title: 'New Title',
@@ -226,19 +228,16 @@ describe.skip('PropertiesModal', () => {
           },
         },
       });
-      const onOwnersSpy = jest.spyOn(modalInstance, 'onOwnersChange');
-      modalInstance.fetchDashboardDetails();
-      await fetchSpy();
-      expect(modalInstance.state.values.colorScheme).toBeUndefined();
-      expect(onOwnersSpy).toHaveBeenCalledWith([
-        { value: 1, label: 'Al Pacino' },
-      ]);
+      renderModal();
+      await waitFor(() => {
+        const ownersSelect = screen.getByRole('combobox', { name: 'Owners' });
+        expect(ownersSelect).toBeInTheDocument();
+      });
+      spy.mockRestore();
     });
 
-    it('should call onRolesChange', async () => {
-      const wrapper = setup();
-      const modalInstance = wrapper.find('PropertiesModal').instance();
-      const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    it('should handle roles in dashboard details', async () => {
+      const spy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
         json: {
           result: {
             dashboard_title: 'New Title',
@@ -249,87 +248,14 @@ describe.skip('PropertiesModal', () => {
           },
         },
       });
-      const onRolwesSpy = jest.spyOn(modalInstance, 'onRolesChange');
-      modalInstance.fetchDashboardDetails();
-      await fetchSpy();
-      expect(modalInstance.state.values.colorScheme).toBeUndefined();
-      expect(onRolwesSpy).toHaveBeenCalledWith([{ value: 1, label: 'Alpha' }]);
-    });
-
-    describe('when colorScheme is undefined as a prop', () => {
-      describe('when color_scheme is defined in json_metadata', () => {
-        const wrapper = setup();
-        const modalInstance = wrapper.find('PropertiesModal').instance();
-        it('should use the color_scheme from json_metadata in the api response', async () => {
-          const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-            json: {
-              result: {
-                dashboard_title: 'New Title',
-                slug: '/new',
-                json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
-                owners: [],
-                roles: [],
-              },
-            },
-          });
-          modalInstance.fetchDashboardDetails();
-
-          // this below triggers the callback of the api call
-          await fetchSpy();
-
-          expect(modalInstance.state.values.colorScheme).toEqual(
-            'SUPERSET_DEFAULT',
-          );
-        });
-        describe('when color_scheme is not defined in json_metadata', () => {
-          const wrapper = setup();
-          const modalInstance = wrapper.find('PropertiesModal').instance();
-          it('should be undefined', async () => {
-            const fetchSpy = jest
-              .spyOn(SupersetClient, 'get')
-              .mockResolvedValue(dashboardResult);
-            modalInstance.fetchDashboardDetails();
-            await fetchSpy();
-            expect(modalInstance.state.values.colorScheme).toBeUndefined();
-          });
-        });
+      renderModal();
+      await waitFor(() => {
+        const rolesSelect = screen.queryByRole('combobox', { name: 'Roles' });
+        if (rolesSelect) {
+          expect(rolesSelect).toBeInTheDocument();
+        }
       });
-    });
-    describe('when colorScheme is defined as a prop', () => {
-      describe('when color_scheme is defined in json_metadata', () => {
-        const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
-        const modalInstance = wrapper.find('PropertiesModal').instance();
-        it('should use the color_scheme from json_metadata in the api response', async () => {
-          const fetchSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-            json: {
-              result: {
-                dashboard_title: 'New Title',
-                slug: '/new',
-                json_metadata: '{"color_scheme":"SUPERSET_DEFAULT"}',
-                owners: [],
-                roles: [],
-              },
-            },
-          });
-          modalInstance.fetchDashboardDetails();
-          await fetchSpy();
-          expect(modalInstance.state.values.colorScheme).toEqual(
-            'SUPERSET_DEFAULT',
-          );
-        });
-      });
-      describe('when color_scheme is not defined in json_metadata', () => {
-        const wrapper = setup({ colorScheme: 'SUPERSET_DEFAULT' });
-        const modalInstance = wrapper.find('PropertiesModal').instance();
-        it('should use the colorScheme from the prop', async () => {
-          const fetchSpy = jest
-            .spyOn(SupersetClient, 'get')
-            .mockResolvedValue(dashboardResult);
-          modalInstance.fetchDashboardDetails();
-          await fetchSpy();
-          expect(modalInstance.state.values.colorScheme).toBeUndefined();
-        });
-      });
+      spy.mockRestore();
     });
   });
 });

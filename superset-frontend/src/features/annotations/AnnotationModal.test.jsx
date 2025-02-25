@@ -16,14 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import thunk from 'redux-thunk';
-import configureStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
+import React from 'react';
 import fetchMock from 'fetch-mock';
-import Modal from 'src/components/Modal';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { JsonEditor } from 'src/components/AsyncAceEditor';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { render, screen } from 'spec/helpers/testing-library';
 import AnnotationModal from './AnnotationModal';
 
 const mockData = {
@@ -33,67 +28,112 @@ const mockData = {
   end_dttm: '2019-06-11T10:25:00',
 };
 
-const FETCH_ANNOTATION_ENDPOINT =
-  'glob:*/api/v1/annotation_layer/*/annotation/*';
+const FETCH_ANNOTATION_ENDPOINT = 'glob:*/api/v1/annotation_layer/*/annotation/*';
 const ANNOTATION_PAYLOAD = { result: mockData };
 
 fetchMock.get(FETCH_ANNOTATION_ENDPOINT, ANNOTATION_PAYLOAD);
 
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
-
 const mockedProps = {
-  addDangerToast: () => {},
-  addSuccessToast: () => {},
+  addDangerToast: jest.fn(),
+  addSuccessToast: jest.fn(),
+  annotationLayerId: 1,
   annotation: mockData,
   onAnnotationAdd: jest.fn(() => []),
-  onHide: () => {},
+  onHide: jest.fn(),
   show: true,
 };
 
-async function mountAndWait(props = mockedProps) {
-  const mounted = mount(
-    <Provider store={store}>
-      <AnnotationModal show {...props} />
-    </Provider>,
-  );
-  await waitForComponentToPaint(mounted);
-  return mounted;
-}
+const renderModal = (props = {}) =>
+  render(<AnnotationModal {...mockedProps} {...props} />, {
+    useRedux: true,
+  });
 
 describe('AnnotationModal', () => {
-  let wrapper;
-
-  beforeAll(async () => {
-    wrapper = await mountAndWait();
+  beforeEach(() => {
+    jest.resetAllMocks();
+    fetchMock.resetHistory();
   });
 
-  it('renders', () => {
-    expect(wrapper.find(AnnotationModal)).toBeTruthy();
-  });
-
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toBeTruthy();
+  it('renders the modal', async () => {
+    renderModal();
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
   it('renders add header when no annotation prop is included', async () => {
-    const addWrapper = await mountAndWait({});
+    renderModal({ annotation: null });
     expect(
-      addWrapper.find('[data-test="annotation-modal-title"]').text(),
-    ).toEqual('Add annotation');
+      await screen.findByTestId('annotation-modal-title'),
+    ).toHaveTextContent('Add annotation');
   });
 
-  it('renders edit header when annotation prop is included', () => {
-    expect(wrapper.find('[data-test="annotation-modal-title"]').text()).toEqual(
-      'Edit annotation',
+  it('renders edit header when annotation prop is included', async () => {
+    renderModal();
+    expect(
+      await screen.findByTestId('annotation-modal-title'),
+    ).toHaveTextContent('Edit annotation');
+  });
+
+  it('renders input elements for annotation name', async () => {
+    renderModal();
+    const nameInput = await screen.findByDisplayValue('annotation 1');
+    expect(nameInput).toBeInTheDocument();
+    expect(nameInput).toHaveAttribute('name', 'short_descr');
+    expect(nameInput).toHaveAttribute('type', 'text');
+  });
+
+  it('renders date picker with start and end dates', async () => {
+    renderModal();
+    const startDateInput = await screen.findByPlaceholderText('Start date');
+    const endDateInput = await screen.findByPlaceholderText('End date');
+    expect(startDateInput).toBeInTheDocument();
+    expect(endDateInput).toBeInTheDocument();
+  });
+
+  it('renders description textarea', async () => {
+    renderModal();
+    const descriptionLabel = await screen.findByText('description');
+    expect(descriptionLabel).toBeInTheDocument();
+    const textarea = screen.getByPlaceholderText(
+      'Description (this can be seen in the list)',
     );
+    expect(textarea).toBeInTheDocument();
+    expect(textarea).toHaveAttribute('name', 'long_descr');
   });
 
-  it('renders input elements for annotation name', () => {
-    expect(wrapper.find('input[name="short_descr"]')).toBeTruthy();
+  it('renders json editor for json metadata', async () => {
+    renderModal();
+    const jsonMetadataLabel = await screen.findByText('JSON metadata');
+    expect(jsonMetadataLabel).toBeInTheDocument();
   });
 
-  it('renders json editor for json metadata', () => {
-    expect(wrapper.find(JsonEditor)).toBeTruthy();
+  it('shows required indicators', async () => {
+    renderModal();
+    const requiredIndicators = await screen.findAllByText('*');
+    expect(requiredIndicators).toHaveLength(2); // Name and Date fields
+    requiredIndicators.forEach(indicator => {
+      expect(indicator).toHaveClass('required');
+    });
+  });
+
+  it('shows "Add" button in create mode', async () => {
+    renderModal({ annotation: null });
+    const addButton = await screen.findByRole('button', { name: 'Add' });
+    expect(addButton).toBeInTheDocument();
+    expect(addButton).toBeDisabled(); // Initially disabled until required fields are filled
+  });
+
+  it('shows "Save" button in edit mode', async () => {
+    renderModal();
+    const saveButton = await screen.findByRole('button', { name: 'Save' });
+    expect(saveButton).toBeInTheDocument();
+    expect(saveButton).toBeEnabled(); // Enabled because all required fields are filled
+  });
+
+  it('shows description placeholder text', async () => {
+    renderModal({ annotation: null });
+    const textarea = await screen.findByPlaceholderText(
+      'Description (this can be seen in the list)',
+    );
+    expect(textarea).toBeInTheDocument();
   });
 });

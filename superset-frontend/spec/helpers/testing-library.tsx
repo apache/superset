@@ -98,8 +98,13 @@ export function createWrapper(options?: Options) {
   };
 }
 
-const customRender = (ui: ReactElement, options?: Options) =>
-  render(ui, { wrapper: createWrapper(options), ...options });
+const customRender = (ui: ReactElement, options: Options = {}) => {
+  const renderOptions: RenderOptions & { wrapper?: React.ComponentType } = {
+    wrapper: createWrapper(options),
+    ...options,
+  };
+  return render(ui, renderOptions);
+};
 
 export function sleep(time: number) {
   return new Promise(resolve => {

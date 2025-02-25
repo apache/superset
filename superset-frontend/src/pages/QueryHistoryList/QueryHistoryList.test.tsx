@@ -16,32 +16,291 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { MouseEvent } from 'react';
+
+import React from 'react';
+
+// Mock syntax highlighter before any imports
+jest.mock('react-syntax-highlighter/dist/cjs/light', () => ({
+  __esModule: true,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <code role="button" data-test="sql-preview">
+      {children}
+    </code>
+  ),
+}));
+
+jest.mock('react-syntax-highlighter/dist/cjs/languages/hljs/sql', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+// Mock hooks before any imports
+jest.mock('src/hooks/apiResources', () => ({
+  getDatabaseDocumentationLinks: () => ({
+    support: 'https://superset.apache.org/docs/databases/installing-database-drivers',
+  }),
+}));
+
+// Define QueryState before mocking
+const QueryState = {
+  PENDING: 'pending',
+  RUNNING: 'running',
+  SCHEDULED: 'scheduled',
+  FAILED: 'failed',
+  SUCCESS: 'success',
+  TIMED_OUT: 'timed_out',
+  STOPPED: 'stopped',
+};
+
+// Mock @superset-ui/core before any imports
+jest.mock('@superset-ui/core', () => {
+  const supersetTheme = {
+    colors: {
+      grayscale: { 
+        base: '#000', 
+        light1: '#ccc',
+        dark1: '#1b1b1b',
+        dark2: '#444444',
+      },
+      primary: { base: '#000' },
+      success: { base: '#000' },
+      error: { base: '#000' },
+    },
+    gridUnit: 4,
+    typography: {
+      families: { monospace: 'Courier' },
+    },
+  };
+
+  const styledMock = Object.assign(
+    (component: any) => component,
+    {
+      div: () => 'div',
+      span: () => 'span',
+    },
+  );
+  return {
+    styled: styledMock,
+    supersetTheme,
+    t: (str: string) => str,
+    QueryState,
+    initFeatureFlags: jest.fn(),
+    makeApi: jest.fn(() => jest.fn()),
+    makeSingleton: (cls: any) => cls,
+    getTimeFormatter: () => (value: any) => value,
+    TimeFormats: {
+      DATABASE_DATETIME: 'database_datetime',
+    },
+    FeatureFlag: {
+      GlobalAsyncQueries: 'GLOBAL_ASYNC_QUERIES',
+    },
+    DatasourceType: {
+      Table: 'table',
+      Query: 'query',
+    },
+    getCategoricalSchemeRegistry: () => ({
+      get: () => ({
+        colors: ['#000000'],
+      }),
+    }),
+    Registry: class {
+      get() { return null; }
+      registerValue() {}
+      keys() { return []; }
+      values() { return []; }
+      entries() { return []; }
+      has() { return false; }
+      remove() {}
+      clear() {}
+    },
+    theme: supersetTheme,
+  };
+});
+
+// Mock Form
+jest.mock('src/components/Form', () => ({
+  __esModule: true,
+  FormItem: ({ children }: { children: React.ReactNode }) => (
+    <div data-test="form-item">{children}</div>
+  ),
+  Form: ({ children }: { children: React.ReactNode }) => (
+    <form data-test="form">{children}</form>
+  ),
+}));
+
+// Mock dashboard constants
+jest.mock('src/dashboard/constants', () => ({
+  ...jest.requireActual('src/dashboard/constants'),
+  PLACEHOLDER_DATASOURCE: {
+    id: 0,
+    type: 'table',
+    uid: '_placeholder_',
+    datasource_name: '',
+    table_name: '',
+    schema: '',
+    database: { id: 0, database_name: '' },
+  },
+}));
+
+// Mock middleware/asyncEvent
+jest.mock('src/middleware/asyncEvent', () => ({
+  init: jest.fn(),
+  fetchEvents: jest.fn(),
+}));
+
+// Mock utils/hostNamesConfig
+jest.mock('src/utils/hostNamesConfig', () => ({
+  getDomainsConfig: jest.fn(() => ({ domains: [] })),
+}));
+
+// Mock common utils
+jest.mock('src/utils/common', () => ({
+  ...jest.requireActual('src/utils/common'),
+  getTimeFormatter: () => (value: any) => value,
+}));
+
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { Provider } from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { act } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  fireEvent,
+  userEvent,
+} from 'spec/helpers/testing-library';
 
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { styledMount as mount } from 'spec/helpers/theming';
+// Mock styled-components
+jest.mock('@emotion/styled', () => ({
+  default: (Component: any) =>
+    typeof Component === 'string' ? Component : (props: any) => <Component {...props} />,
+}));
 
-import QueryList from 'src/pages/QueryHistoryList';
-import QueryPreviewModal from 'src/features/queries/QueryPreviewModal';
-import { QueryObject } from 'src/views/CRUD/types';
-import ListView from 'src/components/ListView';
-import Filters from 'src/components/ListView/Filters';
-import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';
-import SubMenu from 'src/features/home/SubMenu';
-import { QueryState } from '@superset-ui/core';
+// Mock components that use styled-components
+jest.mock('src/components/Loading', () => ({
+  __esModule: true,
+  default: () => <div data-test="loading" />,
+}));
 
-// store needed for withToasts
+jest.mock('src/components/Pagination', () => ({
+  __esModule: true,
+  default: () => <div data-test="pagination" />,
+}));
+
+jest.mock('src/components/TableView', () => ({
+  __esModule: true,
+  default: () => <div data-test="table-view" />,
+}));
+
+jest.mock('src/components/FacePile', () => ({
+  __esModule: true,
+  default: () => <div data-test="face-pile" />,
+}));
+
+interface Column {
+  accessor?: string;
+  Cell?: ({ row }: { row: { original: any; id: number } }) => React.ReactNode;
+}
+
+interface ListViewProps {
+  children?: React.ReactNode;
+  data?: Record<string, any>[];
+  columns?: Column[];
+}
+
+const ListView = ({ children, data, columns }: ListViewProps) => {
+  return React.createElement(
+    'div',
+    { 'data-test': 'list-view', role: 'table' },
+    data?.map((row, i) =>
+      React.createElement(
+        'div',
+        { key: i, role: 'row' },
+        columns?.map((col, j) =>
+          React.createElement(
+            'div',
+            { key: j, role: 'cell' },
+            col.Cell
+              ? col.Cell({ row: { original: row, id: i } })
+              : col.accessor && row[col.accessor],
+          ),
+        ),
+      ),
+    ),
+  );
+};
+
+jest.mock('src/components/ListView', () => ({
+  __esModule: true,
+  default: ListView,
+}));
+
+// Mock explore components
+jest.mock('src/explore/components/optionRenderers', () => ({
+  __esModule: true,
+  default: () => <div />,
+}));
+
+jest.mock('src/explore/store', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+jest.mock('src/explore/controls', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+// Mock chart controls package
+jest.mock('@superset-ui/chart-controls', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+// Import QueryList after mocking dependencies
+import QueryList from '.';
+
+interface SubMenuProps {
+  name?: string;
+  tabs?: { label: string; url: string }[];
+}
+
+jest.mock('src/features/home/SubMenu', () => ({
+  __esModule: true,
+  default: ({ name, tabs }: SubMenuProps) => (
+    <div data-test="submenu">
+      <div>{name}</div>
+      {tabs?.map(tab => (
+        <a key={tab.label} href={tab.url} role="link">
+          {tab.label}
+        </a>
+      ))}
+    </div>
+  ),
+}));
+
+interface QueryPreviewModalProps {
+  query: {
+    sql: string;
+  };
+}
+
+jest.mock('src/features/queries/QueryPreviewModal', () => ({
+  __esModule: true,
+  default: ({ query }: QueryPreviewModalProps) => (
+    <div role="dialog">
+      <code>{query.sql}</code>
+    </div>
+  ),
+}));
+
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const queriesEndpoint = 'glob:*/api/v1/query/?*';
 
-const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
+const mockQueries = [...new Array(3)].map((_, i) => ({
   changed_on: new Date().toISOString(),
   id: i,
   slice_name: `cool chart ${i}`,
@@ -55,7 +314,7 @@ const mockQueries: QueryObject[] = [...new Array(3)].map((_, i) => ({
     { schema: 'foo', table: 'table' },
     { schema: 'bar', table: 'table_2' },
   ],
-  status: QueryState.Success,
+  status: QueryState.SUCCESS,
   tab_name: 'Main Tab',
   user: {
     first_name: 'cool',
@@ -89,86 +348,105 @@ fetchMock.get('glob:*/api/v1/query/disting/status*', {
 });
 
 describe('QueryList', () => {
-  const mockedProps = {};
-  const wrapper = mount(
-    <Provider store={store}>
-      <QueryList {...mockedProps} />
-    </Provider>,
-    {
-      context: { store },
-    },
-  );
-
-  beforeAll(async () => {
-    await waitForComponentToPaint(wrapper);
-  });
-
-  it('renders', () => {
-    expect(wrapper.find(QueryList)).toBeTruthy();
-  });
-
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toBeTruthy();
-  });
-
-  it('fetches data', () => {
-    wrapper.update();
-    const callsD = fetchMock.calls(/query\/\?q/);
-    expect(callsD).toHaveLength(1);
-    expect(callsD[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-
-  it('renders a SyntaxHighlight', () => {
-    expect(wrapper.find(SyntaxHighlighter)).toBeTruthy();
-  });
-
-  it('opens a query preview', () => {
-    act(() => {
-      const props = wrapper
-        .find('[data-test="open-sql-preview-0"]')
-        .first()
-        .props();
-      if (props.onClick) props.onClick({} as MouseEvent);
+  const renderQueryList = () =>
+    render(<QueryList />, {
+      useRedux: true,
+      useRouter: true,
+      store,
     });
-    wrapper.update();
 
-    expect(wrapper.find(QueryPreviewModal)).toBeTruthy();
+  beforeEach(() => {
+    fetchMock.resetHistory();
   });
 
-  it('searches', async () => {
-    const filtersWrapper = wrapper.find(Filters);
-    act(() => {
-      const props = filtersWrapper.find('[name="sql"]').first().props();
-      // @ts-ignore
-      if (props.onSubmit) props.onSubmit('fooo');
+  it('renders the list view', async () => {
+    renderQueryList();
+    expect(await screen.findByRole('table')).toBeInTheDocument();
+  });
+
+  it('fetches data', async () => {
+    renderQueryList();
+    await waitFor(() => {
+      const calls = fetchMock.calls(/query\/\?q/);
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0]).toMatchInlineSnapshot(
+        `"http://localhost/api/v1/query/?q=(order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
+      );
     });
-    await waitForComponentToPaint(wrapper);
-    expect((fetchMock.lastCall() ?? [])[0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
-    );
   });
 
-  it('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toBeTruthy();
+  it('renders syntax highlighted SQL', async () => {
+    renderQueryList();
+    const codeBlocks = await screen.findAllByTestId('sql-preview');
+    expect(codeBlocks).toHaveLength(mockQueries.length);
+    
+    // Each SQL preview should contain the correct query
+    codeBlocks.forEach((block, index) => {
+      expect(block.textContent).toContain(`SELECT ${index} FROM table`);
+    });
   });
 
-  it('renders a SubMenu with Saved queries and Query History links', () => {
-    expect(wrapper.find(SubMenu).props().tabs).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: 'Saved queries' }),
-        expect.objectContaining({ label: 'Query history' }),
-      ]),
-    );
+  it('opens a query preview modal when clicking SQL', async () => {
+    renderQueryList();
+    const sqlPreviewButtons = await screen.findAllByTestId('sql-preview');
+    
+    userEvent.click(sqlPreviewButtons[0]);
+    
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/SELECT 0 FROM table/)).toBeInTheDocument();
   });
 
-  it('renders a SubMenu without Databases and Datasets links', () => {
-    expect(wrapper.find(SubMenu).props().tabs).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ label: 'Databases' }),
-        expect.objectContaining({ label: 'Datasets' }),
-      ]),
-    );
+  it('allows searching queries', async () => {
+    renderQueryList();
+    
+    // Wait for the search input to be available
+    const searchInput = await screen.findByPlaceholderText(/Search/i);
+    
+    // Type search term and submit
+    fireEvent.change(searchInput, { target: { value: 'fooo' } });
+    fireEvent.keyDown(searchInput, { key: 'Enter', code: 'Enter' });
+
+    await waitFor(() => {
+      const lastCall = fetchMock.lastCall();
+      expect(lastCall?.[0]).toMatchInlineSnapshot(
+        `"http://localhost/api/v1/query/?q=(filters:!((col:sql,opr:ct,value:fooo)),order_column:start_time,order_direction:desc,page:0,page_size:25)"`,
+      );
+    });
+  });
+
+  it('renders the correct SubMenu tabs', async () => {
+    renderQueryList();
+    
+    // Check for expected tabs
+    expect(await screen.findByRole('link', { name: /Saved queries/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Query history/i })).toBeInTheDocument();
+    
+    // Check that database/dataset tabs are not present
+    expect(screen.queryByRole('link', { name: /Databases/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Datasets/i })).not.toBeInTheDocument();
+  });
+
+  it('shows query status indicators', async () => {
+    renderQueryList();
+    
+    // Wait for status icons to be rendered
+    await screen.findAllByRole('img', { hidden: true });
+    
+    // Each query should have a success icon (based on mock data)
+    const successIcons = await screen.findAllByTitle('Success');
+    expect(successIcons).toHaveLength(mockQueries.length);
+  });
+
+  it('displays query duration in correct format', async () => {
+    renderQueryList();
+    
+    // Wait for timer elements
+    const timerElements = await screen.findAllByRole('timer');
+    expect(timerElements).toHaveLength(mockQueries.length);
+    
+    // Check timer format (00:00:00.000)
+    timerElements.forEach(timer => {
+      expect(timer.textContent).toMatch(/^\d{2}:\d{2}:\d{2}\.\d{3}$/);
+    });
   });
 });
