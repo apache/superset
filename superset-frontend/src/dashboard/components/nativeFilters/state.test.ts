@@ -22,6 +22,27 @@ import { renderHook } from '@testing-library/react-hooks';
 import { useSelector } from 'react-redux';
 import { useIsFilterInScope, useSelectFiltersInScope } from './state';
 
+const baseFilter: Filter = {
+  id: 'filter_base',
+  name: 'Test Filter',
+  filterType: 'filter_select',
+  type: NativeFilterType.NativeFilter,
+  chartsInScope: [],
+  scope: { rootPath: [], excluded: [] },
+  controlValues: {},
+  defaultDataMask: {},
+  cascadeParentIds: [],
+  targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+  description: 'Sample filter description',
+};
+
+const baseDivider: Divider = {
+  id: 'divider_1',
+  type: NativeFilterType.Divider,
+  title: 'Sample Divider',
+  description: 'Divider description',
+};
+
 jest.mock('react-redux', () => {
   const actual = jest.requireActual('react-redux');
   return {
@@ -41,30 +62,16 @@ beforeEach(() => {
 
 describe('useIsFilterInScope', () => {
   it('should return true for dividers (always in scope)', () => {
-    const divider: Divider = {
-      id: 'divider_1',
-      type: NativeFilterType.Divider,
-      title: 'Sample Divider',
-      description: 'Divider description',
-    };
-
     const { result } = renderHook(() => useIsFilterInScope());
-    expect(result.current(divider)).toBe(true);
+    expect(result.current(baseDivider)).toBe(true);
   });
 
   it('should return true for filters with charts in active tabs', () => {
     const filter: Filter = {
+      ...baseFilter,
       id: 'filter_1',
-      name: 'Test Filter',
-      filterType: 'filter_select',
-      type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
       scope: { rootPath: ['TAB_1'], excluded: [] },
-      controlValues: {},
-      defaultDataMask: {},
-      cascadeParentIds: [],
-      targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
-      description: 'Sample filter description',
     };
 
     const { result } = renderHook(() => useIsFilterInScope());
@@ -91,17 +98,10 @@ describe('useIsFilterInScope', () => {
 
   it('should handle filters in multiple tabs correctly', () => {
     const multiTabFilter: Filter = {
+      ...baseFilter,
       id: 'filter_4',
-      name: 'Test Filter 4',
-      filterType: 'filter_select',
-      type: NativeFilterType.NativeFilter,
       chartsInScope: [123, 456],
       scope: { rootPath: ['TAB_1', 'TAB_2'], excluded: [] },
-      controlValues: {},
-      defaultDataMask: {},
-      cascadeParentIds: [],
-      targets: [{ column: { name: 'column_name' }, datasetId: 4 }],
-      description: 'Filter in multiple tabs',
     };
 
     // Mock active tabs - only TAB_1 is active
@@ -125,16 +125,10 @@ describe('useIsFilterInScope', () => {
 
   it('should handle filters with multiple charts in different tabs', () => {
     const filter: Filter = {
+      ...baseFilter,
       id: 'filter_multi_charts',
-      name: 'Test Filter',
-      filterType: 'filter_select',
-      type: NativeFilterType.NativeFilter,
-      chartsInScope: [123, 456], // Charts in different tabs
+      chartsInScope: [123, 456],
       scope: { rootPath: ['TAB_1', 'TAB_2'], excluded: [] },
-      controlValues: {},
-      defaultDataMask: {},
-      cascadeParentIds: [],
-      targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
       description: 'Filter with multiple charts',
     };
 
@@ -157,16 +151,10 @@ describe('useIsFilterInScope', () => {
 
   it('should handle filters with no charts but multiple tab paths', () => {
     const filter: Filter = {
+      ...baseFilter,
       id: 'filter_no_charts',
-      name: 'Test Filter',
-      filterType: 'filter_select',
-      type: NativeFilterType.NativeFilter,
       chartsInScope: [],
       scope: { rootPath: ['TAB_1', 'TAB_2'], excluded: [] },
-      controlValues: {},
-      defaultDataMask: {},
-      cascadeParentIds: [],
-      targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
       description: 'Filter with no charts',
     };
 
@@ -181,16 +169,10 @@ describe('useIsFilterInScope', () => {
 
   it('should handle filters with no rootPath but charts in tabs', () => {
     const filter: Filter = {
+      ...baseFilter,
       id: 'filter_no_rootpath',
-      name: 'Test Filter',
-      filterType: 'filter_select',
-      type: NativeFilterType.NativeFilter,
       chartsInScope: [123],
       scope: { rootPath: [], excluded: [] },
-      controlValues: {},
-      defaultDataMask: {},
-      cascadeParentIds: [],
-      targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
       description: 'Filter with no rootPath',
     };
 
@@ -203,28 +185,13 @@ describe('useSelectFiltersInScope', () => {
   it('should return all filters in scope when no tabs exist', () => {
     const filters: Filter[] = [
       {
+        ...baseFilter,
         id: 'filter_1',
-        name: 'Filter 1',
-        filterType: 'filter_select',
-        type: NativeFilterType.NativeFilter,
-        scope: { rootPath: [], excluded: [] },
-        controlValues: {},
-        defaultDataMask: {},
-        cascadeParentIds: [],
-        targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
-        description: 'Sample filter description',
       },
       {
+        ...baseFilter,
         id: 'filter_2',
-        name: 'Filter 2',
-        filterType: 'filter_select',
-        type: NativeFilterType.NativeFilter,
-        scope: { rootPath: [], excluded: [] },
-        controlValues: {},
-        defaultDataMask: {},
-        cascadeParentIds: [],
         targets: [{ column: { name: 'column_name' }, datasetId: 2 }],
-        description: 'Sample filter description',
       },
     ];
 

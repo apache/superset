@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { useCallback, useMemo } from 'react';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
-  Divider,
   isFilterDivider,
 } from '@superset-ui/core';
+import { useCallback, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
@@ -110,22 +110,24 @@ export function useIsFilterInScope() {
       if (isFilterDivider(filter)) return true;
 
       const isChartInScope =
-        Array.isArray(filter.chartsInScope) &&
-        filter.chartsInScope.length > 0 &&
-        filter.chartsInScope.some((chartId: number) => {
-          const tabParents = selectChartTabParents(chartId);
-          return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
-          );
-        });
+        !filter.chartsInScope?.length ||
+        (Array.isArray(filter.chartsInScope) &&
+          filter.chartsInScope.length > 0 &&
+          filter.chartsInScope.every((chartId: number) => {
+            const tabParents = selectChartTabParents(chartId);
+            return (
+              !tabParents ||
+              tabParents.length === 0 ||
+              tabParents.every(tab => activeTabs.includes(tab))
+            );
+          }));
 
       const isFilterInActiveTab =
-        filter.scope?.rootPath &&
-        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
+        !filter.scope?.rootPath?.length ||
+        (filter.scope?.rootPath &&
+          filter.scope.rootPath.every(tab => activeTabs.includes(tab)));
 
-      return isChartInScope || isFilterInActiveTab;
+      return isChartInScope && isFilterInActiveTab;
     },
     [selectChartTabParents, activeTabs],
   );
