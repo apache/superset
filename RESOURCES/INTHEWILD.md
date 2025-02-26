@@ -118,6 +118,7 @@ Join our growing community!
 - [Reward Gateway](https://www.rewardgateway.com)
 - [RIADVICE](https://riadvice.tn) [@riadvice]
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
+- [shipmnts](https://shipmnts.com)
 - [Showmax](https://showmax.com) [@bobek]
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
