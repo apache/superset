@@ -507,7 +507,7 @@ test('does not show screenshot width when csv is selected', async () => {
 });
 
 test('properly renders remove index checkbox for CSV reports', async () => {
-  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+  render(<AlertReportModal {...generateMockedProps(true, true, true)} />, {
     useRedux: true,
   });
   userEvent.click(screen.getByTestId('contents-panel'));
