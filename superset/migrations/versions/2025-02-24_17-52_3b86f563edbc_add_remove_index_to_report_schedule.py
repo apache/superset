@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add_include_index_to_report_schedule
+"""add_remove_index_to_report_schedule
 
 Revision ID: 3b86f563edbc
 Revises: 74ad1125881c
