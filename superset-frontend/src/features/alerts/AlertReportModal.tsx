@@ -442,7 +442,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_FORMAT,
   );
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
-  const [includeIndex, setIncludeIndex] = useState<boolean>(false);
+  const [removeIndex, setRemoveIndex] = useState<boolean>(false);
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
@@ -670,7 +670,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
-      include_index: includeIndex,
+      remove_index: removeIndex,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -1121,8 +1121,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     setForceScreenshot(event.target.checked);
   };
 
-  const onIncludeIndexChange = (event: any) => {
-    setIncludeIndex(event.target.checked);
+  const onRemoveIndexChange = (event: any) => {
+    setRemoveIndex(event.target.checked);
   };
 
   // Make sure notification settings has the required info
@@ -1345,7 +1345,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         setChartVizType((resource.chart as ChartObject).viz_type);
       }
       setForceScreenshot(resource.force_screenshot);
-      setIncludeIndex(resource.include_index || false);
 
       setCurrentAlert({
         ...resource,
@@ -1824,10 +1823,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                 <StyledCheckbox
                   data-test="include-index"
                   className="checkbox"
-                  checked={includeIndex}
-                  onChange={onIncludeIndexChange}
+                  checked={removeIndex}
+                  onChange={onRemoveIndexChange}
                 >
-                  {t('Include index column')}
+                  {t('Remove index column')}
                 </StyledCheckbox>
               </div>
             )}

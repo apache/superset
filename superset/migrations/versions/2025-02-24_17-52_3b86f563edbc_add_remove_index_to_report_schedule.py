@@ -33,9 +33,9 @@ down_revision = "74ad1125881c"
 def upgrade():
     op.add_column(
         "report_schedule",
-        sa.Column("include_index", sa.Boolean(), nullable=True),
+        sa.Column("remove_index", sa.Boolean(), default=False),
     )
 
 
 def downgrade():
-    op.drop_column("report_schedule", "include_index")
+    op.drop_column("report_schedule", "remove_index")

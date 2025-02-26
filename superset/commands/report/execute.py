@@ -363,9 +363,12 @@ class BaseReportState:
         return pdf
 
     def _get_csv_data(self) -> bytes:
+        logger.info("Getting csv data for report %s", self._report_schedule.name)
         url = self._get_url(result_format=ChartDataResultFormat.CSV)
-        if not self._report_schedule.include_index:
+        logger.info("URL: %s", url)
+        if self._report_schedule.remove_index:
             url = remove_post_processed(url)
+            logger.info("URL after removing post processed: %s", url)
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
