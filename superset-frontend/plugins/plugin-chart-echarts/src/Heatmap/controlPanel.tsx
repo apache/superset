@@ -231,7 +231,7 @@ const config: ControlPanelConfig = {
             name: 'element_border',
             config: {
               type: 'ColorPickerControl',
-              label: t('Border Color'),
+              label: t('Border color'),
               renderTrigger: true,
               description: t('Select border color for Heatmap elements'),
               default: { r: 255, g: 255, b: 255, a: 0 },
@@ -241,7 +241,7 @@ const config: ControlPanelConfig = {
             name: 'borders_width',
             config: {
               type: 'SliderControl',
-              label: t('Border Width'),
+              label: t('Border width'),
               renderTrigger: true,
               min: 0,
               max: 1,
