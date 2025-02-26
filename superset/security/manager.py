@@ -27,7 +27,9 @@ from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
     assoc_permissionview_role,
+    assoc_user_group,
     assoc_user_role,
     Permission,
     PermissionView,
@@ -736,11 +738,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         if not g.user.is_anonymous:
-            from flask_appbuilder.security.sqla.models import (
-                assoc_group_role,
-                assoc_user_group,
-            )
-
             user_id = get_user_id()
 
             user_roles_filter = or_(
