@@ -237,8 +237,6 @@ const config: ControlPanelConfig = {
               default: { r: 255, g: 255, b: 255, a: 0 },
             },
           },
-        ],
-        [
           {
             name: 'borders_width',
             config: {
