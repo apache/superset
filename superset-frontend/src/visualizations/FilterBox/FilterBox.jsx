@@ -19,7 +19,7 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { cloneDeep, debounce } from 'lodash';
+import { debounce } from 'lodash';
 import { connect } from 'react-redux';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
