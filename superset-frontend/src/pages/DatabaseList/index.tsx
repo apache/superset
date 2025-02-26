@@ -323,7 +323,6 @@ function DatabaseList({
               iconSize="s"
               css={css`
                 margin: auto ${theme.gridUnit * 2}px auto 0;
-                vertical-align: baseline;
               `}
             />
             {t('Database')}

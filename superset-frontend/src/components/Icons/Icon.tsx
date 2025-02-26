@@ -36,32 +36,31 @@ const BaseIconComponent: React.FC<
   customIcons,
   ...rest
 }) => {
-  if (!Component) return null;
-  const isCustomIcon = Component && customIcons;
+    if (!Component) return null;
+    const isCustomIcon = Component && customIcons;
 
-  return isCustomIcon ? (
-    <span
-      role="img"
-      style={{
-        fontSize: iconSize ? `${iconSize}px` : '24px',
-        color: iconColor || 'inherit',
-        display: 'inline-flex',
-        alignItems: 'center',
-      }}
-    >
-      <AntdIcon
-        viewBox={viewBox || '0 0 24 24'}
-        component={Component as any}
-        {...rest}
-      />
-    </span>
-  ) : (
-    Component && <Component {...rest} />
-  );
-};
+    return isCustomIcon ? (
+      <span
+        role={rest?.onClick ? 'button' : 'img'}
+        style={{
+          fontSize: iconSize ? `${iconSize}px` : '24px',
+          color: iconColor || 'inherit',
+          display: 'inline-flex',
+          alignItems: 'center',
+        }}
+      >
+        <AntdIcon
+          viewBox={viewBox || '0 0 24 24'}
+          component={Component as any}
+          {...rest}
+        />
+      </span>
+    ) : (
+      Component && <Component {...(rest as SVGProps<SVGSVGElement>)} />
+    );
+  };
 
-// Ora definiamo StyledIcon come una versione stilizzata di BaseIcon.
-export const StyledIcon = styled(BaseIconComponent)<IconType>`
+export const StyledIcon = styled(BaseIconComponent) <IconType>`
   ${({ iconColor, theme }) =>
     `color: ${iconColor || theme.colors.grayscale.base};`}
   span {
