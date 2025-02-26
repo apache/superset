@@ -180,8 +180,8 @@ const SouthPane = ({
           <Tabs.TabPane
             tab={
               <>
-                <Icons.Table
-                  iconSize="s"
+                <Icons.InsertRowAboveOutlined
+                  iconSize="l"
                   css={css`
                     margin-bottom: 2px;
                     margin-right: 4px;
