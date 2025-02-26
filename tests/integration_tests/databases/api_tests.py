@@ -2246,6 +2246,17 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("create_gamma_user_group_with_all_database")
+    def test_get_database_related_objects_gamma_group(self):
+        """
+        Database API: Test related objects with gamma group with role all database
+        """
+        database = get_example_database()
+        self.login("gamma_with_groups", "password1")
+        uri = f"api/v1/database/{database.id}/related_objects/"
+        rv = self.get_assert_metric(uri, "related_objects")
+        assert rv.status_code == 200
+
     def test_export_database(self):
         """
         Database API: Test export database
