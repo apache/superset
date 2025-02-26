@@ -17,50 +17,45 @@
  * under the License.
  */
 
-import { FC, SVGProps, useEffect, useRef, useState } from 'react';
-import AntdIcon from '@ant-design/icons';
+import {
+  FC,
+  SVGProps,
+  useEffect,
+  useRef,
+  useState,
+  ComponentType,
+} from 'react';
 import { styled } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
-const BaseIconComponent: React.FC<
-  IconType & { component?: React.ComponentType<any> }
-> = ({
+interface BaseIconProps extends SVGProps<SVGSVGElement> {
+  component?: ComponentType<SVGProps<SVGSVGElement>>;
+  iconColor?: string;
+  iconSize?: IconType['iconSize'];
+}
+
+const BaseIconComponent: React.FC<BaseIconProps> = ({
   component: Component,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconColor,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconSize,
-  viewBox,
-  // @ts-ignore
-  customIcons,
+  viewBox = '0 0 24 24',
   ...rest
 }) => {
-    if (!Component) return null;
-    const isCustomIcon = Component && customIcons;
+  if (!Component) return null;
 
-    return isCustomIcon ? (
-      <span
-        role={rest?.onClick ? 'button' : 'img'}
-        style={{
-          fontSize: iconSize ? `${iconSize}px` : '24px',
-          color: iconColor || 'inherit',
-          display: 'inline-flex',
-          alignItems: 'center',
-        }}
-      >
-        <AntdIcon
-          viewBox={viewBox || '0 0 24 24'}
-          component={Component as any}
-          {...rest}
-        />
-      </span>
-    ) : (
-      Component && <Component {...(rest as SVGProps<SVGSVGElement>)} />
-    );
-  };
+  return (
+    <Component
+      {...rest}
+      viewBox={viewBox}
+      width={iconSize}
+      height={iconSize}
+      fill={iconColor}
+    />
+  );
+};
 
-export const StyledIcon = styled(BaseIconComponent) <IconType>`
+export const StyledIcon = styled(BaseIconComponent)<IconType>`
   ${({ iconColor, theme }) =>
     `color: ${iconColor || theme.colors.grayscale.base};`}
   span {
