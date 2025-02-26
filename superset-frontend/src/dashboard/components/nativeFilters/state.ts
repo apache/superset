@@ -100,6 +100,7 @@ function useSelectChartTabParents() {
 export function useIsFilterInScope() {
   const activeTabs = useActiveDashboardTabs();
   const selectChartTabParents = useSelectChartTabParents();
+  const dashboardHasTabs = useDashboardHasTabs();
 
   // Filter is in scope if any of its charts is visible.
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
@@ -107,29 +108,53 @@ export function useIsFilterInScope() {
   // Dividers are always in scope
   return useCallback(
     (filter: Filter | Divider) => {
+      // 1. Dividers are always in scope
       if (isFilterDivider(filter)) return true;
 
-      const isChartInScope =
-        !filter.chartsInScope?.length ||
-        (Array.isArray(filter.chartsInScope) &&
-          filter.chartsInScope.length > 0 &&
-          filter.chartsInScope.every((chartId: number) => {
+      // 2. If no tabs exist, all filters are in scope
+      if (!dashboardHasTabs) return true;
+
+      // 3. Check if filter has specified a root path (tabs where it should appear)
+      const hasRootPath = filter.scope?.rootPath?.length > 0;
+
+      // 4. Check if filter has specified charts it affects
+      const chartsInScope = filter.chartsInScope ?? [];
+      const hasCharts = chartsInScope?.length > 0;
+
+      // 5. If filter has a rootPath, check if current active tab is in that path
+      const isFilterInActiveTab = hasRootPath
+        ? filter.scope.rootPath.every(tab => activeTabs.includes(tab))
+        : true;
+
+      // 6. If filter has charts, check if those charts are in the active tab
+      const isChartInScope = hasCharts
+        ? chartsInScope.every(chartId => {
             const tabParents = selectChartTabParents(chartId);
             return (
               !tabParents ||
               tabParents.length === 0 ||
               tabParents.every(tab => activeTabs.includes(tab))
             );
-          }));
+          })
+        : true;
 
-      const isFilterInActiveTab =
-        !filter.scope?.rootPath?.length ||
-        (filter.scope?.rootPath &&
-          filter.scope.rootPath.every(tab => activeTabs.includes(tab)));
-
-      return isChartInScope && isFilterInActiveTab;
+      // 7. Filter is in scope if:
+      //    - It has neither charts nor rootPath (global filter) OR
+      //    - It has a rootPath and we're in one of those tabs OR
+      //    - It has charts and those charts are in the active tab
+      if (!hasRootPath && !hasCharts) {
+        return true;
+      }
+      if (hasRootPath && !hasCharts) {
+        return isFilterInActiveTab;
+      }
+      if (!hasRootPath && hasCharts) {
+        return isChartInScope;
+      }
+      // Both rootPath and charts - must be in the right tab AND affect charts in view
+      return isFilterInActiveTab && isChartInScope;
     },
-    [selectChartTabParents, activeTabs],
+    [selectChartTabParents, activeTabs, dashboardHasTabs],
   );
 }
 

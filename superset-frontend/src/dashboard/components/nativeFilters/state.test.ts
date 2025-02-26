@@ -20,7 +20,11 @@
 import { Divider, Filter, NativeFilterType } from '@superset-ui/core';
 import { renderHook } from '@testing-library/react-hooks';
 import { useSelector } from 'react-redux';
-import { useIsFilterInScope, useSelectFiltersInScope } from './state';
+import {
+  useDashboardHasTabs,
+  useIsFilterInScope,
+  useSelectFiltersInScope,
+} from './state';
 
 const baseFilter: Filter = {
   id: 'filter_base',
@@ -43,24 +47,60 @@ const baseDivider: Divider = {
   description: 'Divider description',
 };
 
-jest.mock('react-redux', () => {
-  const actual = jest.requireActual('react-redux');
+jest.mock('react-redux');
+jest.mock('./state', () => {
+  const originalModule = jest.requireActual('./state');
   return {
-    ...actual,
-    useSelector: jest.fn(),
+    ...originalModule,
+    useDashboardHasTabs: jest.fn(),
   };
 });
 
-beforeEach(() => {
-  (useSelector as jest.Mock).mockImplementation(selector => {
-    if (selector.name === 'useActiveDashboardTabs') {
-      return ['TAB_1'];
-    }
-    return [];
-  });
-});
-
 describe('useIsFilterInScope', () => {
+  let mockActiveTabs = ['TAB_1'];
+  let mockHasTabs = true;
+  const mockDashboardLayout = {
+    TAB_1: { type: 'TAB', id: 'TAB_1' },
+    TAB_2: { type: 'TAB', id: 'TAB_2' },
+    CHART_1: {
+      type: 'CHART',
+      id: 'CHART_1',
+      meta: { chartId: 123 },
+      parents: ['TAB_1'],
+    },
+    CHART_2: {
+      type: 'CHART',
+      id: 'CHART_2',
+      meta: { chartId: 456 },
+      parents: ['TAB_2'],
+    },
+  };
+
+  const updateMocks = (activeTabs: string[], hasTabs = true) => {
+    mockActiveTabs = activeTabs;
+    mockHasTabs = hasTabs;
+
+    // Re-mock useSelector for the new active tabs
+    (useSelector as jest.Mock).mockImplementation(selectorFn => {
+      const mockState = {
+        dashboardState: { activeTabs: mockActiveTabs },
+        dashboardLayout: { present: mockDashboardLayout },
+      };
+      return selectorFn(mockState);
+    });
+
+    // Re-mock useDashboardHasTabs for the new hasTabs value
+    (useDashboardHasTabs as jest.Mock).mockReturnValue(mockHasTabs);
+  };
+
+  beforeEach(() => {
+    // Reset mocks
+    jest.clearAllMocks();
+
+    // Set up initial mock state
+    updateMocks(['TAB_1'], true);
+  });
+
   it('should return true for dividers (always in scope)', () => {
     const { result } = renderHook(() => useIsFilterInScope());
     expect(result.current(baseDivider)).toBe(true);
@@ -80,18 +120,11 @@ describe('useIsFilterInScope', () => {
 
   it('should return false for filters with inactive rootPath', () => {
     const filter: Filter = {
-      id: 'filter_3',
-      name: 'Test Filter 3',
-      filterType: 'filter_select',
-      type: NativeFilterType.NativeFilter,
+      ...baseFilter,
       scope: { rootPath: ['TAB_99'], excluded: [] },
-      controlValues: {},
-      defaultDataMask: {},
-      cascadeParentIds: [],
-      targets: [{ column: { name: 'column_name' }, datasetId: 3 }],
-      description: 'Sample filter description',
     };
 
+    updateMocks(['TAB_1']);
     const { result } = renderHook(() => useIsFilterInScope());
     expect(result.current(filter)).toBe(false);
   });
@@ -104,20 +137,12 @@ describe('useIsFilterInScope', () => {
       scope: { rootPath: ['TAB_1', 'TAB_2'], excluded: [] },
     };
 
-    // Mock active tabs - only TAB_1 is active
-    (useSelector as jest.Mock).mockImplementation(selector =>
-      selector.name === 'useActiveDashboardTabs' ? ['TAB_1'] : [],
-    );
-
+    updateMocks(['TAB_1']);
     const { result: result1 } = renderHook(() => useIsFilterInScope());
     // This will fail because current implementation shows filter if any tab is active
     expect(result1.current(multiTabFilter)).toBe(false);
 
-    // Update mock to have both tabs active
-    (useSelector as jest.Mock).mockImplementation(selector =>
-      selector.name === 'useActiveDashboardTabs' ? ['TAB_1', 'TAB_2'] : [],
-    );
-
+    updateMocks(['TAB_1', 'TAB_2']);
     const { result: result2 } = renderHook(() => useIsFilterInScope());
     // This should pass - filter should be visible when all its tabs are active
     expect(result2.current(multiTabFilter)).toBe(true);
@@ -132,19 +157,11 @@ describe('useIsFilterInScope', () => {
       description: 'Filter with multiple charts',
     };
 
-    // Mock only one tab active
-    (useSelector as jest.Mock).mockImplementation(selector =>
-      selector.name === 'useActiveDashboardTabs' ? ['TAB_1'] : [],
-    );
-
+    updateMocks(['TAB_1']);
     const { result: result1 } = renderHook(() => useIsFilterInScope());
     expect(result1.current(filter)).toBe(false);
 
-    // Mock all tabs active
-    (useSelector as jest.Mock).mockImplementation(selector =>
-      selector.name === 'useActiveDashboardTabs' ? ['TAB_1', 'TAB_2'] : [],
-    );
-
+    updateMocks(['TAB_1', 'TAB_2']);
     const { result: result2 } = renderHook(() => useIsFilterInScope());
     expect(result2.current(filter)).toBe(true);
   });
@@ -158,11 +175,7 @@ describe('useIsFilterInScope', () => {
       description: 'Filter with no charts',
     };
 
-    // Test with partial tab activation
-    (useSelector as jest.Mock).mockImplementation(selector =>
-      selector.name === 'useActiveDashboardTabs' ? ['TAB_1'] : [],
-    );
-
+    updateMocks(['TAB_1']);
     const { result } = renderHook(() => useIsFilterInScope());
     expect(result.current(filter)).toBe(false);
   });
@@ -179,9 +192,58 @@ describe('useIsFilterInScope', () => {
     const { result } = renderHook(() => useIsFilterInScope());
     expect(result.current(filter)).toBe(true);
   });
+
+  it('should require both chart scope AND tab scope when both are specified', () => {
+    const filter: Filter = {
+      ...baseFilter,
+      id: 'filter_mixed',
+      chartsInScope: [123], // Chart in TAB_1
+      scope: { rootPath: ['TAB_2'], excluded: [] }, // Different tab in rootPath
+    };
+
+    // With only chart's tab active
+    updateMocks(['TAB_1']);
+    const { result: result1 } = renderHook(() => useIsFilterInScope());
+    expect(result1.current(filter)).toBe(false);
+
+    // With only rootPath tab active
+    updateMocks(['TAB_2']);
+    const { result: result2 } = renderHook(() => useIsFilterInScope());
+    expect(result2.current(filter)).toBe(false);
+
+    // With both tabs active
+    updateMocks(['TAB_1', 'TAB_2']);
+    const { result: result3 } = renderHook(() => useIsFilterInScope());
+    expect(result3.current(filter)).toBe(true);
+  });
+
+  it('should show all filters when no tabs exist', () => {
+    const filter: Filter = {
+      ...baseFilter,
+      id: 'filter_no_tabs',
+      chartsInScope: [123],
+      scope: { rootPath: ['TAB_1'], excluded: [] },
+    };
+
+    updateMocks(['TAB_1'], false); // Second parameter sets hasTabs to false
+    const { result } = renderHook(() => useIsFilterInScope());
+    expect(result.current(filter)).toBe(true);
+  });
 });
 
 describe('useSelectFiltersInScope', () => {
+  beforeEach(() => {
+    (useSelector as jest.Mock).mockImplementation(selector => {
+      if (selector.name === 'useActiveDashboardTabs') {
+        return ['TAB_1'];
+      }
+      if (selector.name === 'useDashboardHasTabs') {
+        return false; // No tabs for these tests
+      }
+      return [];
+    });
+  });
+
   it('should return all filters in scope when no tabs exist', () => {
     const filters: Filter[] = [
       {
