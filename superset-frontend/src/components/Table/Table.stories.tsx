@@ -27,6 +27,7 @@ import {
   SUPERSET_TABLE_COLUMN,
   Table,
   TableSize,
+  TableProps,
 } from './index';
 import { alphabeticalSort, numericalSort } from './sorters';
 import ButtonCell from './cell-renderers/ButtonCell';
@@ -331,7 +332,7 @@ for (let i = 0; i < recordCount; i += 1) {
   });
 }
 
-export const Basic = (args: any) => <Table {...args} />;
+export const Basic = (args: TableProps<object>) => <Table {...args} />;
 
 function handlers(record: object, rowIndex: number) {
   return {
@@ -357,7 +358,7 @@ Basic.args = {
   usePagination: false,
 };
 
-export const Pagination = (args: any) => <Table {...args} />;
+export const Pagination = (args: TableProps<object>) => <Table {...args} />;
 
 Pagination.args = {
   data: basicData,
@@ -429,7 +430,7 @@ const paginationColumns: ColumnsType<BasicData> = [
   },
 ];
 
-export const ServerPagination = (args: any) => {
+export const ServerPagination = (args: TableProps<any>) => {
   const [data, setData] = useState(generateData(0, 5));
   const [loading, setLoading] = useState(false);
 
@@ -497,7 +498,7 @@ VirtualizedPerformance.args = {
   usePagination: false,
 };
 
-export const Loading = (args: any) => <Table {...args} />;
+export const Loading = (args: TableProps<object>) => <Table {...args} />;
 
 Loading.args = {
   data: basicData,
@@ -506,7 +507,9 @@ Loading.args = {
   loading: true,
 };
 
-export const ResizableColumns = (args: any) => <Table {...args} />;
+export const ResizableColumns = (args: TableProps<object>) => (
+  <Table {...args} />
+);
 
 ResizableColumns.args = {
   data: basicData,
@@ -594,7 +597,9 @@ const rendererData: RendererData[] = [
   },
 ];
 
-export const CellRenderers = (args: any) => <Table {...args} />;
+export const CellRenderers: StoryFn = (args: TableProps<object>) => (
+  <Table {...args} />
+);
 
 CellRenderers.args = {
   data: rendererData,
