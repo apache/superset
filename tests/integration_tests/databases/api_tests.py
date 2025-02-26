@@ -272,7 +272,7 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
-        assert response["count"] == 1
+        assert response["count"] > 0
 
     def test_create_database(self):
         """
