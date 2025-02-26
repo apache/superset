@@ -31,7 +31,7 @@ import IconType from './IconType';
 
 interface BaseIconProps extends SVGProps<SVGSVGElement> {
   component?: ComponentType<SVGProps<SVGSVGElement>>;
-  iconColor?: IconType['iconColor']
+  iconColor?: IconType['iconColor'];
   iconSize?: IconType['iconSize'];
 }
 
@@ -48,7 +48,7 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
   return customIcons ? (
     <span
       role={rest?.onClick ? 'button' : 'img'}
-      css={(theme) => css`
+      css={theme => css`
         font-size: ${iconSize
           ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
           : '24px'};
@@ -57,25 +57,21 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
         align-items: center;
       `}
     >
-      <Component
-        {...rest}
-        viewBox={viewBox}
-        fill={iconColor}
-      />
+      <Component {...rest} viewBox={viewBox} fill={iconColor} />
     </span>
   ) : (
     <Component {...(rest as SVGProps<SVGSVGElement>)} />
   );
 };
 
-export const StyledIcon = styled(BaseIconComponent) <BaseIconProps & IconType>`
+export const StyledIcon = styled(BaseIconComponent)<BaseIconProps & IconType>`
   ${({ iconColor, theme }) =>
     `color: ${iconColor || theme.colors.grayscale.base};`}
-    font-size: ${({ iconSize, theme }) =>
+  font-size: ${({ iconSize, theme }) =>
     iconSize
       ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
       : '24px'};
-    `;
+`;
 
 export interface IconProps extends IconType {
   fileName: string;
