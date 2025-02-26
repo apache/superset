@@ -172,7 +172,7 @@ const StyledTable = styled(AntTable as FC<AntTableProps>)<{ height?: number }>(
       height: unset;
     }
 
-   th.ant-table-cell {
+   td.ant-table-cell {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
