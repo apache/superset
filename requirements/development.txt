@@ -499,7 +499,7 @@ packaging==24.2
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
-pandas==2.0.3
+pandas==2.1.4
     # via
     #   -c requirements/base.txt
     #   apache-superset

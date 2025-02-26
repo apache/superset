@@ -242,7 +242,7 @@ packaging==24.2
     #   marshmallow
     #   marshmallow-sqlalchemy
     #   shillelagh
-pandas==2.0.3
+pandas==2.1.4
     # via apache-superset (pyproject.toml)
 paramiko==3.5.0
     # via
