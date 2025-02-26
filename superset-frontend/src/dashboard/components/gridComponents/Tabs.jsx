@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, usePrevious, css, useTheme } from '@superset-ui/core';
+import { styled, t, usePrevious, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
@@ -114,17 +114,14 @@ const DropIndicator = styled.div`
   border-radius: 2px;
 `;
 
-const CloseIconWithDropIndicator = props => {
-  const theme = useTheme();
-  return (
-    <>
-      <Icons.CloseOutlined iconSize="s" />
-      {props.showDropIndicators.right && (
-        <DropIndicator className="drop-indicator-right" pos="right" />
-      )}
-    </>
-  );
-};
+const CloseIconWithDropIndicator = props => (
+  <>
+    <Icons.CloseOutlined iconSize="s" />
+    {props.showDropIndicators.right && (
+      <DropIndicator className="drop-indicator-right" pos="right" />
+    )}
+  </>
+);
 
 const Tabs = props => {
   const nativeFilters = useSelector(state => state.nativeFilters);

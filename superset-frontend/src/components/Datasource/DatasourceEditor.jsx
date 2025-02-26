@@ -967,7 +967,7 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
-  renderSourceFieldset(theme) {
+  renderSourceFieldset() {
     const { datasource } = this.state;
     return (
       <div>

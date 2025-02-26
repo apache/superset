@@ -206,7 +206,7 @@ const AntdEnhancedIcons = Object.keys(AntdIcons)
       const ariaLabel = props['aria-label'] || k;
       return (
         <StyledIcon
-          // @ts-ignore
+          // @ts-ignore to remove
           component={AntdIcons[k as keyof typeof AntdIcons]}
           role={whatRole}
           aria-label={ariaLabel}
@@ -216,4 +216,5 @@ const AntdEnhancedIcons = Object.keys(AntdIcons)
     },
   }))
   .reduce((l, r) => ({ ...l, ...r }));
+
 export default AntdEnhancedIcons;

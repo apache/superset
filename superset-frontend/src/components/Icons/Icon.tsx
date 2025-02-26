@@ -55,7 +55,7 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
   );
 };
 
-export const StyledIcon = styled(BaseIconComponent)<IconType>`
+export const StyledIcon = styled(BaseIconComponent)<BaseIconProps & IconType>`
   ${({ iconColor, theme }) =>
     `color: ${iconColor || theme.colors.grayscale.base};`}
   span {
@@ -73,7 +73,7 @@ export interface IconProps extends IconType {
   customIcons?: boolean;
 }
 
-export const Icon = (props: IconProps & IconType) => {
+export const Icon = (props: IconProps) => {
   const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
@@ -97,6 +97,7 @@ export const Icon = (props: IconProps & IconType) => {
 
   const whatRole = props?.onClick ? 'button' : 'img';
   return (
+    // @ts-ignore to be removed
     <StyledIcon
       component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
