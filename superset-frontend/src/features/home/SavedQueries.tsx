@@ -211,7 +211,7 @@ const SavedQueries = ({
             iconSize="l"
             css={css`
               margin-right: ${theme.gridUnit}px;
-              vertical-align: 'baseline';
+              vertical-align: baseline;
             `}
           />
           {t('Share')}

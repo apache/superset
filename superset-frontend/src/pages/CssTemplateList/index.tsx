@@ -203,7 +203,7 @@ function CssTemplatesList({
             iconSize="s"
             css={css`
               margin: 'auto ${theme.gridUnit * 2}px auto 0';
-              vertical-align: 'baseline';
+              vertical-align: baseline;
             `}
           />
           {t('CSS template')}

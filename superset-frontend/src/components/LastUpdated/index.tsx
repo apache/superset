@@ -51,7 +51,6 @@ const TextStyles = styled.span`
 
 const RefreshIcon = styled(Icons.SyncOutlined)`
   ${({ theme }) => `
-  color: ${theme.colors.primary.base};
   width: auto;
   height: ${theme.gridUnit * 5}px;
   position: relative;

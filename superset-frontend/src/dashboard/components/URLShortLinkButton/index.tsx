@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { getClientErrorObject, t } from '@superset-ui/core';
+import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
@@ -64,7 +64,7 @@ export default function URLShortLinkButton({
       if (error) {
         addDangerToast(
           (await getClientErrorObject(error)).error ||
-            t('Something went wrong.'),
+          t('Something went wrong.'),
         );
       }
     }
@@ -91,13 +91,13 @@ export default function URLShortLinkButton({
             copyNode={
               <>
                 <Icons.CopyOutlined iconSize="m" />
-                {t('Copy to clipboard')}
+                &nbsp;{t('Copy to clipboard')}
               </>
             }
           />
           &nbsp;&nbsp;
           <a href={emailLink} aria-label="Email link">
-            <i className="fa fa-envelope" />
+            <Icons.MailOutlined iconSize="m" />
           </a>
         </div>
       }

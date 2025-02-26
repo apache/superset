@@ -637,7 +637,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             iconSize="s"
             css={css`
               margin: auto ${theme.gridUnit * 2}px auto 0;
-              verticalalign: baseline;
+              vertical-align: baseline;
             `}
           />
           {t('Dataset')}

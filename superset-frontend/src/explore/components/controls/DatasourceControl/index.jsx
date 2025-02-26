@@ -110,7 +110,6 @@ const Styles = styled.div`
     overflow: hidden;
   }
   .datasource-svg {
-    color: ${({ theme }) => theme.colors.grayscale.base};
     margin-right: ${({ theme }) => 2 * theme.gridUnit}px;
     flex: none;
   }
