@@ -202,7 +202,9 @@ const useDatasetChartRecords = (datasetId: string) => {
           id: columnKey as string,
           desc: order === 'descend',
         }));
-      fetchData({ pageIndex, pageSize, sortBy, filters: [] });
+      if (sortBy.length > 0) {
+        fetchData({ pageIndex, pageSize, sortBy, filters: [] });
+      }
     },
     [fetchData],
   );
