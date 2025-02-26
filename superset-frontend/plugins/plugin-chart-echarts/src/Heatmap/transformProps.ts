@@ -25,7 +25,8 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
-  rgbToHexWithAlpha,
+  rgbToHex,
+  addAlpha,
   supersetTheme,
   tooltipHtml,
 } from '@superset-ui/core';
@@ -88,8 +89,8 @@ export default function transformProps(
     metric = '',
     normalizeAcross,
     normalized,
-    elementBorder = { r: 255, g: 255, b: 255, a: 1 },
-    enableBorder,
+    elementBorder = { r: 255, g: 255, b: 255, a: 0 },
+    bordersWidth,
     showLegend,
     showPercentage,
     showValues,
@@ -166,14 +167,11 @@ export default function transformProps(
         },
       },
       itemStyle: {
-        borderColor: enableBorder
-          ? rgbToHexWithAlpha(
-              elementBorder.r,
-              elementBorder.g,
-              elementBorder.b,
-              elementBorder.a,
-            )
-          : undefined,
+        borderColor: addAlpha(
+          rgbToHex(elementBorder.r, elementBorder.g, elementBorder.b),
+          elementBorder.a,
+        ),
+        borderWidth: bordersWidth,
       },
       emphasis: {
         itemStyle: {

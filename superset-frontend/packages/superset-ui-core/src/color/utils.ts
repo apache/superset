@@ -120,29 +120,3 @@ export function rgbToHex(red: number, green: number, blue: number) {
 
   return `#${r}${g}${b}`;
 }
-
-export function rgbToHexWithAlpha(
-  red: number,
-  green: number,
-  blue: number,
-  opacity: number = 1,
-): string {
-  if (opacity < 0 || opacity > 1) {
-    throw new Error(
-      `The opacity should be between 0 and 1, but got: ${opacity}`,
-    );
-  }
-
-  // Convert RGB to HEX
-  const toHex = (value: number) =>
-    value.toString(16).padStart(2, '0').toUpperCase();
-  const hex = `#${toHex(red)}${toHex(green)}${toHex(blue)}`;
-
-  // Convert opacity to HEX
-  const alpha = Math.round(opacity * 255)
-    .toString(16)
-    .padStart(2, '0')
-    .toUpperCase();
-
-  return `${hex}${alpha}`;
-}

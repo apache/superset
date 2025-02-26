@@ -35,7 +35,7 @@ export interface HeatmapFormData extends QueryFormData {
   normalizeAcross: 'heatmap' | 'x' | 'y';
   normalized?: boolean;
   elementBorder?: RgbaColor;
-  enableBorder?: boolean;
+  bordersWidth: number;
   showLegend?: boolean;
   showPercentage?: boolean;
   showValues?: boolean;
