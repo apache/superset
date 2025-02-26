@@ -3317,6 +3317,22 @@ class TestDatabaseApi(SupersetTestCase):
                     "parameters": {
                         "properties": {
                             "catalog": {"type": "object"},
+                            "oauth2_client_info": {
+                                "default": {
+                                    "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                                    "scope": (
+                                        "https://www.googleapis.com/auth/"
+                                        "drive.readonly "
+                                        "https://www.googleapis.com/auth/spreadsheets "
+                                        "https://spreadsheets.google.com/feeds"
+                                    ),
+                                    "token_request_uri": "https://oauth2.googleapis.com/token",
+                                },
+                                "description": "OAuth2 client information",
+                                "nullable": True,
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            },
                             "service_account_info": {
                                 "description": "Contents of GSheets JSON credentials.",
                                 "type": "string",
