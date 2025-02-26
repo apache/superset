@@ -234,7 +234,7 @@ const config: ControlPanelConfig = {
               label: t('Border color'),
               renderTrigger: true,
               description: t('Select border color for Heatmap elements'),
-              default: { r: 255, g: 255, b: 255, a: 0 },
+              default: { r: 255, g: 255, b: 255, a: 1 },
             },
           },
           {
