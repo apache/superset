@@ -108,6 +108,7 @@ Join our growing community!
 - [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
+- [shipmnts](https://shipmnts.com)
 - [Showmax](https://showmax.com) [@bobek]
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
