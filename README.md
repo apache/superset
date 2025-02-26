@@ -147,7 +147,7 @@ Want to add support for your datastore or data engine? Read more [here](https://
 
 ## Installation and Configuration
 
-[Extended documentation for Superset](https://superset.apache.org/docs/installation/docker-compose)
+Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) guide or learn about [the options for production deployments](https://superset.apache.org/docs/installation/architecture/).
 
 ## Get Involved
 
