@@ -20,6 +20,7 @@ import {
   ensureIsArray,
   getColumnLabel,
   getNumberFormatter,
+  isEqualArray,
   NumberFormats,
   styled,
   t,
@@ -242,11 +243,17 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     }
 
     // Clear all case
-    if (!filterState.value && !filterState.validateStatus) {
+    if (filterState.value === undefined && !filterState.validateStatus) {
       setInputValue([null, null]);
       updateDataMaskValue([null, null]);
       return;
     }
+
+    if (isEqualArray(defaultValue, inputValue)) {
+      updateDataMaskValue(defaultValue);
+      return;
+    }
+
     // Filter state is pre-set case
     if (filterState.value && !filterState.validateStatus) {
       setInputValue(filterState.value);
