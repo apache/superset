@@ -22,68 +22,84 @@ from superset import db, security_manager
 from tests.integration_tests.constants import GAMMA_SQLLAB_NO_DATA_USERNAME
 
 
-@pytest.fixture
-def create_gamma_user_group(app_context: AppContext):
-    gamma_role = security_manager.find_role("Gamma")
-    group = security_manager.add_group("group1", "", "", roles=[gamma_role])
+def create_role_with_permissions(role_name: str, permissions: list[tuple[str, str]]):
+    pvm_list = [
+        security_manager.add_permission_view_menu(p[0], p[1]) for p in permissions
+    ]
+    return security_manager.add_role(role_name, pvm_list)
+
+
+def create_user_and_group(
+    group_name: str,
+    username: str,
+    roles: list[Role],
+    password: str = "password1",  # noqa: S107
+):
+    group = security_manager.add_group(group_name, "", "", roles=roles)
     user = security_manager.add_user(
-        "gamma_with_groups",
+        username,
         "gamma",
         "user",
-        "gamma_with_groups",
-        password="password1",  # noqa: S106
+        username,
+        password=password,  # noqa: S106
         role=[],
         groups=[group],
     )
-    yield
+    return user, group
+
+
+def cleanup(user, group):
     security_manager.get_session.delete(user)
     security_manager.get_session.delete(group)
     security_manager.get_session.commit()
+
+
+@pytest.fixture
+def create_gamma_user_group(app_context: AppContext):
+    gamma_role = security_manager.find_role("Gamma")
+    user, group = create_user_and_group("group1", "gamma_with_groups", [gamma_role])
+    yield
+    cleanup(user, group)
 
 
 @pytest.fixture
 def create_user_group_with_dar(app_context: AppContext):
-    pvm = security_manager.add_permission_view_menu(
-        "datasource_access", "[examples].[birth_names](id:1)]"
+    dar_role = create_role_with_permissions(
+        "dar", [("datasource_access", "[examples].[birth_names](id:1)]")]
     )
-    dar_role = security_manager.add_role("dar", [pvm])
-    group = security_manager.add_group("group1", "", "", roles=[dar_role])
-    user = security_manager.add_user(
-        "gamma_with_groups",
-        "gamma",
-        "user",
-        "gamma_with_groups",
-        password="password1",  # noqa: S106
-        role=[],
-        groups=[group],
-    )
+    user, group = create_user_and_group("group1", "gamma_with_groups", [dar_role])
     yield
-    security_manager.get_session.delete(user)
-    security_manager.get_session.delete(group)
-    security_manager.get_session.commit()
+    cleanup(user, group)
 
 
 @pytest.fixture
 def create_gamma_user_group_with_dar(app_context: AppContext):
-    pvm = security_manager.add_permission_view_menu(
-        "datasource_access", "[examples].[birth_names](id:1)]"
+    dar_role = create_role_with_permissions(
+        "dar",
+        [
+            ("datasource_access", "[examples].[birth_names](id:1)]"),
+            ("all_database_access", "all_database_access"),
+        ],
     )
-    dar_role = security_manager.add_role("dar", [pvm])
     gamma_role = security_manager.find_role("Gamma")
-    group = security_manager.add_group("group1", "", "", roles=[dar_role, gamma_role])
-    user = security_manager.add_user(
-        "gamma_with_groups",
-        "gamma",
-        "user",
-        "gamma_with_groups",
-        password="password1",  # noqa: S106
-        role=[],
-        groups=[group],
+    user, group = create_user_and_group(
+        "group1", "gamma_with_groups", [dar_role, gamma_role]
     )
     yield
-    security_manager.get_session.delete(user)
-    security_manager.get_session.delete(group)
-    security_manager.get_session.commit()
+    cleanup(user, group)
+
+
+@pytest.fixture
+def create_gamma_user_group_with_all_database(app_context: AppContext):
+    dar_role = create_role_with_permissions(
+        "dar", [("all_database_access", "all_database_access")]
+    )
+    gamma_role = security_manager.find_role("Gamma")
+    user, group = create_user_and_group(
+        "group1", "gamma_with_groups", [dar_role, gamma_role]
+    )
+    yield
+    cleanup(user, group)
 
 
 @pytest.fixture

@@ -78,6 +78,9 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,  # noqa: F401
     load_unicode_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.users import (
+    create_gamma_user_group_with_all_database,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
 
 
@@ -258,6 +261,18 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] == 0
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_all_database")
+    def test_get_items_gamma_group(self):
+        """
+        Database API: Test get items gamma with group
+        """
+        self.login("gamma_with_groups", "password1")
+        uri = "api/v1/database/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] == 1
 
     def test_create_database(self):
         """
