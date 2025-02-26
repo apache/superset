@@ -142,6 +142,11 @@ class FilterBox extends React.PureComponent {
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
   }
 
+  componentDidMount() {
+    // Send filters on initial render to apply preexisting filters
+    this.sendFilterToDynamicMarkdown();
+  }
+
   onFilterMenuOpen(column) {
     return this.props.onFilterMenuOpen(this.props.chartId, column);
   }
@@ -298,6 +303,8 @@ class FilterBox extends React.PureComponent {
    * Post message with updated filters to all Dynamic Markdown instances within the dashboard
    */
   sendFilterToDynamicMarkdown() {
+    // ikigaiOrigin does not exist in chart view
+    const origin = this.props.ikigaiOrigin || '';
     const crossWindowMessage = {
       info: 'widget-to-parent/send-global-filter',
       dataType: 'object',
@@ -310,10 +317,7 @@ class FilterBox extends React.PureComponent {
     const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
     iframes.forEach(iframe => {
       if (!iframe.name.includes('dynamic-markdown')) return;
-      iframe.contentWindow.postMessage(
-        crossBrowserInfoString,
-        this.props.ikigaiOrigin,
-      );
+      iframe.contentWindow.postMessage(crossBrowserInfoString, origin);
     });
   }
 
@@ -523,7 +527,7 @@ FilterBox.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
-    ikigaiOrigin: state.dashboardState.ikigaiOrigin,
+    ikigaiOrigin: state?.dashboardState?.ikigaiOrigin,
   };
 }
 
