@@ -287,7 +287,7 @@ def batch_operation(
 
     logger.info(f"Progress: {count:,}/{count:,} (100%)")
     logger.info(
-        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}succesfully{RESET} executed."  # noqa: E501
+        f"End: {GREEN}{callable.__name__}{RESET} batch operation {GREEN}successfully{RESET} executed."  # noqa: E501
     )
 
 
@@ -295,7 +295,7 @@ def add_columns(table_name: str, *columns: Column) -> None:
     """
     Adds new columns to an existing database table.
 
-    If a column already exists, it logs an informational message and skips the adding process.
+    If a column already exist, it logs an informational message and skips the adding process.
     Otherwise, it proceeds to add the new column to the table.
 
     The operation is performed using Alembic's batch_alter_table.

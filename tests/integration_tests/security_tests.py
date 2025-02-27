@@ -1488,6 +1488,8 @@ class TestRolePermission(SupersetTestCase):
             ("menu_access", "Saved Queries"),
             ("menu_access", "SQL Editor"),
             ("menu_access", "SQL Lab"),
+            ("can_read", "SqlLabPermalinkRestApi"),
+            ("can_write", "SqlLabPermalinkRestApi"),
         }
 
         self.assert_cannot_alpha(sql_lab_set)

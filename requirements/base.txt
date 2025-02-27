@@ -108,7 +108,7 @@ flask==2.3.3
     #   flask-session
     #   flask-sqlalchemy
     #   flask-wtf
-flask-appbuilder==4.5.3
+flask-appbuilder==4.5.4
     # via apache-superset (pyproject.toml)
 flask-babel==2.0.0
     # via flask-appbuilder
@@ -173,7 +173,7 @@ itsdangerous==2.2.0
     # via
     #   flask
     #   flask-wtf
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   flask
     #   flask-babel
@@ -252,7 +252,7 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
-platformdirs==3.8.1
+platformdirs==3.9.1
     # via requests-cache
 ply==3.11
     # via jsonpath-ng
@@ -385,7 +385,7 @@ tzdata==2024.2
     #   pandas
 url-normalize==1.4.3
     # via requests-cache
-urllib3==1.26.18
+urllib3==1.26.20
     # via
     #   -r requirements/base.in
     #   requests
