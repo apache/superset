@@ -226,13 +226,13 @@ const config: ControlPanelConfig = {
         ['currency_format'],
         [
           {
-            name: 'element_border',
+            name: 'border_color',
             config: {
               type: 'ColorPickerControl',
               label: t('Border color'),
               renderTrigger: true,
-              description: t('Select border color for Heatmap elements'),
-              default: { r: 255, g: 255, b: 255, a: 1 },
+              description: t('The color of the elements border'),
+              default: { r: 0, g: 0, b: 0, a: 1 },
             },
           },
           {
