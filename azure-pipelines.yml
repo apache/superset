@@ -19,7 +19,7 @@ variables:
   k8sNamespace: 'default'
   k8sDeploymentName: 'superset'
   dockerfilePath: '**/Dockerfile'
-  vmImage: 'ubuntu-latest'
+  vmImageName: 'ubuntu-latest'
   
 stages:
 - stage: Build
