@@ -34,8 +34,10 @@ export default function getBootstrapData(): BootstrapData {
     try {
       return JSON.parse(jsonrepair(dataBootstrapString));
     } catch (error) {
-      logging.error('Malformed JSON in bootstrap data', error);
-      logging.info('Using default bootstrap data');
+      logging.error(
+        'Malformed JSON in bootstrap data. Using default data instead',
+        error,
+      );
       return DEFAULT_BOOTSTRAP_DATA;
     }
   }
