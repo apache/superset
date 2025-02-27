@@ -26,7 +26,6 @@ import AnnotationLayerModal from './AnnotationLayerModal';
 
 // Create a mock component that simulates the behavior of AnnotationLayerModal
 const MockAnnotationLayerModal = ({
-  addDangerToast,
   addSuccessToast,
   layer,
   onLayerAdd,
