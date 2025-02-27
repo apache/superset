@@ -25,6 +25,9 @@ import {
   getSequentialSchemeRegistry,
   getTimeFormatter,
   getValueFormatter,
+  rgbToHex,
+  addAlpha,
+  supersetTheme,
   tooltipHtml,
 } from '@superset-ui/core';
 import memoizeOne from 'memoize-one';
@@ -86,6 +89,8 @@ export default function transformProps(
     metric = '',
     normalizeAcross,
     normalized,
+    borderColor,
+    borderWidth = 0,
     showLegend,
     showPercentage,
     showValues,
@@ -159,6 +164,20 @@ export default function transformProps(
         formatter: (params: CallbackDataParams) => {
           const paramsValue = params.value as (string | number)[];
           return valueFormatter(paramsValue?.[2] as number | null | undefined);
+        },
+      },
+      itemStyle: {
+        borderColor: addAlpha(
+          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
+          borderColor.a,
+        ),
+        borderWidth,
+      },
+      emphasis: {
+        itemStyle: {
+          borderColor: supersetTheme.colors.grayscale.light5,
+          shadowBlur: 10,
+          shadowColor: supersetTheme.colors.grayscale.dark2,
         },
       },
     },
