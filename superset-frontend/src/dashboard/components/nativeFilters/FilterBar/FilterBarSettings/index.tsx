@@ -185,7 +185,9 @@ const FilterBarSettings = () => {
           </FilterConfigurationLink>
         ),
       });
-      items.push({ type: 'divider' });
+      if (canEdit) {
+         items.push({ type: 'divider' });
+      }
     }
     if (canEdit) {
       items.push({
