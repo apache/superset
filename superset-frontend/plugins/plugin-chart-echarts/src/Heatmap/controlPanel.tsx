@@ -224,7 +224,6 @@ const config: ControlPanelConfig = {
         ['y_axis_format'],
         ['x_axis_time_format'],
         ['currency_format'],
-        [<ControlSubSectionHeader>Border</ControlSubSectionHeader>],
         [
           {
             name: 'element_border',
