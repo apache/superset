@@ -12,9 +12,6 @@ pr:
       - '*'
     include: []
 
-pool:
-  vmImage: ubuntu-latest
-
 variables:
   imageRepository: 'shipmnts/superset'
   tag: '$(Build.BuildId)'
@@ -22,6 +19,7 @@ variables:
   k8sNamespace: 'default'
   k8sDeploymentName: 'superset'
   dockerfilePath: '**/Dockerfile'
+  vmImage: 'ubuntu-latest'
   
 stages:
 - stage: Build
@@ -29,6 +27,8 @@ stages:
   jobs:
   - job: Build
     displayName: Build
+    pool:
+      vmImage: $(vmImageName)
     steps:
     - task: Docker@2
       displayName: Login to registry
@@ -72,6 +72,8 @@ stages:
   jobs:
   - deployment: Deploy
     displayName: Deploy
+    pool:
+      vmImage: $(vmImageName)
     environment: 'development.default'
     strategy:
       runOnce:
@@ -84,5 +86,4 @@ stages:
                 manifests: |
                   $(Pipeline.Workspace)/deployment/superset-deployment.yaml
                 containers: |
-                  $(dockerRegistryServiceConnection)/$(imageRepository):$(tag)
-    
+                  $(imageRepository):$(tag)
