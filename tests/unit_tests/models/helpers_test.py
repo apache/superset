@@ -25,7 +25,7 @@ from unittest.mock import patch
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
@@ -202,7 +202,7 @@ def test_values_for_column_double_percents(
     # make sure final query has single percents
     with database.get_sqla_engine() as engine:
         pd.read_sql_query.assert_called_with(
-            sql=(
+            sql=text(
                 "SELECT DISTINCT CASE WHEN b LIKE 'A%' THEN 'yes' ELSE 'nope' END "
                 "AS column_values \nFROM t\n LIMIT 10000 OFFSET 0"
             ),
