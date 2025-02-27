@@ -90,7 +90,7 @@ export default function transformProps(
     normalizeAcross,
     normalized,
     borderColor,
-    borderWidth,
+    borderWidth = 0,
     showLegend,
     showPercentage,
     showValues,
