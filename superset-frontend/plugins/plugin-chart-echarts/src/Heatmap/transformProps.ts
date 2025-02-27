@@ -168,10 +168,10 @@ export default function transformProps(
       },
       itemStyle: {
         borderColor: addAlpha(
-          rgbToHex(elementBorder.r, elementBorder.g, elementBorder.b),
-          elementBorder.a,
+          rgbToHex(borderColor.r, borderColor.g, borderColor.b),
+          borderColor.a,
         ),
-        borderWidth: bordersWidth,
+        borderWidth,
       },
       emphasis: {
         itemStyle: {
