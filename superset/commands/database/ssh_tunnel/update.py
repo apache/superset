@@ -32,6 +32,7 @@ from superset.daos.database import SSHTunnelDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.utils.decorators import on_error, transaction
+from superset.utils.ssh_tunnel import get_default_port
 
 logger = logging.getLogger(__name__)
 
@@ -75,5 +76,7 @@ class UpdateSSHTunnelCommand(BaseCommand):
             raise SSHTunnelInvalidError(
                 exceptions=[SSHTunnelRequiredFieldValidationError("private_key")]
             )
-        if not url.port:
+        backend = url.get_backend_name()
+        port = url.port or get_default_port(backend)
+        if not port:
             raise SSHTunnelDatabasePortError()

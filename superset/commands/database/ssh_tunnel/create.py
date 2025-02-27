@@ -33,6 +33,7 @@ from superset.databases.utils import make_url_safe
 from superset.extensions import event_logger
 from superset.models.core import Database
 from superset.utils.decorators import on_error, transaction
+from superset.utils.ssh_tunnel import get_default_port
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +73,9 @@ class CreateSSHTunnelCommand(BaseCommand):
             "private_key_password"
         )
         url = make_url_safe(self._database.sqlalchemy_uri)
-        if not url.port:
+        backend = url.get_backend_name()
+        port = url.port or get_default_port(backend)
+        if not port:
             raise SSHTunnelDatabasePortError()
         if not server_address:
             exceptions.append(SSHTunnelRequiredFieldValidationError("server_address"))
