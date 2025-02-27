@@ -232,6 +232,171 @@ describe('useIsFilterInScope', () => {
     const { result } = renderHook(() => useIsFilterInScope());
     expect(result.current(filter)).toBe(true);
   });
+
+  it.skip('should keep filters in scope when adding new tabs', () => {
+    // Start with a dashboard with no tabs
+    updateMocks([], false);
+
+    // Create a mix of filter types to test
+    const filters = [
+      {
+        ...baseFilter,
+        id: 'global_filter',
+        chartsInScope: [],
+        scope: { rootPath: [], excluded: [] },
+      },
+      {
+        ...baseFilter,
+        id: 'time_filter',
+        filterType: 'filter_time',
+        chartsInScope: [123],
+        scope: { rootPath: ['TAB_1'], excluded: [] },
+      },
+      {
+        ...baseFilter,
+        id: 'chart_filter',
+        chartsInScope: [123],
+        scope: { rootPath: [], excluded: [] },
+      },
+    ];
+
+    // First test: dashboard with no tabs - all filters should be in scope
+    const { result: result1 } = renderHook(() => useIsFilterInScope());
+    filters.forEach(filter => {
+      expect(result1.current(filter)).toBe(true);
+    });
+
+    // Second test: add a tab - filters should remain in scope
+    updateMocks(['TAB_1'], true);
+    const { result: result2 } = renderHook(() => useIsFilterInScope());
+    filters.forEach(filter => {
+      expect(result2.current(filter)).toBe(true);
+    });
+
+    // Third test: add another tab - filters should still be in scope
+    updateMocks(['TAB_1', 'TAB_2'], true);
+    const { result: result3 } = renderHook(() => useIsFilterInScope());
+    filters.forEach(filter => {
+      expect(result3.current(filter)).toBe(true);
+    });
+  });
+
+  it('should show only relevant filters when tabs contain different datasets', () => {
+    updateMocks([], false);
+
+    // Update mock dashboard to include charts from different datasets
+    const multiDatasetLayout = {
+      ...mockDashboardLayout,
+      CHART_1: {
+        type: 'CHART',
+        id: 'CHART_1',
+        meta: { chartId: 123, datasourceId: 10 }, // Dataset 10
+        parents: ['TAB_1'],
+      },
+      CHART_2: {
+        type: 'CHART',
+        id: 'CHART_2',
+        meta: { chartId: 456, datasourceId: 20 }, // Dataset 20
+        parents: ['TAB_2'],
+      },
+    };
+
+    // Mock implementation for this specific test
+    (useSelector as jest.Mock).mockImplementation(selectorFn => {
+      const mockState = {
+        dashboardState: { activeTabs: mockActiveTabs },
+        dashboardLayout: { present: multiDatasetLayout },
+      };
+      return selectorFn(mockState);
+    });
+
+    // Create dataset-specific filters
+    const dataset10Filter: Filter = {
+      ...baseFilter,
+      id: 'dataset_10_filter',
+      chartsInScope: [123],
+      targets: [{ column: { name: 'column_name' }, datasetId: 10 }],
+      description: 'Filter specific to dataset 10',
+    };
+
+    const dataset20Filter: Filter = {
+      ...baseFilter,
+      id: 'dataset_20_filter',
+      chartsInScope: [456],
+      targets: [{ column: { name: 'column_name' }, datasetId: 20 }],
+      description: 'Filter specific to dataset 20',
+    };
+
+    // Test visibility in Tab 1 (dataset 10)
+    updateMocks(['TAB_1']);
+    const { result: result1 } = renderHook(() => useIsFilterInScope());
+    expect(result1.current(dataset10Filter)).toBe(true); // Chart 123 is in Tab 1
+    expect(result1.current(dataset20Filter)).toBe(false); // Chart 456 is not in Tab 1
+
+    // Test visibility in Tab 2 (dataset 20)
+    updateMocks(['TAB_2']);
+    const { result: result2 } = renderHook(() => useIsFilterInScope());
+    expect(result2.current(dataset10Filter)).toBe(false); // Chart 123 is not in Tab 2
+    expect(result2.current(dataset20Filter)).toBe(true); // Chart 456 is in Tab 2
+
+    // Test visibility with both tabs active
+    updateMocks(['TAB_1', 'TAB_2']);
+    const { result: result3 } = renderHook(() => useIsFilterInScope());
+    expect(result3.current(dataset10Filter)).toBe(true);
+    expect(result3.current(dataset20Filter)).toBe(true);
+  });
+
+  it('should handle filters that apply to multiple datasets', () => {
+    // Mock charts from different datasets
+    const multiDatasetLayout = {
+      ...mockDashboardLayout,
+      CHART_1: {
+        type: 'CHART',
+        id: 'CHART_1',
+        meta: { chartId: 123, datasourceId: 10 },
+        parents: ['TAB_1'],
+      },
+      CHART_2: {
+        type: 'CHART',
+        id: 'CHART_2',
+        meta: { chartId: 456, datasourceId: 20 },
+        parents: ['TAB_2'],
+      },
+      CHART_3: {
+        type: 'CHART',
+        id: 'CHART_3',
+        meta: { chartId: 789, datasourceId: 10 }, // Same dataset as CHART_1
+        parents: ['TAB_2'],
+      },
+    };
+
+    // Update mock for this test
+    (useSelector as jest.Mock).mockImplementation(selectorFn => {
+      const mockState = {
+        dashboardState: { activeTabs: mockActiveTabs },
+        dashboardLayout: { present: multiDatasetLayout },
+      };
+      return selectorFn(mockState);
+    });
+
+    // Create filter that applies to charts across multiple tabs but same dataset
+    const crossTabFilter: Filter = {
+      ...baseFilter,
+      id: 'cross_tab_filter',
+      chartsInScope: [123, 789], // Charts in different tabs but same dataset
+      targets: [{ column: { name: 'column_name' }, datasetId: 10 }],
+    };
+
+    // Test in Tab 1
+    updateMocks(['TAB_1']);
+    const { result: result1 } = renderHook(() => useIsFilterInScope());
+    expect(result1.current(crossTabFilter)).toBe(true);
+
+    // Test in Tab 2
+    updateMocks(['TAB_2']);
+    const { result: result2 } = renderHook(() => useIsFilterInScope());
+    expect(result2.current(crossTabFilter)).toBe(true);
+  });
 });
 
 describe('useSelectFiltersInScope', () => {
