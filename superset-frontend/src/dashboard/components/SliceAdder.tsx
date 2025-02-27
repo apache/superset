@@ -46,11 +46,13 @@ import Checkbox from 'src/components/Checkbox';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
 import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
+import { withTheme, Theme } from '@emotion/react';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
 
 export type SliceAdderProps = {
+  theme: Theme;
   fetchSlices: (
     userId?: number,
     filter_value?: string,
@@ -345,12 +347,16 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   }
 
   render() {
+    const { theme } = this.props;
     return (
       <div
         css={css`
           height: 100%;
           display: flex;
           flex-direction: column;
+          button > span > :first-of-type {
+            margin-right: 0;
+          }
         `}
       >
         <NewChartButtonContainer>
@@ -365,7 +371,10 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
               )
             }
           >
-            <Icons.PlusOutlined iconSize="s" />
+            <Icons.PlusOutlined
+              iconSize="s"
+              iconColor={theme.colors.primary.dark1}
+            />
             {t('Create new chart')}
           </NewChartButton>
         </NewChartButtonContainer>
@@ -449,4 +458,4 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   }
 }
 
-export default SliceAdder;
+export default withTheme(SliceAdder);
