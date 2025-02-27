@@ -21,13 +21,14 @@ import { ReactNode, createElement } from 'react';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import {
-  render,
-  screen,
-  cleanup,
-  userEvent,
-} from 'spec/helpers/testing-library';
 import * as reactRedux from 'react-redux';
+// for some reason importing render from the helpers file is not working as expected
+import { render } from '@testing-library/react';
+import { screen, cleanup } from 'spec/helpers/testing-library';
+
+import '@testing-library/jest-dom';
+import userEvent from '@testing-library/user-event';
+import { BrowserRouter } from 'react-router-dom';
 
 // Import actual component instead of mocking it
 import DatasetList from '.';
@@ -189,6 +190,13 @@ jest.mock('src/utils/hostNamesConfig', () => ({
   getDomainsConfig: jest.fn(() => ({ domains: [] })),
 }));
 
+// Mock CRUD utils
+jest.mock('src/views/CRUD/utils', () => ({
+  createFetchRelated: jest.fn(() => jest.fn()),
+  createFetchDistinct: jest.fn(() => jest.fn()),
+  createErrorHandler: jest.fn(() => jest.fn()),
+}));
+
 // Mock common utils
 jest.mock('src/utils/common', () => ({
   ...jest.requireActual('src/utils/common'),
@@ -280,9 +288,20 @@ const ListView = ({
     ].filter(Boolean),
   );
 
+// Mock FilterOperator enum
+const FilterOperator = {
+  Contains: 'contains',
+  Equals: 'equals',
+  RelationOneMany: 'rel_o_m',
+  RelationManyMany: 'rel_m_m',
+  DatasetIsNullOrEmpty: 'dataset_is_null_or_empty',
+  DatasetIsCertified: 'dataset_is_certified',
+};
+
 jest.mock('src/components/ListView', () => ({
   __esModule: true,
   default: ListView,
+  FilterOperator,
 }));
 
 // Mock explore components
@@ -305,6 +324,14 @@ jest.mock('src/explore/controls', () => ({
 jest.mock('@superset-ui/chart-controls', () => ({
   __esModule: true,
   default: {},
+}));
+
+// Mock DuplicateDatasetModal
+jest.mock('src/features/datasets/DuplicateDatasetModal', () => ({
+  __esModule: true,
+  default: ({ children }: { children?: React.ReactNode }) => (
+    <div data-test="duplicate-modal">{children}</div>
+  ),
 }));
 
 interface SubMenuProps {
@@ -392,14 +419,20 @@ fetchMock.get(databaseEndpoint, {
   result: [],
 });
 
+// Create a wrapper component to handle rendering
+const TestWrapper = ({ children }: { children: React.ReactNode }) => (
+  <reactRedux.Provider store={store}>
+    <BrowserRouter>{children}</BrowserRouter>
+  </reactRedux.Provider>
+);
+
 describe('DatasetList', () => {
   const renderDatasetList = () =>
-    render(<DatasetList user={mockUser} />, {
-      useRedux: true,
-      useRouter: true,
-      useQueryParams: true,
-      store,
-    });
+    render(
+      <TestWrapper>
+        <DatasetList user={mockUser} />
+      </TestWrapper>,
+    );
 
   beforeEach(async () => {
     fetchMock.resetHistory();
@@ -436,12 +469,11 @@ describe('RTL', () => {
   });
 
   it('renders an "Import Dataset" tooltip under import button', async () => {
-    render(<DatasetList user={mockUser} />, {
-      useRedux: true,
-      useRouter: true,
-      useQueryParams: true,
-      store,
-    });
+    render(
+      <TestWrapper>
+        <DatasetList user={mockUser} />
+      </TestWrapper>,
+    );
 
     const importButton = await screen.findByTestId('import-button');
     expect(importButton).toBeInTheDocument();
@@ -451,12 +483,11 @@ describe('RTL', () => {
 describe('Prevent unsafe URLs', () => {
   it('renders relative links when prevent unsafe is on', async () => {
     useSelectorMock.mockReturnValue(true);
-    render(<DatasetList user={mockUser} />, {
-      useRedux: true,
-      useRouter: true,
-      useQueryParams: true,
-      store,
-    });
+    render(
+      <TestWrapper>
+        <DatasetList user={mockUser} />
+      </TestWrapper>,
+    );
 
     const table = await screen.findByRole('table');
     expect(table).toBeInTheDocument();
@@ -464,12 +495,11 @@ describe('Prevent unsafe URLs', () => {
 
   it('renders absolute links when prevent unsafe is off', async () => {
     useSelectorMock.mockReturnValue(false);
-    render(<DatasetList user={mockUser} />, {
-      useRedux: true,
-      useRouter: true,
-      useQueryParams: true,
-      store,
-    });
+    render(
+      <TestWrapper>
+        <DatasetList user={mockUser} />
+      </TestWrapper>,
+    );
 
     const table = await screen.findByRole('table');
     expect(table).toBeInTheDocument();
