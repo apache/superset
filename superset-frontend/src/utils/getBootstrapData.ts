@@ -20,6 +20,7 @@
 import { jsonrepair } from 'jsonrepair';
 import { BootstrapData } from 'src/types/bootstrapTypes';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
+import { logging } from '@superset-ui/core';
 
 export default function getBootstrapData(): BootstrapData {
   const appContainer = document.getElementById('app');
@@ -30,6 +31,12 @@ export default function getBootstrapData(): BootstrapData {
   try {
     return JSON.parse(dataBootstrapString);
   } catch (error) {
-    return JSON.parse(jsonrepair(dataBootstrapString));
+    try {
+      return JSON.parse(jsonrepair(dataBootstrapString));
+    } catch (error) {
+      logging.error('Malformed JSON in bootstrap data', error);
+      logging.info('Using default bootstrap data');
+      return DEFAULT_BOOTSTRAP_DATA;
+    }
   }
 }
