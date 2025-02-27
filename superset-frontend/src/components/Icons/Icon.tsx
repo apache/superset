@@ -55,12 +55,18 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
         color: ${iconColor || theme.colors.grayscale.base};
         display: inline-flex;
         align-items: center;
+        vertical-align: middle;
       `}
     >
       <Component {...rest} viewBox={viewBox} fill={iconColor} />
     </span>
   ) : (
-    <Component {...(rest as SVGProps<SVGSVGElement>)} />
+    <Component
+      css={css`
+        vertical-align: middle;
+      `}
+      {...(rest as SVGProps<SVGSVGElement>)}
+    />
   );
 };
 

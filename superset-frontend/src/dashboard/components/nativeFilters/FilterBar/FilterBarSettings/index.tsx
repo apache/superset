@@ -19,7 +19,14 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  styled,
+  t,
+  css,
+  useTheme,
+} from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -68,6 +75,7 @@ const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
 
 const FilterBarSettings = () => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
@@ -216,8 +224,11 @@ const FilterBarSettings = () => {
                 {selectedFilterBarOrientation ===
                   FilterBarOrientation.Vertical && (
                   <Icons.CheckOutlined
+                    iconColor={theme.colors.primary.base}
+                    css={css`
+                      vertical-align: -${theme.gridUnit * 0.03125}em;
+                    `}
                     iconSize="m"
-                    css={{ verticalAlign: 'middle' }}
                   />
                 )}
               </Space>
