@@ -19,7 +19,6 @@
 import { t, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
-  ControlSubSectionHeader,
   formatSelectOptionsForRange,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
