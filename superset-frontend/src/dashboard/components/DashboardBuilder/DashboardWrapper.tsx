@@ -108,15 +108,6 @@ const StyledDiv = styled.div`
       color: ${theme.colors.alert.base};
     }
 
-    @media (max-width: 980px) {
-      .dragdroppable-column {
-        width: 100% !important;
-        max-width: none !important;
-      }
-      .grid-column div {
-        max-width: none !important;
-      }
-    }
   `}
 `;
 

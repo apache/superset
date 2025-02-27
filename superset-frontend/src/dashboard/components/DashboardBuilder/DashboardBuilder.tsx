@@ -282,30 +282,6 @@ const DashboardContentWrapper = styled.div`
         bottom: ${-theme.gridUnit * 4}px;
       }
     }
-    @media (max-width: 980px) {
-      .grid-row {
-        display: flex ;
-        flex-wrap: nowrap ;
-        flex-direction: column ;
-        align-content: center ;
-        justify-content: center ;
-        align-items: center ; 
-        width: 100% ;
-        max-width: none !important;
-      }
-      .grid-row .dragdroppable-object {
-        width: 100% !important;
-        max-width: none !important;
-      }
-      .resizable-container div {
-        width: 100% !important ; 
-        max-width: none !important;
-      }
-      .resizable-container canvas {
-        width: 100% !important ; 
-        max-width: none !important;
-      }
-    }
   `}
 `;
 
