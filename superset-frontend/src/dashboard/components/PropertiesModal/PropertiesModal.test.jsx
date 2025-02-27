@@ -35,6 +35,24 @@ jest.mock('antd/lib/grid/hooks/useBreakpoint', () => ({
   }),
 }));
 
+// Mock AntdForm.useForm directly
+jest.mock('src/components', () => {
+  const original = jest.requireActual('src/components');
+  const mockForm = {
+    getFieldsValue: jest.fn().mockReturnValue({}),
+    setFieldsValue: jest.fn(),
+    submit: jest.fn(),
+  };
+
+  if (!original.AntdForm) {
+    original.AntdForm = {};
+  }
+
+  original.AntdForm.useForm = jest.fn().mockReturnValue([mockForm]);
+
+  return original;
+});
+
 // Mock ResizeObserver
 global.ResizeObserver = jest.fn().mockImplementation(() => ({
   observe: jest.fn(),

@@ -185,27 +185,21 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
     }
   };
 
-  // Initialize
+  // Initialize - simplified to avoid potential infinite loops
   useEffect(() => {
-    if (
-      isEditMode &&
-      (!currentLayer?.id ||
-        (layer && layer.id !== currentLayer.id) ||
-        (isHidden && show))
-    ) {
-      if (show && layer && layer.id !== null && !loading) {
-        const id = layer.id || 0;
-
+    if (!show) {
+      return;
+    }
+    if (isEditMode) {
+      if (layer?.id !== null && !loading) {
+        const id = layer?.id || 0;
         fetchResource(id);
       }
-    } else if (
-      !isEditMode &&
-      (!currentLayer || currentLayer.id || (isHidden && show))
-    ) {
-      // Reset layer
+    } else {
+      // Reset layer in add mode
       resetLayer();
     }
-  }, [layer, show]);
+  }, [isEditMode, layer?.id, show, loading]);
 
   useEffect(() => {
     if (resource) {
@@ -213,18 +207,17 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
     }
   }, [resource]);
 
-  // Validation
+  // Validation - simplified
   useEffect(() => {
     validate();
-  }, [
-    currentLayer ? currentLayer.name : '',
-    currentLayer ? currentLayer.descr : '',
-  ]);
+  }, [currentLayer?.name]);
 
-  // Show/hide
-  if (isHidden && show) {
-    setIsHidden(false);
-  }
+  // Move state update from render to useEffect
+  useEffect(() => {
+    if (isHidden && show) {
+      setIsHidden(false);
+    }
+  }, [isHidden, show]);
 
   return (
     <Modal
