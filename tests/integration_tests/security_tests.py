@@ -1899,9 +1899,10 @@ class TestSecurityManager(SupersetTestCase):
     def test_get_user_roles_with_groups_dar(self):
         user = security_manager.find_user("gamma_with_groups")
         with override_user(user):
-            roles = security_manager.get_user_roles()
-            assert roles[0].name == "Gamma"
-            assert roles[1].name == "dar"
+            role_names = [role.name for role in security_manager.get_user_roles()]
+            assert "Gamma" in role_names
+            assert "dar" in role_names
+            assert len(role_names) == 2
 
     @pytest.mark.usefixtures("create_user_group_with_dar")
     def test_user_view_menu_names_with_groups_dar(self):
