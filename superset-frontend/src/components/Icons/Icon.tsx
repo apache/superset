@@ -55,7 +55,6 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
         color: ${iconColor || theme.colors.grayscale.base};
         display: inline-flex;
         align-items: center;
-        vertical-align: middle;
       `}
     >
       <Component {...rest} viewBox={viewBox} fill={iconColor} />
@@ -63,7 +62,7 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
   ) : (
     <Component
       css={css`
-        vertical-align: middle;
+        line-height:0;
       `}
       {...(rest as SVGProps<SVGSVGElement>)}
     />
@@ -110,7 +109,9 @@ export const Icon = (props: IconProps) => {
   return (
     // @ts-ignore to be removed
     <StyledIcon
-      component={ImportedSVG.current || TransparentIcon}
+      css={css`
+        line-align: middle;
+      `}      component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
       role={whatRole}
       {...iconProps}

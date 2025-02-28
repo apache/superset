@@ -275,8 +275,8 @@ export const chartListView = {
     bulkSelect: dataTestLocator('bulk-select'),
   },
   header: {
-    cardView: '[aria-label="card-view"]',
-    listView: '[aria-label="list-view"]',
+    cardView: '[aria-label="AppstoreOutlined"]',
+    listView: '[aria-label="UnorderedListOutlined"]',
     sort: '[class="ant-select-selection-search-input"][aria-label="Sort"]',
     sortRecentlyModifiedMenuOption: '[label="Recently modified"]',
     sortAlphabeticalMenuOption: '[label="Alphabetical"]',
