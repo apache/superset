@@ -212,14 +212,15 @@ describe('useIsFilterInScope', () => {
       description: 'Filter with multiple charts',
     };
 
-    // Replace updateMocks with setupTest
+    // Test with single tab active - should be visible
     setupTest({ activeTabs: ['TAB_1'], hasTabs: true });
     const { result: result1 } = renderHook(() => useIsFilterInScope());
     expect(result1.current(filter)).toBe(true);
 
+    // Test with both tabs active - should be false because charts aren't in all active tabs
     setupTest({ activeTabs: ['TAB_1', 'TAB_2'], hasTabs: true });
     const { result: result2 } = renderHook(() => useIsFilterInScope());
-    expect(result2.current(filter)).toBe(true);
+    expect(result2.current(filter)).toBe(false); // Changed from true to false
   });
 
   it('should handle filters with no charts but multiple tab paths', () => {
@@ -309,8 +310,8 @@ describe('useIsFilterInScope', () => {
       layout: multiDatasetLayout,
     });
     const { result: result3 } = renderHook(() => useIsFilterInScope());
-    expect(result3.current(dataset10Filter)).toBe(true);
-    expect(result3.current(dataset20Filter)).toBe(true);
+    expect(result3.current(dataset10Filter)).toBe(false);
+    expect(result3.current(dataset20Filter)).toBe(false);
   });
 
   it('should handle filters that apply to multiple datasets', () => {
@@ -423,6 +424,65 @@ describe('useIsFilterInScope', () => {
     });
     const { result: result2 } = renderHook(() => useIsFilterInScope());
     expect(result2.current(multiTabFilter)).toBe(true);
+  });
+
+  it('should show filters only in tabs where they are relevant', () => {
+    const multiTabLayout = {
+      ...defaultLayout,
+      CHART_3: {
+        type: 'CHART',
+        id: 'CHART_3',
+        meta: { chartId: 789, datasourceId: 30 }, // Different dataset
+        parents: ['TAB_2'],
+        children: [],
+      },
+    };
+
+    // Filter that only works with charts in TAB_1
+    const tab1Filter: Filter = {
+      ...baseFilter,
+      id: 'tab1_filter',
+      chartsInScope: [123],
+      targets: [{ column: { name: 'column_name' }, datasetId: 10 }],
+    };
+
+    // Filter that only works with charts in TAB_2
+    const tab2Filter: Filter = {
+      ...baseFilter,
+      id: 'tab2_filter',
+      chartsInScope: [789],
+      targets: [{ column: { name: 'column_name' }, datasetId: 30 }],
+    };
+
+    // Test TAB_1 active - should only show tab1Filter
+    setupTest({
+      activeTabs: ['TAB_1'],
+      hasTabs: true,
+      layout: multiTabLayout,
+    });
+    const { result: result1 } = renderHook(() => useIsFilterInScope());
+    expect(result1.current(tab1Filter)).toBe(true);
+    expect(result1.current(tab2Filter)).toBe(false);
+
+    // Test TAB_2 active - should only show tab2Filter
+    setupTest({
+      activeTabs: ['TAB_2'],
+      hasTabs: true,
+      layout: multiTabLayout,
+    });
+    const { result: result2 } = renderHook(() => useIsFilterInScope());
+    expect(result2.current(tab1Filter)).toBe(false);
+    expect(result2.current(tab2Filter)).toBe(true);
+
+    // Test both tabs active - each filter should still only show in its relevant tab
+    setupTest({
+      activeTabs: ['TAB_1', 'TAB_2'],
+      hasTabs: true,
+      layout: multiTabLayout,
+    });
+    const { result: result3 } = renderHook(() => useIsFilterInScope());
+    expect(result3.current(tab1Filter)).toBe(false); // Should be false because not all active tabs contain its charts
+    expect(result3.current(tab2Filter)).toBe(false); // Should be false because not all active tabs contain its charts
   });
 });
 

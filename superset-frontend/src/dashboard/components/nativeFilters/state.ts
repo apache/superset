@@ -136,8 +136,28 @@ export function useIsFilterInScope() {
             return true;
           }
 
-          // Chart in tab - check if any parent tab is active
-          return tabParents.some(tab => activeTabs.includes(tab));
+          // Chart in tab - check if ONLY its parent tabs are active
+          // and no other tabs are active that don't contain this chart
+          const activeTabsContainingChart = activeTabs.filter(tab =>
+            tabParents.includes(tab),
+          );
+
+          // If no active tabs contain this chart, it's out of scope
+          if (activeTabsContainingChart.length === 0) {
+            return false;
+          }
+
+          // Check if there are any active tabs that don't contain this chart
+          const activeTabsWithoutChart = activeTabs.filter(
+            tab => !tabParents.includes(tab),
+          );
+
+          // If there are active tabs without this chart, it's out of scope
+          if (activeTabsWithoutChart.length > 0) {
+            return false;
+          }
+
+          return true;
         });
 
         return isChartInScope;
