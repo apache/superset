@@ -25,7 +25,7 @@ import {
   useState,
   ComponentType,
 } from 'react';
-import { styled, css } from '@superset-ui/core';
+import { styled, css, useTheme } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
@@ -39,11 +39,12 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
   component: Component,
   iconColor,
   iconSize,
-  viewBox = '0 0 24 24',
+  viewBox,
   // @ts-ignore
   customIcons,
   ...rest
 }) => {
+  const theme = useTheme();
   if (!Component) return null;
   return customIcons ? (
     <span
@@ -55,9 +56,23 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
         color: ${iconColor || theme.colors.grayscale.base};
         display: inline-flex;
         align-items: center;
+        line-height: 0;
       `}
     >
-      <Component {...rest} viewBox={viewBox} fill={iconColor} />
+      <Component
+        {...rest}
+        viewBox={viewBox || '0 0 24 24'}
+        width={
+          iconSize
+            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+            : '24px'
+        }
+        height={
+          iconSize
+            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+            : '24px'
+        }
+      />
     </span>
   ) : (
     <Component
@@ -110,7 +125,7 @@ export const Icon = (props: IconProps) => {
     // @ts-ignore to be removed
     <StyledIcon
       css={css`
-        line-align: middle;
+        line-height: 0;
       `}
       component={ImportedSVG.current || TransparentIcon}
       aria-label={name}

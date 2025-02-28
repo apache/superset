@@ -29,7 +29,7 @@ export interface RefreshLabelProps {
 const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
-    <Icons.SyncOutlined iconSize="xl" {...props} />
+    <Icons.SyncOutlined iconSize="l" {...props} />
   ));
 
   return (

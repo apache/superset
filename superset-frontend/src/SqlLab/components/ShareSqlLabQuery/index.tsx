@@ -21,6 +21,7 @@ import {
   useTheme,
   getClientErrorObject,
   SupersetClient,
+  css,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -74,7 +75,15 @@ const ShareSqlLabQuery = ({
   const buildButton = () => {
     const tooltip = t('Copy query link to your clipboard');
     return (
-      <Button buttonSize="small" tooltip={tooltip}>
+      <Button
+        buttonSize="small"
+        tooltip={tooltip}
+        css={css`
+          span > :first-of-type {
+            margin-right: 0;
+          }
+        `}
+      >
         <Icons.LinkOutlined
           iconColor={theme.colors.primary.base}
           iconSize="xl"
