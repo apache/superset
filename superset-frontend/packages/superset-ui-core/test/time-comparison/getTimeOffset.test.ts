@@ -532,7 +532,7 @@ test('should handle custom range with previous calendar quarter', () => {
     comparator: 'previous calendar quarter',
   };
   const shifts = ['custom'];
-  const startDate = '2024-04-26';
+  const startDate = '2023-10-26';
   jest.useFakeTimers();
   runTimezoneTest(
     '2024-06-05T02:06:00+02:00',

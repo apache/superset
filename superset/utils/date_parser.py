@@ -206,7 +206,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         and time_range.startswith("previous calendar quarter")
         and separator not in time_range
     ):
-        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, QUARTER), QUARTER) : DATETRUNC(DATETIME('today'), QUARTER)"  # pylint: disable=line-too-long,useless-suppression
+        time_range = "DATETRUNC(DATEADD(DATETIME('today'), -1, QUARTER), QUARTER) : DATETRUNC(DATETIME('today'), QUARTER)"  # noqa: E501
     if (
         time_range
         and time_range.startswith("previous calendar year")
