@@ -21,9 +21,20 @@ import sqlite3
 from unittest.mock import MagicMock
 
 import pytest
+from flask_appbuilder.security.sqla.models import (
+    Permission,
+    PermissionView,
+    ViewMenu,
+)
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 
-from superset.commands.database.utils import ping
+from superset.commands.database.utils import (
+    add_perm,
+    add_pvm,
+    add_vm,
+    ping,
+)
 from tests.conftest import with_config
 
 
@@ -83,3 +94,119 @@ def test_ping_runtime_exception(mocker: MockerFixture, mock_engine: MockerFixtur
 
     assert result is True
     mock_dialect.do_ping.assert_called_once_with(mock_engine)
+
+
+@pytest.fixture
+def db_session(mocker: MockerFixture) -> Session:
+    return mocker.MagicMock(spec=Session)
+
+
+def test_add_vm(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_vm`` when the ViewMenu does not exist.
+    """
+    sm = mocker.MagicMock()
+    sm.find_view_menu.return_value = None
+    sm.viewmenu_model = ViewMenu
+
+    result = add_vm(db_session, sm, "new_view_menu")
+
+    assert result.name == "new_view_menu"
+    sm.find_view_menu.assert_called_once_with("new_view_menu")
+    db_session.add.assert_called_once_with(result)
+
+
+def test_add_vm_existing(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_vm`` when the ViewMenu already exists.
+    """
+    mock_vm = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.find_view_menu.return_value = mock_vm
+
+    result = add_vm(db_session, sm, "existing_view_menu")
+
+    assert result == mock_vm
+    sm.find_view_menu.assert_called_once_with("existing_view_menu")
+    db_session.add.assert_not_called()
+
+
+def test_add_perm(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_perm`` when the Permission does not exist.
+    """
+    sm = mocker.MagicMock()
+    sm.find_permission.return_value = None
+    sm.permission_model = Permission
+
+    result = add_perm(db_session, sm, "new_perm")
+
+    assert result.name == "new_perm"
+    sm.find_permission.assert_called_once_with("new_perm")
+    db_session.add.assert_called_once_with(result)
+
+
+def test_add_perm_existing(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_perm`` when the Permission already exists.
+    """
+    mock_perm = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.find_permission.return_value = mock_perm
+
+    result = add_perm(db_session, sm, "existing_perm")
+
+    assert result == mock_perm
+    sm.find_permission.assert_called_once_with("existing_perm")
+    db_session.add.assert_not_called()
+
+
+def test_add_pvm(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_pvm`` when the PermissionView does not exist.
+    """
+    sm = mocker.MagicMock()
+    sm.find_permission_view_menu.return_value = None
+    sm.permissionview_model = PermissionView
+
+    mock_vm = mocker.MagicMock()
+    mock_perm = mocker.MagicMock()
+    mock_add_vm = mocker.patch("superset.commands.database.utils.add_vm")
+    mock_add_vm.return_value = mock_vm
+    mock_add_perm = mocker.patch("superset.commands.database.utils.add_perm")
+    mock_add_perm.return_value = mock_perm
+
+    result = add_pvm(db_session, sm, "new_perm", "new_view_menu")
+
+    assert result is not None
+    assert result.view_menu == mock_vm
+    assert result.permission == mock_perm
+    sm.find_permission_view_menu.assert_called_once_with("new_perm", "new_view_menu")
+    mock_add_vm.assert_called_once_with(db_session, sm, "new_view_menu")
+    mock_add_perm.assert_called_once_with(db_session, sm, "new_perm")
+    db_session.add.assert_called_once_with(result)
+
+
+def test_add_pvm_missing_data(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_pvm`` when permission_name and view_menu_name are empty.
+    """
+    sm = mocker.MagicMock()
+    result = add_pvm(db_session, sm, None, None)
+
+    assert result is None
+
+
+def test_add_pvm_existing(db_session: Session, mocker: MockerFixture):
+    """
+    Thest ``add_pvm`` when the PermissionView already exists.
+    """
+    mock_pvm = mocker.MagicMock()
+    sm = mocker.MagicMock()
+    sm.find_permission_view_menu.return_value = mock_pvm
+
+    result = add_pvm(db_session, sm, "existinf_perm", "existing_vm")
+
+    assert result == mock_pvm
+    sm.find_permission_view_menu.assert_called_once_with("existinf_perm", "existing_vm")
+    db_session.add.assert_not_called()
