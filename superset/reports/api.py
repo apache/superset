@@ -51,6 +51,7 @@ from superset.reports.schemas import (
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
+from superset.utils.core import get_recipients_list
 from superset.utils.slack import get_channels_with_search
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -574,7 +575,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             params = kwargs.get("rison", {})
-            search_string = params.get("search_string")
+            search_string = get_recipients_list(params.get("search_string"))
             types = params.get("types", [])
             exact_match = params.get("exact_match", False)
             channels = get_channels_with_search(
