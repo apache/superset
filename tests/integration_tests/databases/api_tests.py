@@ -52,6 +52,7 @@ from superset.utils import json
 from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -504,6 +505,9 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
+    )
+    @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
     )
     @mock.patch("superset.commands.database.create.is_feature_enabled")
@@ -517,6 +521,7 @@ class TestDatabaseApi(SupersetTestCase):
         mock_update_is_feature_enabled,
         mock_create_is_feature_enabled,
         mock_test_connection_database_command_run,
+        mock_sync_perms_cmmd_run,
     ):
         """
         Database API: Test update Database with SSH Tunnel
@@ -958,6 +963,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(model)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=False)
     @mock.patch("superset.models.core.Database.get_all_catalog_names")
     @mock.patch("superset.models.core.Database.get_all_schema_names")
     def test_if_ssh_tunneling_flag_is_not_active_it_raises_new_exception(
@@ -2883,6 +2889,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.delete(database)
         db.session.commit()
 
+    @with_feature_flags(SSH_TUNNELING=False)
     @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_database_masked_ssh_tunnel_feature_flag_disabled(
         self,
