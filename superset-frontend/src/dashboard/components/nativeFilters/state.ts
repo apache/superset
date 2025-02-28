@@ -126,22 +126,18 @@ export function useIsFilterInScope() {
         const isChartInScope = chartsInScope.some(chartId => {
           const tabParents = selectChartTabParents(chartId);
 
-          // If chart doesn't exist in layout, it's not in scope
-          if (tabParents === undefined) {
-            return false;
-          }
+          // Early returns for no layout/no tabs cases
+          if (tabParents === undefined) return false;
+          if (!dashboardHasTabs) return true;
+          if (!tabParents.length) return true;
 
-          // If no tabs in dashboard, chart is in scope if it exists
-          if (!dashboardHasTabs) {
-            return true;
-          }
+          // If multiple tabs are active, check if chart's tab parents are ALL active
+          const chartTabsActive = tabParents.every(tab =>
+            activeTabs.includes(tab),
+          );
+          if (!chartTabsActive) return false;
 
-          // Chart not in any tab is always visible
-          if (!tabParents.length) {
-            return true;
-          }
-
-          // Check if any active tabs contain charts from the same dataset
+          // Check if active tabs contain charts from the same dataset
           const activeTabsCompatible = activeTabs.every(tab => {
             const chartsInTab = Object.values(dashboardLayout).filter(
               item => item.type === CHART_TYPE && item.parents?.includes(tab),
@@ -155,16 +151,7 @@ export function useIsFilterInScope() {
             );
           });
 
-          if (!activeTabsCompatible) {
-            return false;
-          }
-
-          // Now check if the chart's specific tabs are active
-          const activeTabsContainingChart = activeTabs.filter(tab =>
-            tabParents.includes(tab),
-          );
-
-          return activeTabsContainingChart.length > 0;
+          return activeTabsCompatible;
         });
 
         return isChartInScope;
