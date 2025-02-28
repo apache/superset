@@ -254,10 +254,13 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
   }, [annotation]);
 
   useEffect(() => {
-    if (resource) {
+    if (
+      resource &&
+      (!currentAnnotation || resource.id !== currentAnnotation.id)
+    ) {
       setCurrentAnnotation(resource);
     }
-  }, [resource]);
+  }, [resource, currentAnnotation]);
 
   // Validation
   useEffect(() => {
