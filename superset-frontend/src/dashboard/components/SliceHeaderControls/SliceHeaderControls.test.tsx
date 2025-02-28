@@ -227,7 +227,7 @@ test('Export full Excel is under featureflag', async () => {
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
-}, 10000);
+});
 
 test('Should "export full Excel"', async () => {
   (global as any).featureFlags = {

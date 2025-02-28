@@ -54,7 +54,7 @@ test('renders a submenu', async () => {
 test('renders a submenu with search', async () => {
   asyncRender(20);
   expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
-}, 10000);
+});
 
 test('displays a searched value', async () => {
   asyncRender(20);

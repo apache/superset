@@ -106,7 +106,7 @@ test('renders extra checkboxes when type is time series', async () => {
     await screen.findByRole('button', { name: 'Show Markers' }),
   ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Hide Line' })).toBeInTheDocument();
-}, 10000);
+});
 
 test('enables apply and ok buttons', async () => {
   const { container } = render(<AnnotationLayer {...defaultProps} />);

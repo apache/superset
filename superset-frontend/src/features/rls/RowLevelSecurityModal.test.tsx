@@ -244,7 +244,7 @@ describe('Rule modal', () => {
     userEvent.type(clause, 'gender="girl"');
 
     expect(addButton).toBeEnabled();
-  }, 10000);
+  });
 
   it('Creates a new rule', async () => {
     await renderAndWait(addNewRuleDefaultProps);
@@ -267,7 +267,7 @@ describe('Rule modal', () => {
       },
       { timeout: 10000 },
     );
-  }, 20000); // Add timeout for this specific test
+  });
 
   it('Updates existing rule', async () => {
     await renderAndWait({
@@ -293,5 +293,5 @@ describe('Rule modal', () => {
       },
       { timeout: 10000 },
     );
-  }, 20000); // Add timeout for this specific test
+  });
 });

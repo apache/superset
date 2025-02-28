@@ -89,7 +89,7 @@ describe('async actions', () => {
     dispatch = sinon.spy();
   });
 
-  afterEach(fetchMock.resetHistory);
+  afterEach(() => fetchMock.resetHistory());
 
   const fetchQueryEndpoint = 'glob:*/api/v1/sqllab/results/*';
   fetchMock.get(
@@ -746,7 +746,7 @@ describe('async actions', () => {
       isFeatureEnabled.mockRestore();
     });
 
-    afterEach(fetchMock.resetHistory);
+    afterEach(() => fetchMock.resetHistory());
 
     describe('addQueryEditor', () => {
       it('creates the tab state in the local storage', () => {

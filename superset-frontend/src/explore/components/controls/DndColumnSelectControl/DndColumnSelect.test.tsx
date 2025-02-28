@@ -67,7 +67,7 @@ test('renders adhoc column', async () => {
   );
   expect(await screen.findByText('adhoc column')).toBeVisible();
   expect(screen.getByLabelText('calculator')).toBeVisible();
-}, 10000);
+});
 
 test('warn selected custom metric when metric gets removed from dataset', async () => {
   const columnValues = ['column1', 'column2'];
