@@ -72,7 +72,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user
+from superset.utils.core import get_recipients_list, HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -139,16 +139,16 @@ class BaseReportState:
                     slack_recipients = json.loads(recipient.recipient_config_json)
                     # we need to ensure that existing reports can also fetch
                     # ids from private channels
-                    current_target_count = slack_recipients["target"].split(",")
+                    channels_list = get_recipients_list(slack_recipients["target"])
                     channels = get_channels_with_search(
-                        slack_recipients["target"],
+                        search_string=channels_list,
                         types=[
                             SlackChannelTypes.PRIVATE,
                             SlackChannelTypes.PUBLIC,
                         ],
                         exact_match=True,
                     )
-                    if len(current_target_count) != len(channels):
+                    if len(channels_list) != len(channels):
                         raise UpdateFailedError("Not all channels could be found")
                     channel_ids = ", ".join(channel["id"] for channel in channels)
                     recipient.recipient_config_json = json.dumps(
