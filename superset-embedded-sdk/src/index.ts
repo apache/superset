@@ -37,6 +37,7 @@ export type UiConfigType = {
   hideTitle?: boolean
   hideTab?: boolean
   hideChartControls?: boolean
+  emitDataMasks?: boolean
   filters?: {
     [key: string]: boolean | undefined
     visible?: boolean
@@ -114,6 +115,9 @@ export async function embedDashboard({
       }
       if(dashboardUiConfig.hideChartControls) {
         configNumber += 8
+      }
+      if (dashboardUiConfig.emitDataMasks) {
+        configNumber += 16
       }
     }
     return configNumber

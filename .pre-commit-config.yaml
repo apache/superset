@@ -66,13 +66,13 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
-# TODO - re-assess using this script-based linting rather than the npm command. Both approaches have their merits
-#       - id: eslint
-#         name: eslint
-#         entry: ./scripts/eslint.sh
-#         language: script
-#         pass_filenames: true
-#         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
+      # TODO - re-assess using this script-based linting rather than the npm command. Both approaches have their merits
+      #       - id: eslint
+      #         name: eslint
+      #         entry: ./scripts/eslint.sh
+      #         language: script
+      #         pass_filenames: true
+      #         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
       - id: eslint-docs
         name: eslint (docs)
         entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $([ -z "$SKIP_FIX" ] && echo "--fix") $FILES'

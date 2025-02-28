@@ -19,17 +19,12 @@
 import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
-import {
-  makeApi,
-  t,
-  logging,
-  isFeatureEnabled,
-  FeatureFlag,
-} from '@superset-ui/core';
+import { makeApi, t, logging } from '@superset-ui/core';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
 import setupPlugins from 'src/setup/setupPlugins';
+import { useUiConfig } from 'src/components/UiConfigContext';
 import { RootContextProviders } from 'src/views/RootContextProviders';
 import { store, USER_LOADED } from 'src/views/store';
 import ErrorBoundary from 'src/components/ErrorBoundary';
@@ -57,11 +52,27 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+const EmbededLazyDashboardPage = () => {
+  const uiConfig = useUiConfig();
+
+  // Emit data mask changes to the parent window
+  if (uiConfig?.emitDataMasks) {
+    log('setting up Switchboard event emitter');
+
+    store.subscribe(() => {
+      const state = store.getState();
+      Switchboard.emit('getDataMasks', state.dataMask);
+    });
+  }
+
+  return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
+};
+
 const EmbeddedRoute = () => (
   <Suspense fallback={<Loading />}>
     <RootContextProviders>
       <ErrorBoundary>
-        <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />
+        <EmbededLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </RootContextProviders>
@@ -218,14 +229,5 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.start();
   }
 });
-
-if (isFeatureEnabled(FeatureFlag.EmbeddedSupersetEmitDataMasks)) {
-  log('setting up Switchboard event emitter');
-
-  store.subscribe(() => {
-    const state = store.getState();
-    Switchboard.emit('getDataMasks', state.dataMask);
-  });
-}
 
 log('embed page is ready to receive messages');
