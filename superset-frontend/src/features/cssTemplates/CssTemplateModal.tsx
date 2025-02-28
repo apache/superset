@@ -201,10 +201,13 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
   }, [cssTemplate]);
 
   useEffect(() => {
-    if (resource) {
+    if (
+      resource &&
+      (!currentCssTemplate || resource.id !== currentCssTemplate.id)
+    ) {
       setCurrentCssTemplate(resource);
     }
-  }, [resource]);
+  }, [resource, currentCssTemplate]);
 
   // Validation
   useEffect(() => {
@@ -213,6 +216,11 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
     currentCssTemplate ? currentCssTemplate.template_name : '',
     currentCssTemplate ? currentCssTemplate.css : '',
   ]);
+
+  // Initial state should have disabled buttons
+  useEffect(() => {
+    setDisableSave(true);
+  }, []);
 
   // Show/hide
   if (isHidden && show) {
@@ -249,6 +257,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
           <span className="required">*</span>
         </div>
         <input
+          data-test="template_name"
           name="template_name"
           onChange={onTemplateNameChange}
           type="text"
