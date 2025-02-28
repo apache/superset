@@ -123,6 +123,10 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+const RolesList = lazy(
+  () => import(/* webpackChunkName: "RolesList" */ 'src/pages/RolesList'),
+);
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -212,6 +216,10 @@ export const routes: Routes = [
   {
     path: '/dataset/add/',
     Component: DatasetCreation,
+  },
+  {
+    path: '/roles/',
+    Component: RolesList,
   },
   {
     path: '/dataset/:datasetId',

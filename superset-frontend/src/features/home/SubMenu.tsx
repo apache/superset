@@ -134,6 +134,7 @@ export interface ButtonProps {
     | 'warning'
     | 'success'
     | 'tertiary';
+  disabled?: boolean;
 }
 
 export interface SubMenuProps {
