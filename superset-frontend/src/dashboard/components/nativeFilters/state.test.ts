@@ -91,8 +91,33 @@ type MockState = {
   };
 };
 
-const createMockState = ({ activeTabs, hasTabs, layout }: MockState) => ({
-  dashboardState: { activeTabs },
+type MockStateReturn = {
+  dashboardState: {
+    activeTabs: string[];
+    hasTabs: boolean;
+  };
+  dashboardLayout: {
+    present: {
+      [key: string]: {
+        type: string;
+        id: string;
+        meta: Record<string, any>;
+        children: string[];
+        parents?: string[];
+      };
+    };
+  };
+};
+
+const createMockState = ({
+  activeTabs,
+  hasTabs,
+  layout,
+}: MockState): MockStateReturn => ({
+  dashboardState: {
+    activeTabs,
+    hasTabs,
+  },
   dashboardLayout: {
     present: hasTabs
       ? layout
@@ -124,7 +149,9 @@ describe('useIsFilterInScope', () => {
     });
 
     (useSelector as jest.Mock).mockImplementation(selector => selector(state));
-    (useDashboardHasTabs as jest.Mock).mockReturnValue(state.hasTabs);
+    (useDashboardHasTabs as jest.Mock).mockReturnValue(
+      state.dashboardState.hasTabs,
+    );
   };
 
   beforeEach(() => {
