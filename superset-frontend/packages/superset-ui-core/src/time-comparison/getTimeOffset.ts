@@ -79,21 +79,30 @@ export const parseDttmToDate = (
       }
       return now;
     case 'previous calendar quarter': {
-      const quarter = Math.floor(now.getMonth() / 3);
-      const startquarter = new Date(now.getFullYear(), quarter * 3 - 3, 1);
-      const endquarter = new Date(
-        startquarter.getFullYear(),
-        startquarter.getMonth() + 3,
-        0,
-      );
-      if (isEndDate) {
-        now.setFullYear(endquarter.getFullYear());
-        now.setMonth(endquarter.getMonth());
-        now.setDate(endquarter.getDate());
+      const prevQuarter = Math.ceil((now.getMonth() + 1) / 3) - 1;
+      const startDate = new Date();
+      startDate.setDate(0);
+      const endDate = new Date();
+      endDate.setDate(0);
+      if (prevQuarter == 0) {
+        startDate.setFullYear(now.getFullYear() - 1);
+        startDate.setMonth(9);
+        endDate.setFullYear(now.getFullYear() - 1);
+        endDate.setMonth(11);
       } else {
-        now.setFullYear(startquarter.getFullYear());
-        now.setMonth(startquarter.getMonth());
-        now.setDate(startquarter.getDate());
+        endDate.setFullYear(now.getFullYear());
+        endDate.setMonth(prevQuarter * 3 - 1);
+        startDate.setFullYear(now.getFullYear());
+        startDate.setMonth(endDate.getMonth() - 2);
+      }
+      if (isEndDate) {
+        now.setFullYear(endDate.getFullYear());
+        now.setMonth(endDate.getMonth());
+        now.setDate(endDate.getDate());
+      } else {
+        now.setFullYear(startDate.getFullYear());
+        now.setMonth(startDate.getMonth());
+        now.setDate(startDate.getDate());
       }
       return now;
     }
