@@ -62,7 +62,7 @@ const BaseIconComponent: React.FC<BaseIconProps> = ({
   ) : (
     <Component
       css={css`
-        line-height:0;
+        line-height: 0;
       `}
       {...(rest as SVGProps<SVGSVGElement>)}
     />
@@ -111,7 +111,8 @@ export const Icon = (props: IconProps) => {
     <StyledIcon
       css={css`
         line-align: middle;
-      `}      component={ImportedSVG.current || TransparentIcon}
+      `}
+      component={ImportedSVG.current || TransparentIcon}
       aria-label={name}
       role={whatRole}
       {...iconProps}

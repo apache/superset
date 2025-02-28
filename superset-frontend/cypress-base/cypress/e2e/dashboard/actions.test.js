@@ -65,5 +65,3 @@ describe('Dashboard actions', () => {
       .and('eq', 'rgb(178, 178, 178)');
   });
 });
-
-
