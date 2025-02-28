@@ -288,8 +288,8 @@ const FilterValue: FC<FilterControlProps> = ({
 
   const filterState = useMemo(
     () => ({
-      ...filter.dataMask?.filterState,
       validateStatus,
+      ...filter.dataMask?.filterState,
     }),
     [filter.dataMask?.filterState, validateStatus],
   );
