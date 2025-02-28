@@ -17,7 +17,12 @@
  * under the License.
  */
 
-import { Divider, Filter, NativeFilterType } from '@superset-ui/core';
+import {
+  Divider,
+  Filter,
+  NativeFilterTarget,
+  NativeFilterType,
+} from '@superset-ui/core';
 import { renderHook } from '@testing-library/react-hooks';
 import { useSelector } from 'react-redux';
 import {
@@ -37,10 +42,14 @@ const baseFilter: Filter = {
   controlValues: {},
   defaultDataMask: {},
   cascadeParentIds: [],
-  targets: [{ column: { name: 'column_name' }, datasetId: 1 }],
+  targets: [
+    {
+      column: { name: 'column_name' },
+      datasetId: 1,
+    },
+  ] as [Partial<NativeFilterTarget>],
   description: 'Sample filter description',
 };
-
 const baseDivider: Divider = {
   id: 'divider_1',
   type: NativeFilterType.Divider,
@@ -84,7 +93,10 @@ type MockState = {
     [key: string]: {
       type: string;
       id: string;
-      meta: Record<string, any>;
+      meta: {
+        chartId?: number;
+        datasourceId?: number;
+      };
       children: string[];
       parents?: string[];
     };
@@ -101,7 +113,10 @@ type MockStateReturn = {
       [key: string]: {
         type: string;
         id: string;
-        meta: Record<string, any>;
+        meta: {
+          chartId?: number;
+          datasourceId?: number;
+        };
         children: string[];
         parents?: string[];
       };
@@ -209,7 +224,12 @@ describe('useIsFilterInScope', () => {
     const filter: Filter = {
       ...baseFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: 'column_name' }, datasetId: 10 }], // Match dataset from defaultLayout
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 10,
+        },
+      ] as [Partial<NativeFilterTarget>],
       scope: { rootPath: ['TAB_1'], excluded: [] },
     };
 
@@ -226,10 +246,15 @@ describe('useIsFilterInScope', () => {
   it('should handle no-tabs scenario', () => {
     setupTest({ hasTabs: false });
 
-    const validFilter = {
+    const validFilter: Filter = {
       ...baseFilter,
       chartsInScope: [123],
-      targets: [{ column: { name: 'column_name' }, datasetId: 10 }], // Match dataset
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 10,
+        },
+      ] as [Partial<NativeFilterTarget>],
       scope: { rootPath: [], excluded: [] },
     };
 
@@ -254,7 +279,12 @@ describe('useIsFilterInScope', () => {
       ...baseFilter,
       id: 'tab1_filter',
       chartsInScope: [123],
-      targets: [{ column: { name: 'column_name' }, datasetId: 10 }],
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 10,
+        },
+      ] as [Partial<NativeFilterTarget>],
     };
 
     // Filter that only works with charts in TAB_2
@@ -262,7 +292,12 @@ describe('useIsFilterInScope', () => {
       ...baseFilter,
       id: 'tab2_filter',
       chartsInScope: [789],
-      targets: [{ column: { name: 'column_name' }, datasetId: 30 }],
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 30,
+        },
+      ] as [Partial<NativeFilterTarget>],
     };
 
     // Test TAB_1 active - should only show tab1Filter
@@ -313,7 +348,12 @@ describe('useIsFilterInScope', () => {
       ...baseFilter,
       id: 'dataset_10_filter',
       chartsInScope: [123],
-      targets: [{ column: { name: 'column_name' }, datasetId: 10 }],
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 10,
+        },
+      ] as [Partial<NativeFilterTarget>],
     };
 
     // Filter for dataset 30 (TAB_2)
@@ -321,7 +361,12 @@ describe('useIsFilterInScope', () => {
       ...baseFilter,
       id: 'dataset_30_filter',
       chartsInScope: [789],
-      targets: [{ column: { name: 'column_name' }, datasetId: 30 }],
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 30,
+        },
+      ] as [Partial<NativeFilterTarget>],
     };
 
     // Test initial load with TAB_2 active
@@ -385,7 +430,12 @@ describe('useIsFilterInScope', () => {
       ...baseFilter,
       id: 'dataset_10_filter',
       chartsInScope: [123],
-      targets: [{ column: { name: 'column_name' }, datasetId: 10 }],
+      targets: [
+        {
+          column: { name: 'column_name' },
+          datasetId: 10,
+        },
+      ] as [Partial<NativeFilterTarget>],
     };
 
     // Test initial state with just TAB_1
@@ -441,14 +491,24 @@ describe('useSelectFiltersInScope', () => {
       {
         ...baseFilter,
         id: 'filter_1',
-        chartsInScope: [123], // Chart in TAB_1
-        targets: [{ column: { name: 'column_name' }, datasetId: 10 }], // Match dataset in TAB_1
+        chartsInScope: [123],
+        targets: [
+          {
+            column: { name: 'column_name' },
+            datasetId: 10,
+          },
+        ] as [Partial<NativeFilterTarget>],
       },
       {
         ...baseFilter,
         id: 'filter_2',
-        chartsInScope: [456], // Chart in TAB_2
-        targets: [{ column: { name: 'column_name' }, datasetId: 20 }], // Match dataset in TAB_2
+        chartsInScope: [456],
+        targets: [
+          {
+            column: { name: 'column_name' },
+            datasetId: 20,
+          },
+        ] as [Partial<NativeFilterTarget>],
       },
     ];
 

@@ -149,7 +149,9 @@ export function useIsFilterInScope() {
 
             // Tab is compatible if it contains at least one chart from the same dataset
             return chartsInTab.some(chart =>
-              filterDatasetIds.has(chart.meta?.datasourceId),
+              filterDatasetIds.has(
+                (chart.meta as { datasourceId?: number })?.datasourceId,
+              ),
             );
           });
 
