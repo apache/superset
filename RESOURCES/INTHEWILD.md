@@ -120,6 +120,7 @@ Join our growing community!
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
 - [shipmnts](https://shipmnts.com)
 - [Showmax](https://showmax.com) [@bobek]
+- [SingleStore](https://www.singlestore.com/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [Tentacle](https://www.linkedin.com/company/tentacle-cmi/) [@jdclarke5]
