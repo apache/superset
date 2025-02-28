@@ -442,6 +442,27 @@ class TestPartitionViz(SupersetTestCase):
         assert 1 == len(nest[0]["children"][0]["children"])
         assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
 
+    def test_nest_values_returns_hierarchy_when_more_dimensions(self):
+        raw = {}
+        raw["category"] = ["a", "a", "a"]
+        raw["subcategory"] = ["a.2", "a.1", "a.2"]
+        raw["sub_subcategory"] = ["a.2.1", "a.1.1", "a.2.2"]
+        raw["metric1"] = [5, 10, 15]
+        raw["metric2"] = [50, 100, 150]
+        raw["metric3"] = [500, 1000, 1500]
+        df = pd.DataFrame(raw)
+        test_viz = viz.PartitionViz(Mock(), {})
+        groups = ["category", "subcategory", "sub_subcategory"]
+        levels = test_viz.levels_for("agg_sum", groups, df)
+        nest = test_viz.nest_values(levels)
+        assert 3 == len(nest)
+        for i in range(0, 3):
+            assert "metric" + str(i + 1) == nest[i]["name"]
+        assert 1 == len(nest[0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"])
+        assert 1 == len(nest[0]["children"][0]["children"][0]["children"])
+        assert 2 == len(nest[0]["children"][0]["children"][1]["children"])
+
     def test_nest_procs_returns_hierarchy(self):
         raw = {}
         raw[DTTM_ALIAS] = [100, 200, 300, 100, 200, 300, 100, 200, 300]
