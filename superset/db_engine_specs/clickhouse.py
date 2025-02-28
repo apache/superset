@@ -336,7 +336,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         url = make_url_safe(uri)
         query = dict(url.query)
         if "secure" in query:
-            encryption = query == "true"
+            encryption = query.get("secure") == "true"
             query.pop("secure")
         else:
             encryption = False
