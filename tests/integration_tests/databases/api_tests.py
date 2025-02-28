@@ -439,7 +439,7 @@ class TestDatabaseApi(SupersetTestCase):
         )
 
     @mock.patch(
-        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_without_transaction",
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
@@ -632,7 +632,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_without_transaction",
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
@@ -720,7 +720,7 @@ class TestDatabaseApi(SupersetTestCase):
         db.session.commit()
 
     @mock.patch(
-        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run_without_transaction",
+        "superset.commands.database.sync_permissions.SyncPermissionsCommand.run",
     )
     @mock.patch(
         "superset.commands.database.test_connection.TestConnectionDatabaseCommand.run",
