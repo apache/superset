@@ -101,6 +101,7 @@ export function useIsFilterInScope() {
   const activeTabs = useActiveDashboardTabs();
   const selectChartTabParents = useSelectChartTabParents();
   const dashboardHasTabs = useDashboardHasTabs();
+  const dashboardLayout = useDashboardLayout();
 
   // Filter is in scope if any of its charts is visible.
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
@@ -116,8 +117,12 @@ export function useIsFilterInScope() {
         return true;
       }
 
-      // 2. If filter affects specific charts, check if any are visible
+      // 2. If filter affects specific charts, check if any are visible and compatible
       if (chartsInScope.length > 0) {
+        const filterDatasetIds = new Set(
+          filter.targets?.map(target => target.datasetId) ?? [],
+        );
+
         const isChartInScope = chartsInScope.some(chartId => {
           const tabParents = selectChartTabParents(chartId);
 
@@ -136,28 +141,28 @@ export function useIsFilterInScope() {
             return true;
           }
 
-          // Chart in tab - check if ONLY its parent tabs are active
-          // and no other tabs are active that don't contain this chart
+          // Check if any active tabs contain charts from the same dataset
+          const activeTabsCompatible = activeTabs.every(tab => {
+            const chartsInTab = Object.values(dashboardLayout).filter(
+              item => item.type === CHART_TYPE && item.parents?.includes(tab),
+            );
+
+            // Tab is compatible if it contains at least one chart from the same dataset
+            return chartsInTab.some(chart =>
+              filterDatasetIds.has(chart.meta?.datasourceId),
+            );
+          });
+
+          if (!activeTabsCompatible) {
+            return false;
+          }
+
+          // Now check if the chart's specific tabs are active
           const activeTabsContainingChart = activeTabs.filter(tab =>
             tabParents.includes(tab),
           );
 
-          // If no active tabs contain this chart, it's out of scope
-          if (activeTabsContainingChart.length === 0) {
-            return false;
-          }
-
-          // Check if there are any active tabs that don't contain this chart
-          const activeTabsWithoutChart = activeTabs.filter(
-            tab => !tabParents.includes(tab),
-          );
-
-          // If there are active tabs without this chart, it's out of scope
-          if (activeTabsWithoutChart.length > 0) {
-            return false;
-          }
-
-          return true;
+          return activeTabsContainingChart.length > 0;
         });
 
         return isChartInScope;
@@ -176,7 +181,7 @@ export function useIsFilterInScope() {
       // 4. Filter has no charts and no rootPath - not in scope
       return false;
     },
-    [selectChartTabParents, activeTabs, dashboardHasTabs],
+    [selectChartTabParents, activeTabs, dashboardHasTabs, dashboardLayout],
   );
 }
 
