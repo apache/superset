@@ -72,7 +72,8 @@ describe('DataTablesPane', () => {
     expect(await screen.findByText('0 rows')).toBeVisible();
     expect(await screen.findByLabelText('Collapse data panel')).toBeVisible();
     localStorage.clear();
-  }, 10000);
+  });
+
   test('Should show tabs: View samples', async () => {
     const props = createDataTablesPaneProps(0);
     render(<DataTablesPane {...props} />, {

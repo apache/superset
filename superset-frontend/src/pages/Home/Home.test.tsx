@@ -212,7 +212,7 @@ test('With toggle switch - does not show thumbnails when switch is off', async (
     },
     { timeout: 10000 },
   );
-}, 20000); // Add timeout for this specific test
+});
 
 test('Should render an extension component if one is supplied', async () => {
   const extensionsRegistry = getExtensionsRegistry();
