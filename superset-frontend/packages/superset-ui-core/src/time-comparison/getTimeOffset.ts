@@ -84,7 +84,7 @@ export const parseDttmToDate = (
       startDate.setDate(0);
       const endDate = new Date();
       endDate.setDate(0);
-      if (prevQuarter == 0) {
+      if (prevQuarter === 0) {
         startDate.setFullYear(now.getFullYear() - 1);
         startDate.setMonth(9);
         endDate.setFullYear(now.getFullYear() - 1);
