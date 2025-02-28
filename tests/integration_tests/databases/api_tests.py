@@ -4247,7 +4247,7 @@ class TestDatabaseApi(SupersetTestCase):
 
     @with_config({"SYNC_DB_PERMISSIONS_IN_ASYNC_MODE": True})
     @mock.patch(
-        "superset.commands.database.sync_permissions.sync_database_permissions.delay"
+        "superset.commands.database.sync_permissions.sync_database_permissions_task.delay"
     )
     def test_sync_db_perms_async(self, mock_task):
         """
