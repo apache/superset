@@ -52,7 +52,7 @@ import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
 
 export type SliceAdderProps = {
-  theme: Theme;
+  theme: Theme,
   fetchSlices: (
     userId?: number,
     filter_value?: string,
@@ -103,7 +103,7 @@ const Controls = styled.div`
   `}
 `;
 
-const StyledSelect = styled(Select)<{ id?: string }>`
+const StyledSelect = styled(Select) <{ id?: string }>`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   min-width: 150px;
 `;
@@ -134,25 +134,25 @@ export const ChartList = styled.div`
   min-height: 0;
 `;
 
+export function sortByComparator(attr: keyof Slice) {
+  const desc = attr === 'changed_on' ? -1 : 1;
+
+  return (a: Slice, b: Slice) => {
+    const aValue = a[attr] ?? Number.MIN_SAFE_INTEGER;
+    const bValue = b[attr] ?? Number.MIN_SAFE_INTEGER;
+
+    if (aValue < bValue) {
+      return -1 * desc;
+    }
+    if (aValue > bValue) {
+      return 1 * desc;
+    }
+    return 0;
+  };
+}
+
 class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
   private slicesRequest?: AbortController | Promise<void>;
-
-  static sortByComparator(attr: keyof Slice) {
-    const desc = attr === 'changed_on' ? -1 : 1;
-
-    return (a: Slice, b: Slice) => {
-      const aValue = a[attr] ?? Number.MIN_SAFE_INTEGER;
-      const bValue = b[attr] ?? Number.MIN_SAFE_INTEGER;
-
-      if (aValue < bValue) {
-        return -1 * desc;
-      }
-      if (aValue > bValue) {
-        return 1 * desc;
-      }
-      return 0;
-    };
-  }
 
   static defaultProps = {
     selectedSliceIds: [],
@@ -233,11 +233,11 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
       .filter(slice =>
         showOnlyMyCharts
           ? slice?.owners?.find(owner => owner.id === this.props.userId) ||
-            slice?.created_by?.id === this.props.userId
+          slice?.created_by?.id === this.props.userId
           : true,
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
-      .sort(SliceAdder.sortByComparator(sortBy));
+      .sort(sortByComparator(sortBy));
   }
 
   handleChange = debounce(value => {
