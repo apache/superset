@@ -27,7 +27,10 @@ import {
   SMART_DATE_ID,
   TimeFormats,
 } from '@superset-ui/core';
-import { getColorFormatters } from '@superset-ui/chart-controls';
+import {
+  getColorFormatters,
+  getColorColumns,
+} from '@superset-ui/chart-controls';
 import { DateFormatter } from '../types';
 
 const { DATABASE_DATETIME } = TimeFormats;
@@ -103,10 +106,13 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormat,
     metricsLayout,
     conditionalFormatting,
+    columnColoring,
     timeGrainSqla,
     currencyFormat,
     allowRenderHtml,
+    colorHeadersTotals,
   } = formData;
+
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
 
@@ -142,6 +148,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
       {},
     );
   const metricColorFormatters = getColorFormatters(conditionalFormatting, data);
+  const columnColorFormatters = getColorColumns(columnColoring);
 
   return {
     width,
@@ -172,9 +179,11 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     currencyFormats,
     metricsLayout,
     metricColorFormatters,
+    columnColorFormatters,
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    colorHeadersTotals,
   };
 }
