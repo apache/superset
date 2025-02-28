@@ -21,11 +21,6 @@ from functools import partial
 from typing import Iterable
 
 from flask import current_app, g
-from flask_appbuilder.security.sqla.models import (
-    Permission,
-    PermissionView,
-    ViewMenu,
-)
 
 from superset import app, security_manager
 from superset.commands.base import BaseCommand
@@ -35,7 +30,11 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     UserNotFoundInSessionError,
 )
-from superset.commands.database.utils import ping
+from superset.commands.database.utils import (
+    add_pvm,
+    add_vm,
+    ping,
+)
 from superset.daos.database import DatabaseDAO
 from superset.daos.dataset import DatasetDAO
 from superset.databases.ssh_tunnel.models import SSHTunnel
@@ -43,7 +42,6 @@ from superset.db_engine_specs.base import GenericDBException
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import celery_app, db
 from superset.models.core import Database
-from superset.security.manager import SupersetSecurityManager
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -164,6 +162,7 @@ class SyncPermissionsCommand(BaseCommand):
                     if not existing_pvm:
                         # new catalog
                         add_pvm(
+                            db.session,
                             security_manager,
                             "catalog_access",
                             security_manager.get_catalog_perm(
@@ -173,6 +172,7 @@ class SyncPermissionsCommand(BaseCommand):
                         )
                         for schema in schemas:
                             add_pvm(
+                                db.session,
                                 security_manager,
                                 "schema_access",
                                 security_manager.get_schema_perm(
@@ -243,7 +243,7 @@ class SyncPermissionsCommand(BaseCommand):
                     catalog,
                     schema,
                 )
-                add_pvm(security_manager, "schema_access", new_name)
+                add_pvm(db.session, security_manager, "schema_access", new_name)
 
     def _rename_database_in_permissions(
         self, catalog: str | None, schemas: Iterable[str]
@@ -254,7 +254,7 @@ class SyncPermissionsCommand(BaseCommand):
                 self.db_connection.name,
                 catalog,
             )
-            new_catalog_vm = add_vm(security_manager, new_catalog_perm_name)
+            new_catalog_vm = add_vm(db.session, security_manager, new_catalog_perm_name)
             perm = security_manager.get_catalog_perm(
                 self.old_db_connection_name,
                 catalog,
@@ -297,69 +297,6 @@ class SyncPermissionsCommand(BaseCommand):
                 for chart in DatasetDAO.get_related_objects(dataset.id)["charts"]:
                     chart.catalog_perm = new_catalog_perm_name
                     chart.schema_perm = new_schema_perm_name
-
-
-def add_vm(
-    security_manager: SupersetSecurityManager,
-    view_menu_name: str | None,
-) -> ViewMenu:
-    """
-    Similar to security_manager.add_view_menu, but without commit.
-
-    This ensures an atomic operation.
-    """
-    if view_menu := security_manager.find_view_menu(view_menu_name):
-        return view_menu
-
-    view_menu = security_manager.viewmenu_model()
-    view_menu.name = view_menu_name
-    db.session.add(view_menu)
-    return view_menu
-
-
-def add_perm(
-    security_manager: SupersetSecurityManager,
-    permission_name: str | None,
-) -> Permission:
-    """
-    Similar to security_manager.add_permission, but without commit.
-
-    This ensures an atomic operation.
-    """
-    if perm := security_manager.find_permission(permission_name):
-        return perm
-
-    perm = security_manager.permission_model()
-    perm.name = permission_name
-    db.session.add(perm)
-    return perm
-
-
-def add_pvm(
-    security_manager: SupersetSecurityManager,
-    permission_name: str | None,
-    view_menu_name: str | None,
-) -> PermissionView | None:
-    """
-    Similar to security_manager.add_permission_view_menu, but without commit.
-
-    This ensures an atomic operation.
-    """
-    if not (permission_name and view_menu_name):
-        return None
-
-    if pv := security_manager.find_permission_view_menu(
-        permission_name, view_menu_name
-    ):
-        return pv
-
-    vm = add_vm(security_manager, view_menu_name)
-    perm = add_perm(security_manager, permission_name)
-    pv = security_manager.permissionview_model()
-    pv.view_menu, pv.permission = vm, perm
-    db.session.add(pv)
-
-    return pv
 
 
 @celery_app.task(name="sync_database_permissions", soft_time_limit=600)

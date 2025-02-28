@@ -19,6 +19,7 @@ from unittest.mock import MagicMock
 
 from pytest_mock import MockerFixture
 
+from superset import db
 from superset.commands.database.update import UpdateDatabaseCommand
 from superset.extensions import security_manager
 from superset.utils import json
@@ -75,15 +76,24 @@ def test_update_with_catalog(
     add_pvm.assert_has_calls(
         [
             # first catalog is added with all schemas
-            mocker.call(security_manager, "catalog_access", "[my_db].[catalog1]"),
             mocker.call(
-                security_manager, "schema_access", "[my_db].[catalog1].[schema1]"
+                db.session, security_manager, "catalog_access", "[my_db].[catalog1]"
             ),
             mocker.call(
-                security_manager, "schema_access", "[my_db].[catalog1].[schema2]"
+                db.session,
+                security_manager,
+                "schema_access",
+                "[my_db].[catalog1].[schema1]",
+            ),
+            mocker.call(
+                db.session,
+                security_manager,
+                "schema_access",
+                "[my_db].[catalog1].[schema2]",
             ),
             # second catalog already exists, only `schema4` is added
             mocker.call(
+                db.session,
                 security_manager,
                 "schema_access",
                 f"[{database_with_catalog.name}].[catalog2].[schema4]",
@@ -157,6 +167,7 @@ def test_update_without_catalog(
     UpdateDatabaseCommand(1, {}).run()
 
     add_pvm.assert_called_with(
+        db.session,
         security_manager,
         "schema_access",
         f"[{database_without_catalog.name}].[schema1]",
@@ -229,15 +240,27 @@ def test_rename_with_catalog(
     add_pvm.assert_has_calls(
         [
             # first catalog is added with all schemas with the new DB name
-            mocker.call(security_manager, "catalog_access", "[my_other_db].[catalog1]"),
             mocker.call(
-                security_manager, "schema_access", "[my_other_db].[catalog1].[schema1]"
+                db.session,
+                security_manager,
+                "catalog_access",
+                "[my_other_db].[catalog1]",
             ),
             mocker.call(
-                security_manager, "schema_access", "[my_other_db].[catalog1].[schema2]"
+                db.session,
+                security_manager,
+                "schema_access",
+                "[my_other_db].[catalog1].[schema1]",
+            ),
+            mocker.call(
+                db.session,
+                security_manager,
+                "schema_access",
+                "[my_other_db].[catalog1].[schema2]",
             ),
             # second catalog already exists, only `schema4` is added
             mocker.call(
+                db.session,
                 security_manager,
                 "schema_access",
                 f"[{database_with_catalog.name}].[catalog2].[schema4]",
@@ -303,6 +326,7 @@ def test_rename_without_catalog(
     UpdateDatabaseCommand(1, {}).run()
 
     add_pvm.assert_called_with(
+        db.session,
         security_manager,
         "schema_access",
         f"[{database_without_catalog.name}].[schema1]",

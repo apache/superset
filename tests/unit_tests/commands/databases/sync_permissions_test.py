@@ -21,6 +21,7 @@ from unittest.mock import MagicMock
 import pytest
 from pytest_mock import MockerFixture
 
+from superset import db
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseNotFoundError,
@@ -66,12 +67,20 @@ def test_sync_permissions_command_sync_mode(
     user_mock.assert_called_once_with("admin")
     add_pvm_mock.assert_has_calls(
         [
-            mocker.call(security_manager, "catalog_access", "[my_db].[catalog2]"),
             mocker.call(
-                security_manager, "schema_access", "[my_db].[catalog2].[schema3]"
+                db.session, security_manager, "catalog_access", "[my_db].[catalog2]"
             ),
             mocker.call(
-                security_manager, "schema_access", "[my_db].[catalog2].[schema4]"
+                db.session,
+                security_manager,
+                "schema_access",
+                "[my_db].[catalog2].[schema3]",
+            ),
+            mocker.call(
+                db.session,
+                security_manager,
+                "schema_access",
+                "[my_db].[catalog2].[schema4]",
             ),
         ]
     )
@@ -303,6 +312,7 @@ def test_resync_permissions_command_refresh_schemas(
     cmmd._refresh_schemas("catalog1", ["schema1", "schema2"])
 
     add_pvm_mock.assert_called_once_with(
+        db.session,
         security_manager,
         "schema_access",
         f"[{database_with_catalog.name}].[catalog1].[schema2]",
