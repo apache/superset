@@ -24,23 +24,46 @@ describe('Dashboard actions', () => {
     cy.createSampleDashboards([0]);
     cy.visit(SAMPLE_DASHBOARD_1);
   });
-
   it('should allow to favorite/unfavorite dashboard', () => {
     interceptFav();
     interceptUnfav();
 
+    // Find and click StarOutlined (adds to favorites)
     cy.getBySel('dashboard-header-container')
-      .find("[aria-label='star']")
-      .as('starIcon');
-    cy.get('@starIcon').click();
+      .find("[aria-label='StarOutlined']")
+      .as('starIconOutlined')
+      .should('exist')
+      .click();
+
     cy.wait('@select');
-    cy.get('@starIcon')
+
+    // After clicking, StarFilled should appear
+    cy.getBySel('dashboard-header-container')
+      .find("[aria-label='StarFilled']")
+      .as('starIconFilled')
+      .should('exist');
+
+    // Verify the color of the filled star (gold)
+    cy.get('@starIconFilled')
       .should('have.css', 'color')
       .and('eq', 'rgb(252, 199, 0)');
-    cy.get('@starIcon').click();
+
+    // Click on StarFilled (removes from favorites)
+    cy.get('@starIconFilled').click();
+
     cy.wait('@unselect');
-    cy.get('@starIcon')
+
+    // After clicking, StarOutlined should reappear
+    cy.getBySel('dashboard-header-container')
+      .find("[aria-label='StarOutlined']")
+      .as('starIconOutlinedAfter')
+      .should('exist');
+
+    // Verify the color of the outlined star (gray)
+    cy.get('@starIconOutlinedAfter')
       .should('have.css', 'color')
-      .and('not.eq', 'rgb(252, 199, 0)');
+      .and('eq', 'rgb(178, 178, 178)');
   });
 });
+
+

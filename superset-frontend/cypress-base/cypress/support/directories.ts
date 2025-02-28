@@ -400,8 +400,8 @@ export const dashboardListView = {
     card: dataTestLocator('styled-card'),
     cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
-    selectedStarIcon: "[aria-label='star']",
-    unselectedStarIcon: "[aria-label='star']",
+    selectedStarIcon: "[aria-label='StarFilled']",
+    unselectedStarIcon: "[aria-label='StarOutlined']",
     starIcon: dataTestLocator('fave-unfave-icon'),
   },
   deleteModal: {
@@ -410,8 +410,8 @@ export const dashboardListView = {
   },
   table: {
     starIcon: dataTestLocator('fave-unfave-icon'),
-    selectedStarIcon: "[aria-label='star']",
-    unselectedStarIcon: "[aria-label='star']",
+    selectedStarIcon: "[aria-label='StarFilled']",
+    unselectedStarIcon: "[aria-label='StarOutlined']",
     bulkSelect: {
       checkboxOff: '[aria-label="checkbox-off"]',
       checkboxOn: '[aria-label="checkbox-on"]',
