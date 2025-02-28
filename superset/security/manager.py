@@ -2294,7 +2294,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             can_access_datasource_permission = self.can_access(
                 "datasource_access", datasource.perm or ""
             )
-            is_owner = self.is_owner(datasource)
+            is_owner = False
+            if not self.is_guest_user():
+                is_owner = self.is_owner(datasource)
+
             # Grant access to the datasource only if dashboard RBAC is enabled
             # or the user is an embedded guest user with access to the dashboard
             # and said datasource is associated with the dashboard chart in
