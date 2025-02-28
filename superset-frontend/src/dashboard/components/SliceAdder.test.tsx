@@ -49,9 +49,9 @@ jest.mock('lodash/debounce', () => {
   const debounced = (fn: Function) => {
     const debouncedFn = ((...args: any[]) =>
       fn(...args)) as unknown as Function & {
-        cancel: () => void;
-      };
-    debouncedFn.cancel = () => { };
+      cancel: () => void;
+    };
+    debouncedFn.cancel = () => {};
     return debouncedFn;
   };
   return debounced;

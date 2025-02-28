@@ -52,7 +52,7 @@ import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
 
 export type SliceAdderProps = {
-  theme: Theme,
+  theme: Theme;
   fetchSlices: (
     userId?: number,
     filter_value?: string,
@@ -103,7 +103,7 @@ const Controls = styled.div`
   `}
 `;
 
-const StyledSelect = styled(Select) <{ id?: string }>`
+const StyledSelect = styled(Select)<{ id?: string }>`
   margin-left: ${({ theme }) => theme.gridUnit * 2}px;
   min-width: 150px;
 `;
@@ -233,7 +233,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
       .filter(slice =>
         showOnlyMyCharts
           ? slice?.owners?.find(owner => owner.id === this.props.userId) ||
-          slice?.created_by?.id === this.props.userId
+            slice?.created_by?.id === this.props.userId
           : true,
       )
       .filter(createFilter(searchTerm, KEYS_TO_FILTERS))
