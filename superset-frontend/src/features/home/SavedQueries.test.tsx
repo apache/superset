@@ -50,9 +50,48 @@ jest.mock('@superset-ui/core', () => ({
   },
   SupersetClient: {
     delete: (...args: any[]) => mockSupersetDelete(...args),
+    get: jest.fn().mockImplementation(({ endpoint }) => {
+      if (endpoint.includes('saved_query')) {
+        return Promise.resolve({
+          json: {
+            result: mockQueries,
+            count: mockQueries.length,
+          },
+        });
+      }
+      return Promise.resolve({ json: {} });
+    }),
   },
   styled: jest.requireActual('@superset-ui/core').styled,
   useTheme: jest.requireActual('@superset-ui/core').useTheme,
+}));
+
+// Mock useListViewResource to directly use the mock queries
+jest.mock('src/views/CRUD/hooks', () => ({
+  ...jest.requireActual('src/views/CRUD/hooks'),
+  useListViewResource: jest
+    .fn()
+    .mockImplementation(
+      (
+        resource,
+        resourceLabel,
+        handleErrorMsg,
+        infoEnable,
+        defaultCollectionValue,
+      ) => ({
+        state: {
+          loading: false,
+          resourceCount: defaultCollectionValue.length,
+          resourceCollection: defaultCollectionValue,
+          bulkSelectEnabled: false,
+        },
+        hasPerm: () => true,
+        fetchData: jest.fn(),
+        refreshData: jest.fn(),
+        toggleBulkSelect: jest.fn(),
+      }),
+    ),
+  copyQueryLink: jest.fn(),
 }));
 
 jest.mock('src/components/ListViewCard', () => {
