@@ -29,7 +29,7 @@
     "access": "public"
   },
   "dependencies": {
-    "d3": "^3.5.17",
+    "d3": "^7.9.0",
     "d3-array": "^2.4.0",
     "d3-color": "^3.1.0",
     "datamaps": "^0.5.9",
