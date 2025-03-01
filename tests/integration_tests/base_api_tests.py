@@ -33,8 +33,8 @@ from superset.models.dashboard import Dashboard
 from superset.views.base_api import BaseSupersetModelRestApi, requires_json  # noqa: F401
 from superset.utils import json
 
+from tests.conftest import with_config
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.conftest import with_config
 from tests.integration_tests.constants import ADMIN_USERNAME
 
 

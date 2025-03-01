@@ -88,9 +88,19 @@ class DatabaseExtraValidationError(ValidationError):
         )
 
 
+class DatabaseConnectionSyncPermissionsError(CommandException):
+    status = 500
+    message = _("Unable to sync permissions for this database connection.")
+
+
 class DatabaseNotFoundError(CommandException):
     status = 404
     message = _("Database not found.")
+
+
+class UserNotFoundInSessionError(CommandException):
+    status = 500
+    message = _("Could not validate the user in the current session.")
 
 
 class DatabaseSchemaUploadNotAllowed(CommandException):

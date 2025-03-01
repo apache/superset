@@ -52,6 +52,7 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
 )
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
@@ -120,7 +121,11 @@ from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import (
+    error_msg_from_exception,
+    get_username,
+    parse_js_uri_path_item,
+)
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
@@ -165,6 +170,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "upload_metadata",
         "upload",
         "oauth2",
+        "sync_permissions",
     }
 
     resource_name = "database"
@@ -612,6 +618,53 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+
+    @expose("/<int:pk>/sync_permissions/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".sync-permissions",
+        log_to_statsd=False,
+    )
+    def sync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Sync all permissions for a database connection.
+        ---
+        post:
+          summary: Re-sync all permissions for a database connection
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database connection ID
+          responses:
+            200:
+              description: Task created to sync permissions.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        current_username = get_username()
+        SyncPermissionsCommand(
+            pk,
+            current_username,
+        ).run()
+        if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
+            return self.response(202, message="Async task created to sync permissions")
+        return self.response(200, message="Permissions successfully synced")
 
     @expose("/<int:pk>/catalogs/")
     @protect()
