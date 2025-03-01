@@ -28,18 +28,18 @@ describe('charts list view', () => {
   });
 
   it('should load the Charts list', () => {
-    cy.get('[aria-label="list-view"]').click();
+    cy.get('[aria-label="UnorderedListOutlined"]').click();
     cy.eyesOpen({
-      testName: 'Charts list-view',
+      testName: 'Charts UnorderedListOutlined',
     });
-    cy.eyesCheckWindow('Charts list-view loaded');
+    cy.eyesCheckWindow('Charts UnorderedListOutlined loaded');
   });
 
   it('should load the Charts card list', () => {
-    cy.get('[aria-label="card-view"]').click();
+    cy.get('[aria-label="card-AppstoreOutlined"]').click();
     cy.eyesOpen({
-      testName: 'Charts card-view',
+      testName: 'Charts AppstoreOutlined',
     });
-    cy.eyesCheckWindow('Charts card-view loaded');
+    cy.eyesCheckWindow('Charts AppstoreOutlined loaded');
   });
 });

@@ -146,7 +146,7 @@ describe('DashboardList', () => {
     await screen.findByTestId('dashboard-list-view');
 
     // Initially in card view
-    const cardViewIcon = screen.getByRole('img', { name: 'card-view' });
+    const cardViewIcon = screen.getByRole('img', { name: 'AppstoreOutlined' });
     expect(cardViewIcon).toBeInTheDocument();
 
     // Switch to table view

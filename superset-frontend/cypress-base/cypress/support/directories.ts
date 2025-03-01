@@ -328,7 +328,7 @@ export const nativeFilters = {
       filterItemsContainer: dataTestLocator('filter-title-container'),
       tabsContainer: '[class="ant-tabs-nav-list"]',
       tab: '.ant-tabs-tab',
-      removeTab: '[aria-label="delete"]',
+      removeTab: '[aria-label="DeleteOutlined"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
@@ -373,7 +373,7 @@ export const nativeFilters = {
     listItemNotActive: '[class="ant-tabs-tab ant-tabs-tab-with-remove"]',
     listItemActive:
       '[class="ant-tabs-tab ant-tabs-tab-with-remove ant-tabs-tab-active"]',
-    removeIcon: '[aria-label="delete"]',
+    removeIcon: '[aria-label="DeleteOutlined"]',
   },
   filterItem: dataTestLocator('form-item-value'),
   filterItemDropdown: '.ant-select-selection-search',
@@ -436,8 +436,8 @@ export const dashboardListView = {
     importButton: dataTestLocator('modal-confirm-button'),
   },
   header: {
-    cardView: '[aria-label="card-view"]',
-    listView: '[aria-label="list-view"]',
+    cardView: '[aria-label="AppstoreOutlined"]',
+    listView: '[aria-label="UnorderedListOutlined"]',
     sort: dataTestLocator('sort-header'),
     sortDropdown: '.Select__menu',
     statusFilterInput: `${dataTestLocator(

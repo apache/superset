@@ -178,25 +178,31 @@ describe('ChartList', () => {
 
     // Find and click list view toggle
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'UnorderedListOutlined',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
 
     // Wait for list view to be active
     await waitFor(() => {
-      const listViewToggle = screen.getByRole('img', { name: 'list-view' });
+      const listViewToggle = screen.getByRole('img', {
+        name: 'UnorderedListOutlined',
+      });
       expect(listViewToggle.closest('[role="button"]')).toHaveClass('active');
     });
 
     // Find and click card view toggle
-    const cardViewToggle = screen.getByRole('img', { name: 'card-view' });
+    const cardViewToggle = screen.getByRole('img', {
+      name: 'AppstoreOutlined',
+    });
     const cardViewButton = cardViewToggle.closest('[role="button"]');
     fireEvent.click(cardViewButton);
 
     // Wait for card view to be active
     await waitFor(() => {
-      const cardViewToggle = screen.getByRole('img', { name: 'card-view' });
+      const cardViewToggle = screen.getByRole('img', {
+        name: 'AppstoreOutlined',
+      });
       expect(cardViewToggle.closest('[role="button"]')).toHaveClass('active');
     });
   });
@@ -209,7 +215,7 @@ describe('ChartList', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'UnorderedListOutlined',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
@@ -235,7 +241,7 @@ describe('ChartList', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'UnorderedListOutlined',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
@@ -261,7 +267,7 @@ describe('ChartList', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'UnorderedListOutlined',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
@@ -314,7 +320,7 @@ describe('ChartList - anonymous view', () => {
 
     // Switch to list view
     const listViewToggle = await screen.findByRole('img', {
-      name: 'list-view',
+      name: 'UnorderedListOutlined',
     });
     const listViewButton = listViewToggle.closest('[role="button"]');
     fireEvent.click(listViewButton);
