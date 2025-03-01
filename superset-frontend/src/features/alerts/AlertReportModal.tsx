@@ -84,6 +84,7 @@ import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import InfoTooltip from 'src/components/InfoTooltip';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -1921,7 +1922,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             }}
                           >
                             <div className="control-label" style={{ flex: 1 }}>
-                              {t('Select Dashboard Filter')}
+                              <span>{t('Select Dashboard Filter')}</span>
+                              <InfoTooltip
+                                tooltip={t(
+                                  'Choose from existing dashboard filters and select a value to refine your report results.'
+                                )}
+                                iconStyle={{ justifyContent: 'center' }}
+                              />
                             </div>
                             <Select
                               disabled={nativeFilterOptions?.length < 1}
