@@ -493,13 +493,13 @@ def test_update_recipient_to_slack_v2(mocker: MockerFixture):
         return_value=[
             {
                 "id": "abc124f",
-                "name": "Channel 1",
+                "name": "channel-1",
                 "is_member": True,
                 "is_private": False,
             },
             {
                 "id": "blah_!channel_2",
-                "name": "Channel 2",
+                "name": "Channel_2",
                 "is_member": True,
                 "is_private": False,
             },
@@ -509,7 +509,7 @@ def test_update_recipient_to_slack_v2(mocker: MockerFixture):
         recipients=[
             ReportRecipients(
                 type=ReportRecipientType.SLACK,
-                recipient_config_json=json.dumps({"target": "Channel 1, Channel 2"}),
+                recipient_config_json=json.dumps({"target": "Channel-1, Channel_2"}),
             ),
         ],
     )
