@@ -179,7 +179,7 @@ describe('SavedQuery', () => {
 
     await waitFor(() => {
       const saveBtn = screen.getByRole('button', { name: /save/i });
-      const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+      const caretBtn = screen.getByRole('button', { name: /DownOutlined/i });
 
       expect(saveBtn).toBeVisible();
       expect(caretBtn).toBeVisible();
@@ -192,7 +192,7 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    const caretBtn = await screen.findByRole('button', { name: /caret-down/i });
+    const caretBtn = await screen.findByRole('button', { name: /DownOutlined/i });
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = await screen.findByText(/save dataset/i);
@@ -209,7 +209,7 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    const caretBtn = await screen.findByRole('button', { name: /caret-down/i });
+    const caretBtn = await screen.findByRole('button', { name: /DownOutlined/i });
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = await screen.findByText(/save dataset/i);

@@ -44,7 +44,6 @@ const SaveDatasetActionButton = ({
         <Icons.DownOutlined
           iconSize="xs"
           iconColor={theme.colors.primary.dark2}
-          name="caret-down"
         />
       }
       trigger={['click']}

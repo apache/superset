@@ -154,7 +154,6 @@ const RunQueryActionButton = ({
                       ? theme.colors.grayscale.base
                       : theme.colors.grayscale.light5
                   }
-                  name="caret-down"
                 />
               ),
               trigger: 'click',
