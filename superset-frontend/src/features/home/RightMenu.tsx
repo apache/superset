@@ -105,11 +105,17 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 const { SubMenu } = Menu;
 
 const StyledSubMenu = styled(SubMenu)`
-  &.antd5-menu-submenu-active {
-    .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colors.primary.base};
+  ${({ theme }) => css`
+    [data-icon='caret-down'] {
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.typography.sizes.xs}px;
     }
-  }
+    &.antd5-menu-submenu-active {
+      .antd5-menu-title-content {
+        color: ${theme.colors.primary.base};
+      }
+    }
+  `}
 `;
 
 const RightMenu = ({
@@ -397,6 +403,10 @@ const RightMenu = ({
         </Label>
       )}
       <Menu
+        css={css`
+          display: flex;
+          flex-direction: row;
+        `}
         selectable={false}
         mode="horizontal"
         onClick={handleMenuSelection}
@@ -414,7 +424,7 @@ const RightMenu = ({
                 data-test="new-dropdown-icon"
               />
             }
-            icon={<Icons.TriangleDown />}
+            icon={<Icons.CaretDownOutlined iconSize="xs" />}
           >
             {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
@@ -474,11 +484,10 @@ const RightMenu = ({
             })}
           </StyledSubMenu>
         )}
-        {/* TODO replace TriangleDown with ANTD5 icons */}
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}
-          icon={<Icons.TriangleDown iconSize="xl" />}
+          icon={<Icons.CaretDownOutlined iconSize="xs" />}
         >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>
