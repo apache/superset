@@ -46,7 +46,7 @@
     "eslint-config-prettier": "^8.0.0",
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.0.0",
-    "prettier": "^2.0.0",
+    "prettier": "^3.5.2",
     "typescript": "~5.1.6",
     "webpack": "^5.97.1"
   },
