@@ -73,6 +73,7 @@ interface DatabaseDeleteObject extends DatabaseObject {
 interface DatabaseListProps {
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
+  addInfoToast: (msg: string) => void;
   user: {
     userId: string | number;
     firstName: string;
@@ -106,6 +107,7 @@ function BooleanDisplay({ value }: { value: Boolean }) {
 
 function DatabaseList({
   addDangerToast,
+  addInfoToast,
   addSuccessToast,
   user,
 }: DatabaseListProps) {
@@ -126,6 +128,9 @@ function DatabaseList({
   );
   const fullUser = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
+  );
+  const shouldSyncPermsInAsyncMode = useSelector<any, boolean>(
+    state => state.common?.conf.SYNC_DB_PERMISSIONS_IN_ASYNC_MODE,
   );
   const showDatabaseModal = getUrlParam(URL_PARAMS.showDatabaseModal);
 
@@ -348,6 +353,44 @@ function DatabaseList({
     setPreparingExport(true);
   }
 
+  function handleDatabasePermSync(database: DatabaseObject) {
+    if (shouldSyncPermsInAsyncMode) {
+      addInfoToast(t('Validating connectivity for %s', database.database_name));
+    } else {
+      addInfoToast(t('Syncing permissions for %s', database.database_name));
+    }
+    SupersetClient.post({
+      endpoint: `/api/v1/database/${database.id}/sync_permissions/`,
+    }).then(
+      ({ response }) => {
+        // Sync request
+        if (response.status === 200) {
+          addSuccessToast(
+            t('Permissions successfully synced for %s', database.database_name),
+          );
+        }
+        // Async request
+        else {
+          addInfoToast(
+            t(
+              'Syncing permissions for %s in the background',
+              database.database_name,
+            ),
+          );
+        }
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t(
+            'An error occurred while syncing permissions for %s: %s',
+            database.database_name,
+            errMsg,
+          ),
+        ),
+      ),
+    );
+  }
+
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const columns = useMemo(
@@ -439,6 +482,7 @@ function DatabaseList({
             handleDatabaseEditModal({ database: original, modalOpen: true });
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
+          const handleSync = () => handleDatabasePermSync(original);
           if (!canEdit && !canDelete && !canExport) {
             return null;
           }
@@ -491,6 +535,23 @@ function DatabaseList({
                     onClick={handleEdit}
                   >
                     <Icons.EditOutlined data-test="edit-alt" />
+                  </span>
+                </Tooltip>
+              )}
+              {canEdit && (
+                <Tooltip
+                  id="sync-action-tooltip"
+                  title={t('Sync Permissions')}
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    data-test="database-sync-perm"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={handleSync}
+                  >
+                    <Icons.Refresh />
                   </span>
                 </Tooltip>
               )}

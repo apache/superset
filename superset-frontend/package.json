@@ -323,12 +323,10 @@
     "eslint-plugin-storybook": "^0.8.0",
     "eslint-plugin-testing-library": "^6.4.0",
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
-    "exports-loader": "^5.0.0",
-    "fetch-mock": "^7.7.3",
+    "fetch-mock": "^9.1.0",
     "fork-ts-checker-webpack-plugin": "^9.0.2",
     "history": "^5.3.0",
     "html-webpack-plugin": "^5.6.3",
-    "ignore-styles": "^5.0.1",
     "imports-loader": "^5.0.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
@@ -339,14 +337,12 @@
     "less": "^4.2.0",
     "less-loader": "^12.2.0",
     "mini-css-extract-plugin": "^2.9.0",
-    "mock-socket": "^9.3.1",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
     "prettier": "3.3.3",
     "prettier-plugin-packagejson": "^2.5.3",
     "process": "^0.11.10",
     "react-resizable": "^3.0.5",
-    "react-test-renderer": "^17.0.2",
     "redux-mock-store": "^1.5.4",
     "sinon": "^18.0.0",
     "source-map": "^0.7.4",
@@ -360,7 +356,7 @@
     "tscw-config": "^1.1.2",
     "typescript": "5.1.6",
     "vm-browserify": "^1.1.2",
-    "webpack": "^5.97.1",
+    "webpack": "^5.98.0",
     "webpack-bundle-analyzer": "^4.10.1",
     "webpack-cli": "^4.10.0",
     "webpack-dev-server": "^4.15.1",
@@ -375,14 +371,8 @@
   "overrides": {
     "core-js": "^3.38.1",
     "d3-color": "^3.1.0",
-    "yosay": {
-      "ansi-regex": "^4.1.1"
-    },
     "puppeteer": "^22.4.1",
-    "underscore": "^1.13.7",
-    "fast-glob": {
-      "micromatch": "^4.0.6"
-    }
+    "underscore": "^1.13.7"
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
