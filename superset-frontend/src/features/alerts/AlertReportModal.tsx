@@ -1915,6 +1915,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             style={{
                               display: 'flex',
                               flexDirection: 'column',
+                              maxWidth: '174px',
                               flex: 1,
                               marginRight: '12px',
                             }}
@@ -1954,15 +1955,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               mode="multiple"
                             />
                           </div>
-                          <div style={{ display: 'flex' }}>
-                            <Icons.Trash
-                              onClick={() => {
-                                handleRemoveFilterField(name);
-                                remove(name);
-                              }}
-                              style={{ display: 'flex' }}
-                            />
-                          </div>
+                          {name !== 0 && (
+                            <div style={{ display: 'flex', marginTop: 23 }}>
+                              <Icons.Trash
+                                onClick={() => {
+                                  handleRemoveFilterField(name);
+                                  remove(name);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  color: `${theme.colors.grayscale.light1}`,
+                                }}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                       <div style={{ flex: '.25', padding: '7px 0' }}>
