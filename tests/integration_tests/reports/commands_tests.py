@@ -1300,9 +1300,6 @@ def test_email_dashboard_report_schedule_force_screenshot(
         assert_log(ReportState.SUCCESS)
 
 
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chart"
-)
 @patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
@@ -1312,22 +1309,31 @@ def test_slack_chart_report_schedule_converts_to_v2(
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
-    create_report_slack_chart,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
+    while converting the recipients list to SlackV2.
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
 
     channel_id = "slack_channel_id"
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(slack_channel=channel_id, chart=chart)
 
-    get_channels_with_search_mock.return_value = channel_id
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": "Channel 1",
+            "is_member": True,
+            "is_private": False,
+        },
+    ]
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
             AsyncExecuteReportScheduleCommand(
-                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+                TEST_ID, report_schedule.id, datetime.utcnow()
             ).run()
 
             assert (
@@ -1340,13 +1346,10 @@ def test_slack_chart_report_schedule_converts_to_v2(
             )
 
             # Assert that the report recipients were updated
-            assert create_report_slack_chart.recipients[
-                0
-            ].recipient_config_json == json.dumps({"target": channel_id})
-            assert (
-                create_report_slack_chart.recipients[0].type
-                == ReportRecipientType.SLACKV2
+            assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+                {"target": channel_id}
             )
+            assert report_schedule.recipients[0].type == ReportRecipientType.SLACKV2
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
@@ -1355,6 +1358,8 @@ def test_slack_chart_report_schedule_converts_to_v2(
                 "reports.slack.send.warning", 1
             )
             assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
+
+    cleanup_report_schedule(report_schedule)
 
 
 @pytest.mark.usefixtures(
