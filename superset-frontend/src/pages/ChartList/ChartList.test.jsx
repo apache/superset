@@ -252,7 +252,7 @@ describe('ChartList', () => {
     });
 
     // Click delete button
-    const deleteButtons = await screen.findAllByTestId('trash');
+    const deleteButtons = await screen.findAllByRole('button', { name:'DeleteOutlined' });
     fireEvent.click(deleteButtons[0]);
 
     // Verify modal appears
@@ -280,7 +280,7 @@ describe('ChartList', () => {
     // Wait for favorite stars to appear
     await waitFor(() => {
       const favoriteStars = screen.getAllByRole('img', {
-        name: 'favorite-selected',
+        name: 'StarFilled',
       });
       expect(favoriteStars.length).toBeGreaterThan(0);
     });
