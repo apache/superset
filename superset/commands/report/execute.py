@@ -149,7 +149,14 @@ class BaseReportState:
                         exact_match=True,
                     )
                     if len(channels_list) != len(channels):
-                        raise UpdateFailedError("Not all channels could be found")
+                        missing_channels = set(channels_list) - {
+                            channel["name"] for channel in channels
+                        }
+                        msg = (
+                            "Could not find the following channels: "
+                            f"{', '.join(missing_channels)}"
+                        )
+                        raise UpdateFailedError(msg)
                     channel_ids = ", ".join(channel["id"] for channel in channels)
                     recipient.recipient_config_json = json.dumps(
                         {
