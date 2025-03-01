@@ -322,6 +322,10 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-core/"
+    ignore:
+      # not until React >= 18.0.0
+      - dependency-name: "react-markdown"
+      - dependency-name: "remark-gfm"
     schedule:
       interval: "monthly"
     labels:
