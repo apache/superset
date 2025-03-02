@@ -872,7 +872,11 @@ const SqlEditor: FC<Props> = ({
                 dropdownRender={() => renderDropdown()}
                 trigger={['click']}
               >
-                <Button buttonSize="xsmall" type="link" showMarginRight={false}>
+                <Button
+                  buttonSize="xsmall"
+                  buttonStyle="link"
+                  showMarginRight={false}
+                >
                   <Icons.MoreHoriz iconColor={theme.colorIcon} />
                 </Button>
               </Dropdown>

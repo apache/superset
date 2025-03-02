@@ -110,7 +110,7 @@ function TagCard({
             }}
           >
             <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
               </Button>
             </Dropdown>

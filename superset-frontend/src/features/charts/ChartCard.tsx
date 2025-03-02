@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -24,7 +24,7 @@ import Chart from 'src/types/Chart';
 
 import ListViewCard from 'src/components/ListViewCard';
 import Label from 'src/components/Label';
-import { MenuDotsDropdown } from 'src/components/Dropdown';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import FaveStar from 'src/components/FaveStar';
 import FacePile from 'src/components/FacePile';
@@ -68,6 +68,7 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const theme = useTheme();
 
   const menu = (
     <Menu>
@@ -154,7 +155,9 @@ export default function ChartCard({
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={<Label type="primary">{chart.datasource_name_text}</Label>}
+        coverRight={
+          <Label type="secondary">{chart.datasource_name_text}</Label>
+        }
         linkComponent={Link}
         actions={
           <ListViewCard.Actions
@@ -170,14 +173,11 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <MenuDotsDropdown
-              dropdownRender={() => menu}
-              trigger={['click', 'hover']}
-            >
-              <Button type="link">
-                <Icons.MoreVert />
+            <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
+              <Button buttonSize="xsmall" buttonStyle="link">
+                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
               </Button>
-            </MenuDotsDropdown>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

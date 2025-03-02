@@ -154,7 +154,6 @@ const LabeledErrorBoundInput = ({
       )}
       {get_url && description ? (
         <Button
-          type="link"
           htmlType="button"
           buttonStyle="secondary"
           onClick={() => {

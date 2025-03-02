@@ -324,7 +324,7 @@ const SavedQueries = ({
                         dropdownRender={() => renderMenu(q)}
                         trigger={['click', 'hover']}
                       >
-                        <Button buttonSize="xsmall" type="link">
+                        <Button buttonSize="xsmall" buttonStyle="link">
                           <Icons.MoreVert
                             iconColor={theme.colors.grayscale.base}
                           />
