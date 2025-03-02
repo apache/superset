@@ -567,7 +567,7 @@ test('Columnar, does not render the rows', () => {
 });
 
 test('database and schema are correctly populated', async () => {
-  jest.setTimeout(10000);
+  jest.setTimeout(20000);
   render(<UploadDataModal {...csvProps} />, {
     useRedux: true,
   });

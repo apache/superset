@@ -17,11 +17,28 @@
  * under the License.
  */
 
+import { jsonrepair } from 'jsonrepair';
 import { BootstrapData } from 'src/types/bootstrapTypes';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
+import { logging } from '@superset-ui/core';
 
 export default function getBootstrapData(): BootstrapData {
   const appContainer = document.getElementById('app');
-  const dataBootstrap = appContainer?.getAttribute('data-bootstrap');
-  return dataBootstrap ? JSON.parse(dataBootstrap) : DEFAULT_BOOTSTRAP_DATA;
+  const dataBootstrapString = appContainer?.getAttribute('data-bootstrap');
+  if (!dataBootstrapString) {
+    return DEFAULT_BOOTSTRAP_DATA;
+  }
+  try {
+    return JSON.parse(dataBootstrapString);
+  } catch (error) {
+    try {
+      return JSON.parse(jsonrepair(dataBootstrapString));
+    } catch (error) {
+      logging.error(
+        'Malformed JSON in bootstrap data. Using default data instead',
+        error,
+      );
+      return DEFAULT_BOOTSTRAP_DATA;
+    }
+  }
 }
