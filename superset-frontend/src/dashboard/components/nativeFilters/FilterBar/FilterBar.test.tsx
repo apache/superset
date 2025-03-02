@@ -200,17 +200,23 @@ describe('FilterBar', () => {
 
   it('should render the collapse icon', () => {
     renderWrapper();
-    expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'VerticalAlignTopOutlined' }),
+    ).toBeInTheDocument();
   });
 
   it('should render the filter icon', () => {
     renderWrapper();
-    expect(screen.getByRole('img', { name: 'filter' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'FilterOutlined' }),
+    ).toBeInTheDocument();
   });
 
   it('should toggle', () => {
     renderWrapper();
-    const collapse = screen.getByRole('img', { name: 'collapse' });
+    const collapse = screen.getByRole('img', {
+      name: 'VerticalAlignTopOutlined',
+    });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();

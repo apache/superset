@@ -171,7 +171,7 @@ export const sqlLabView = {
     header: '[role=columnheader]',
     table: '.QueryTable',
     row: dataTestLocator('table-row'),
-    failureMarkIcon: '[aria-label=x-small]',
+    failureMarkIcon: '[aria-label=CloseOutlined]',
     successMarkIcon: '[aria-label=check]',
   },
 };
@@ -252,7 +252,7 @@ export const datasetsList = {
     aceTextInput: '.ace_text-input',
     sourceSQLInput: '.ace_content',
     sourceVirtualSQLRadio: ':nth-child(2) > .ant-radio > .ant-radio-inner',
-    sourcePadlock: '[aria-label=lock-locked]',
+    sourcePadlock: '[aria-label=LockOutlined]',
     legacy: {
       panel: '.panel-body',
       sqlInput: '#sql',

@@ -248,7 +248,9 @@ test('Arrow key navigation switches focus between indicators', () => {
   const firstIndicator = screen.getByRole('button', {
     name: 'SearchOutlined Clinical Stage',
   });
-  const secondIndicator = screen.getByRole('button', { name: 'SearchOutlined Age Group' });
+  const secondIndicator = screen.getByRole('button', {
+    name: 'SearchOutlined Age Group',
+  });
 
   // Focus the first indicator
   firstIndicator.focus();

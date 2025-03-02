@@ -195,11 +195,11 @@ const expectMenuItemDisabled = async (
  * "Drill to detail" item should be enabled and open the correct modal
  */
 const expectDrillToDetailEnabled = async () => {
-  const drillToDetailMenuItem = screen.getByRole('menuitem', {
-    name: 'Drill to detail',
-  });
-
-  await expectMenuItemEnabled(drillToDetailMenuItem);
+  const drillToDetailMenuItem = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail'));
+  expect(drillToDetailMenuItem).toBeDefined();
+  await expectMenuItemEnabled(drillToDetailMenuItem!);
   await expectDrillToDetailModal('Drill to detail');
 };
 
@@ -207,20 +207,21 @@ const expectDrillToDetailEnabled = async () => {
  * "Drill to detail" item should be present and disabled
  */
 const expectDrillToDetailDisabled = async (tooltipContent?: string) => {
-  const drillToDetailMenuItem = screen.getByRole('menuitem', {
-    name: 'Drill to detail',
-  });
+  const drillToDetailMenuItem = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail'));
 
-  await expectMenuItemDisabled(drillToDetailMenuItem, tooltipContent);
+  expect(drillToDetailMenuItem).toBeDefined();
+  await expectMenuItemDisabled(drillToDetailMenuItem!, tooltipContent);
 };
 
 /**
  * "Drill to detail by" item should not be present
  */
 const expectNoDrillToDetailBy = async () => {
-  const drillToDetailBy = screen.queryByRole('menuitem', {
-    name: 'Drill to detail by',
-  });
+  const drillToDetailBy = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
 
   expect(drillToDetailBy).not.toBeInTheDocument();
 };
@@ -229,12 +230,11 @@ const expectNoDrillToDetailBy = async () => {
  * "Drill to detail by" submenu should be present and enabled
  */
 const expectDrillToDetailByEnabled = async () => {
-  const drillToDetailBy = screen.getByRole('menuitem', {
-    name: 'Drill to detail by',
-  });
-
-  await expectMenuItemEnabled(drillToDetailBy);
-  userEvent.hover(drillToDetailBy);
+  const drillToDetailBy = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
+  await expectMenuItemEnabled(drillToDetailBy!);
+  userEvent.hover(drillToDetailBy!);
 
   const submenus = await screen.findAllByTestId('drill-to-detail-by-submenu');
 
@@ -245,11 +245,10 @@ const expectDrillToDetailByEnabled = async () => {
  * "Drill to detail by" submenu should be present and disabled
  */
 const expectDrillToDetailByDisabled = async (tooltipContent?: string) => {
-  const drillToDetailBySubmenuItem = screen.getByRole('menuitem', {
-    name: 'Drill to detail by',
-  });
-
-  await expectMenuItemDisabled(drillToDetailBySubmenuItem, tooltipContent);
+  const drillToDetailBySubmenuItem = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
+  await expectMenuItemDisabled(drillToDetailBySubmenuItem!, tooltipContent);
 };
 
 /**
