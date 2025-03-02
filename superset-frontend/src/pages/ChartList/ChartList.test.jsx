@@ -252,7 +252,9 @@ describe('ChartList', () => {
     });
 
     // Click delete button
-    const deleteButtons = await screen.findAllByRole('button', { name:'DeleteOutlined' });
+    const deleteButtons = await screen.findAllByRole('button', {
+      name: 'DeleteOutlined',
+    });
     fireEvent.click(deleteButtons[0]);
 
     // Verify modal appears

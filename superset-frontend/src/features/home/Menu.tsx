@@ -310,9 +310,6 @@ export function Menu({
         </Col>
         <Col md={8} xs={24}>
           <RightMenu
-            css={css`
-              border: 2px solid red;
-            `}
             align={screens.md ? 'flex-end' : 'flex-start'}
             settings={settings}
             navbarRight={navbarRight}

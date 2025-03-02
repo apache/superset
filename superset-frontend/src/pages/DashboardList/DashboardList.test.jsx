@@ -150,7 +150,7 @@ describe('DashboardList', () => {
     expect(cardViewIcon).toBeInTheDocument();
 
     // Switch to table view
-    const listViewIcon = screen.getByRole('img', { name: 'list-view' });
+    const listViewIcon = screen.getByRole('img', { name: 'AppstoreOutlined' });
     const listViewButton = listViewIcon.closest('[role="button"]');
     fireEvent.click(listViewButton);
 
@@ -166,7 +166,9 @@ describe('DashboardList', () => {
     await screen.findByText('title 0');
 
     // Find and click the first more options button
-    const moreIcons = await screen.findAllByRole('img', { name: 'more-vert' });
+    const moreIcons = await screen.findAllByRole('img', {
+      name: 'MoreOutlined',
+    });
     fireEvent.click(moreIcons[0]);
 
     // Click edit from the dropdown
@@ -186,7 +188,9 @@ describe('DashboardList', () => {
     await screen.findByText('title 0');
 
     // Find and click the first more options button
-    const moreIcons = await screen.findAllByRole('img', { name: 'more-vert' });
+    const moreIcons = await screen.findAllByRole('img', {
+      name: 'MoreOutlined',
+    });
     fireEvent.click(moreIcons[0]);
 
     // Click delete from the dropdown

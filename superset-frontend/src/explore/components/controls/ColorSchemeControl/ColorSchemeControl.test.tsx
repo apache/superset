@@ -66,7 +66,7 @@ test('should not display an alert icon if hasCustomLabelsColor=false', async () 
   setup();
   await waitFor(() => {
     expect(
-      screen.queryByRole('img', { name: 'alert-solid' }),
+      screen.queryByRole('img', { name: 'WarningOutlined' }),
     ).not.toBeInTheDocument();
   });
 });
@@ -79,7 +79,7 @@ test('should display an alert icon if hasCustomLabelsColor=true', async () => {
   setup(hasCustomLabelsColorProps);
   await waitFor(() => {
     expect(
-      screen.getByRole('img', { name: 'alert-solid' }),
+      screen.getByRole('img', { name: 'WarningOutlined' }),
     ).toBeInTheDocument();
   });
 });

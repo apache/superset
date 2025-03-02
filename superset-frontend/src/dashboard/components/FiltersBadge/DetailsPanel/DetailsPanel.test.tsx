@@ -60,7 +60,7 @@ const createProps = () => ({
   ] as Indicator[],
   appliedIndicators: [
     {
-      column: 'country_name',
+      column: 'Country_name',
       name: 'Country',
       value: [],
       status: 'UNSET',
@@ -124,11 +124,13 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
     await screen.findByText('Applied cross-filters (1)'),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'Clinical Stage' }),
+    screen.getByRole('button', { name: 'SearchOutlined Clinical Stage' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Clinical Stage' }));
+  userEvent.click(
+    screen.getByRole('button', { name: 'SearchOutlined Clinical Stage' }),
+  );
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
   expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
@@ -155,10 +157,14 @@ test('Should render "appliedIndicators"', async () => {
 
   userEvent.hover(screen.getByTestId('details-panel-content'));
   expect(await screen.findByText('Applied filters (1)')).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: 'Country' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'SearchOutlined Country' }),
+  ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Country' }));
+  userEvent.click(
+    screen.getByRole('button', { name: 'SearchOutlined Country' }),
+  );
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
   expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
@@ -166,7 +172,7 @@ test('Should render "appliedIndicators"', async () => {
     'TAB-BCIJF4NvgQ',
     'ROW-xSeNAspgw',
     'CHART-eirDduqb1A',
-    'LABEL-country_name',
+    'LABEL-Country_name',
   ]);
 });
 
@@ -239,8 +245,10 @@ test('Arrow key navigation switches focus between indicators', () => {
   );
 
   // Query the indicators
-  const firstIndicator = screen.getByRole('button', { name: 'Clinical Stage' });
-  const secondIndicator = screen.getByRole('button', { name: 'Age Group' });
+  const firstIndicator = screen.getByRole('button', {
+    name: 'SearchOutlined Clinical Stage',
+  });
+  const secondIndicator = screen.getByRole('button', { name: 'SearchOutlined Age Group' });
 
   // Focus the first indicator
   firstIndicator.focus();

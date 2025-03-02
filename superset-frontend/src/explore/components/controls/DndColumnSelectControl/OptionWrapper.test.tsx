@@ -33,7 +33,7 @@ test('renders with default props', async () => {
   );
   expect(container).toBeInTheDocument();
   expect(
-    await screen.findByRole('img', { name: 'x-small' }),
+    await screen.findByRole('img', { name: 'CloseOutlined' }),
   ).toBeInTheDocument();
 });
 

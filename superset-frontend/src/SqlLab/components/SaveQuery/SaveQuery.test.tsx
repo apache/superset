@@ -192,7 +192,9 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    const caretBtn = await screen.findByRole('button', { name: /DownOutlined/i });
+    const caretBtn = await screen.findByRole('button', {
+      name: /DownOutlined/i,
+    });
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = await screen.findByText(/save dataset/i);
@@ -209,7 +211,9 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    const caretBtn = await screen.findByRole('button', { name: /DownOutlined/i });
+    const caretBtn = await screen.findByRole('button', {
+      name: /DownOutlined/i,
+    });
     userEvent.click(caretBtn);
 
     const saveDatasetMenuItem = await screen.findByText(/save dataset/i);

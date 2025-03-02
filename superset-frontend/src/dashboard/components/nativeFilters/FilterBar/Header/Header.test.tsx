@@ -38,13 +38,17 @@ test('should render the "Filters" heading', () => {
 test('should render the expand button', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
-  expect(screen.getByRole('button', { name: 'VerticalAlignTopOutlined' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'VerticalAlignTopOutlined' }),
+  ).toBeInTheDocument();
 });
 
 test('should toggle', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
-  const expandBtn = screen.getByRole('button', { name: 'VerticalAlignTopOutlined' });
+  const expandBtn = screen.getByRole('button', {
+    name: 'VerticalAlignTopOutlined',
+  });
   expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
   userEvent.click(expandBtn);
   expect(mockedProps.toggleFiltersBar).toHaveBeenCalled();

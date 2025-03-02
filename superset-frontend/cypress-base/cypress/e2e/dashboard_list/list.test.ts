@@ -32,12 +32,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="MoreOutlined"]').first().click();
   cy.getBySel('dashboard-card-option-edit-button').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="MoreOutlined"]').first().click();
 }
 
 function confirmDelete(bulk = false) {

@@ -35,12 +35,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.get('[aria-label="MoreOutlined"]').eq(1).click();
   cy.getBySel('chart-list-edit-option').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.get('[aria-label="MoreOutlined"]').eq(1).click();
 }
 
 function confirmDelete() {

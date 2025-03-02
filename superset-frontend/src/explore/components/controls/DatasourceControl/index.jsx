@@ -116,7 +116,7 @@ const Styles = styled.div`
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
-  span[aria-label='more-vert'] {
+  span[aria-label='MoreOutlined'] {
     color: ${({ theme }) => theme.colors.primary.base};
   }
 `;
