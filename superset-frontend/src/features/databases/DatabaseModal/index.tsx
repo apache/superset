@@ -2040,7 +2040,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                     <Button
                       data-test="import-database-btn"
                       buttonStyle="link"
-                      type="link"
                       css={importDbButtonLinkStyles}
                     >
                       {t('Import database from file')}

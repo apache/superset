@@ -221,7 +221,12 @@ const SaveQuery = ({
         title={<h4>{t('Save query')}</h4>}
         footer={
           <>
-            <Button onClick={close} data-test="cancel-query" cta>
+            <Button
+              onClick={close}
+              data-test="cancel-query"
+              cta
+              buttonStyle="secondary"
+            >
               {t('Cancel')}
             </Button>
             <Button

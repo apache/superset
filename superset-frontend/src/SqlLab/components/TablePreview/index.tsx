@@ -327,7 +327,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
           )}
           trigger={['click']}
         >
-          <Button buttonSize="xsmall" type="link">
+          <Button buttonSize="xsmall" buttonStyle="link">
             <Icons.DownSquareOutlined
               iconSize="m"
               style={{ marginTop: 2, marginLeft: 4 }}
