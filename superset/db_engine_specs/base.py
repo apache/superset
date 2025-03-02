@@ -29,10 +29,10 @@ from typing import (
     cast,
     ContextManager,
     NamedTuple,
+    Optional,
     TYPE_CHECKING,
     TypedDict,
     Union,
-    Optional,
 )
 from urllib.parse import urlencode, urljoin
 from uuid import uuid4
@@ -1074,13 +1074,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_table_metadata(
-        cls,
-        database: Database,
-        table: Table,
+        cls, database: Database, table: Table, partition: Optional[Partition] = None
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
 
+        :param partition: The table's partition info
         :param database: Database instance
         :param table: A Table instance
         :return: Basic table metadata
@@ -1670,6 +1669,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         WARNING: expects only unquoted table and schema names.
 
+        :param partition: The table's partition info
         :param database: Database instance
         :param table: Table instance
         :param engine: SqlAlchemy Engine instance
@@ -1691,11 +1691,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
-        if database.backend == 'odps':
-            if (partition is not None and
-                partition.is_partitioned_table and
-                partition.partition_column is not None and
-                len(partition.partition_column) > 0):
+        if database.backend == "odps":
+            if (
+                partition is not None
+                and partition.is_partitioned_table
+                and partition.partition_column is not None
+                and len(partition.partition_column) > 0
+            ):
                 partition_str = partition.partition_column[0]
                 partition_str_where = f"CAST({partition_str} AS STRING) LIKE '%'"
                 qry = qry.where(text(partition_str_where))

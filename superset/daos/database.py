@@ -17,7 +17,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, List, Tuple
+from urllib.parse import unquote
+
+from odps import ODPS
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO
@@ -30,9 +34,6 @@ from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
 from superset.utils.core import DatasourceType
 from superset.utils.ssh_tunnel import unmask_password_info
-import re
-from odps import ODPS
-from urllib.parse import unquote
 
 logger = logging.getLogger(__name__)
 
@@ -168,16 +169,15 @@ class DatabaseDAO(BaseDAO[Database]):
         )
 
         return ssh_tunnel
-    
+
     @classmethod
     def is_odps_partitioned_table(
-        cls, 
-        database: Database,
-        table_name: str) -> Tuple[bool, List[int]]:
+        cls, database: Database, table_name: str
+    ) -> Tuple[bool, List[str]]:
         """
-        This function is used to determine and retrieve 
+        This function is used to determine and retrieve
         partition information of the odsp table.
-        The return values are whether the partition 
+        The return values are whether the partition
         table is partitioned and the names of all partition fields.
         """
         if not database:
@@ -185,13 +185,12 @@ class DatabaseDAO(BaseDAO[Database]):
         uri = database.sqlalchemy_uri
         access_key = database.password
         pattern = re.compile(
-            r'odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?endpoint=(?P<endpoint>[^&]+))'
+            r"odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?endpoint=(?P<endpoint>[^&]+))"
         )
-        match = pattern.match(unquote(uri))
-        if match:
-            access_id = match.group('username')
-            project = match.group('project')
-            endpoint = match.group('endpoint')
+        if match := pattern.match(unquote(uri)):
+            access_id = match.group("username")
+            project = match.group("project")
+            endpoint = match.group("endpoint")
         odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
         table = odps_client.get_table(table_name)
         if table.exist_partition:
@@ -200,6 +199,7 @@ class DatabaseDAO(BaseDAO[Database]):
             return True, partition_fields
         else:
             return False, []
+
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod
