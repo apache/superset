@@ -301,7 +301,11 @@ class RefreshIntervalModal extends PureComponent<
         }
         modalFooter={
           <>
-            <Button onClick={this.onCancel} buttonSize="small">
+            <Button
+              onClick={this.onCancel}
+              buttonSize="small"
+              buttonStyle="secondary"
+            >
               {t('Cancel')}
             </Button>
             <Button
