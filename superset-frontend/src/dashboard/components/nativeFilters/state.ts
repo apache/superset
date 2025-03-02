@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { useCallback, useMemo } from 'react';
 import {
+  Divider,
   Filter,
   FilterConfiguration,
-  Divider,
   isFilterDivider,
 } from '@superset-ui/core';
+import { useCallback, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { ActiveTabs, DashboardLayout, RootState } from '../../types';
 import { CHART_TYPE, TAB_TYPE } from '../../util/componentTypes';
 
@@ -100,6 +100,8 @@ function useSelectChartTabParents() {
 export function useIsFilterInScope() {
   const activeTabs = useActiveDashboardTabs();
   const selectChartTabParents = useSelectChartTabParents();
+  const dashboardHasTabs = useDashboardHasTabs();
+  const dashboardLayout = useDashboardLayout();
 
   // Filter is in scope if any of its charts is visible.
   // Chart is visible if it's placed in an active tab tree or if it's not attached to any tab.
@@ -107,27 +109,68 @@ export function useIsFilterInScope() {
   // Dividers are always in scope
   return useCallback(
     (filter: Filter | Divider) => {
-      if (isFilterDivider(filter)) return true;
+      const rootPath = filter.scope?.rootPath ?? [];
+      const chartsInScope = filter.chartsInScope ?? [];
 
-      const isChartInScope =
-        Array.isArray(filter.chartsInScope) &&
-        filter.chartsInScope.length > 0 &&
-        filter.chartsInScope.some((chartId: number) => {
+      // 1. Dividers are always in scope
+      if (isFilterDivider(filter)) {
+        return true;
+      }
+
+      // 2. If filter affects specific charts, check if any are visible and compatible
+      if (chartsInScope.length > 0) {
+        const filterDatasetIds = new Set(
+          filter.targets?.map(target => target.datasetId) ?? [],
+        );
+
+        const isChartInScope = chartsInScope.some(chartId => {
           const tabParents = selectChartTabParents(chartId);
-          return (
-            !tabParents ||
-            tabParents.length === 0 ||
-            tabParents.every(tab => activeTabs.includes(tab))
+
+          // Early returns for no layout/no tabs cases
+          if (tabParents === undefined) return false;
+          if (!dashboardHasTabs) return true;
+          if (!tabParents.length) return true;
+
+          // If multiple tabs are active, check if chart's tab parents are ALL active
+          const chartTabsActive = tabParents.every(tab =>
+            activeTabs.includes(tab),
           );
+          if (!chartTabsActive) return false;
+
+          // Check if active tabs contain charts from the same dataset
+          const activeTabsCompatible = activeTabs.every(tab => {
+            const chartsInTab = Object.values(dashboardLayout).filter(
+              item => item.type === CHART_TYPE && item.parents?.includes(tab),
+            );
+
+            // Tab is compatible if it contains at least one chart from the same dataset
+            return chartsInTab.some(chart =>
+              filterDatasetIds.has(
+                (chart.meta as { datasourceId?: number })?.datasourceId,
+              ),
+            );
+          });
+
+          return activeTabsCompatible;
         });
 
-      const isFilterInActiveTab =
-        filter.scope?.rootPath &&
-        filter.scope.rootPath.some(tab => activeTabs.includes(tab));
+        return isChartInScope;
+      }
 
-      return isChartInScope || isFilterInActiveTab;
+      // 3. For filters with rootPath, check tab visibility
+      if (rootPath.length > 0) {
+        // If no tabs in dashboard, filters with rootPath are out of scope
+        // since they're explicitly tab-scoped but there are no tabs
+        if (!dashboardHasTabs) {
+          return false;
+        }
+        return rootPath.some(tab => activeTabs.includes(tab));
+      }
+
+      // 4. Filter has no charts and no rootPath - not in scope
+      return false;
     },
-    [selectChartTabParents, activeTabs],
+    [selectChartTabParents, activeTabs, dashboardHasTabs, dashboardLayout],
   );
 }
 
