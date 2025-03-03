@@ -17,29 +17,15 @@
  * under the License.
  */
 import { MouseEvent } from 'react';
-import { Tag as AntdTag } from 'antd';
-import { styled, useCSSTextTruncation } from '@superset-ui/core';
+import { useCSSTextTruncation } from '@superset-ui/core';
+import { TagProps } from 'antd-v5';
 import { Tooltip } from '../Tooltip';
 import { CustomCloseIcon } from '../Tags/Tag';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
-import { NoElement } from './styles';
+import { NoElement, StyledTag } from './styles';
 
-const StyledTag = styled(AntdTag)`
-  & .ant-tag-close-icon {
-    display: inline-flex;
-    align-items: center;
-    margin-left: ${({ theme }) => theme.sizeUnit}px;
-  }
-
-  & .tag-content {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-`;
-
-// TODO: use antd Tag props instead of any. Currently it's causing a typescript error
-const Tag = (props: any) => {
+const Tag = (props: TagProps) => {
   const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
   return (
     <Tooltip title={tagIsTruncated ? props.children : null}>
@@ -69,7 +55,7 @@ export const customTagRender = (props: CustomTagProps) => {
       target.tagName === 'svg' ||
       target.tagName === 'path' ||
       (target.tagName === 'span' &&
-        target.className.includes('ant-tag-close-icon'))
+        target.className.includes('antd5-tag-close-icon'))
     ) {
       event.stopPropagation();
     }

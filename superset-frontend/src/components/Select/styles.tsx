@@ -18,8 +18,8 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin, Tag } from 'antd';
-import AntdSelect from 'antd/lib/select';
+import { Spin, Tag } from 'antd-v5';
+import AntdSelect from 'antd-v5/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -46,11 +46,6 @@ export const StyledSelect = styled(AntdSelect, {
     flex: ${headerPosition === 'left' ? 1 : 0};
     && .ant-select-selector {
       border-radius: ${theme.sizeUnit}px;
-    }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
     }
     .select-all {
       border-bottom: 1px solid ${theme.colors.grayscale.light3};
@@ -81,11 +76,16 @@ export const NoElement = styled.span`
 `;
 
 export const StyledTag = styled(Tag)`
-  ${({ theme }) => `
-    background: ${theme.colors.grayscale.light3};
-    font-size: ${theme.fontSize}px;
-    border: none;
-  `}
+  & .antd5-tag-close-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  & .tag-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 export const StyledStopOutlined = styled(Icons.StopOutlined)`

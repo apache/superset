@@ -26,6 +26,7 @@ import {
   useState,
   useCallback,
   ClipboardEvent,
+  Ref,
 } from 'react';
 
 import {
@@ -35,14 +36,16 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import {
+  LabeledValue as AntdLabeledValue,
+  RefSelectProps,
+} from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
   isLabeledValue,
-  renderSelectOptions,
   sortSelectedFirstHelper,
   sortComparatorWithSearchHelper,
   handleFilterOptionHelper,
@@ -122,7 +125,7 @@ const Select = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
-    ref: RefObject<HTMLInputElement>,
+    ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
     const shouldShowSearch = allowNewOptions ? true : showSearch;
@@ -148,8 +151,6 @@ const Select = forwardRef(
     }, [isDropdownVisible, oneLine]);
 
     const mappedMode = isSingleMode ? undefined : 'multiple';
-
-    const { Option } = AntdSelect;
 
     const sortSelectedFirst = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
@@ -186,7 +187,7 @@ const Select = forwardRef(
       let groupedOptions: SelectOptionsType;
       if (selectOptions.some(opt => opt.options)) {
         groupedOptions = selectOptions.reduce(
-          (acc, group) => [...acc, ...group.options],
+          (acc, group) => [...acc, ...(group.options as SelectOptionsType)],
           [] as SelectOptionsType,
         );
       }
@@ -265,7 +266,7 @@ const Select = forwardRef(
             return [
               SELECT_ALL_VALUE,
               ...selectAllEligible.map(opt => opt.value),
-            ] as AntdLabeledValue[];
+            ] as unknown as AntdLabeledValue[];
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
@@ -602,6 +603,28 @@ const Select = forwardRef(
       fireOnChange();
     };
 
+    const getOptions = useMemo(() => {
+      let opts = shouldRenderChildrenOptions ? fullSelectOptions : [];
+      if (selectAllEnabled) {
+        opts = [
+          {
+            label: selectAllLabel(),
+            className: 'select-all',
+            value: SELECT_ALL_VALUE,
+          },
+          ...fullSelectOptions.sort(sortComparatorWithSearch),
+        ];
+      }
+
+      return opts;
+    }, [
+      fullSelectOptions,
+      selectAllEnabled,
+      selectAllLabel,
+      sortComparatorWithSearch,
+      shouldRenderChildrenOptions,
+    ]);
+
     return (
       <StyledContainer headerPosition={headerPosition}>
         {header && (
@@ -614,7 +637,6 @@ const Select = forwardRef(
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
-          filterSort={sortComparatorWithSearch}
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
@@ -635,7 +657,6 @@ const Select = forwardRef(
           onClear={handleClear}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
-          showArrow
           tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(
@@ -650,26 +671,13 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
+          options={getOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           css={props.css}
           {...props}
           ref={ref}
-        >
-          {selectAllEnabled && (
-            <Option
-              id="select-all"
-              className="select-all"
-              key={SELECT_ALL_VALUE}
-              value={SELECT_ALL_VALUE}
-            >
-              {selectAllLabel()}
-            </Option>
-          )}
-          {shouldRenderChildrenOptions &&
-            renderSelectOptions(fullSelectOptions)}
-        </StyledSelect>
+        />
       </StyledContainer>
     );
   },

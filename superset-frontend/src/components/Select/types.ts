@@ -20,15 +20,16 @@ import {
   JSXElementConstructor,
   ReactElement,
   ReactNode,
+  Ref,
   RefObject,
 } from 'react';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
-import { TagProps } from 'antd/lib/tag';
-import { Interpolation, Theme } from '@emotion/react';
+  RefSelectProps,
+} from 'antd-v5/lib/select';
+import { TagProps } from 'antd-v5/lib/tag';
 
 export type RawValue = string | number;
 
@@ -153,7 +154,7 @@ export interface BaseSelectProps extends AntdExposedProps {
 
   suffixIcon?: ReactNode;
 
-  ref: RefObject<HTMLInputElement>;
+  ref: Ref<RefSelectProps>;
 }
 
 export interface SelectProps extends BaseSelectProps {
@@ -170,7 +171,9 @@ export interface SelectProps extends BaseSelectProps {
   options: SelectOptionsType;
 }
 
-export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
+export type AsyncSelectRef = RefObject<RefSelectProps> & {
+  clearCache: () => void;
+};
 
 export type SelectOptionsTypePage = {
   data: SelectOptionsType;

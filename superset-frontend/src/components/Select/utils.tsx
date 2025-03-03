@@ -17,13 +17,11 @@
  * under the License.
  */
 import { ensureIsArray, t } from '@superset-ui/core';
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
 import { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';
 import { LabeledValue, RawValue, SelectOptionsType, V } from './types';
-
-const { Option } = AntdSelect;
 
 export const SELECT_ALL_VALUE: RawValue = 'Select All';
 export const selectAllOption = {
@@ -104,7 +102,8 @@ export const sortSelectedFirstHelper = (
     | RawValue[]
     | AntdLabeledValue
     | AntdLabeledValue[]
-    | undefined,
+    | undefined
+    | null,
 ) =>
   selectValue && a.value !== undefined && b.value !== undefined
     ? Number(hasOption(b.value, selectValue)) -
@@ -206,21 +205,6 @@ export const handleFilterOptionHelper = (
 
 export const hasCustomLabels = (options: SelectOptionsType) =>
   options?.some(opt => !!opt?.customLabel);
-
-export const renderSelectOptions = (
-  options: SelectOptionsType,
-): JSX.Element[] =>
-  options.map(opt => {
-    const isOptObject = typeof opt === 'object';
-    const label = isOptObject ? opt?.label || opt.value : opt;
-    const value = isOptObject ? opt.value : opt;
-    const { customLabel, ...optProps } = opt;
-    return (
-      <Option {...optProps} key={value} label={label} value={value}>
-        {isOptObject && customLabel ? customLabel : label}
-      </Option>
-    );
-  });
 
 export const mapValues = (
   values: SelectOptionsType,
