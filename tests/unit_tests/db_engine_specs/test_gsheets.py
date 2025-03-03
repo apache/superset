@@ -42,16 +42,38 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple() -> None:
+def test_validate_parameters_simple(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
 
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
-            "catalog": {},
+            "catalog": {"test": "https://docs.google.com/spreadsheets/d/1/edit"},
+        },
+        "catalog": {},
+    }
+    assert GSheetsEngineSpec.validate_parameters(properties)
+
+
+def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
         },
         "catalog": {},
     }
@@ -66,18 +88,21 @@ def test_validate_parameters_simple() -> None:
     ]
 
 
-def test_validate_parameters_simple_with_in_root_catalog() -> None:
+def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
 
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
             "catalog": {},
         },
-        "catalog": {},
+        "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [

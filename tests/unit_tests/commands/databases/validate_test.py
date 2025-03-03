@@ -71,6 +71,7 @@ def test_command_invalid(mocker: MockerFixture) -> None:
     properties = {
         "engine": "gsheets",
         "driver": "gsheets",
+        "catalog": {"": "https://example.org/"},
     }
     command = ValidateDatabaseParametersCommand(properties)
     with pytest.raises(InvalidParametersError) as excinfo:
