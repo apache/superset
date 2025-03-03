@@ -47,7 +47,7 @@
     "eslint-plugin-prettier": "^4.0.0",
     "eslint-plugin-react": "^7.0.0",
     "prettier": "^2.0.0",
-    "typescript": "~5.1.6",
+    "typescript": "~5.8.2",
     "webpack": "^5.97.1"
   },
   "browserslist": {
