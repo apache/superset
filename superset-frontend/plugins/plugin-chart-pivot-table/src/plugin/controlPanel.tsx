@@ -442,7 +442,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
             },
           },
