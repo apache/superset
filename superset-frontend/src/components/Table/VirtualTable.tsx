@@ -50,6 +50,31 @@ const StyledCell = styled('div')<{ height?: number }>(
 `,
 );
 
+const StyledTable = styled(AntTable)(
+  ({ theme }) => `
+    th.ant-table-cell {
+      font-weight: ${theme.typography.weights.bold};
+      color: ${theme.colors.grayscale.dark1};
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ant-pagination-item-active {
+      border-color: ${theme.colors.primary.base};
+      }
+    }
+    .ant-table.ant-table-small {
+      font-size: ${theme.typography.sizes.s}px;
+    }
+
+    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+      width: ${theme.gridUnit * 12}px;
+      height: unset;
+    }
+`,
+) as unknown as typeof AntTable;
+
 const SMALL = 39;
 const MIDDLE = 47;
 
@@ -239,15 +264,16 @@ const VirtualTable = <RecordType extends object>(
 
   return (
     <div ref={ref}>
-      <AntTable
+      <StyledTable
         {...props}
         sticky={false}
         className="virtual-table"
-        columns={mergedColumns}
         components={{
           body: renderVirtualList,
         }}
         pagination={pagination ? modifiedPagination : false}
+        scroll={scroll}
+        columns={mergedColumns}
       />
     </div>
   );
