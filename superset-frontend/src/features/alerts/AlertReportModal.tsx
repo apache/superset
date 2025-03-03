@@ -1923,16 +1923,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                           >
                             <div className="control-label" style={{ flex: 1 }}>
                               <span>{t('Select Dashboard Filter')}</span>
-                              <InfoTooltip
+                              <StyledTooltip
                                 tooltip={t(
                                   'Choose from existing dashboard filters and select a value to refine your report results.'
                                 )}
-                                iconStyle={{ justifyContent: 'center' }}
                               />
                             </div>
                             <Select
                               disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
+                              placeholder={t('Select Filter')}
                               value={nativeFilterData[key]?.nativeFilterId}
                               options={nativeFilterOptions}
                               onChange={value =>
@@ -1952,6 +1952,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             <div className="control-label">{t('Value')}</div>
                             <Select
                               ariaLabel={t('Value')}
+                              placeholder={t('Select Value')}
                               value={nativeFilterData[key]?.filterValues}
                               options={
                                 nativeFilterData[key]?.optionFilterValues
