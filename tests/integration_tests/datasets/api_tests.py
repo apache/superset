@@ -255,7 +255,7 @@ class TestDatasetApi(SupersetTestCase):
             "table_name",
             "uuid",
         ]
-        assert sorted(list(response["result"][0].keys())) == expected_columns  # noqa: C414
+        assert sorted(response["result"][0]) == expected_columns
 
     def test_get_dataset_list_gamma(self):
         """
@@ -1559,6 +1559,92 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         assert data == {"message": "Dataset could not be updated."}
+
+        db.session.delete(dataset)
+        db.session.commit()
+
+    @with_feature_flags(DATASET_FOLDERS=True)
+    def test_update_dataset_add_folders(self):
+        """
+        Dataset API: Test adding folders to dataset
+        """
+        self.login(username="admin")
+
+        dataset = self.insert_default_dataset()
+        dataset_data = {
+            "folders": [
+                {
+                    "type": "folder",
+                    "uuid": "b49ac3dd-c79b-42a4-9082-39ee74f3b369",
+                    "name": "My metrics",
+                    "children": [
+                        {
+                            "type": "metric",
+                            "uuid": dataset.metrics[0].uuid,
+                            "name": dataset.metrics[0].metric_name,
+                        },
+                    ],
+                },
+                {
+                    "type": "folder",
+                    "uuid": "f5db85fa-75d6-45e5-bdce-c6194db80642",
+                    "name": "My columns",
+                    "children": [
+                        {
+                            "type": "folder",
+                            "uuid": "b5330233-e323-4157-b767-98b16f00ca93",
+                            "name": "Dimensions",
+                            "children": [
+                                {
+                                    "type": "column",
+                                    "uuid": dataset.columns[1].uuid,
+                                    "name": dataset.columns[1].column_name,
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ]
+        }
+
+        uri = f"api/v1/dataset/{dataset.id}"
+        rv = self.put_assert_metric(uri, dataset_data, "put")
+        assert rv.status_code == 200
+
+        model = db.session.query(SqlaTable).get(dataset.id)
+        assert model.folders == [
+            {
+                "uuid": "b49ac3dd-c79b-42a4-9082-39ee74f3b369",
+                "type": "folder",
+                "name": "My metrics",
+                "children": [
+                    {
+                        "uuid": str(dataset.metrics[0].uuid),
+                        "type": "metric",
+                        "name": "count",
+                    }
+                ],
+            },
+            {
+                "uuid": "f5db85fa-75d6-45e5-bdce-c6194db80642",
+                "type": "folder",
+                "name": "My columns",
+                "children": [
+                    {
+                        "uuid": "b5330233-e323-4157-b767-98b16f00ca93",
+                        "type": "folder",
+                        "name": "Dimensions",
+                        "children": [
+                            {
+                                "uuid": str(dataset.columns[1].uuid),
+                                "type": "column",
+                                "name": "name",
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
 
         db.session.delete(dataset)
         db.session.commit()
