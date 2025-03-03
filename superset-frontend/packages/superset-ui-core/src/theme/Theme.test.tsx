@@ -16,10 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from '@testing-library/react';
 import { theme as antdThemeImport } from 'antd-v5';
 import { Theme } from './Theme';
-import { serializeThemeConfig } from './utils';
 import { AnyThemeConfig } from './types';
 
 // Mock emotion's cache to avoid actual DOM operations
@@ -27,19 +25,6 @@ jest.mock('@emotion/cache', () => ({
   __esModule: true,
   default: jest.fn().mockReturnValue({}),
 }));
-
-// Helper to test theme rendering
-const TestComponent = ({ theme }: { theme: Theme }) => {
-  if (!theme?.SupersetThemeProvider) {
-    throw new Error('SupersetThemeProvider is not initialized');
-  }
-
-  return (
-    <theme.SupersetThemeProvider>
-      <div data-testid="themed-component">Themed Component</div>
-    </theme.SupersetThemeProvider>
-  );
-};
 
 describe('Theme', () => {
   beforeEach(() => {
@@ -51,7 +36,7 @@ describe('Theme', () => {
       const theme = Theme.fromConfig();
 
       // Verify default primary color is set
-      expect(theme.theme.colorPrimary.toLowerCase()).toBe('#20a7c9');
+      expect(theme.theme.colorPrimary).toBe('#20a7c9');
 
       // Verify default font family is set
       expect(theme.theme.fontFamily).toContain('Inter');
@@ -63,7 +48,7 @@ describe('Theme', () => {
     it('creates a theme with custom tokens when provided', () => {
       const customConfig: AnyThemeConfig = {
         token: {
-          colorPrimary: '#FF0000',
+          colorPrimary: '#ff0000',
           fontFamily: 'CustomFont, sans-serif',
         },
       };
@@ -71,13 +56,13 @@ describe('Theme', () => {
       const theme = Theme.fromConfig(customConfig);
 
       // Verify custom primary color is set
-      expect(theme.theme.colorPrimary.toLowerCase()).toBe('#ff0000');
+      expect(theme.theme.colorPrimary).toBe('#ff0000');
 
       // Verify custom font family is set
       expect(theme.theme.fontFamily).toBe('CustomFont, sans-serif');
 
       // But default tokens should still be preserved for unspecified values
-      expect(theme.theme.colorError.toLowerCase()).toBe('#e04355');
+      expect(theme.theme.colorError).toBe('#e04355');
     });
 
     it('creates a theme with dark mode when dark algorithm is specified', () => {
@@ -87,8 +72,8 @@ describe('Theme', () => {
 
       const theme = Theme.fromConfig(darkConfig);
 
-      // Verify the algorithm is set to dark
-      const serialized = serializeThemeConfig(theme.antdConfig);
+      // Verify dark mode by using the serialized config from the public method
+      const serialized = theme.toSerializedConfig();
       expect(serialized.algorithm).toBe('dark');
     });
   });
@@ -101,15 +86,13 @@ describe('Theme', () => {
       // Update with new config
       theme.setConfig({
         token: {
-          colorPrimary: '#0000FF',
+          colorPrimary: '#0000ff',
         },
       });
 
       // Verify the theme was updated
-      expect(theme.theme.colorPrimary.toLowerCase()).toBe('#0000ff');
-      expect(theme.theme.colorPrimary.toLowerCase()).not.toBe(
-        initialPrimaryColor.toLowerCase(),
-      );
+      expect(theme.theme.colorPrimary).toBe('#0000ff');
+      expect(theme.theme.colorPrimary).not.toBe(initialPrimaryColor);
     });
 
     it('preserves default tokens when updating with partial config', () => {
@@ -119,14 +102,12 @@ describe('Theme', () => {
       // Update with new config that doesn't specify error color
       theme.setConfig({
         token: {
-          colorPrimary: '#0000FF',
+          colorPrimary: '#0000ff',
         },
       });
 
       // Verify the error color is preserved
-      expect(theme.theme.colorError.toLowerCase()).toBe(
-        initialErrorColor.toLowerCase(),
-      );
+      expect(theme.theme.colorError).toBe(initialErrorColor);
     });
 
     it('correctly applies algorithm changes', () => {
@@ -138,7 +119,88 @@ describe('Theme', () => {
       });
 
       // Verify the algorithm was updated
-      const serialized = serializeThemeConfig(theme.antdConfig);
+      const serialized = theme.toSerializedConfig();
+      expect(serialized.algorithm).toBe('dark');
+    });
+  });
+
+  describe('toggleDarkMode', () => {
+    it('switches to dark algorithm when toggling dark mode on', () => {
+      const theme = Theme.fromConfig();
+
+      // Toggle dark mode on
+      theme.toggleDarkMode(true);
+
+      // Verify dark algorithm is used
+      const serialized = theme.toSerializedConfig();
+      expect(serialized.algorithm).toBe('dark');
+    });
+
+    it('switches to default algorithm when toggling dark mode off', () => {
+      // Start with dark theme
+      const theme = Theme.fromConfig({
+        algorithm: antdThemeImport.darkAlgorithm,
+      });
+
+      // Toggle dark mode off
+      theme.toggleDarkMode(false);
+
+      // Verify default algorithm is used
+      const serialized = theme.toSerializedConfig();
+      expect(serialized.algorithm).toBe('default');
+    });
+
+    it('preserves other algorithms when toggling dark mode', () => {
+      // Start with compact and dark algorithms
+      const theme = Theme.fromConfig({
+        algorithm: [
+          antdThemeImport.compactAlgorithm,
+          antdThemeImport.darkAlgorithm,
+        ],
+      });
+
+      // Toggle dark mode off
+      theme.toggleDarkMode(false);
+
+      // Verify default algorithm replaces dark but compact is preserved
+      const serialized = theme.toSerializedConfig();
+      expect(Array.isArray(serialized.algorithm)).toBe(true);
+      expect(serialized.algorithm).toContain('default');
+      expect(serialized.algorithm).toContain('compact');
+      expect(serialized.algorithm).not.toContain('dark');
+    });
+  });
+
+  describe('getFontSize', () => {
+    it('returns correct font size for given key', () => {
+      const theme = Theme.fromConfig();
+
+      // Test different font size keys
+      expect(theme.getFontSize('xs')).toBe('8');
+      expect(theme.getFontSize('m')).toBeTruthy();
+      expect(theme.getFontSize('xxl')).toBe('28');
+    });
+
+    it('defaults to medium font size when no key is provided', () => {
+      const theme = Theme.fromConfig();
+      const mediumSize = theme.getFontSize('m');
+
+      expect(theme.getFontSize()).toBe(mediumSize);
+    });
+  });
+
+  describe('toSerializedConfig', () => {
+    it('serializes theme config correctly', () => {
+      const theme = Theme.fromConfig({
+        token: {
+          colorPrimary: '#ff0000',
+        },
+        algorithm: antdThemeImport.darkAlgorithm,
+      });
+
+      const serialized = theme.toSerializedConfig();
+
+      expect(serialized.token?.colorPrimary).toBe('#ff0000');
       expect(serialized.algorithm).toBe('dark');
     });
   });

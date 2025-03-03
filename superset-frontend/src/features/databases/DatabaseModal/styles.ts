@@ -459,7 +459,7 @@ export const CredentialInfoForm = styled.div`
     .credentials-uploaded {
       display: flex;
       align-items: center;
-      gap: ${({ theme }) => theme.gridUnit * 3}px;
+      gap: ${({ theme }) => theme.sizeUnit * 3}px;
       width: fit-content;
     }
 
