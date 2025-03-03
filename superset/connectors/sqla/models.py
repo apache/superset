@@ -25,7 +25,8 @@ from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Optional, TypedDict, Union
+from uuid import UUID, uuid4
 
 import dateutil.parser
 import numpy as np
@@ -69,6 +70,7 @@ from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
+from sqlalchemy_utils import UUIDType
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -170,7 +172,9 @@ class DatasourceKind(StrEnum):
     PHYSICAL = "physical"
 
 
-class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=too-many-public-methods
+class BaseDatasource(
+    AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
     """A common interface to objects that are queryable
     (tables and datasources)"""
 
@@ -400,6 +404,15 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # one to many
             "columns": [o.data for o in self.columns],
             "metrics": [o.data for o in self.metrics],
+            "folders": [
+                {
+                    "uuid": folder.id,
+                    "name": folder.name,
+                    "description": folder.description,
+                    "contents": folder.get_contents(),
+                }
+                for folder in self.folders
+            ],
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
             "owners": [owner.id for owner in self.owners],
@@ -838,6 +851,17 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     python_date_format = Column(String(255))
     extra = Column(Text)
 
+    folder_id: Mapped[UUID | None] = Column(
+        UUIDType(binary=True),
+        ForeignKey("folders.id"),
+        nullable=True,
+    )
+    folder_position: Mapped[int | None] = Column(Integer, nullable=True)
+    folder: Mapped[Folder | None] = relationship(
+        "Folder",
+        back_populates="columns",
+    )
+
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="columns",
@@ -1018,6 +1042,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "filterable",
             "groupby",
             "id",
+            "uuid",
             "is_certified",
             "is_dttm",
             "python_date_format",
@@ -1048,6 +1073,17 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     expression = Column(utils.MediumText(), nullable=False)
     extra = Column(Text)
 
+    folder_id: Mapped[UUID | None] = Column(
+        UUIDType(binary=True),
+        ForeignKey("folders.id"),
+        nullable=True,
+    )
+    folder_position: Mapped[int | None] = Column(Integer, nullable=True)
+    folder: Mapped[Folder | None] = relationship(
+        "Folder",
+        back_populates="metrics",
+    )
+
     table: Mapped[SqlaTable] = relationship(
         "SqlaTable",
         back_populates="metrics",
@@ -1065,7 +1101,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(s for s in export_fields if s != "table_id")  # noqa: C400
+    update_from_object_fields = [s for s in export_fields if s != "table_id"]
     export_parent = "table"
 
     def __repr__(self) -> str:
@@ -1117,6 +1153,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
             "description",
             "expression",
             "id",
+            "uuid",
             "is_certified",
             "metric_name",
             "warning_markdown",
@@ -1134,6 +1171,65 @@ sqlatable_user = DBTable(
     Column("user_id", Integer, ForeignKey("ab_user.id", ondelete="CASCADE")),
     Column("table_id", Integer, ForeignKey("tables.id", ondelete="CASCADE")),
 )
+
+
+class FolderContentType(TypedDict):
+    uuid: UUID
+    type: str
+    name: str
+
+
+class Folder(Model):
+    __tablename__ = "folders"
+
+    id: Mapped[UUID] = Column(UUIDType(binary=True), primary_key=True, default=uuid4)
+    name: Mapped[str] = Column(String(255), nullable=False)
+    description: Mapped[str] = Column(String(1000))
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
+    position: Mapped[int | None] = Column(Integer, nullable=True)
+
+    table: Mapped["SqlaTable"] = relationship("SqlaTable", back_populates="folders")
+    metrics: Mapped[list["SqlMetric"]] = relationship(
+        "SqlMetric",
+        back_populates="folder",
+        order_by="SqlMetric.folder_position",
+    )
+    columns: Mapped[list["TableColumn"]] = relationship(
+        "TableColumn",
+        back_populates="folder",
+        order_by="TableColumn.folder_position",
+    )
+
+    def get_contents(self) -> list[FolderContentType]:
+        contents = []
+
+        for metric in self.metrics:
+            contents.append(
+                {
+                    "uuid": metric.uuid,
+                    "type": "metric",
+                    "name": metric.metric_name,
+                    "position": metric.folder_position,
+                }
+            )
+
+        for column_ in self.columns:
+            contents.append(
+                {
+                    "uuid": column_.uuid,
+                    "type": "column",
+                    "name": column_.column_name,
+                    "position": column_.folder_position,
+                }
+            )
+
+        contents.sort(key=lambda o: o["position"])
+        contents = [
+            {k: v for k, v in content.items() if k != "position"}
+            for content in contents
+        ]
+
+        return contents
 
 
 class SqlaTable(
@@ -1161,6 +1257,14 @@ class SqlaTable(
     metric_class = SqlMetric
     column_class = TableColumn
     owner_class = security_manager.user_model
+
+    folders: Mapped[list[Folder]] = relationship(
+        Folder,
+        back_populates="table",
+        order_by="Folder.position",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
     __tablename__ = "tables"
 
@@ -1945,7 +2049,9 @@ class SqlaTable(
     def default_query(qry: Query) -> Query:
         return qry.filter_by(is_sqllab_view=False)
 
-    def has_extra_cache_key_calls(self, query_obj: QueryObjectDict) -> bool:  # noqa: C901
+    def has_extra_cache_key_calls(
+        self, query_obj: QueryObjectDict
+    ) -> bool:  # noqa: C901
         """
         Detects the presence of calls to `ExtraCache` methods in items in query_obj that
         can be templated. If any are present, the query must be evaluated to extract

@@ -88,6 +88,26 @@ class DatasetMetricsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class FolderContentSchema(Schema):
+    """
+    Schema for creating/updating dataset folders.
+
+    Only the UUID is required; other fields are here just to match the schema of the
+    response payload.
+    """
+
+    type = fields.String(required=False)
+    name = fields.String(required=False)
+    uuid = fields.UUID()
+
+
+class FolderSchema(Schema):
+    uuid = fields.UUID()
+    name = fields.String(required=True, validate=Length(1, 250))
+    description = fields.String(allow_none=True, validate=Length(0, 1000))
+    contents = fields.List(fields.Nested(FolderContentSchema))
+
+
 class DatasetPostSchema(Schema):
     database = fields.Integer(required=True)
     catalog = fields.String(allow_none=True, validate=Length(0, 250))
@@ -99,6 +119,7 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    folders = fields.List(fields.Nested(FolderContentSchema))
 
 
 class DatasetPutSchema(Schema):
@@ -121,6 +142,7 @@ class DatasetPutSchema(Schema):
     owners = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
+    folders = fields.List(fields.Nested(FolderContentSchema))
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True)
