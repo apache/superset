@@ -1918,7 +1918,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               flexDirection: 'column',
                               maxWidth: '174px',
                               flex: 1,
-                              marginRight: '12px',
+                              marginRight: '16px',
                             }}
                           >
                             <div className="control-label" style={{ flex: 1 }}>
