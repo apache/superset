@@ -1,22 +1,8 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { sharedControlComponents } from '@superset-ui/chart-controls';
+import ConditionalFormattingControlDodo from 'src/DodoExtensions/explore/components/controls/ConditionalFormattingControlDodo'; // DODO added 45525377
+import ConditionalFormattingControlNoGradient from 'src/DodoExtensions/explore/components/controls/ConditionalFormattingControlNoGradient'; // DODO added 45525377
+import ConditionalFormattingMessageControl from 'src/DodoExtensions/explore/components/controls/ConditionalFormattingMessageControl'; // DODO added 45525377
 import AnnotationLayerControl from './AnnotationLayerControl';
 import BoundsControl from './BoundsControl';
 import CheckboxControl from './CheckboxControl';
@@ -85,5 +71,8 @@ const controlMap = {
   ComparisonRangeLabel,
   TimeOffsetControl,
   ...sharedControlComponents,
+  ConditionalFormattingControlDodo, // DODO added 45525377
+  ConditionalFormattingControlNoGradient, // DODO added 45525377
+  ConditionalFormattingMessageControl, // DODO added 45525377
 };
 export default controlMap;

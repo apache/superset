@@ -33,6 +33,15 @@ export enum MetricsLayoutEnum {
   COLUMNS = 'COLUMNS',
 }
 
+// DODO added start 45525377
+interface ColumnConfigProps {
+  aggregate: string;
+  hideValueInTotal: boolean;
+  pinColumn: boolean;
+}
+export type ColumnConfig = Record<string, Partial<ColumnConfigProps>>;
+// DODO added stop 45525377
+
 interface PivotTableCustomizePropsDodoExtended {
   datasourceDescriptions: Record<string, string>; // DODO added 44728892
 }
@@ -80,7 +89,12 @@ export type PivotTableQueryFormData = QueryFormData &
   PivotTableStylesProps &
   PivotTableCustomizeProps;
 
+// DODO added 45525377
+type PivotTablePropsDodoExtended = {
+  columnConfig: ColumnConfig;
+  pinnedColumns: number[];
+};
 export type PivotTableProps = PivotTableStylesProps &
   PivotTableCustomizeProps & {
     data: DataRecord[];
-  };
+  } & PivotTablePropsDodoExtended;

@@ -1,22 +1,5 @@
 /* eslint-disable camelcase */
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   ChartDataResponseResult,
   ensureIsArray,
@@ -47,7 +30,7 @@ import {
 } from '@superset-ui/chart-controls';
 
 import { isEmpty } from 'lodash';
-import { PAGE_SIZE_OPTIONS } from './consts';
+import { PAGE_SIZE_OPTIONS, TABLE_CONFIG_FORM_LAYOUT } from './consts'; // DODO changed 45525377
 import { ColorSchemeEnum } from './types';
 
 function getQueryMode(controls: ControlStateMapping): QueryMode {
@@ -288,7 +271,7 @@ const config: ControlPanelConfig = {
         ['adhoc_filters'],
         [
           {
-            name: 'timeseries_limit_metric',
+            name: 'series_limit_metric', // DODO changed 45525377
             override: {
               visibility: isAggMode,
               resetOnHide: false,
@@ -463,8 +446,9 @@ const config: ControlPanelConfig = {
               type: 'ColumnConfigControl',
               label: t('Customize columns'),
               description: t('Further customize how to display each column'),
+              configFormLayout: TABLE_CONFIG_FORM_LAYOUT, // DODO added 45525377
               width: 400,
-              height: 320,
+              height: 347, // DODO changed 45525377
               renderTrigger: true,
               shouldMapStateToProps() {
                 return true;

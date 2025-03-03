@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   CategoricalColorNamespace,
   getColumnLabel,
@@ -74,6 +57,7 @@ function getTotalValuePadding({
   donut,
   width,
   height,
+  valueToShow, // DODO added 45525377
 }: {
   chartPadding: {
     bottom: number;
@@ -84,6 +68,7 @@ function getTotalValuePadding({
   donut: boolean;
   width: number;
   height: number;
+  valueToShow: string; // DODO added 45525377
 }) {
   const padding: {
     left?: string;
@@ -93,7 +78,8 @@ function getTotalValuePadding({
     left: 'center',
   };
   const LEGEND_HEIGHT = 15;
-  const LEGEND_WIDTH = 215;
+  // const LEGEND_WIDTH = 215;
+  const LEGEND_WIDTH = valueToShow.length * 7.47; // DODO changed 45525377
   if (chartPadding.top) {
     padding.top = donut
       ? `${50 + ((chartPadding.top - LEGEND_HEIGHT) / height / 2) * 100}%`
@@ -358,6 +344,8 @@ export default function transformProps(
     },
   ];
 
+  const totalText = t('Total: %s', numberFormatter(totalValue)); // DODO added 45525377
+
   const echartOptions: EChartsCoreOption = {
     grid: {
       ...defaultGrid,
@@ -385,9 +373,16 @@ export default function transformProps(
     graphic: showTotal
       ? {
           type: 'text',
-          ...getTotalValuePadding({ chartPadding, donut, width, height }),
+          ...getTotalValuePadding({
+            chartPadding,
+            donut,
+            width,
+            height,
+            valueToShow: totalText, // DODO added 45525377
+          }),
           style: {
-            text: t('Total: %s', numberFormatter(totalValue)),
+            // text: t('Total: %s', numberFormatter(totalValue)),
+            text: totalText, // DODO changed 45525377
             fontSize: 16,
             fontWeight: 'bold',
           },

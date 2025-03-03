@@ -1,28 +1,13 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import { t } from '@superset-ui/core';
+// DODO was here
+import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   formatSelectOptions,
   sections,
   ControlPanelsContainerProps,
   sharedControls,
+  D3_TIME_FORMAT_OPTIONS, // DODO added 45525377
+  D3_FORMAT_DOCS, // DODO added 45525377
 } from '@superset-ui/chart-controls';
 
 import { DEFAULT_FORM_DATA } from './constants';
@@ -147,6 +132,36 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        // DODO added start 45525377
+        [
+          {
+            name: 'x_force_timestamp_formatting',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Force date format'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Use date formatting even when metric value is not a timestamp',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'x_time_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date format'),
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+              default: SMART_DATE_ID,
+            },
+          },
+        ],
+        // DODO added stop 45525377
         [
           {
             name: 'xAxisFormat',
@@ -219,6 +234,36 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        // DODO added start 45525377
+        [
+          {
+            name: 'y_force_timestamp_formatting',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Force date format'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Use date formatting even when metric value is not a timestamp',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'y_time_format',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('Date format'),
+              renderTrigger: true,
+              choices: D3_TIME_FORMAT_OPTIONS,
+              description: D3_FORMAT_DOCS,
+              default: SMART_DATE_ID,
+            },
+          },
+        ],
+        // DODO added stop 45525377
         ['y_axis_format'],
         [
           {

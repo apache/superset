@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { PureComponent, MouseEvent } from 'react';
 import {
   t,
@@ -30,6 +13,11 @@ import {
 import Echart from '../components/Echart';
 import { BigNumberVizProps } from './types';
 import { EventHandlers } from '../types';
+import {
+  bigNumberVizGetColorDodo, // DODO added 45525377
+  bigNumberVizGetConditionalMessageInfo, // DODO added 45525377
+} from '../DodoExtensions/BigNumber/BigNumberViz';
+import { AlignmentValue } from '../DodoExtensions/BigNumber/types';
 
 const defaultNumberFormatter = getNumberFormatter();
 
@@ -199,6 +187,13 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     if (bigNumber === null) {
       text = bigNumberFallback ? NO_DATA : NO_DATA_OR_HASNT_LANDED;
     }
+
+    // DODO added 45525377
+    const { numberColor, colorPercentChange } = bigNumberVizGetColorDodo(
+      this.props,
+      bigNumber,
+    );
+
     if (text) {
       const container = this.createTemporaryContainer();
       document.body.append(container);
@@ -217,6 +212,45 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
           style={{
             fontSize,
             height: maxHeight,
+            color: colorPercentChange ?? numberColor, // DODO added 45525377
+          }}
+        >
+          {text}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  // DODO added 45525377
+  renderMessage(maxHeight: number) {
+    const { bigNumber, width } = this.props;
+    let fontSize = 0;
+
+    const { colorConditionalMessage, conditionalMessage } =
+      bigNumberVizGetConditionalMessageInfo(this.props, bigNumber);
+
+    const text = conditionalMessage;
+
+    if (text && colorConditionalMessage) {
+      const container = this.createTemporaryContainer();
+      document.body.append(container);
+      fontSize = computeMaxFontSize({
+        text,
+        maxWidth: width,
+        maxHeight,
+        className: 'subheader-line',
+        container,
+      });
+      container.remove();
+
+      return (
+        <div
+          className="subheader-line"
+          style={{
+            fontSize,
+            height: maxHeight,
+            color: colorConditionalMessage,
           }}
         >
           {text}
@@ -279,6 +313,8 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
       kickerFontSize,
       headerFontSize,
       subheaderFontSize,
+      conditionalMessageFontSize = 0.125, // DODO added 45525377
+      alignment = AlignmentValue.LEFT, // DODO added 45525377
     } = this.props;
     const className = this.getClassName();
 
@@ -288,7 +324,10 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
 
       return (
         <div className={className}>
-          <div className="text-container" style={{ height: allTextHeight }}>
+          <div
+            className="text-container"
+            style={{ height: allTextHeight, alignItems: alignment }} // DODO changed 45525377
+          >
             {this.renderFallbackWarning()}
             {this.renderKicker(
               Math.ceil(
@@ -310,11 +349,14 @@ class BigNumberVis extends PureComponent<BigNumberVizProps> {
     }
 
     return (
-      <div className={className} style={{ height }}>
+      // DODO changed 45525377
+      <div className={className} style={{ height, alignItems: alignment }}>
         {this.renderFallbackWarning()}
         {this.renderKicker((kickerFontSize || 0) * height)}
         {this.renderHeader(Math.ceil(headerFontSize * height))}
         {this.renderSubheader(Math.ceil(subheaderFontSize * height))}
+        {/* DODO added 45525377 */}
+        {this.renderMessage(Math.ceil(conditionalMessageFontSize * height))}
       </div>
     );
   }

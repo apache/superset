@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export { default as EchartsBarChartPluginDodo } from './DodoExtensions/BarDodo';
 export { default as EchartsBoxPlotChartPlugin } from './BoxPlot';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsAreaChartPlugin } from './Timeseries/Area';

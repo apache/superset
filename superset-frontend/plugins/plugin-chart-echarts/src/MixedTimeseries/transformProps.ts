@@ -82,6 +82,7 @@ import {
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
+import { LabelPositionDodo } from '../DodoExtensions/types'; // DODO added 45525377
 import { extendDatasourceDescriptions } from '../DodoExtensions/utils/extendDatasourceDescriptions'; // DODO added 44728892
 import InfoIcon from '../DodoExtensions/common/InfoIcon'; // DODO added 44728892
 
@@ -195,6 +196,8 @@ export default function transformProps(
     percentageThreshold,
     metrics = [],
     metricsB = [],
+    valueAlign = LabelPositionDodo.Top, // DODO added 45525377
+    valueAlignB = LabelPositionDodo.Top, // DODO added 45525377
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
@@ -398,6 +401,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesA,
         totalStackedValues,
         thresholdValues,
+        valueAlign, // DODO added 45525377
       },
     );
     if (transformedSeries) series.push(transformedSeries);
@@ -447,6 +451,7 @@ export default function transformProps(
         showValueIndexes: showValueIndexesB,
         totalStackedValues: totalStackedValuesB,
         thresholdValues: thresholdValuesB,
+        valueAlign: valueAlignB, // DODO added 45525377
       },
     );
     if (transformedSeries) series.push(transformedSeries);

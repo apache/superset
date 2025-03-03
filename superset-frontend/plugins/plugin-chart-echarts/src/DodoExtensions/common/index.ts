@@ -1,3 +1,4 @@
 // DODO was here
-// DODO created 44728892
+// DODO created 45525377
+export * from './StyledFlag';
 export * from './InfoIcon';

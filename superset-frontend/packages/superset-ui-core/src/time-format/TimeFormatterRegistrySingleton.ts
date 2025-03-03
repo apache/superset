@@ -1,29 +1,14 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { makeSingleton } from '../utils';
 import TimeFormatterRegistry from './TimeFormatterRegistry';
 import TimeFormatter from './TimeFormatter';
-import TimeFormatsForGranularity from './TimeFormatsForGranularity';
+// import TimeFormatsForGranularity from './TimeFormatsForGranularity'; // DODO commented out 45525377
 import { LOCAL_PREFIX } from './TimeFormats';
 import { TimeGranularity } from './types';
 import createTimeRangeFromGranularity from './utils/createTimeRangeFromGranularity';
 import TimeRangeFormatter from './TimeRangeFormatter';
+import { SMART_DATE_DOT_DDMMYYYY_ID } from './formatters/smartDate'; // DODO added 45525377
+import { getTimeFormatsForGranularity } from './utils/getTimeFormatsForGranularity'; // DODO added 45525377
 
 const getInstance = makeSingleton(TimeFormatterRegistry);
 
@@ -53,7 +38,13 @@ export function getTimeFormatter(
   granularity?: TimeGranularity,
 ) {
   if (granularity) {
-    const formatString = formatId || TimeFormatsForGranularity[granularity];
+    // DODO added start 45525377
+    const isDateReversed = formatId === SMART_DATE_DOT_DDMMYYYY_ID;
+    const TimeFormatsForGranularity =
+      getTimeFormatsForGranularity(isDateReversed);
+    // DODO added stop 45525377
+    // const formatString = formatId || TimeFormatsForGranularity[granularity];
+    const formatString = TimeFormatsForGranularity[granularity] || formatId; // DODO changed 45525377
     const timeRangeFormatter = getTimeRangeFormatter(formatString);
 
     return new TimeFormatter({

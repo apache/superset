@@ -4,6 +4,11 @@ import {
   supersetTheme,
   TimeGranularity,
 } from '@superset-ui/core';
+// DODO added 45525377
+import {
+  AlignmentValue,
+  ValueToShowEnum,
+} from 'plugins/plugin-chart-echarts/src/DodoExtensions/BigNumber/types';
 import transformProps from '../../src/BigNumber/BigNumberWithTrendline/transformProps';
 import {
   BigNumberDatum,
@@ -26,6 +31,12 @@ const formData = {
   viz_type: 'big_number',
   yAxisFormat: '.3s',
   datasource: 'test_datasource',
+  // DODO added start 45525377
+  conditionalFormattingMessage: [],
+  conditionalMessageFontSize: 10,
+  alignment: AlignmentValue.LEFT,
+  valueToShow: ValueToShowEnum.AVERAGE,
+  // DODO added stop 45525377
 };
 
 const rawFormData: BigNumberWithTrendlineFormData = {
@@ -44,6 +55,12 @@ const rawFormData: BigNumberWithTrendlineFormData = {
   compare_suffix: 'over last quarter',
   viz_type: 'big_number',
   y_axis_format: '.3s',
+  // DODO added start 45525377
+  conditionalFormattingMessage: [],
+  conditionalMessageFontSize: 10,
+  alignment: AlignmentValue.LEFT,
+  valueToShow: ValueToShowEnum.AVERAGE,
+  // DODO added stop 45525377
 };
 
 function generateProps(

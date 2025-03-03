@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { SMART_DATE_ID, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
@@ -26,6 +9,12 @@ import {
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
 import { headerFontSize, subheaderFontSize } from '../sharedControls';
+// DODO added 45525377
+import {
+  Alignment,
+  ValueToShow,
+} from '../../DodoExtensions/BigNumber/sharedControls';
+import { bigNumberWithTrendlineControlPanelConditionalFormatting } from '../../DodoExtensions/BigNumber/BigNumberWithTrendline/controlPanelDodo'; // DODO added 45525377
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -44,6 +33,7 @@ const config: ControlPanelConfig = {
       tabOverride: 'data',
       expanded: true,
       controlSetRows: [
+        [ValueToShow], // DODO added 45525377
         [
           {
             name: 'compare_lag',
@@ -129,6 +119,7 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [Alignment], // DODO added 45525377
         ['color_picker', null],
         [headerFontSize],
         [subheaderFontSize],
@@ -164,6 +155,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    { ...bigNumberWithTrendlineControlPanelConditionalFormatting }, // DODO added 45525377
     {
       label: t('Advanced Analytics'),
       expanded: false,

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   DTTM_ALIAS,
@@ -27,7 +10,10 @@ import {
   LegendState,
   ensureIsArray,
 } from '@superset-ui/core';
-import type { ViewRootGroup } from 'echarts/types/src/util/types';
+import type {
+  ECBasicOption, // DODO added 45525377
+  ViewRootGroup,
+} from 'echarts/types/src/util/types';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
 import { EchartsHandler, EventHandlers } from '../types';
@@ -58,7 +44,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
 }: TimeseriesChartTransformedProps) {
-  const { stack } = formData;
+  const { showValue, stack } = formData; // DODO changed 45525377
   const echartRef = useRef<EchartsHandler | null>(null);
   // eslint-disable-next-line no-param-reassign
   refs.echartRef = echartRef;
@@ -258,17 +244,80 @@ export default function EchartsTimeseries({
     },
   };
 
+  // DODO added start 45525377
+  const getCurrentLabelState = (
+    series: Array<{ label: { show: boolean; position: string } }>,
+  ) => series.map(s => s?.label?.show)[0];
+
+  const [alteredEchartsOptions, setEchartsOptions] = useState(echartOptions);
+  const [isVisibleNow, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    setEchartsOptions(echartOptions);
+    const current = getCurrentLabelState(
+      echartOptions.series as Array<{
+        label: { show: boolean; position: string };
+      }>,
+    );
+    setIsVisible(!current);
+  }, [echartOptions]);
+
+  // DODO added
+  const showHideHandler = () => {
+    const { series } = alteredEchartsOptions as ECBasicOption & {
+      series: Array<{ label: { show: boolean; position: string } }>;
+    };
+    setIsVisible(!isVisibleNow);
+
+    const echartsOpts = {
+      ...alteredEchartsOptions,
+      series: series.map(s => ({
+        ...s,
+        label: {
+          ...s.label,
+          show: isVisibleNow,
+        },
+      })),
+    };
+    setEchartsOptions(echartsOpts);
+  };
+  // DODO added stop 45525377
+
   return (
     <>
       <div ref={extraControlRef}>
         <ExtraControls formData={formData} setControlValue={setControlValue} />
       </div>
+      {/* DODO added 45525377 */}
+      {showValue && (
+        <div
+          style={{
+            position: 'absolute',
+            marginTop: '5px',
+            zIndex: 1,
+            bottom: '0',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '10px',
+              marginTop: '5px',
+              fontStyle: 'italic',
+            }}
+            role="button"
+            tabIndex={0}
+            onClick={showHideHandler}
+          >
+            {isVisibleNow ? 'Show' : 'Hide'} values
+          </span>
+        </div>
+      )}
       <Echart
         ref={echartRef}
         refs={refs}
         height={height - extraControlHeight}
         width={width}
-        echartOptions={echartOptions}
+        echartOptions={alteredEchartsOptions} // DODO changed 45525377
         eventHandlers={eventHandlers}
         zrEventHandlers={zrEventHandlers}
         selectedValues={selectedValues}

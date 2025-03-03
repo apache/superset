@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   DTTM_ALIAS,
   GenericDataType,
@@ -78,3 +61,25 @@ export const DEFAULT_XAXIS_SORT_SERIES_DATA: SortSeriesData = {
   sort_series_type: SortSeriesType.Name,
   sort_series_ascending: true,
 };
+
+// DODO added 45525377
+export const AGGREGATE_FUNCTION_OPTIONS = [
+  ['Count', t('Count')],
+  ['Count Unique Values', t('Count Unique Values')],
+  ['List Unique Values', t('List Unique Values')],
+  ['Sum', t('Sum')],
+  ['Average', t('Average')],
+  ['Median', t('Median')],
+  ['Sample Variance', t('Sample Variance')],
+  ['Sample Standard Deviation', t('Sample Standard Deviation')],
+  ['Minimum', t('Minimum')],
+  ['Maximum', t('Maximum')],
+  ['First', t('First')],
+  ['Last', t('Last')],
+  ['Sum as Fraction of Total', t('Sum as Fraction of Total')],
+  ['Sum as Fraction of Rows', t('Sum as Fraction of Rows')],
+  ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
+  ['Count as Fraction of Total', t('Count as Fraction of Total')],
+  ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
+  ['Count as Fraction of Columns', t('Count as Fraction of Columns')],
+];

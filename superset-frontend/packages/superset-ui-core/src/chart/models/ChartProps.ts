@@ -12,6 +12,7 @@ import {
   Datasource,
   FilterState,
   JsonObject,
+  Locale, // DODO added 44728892
 } from '../..';
 import {
   HandlerFunction,
@@ -89,7 +90,7 @@ export interface ChartPropsConfig {
   /** Theme object */
   theme: SupersetTheme;
   /** User's language */
-  locale?: string; // DODO added 44728892
+  locale?: Locale; // DODO added 44728892
 }
 
 const DEFAULT_WIDTH = 800;
@@ -140,7 +141,7 @@ export default class ChartProps<FormData extends RawFormData = RawFormData> {
 
   theme: SupersetTheme;
 
-  locale: string; // DODO added 44728892
+  locale: Locale; // DODO added 44728892
 
   constructor(config: ChartPropsConfig & { formData?: FormData } = {}) {
     const {

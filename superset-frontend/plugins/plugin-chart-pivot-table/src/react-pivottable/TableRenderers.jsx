@@ -1,9 +1,13 @@
 // DODO was here
 
-import { Component } from 'react';
+import { Component, createRef } from 'react';
 import { t } from '@superset-ui/core';
+import {
+  InfoTooltipWithTrigger,
+  PinIcon,
+  Tooltip,
+} from '@superset-ui/chart-controls'; // DODO added 45525377, 44728892
 import PropTypes from 'prop-types';
-import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls'; // DODO added 44728892
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
@@ -64,17 +68,43 @@ function displayHeaderCell(
   );
 }
 
+const BORDER_WIDTH = 1; // DODO added 45525377
+
 export class TableRenderer extends Component {
   constructor(props) {
     super(props);
 
+    this.rowHeaderRefs = createRef(); // DODO added 45525377
+    this.rowHeaderRefs.current = []; // DODO added 45525377
+
     // We need state to record which entries are collapsed and which aren't.
     // This is an object with flat-keys indicating if the corresponding rows
     // should be collapsed.
-    this.state = { collapsedRows: {}, collapsedCols: {} };
+    this.state = {
+      collapsedRows: {},
+      collapsedCols: {},
+      pinnedColumns: [], // DODO added 45525377
+    };
 
     this.clickHeaderHandler = this.clickHeaderHandler.bind(this);
     this.clickHandler = this.clickHandler.bind(this);
+    // DODO added start 45525377
+    this.toggleColumnPin = this.toggleColumnPin.bind(this);
+    this.getStickyCellLeft = this.getStickyCellLeft.bind(this);
+    this.getAllPinnedColumnsWidth = this.getAllPinnedColumnsWidth.bind(this);
+    // DODO added stop 45525377
+  }
+
+  // DODO added 45525377
+  componentDidMount() {
+    this.setState({ pinnedColumns: this.props.pinnedColumns });
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.pinnedColumns !== this.props.pinnedColumns) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({ pinnedColumns: this.props.pinnedColumns });
+    }
   }
 
   getBasePivotSettings() {
@@ -342,6 +372,45 @@ export class TableRenderer extends Component {
     return spans;
   }
 
+  // DODO added start 45525377
+  toggleColumnPin(isPinned, columnIndex) {
+    if (isPinned) {
+      this.setState(prev => ({
+        pinnedColumns: prev.pinnedColumns
+          .filter(item => item !== columnIndex)
+          .sort(),
+      }));
+    } else {
+      this.setState(prev => ({
+        pinnedColumns: [...prev.pinnedColumns, columnIndex].sort(),
+      }));
+    }
+  }
+
+  getStickyCellLeft(columnIndex) {
+    const { pinnedColumns } = this.state;
+    if (columnIndex === 0 || pinnedColumns.length === 1) return 0;
+
+    let left = 0;
+
+    for (let i = 0; i < pinnedColumns.length; i += 1) {
+      const index = pinnedColumns[i];
+      if (index === columnIndex) break;
+      const columnWidth = this.rowHeaderRefs.current[index]?.clientWidth;
+      left += columnWidth ? columnWidth + BORDER_WIDTH : 0;
+    }
+
+    return left;
+  }
+
+  getAllPinnedColumnsWidth() {
+    return this.state.pinnedColumns.reduce((acc, index) => {
+      const columnWidth = this.rowHeaderRefs.current[index]?.clientWidth;
+      return acc + (columnWidth ? columnWidth + BORDER_WIDTH : 0);
+    }, 0);
+  }
+  // DODO added stop 45525377
+
   renderColHeaderRow(attrName, attrIdx, pivotSettings) {
     // Render a single row in the column header at the top of the pivot table.
 
@@ -358,6 +427,7 @@ export class TableRenderer extends Component {
       maxColVisible,
       pivotData,
       namesMapping,
+      pinnedColumns, // DODO added 45525377
       datasourceDescriptions, // DODO added 44728892
     } = pivotSettings;
     const {
@@ -367,6 +437,13 @@ export class TableRenderer extends Component {
       dateFormatters,
     } = this.props.tableOptions;
 
+    // DODO added start 45525377
+    const isAllColumnsPinned = pinnedColumns.length === rowAttrs.length;
+    const stickyCellStyles = isAllColumnsPinned
+      ? { left: this.getAllPinnedColumnsWidth() }
+      : undefined;
+    // DODO added stop 45525377
+
     const spaceCell =
       attrIdx === 0 && rowAttrs.length !== 0 ? (
         <th
@@ -374,6 +451,8 @@ export class TableRenderer extends Component {
           colSpan={rowAttrs.length}
           rowSpan={colAttrs.length}
           aria-hidden="true"
+          className={isAllColumnsPinned ? 'stickyCell' : undefined} // DODO added 45525377
+          style={isAllColumnsPinned ? { left: 0 } : undefined} // DODO added 45525377
         />
       ) : null;
 
@@ -389,7 +468,19 @@ export class TableRenderer extends Component {
       subArrow = attrIdx + 1 < maxColVisible ? arrowExpanded : arrowCollapsed;
     }
     const attrNameCell = (
-      <th key="label" className="pvtAxisLabel">
+      <th
+        key="label"
+        style={stickyCellStyles}
+        // className="pvtAxisLabel"
+        // DODO changed 45525377
+        className={[
+          'pvtAxisLabel',
+          isAllColumnsPinned && 'stickyCell',
+          isAllColumnsPinned && 'stickyRightBorder',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
         {displayHeaderCell(
           needToggle,
           subArrow,
@@ -532,8 +623,10 @@ export class TableRenderer extends Component {
       maxRowVisible,
       pivotData,
       namesMapping,
+      pinnedColumns, // DODO added 45525377
       datasourceDescriptions, // DODO added 44728892
     } = pivotSettings;
+    const isAllColumnsPinned = pinnedColumns.length === rowAttrs.length; // DODO added 45525377
     return (
       <tr key="rowHdr">
         {rowAttrs.map((r, i) => {
@@ -548,8 +641,40 @@ export class TableRenderer extends Component {
                 : this.expandAttr(true, i, rowKeys);
             subArrow = i + 1 < maxRowVisible ? arrowExpanded : arrowCollapsed;
           }
+
+          // DODO added start 45525377
+          const isColumnPinned = pinnedColumns.includes(i);
+          const isPinnedColumnLast =
+            i === pinnedColumns[pinnedColumns.length - 1];
+          // DODO added stop 45525377
+
           return (
-            <th className="pvtAxisLabel" key={`rowAttr-${i}`}>
+            <th
+              // className="pvtAxisLabel"
+              // DODO changed 45525377
+              className={[
+                'pvtAxisLabel',
+                isColumnPinned ? 'stickyCell' : '',
+                isPinnedColumnLast && !isAllColumnsPinned
+                  ? 'stickyRightBorder'
+                  : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              // DODO added 45525377
+              style={
+                isColumnPinned ? { left: this.getStickyCellLeft(i) } : undefined
+              }
+              key={`rowAttr-${i}`}
+              // DODO added 45525377
+              ref={ref => {
+                this.rowHeaderRefs.current[i] = ref;
+              }}
+            >
+              <PinIcon
+                isPinned={isColumnPinned}
+                handlePinning={() => this.toggleColumnPin(isColumnPinned, i)}
+              />
               {displayHeaderCell(
                 needLabelToggle,
                 subArrow,
@@ -562,7 +687,21 @@ export class TableRenderer extends Component {
           );
         })}
         <th
-          className="pvtTotalLabel"
+          // className="pvtTotalLabel"
+          // DODO changed 45525377
+          className={[
+            'pvtTotalLabel',
+            isAllColumnsPinned && 'stickyCell',
+            isAllColumnsPinned && 'stickyRightBorder',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          // DODO added 45525377
+          style={
+            isAllColumnsPinned
+              ? { left: this.getAllPinnedColumnsWidth() }
+              : undefined
+          }
           key="padding"
           role="columnheader button"
           onClick={this.clickHeaderHandler(
@@ -601,6 +740,7 @@ export class TableRenderer extends Component {
       cellCallbacks,
       rowTotalCallbacks,
       namesMapping,
+      pinnedColumns, // DODO added 45525377
       datasourceDescriptions, // DODO added 44728892
     } = pivotSettings;
 
@@ -633,6 +773,16 @@ export class TableRenderer extends Component {
       ) {
         valueCellClassName += ' active';
       }
+      // DODO added start 45525377
+      const isColumnPinned = pinnedColumns.includes(i);
+      if (isColumnPinned) {
+        valueCellClassName += ' stickyCell';
+      }
+      const isPinnedColumnLast = i === pinnedColumns[pinnedColumns.length - 1];
+      if (isPinnedColumnLast) {
+        valueCellClassName += ' stickyRightBorder';
+      }
+      // DODO added stop 45525377
       const rowSpan = rowAttrSpans[rowIdx][i];
       if (rowSpan > 0) {
         const flatRowKey = flatKey(rowKey.slice(0, i + 1));
@@ -651,6 +801,10 @@ export class TableRenderer extends Component {
           <th
             key={`rowKeyLabel-${i}`}
             className={valueCellClassName}
+            // DODO added 45525377
+            style={
+              isColumnPinned ? { left: this.getStickyCellLeft(i) } : undefined
+            }
             rowSpan={rowSpan}
             colSpan={colSpan}
             role="columnheader button"
@@ -784,12 +938,30 @@ export class TableRenderer extends Component {
       pivotData,
       colTotalCallbacks,
       grandTotalCallback,
+      // DODO added start 45525377
+      pinnedColumns,
+      columnConfig,
+      combineMetric,
+      // DODO added stop 45525377
     } = pivotSettings;
+
+    const isAllColumnsPinned = pinnedColumns.length === rowAttrs.length; // DODO added 45525377
 
     const totalLabelCell = (
       <th
         key="label"
-        className="pvtTotalLabel pvtRowTotalLabel"
+        // className="pvtTotalLabel pvtRowTotalLabel"
+        // DODO changed 45525377
+        className={[
+          'pvtTotalLabel',
+          'pvtRowTotalLabel',
+          isAllColumnsPinned && 'stickyCell',
+          isAllColumnsPinned && 'stickyRightBorder',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+        // DODO added 45525377
+        style={isAllColumnsPinned ? { left: 0 } : undefined}
         colSpan={rowAttrs.length + Math.min(colAttrs.length, 1)}
         role="columnheader button"
         onClick={this.clickHeaderHandler(
@@ -811,7 +983,26 @@ export class TableRenderer extends Component {
     const totalValueCells = visibleColKeys.map(colKey => {
       const flatColKey = flatKey(colKey);
       const agg = pivotData.getAggregator([], colKey);
-      const aggValue = agg.value();
+      // const aggValue = agg.value();
+      const aggValue = 'inner' in agg ? agg.inner.value() : agg.value(); // DODO changed 45525377
+
+      // DODO added start 45525377
+      const metric = colKey[combineMetric ? colKey.length - 1 : 0];
+      const aggregation = columnConfig?.[metric]?.aggregation;
+      const tooltip =
+        aggregation &&
+        t('Value has own aggregation: %(aggregation)s', {
+          aggregation: t(aggregation),
+        });
+      const isValueHidden = columnConfig?.[metric]?.hideValueInTotal;
+      const getCellValue = () => {
+        if (isValueHidden) return '';
+        if (tooltip) {
+          return <Tooltip title={tooltip}>{agg.format(aggValue)}</Tooltip>;
+        }
+        return agg.format(aggValue);
+      };
+      // DODO added stop 45525377
 
       return (
         <td
@@ -822,7 +1013,9 @@ export class TableRenderer extends Component {
           onContextMenu={e => this.props.onContextMenu(e, colKey, undefined)}
           style={{ padding: '5px' }}
         >
-          {agg.format(aggValue)}
+          {/* {agg.format(aggValue)} */}
+          {/* DODO changed 45525377 */}
+          {getCellValue()}
         </td>
       );
     });
@@ -908,6 +1101,11 @@ export class TableRenderer extends Component {
       maxColVisible: Math.max(...visibleColKeys.map(k => k.length)),
       rowAttrSpans: this.calcAttrSpans(visibleRowKeys, rowAttrs.length),
       colAttrSpans: this.calcAttrSpans(visibleColKeys, colAttrs.length),
+      // DODO added start 45525377
+      pinnedColumns: this.state.pinnedColumns,
+      columnConfig: this.props.columnConfig,
+      combineMetric: this.props.combineMetric,
+      // DODO added stop 45525377
       ...this.cachedBasePivotSettings,
     };
 
@@ -936,5 +1134,10 @@ TableRenderer.propTypes = {
   ...PivotData.propTypes,
   tableOptions: PropTypes.object,
   onContextMenu: PropTypes.func,
+  pinnedColumns: PropTypes.array, // DODO added 45525377
 };
-TableRenderer.defaultProps = { ...PivotData.defaultProps, tableOptions: {} };
+TableRenderer.defaultProps = {
+  ...PivotData.defaultProps,
+  tableOptions: {},
+  pinnedColumns: [], // DODO added 45525377
+};

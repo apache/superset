@@ -47,6 +47,7 @@ import { DeckGLChartPreset } from '@superset-ui/legacy-preset-chart-deckgl';
 import {
   BigNumberChartPlugin,
   BigNumberTotalChartPlugin,
+  EchartsBarChartPluginDodo,
   EchartsPieChartPlugin,
   EchartsBoxPlotChartPlugin,
   EchartsAreaChartPlugin,
@@ -178,6 +179,9 @@ export default class MainPreset extends Preset {
         new HandlebarsChartPlugin().configure({ key: 'handlebars' }),
         new EchartsBubbleChartPlugin().configure({ key: 'bubble_v2' }),
         ...experimentalPlugins,
+        new EchartsBarChartPluginDodo().configure({
+          key: 'echarts_bar_dodo',
+        }),
       ],
     });
   }

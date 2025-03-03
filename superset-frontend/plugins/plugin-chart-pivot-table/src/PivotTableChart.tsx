@@ -139,6 +139,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     onContextMenu,
     timeGrainSqla,
     datasourceDescriptions, // DODO added 44728892
+    columnConfig, // DODO added 45525377
+    pinnedColumns, // DODO added 45525377
   } = props;
 
   const theme = useTheme();
@@ -541,6 +543,11 @@ export default function PivotTableChart(props: PivotTableProps) {
           namesMapping={verboseMap}
           onContextMenu={handleContextMenu}
           datasourceDescriptions={datasourceDescriptions} // DODO added 44728892
+          // DODO added start 45525377
+          columnConfig={columnConfig}
+          combineMetric={combineMetric}
+          pinnedColumns={pinnedColumns}
+          // DODO added stop 45525377
         />
       </PivotTableWrapper>
     </Styles>
