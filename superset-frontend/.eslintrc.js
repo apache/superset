@@ -238,7 +238,9 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          { devDependencies: true },
+          {
+            "devDependencies": ["**/*.test.js", "**/*.spec.js"]
+          },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
