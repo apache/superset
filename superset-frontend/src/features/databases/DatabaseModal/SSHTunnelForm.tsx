@@ -21,7 +21,7 @@ import { t, styled } from '@superset-ui/core';
 import { AntdForm, Col, Row } from 'src/components';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import { Input as AntdInput, Tooltip } from 'antd';
 import Icons from 'src/components/Icons';
 import { DatabaseObject, FieldPropTypes } from '../types';
@@ -177,7 +177,7 @@ const SSHTunnelForm = ({
                 <FormLabel htmlFor="private_key" required>
                   {t('Private Key')}
                 </FormLabel>
-                <TextArea
+                <Input.TextArea
                   name="private_key"
                   placeholder={t('Paste Private Key here')}
                   value={db?.ssh_tunnel?.private_key || ''}

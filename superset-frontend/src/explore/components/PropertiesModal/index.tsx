@@ -19,7 +19,7 @@
 import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 
 import Modal from 'src/components/Modal';
-import { Input, TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
 import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
 import { SelectValue } from 'antd/lib/select';
@@ -311,7 +311,7 @@ function PropertiesModal({
             </FormItem>
             <FormItem>
               <StyledFormItem label={t('Description')} name="description">
-                <TextArea rows={3} style={{ maxWidth: '100%' }} />
+                <Input.TextArea rows={3} style={{ maxWidth: '100%' }} />
               </StyledFormItem>
               <StyledHelpBlock className="help-block">
                 {t(

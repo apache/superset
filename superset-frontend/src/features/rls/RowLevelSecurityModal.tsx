@@ -28,7 +28,7 @@ import Modal from 'src/components/Modal';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Icons from 'src/components/Icons';
 import Select from 'src/components/Select/Select';
-import { TextArea } from 'src/components/Input';
+import { Input } from 'src/components/Input';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import rison from 'rison';
 import { LabeledErrorBoundInput } from 'src/components/Form';
@@ -105,7 +105,7 @@ const StyledInputContainer = styled.div`
   }
 `;
 
-const StyledTextArea = styled(TextArea)`
+const StyledTextArea = styled(Input.TextArea)`
   resize: none;
   margin-top: ${({ theme }) => theme.gridUnit}px;
 `;

@@ -29,7 +29,6 @@ export { default as Card } from './Card';
 
 // Vanilla Ant Design components from v5
 export {
-  AutoComplete,
   Col,
   Grid,
   Layout,

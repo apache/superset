@@ -16,20 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { Input, InputNumber } from '.';
+import AutoComplete, {
+  AutoCompleteProps as AntAutoCompleteProps,
+} from 'antd-v5/lib/auto-complete';
 
-test('should render Input', () => {
-  const { container } = render(<Input />);
-  expect(container).toBeInTheDocument();
-});
+export type { AntAutoCompleteProps };
 
-test('should render InputNumber', () => {
-  const { container } = render(<InputNumber />);
-  expect(container).toBeInTheDocument();
-});
-
-test('should render TextArea', () => {
-  const { container } = render(<Input.TextArea />);
-  expect(container).toBeInTheDocument();
-});
+export default AutoComplete;
