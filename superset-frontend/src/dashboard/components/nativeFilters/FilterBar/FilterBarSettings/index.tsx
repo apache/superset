@@ -186,7 +186,7 @@ const FilterBarSettings = () => {
         ),
       });
       if (canEdit) {
-         items.push({ type: 'divider' });
+        items.push({ type: 'divider' });
       }
     }
     if (canEdit) {
