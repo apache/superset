@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { useEffect, useMemo, useState } from 'react';
 import {
   isFeatureEnabled,
@@ -34,7 +17,7 @@ import {
   dangerouslySetItemDoNotUse,
   getItem,
   LocalStorageKeys,
-  setItem,
+  // setItem, // DODO commented out 45047288
 } from 'src/utils/localStorageHelpers';
 import ListViewCard from 'src/components/ListViewCard';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -42,7 +25,7 @@ import {
   CardContainer,
   createErrorHandler,
   getRecentActivityObjs,
-  getUserOwnedObjects,
+  // getUserOwnedObjects, // DODO commented out 45047288
   loadingCardCount,
   mq,
 } from 'src/views/CRUD/utils';
@@ -50,12 +33,12 @@ import { AntdSwitch } from 'src/components';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { TableTab } from 'src/views/CRUD/types';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { userHasPermission } from 'src/dashboard/util/permissionUtils';
+// import { userHasPermission } from 'src/dashboard/util/permissionUtils'; // DODO commented out 45047288
 import { WelcomePageLastTab } from 'src/features/home/types';
 import ActivityTable from 'src/features/home/ActivityTable';
-import ChartTable from 'src/features/home/ChartTable';
-import SavedQueries from 'src/features/home/SavedQueries';
-import DashboardTable from 'src/features/home/DashboardTable';
+// import ChartTable from 'src/features/home/ChartTable'; // DODO commented out 45047288
+// import SavedQueries from 'src/features/home/SavedQueries'; // DODO commented out 45047288
+// import DashboardTable from 'src/features/home/DashboardTable'; // DODO commented out 45047288
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -75,7 +58,7 @@ interface LoadingProps {
   cover?: boolean;
 }
 
-const DEFAULT_TAB_ARR = ['2', '3'];
+// const DEFAULT_TAB_ARR = ['2', '3']; // DODO commented out 45047288
 
 const WelcomeContainer = styled.div`
   background-color: ${({ theme }) => theme.colors.grayscale.light4};
@@ -156,7 +139,7 @@ export const LoadingCards = ({ cover }: LoadingProps) => (
 );
 
 function Welcome({ user, addDangerToast }: WelcomeProps) {
-  const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
+  // const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read'); // DODO commented out 45047288
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
   const params = rison.encode({ page_size: 6 });
@@ -171,20 +154,24 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   }
   const [checked, setChecked] = useState(defaultChecked);
   const [activityData, setActivityData] = useState<ActivityData | null>(null);
-  const [chartData, setChartData] = useState<Array<object> | null>(null);
-  const [queryData, setQueryData] = useState<Array<object> | null>(null);
-  const [dashboardData, setDashboardData] = useState<Array<object> | null>(
-    null,
-  );
+  // DODO commented out start 45047288
+  // const [chartData, setChartData] = useState<Array<object> | null>(null);
+  // const [queryData, setQueryData] = useState<Array<object> | null>(null);
+  // const [dashboardData, setDashboardData] = useState<Array<object> | null>(
+  //   null,
+  // );
+  // DODO commented out stop 45047288
   const [isFetchingActivityData, setIsFetchingActivityData] = useState(true);
 
-  const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
-  const [activeState, setActiveState] = useState<Array<string>>(collapseState);
+  // DODO commented out start 45047288
+  // const collapseState = getItem(LocalStorageKeys.HomepageCollapseState, []);
+  // const [activeState, setActiveState] = useState<Array<string>>(collapseState);
 
-  const handleCollapse = (state: Array<string>) => {
-    setActiveState(state);
-    setItem(LocalStorageKeys.HomepageCollapseState, state);
-  };
+  // const handleCollapse = (state: Array<string>) => {
+  //   setActiveState(state);
+  //   setItem(LocalStorageKeys.HomepageCollapseState, state);
+  // };
+  // DODO commented out stop 45047288
 
   const SubmenuExtension = extensionsRegistry.get('home.submenu');
   const WelcomeMessageExtension = extensionsRegistry.get('welcome.message');
@@ -193,7 +180,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     'welcome.main.replacement',
   );
 
-  const [otherTabTitle, otherTabFilters] = useMemo(() => {
+  // DODO changed 45047288
+  const [, otherTabFilters] = useMemo(() => {
     const lastTab = bootstrapData.common?.conf
       .WELCOME_PAGE_LAST_TAB as WelcomePageLastTab;
     const [customTitle, customFilter] = Array.isArray(lastTab)
@@ -222,7 +210,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       return;
     }
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
-    setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
+    // setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR); // DODO commented out 45047288
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
         const data: ActivityData | null = {};
@@ -249,56 +237,59 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
             t('There was an issue fetching your recent activity: %s', errMsg),
           );
         }),
-      );
+      )
+      .finally(() => setIsFetchingActivityData(false)); // DODO added 45047288
 
     // Sets other activity data in parallel with recents api call
-    const ownSavedQueryFilters = [
-      {
-        col: 'created_by',
-        opr: 'rel_o_m',
-        value: `${id}`,
-      },
-    ];
-    Promise.all([
-      getUserOwnedObjects(id, 'dashboard')
-        .then(r => {
-          setDashboardData(r);
-          return Promise.resolve();
-        })
-        .catch((err: unknown) => {
-          setDashboardData([]);
-          addDangerToast(
-            t('There was an issue fetching your dashboards: %s', err),
-          );
-          return Promise.resolve();
-        }),
-      getUserOwnedObjects(id, 'chart')
-        .then(r => {
-          setChartData(r);
-          return Promise.resolve();
-        })
-        .catch((err: unknown) => {
-          setChartData([]);
-          addDangerToast(t('There was an issue fetching your chart: %s', err));
-          return Promise.resolve();
-        }),
-      canReadSavedQueries
-        ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
-            .then(r => {
-              setQueryData(r);
-              return Promise.resolve();
-            })
-            .catch((err: unknown) => {
-              setQueryData([]);
-              addDangerToast(
-                t('There was an issue fetching your saved queries: %s', err),
-              );
-              return Promise.resolve();
-            })
-        : Promise.resolve(),
-    ]).then(() => {
-      setIsFetchingActivityData(false);
-    });
+    // DODO commented out start 45047288
+    // const ownSavedQueryFilters = [
+    //   {
+    //     col: 'created_by',
+    //     opr: 'rel_o_m',
+    //     value: `${id}`,
+    //   },
+    // ];
+    // Promise.all([
+    //   getUserOwnedObjects(id, 'dashboard')
+    //     .then(r => {
+    //       setDashboardData(r);
+    //       return Promise.resolve();
+    //     })
+    //     .catch((err: unknown) => {
+    //       setDashboardData([]);
+    //       addDangerToast(
+    //         t('There was an issue fetching your dashboards: %s', err),
+    //       );
+    //       return Promise.resolve();
+    //     }),
+    //   getUserOwnedObjects(id, 'chart')
+    //     .then(r => {
+    //       setChartData(r);
+    //       return Promise.resolve();
+    //     })
+    //     .catch((err: unknown) => {
+    //       setChartData([]);
+    //       addDangerToast(t('There was an issue fetching your chart: %s', err));
+    //       return Promise.resolve();
+    //     }),
+    //   canReadSavedQueries
+    //     ? getUserOwnedObjects(id, 'saved_query', ownSavedQueryFilters)
+    //         .then(r => {
+    //           setQueryData(r);
+    //           return Promise.resolve();
+    //         })
+    //         .catch((err: unknown) => {
+    //           setQueryData([]);
+    //           addDangerToast(
+    //             t('There was an issue fetching your saved queries: %s', err),
+    //           );
+    //           return Promise.resolve();
+    //         })
+    //     : Promise.resolve(),
+    // ]).then(() => {
+    //   setIsFetchingActivityData(false);
+    // });
+    // DODO commented out stop 45047288
   }, [otherTabFilters]);
 
   const handleToggle = () => {
@@ -306,28 +297,30 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     dangerouslySetItemDoNotUse(id, { thumbnails: !checked });
   };
 
-  useEffect(() => {
-    if (!collapseState && queryData?.length) {
-      setActiveState(activeState => [...activeState, '4']);
-    }
-    setActivityData(activityData => ({
-      ...activityData,
-      Created: [
-        ...(chartData?.slice(0, 3) || []),
-        ...(dashboardData?.slice(0, 3) || []),
-        ...(queryData?.slice(0, 3) || []),
-      ],
-    }));
-  }, [chartData, queryData, dashboardData]);
+  // DODO commented out start 45047288
+  // useEffect(() => {
+  //   // if (!collapseState && queryData?.length) {
+  //   //   setActiveState(activeState => [...activeState, '4']);
+  //   // }
+  //   setActivityData(activityData => ({
+  //     ...activityData,
+  //     Created: [
+  //       ...(chartData?.slice(0, 3) || []),
+  //       ...(dashboardData?.slice(0, 3) || []),
+  //       ...(queryData?.slice(0, 3) || []),
+  //     ],
+  //   }));
+  // }, [chartData, queryData, dashboardData]);
 
-  useEffect(() => {
-    if (!collapseState && activityData?.[TableTab.Viewed]?.length) {
-      setActiveState(activeState => ['1', ...activeState]);
-    }
-  }, [activityData]);
+  // useEffect(() => {
+  //   if (!collapseState && activityData?.[TableTab.Viewed]?.length) {
+  //     setActiveState(activeState => ['1', ...activeState]);
+  //   }
+  // }, [activityData]);
 
-  const isRecentActivityLoading =
-    !activityData?.[TableTab.Other] && !activityData?.[TableTab.Viewed];
+  // const isRecentActivityLoading =
+  //   !activityData?.[TableTab.Other] && !activityData?.[TableTab.Viewed];
+  // DODO commented out stop 45047288
 
   const menuData: SubMenuProps = {
     activeChild: 'Home',
@@ -365,12 +358,13 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
         {(!WelcomeTopExtension || !WelcomeMainExtension) && (
           <>
             <Collapse
-              activeKey={activeState}
-              onChange={handleCollapse}
+              activeKey={['1']} // DODO changed 45047288
+              // onChange={handleCollapse} // DODO commented out 45047288
               ghost
               bigger
             >
-              <Collapse.Panel header={t('Recents')} key="1">
+              {/* DODO changed 45047288 */}
+              <Collapse.Panel header={t('Recents')} key="1" showArrow={false}>
                 {activityData &&
                 (activityData[TableTab.Viewed] ||
                   activityData[TableTab.Other] ||
@@ -387,7 +381,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                   <LoadingCards />
                 )}
               </Collapse.Panel>
-              <Collapse.Panel header={t('Dashboards')} key="2">
+              {/* DODO commented out start 45047288 */}
+              {/* <Collapse.Panel header={t('Dashboards')} key="2">
                 {!dashboardData || isRecentActivityLoading ? (
                   <LoadingCards cover={checked} />
                 ) : (
@@ -428,7 +423,8 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
                     />
                   )}
                 </Collapse.Panel>
-              )}
+              )} */}
+              {/* DODO commented out stop 45047288 */}
             </Collapse>
           </>
         )}

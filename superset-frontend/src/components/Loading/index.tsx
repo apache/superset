@@ -1,25 +1,8 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
-import Loader from 'src/assets/images/loading.gif';
+// import Loader from 'src/assets/images/loading.gif';
 
 export type PositionOption =
   | 'floating'
@@ -32,10 +15,36 @@ export interface Props {
   image?: string;
 }
 
-const LoaderImg = styled.img`
+// DODO commented out 45047288
+// const LoaderImg = styled.img`
+//   z-index: 99;
+//   width: 50px;
+//   height: unset;
+//   position: relative;
+//   margin: 10px;
+//   &.inline {
+//     margin: 0px;
+//     width: 30px;
+//   }
+//   &.inline-centered {
+//     margin: 0 auto;
+//     width: 30px;
+//     display: block;
+//   }
+//   &.floating {
+//     padding: 0;
+//     margin: 0;
+//     position: absolute;
+//     left: 50%;
+//     top: 50%;
+//     transform: translate(-50%, -50%);
+//   }
+// `;
+
+// DODO added 45047288
+const LoaderDiv = styled.div`
   z-index: 99;
   width: 50px;
-  height: unset;
   position: relative;
   margin: 10px;
   &.inline {
@@ -56,20 +65,75 @@ const LoaderImg = styled.img`
     transform: translate(-50%, -50%);
   }
 `;
-export default function Loading({
-  position = 'floating',
-  image,
-  className,
-}: Props) {
+
+// DODO added 45047288
+const LdsRing = styled.div`
+  display: flex;
+  position: relative;
+  width: 40px;
+  height: 40px;
+
+  div {
+    position: absolute;
+    top: 15px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.colors.primary.base};
+    animation-timing-function: cubic-bezier(0, 1, 1, 0);
+  }
+  div:nth-child(1) {
+    left: 4px;
+    animation: lds-ellipsis1 0.6s infinite;
+  }
+  div:nth-child(2) {
+    left: 4px;
+    animation: lds-ellipsis2 0.6s infinite;
+  }
+  div:nth-child(3) {
+    left: 16px;
+    animation: lds-ellipsis2 0.6s infinite;
+  }
+  div:nth-child(4) {
+    left: 28px;
+    animation: lds-ellipsis3 0.6s infinite;
+  }
+  @keyframes lds-ellipsis1 {
+    0% {
+      transform: scale(0);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  @keyframes lds-ellipsis3 {
+    0% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(0);
+    }
+  }
+  @keyframes lds-ellipsis2 {
+    0% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(12px, 0);
+    }
+  }
+`;
+
+// DODO changed 45047288
+export default function Loading({ position = 'floating', className }: Props) {
   return (
-    <LoaderImg
-      className={cls('loading', position, className)}
-      alt="Loading..."
-      src={image || Loader}
-      role="status"
-      aria-live="polite"
-      aria-label="Loading"
-      data-test="loading-indicator"
-    />
+    <LoaderDiv className={cls('loading', position, className)}>
+      <LdsRing>
+        <div />
+        <div />
+        <div />
+        <div />
+      </LdsRing>
+    </LoaderDiv>
   );
 }

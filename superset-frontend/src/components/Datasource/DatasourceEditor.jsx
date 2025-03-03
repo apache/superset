@@ -882,6 +882,7 @@ class DatasourceEditor extends PureComponent {
               language="markdown"
               offerEditInModal={false}
               resize="vertical"
+              height={50} // DODO added 45047288
             />
           }
         />
@@ -917,6 +918,7 @@ class DatasourceEditor extends PureComponent {
                 controlId="fetch_values_predicate"
                 minLines={5}
                 resize="vertical"
+                height={50} // DODO added 45047288
               />
             }
           />
@@ -937,6 +939,7 @@ class DatasourceEditor extends PureComponent {
                 language="json"
                 offerEditInModal={false}
                 resize="vertical"
+                height={50} // DODO added 45047288
               />
             }
           />
@@ -1331,6 +1334,7 @@ class DatasourceEditor extends PureComponent {
                     language="markdown"
                     offerEditInModal={false}
                     resize="vertical"
+                    height={50} // DODO added 45047288
                   />
                 }
               />
@@ -1381,6 +1385,7 @@ class DatasourceEditor extends PureComponent {
               minLines={5}
               textAreaStyles={{ minWidth: '200px', maxWidth: '450px' }}
               resize="both"
+              height={100} // DODO added 45047288
             />
           ),
           description: (v, onChange, label) => (

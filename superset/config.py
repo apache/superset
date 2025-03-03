@@ -310,7 +310,7 @@ AUTH_RATE_LIMIT = "5 per second"
 APP_NAME = "Superset"
 
 # Specify the App icon
-APP_ICON = "/static/assets/images/superset-logo-horiz.png"
+APP_ICON = "/static/assets/images/dodo-logo-horiz.png"
 
 # Specify where clicking the logo would take the user'
 # Default value of None will take you to '/superset/welcome'
@@ -670,7 +670,50 @@ EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 #   }
 # }
 
-THEME_OVERRIDES: dict[str, Any] = {}
+# DODO added 45047288
+THEME_OVERRIDES: dict[str, Any] = {
+    "colors": {
+        "primary": {
+            "base": "#ff6900",
+            "dark1": "#e86100",
+            "dark2": "#d15700",
+            "light1": "#fa9349",
+            "light2": "#ffcdb0",
+            "light3": "#ffe1cd",
+            "light4": "#fff0e5",
+            "light5": "#fff0eb",
+        },
+        "secondary": {
+            "base": "#000",
+            "dark2": "#3f220d",
+            "dark3": "#3e130e",
+            "light4": "#fff0e6",
+        },
+        "grayscale": {
+            "base": "#454545",
+            "dark1": "#171717",
+            "light1": "#b9b9b9",
+        },
+        "error": {
+            "base": "#ff6262",
+            "dark1": "#d33f45",
+            "dark2": "#3e130e",
+            "light1": "#ff6262",
+            "light2": "#fbafa5",
+        },
+        "alert": {
+            "light1": "#fff5a0",
+            "light2": "#fffce3",
+        },
+        "success": {
+            "base": "#65d46b",
+            "dark1": "#409a5c",
+            "dark2": "#27523b",
+            "light1": "#a2dcb2",
+            "light2": "#ebfaf0",
+        },
+    },
+}
 
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES is used for adding custom sequential color schemes
 # EXTRA_SEQUENTIAL_COLOR_SCHEMES =  [

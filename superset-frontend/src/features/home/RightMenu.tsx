@@ -1,26 +1,9 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
 
@@ -49,6 +32,8 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from 'src/components/TelemetryPixel';
+import { Version } from 'src/DodoExtensions/components/Version'; // DODO added 45047288
+import { APP_VERSION } from 'src/constants'; // DODO added 45047288
 import LanguagePicker from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -86,6 +71,7 @@ const StyledDiv = styled.div<{ align: string }>`
   .ant-menu-submenu-title > svg {
     top: ${({ theme }) => theme.gridUnit * 5.25}px;
   }
+  min-height: 53px; // DODO added 45047288
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -156,6 +142,8 @@ const RightMenu = ({
   const canChart = findPermission('can_write', 'Chart', roles);
   const canDatabase = findPermission('can_write', 'Database', roles);
   const canDataset = findPermission('can_write', 'Dataset', roles);
+  const location = useLocation(); // DODO added 45047288
+  const isLoginPage = location.pathname.startsWith('/login'); // DODO added 45047288
 
   const { canUploadData, canUploadCSV, canUploadColumnar, canUploadExcel } =
     uploadUserPerms(
@@ -356,6 +344,7 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
+      <Version appVersion={APP_VERSION} /> {/* DODO added 45047288 */}
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}
@@ -474,82 +463,91 @@ const RightMenu = ({
             })}
           </SubMenu>
         )}
-        <SubMenu
-          title={t('Settings')}
-          icon={<Icons.TriangleDown iconSize="xl" />}
-        >
-          {settings?.map?.((section, index) => [
-            <Menu.ItemGroup key={`${section.label}`} title={section.label}>
-              {section?.childs?.map?.(child => {
-                if (typeof child !== 'string') {
-                  const menuItemDisplay = RightMenuItemIconExtension ? (
-                    <StyledMenuItemWithIcon>
-                      {child.label}
-                      <RightMenuItemIconExtension menuChild={child} />
-                    </StyledMenuItemWithIcon>
-                  ) : (
-                    child.label
-                  );
-                  return (
-                    <Menu.Item key={`${child.label}`}>
-                      {isFrontendRoute(child.url) ? (
-                        <Link to={child.url || ''}>{menuItemDisplay}</Link>
-                      ) : (
-                        <a href={child.url}>{menuItemDisplay}</a>
-                      )}
-                    </Menu.Item>
-                  );
-                }
-                return null;
-              })}
-            </Menu.ItemGroup>,
-            index < settings.length - 1 && (
-              <Menu.Divider key={`divider_${index}`} />
-            ),
-          ])}
+        {!isLoginPage && ( // DODO added 45047288
+          <SubMenu
+            title={t('Settings')}
+            icon={<Icons.TriangleDown iconSize="xl" />}
+          >
+            {settings?.map?.((section, index) => [
+              <Menu.ItemGroup key={`${section.label}`} title={section.label}>
+                {section?.childs?.map?.(child => {
+                  if (typeof child !== 'string') {
+                    const menuItemDisplay = RightMenuItemIconExtension ? (
+                      <StyledMenuItemWithIcon>
+                        {child.label}
+                        <RightMenuItemIconExtension menuChild={child} />
+                      </StyledMenuItemWithIcon>
+                    ) : (
+                      child.label
+                    );
+                    return (
+                      <Menu.Item key={`${child.label}`}>
+                        {isFrontendRoute(child.url) ? (
+                          <Link to={child.url || ''}>{menuItemDisplay}</Link>
+                        ) : (
+                          <a href={child.url}>{menuItemDisplay}</a>
+                        )}
+                      </Menu.Item>
+                    );
+                  }
+                  return null;
+                })}
+              </Menu.ItemGroup>,
+              index < settings.length - 1 && (
+                <Menu.Divider key={`divider_${index}`} />
+              ),
+            ])}
 
-          {!navbarRight.user_is_anonymous && [
-            <Menu.Divider key="user-divider" />,
-            <Menu.ItemGroup key="user-section" title={t('User')}>
-              {navbarRight.user_info_url && (
-                <Menu.Item key="info">
-                  <a href={navbarRight.user_info_url}>{t('Info')}</a>
+            {!navbarRight.user_is_anonymous && [
+              <Menu.Divider key="user-divider" />,
+              <Menu.ItemGroup key="user-section" title={t('User')}>
+                {navbarRight.user_info_url && (
+                  <Menu.Item key="info">
+                    <a href={navbarRight.user_info_url}>{t('Info')}</a>
+                  </Menu.Item>
+                )}
+                <Menu.Item key="logout" onClick={handleLogout}>
+                  <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
                 </Menu.Item>
-              )}
-              <Menu.Item key="logout" onClick={handleLogout}>
-                <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
-              </Menu.Item>
-            </Menu.ItemGroup>,
-          ]}
-          {(navbarRight.version_string || navbarRight.version_sha) && [
-            <Menu.Divider key="version-info-divider" />,
-            <Menu.ItemGroup key="about-section" title={t('About')}>
-              <div className="about-section">
-                {navbarRight.show_watermark && (
-                  <div css={versionInfoStyles}>
-                    {t('Powered by Apache Superset')}
-                  </div>
-                )}
-                {navbarRight.version_string && (
-                  <div css={versionInfoStyles}>
-                    {t('Version')}: {navbarRight.version_string}
-                  </div>
-                )}
-                {navbarRight.version_sha && (
-                  <div css={versionInfoStyles}>
-                    {t('SHA')}: {navbarRight.version_sha}
-                  </div>
-                )}
-                {navbarRight.build_number && (
-                  <div css={versionInfoStyles}>
-                    {t('Build')}: {navbarRight.build_number}
-                  </div>
-                )}
-              </div>
-            </Menu.ItemGroup>,
-          ]}
-        </SubMenu>
-        {navbarRight.show_language_picker && (
+              </Menu.ItemGroup>,
+            ]}
+            {(navbarRight.version_string || navbarRight.version_sha) && [
+              <Menu.Divider key="version-info-divider" />,
+              <Menu.ItemGroup key="about-section" title={t('About')}>
+                <div className="about-section">
+                  {navbarRight.show_watermark && (
+                    <div css={versionInfoStyles}>
+                      {t('Powered by Apache Superset')}
+                    </div>
+                  )}
+                  {navbarRight.version_string && (
+                    <div css={versionInfoStyles}>
+                      {t('Version')}: {navbarRight.version_string}
+                    </div>
+                  )}
+                  {/* DODO added 45047288 */}
+                  {APP_VERSION && (
+                    <div css={versionInfoStyles}>
+                      DODO Version: {APP_VERSION}
+                    </div>
+                  )}
+                  {navbarRight.version_sha && (
+                    <div css={versionInfoStyles}>
+                      {t('SHA')}: {navbarRight.version_sha}
+                    </div>
+                  )}
+                  {navbarRight.build_number && (
+                    <div css={versionInfoStyles}>
+                      {t('Build')}: {navbarRight.build_number}
+                    </div>
+                  )}
+                </div>
+              </Menu.ItemGroup>,
+            ]}
+          </SubMenu>
+        )}
+        {/* DODO changed 45047288 */}
+        {!isLoginPage && navbarRight.show_language_picker && (
           <LanguagePicker
             locale={navbarRight.locale}
             languages={navbarRight.languages}
@@ -590,7 +588,8 @@ const RightMenu = ({
           <span>&nbsp;</span>
         </>
       )}
-      {navbarRight.user_is_anonymous && (
+      {/* DODO changed 45047288 */}
+      {!isLoginPage && navbarRight.user_is_anonymous && (
         <StyledAnchor href={navbarRight.user_login_url}>
           <i className="fa fa-fw fa-sign-in" />
           {t('Login')}

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   isFeatureEnabled,
   FeatureFlag,
@@ -109,6 +92,12 @@ export interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
+`;
+
+// DODO added 45047288
+const FormattedCode = styled.code`
+  color: ${({ theme }) => theme.colors.primary.base};
+  cursor: pointer;
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -311,6 +300,22 @@ function DashboardList(props: DashboardListProps) {
         disableSortBy: true,
         size: 'xs',
         hidden: !user?.userId,
+      },
+      // DODO added 45047288
+      {
+        Cell: ({
+          row: {
+            original: { id, slug },
+          },
+        }: any) => (
+          <Tooltip title={`Slug: ${slug ?? 'No slug'}`} placement="right">
+            <FormattedCode>{id}</FormattedCode>
+          </Tooltip>
+        ),
+        Header: 'id',
+        accessor: 'slug',
+        size: 'xs',
+        disableSortBy: true,
       },
       {
         Cell: ({
@@ -663,14 +668,15 @@ function DashboardList(props: DashboardListProps) {
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
-  if (canDelete || canExport) {
-    subMenuButtons.push({
-      name: t('Bulk select'),
-      buttonStyle: 'secondary',
-      'data-test': 'bulk-select',
-      onClick: toggleBulkSelect,
-    });
-  }
+  // DODO commented out 45047288
+  // if (canDelete || canExport) {
+  //   subMenuButtons.push({
+  //     name: t('Bulk select'),
+  //     buttonStyle: 'secondary',
+  //     'data-test': 'bulk-select',
+  //     onClick: toggleBulkSelect,
+  //   });
+  // }
   if (canCreate) {
     subMenuButtons.push({
       name: (

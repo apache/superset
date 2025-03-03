@@ -1,0 +1,192 @@
+<!-- extend base layout -->
+{% extends "appbuilder/base.html" %}
+
+{% block content %}
+
+<style>
+  .container-signin > * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .container-signin {
+    padding-top: 92px;
+    padding-inline: 20px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .card {
+    padding: 40px clamp(20px, 9vw, 40px);
+    width: min(100%, 382px);
+    min-width: 210px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 24px 60px rgba(0, 10, 28, 0.15);
+    font: 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji",
+      "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+
+  .card__logo {
+    margin-inline: auto;
+    width: 130px;
+    height: 28px;
+  }
+
+  .card__providers {
+    margin-top: 40px;
+    display: flex;
+  }
+
+  .card__providers label {
+    margin: 0;
+    padding-inline: 15px;
+    padding-block: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    height: 40px;
+    font-size: 14px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    color: rgba(0, 0, 0, 0.88);
+    transition: color 0.2s;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .card__providers label#left {
+    border-block-start-width: 1px;
+    border-inline-end-width: 0;
+    border-start-start-radius: 6px;
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+    border-end-start-radius: 6px;
+  }
+
+  .card__providers label#right {
+    border-block-start-width: 1px;
+    border-inline-end-width: 1px;
+    border-start-start-radius: 0;
+    border-start-end-radius: 6px;
+    border-end-end-radius: 6px;
+    border-end-start-radius: 0;
+  }
+
+  .card__providers label:hover {
+    color: #ff6900;
+  }
+
+  .card__providers label:has(input:checked) {
+    color: #ff6900;
+    border-color: #ff6900;
+  }
+
+  .card__providers label#left:has(input:checked) {
+    border-inline-end-width: 1px;
+  }
+
+  .card__providers label#left:has(input:checked) ~ label#right {
+    border-inline-start-width: 0;
+  }
+
+  .card__providers label input {
+    width: 0;
+    height: 0;
+    visibility: hidden;
+  }
+
+  .card__providers label input:after,
+  .card__providers label input:checked:after {
+    content: none;
+  }
+
+  .card__button {
+    margin-top: 28px;
+  }
+
+  .card__button button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 44px;
+    border: none;
+    outline: none;
+    background: #ff6900;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .card__button button:hover {
+    background: #cc5400;
+  }
+</style>
+
+<div class="container-signin">
+  <form class="card" id="signin-card">
+    <div class="card__logo">
+      <img
+        src="/static/assets/images/auth-logo.svg"
+        alt="DODO Auth logo"
+        draggable="false"
+      />
+    </div>
+
+    <div class="card__providers">
+      {% if providers|length > 1 %}
+        {% for provider in providers %}
+        <label
+          for="input-signin-{{ provider.name }}"
+          {% if loop.first %}id="left"{% elif loop.last %}id="right"{% endif %}
+        >
+          <span>{{ provider.label }}</span>
+          <input id="input-signin-{{ provider.name }}" name="provider" type="radio"
+            value="{{ provider.name }}" {% if loop.first %}checked{% endif %} />
+        </label>
+        {% endfor %}
+      {% else %}
+        {% for provider in providers %}
+        <label for="input-signin-{{ provider.name }}">
+          <span>{{ provider.label }}</span>
+          <input id="input-signin-{{ provider.name }}" name="provider" type="radio"
+            value="{{ provider.name }}" checked />
+        </label>
+        {% endfor %}
+      {% endif %}
+    </div>
+
+    <div class="card__button">
+      <button type="submit">Sign in</button>
+    </div>
+  </form>
+</div>
+
+<script nonce="{{ baselib.get_nonce() }}">
+  const baseLoginUrl = "{{appbuilder.get_url_for_login}}";
+  const baseRegisterUrl = "{{appbuilder.get_url_for_login}}";
+  const next = "?next=" + "{{request.args.get('next', '') | urlencode}}";
+
+  function signin(provider) {
+    window.location.href = baseLoginUrl + provider + next;
+  }
+
+  document
+    .getElementById("signin-card")
+    .addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const provider = document.querySelector(
+        'input[name="provider"]:checked'
+      ).value;
+
+      signin(provider);
+    });
+</script>
+{% endblock %}
