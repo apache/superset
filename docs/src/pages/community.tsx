@@ -166,10 +166,9 @@ const StyledLink = styled('a')`
 const FinePrint = styled('div')`
   font-size: 14px;
   color: var(--ifm-secondary-text);
-`
+`;
 
 const Community = () => {
-
   const [showCalendar, setShowCalendar] = useState(false); // State to control calendar visibility
 
   const toggleCalendar = () => {
@@ -202,14 +201,17 @@ const Community = () => {
                       className="title"
                       href={url}
                       target="_blank"
+                      rel="noreferrer"
                       aria-label={ariaLabel}
                     >
                       <img className="icon" src={`/img/community/${image}`} />
                     </a>
                   }
                   title={
-                    <a href={url} target="_blank">
-                      <p className="title" style={{marginBottom: 0}}>{title}</p>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      <p className="title" style={{ marginBottom: 0 }}>
+                        {title}
+                      </p>
                     </a>
                   }
                   description={<p className="description">{description}</p>}
@@ -230,16 +232,22 @@ const Community = () => {
                 <StyledLink
                   href="https://calendar.google.com/calendar/u/0/r?cid=superset.committers@gmail.com"
                   target="_blank"
+                  rel="noreferrer"
                 >
                   <img src="/img/calendar-icon.svg" alt="calendar-icon" />
                   Subscribe to the Superset Community Calendar
                 </StyledLink>
                 <br />
                 <StyledLink onClick={toggleCalendar}>
-                <img src="/img/calendar-icon.svg" alt="calendar-icon" />
+                  <img src="/img/calendar-icon.svg" alt="calendar-icon" />
                   {showCalendar ? 'Hide Calendar' : 'Display Calendar*'}
                 </StyledLink>
-                {!showCalendar  && <FinePrint><sup>*</sup>Clicking on this link will load and send data from and to Google.</FinePrint>}
+                {!showCalendar && (
+                  <FinePrint>
+                    <sup>*</sup>Clicking on this link will load and send data
+                    from and to Google.
+                  </FinePrint>
+                )}
               </>
             }
           />

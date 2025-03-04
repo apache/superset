@@ -420,31 +420,28 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     result = MssqlEngineSpec.extract_errors(
         Exception(msg), context={"username": "testuser", "database": "testdb"}
     )
-    assert (
-        result
-        == [
-            SupersetError(
-                message='Either the username "testuser", password, or database name "testdb" is incorrect.',  # noqa: E501
-                error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-                level=ErrorLevel.ERROR,
-                extra={
-                    "engine_name": "Microsoft SQL Server",
-                    "issue_codes": [
-                        {
-                            "code": 1014,
-                            "message": "Issue 1014 - Either the username or "
-                            "the password is wrong.",
-                        },
-                        {
-                            "code": 1015,
-                            "message": "Issue 1015 - Either the database is "
-                            "spelled incorrectly or does not exist.",
-                        },
-                    ],
-                },
-            )
-        ]
-    )
+    assert result == [
+        SupersetError(
+            message='Either the username "testuser", password, or database name "testdb" is incorrect.',  # noqa: E501
+            error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={
+                "engine_name": "Microsoft SQL Server",
+                "issue_codes": [
+                    {
+                        "code": 1014,
+                        "message": "Issue 1014 - Either the username or "
+                        "the password is wrong.",
+                    },
+                    {
+                        "code": 1015,
+                        "message": "Issue 1015 - Either the database is "
+                        "spelled incorrectly or does not exist.",
+                    },
+                ],
+            },
+        )
+    ]
 
 
 @pytest.mark.parametrize(
