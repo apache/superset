@@ -17,29 +17,71 @@
  * under the License.
  */
 
-import { FC, SVGProps, useEffect, useRef, useState } from 'react';
-import AntdIcon from '@ant-design/icons';
-import { styled } from '@superset-ui/core';
+import {
+  FC,
+  SVGProps,
+  useEffect,
+  useRef,
+  useState,
+  ComponentType,
+} from 'react';
+import { styled, css, useTheme } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
 import IconType from './IconType';
 
-const AntdIconComponent = ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+interface BaseIconProps extends SVGProps<SVGSVGElement> {
+  component?: ComponentType<SVGProps<SVGSVGElement>>;
+  iconColor?: IconType['iconColor'];
+  iconSize?: IconType['iconSize'];
+}
+
+const BaseIconComponent: React.FC<BaseIconProps> = ({
+  component: Component,
   iconColor,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   iconSize,
   viewBox,
+  // @ts-ignore
+  customIcons,
   ...rest
-}: Omit<IconType, 'ref' | 'css'>) => (
-  <AntdIcon viewBox={viewBox || '0 0 24 24'} {...rest} />
-);
+}) => {
+  const theme = useTheme();
+  if (!Component) return null;
+  return customIcons ? (
+    <span
+      role={rest?.onClick ? 'button' : 'img'}
+      css={theme => css`
+        font-size: ${iconSize
+          ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+          : '24px'};
+        color: ${iconColor || theme.colors.grayscale.base};
+        display: inline-flex;
+        align-items: center;
+        line-height: 0;
+      `}
+    >
+      <Component
+        {...rest}
+        viewBox={viewBox || '0 0 24 24'}
+        width={
+          iconSize
+            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+            : '24px'
+        }
+        height={
+          iconSize
+            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+            : '24px'
+        }
+      />
+    </span>
+  ) : (
+    <Component {...(rest as SVGProps<SVGSVGElement>)} />
+  );
+};
 
-export const StyledIcon = styled(AntdIconComponent)<IconType>`
-  ${({ iconColor }) => iconColor && `color: ${iconColor};`};
-  span {
-    // Fixing alignement on some of the icons
-    line-height: 0px;
-  }
+export const StyledIcon = styled(BaseIconComponent)<BaseIconProps & IconType>`
+  ${({ iconColor, theme }) =>
+    `color: ${iconColor || theme.colors.grayscale.base};`}
   font-size: ${({ iconSize, theme }) =>
     iconSize
       ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
@@ -48,6 +90,7 @@ export const StyledIcon = styled(AntdIconComponent)<IconType>`
 
 export interface IconProps extends IconType {
   fileName: string;
+  customIcons?: boolean;
 }
 
 export const Icon = (props: IconProps) => {
@@ -73,8 +116,8 @@ export const Icon = (props: IconProps) => {
   }, [fileName, ImportedSVG]);
 
   const whatRole = props?.onClick ? 'button' : 'img';
-
   return (
+    // @ts-ignore to be removed
     <StyledIcon
       component={ImportedSVG.current || TransparentIcon}
       aria-label={name}

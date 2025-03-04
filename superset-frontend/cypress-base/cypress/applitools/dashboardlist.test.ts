@@ -28,18 +28,18 @@ describe('dashboard list view', () => {
   });
 
   it('should load the Dashboards list', () => {
-    cy.get('[aria-label="list-view"]').click();
+    cy.get('[aria-label="UnorderedListOutlined"]').click();
     cy.eyesOpen({
-      testName: 'Dashboards list-view',
+      testName: 'Dashboards UnorderedListOutlined',
     });
-    cy.eyesCheckWindow('Dashboards list-view loaded');
+    cy.eyesCheckWindow('Dashboards UnorderedListOutlined loaded');
   });
 
   it('should load the Dashboards card list', () => {
-    cy.get('[aria-label="card-view"]').click();
+    cy.get('[aria-label="AppstoreOutlined"]').click();
     cy.eyesOpen({
-      testName: 'Dashboards card-view',
+      testName: 'Dashboards AppstoreOutlined',
     });
-    cy.eyesCheckWindow('Dashboards card-view loaded');
+    cy.eyesCheckWindow('Dashboards AppstoreOutlined loaded');
   });
 });

@@ -373,16 +373,20 @@ export const OptionControlLabel = ({
       withCaret={withCaret}
       data-test="option-label"
       {...props}
+      css={{ textAlign: 'center' }}
     >
       <CloseContainer
         role="button"
         data-test="remove-control-button"
         onClick={onRemove}
       >
-        <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+        <Icons.CloseOutlined
+          iconSize="xs"
+          iconColor={theme.colors.grayscale.light1}
+        />
       </CloseContainer>
       <Label data-test="control-label">
-        {isFunction && <Icons.FieldDerived />}
+        {isFunction && <Icons.FunctionOutlined iconSize="m" />}
         {getLabelContent()}
       </Label>
       {(!!datasourceWarningMessage || isExtra) && (
@@ -401,7 +405,11 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+          <Icons.CaretRightOutlined
+            iconSize="l"
+            css={{ marginTop: theme.gridUnit * 1 }}
+            iconColor={theme.colors.grayscale.light1}
+          />
         </CaretContainer>
       )}
     </OptionControlContainer>

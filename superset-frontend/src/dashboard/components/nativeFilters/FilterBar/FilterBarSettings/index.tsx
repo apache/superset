@@ -24,6 +24,7 @@ import {
   isFeatureEnabled,
   styled,
   t,
+  css,
   useTheme,
 } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
@@ -74,8 +75,8 @@ const isOrientation = (o: SelectedKey): o is FilterBarOrientation =>
   o === FilterBarOrientation.Vertical || o === FilterBarOrientation.Horizontal;
 
 const FilterBarSettings = () => {
-  const dispatch = useDispatch();
   const theme = useTheme();
+  const dispatch = useDispatch();
   const isCrossFiltersEnabled = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
   );
@@ -221,7 +222,15 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Vertical (Left)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Vertical && <Icons.Check />}
+                  FilterBarOrientation.Vertical && (
+                  <Icons.CheckOutlined
+                    iconColor={theme.colors.primary.base}
+                    css={css`
+                      vertical-align: -${theme.gridUnit * 0.03125}em;
+                    `}
+                    iconSize="m"
+                  />
+                )}
               </Space>
             ),
           },
@@ -231,7 +240,12 @@ const FilterBarSettings = () => {
               <Space>
                 {t('Horizontal (Top)')}
                 {selectedFilterBarOrientation ===
-                  FilterBarOrientation.Horizontal && <Icons.Check />}
+                  FilterBarOrientation.Horizontal && (
+                  <Icons.CheckOutlined
+                    iconSize="m"
+                    css={{ verticalAlign: 'middle' }}
+                  />
+                )}
               </Space>
             ),
           },
@@ -264,9 +278,9 @@ const FilterBarSettings = () => {
         trigger={['click']}
       >
         <Button type="link">
-          <Icons.Gear
+          <Icons.SettingOutlined
+            iconSize="xl"
             name="gear"
-            iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"
           />
         </Button>

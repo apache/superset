@@ -148,13 +148,12 @@ const RunQueryActionButton = ({
           ? {
               overlay: overlayCreateAsMenu,
               icon: (
-                <Icons.CaretDown
+                <Icons.DownOutlined
                   iconColor={
                     isDisabled
                       ? theme.colors.grayscale.base
                       : theme.colors.grayscale.light5
                   }
-                  name="caret-down"
                 />
               ),
               trigger: 'click',
