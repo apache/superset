@@ -17,30 +17,52 @@
  * under the License.
  */
 import {
-  ChangeEvent,
-  memo,
-  MouseEvent,
   useCallback,
   useEffect,
   useState,
+  memo,
+  ChangeEvent,
+  MouseEvent,
 } from 'react';
 
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
+import { pick } from 'lodash';
+import ButtonGroup from 'src/components/ButtonGroup';
+import Alert from 'src/components/Alert';
+import Button from 'src/components/Button';
+import { nanoid } from 'nanoid';
 import {
-  css,
-  ErrorTypeEnum,
-  getExtensionsRegistry,
-  getNumberFormatter,
   QueryState,
   styled,
   t,
   tn,
-  usePrevious,
   useTheme,
+  usePrevious,
+  css,
+  getNumberFormatter,
+  getExtensionsRegistry,
+  ErrorTypeEnum,
 } from '@superset-ui/core';
-import { pick } from 'lodash';
-import { nanoid } from 'nanoid';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import { useHistory } from 'react-router-dom';
+import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
+import {
+  ISaveableDatasource,
+  ISimpleColumn,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
+import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
+import { mountExploreUrl } from 'src/explore/exploreUtils';
+import { postFormData } from 'src/explore/exploreUtils/formData';
+import ProgressBar from 'src/components/ProgressBar';
+import Loading from 'src/components/Loading';
+import Card from 'src/components/Card';
+import Label from 'src/components/Label';
+import { Tooltip } from 'src/components/Tooltip';
+import FilterableTable from 'src/components/FilterableTable';
+import CopyToClipboard from 'src/components/CopyToClipboard';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -49,37 +71,15 @@ import {
   reFetchQueryResults,
   reRunQuery,
 } from 'src/SqlLab/actions/sqlLab';
-import {
-  ISaveableDatasource,
-  ISimpleColumn,
-  SaveDatasetModal,
-} from 'src/SqlLab/components/SaveDatasetModal';
-import { EXPLORE_CHART_DEFAULT, SqlLabRootState } from 'src/SqlLab/types';
-import Alert from 'src/components/Alert';
-import Button from 'src/components/Button';
-import ButtonGroup from 'src/components/ButtonGroup';
-import Card from 'src/components/Card';
-import CopyToClipboard from 'src/components/CopyToClipboard';
-import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
-import FilterableTable from 'src/components/FilterableTable';
-import Icons from 'src/components/Icons';
-import Label from 'src/components/Label';
-import Loading from 'src/components/Loading';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
-import ProgressBar from 'src/components/ProgressBar';
-import { Tooltip } from 'src/components/Tooltip';
 import { URL_PARAMS } from 'src/constants';
-import { mountExploreUrl } from 'src/explore/exploreUtils';
-import { postFormData } from 'src/explore/exploreUtils/formData';
+import useLogAction from 'src/logger/useLogAction';
 import {
   LOG_ACTIONS_SQLLAB_COPY_RESULT_TO_CLIPBOARD,
   LOG_ACTIONS_SQLLAB_CREATE_CHART,
   LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV,
 } from 'src/logger/LogUtils';
-import useLogAction from 'src/logger/useLogAction';
-import { prepareCopyToClipboardTabularData } from 'src/utils/common';
+import Icons from 'src/components/Icons';
 import { findPermission } from 'src/utils/findPermission';
-import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -540,8 +540,6 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
-    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
-
     return (
       <ResultlessStyles>
         <ErrorMessageWithStackTrace

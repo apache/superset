@@ -532,12 +532,6 @@ export const failedQueryWithErrors = {
       level: 'error',
       extra: null,
     },
-    {
-      message: 'Something else wrong',
-      error_type: 'TEST_ERROR',
-      level: 'error',
-      extra: null,
-    },
   ],
   id: 'ryhMUZCGb',
   progress: 0,
