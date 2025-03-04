@@ -112,12 +112,12 @@ const StyledHeader = styled.div`
       position: absolute;
       content: '';
       display: none;
-      width: calc(100% - ${theme.gridUnit * 2}px);
-      height: calc(100% - ${theme.gridUnit * 2}px);
-      left: ${theme.gridUnit}px;
-      top: ${theme.gridUnit}px;
+      width: calc(100% - ${theme.sizeUnit * 2}px);
+      height: calc(100% - ${theme.sizeUnit * 2}px);
+      left: ${theme.sizeUnit}px;
+      top: ${theme.sizeUnit}px;
       border: 1px dashed transparent;
-      border-radius: ${theme.gridUnit}px;
+      border-radius: ${theme.sizeUnit}px;
       opacity: 0.5;
     }
   `}
@@ -143,17 +143,14 @@ const DashboardContentWrapper = styled.div`
 
       /* drop shadow for top-level tabs only */
       & .dashboard-component-tabs {
-        box-shadow: 0 ${theme.gridUnit}px ${theme.gridUnit}px 0
-          ${addAlpha(
-            theme.colors.grayscale.dark2,
-            parseFloat(theme.opacity.light) / 100,
-          )};
-        padding-left: ${theme.gridUnit *
+        box-shadow: 0 ${theme.sizeUnit}px ${theme.sizeUnit}px 0
+          ${addAlpha(theme.colors.grayscale.dark2, 0.1)};
+        padding-left: ${theme.sizeUnit *
         2}px; /* note this is added to tab-level padding, to match header */
       }
 
       .dropdown-toggle.btn.btn-primary .caret {
-        color: ${theme.colors.grayscale.light5};
+        color: ${theme.colorText};
       }
 
       .background--transparent {
@@ -161,7 +158,7 @@ const DashboardContentWrapper = styled.div`
       }
 
       .background--white {
-        background-color: ${theme.colors.grayscale.light5};
+        background-color: ${theme.colorBgContainer};
       }
     }
     &.dashboard--editing {
@@ -180,7 +177,7 @@ const DashboardContentWrapper = styled.div`
 
       .grid-row.grid-row--hovered:after,
       .dashboard-component-tabs > .grid-row--hovered:after {
-        border: 2px dashed ${theme.colors.primary.base};
+        border: 2px dashed ${theme.colorPrimary};
       }
 
       .resizable-container {
@@ -205,7 +202,7 @@ const DashboardContentWrapper = styled.div`
         &:hover,
         &.resizable-container--resizing:hover {
           & > .dashboard-component-chart-holder:after {
-            border: 1px dashed ${theme.colors.primary.base};
+            border: 1px dashed ${theme.colorPrimary};
           }
         }
       }
@@ -213,7 +210,7 @@ const DashboardContentWrapper = styled.div`
       .resizable-container--resizing:hover > .grid-row:after,
       .hover-menu:hover + .grid-row:after,
       .dashboard-component-tabs > .hover-menu:hover + div:after {
-        border: 1px dashed ${theme.colors.primary.base};
+        border: 1px dashed ${theme.colorPrimary};
         z-index: 2;
       }
 
@@ -225,7 +222,7 @@ const DashboardContentWrapper = styled.div`
       /* provide hit area in case row contents is edge to edge */
       .dashboard-component-tabs-content {
         > .dragdroppable-row {
-          padding-top: ${theme.gridUnit * 4}px;
+          padding-top: ${theme.sizeUnit * 4}px;
         }
       }
 
@@ -243,7 +240,7 @@ const DashboardContentWrapper = styled.div`
         }
 
         &:hover:after {
-          border: 1px dashed ${theme.colors.primary.base};
+          border: 1px dashed ${theme.colorPrimary};
           z-index: 2;
         }
       }
@@ -255,7 +252,7 @@ const DashboardContentWrapper = styled.div`
 
     & .dashboard-component-tabs-content {
       & > div:not(:last-child):not(.empty-droptarget) {
-        margin-bottom: ${theme.gridUnit * 4}px;
+        margin-bottom: ${theme.sizeUnit * 4}px;
       }
 
       & > .empty-droptarget {
@@ -265,13 +262,13 @@ const DashboardContentWrapper = styled.div`
       }
 
       & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
-        height: ${theme.gridUnit * 4}px;
+        height: ${theme.sizeUnit * 4}px;
         top: 0;
       }
 
       & > .empty-droptarget:last-child {
-        height: ${theme.gridUnit * 4}px;
-        bottom: ${-theme.gridUnit * 4}px;
+        height: ${theme.sizeUnit * 4}px;
+        bottom: ${-theme.sizeUnit * 4}px;
       }
     }
   `}
@@ -298,15 +295,15 @@ const StyledDashboardContent = styled.div<{
       width: 0;
       flex: 1;
       position: relative;
-      margin-top: ${theme.gridUnit * 6}px;
-      margin-right: ${theme.gridUnit * 8}px;
-      margin-bottom: ${theme.gridUnit * 6}px;
+      margin-top: ${theme.sizeUnit * 6}px;
+      margin-right: ${theme.sizeUnit * 8}px;
+      margin-bottom: ${theme.sizeUnit * 6}px;
       margin-left: ${marginLeft}px;
 
       ${editMode &&
       `
       max-width: calc(100% - ${
-        BUILDER_SIDEPANEL_WIDTH + theme.gridUnit * 16
+        BUILDER_SIDEPANEL_WIDTH + theme.sizeUnit * 16
       }px);
     `}
 
@@ -324,26 +321,22 @@ const StyledDashboardContent = styled.div<{
     .dashboard-component-chart-holder {
       width: 100%;
       height: 100%;
-      background-color: ${theme.colors.grayscale.light5};
+      background-color: ${theme.colorBgContainer};
       position: relative;
-      padding: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit * 4}px;
       overflow-y: visible;
 
       // transitionable traits to show filter relevance
       transition:
-        opacity ${theme.transitionTiming}s ease-in-out,
-        border-color ${theme.transitionTiming}s ease-in-out,
-        box-shadow ${theme.transitionTiming}s ease-in-out;
+        opacity ${theme.motionDurationMid} ease-in-out,
+        border-color ${theme.motionDurationMid} ease-in-out,
+        box-shadow ${theme.motionDurationMid} ease-in-out;
 
       &.fade-in {
         border-radius: ${theme.borderRadius}px;
         box-shadow:
-          inset 0 0 0 2px ${theme.colors.primary.base},
-          0 0 0 3px
-            ${addAlpha(
-              theme.colors.primary.base,
-              parseFloat(theme.opacity.light) / 100,
-            )};
+          inset 0 0 0 2px ${theme.colorPrimary},
+          0 0 0 3px ${addAlpha(theme.colorPrimary, 0.1)};
       }
 
       &.fade-out {
@@ -359,7 +352,7 @@ const StyledDashboardContent = styled.div<{
         justify-content: center;
 
         .missing-chart-body {
-          font-size: ${theme.typography.sizes.s}px;
+          font-size: ${theme.fontSizeSM}px;
           position: relative;
           display: flex;
         }
@@ -577,7 +570,7 @@ const DashboardBuilder = () => {
     nativeFiltersEnabled &&
     filterBarOrientation !== FilterBarOrientation.Horizontal
       ? 0
-      : theme.gridUnit * 8;
+      : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
     adjustedWidth => {

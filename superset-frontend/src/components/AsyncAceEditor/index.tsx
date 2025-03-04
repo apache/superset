@@ -191,44 +191,47 @@ export default function AsyncAceEditor(
           <>
             <Global
               styles={css`
+                .ace_editor {
+                  border: 1px solid ${supersetTheme.colorBorder} !important;
+                }
                 .ace_tooltip {
-                  margin-left: ${supersetTheme.gridUnit * 2}px;
+                  margin-left: ${supersetTheme.sizeUnit * 2}px;
                   padding: 0px;
-                  border: 1px solid ${supersetTheme.colors.grayscale.light1};
+                  border: 1px solid ${supersetTheme.colorBorderSecondary};
                 }
 
                 & .tooltip-detail {
                   background-color: ${supersetTheme.colors.grayscale.light5};
                   white-space: pre-wrap;
                   word-break: break-all;
-                  min-width: ${supersetTheme.gridUnit * 50}px;
-                  max-width: ${supersetTheme.gridUnit * 100}px;
+                  min-width: ${supersetTheme.sizeUnit * 50}px;
+                  max-width: ${supersetTheme.sizeUnit * 100}px;
                   & .tooltip-detail-head {
                     background-color: ${supersetTheme.colors.grayscale.light4};
                     color: ${supersetTheme.colors.grayscale.dark1};
                     display: flex;
-                    column-gap: ${supersetTheme.gridUnit}px;
+                    column-gap: ${supersetTheme.sizeUnit}px;
                     align-items: baseline;
                     justify-content: space-between;
                   }
                   & .tooltip-detail-title {
                     display: flex;
-                    column-gap: ${supersetTheme.gridUnit}px;
+                    column-gap: ${supersetTheme.sizeUnit}px;
                   }
                   & .tooltip-detail-body {
                     word-break: break-word;
                   }
                   & .tooltip-detail-head,
                   & .tooltip-detail-body {
-                    padding: ${supersetTheme.gridUnit}px
-                      ${supersetTheme.gridUnit * 2}px;
+                    padding: ${supersetTheme.sizeUnit}px
+                      ${supersetTheme.sizeUnit * 2}px;
                   }
                   & .tooltip-detail-footer {
                     border-top: 1px ${supersetTheme.colors.grayscale.light2}
                       solid;
-                    padding: 0 ${supersetTheme.gridUnit * 2}px;
+                    padding: 0 ${supersetTheme.sizeUnit * 2}px;
                     color: ${supersetTheme.colors.grayscale.dark1};
-                    font-size: ${supersetTheme.typography.sizes.xs}px;
+                    font-size: ${supersetTheme.fontSizeXS}px;
                   }
                   & .tooltip-detail-meta {
                     & > .ant-tag {

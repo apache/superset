@@ -83,18 +83,18 @@ const MetadataItem: FC<{
 }> = ({ label, value, tooltipText }) => (
   <div
     css={(theme: Theme) => css`
-      font-size: ${theme.typography.sizes.s}px;
+      font-size: ${theme.fontSizeSM}px;
       display: flex;
       justify-content: space-between;
 
       &:not(:last-child) {
-        margin-bottom: ${theme.gridUnit}px;
+        margin-bottom: ${theme.sizeUnit}px;
       }
     `}
   >
     <span
       css={(theme: Theme) => css`
-        margin-right: ${theme.gridUnit * 4}px;
+        margin-right: ${theme.sizeUnit * 4}px;
         color: ${theme.colors.grayscale.base};
       `}
     >
@@ -120,13 +120,13 @@ const SliceAddedBadgePlaceholder: FC<{
     ref={placeholderRef}
     css={(theme: Theme) => css`
       /* Display styles */
-      border: 1px solid ${theme.colors.primary.dark1};
-      border-radius: ${theme.gridUnit}px;
-      color: ${theme.colors.primary.dark1};
-      font-size: ${theme.typography.sizes.xs}px;
+      border: 1px solid ${theme.colorPrimaryText};
+      border-radius: ${theme.sizeUnit}px;
+      color: ${theme.colorPrimaryText};
+      font-size: ${theme.fontSizeXS}px;
       letter-spacing: 0.02em;
-      padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px;
+      margin-left: ${theme.sizeUnit * 4}px;
       pointer-events: none;
 
       /* Position styles */
@@ -146,13 +146,13 @@ const SliceAddedBadge: FC<{ placeholder?: HTMLDivElement }> = ({
   <div
     css={(theme: Theme) => css`
       /* Display styles */
-      border: 1px solid ${theme.colors.primary.dark1};
-      border-radius: ${theme.gridUnit}px;
-      color: ${theme.colors.primary.dark1};
-      font-size: ${theme.typography.sizes.xs}px;
+      border: 1px solid ${theme.colorPrimaryText};
+      border-radius: ${theme.sizeUnit}px;
+      color: ${theme.colorPrimaryText};
+      font-size: ${theme.fontSizeXS}px;
       letter-spacing: 0.02em;
-      padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-      margin-left: ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px;
+      margin-left: ${theme.sizeUnit * 4}px;
       pointer-events: none;
 
       /* Position styles */
@@ -201,20 +201,19 @@ const AddSliceCard: FC<{
         data-test="chart-card"
         css={(theme: Theme) => css`
           border: 1px solid ${theme.colors.grayscale.light2};
-          border-radius: ${theme.gridUnit}px;
-          background: ${theme.colors.grayscale.light5};
-          padding: ${theme.gridUnit * 4}px;
-          margin: 0 ${theme.gridUnit * 3}px ${theme.gridUnit * 3}px
-            ${theme.gridUnit * 3}px;
+          border-radius: ${theme.sizeUnit}px;
+          padding: ${theme.sizeUnit * 4}px;
+          margin: 0 ${theme.sizeUnit * 3}px ${theme.sizeUnit * 3}px
+            ${theme.sizeUnit * 3}px;
           position: relative;
           cursor: ${isSelected ? 'not-allowed' : 'move'};
           white-space: nowrap;
           overflow: hidden;
           line-height: 1.3;
-          color: ${theme.colors.grayscale.dark1};
+          color: ${theme.colorText};
 
           &:hover {
-            background: ${theme.colors.grayscale.light4};
+            //background: ${theme.colors.grayscale.light4};
           }
 
           opacity: ${isSelected ? 0.4 : 'unset'};
@@ -257,8 +256,8 @@ const AddSliceCard: FC<{
             <div
               data-test="card-title"
               css={(theme: Theme) => css`
-                margin-bottom: ${theme.gridUnit * 2}px;
-                font-weight: ${theme.typography.weights.bold};
+                margin-bottom: ${theme.sizeUnit * 2}px;
+                font-weight: ${theme.fontWeightStrong};
                 display: flex;
                 justify-content: space-between;
                 align-items: center;

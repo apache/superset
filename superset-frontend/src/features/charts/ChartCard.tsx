@@ -155,9 +155,7 @@ export default function ChartCard({
         imgFallbackURL="/static/assets/images/chart-card-fallback.svg"
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
-        coverRight={
-          <Label type="secondary">{chart.datasource_name_text}</Label>
-        }
+        coverRight={<Label>{chart.datasource_name_text}</Label>}
         linkComponent={Link}
         actions={
           <ListViewCard.Actions
@@ -174,7 +172,7 @@ export default function ChartCard({
               />
             )}
             <Dropdown dropdownRender={() => menu} trigger={['click', 'hover']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
               </Button>
             </Dropdown>

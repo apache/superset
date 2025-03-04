@@ -40,7 +40,7 @@ const StyleOverrides = styled.span`
   display: flex;
   align-items: center;
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -82,7 +82,7 @@ export function ColumnOption({
         <span
           className="option-label column-option-label"
           css={(theme: SupersetTheme) => css`
-            margin-right: ${theme.gridUnit}px;
+            margin-right: ${theme.sizeUnit}px;
           `}
           ref={labelRef}
         >

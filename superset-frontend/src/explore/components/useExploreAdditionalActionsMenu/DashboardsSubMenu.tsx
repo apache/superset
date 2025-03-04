@@ -60,7 +60,7 @@ const DashboardsSubMenu = ({
           prefix={<Icons.Search iconSize="l" />}
           css={css`
             width: ${WIDTH}px;
-            margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
+            margin: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
           `}
           value={dashboardSearch}
           onChange={e => setDashboardSearch(e.currentTarget.value)}
@@ -107,7 +107,7 @@ const DashboardsSubMenu = ({
                   iconSize="l"
                   iconColor={theme.colors.grayscale.base}
                   css={css`
-                    margin-left: ${theme.gridUnit * 2}px;
+                    margin-left: ${theme.sizeUnit * 2}px;
                     visibility: ${hoveredItem === dashboard.id
                       ? 'visible'
                       : 'hidden'};
@@ -120,8 +120,8 @@ const DashboardsSubMenu = ({
         {noResultsFound && (
           <div
             css={css`
-              margin-left: ${theme.gridUnit * 3}px;
-              margin-bottom: ${theme.gridUnit}px;
+              margin-left: ${theme.sizeUnit * 3}px;
+              margin-bottom: ${theme.sizeUnit}px;
             `}
           >
             {t('No results found')}

@@ -92,7 +92,7 @@ interface ScheduleQueryButtonProps {
 }
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 export const StyledButtonComponent = styled(Button)`
@@ -100,17 +100,14 @@ export const StyledButtonComponent = styled(Button)`
     background: none;
     text-transform: none;
     padding: 0px;
-    color: ${theme.colors.grayscale.dark2};
     font-size: 14px;
-    font-weight: ${theme.typography.weights.normal};
+    font-weight: ${theme.fontWeightNormal};
     margin-left: 0;
     &:disabled {
       margin-left: 0;
       background: none;
-      color: ${theme.colors.grayscale.dark2};
       &:hover {
         background: none;
-        color: ${theme.colors.grayscale.dark2};
       }
     }
   `}

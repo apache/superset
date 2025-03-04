@@ -80,7 +80,7 @@ export default function Field<V>({
         <div
           css={(theme: SupersetTheme) => ({
             color: theme.colors.grayscale.base,
-            [inline ? 'marginLeft' : 'marginTop']: theme.gridUnit,
+            [inline ? 'marginLeft' : 'marginTop']: theme.sizeUnit,
           })}
         >
           {description}

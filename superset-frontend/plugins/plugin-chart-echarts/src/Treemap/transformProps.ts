@@ -238,7 +238,7 @@ export default function transformProps(
         show: false,
       },
       itemStyle: {
-        color: theme.colors.primary.base,
+        color: theme.colorPrimary,
       },
     },
   ];

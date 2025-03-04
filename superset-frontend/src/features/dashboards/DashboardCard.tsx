@@ -181,7 +181,7 @@ function DashboardCard({
               />
             )}
             <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
-              <Button buttonSize="xsmall" type="link">
+              <Button buttonSize="xsmall" buttonStyle="link">
                 <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
               </Button>
             </Dropdown>

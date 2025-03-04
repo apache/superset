@@ -23,7 +23,7 @@ This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
 
 ## Next
-
+- [31590](https://github.com/apache/superset/pull/31590) Marks the begining of intricate work around supporting dynamic Theming, and breaks support for [THEME_OVERRIDES](https://github.com/apache/superset/blob/732de4ac7fae88e29b7f123b6cbb2d7cd411b0e4/superset/config.py#L671) in favor of a new theming system based on AntD V5. Likely this will be in disrepair until settling over the 5.x lifecycle.
 - [31976](https://github.com/apache/superset/pull/31976) Removed the `DISABLE_LEGACY_DATASOURCE_EDITOR` feature flag. The previous value of the feature flag was `True` and now the feature is permanently removed.
 - [31959](https://github.com/apache/superset/pull/32000) Removes CSV_UPLOAD_MAX_SIZE config, use your web server to control file upload size.
 - [31959](https://github.com/apache/superset/pull/31959) Removes the following endpoints from data uploads: `/api/v1/database/<id>/<file type>_upload` and `/api/v1/database/<file type>_metadata`, in favour of new one (Details on the PR). And simplifies permissions.

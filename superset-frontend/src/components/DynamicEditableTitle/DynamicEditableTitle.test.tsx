@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { DynamicEditableTitle } from '.';
+import DynamicEditableTitle from '.';
 
 const createProps = (overrides: Record<string, any> = {}) => ({
   title: 'Chart title',

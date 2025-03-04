@@ -58,9 +58,9 @@ const StyledDiv = styled.div`
 
     /* A row within a column has inset hover menu */
     .dragdroppable-column .dragdroppable-row .hover-menu--left {
-      left: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
-      border: 1px solid ${theme.colors.grayscale.light2};
+      left: ${theme.sizeUnit * -3}px;
+      background-color: ${theme.colorBgContainer};
+      border: 1px solid ${theme.colorBorder};
     }
 
     .dashboard-component-tabs {
@@ -70,9 +70,9 @@ const StyledDiv = styled.div`
     /* A column within a column or tabs has inset hover menu */
     .dragdroppable-column .dragdroppable-column .hover-menu--top,
     .dashboard-component-tabs .dragdroppable-column .hover-menu--top {
-      top: ${theme.gridUnit * -3}px;
-      background: ${theme.colors.grayscale.light5};
-      border: 1px solid ${theme.colors.grayscale.light2};
+      top: ${theme.sizeUnit * -3}px;
+      background-color: ${theme.colorBgContainer};
+      border: 1px solid ${theme.colorBorder};
     }
 
     /* move Tabs hover menu to top near actual Tabs */
@@ -85,8 +85,8 @@ const StyledDiv = styled.div`
     /* push Chart actions to upper right */
     .dragdroppable-column .dashboard-component-chart-holder .hover-menu--top,
     .dragdroppable .dashboard-component-header .hover-menu--top {
-      right: ${theme.gridUnit * 2}px;
-      top: ${theme.gridUnit * 2}px;
+      right: ${theme.sizeUnit * 2}px;
+      top: ${theme.sizeUnit * 2}px;
       background: transparent;
       border: none;
       transform: unset;
@@ -98,15 +98,15 @@ const StyledDiv = styled.div`
     }
 
     p {
-      margin: 0 0 ${theme.gridUnit * 2}px 0;
+      margin: 0 0 ${theme.sizeUnit * 2}px 0;
     }
 
     i.danger {
-      color: ${theme.colors.error.base};
+      color: ${theme.colorError};
     }
 
     i.warning {
-      color: ${theme.colors.warning.base};
+      color: ${theme.colorWarning};
     }
   `}
 `;

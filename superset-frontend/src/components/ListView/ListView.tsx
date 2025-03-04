@@ -45,17 +45,17 @@ const ListViewStyles = styled.div`
   .superset-list-view {
     text-align: left;
     border-radius: 4px 0;
-    margin: 0 ${({ theme }) => theme.gridUnit * 4}px;
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px;
 
     .header {
       display: flex;
-      padding-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+      padding-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
       & .controls {
         display: flex;
         flex-wrap: wrap;
-        column-gap: ${({ theme }) => theme.gridUnit * 6}px;
-        row-gap: ${({ theme }) => theme.gridUnit * 4}px;
+        column-gap: ${({ theme }) => theme.sizeUnit * 6}px;
+        row-gap: ${({ theme }) => theme.sizeUnit * 4}px;
       }
     }
 
@@ -78,11 +78,11 @@ const ListViewStyles = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
-    margin-bottom: ${({ theme }) => theme.gridUnit * 4}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
   }
 
   .row-count-container {
-    margin-top: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
 `;
@@ -91,33 +91,33 @@ const BulkSelectWrapper = styled(Alert)`
   ${({ theme }) => `
     border-radius: 0;
     margin-bottom: 0;
-    color: ${theme.colors.grayscale.dark1};
-    background-color: ${theme.colors.primary.light4};
+    color: ${theme.colorText};
+    background-color: ${theme.colorPrimaryBg};
 
     .selectedCopy {
       display: inline-block;
-      padding: ${theme.gridUnit * 2}px 0;
+      padding: ${theme.sizeUnit * 2}px 0;
     }
 
     .deselect-all, .tag-btn {
-      color: ${theme.colors.primary.base};
-      margin-left: ${theme.gridUnit * 4}px;
+      color: ${theme.colorPrimary};
+      margin-left: ${theme.sizeUnit * 4}px;
     }
 
     .divider {
-      margin: ${`${-theme.gridUnit * 2}px 0 ${-theme.gridUnit * 2}px ${
-        theme.gridUnit * 4
+      margin: ${`${-theme.sizeUnit * 2}px 0 ${-theme.sizeUnit * 2}px ${
+        theme.sizeUnit * 4
       }px`};
       width: 1px;
-      height: ${theme.gridUnit * 8}px;
-      box-shadow: inset -1px 0px 0px ${theme.colors.grayscale.light2};
+      height: ${theme.sizeUnit * 8}px;
+      box-shadow: inset -1px 0px 0px ${theme.colorBorder};
       display: inline-flex;
       vertical-align: middle;
       position: relative;
     }
 
     .ant-alert-close-icon {
-      margin-top: ${theme.gridUnit * 1.5}px;
+      margin-top: ${theme.sizeUnit * 1.5}px;
     }
   `}
 `;
@@ -138,35 +138,35 @@ const bulkSelectColumnConfig = {
 };
 
 const ViewModeContainer = styled.div`
-  padding-right: ${({ theme }) => theme.gridUnit * 4}px;
-  margin-top: ${({ theme }) => theme.gridUnit * 5 + 1}px;
+  padding-right: ${({ theme }) => theme.sizeUnit * 4}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 5 + 1}px;
   white-space: nowrap;
   display: inline-block;
 
   .toggle-button {
     display: inline-block;
-    border-radius: ${({ theme }) => theme.gridUnit / 2}px;
-    padding: ${({ theme }) => theme.gridUnit}px;
-    padding-bottom: ${({ theme }) => theme.gridUnit * 0.5}px;
+    border-radius: ${({ theme }) => theme.sizeUnit / 2}px;
+    padding: ${({ theme }) => theme.sizeUnit}px;
+    padding-bottom: ${({ theme }) => theme.sizeUnit * 0.5}px;
 
     &:first-of-type {
-      margin-right: ${({ theme }) => theme.gridUnit * 2}px;
+      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
 
   .active {
     background-color: ${({ theme }) => theme.colors.grayscale.base};
     svg {
-      color: ${({ theme }) => theme.colors.grayscale.light5};
+      color: ${({ theme }) => theme.colorBgLayout};
     }
   }
 `;
 
 const EmptyWrapper = styled.div`
-  padding: ${({ theme }) => theme.gridUnit * 40}px 0;
+  padding: ${({ theme }) => theme.sizeUnit * 40}px 0;
 
   &.table {
-    background: ${({ theme }) => theme.colors.grayscale.light5};
+    background: ${({ theme }) => theme.colorBgContainer};
   }
 `;
 

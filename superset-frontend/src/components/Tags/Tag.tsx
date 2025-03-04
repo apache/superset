@@ -26,8 +26,8 @@ import { CloseOutlined } from '@ant-design/icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
-  margin-top: ${theme.gridUnit}px;
-  margin-bottom: ${theme.gridUnit}px;
+  margin-top: ${theme.sizeUnit}px;
+  margin-bottom: ${theme.sizeUnit}px;
   `};
 `;
 

@@ -406,10 +406,10 @@ export default function transformProps(
   const echartOptions: EChartsOption = {
     grid: {
       ...defaultGrid,
-      top: theme.gridUnit * 7,
-      bottom: theme.gridUnit * 7,
-      left: theme.gridUnit * 5,
-      right: theme.gridUnit * 7,
+      top: theme.sizeUnit * 7,
+      bottom: theme.sizeUnit * 7,
+      left: theme.sizeUnit * 5,
+      right: theme.sizeUnit * 7,
     },
     legend: {
       show: showLegend,
@@ -421,7 +421,7 @@ export default function transformProps(
       type: 'category',
       name: xAxisLabel,
       nameTextStyle: {
-        padding: [theme.gridUnit * 4, 0, 0, 0],
+        padding: [theme.sizeUnit * 4, 0, 0, 0],
       },
       nameLocation: 'middle',
       axisLabel,
@@ -430,7 +430,7 @@ export default function transformProps(
       ...defaultYAxis,
       type: 'value',
       nameTextStyle: {
-        padding: [0, 0, theme.gridUnit * 5, 0],
+        padding: [0, 0, theme.sizeUnit * 5, 0],
       },
       nameLocation: 'middle',
       name: yAxisLabel,

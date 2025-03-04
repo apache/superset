@@ -121,20 +121,20 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
     `}
   ${({ theme }) => `
     th span {
-      vertical-align: ${theme.gridUnit * -2}px;
+      vertical-align: ${theme.sizeUnit * -2}px;
     }
     .text-right {
       text-align: right;
     }
     .empty-collection {
-      padding: ${theme.gridUnit * 2 + 2}px;
+      padding: ${theme.sizeUnit * 2 + 2}px;
     }
     .tiny-cell {
-      width: ${theme.gridUnit + 1}px;
+      width: ${theme.sizeUnit + 1}px;
     }
     i.fa-caret-down,
     i.fa-caret-up {
-      width: ${theme.gridUnit + 1}px;
+      width: ${theme.sizeUnit + 1}px;
     }
     td.expanded {
       border-top: 0;
@@ -145,13 +145,13 @@ const CrudTableWrapper = styled.div<{ stickyHeader?: boolean }>`
 
 const CrudButtonWrapper = styled.div`
   text-align: right;
-  ${({ theme }) => `margin-bottom: ${theme.gridUnit * 2}px`}
+  ${({ theme }) => `margin-bottom: ${theme.sizeUnit * 2}px`}
 `;
 
 const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
-    margin-top: ${theme.gridUnit * 3}px;
-    margin-left: ${theme.gridUnit * 3}px;
+    margin-top: ${theme.sizeUnit * 3}px;
+    margin-left: ${theme.sizeUnit * 3}px;
   `}
 `;
 
@@ -480,7 +480,7 @@ export default class CRUDCollection extends PureComponent<
             <StyledButtonWrapper>
               <Button
                 buttonSize="small"
-                buttonStyle="tertiary"
+                buttonStyle="secondary"
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >

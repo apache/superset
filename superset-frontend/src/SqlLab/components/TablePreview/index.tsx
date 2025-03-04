@@ -83,9 +83,9 @@ const Title = styled.div`
   display: flex;
   flex-direction: row;
   align-items: center;
-  column-gap: ${({ theme }) => theme.gridUnit}px;
-  font-size: ${({ theme }) => theme.typography.sizes.l}px;
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
+  column-gap: ${({ theme }) => theme.sizeUnit}px;
+  font-size: ${({ theme }) => theme.fontSizeLG}px;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
 const renderWell = (partitions: TableMetaData['partitions']) => {
@@ -324,7 +324,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
           )}
           trigger={['click']}
         >
-          <Button buttonSize="xsmall" type="link">
+          <Button buttonSize="xsmall" buttonStyle="link">
             <Icons.DownSquareOutlined
               iconSize="m"
               style={{ marginTop: 2, marginLeft: 4 }}

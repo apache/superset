@@ -36,20 +36,20 @@ const StyledContainer = styled.div<{ checked: boolean }>`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  min-height: ${({ theme }) => theme.gridUnit * 10}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 2 + 2}px;
+  min-height: ${({ theme }) => theme.sizeUnit * 10}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2 + 2}px;
 
   .checkbox {
-    margin-bottom: ${({ theme, checked }) => (checked ? theme.gridUnit : 0)}px;
+    margin-bottom: ${({ theme, checked }) => (checked ? theme.sizeUnit : 0)}px;
   }
 
   & > div {
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 const ChildrenContainer = styled.div`
-  margin-left: ${({ theme }) => theme.gridUnit * 6}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 6}px;
 `;
 
 const CollapsibleControl = (props: CollapsibleControlProps) => {

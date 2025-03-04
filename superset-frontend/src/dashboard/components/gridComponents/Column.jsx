@@ -70,7 +70,7 @@ const ColumnStyles = styled.div`
       position: relative;
 
       & > :not(.hover-menu):not(:last-child) {
-        ${!editMode && `margin-bottom: ${theme.gridUnit * 4}px;`}
+        ${!editMode && `margin-bottom: ${theme.sizeUnit * 4}px;`}
       }
     }
 
@@ -87,7 +87,7 @@ const ColumnStyles = styled.div`
     }
     .dashboard--editing .resizable-container--resizing:hover > &:after,
     .dashboard--editing .hover-menu:hover + &:after {
-      border: 1px dashed ${theme.colors.primary.base};
+      border: 1px dashed ${theme.colorPrimary};
       z-index: 2;
     }
 
@@ -110,13 +110,13 @@ const ColumnStyles = styled.div`
 `;
 
 const emptyColumnContentStyles = theme => css`
-  min-height: ${theme.gridUnit * 25}px;
+  min-height: ${theme.sizeUnit * 25}px;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${theme.colors.text.label};
+  color: ${theme.colorTextLabel};
 `;
 
 const Column = props => {

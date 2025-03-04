@@ -359,14 +359,14 @@ export const CardContainer = styled.div<{
   ${({ showThumbnails, theme }) => `
     overflow: hidden;
     display: grid;
-    grid-gap: ${theme.gridUnit * 12}px ${theme.gridUnit * 4}px;
+    grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
     grid-template-columns: repeat(auto-fit, 300px);
     max-height: ${showThumbnails ? '314' : '148'}px;
-    margin-top: ${theme.gridUnit * -6}px;
+    margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
-        ? `${theme.gridUnit * 8 + 3}px ${theme.gridUnit * 9}px`
-        : `${theme.gridUnit * 8 + 1}px ${theme.gridUnit * 9}px`
+        ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 9}px`
+        : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 9}px`
     };
   `}
 `;
@@ -383,7 +383,7 @@ export const CardStyles = styled.div`
 `;
 
 export const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
+  margin: auto ${theme.sizeUnit * 2}px auto 0;
   color: ${theme.colors.grayscale.base};
 `;
 

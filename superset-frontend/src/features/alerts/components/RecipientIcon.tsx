@@ -24,7 +24,7 @@ import { NotificationMethodOption } from '../types';
 
 const StyledIcon = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
-  margin-right: ${theme.gridUnit * 2}px;
+  margin-right: ${theme.sizeUnit * 2}px;
 `;
 
 export default function RecipientIcon({ type }: { type: string }) {

@@ -36,7 +36,7 @@ interface TableCollectionProps {
 
 export const Table = styled.table`
   ${({ theme }) => `
-    background-color: ${theme.colors.grayscale.light5};
+    background-color: ${theme.colorBgContainer};
     border-collapse: separate;
     border-radius: ${theme.borderRadius}px;
 
@@ -50,12 +50,11 @@ export const Table = styled.table`
       }
     }
     th {
-      background: ${theme.colors.grayscale.light5};
       position: sticky;
       top: 0;
 
       &:first-of-type {
-        padding-left: ${theme.gridUnit * 4}px;
+        padding-left: ${theme.sizeUnit * 4}px;
       }
 
       &.xs {
@@ -115,7 +114,7 @@ export const Table = styled.table`
       position: relative;
 
       .loading-bar {
-        background-color: ${theme.colors.secondary.light4};
+        background-color: ${theme.colorBgTextHover};
         border-radius: 7px;
 
         span {
@@ -140,7 +139,7 @@ export const Table = styled.table`
 
         &:hover {
           path {
-            fill: ${theme.colors.primary.base};
+            fill: ${theme.colorPrimary};
           }
         }
       }
@@ -149,25 +148,25 @@ export const Table = styled.table`
     .table-row {
       .actions {
         opacity: 0;
-        font-size: ${theme.typography.sizes.xl}px;
+        font-size: ${theme.fontSizeXL}px;
         display: flex;
       }
 
       &:hover {
-        background-color: ${theme.colors.secondary.light5};
+        background-color: ${theme.colorBgTextHover};
 
         .actions {
           opacity: 1;
-          transition: opacity ease-in ${theme.transitionTiming}s;
+          transition: opacity ease-in ${theme.motionDurationMid};
         }
       }
     }
 
     .table-row-selected {
-      background-color: ${theme.colors.secondary.light4};
+      background-color: ${theme.colorPrimaryBgHover};
 
       &:hover {
-        background-color: ${theme.colors.secondary.light4};
+        background-color: ${theme.colorPrimaryBgHover};
       }
     }
 
@@ -179,7 +178,7 @@ export const Table = styled.table`
       line-height: 1;
       vertical-align: middle;
       &:first-of-type {
-        padding-left: ${theme.gridUnit * 4}px;
+        padding-left: ${theme.sizeUnit * 4}px;
       }
       &__wrap {
         white-space: normal;

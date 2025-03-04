@@ -28,15 +28,15 @@ import { DatabaseObject, FieldPropTypes } from '../types';
 import { AuthType } from '.';
 
 const StyledDiv = styled.div`
-  padding-top: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   label {
     color: ${({ theme }) => theme.colors.grayscale.base};
-    margin-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 `;
 
 const StyledRow = styled(Row)`
-  padding-bottom: ${({ theme }) => theme.gridUnit * 2}px;
+  padding-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 const StyledFormItem = styled(AntdForm.Item)`
@@ -44,7 +44,7 @@ const StyledFormItem = styled(AntdForm.Item)`
 `;
 
 const StyledInputPassword = styled(AntdInput.Password)`
-  margin: ${({ theme }) => `${theme.gridUnit}px 0 ${theme.gridUnit * 2}px`};
+  margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
 const SSHTunnelForm = ({

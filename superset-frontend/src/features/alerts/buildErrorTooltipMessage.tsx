@@ -21,8 +21,8 @@ import { ValidationObject } from './types';
 import { TRANSLATIONS } from './AlertReportModal';
 
 const StyledList = styled.ul`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  padding-inline-start: ${({ theme }) => theme.gridUnit * 3}px;
+  margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+  padding-inline-start: ${({ theme }) => theme.sizeUnit * 3}px;
 `;
 
 export const buildErrorTooltipMessage = (
