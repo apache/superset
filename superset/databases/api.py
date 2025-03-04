@@ -1390,7 +1390,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         state = decode_oauth2_state(parameters["state"])
 
         # exchange code for access/refresh tokens
-        database = DatabaseDAO.find_by_id(state["database_id"])
+        database = DatabaseDAO.find_by_id(state["database_id"], skip_base_filter=True)
         if database is None:
             return self.response_404()
 
