@@ -34,6 +34,8 @@ import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import { useFilterSets } from './state'; // DODO added 44211751
 
+const isStandalone = process.env.type === undefined; // DODO added 44611022
+
 const BarWrapper = styled.div<{ width: number }>`
   width: ${({ theme }) => theme.gridUnit * 8}px;
 
@@ -191,7 +193,8 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <FilterBarEmptyStateContainer>
           <EmptyStateSmall
             title={t('No global filters are currently added')}
-            image="filter.svg"
+            // image="filter.svg"
+            image={isStandalone ? 'filter.svg' : undefined} // DODO changed 44611022
             description={
               canEdit &&
               t(

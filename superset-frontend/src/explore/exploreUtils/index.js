@@ -1,26 +1,11 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 
 import { useCallback, useEffect } from 'react';
 /* eslint camelcase: 0 */
 import URI from 'urijs';
+import FileSaver from 'file-saver'; // DODO added 44611022
 import {
+  API_HANDLER, // DODO added 44611022
   buildQueryContext,
   ensureIsArray,
   getChartBuildQueryRegistry,
@@ -30,7 +15,7 @@ import {
 import { availableDomains } from 'src/utils/hostNamesConfig';
 import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
-import { URL_PARAMS } from 'src/constants';
+import { CSV_MIME, URL_PARAMS, XLSX, XLSX_MIME } from 'src/constants';
 import {
   MULTI_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
@@ -114,6 +99,19 @@ export function getChartDataUri({ path, qs, allowDomainSharding = false }) {
     port: window.location.port ? window.location.port : '',
     path,
   });
+  if (qs) {
+    uri = uri.search(qs);
+  }
+  return uri;
+}
+
+// DODO added 44611022
+export function getChartDataUriPlugin({
+  path,
+  qs,
+  // allowDomainSharding = false,
+}) {
+  let uri = new URI({ path });
   if (qs) {
     uri = uri.search(qs);
   }
@@ -234,40 +232,162 @@ export const buildV1ChartDataPayload = ({
   );
 };
 
+// DODO added 44611022
+export const getExportedData = async (url, payload, isLegacy, resultFormat) => {
+  const params = {
+    method: 'post',
+    url,
+    body: payload,
+    ...(resultFormat === XLSX && { responseType: 'blob' }),
+  };
+
+  const response = isLegacy
+    ? await API_HANDLER.SupersetClientNoApi(params)
+    : await API_HANDLER.SupersetClient(params);
+
+  return response?.result?.[0] ?? response ?? null;
+};
+
 export const getLegacyEndpointType = ({ resultType, resultFormat }) =>
   resultFormat === 'csv' ? resultFormat : resultType;
 
-export const exportChart = ({
+// DODO added start 44611022
+export const exportChartPlugin = ({
   formData,
   resultFormat = 'json',
   resultType = 'full',
   force = false,
   ownState = {},
+  language = 'en',
+  datasourceMetrics = [],
 }) => {
-  let url;
-  let payload;
   const [useLegacyApi, parseMethod] = getQuerySettings(formData);
   if (useLegacyApi) {
     const endpointType = getLegacyEndpointType({ resultFormat, resultType });
-    url = getExploreUrl({
+    const rawUrl = getExploreUrl({
       formData,
       endpointType,
       allowDomainSharding: false,
     });
-    payload = formData;
-  } else {
-    url = '/api/v1/chart/data';
-    payload = buildV1ChartDataPayload({
-      formData,
-      force,
+
+    const fixedUrl =
+      rawUrl?.replace(`${window.location.origin}/superset`, '') || null;
+    const updatedUrl = `${fixedUrl}&language=${language}${
+      resultFormat === XLSX ? `&${XLSX}=true` : ''
+    }`;
+
+    console.groupCollapsed('EXPORT CSV/XLSX legacy');
+    console.log({
+      url: rawUrl,
+      fixedUrl,
+      payload: formData,
       resultFormat,
-      resultType,
-      ownState,
-      parseMethod,
+      updatedUrl,
     });
+    console.groupEnd();
+
+    return getExportedData(updatedUrl, formData, true, resultFormat);
   }
 
-  SupersetClient.postForm(url, { form_data: safeStringify(payload) });
+  const url = '/api/v1/chart/data';
+  const payload = buildV1ChartDataPayload({
+    formData,
+    force,
+    resultFormat,
+    resultType,
+    ownState,
+    parseMethod,
+    // DODO added
+    language,
+    datasourceMetrics, // DODO added 33638561
+  });
+
+  console.groupCollapsed('EXPORT CSV/XLSX');
+  console.log({ url, payload });
+  console.groupEnd();
+
+  return getExportedData(url, payload, false, resultFormat);
+};
+
+const generateFileName = (filename, extension) =>
+  `${filename ? filename.split(' ').join('_') : 'data'}.${extension}`;
+
+const getExportedChartName = (slice = {}, extension) => {
+  const sliceName = slice?.slice_name || 'viz_type';
+  const vizType = slice?.viz_type || 'viz_type';
+  const timeGrain =
+    slice?.form_data?.time_grain_sqla ||
+    slice?.form_data?.time_range ||
+    'time_grain_sqla';
+
+  return generateFileName(
+    `${sliceName}__${timeGrain}__${vizType}-chart`,
+    extension,
+  );
+};
+// DODO added stop 44611022
+
+// DODO changed 44611022
+export const exportChart = async ({
+  formData,
+  resultFormat = 'json',
+  resultType = 'full',
+  force = false,
+  ownState = {},
+  slice = {},
+  language = 'en',
+  datasourceMetrics = [],
+}) => {
+  const exportResultPromise = exportChartPlugin({
+    formData,
+    resultFormat,
+    resultType,
+    force,
+    ownState,
+    language,
+    datasourceMetrics,
+  });
+
+  try {
+    const exportResult = await exportResultPromise;
+    if (!exportResult || (exportResult.code && exportResult.message)) {
+      throw exportResult;
+    }
+
+    const extension = resultFormat; // csv | xlsx
+    const blobType = extension === XLSX ? XLSX_MIME : CSV_MIME;
+
+    const outputFilename = getExportedChartName(slice, extension);
+
+    if (extension === XLSX) {
+      const url = URL.createObjectURL(
+        new Blob([exportResult], {
+          type: blobType,
+        }),
+      );
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', outputFilename);
+      document.body.appendChild(link);
+      link.click();
+    } else {
+      const universalBOM = '\uFEFF';
+      const alteredResult = universalBOM + exportResult;
+      const csvFile = new Blob([alteredResult], {
+        type: blobType,
+      });
+      FileSaver.saveAs(csvFile, outputFilename);
+    }
+  } catch (error) {
+    console.error('csvExportError', error);
+    // eslint-disable-next-line no-alert
+    alert(
+      `Unfortunately, you cannot download ${resultFormat} file. Reason: ${
+        error.message || 'Unexpected'
+      } [${error.code || 'Unknown'}]`,
+    );
+  }
 };
 
 export const exploreChart = (formData, requestParams) => {

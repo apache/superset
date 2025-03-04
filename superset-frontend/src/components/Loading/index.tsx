@@ -79,7 +79,7 @@ const LdsRing = styled.div`
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: ${({ theme }) => theme.colors.primary.base};
+    background: ${({ theme }) => theme.colors?.primary?.base || '#ff6900'};
     animation-timing-function: cubic-bezier(0, 1, 1, 0);
   }
   div:nth-child(1) {

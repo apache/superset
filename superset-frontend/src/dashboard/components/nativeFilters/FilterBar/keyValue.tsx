@@ -1,30 +1,18 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import { SupersetClient, logging } from '@superset-ui/core';
+// DODO was here
+import { API_HANDLER, SupersetClient, logging } from '@superset-ui/core';
 import { DashboardPermalinkValue } from 'src/dashboard/types';
+
+const isStandalone = process.env.type === undefined; // DODO added 44611022
 
 const assembleEndpoint = (
   dashId: string | number,
   key?: string | null,
   tabId?: string,
 ) => {
-  let endpoint = `api/v1/dashboard/${dashId}/filter_state`;
+  // DODO changed 44611022
+  let endpoint = `${
+    isStandalone ? '' : '/'
+  }api/v1/dashboard/${dashId}/filter_state`;
   if (key) {
     endpoint = endpoint.concat(`/${key}`);
   }
@@ -40,11 +28,19 @@ export const updateFilterKey = (
   key: string,
   tabId?: string,
 ) =>
-  SupersetClient.put({
-    endpoint: assembleEndpoint(dashId, key, tabId),
-    jsonPayload: { value },
-  })
-    .then(r => r.json.message)
+  // DODO changed 44611022
+  (isStandalone
+    ? SupersetClient.put({
+        endpoint: assembleEndpoint(dashId, key, tabId),
+        jsonPayload: { value },
+      })
+    : API_HANDLER.SupersetClient({
+        method: 'put',
+        url: assembleEndpoint(dashId, key, tabId),
+        body: { value },
+      })
+  )
+    .then(r => (isStandalone ? r.json.message : r))
     .catch(err => {
       logging.error(err);
       return null;
@@ -55,21 +51,35 @@ export const createFilterKey = (
   value: string,
   tabId?: string,
 ) =>
-  SupersetClient.post({
-    endpoint: assembleEndpoint(dashId, undefined, tabId),
-    jsonPayload: { value },
-  })
-    .then(r => r.json.key as string)
+  // DODO changed 44611022
+  (isStandalone
+    ? SupersetClient.post({
+        endpoint: assembleEndpoint(dashId, undefined, tabId),
+        jsonPayload: { value },
+      })
+    : API_HANDLER.SupersetClient({
+        method: 'post',
+        url: assembleEndpoint(dashId, undefined, tabId),
+        jsonPayload: { value },
+      })
+  )
+    .then(r => (isStandalone ? r.json : r).key as string)
     .catch(err => {
       logging.error(err);
       return null;
     });
-
 export const getFilterValue = (dashId: string | number, key?: string | null) =>
-  SupersetClient.get({
-    endpoint: assembleEndpoint(dashId, key),
-  })
-    .then(({ json }) => JSON.parse(json.value))
+  // DODO changed 44611022
+  (isStandalone
+    ? SupersetClient.get({
+        endpoint: assembleEndpoint(dashId, key),
+      })
+    : API_HANDLER.SupersetClient({
+        method: 'get',
+        url: assembleEndpoint(dashId, key),
+      })
+  )
+    .then(resp => JSON.parse(isStandalone ? resp.json.value : resp.value))
     .catch(err => {
       logging.error(err);
       return null;

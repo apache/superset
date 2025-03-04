@@ -13,7 +13,14 @@ import {
 } from '@superset-ui/core';
 import { bootstrapData } from 'src/preamble'; // DODO added 44728892
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+// import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState'; // DODO commented out 44611022
+// DODO added 44611022
+import {
+  EmptyStateBig,
+  EmptyStateBig as EmptyStateBigPlugin,
+  EmptyStateSmall,
+  EmptyStateSmall as EmptyStateSmallPlugin,
+} from 'src/Superstructure/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -50,6 +57,8 @@ const propTypes = {
   source: PropTypes.oneOf([ChartSource.Dashboard, ChartSource.Explore]),
   emitCrossFilters: PropTypes.bool,
 };
+
+const isStandalone = process.env.type === undefined; // DODO added 44611022
 
 const BLANK = {};
 
@@ -289,16 +298,26 @@ class ChartRenderer extends Component {
         : undefined;
     const noResultImage = 'chart.svg';
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
-      noResultsComponent = (
+      // DODO changed 44611022
+      noResultsComponent = isStandalone ? (
         <EmptyStateBig
+          title={noResultTitle}
+          description={noResultDescription}
+          image={noResultImage}
+        />
+      ) : (
+        <EmptyStateBigPlugin
           title={noResultTitle}
           description={noResultDescription}
           image={noResultImage}
         />
       );
     } else {
-      noResultsComponent = (
+      // DODO changed 44611022
+      noResultsComponent = isStandalone ? (
         <EmptyStateSmall title={noResultTitle} image={noResultImage} />
+      ) : (
+        <EmptyStateSmallPlugin title={noResultTitle} image={noResultImage} />
       );
     }
 

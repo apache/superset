@@ -48,6 +48,8 @@ import Horizontal from './Horizontal';
 import Vertical from './Vertical';
 import { useSelectFiltersInScope } from '../state';
 
+const isStandalone = process.env.type === undefined; // DODO added 44611022
+
 // FilterBar is just being hidden as it must still
 // render fully due to encapsulated logics
 const HiddenFilterBar = styled.div`
@@ -102,7 +104,10 @@ const publishDataMask = debounce(
     // keep react router history in sync with window history
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
-    if (window.location.pathname.includes('/superset/dashboard')) {
+    if (
+      window.location.pathname.includes('/superset/dashboard') ||
+      !isStandalone // DODO added 44611022
+    ) {
       history.location.pathname = window.location.pathname;
       history.replace({
         search: newParams.toString(),
@@ -212,7 +217,8 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     // embedded users can't persist filter combinations
-    if (user?.userId) {
+    // DODO changed 44611022
+    if (user?.userId || !isStandalone) {
       publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -190,3 +190,18 @@ export enum FilterPlugins {
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
 }
+
+// DODO added start 44611022
+/**
+ * CSV format
+ */
+export const CSV = 'csv';
+export const CSV_MIME = 'text/csv';
+
+/**
+ * XLSX format
+ */
+export const XLSX = 'xlsx';
+export const XLSX_MIME =
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+// DODO added stop 44611022

@@ -52,6 +52,8 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 
+const isStandalone = process.env.type === undefined; // DODO added 44611022
+
 const ACTION_KEYS = {
   enter: 'Enter',
   spacebar: 'Spacebar',
@@ -749,7 +751,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {canExplore && (
+      {/* DODO changed 44611022 */}
+      {isStandalone && canExplore && (
         <Menu.Item key={MenuKeys.ExploreChart}>
           <Tooltip title={getSliceHeaderTooltip(props.slice.slice_name)}>
             {t('Edit chart')}
@@ -757,15 +760,18 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {canEditCrossFilters && (
+      {/* DODO changed 44611022 */}
+      {isStandalone && canEditCrossFilters && (
         <Menu.Item key={MenuKeys.CrossFilterScoping}>
           {t('Cross-filtering scoping')}
         </Menu.Item>
       )}
 
-      {(canExplore || canEditCrossFilters) && <Menu.Divider />}
+      {/* DODO changed 44611022 */}
+      {isStandalone && (canExplore || canEditCrossFilters) && <Menu.Divider />}
 
-      {(canExplore || canViewQuery) && (
+      {/* DODO changed 44611022 */}
+      {isStandalone && (canExplore || canViewQuery) && (
         <Menu.Item key={MenuKeys.ViewQuery}>
           <ModalTrigger
             triggerNode={
@@ -781,7 +787,8 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {(canExplore || canViewTable) && (
+      {/* DODO changed 44611022 */}
+      {isStandalone && (canExplore || canViewTable) && (
         <Menu.Item key={MenuKeys.ViewResults}>
           <ViewResultsModalTrigger
             canExplore={props.supersetCanExplore}
@@ -806,20 +813,25 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
         </Menu.Item>
       )}
 
-      {isFeatureEnabled(FeatureFlag.DrillToDetail) && canDrillToDetail && (
-        <DrillDetailMenuItems
-          chartId={slice.slice_id}
-          formData={props.formData}
-          key={MenuKeys.DrillToDetail}
-          showModal={drillModalIsOpen}
-          setShowModal={setDrillModalIsOpen}
-          drillToDetailMenuRef={drillToDetailMenuRef}
-        />
-      )}
+      {/* DODO changed 44611022 */}
+      {isStandalone &&
+        isFeatureEnabled(FeatureFlag.DrillToDetail) &&
+        canDrillToDetail && (
+          <DrillDetailMenuItems
+            chartId={slice.slice_id}
+            formData={props.formData}
+            key={MenuKeys.DrillToDetail}
+            showModal={drillModalIsOpen}
+            setShowModal={setDrillModalIsOpen}
+            drillToDetailMenuRef={drillToDetailMenuRef}
+          />
+        )}
 
-      {(slice.description || canExplore) && <Menu.Divider />}
+      {/* DODO changed 44611022 */}
+      {isStandalone && (slice.description || canExplore) && <Menu.Divider />}
 
-      {supersetCanShare && (
+      {/* DODO changed 44611022 */}
+      {isStandalone && supersetCanShare && (
         <Menu.SubMenu
           title={t('Share')}
           key={MenuKeys.Share}

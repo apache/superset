@@ -20,6 +20,7 @@
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import rison from 'rison';
 import {
+  API_HANDLER,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
@@ -76,6 +77,8 @@ import {
   getLabelsColorMapEntries,
   getFreshSharedLabels,
 } from '../../utils/colorScheme';
+
+const isStandalone = process.env.type === undefined; // DODO added 44611022
 
 export const SET_UNSAVED_CHANGES = 'SET_UNSAVED_CHANGES';
 export function setUnsavedChanges(hasUnsavedChanges) {
@@ -720,11 +723,18 @@ export function setDatasetsStatus(status) {
 }
 
 const storeDashboardMetadata = async (id, metadata) =>
-  SupersetClient.put({
-    endpoint: `/api/v1/dashboard/${id}`,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
-  });
+  isStandalone
+    ? SupersetClient.put({
+        endpoint: `/api/v1/dashboard/${id}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
+      })
+    : API_HANDLER.SupersetClient({
+        method: 'put',
+        url: `/api/v1/dashboard/${id}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ json_metadata: JSON.stringify(metadata) }),
+      });
 
 /**
  *

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { useSelector } from 'react-redux';
 import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { Moment } from 'moment';
@@ -44,6 +27,33 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
+
+// DODO added start 44611022
+const isStandalone = process.env.type === undefined;
+
+// For superset dashboard plugin we need to retranslate the labels
+const retranslateConstants = (opts: { value: string; label: string }[]) =>
+  isStandalone
+    ? opts
+    : opts.map(opt => ({
+        value: opt.value,
+        label: t(opt.label),
+      }));
+
+const retranslateConstantsComposed = (
+  opts: { value: string; label: string }[],
+  splitWord: string,
+) =>
+  isStandalone
+    ? opts
+    : opts.map(opt => {
+        const mainString = `${opt.label.split(splitWord)[0].trim()} %s`;
+        return {
+          ...opt,
+          label: `${t(mainString)} ${t(splitWord)}`.split(' %s').join(''),
+        };
+      });
+// DODO added stop 44611022
 
 export function CustomFrame(props: FrameComponentProps) {
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
@@ -132,7 +142,8 @@ export function CustomFrame(props: FrameComponentProps) {
           </div>
           <Select
             ariaLabel={t('START (INCLUSIVE)')}
-            options={SINCE_MODE_OPTIONS}
+            // options={SINCE_MODE_OPTIONS}
+            options={retranslateConstants(SINCE_MODE_OPTIONS)} // DODO changed 44611022
             value={sinceMode}
             onChange={(value: string) => onChange('sinceMode', value)}
           />
@@ -167,7 +178,12 @@ export function CustomFrame(props: FrameComponentProps) {
               <Col span={13}>
                 <Select
                   ariaLabel={t('Relative period')}
-                  options={SINCE_GRAIN_OPTIONS}
+                  // options={SINCE_GRAIN_OPTIONS}
+                  // DODO changed 44611022
+                  options={retranslateConstantsComposed(
+                    SINCE_GRAIN_OPTIONS,
+                    'Before',
+                  )}
                   value={sinceGrain}
                   onChange={(value: string) => onChange('sinceGrain', value)}
                 />
@@ -219,7 +235,12 @@ export function CustomFrame(props: FrameComponentProps) {
               <Col span={13}>
                 <Select
                   ariaLabel={t('Relative period')}
-                  options={UNTIL_GRAIN_OPTIONS}
+                  // options={UNTIL_GRAIN_OPTIONS}
+                  // DODO changed 44611022
+                  options={retranslateConstantsComposed(
+                    UNTIL_GRAIN_OPTIONS,
+                    'After',
+                  )}
                   value={untilGrain}
                   onChange={(value: string) => onChange('untilGrain', value)}
                 />

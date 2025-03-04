@@ -1,25 +1,9 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint no-undef: 'error' */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import moment from 'moment';
 import {
+  API_HANDLER, // DODO added 44611022
   FeatureFlag,
   isDefined,
   SupersetClient,
@@ -35,6 +19,7 @@ import {
   buildV1ChartDataPayload,
   getQuerySettings,
   getChartDataUri,
+  getChartDataUriPlugin, // DODO added 44611022
 } from 'src/explore/exploreUtils';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { logEvent } from 'src/logger/actions';
@@ -43,6 +28,8 @@ import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesCo
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
 import { safeStringify } from 'src/utils/safeStringify';
+
+const isStandalone = process.env.type === undefined; // DODO added 44611022
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted(queryController, latestQueryFormData, key) {
@@ -143,14 +130,28 @@ const legacyChartDataRequest = async (
     parseMethod,
   };
 
-  return SupersetClient.post(querySettings).then(({ json, response }) =>
-    // Make the legacy endpoint return a payload that corresponds to the
-    // V1 chart data endpoint response signature.
-    ({
-      response,
-      json: { result: [json] },
-    }),
-  );
+  // DODO changed 44611022
+  if (isStandalone) {
+    return SupersetClient.post(querySettings).then(({ json, response }) =>
+      // Make the legacy endpoint return a payload that corresponds to the
+      // V1 chart data endpoint response signature.
+      ({
+        response,
+        json: { result: [json] },
+      }),
+    );
+  }
+  // DODO added 44611022
+  return API_HANDLER.SupersetClient({
+    method: 'post',
+    url,
+    body: { form_data: formData },
+    requestParams,
+    // parseMethod,
+  }).then(({ json, response }) => ({
+    response,
+    json: { result: [json] },
+  }));
 };
 
 const v1ChartDataRequest = async (
@@ -184,7 +185,8 @@ const v1ChartDataRequest = async (
   const allowDomainSharding =
     // eslint-disable-next-line camelcase
     domainShardingEnabled && requestParams?.dashboard_id;
-  const url = getChartDataUri({
+  // DODO changed 44611022
+  const url = (isStandalone ? getChartDataUri : getChartDataUriPlugin)({
     path: '/api/v1/chart/data',
     qs,
     allowDomainSharding,
@@ -198,7 +200,10 @@ const v1ChartDataRequest = async (
     parseMethod,
   };
 
-  return SupersetClient.post(querySettings);
+  // DODO changed 44611022
+  return isStandalone
+    ? SupersetClient.post(querySettings)
+    : API_HANDLER.SupersetClient({ method: 'post', url, body: payload });
 };
 
 export async function getChartDataRequest({
@@ -434,9 +439,18 @@ export function exploreJSON(
 
     const [useLegacyApi] = getQuerySettings(formData);
     const chartDataRequestCaught = chartDataRequest
-      .then(({ response, json }) =>
-        handleChartDataResponse(response, json, useLegacyApi),
-      )
+      .then(resp => {
+        // DODO changed 44611022
+        if (isStandalone) {
+          return handleChartDataResponse(
+            resp.response,
+            resp.json,
+            useLegacyApi,
+          );
+        }
+        // DODO added 44611022
+        return resp.result;
+      })
       .then(queriesResponse => {
         queriesResponse.forEach(resultItem =>
           dispatch(

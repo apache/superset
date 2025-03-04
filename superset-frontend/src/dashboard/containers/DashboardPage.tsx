@@ -1,5 +1,13 @@
 // DODO was here
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import {
+  createContext,
+  lazy,
+  FC,
+  useEffect,
+  useMemo,
+  useRef,
+  Suspense, // DODO added 44611022
+} from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { FeatureFlag, isFeatureEnabled, t, useTheme } from '@superset-ui/core';
@@ -12,6 +20,13 @@ import {
   useDashboardDatasets,
   useDashboardFilterSets, // DODO added 44211751
 } from 'src/hooks/apiResources';
+// DODO added 44611022
+import {
+  useDashboard as useDashboardPlugin,
+  useDashboardCharts as useDashboardChartsPlugin,
+  useDashboardDatasets as useDashboardDatasetsPlugin,
+  useDashboardFilterSets as useDashboardFilterSetsPlugin,
+} from 'src/Superstructure/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
@@ -44,6 +59,8 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 
+const isStandalone = process.env.type === undefined; // DODO added 44611022
+
 export const DashboardPageIdContext = createContext('');
 
 const DashboardBuilder = lazy(
@@ -72,18 +89,28 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   );
   const { addDangerToast } = useToasts();
   const { result: dashboard, error: dashboardApiError } =
-    useDashboard(idOrSlug);
-  const { result: charts, error: chartsApiError } =
-    useDashboardCharts(idOrSlug);
+    // DODO changed 44611022
+    (isStandalone ? useDashboard : useDashboardPlugin)(idOrSlug);
+  const {
+    result: charts,
+    error: chartsApiError,
+  } = // DODO changed 44611022
+    (isStandalone ? useDashboardCharts : useDashboardChartsPlugin)(idOrSlug);
   const {
     result: datasets,
     error: datasetsApiError,
     status,
-  } = useDashboardDatasets(idOrSlug);
+    // DODO changed 44611022
+  } = (isStandalone ? useDashboardDatasets : useDashboardDatasetsPlugin)(
+    idOrSlug,
+  );
 
   // DODO added start 44211751
   const { result: filterSetsFullData, error: filterSetsApiError } =
-    useDashboardFilterSets(idOrSlug);
+    // DODO changed 44611022
+    (isStandalone ? useDashboardFilterSets : useDashboardFilterSetsPlugin)(
+      idOrSlug,
+    );
   const filterSets = transformFilterSetFullData(filterSetsFullData);
   const primaryFilterSetDataMask = getPrimaryFilterSetDataMask(filterSets);
   // DODO added stop 44211751
@@ -219,7 +246,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   if (!readyToRender || !hasDashboardInfoInitiated) return <Loading />;
 
   return (
-    <>
+    // DODO changed 44611022
+    <Suspense fallback={<Loading />}>
       <Global
         styles={[
           filterCardPopoverStyle(theme),
@@ -235,7 +263,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           <DashboardBuilder />
         </DashboardContainer>
       </DashboardPageIdContext.Provider>
-    </>
+    </Suspense>
   );
 };
 
