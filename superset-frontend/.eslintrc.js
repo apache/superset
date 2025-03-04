@@ -238,9 +238,7 @@ module.exports = {
       rules: {
         'import/no-extraneous-dependencies': [
           'error',
-          {
-            "devDependencies": ["**/*.test.tsx", "**/*.test.js", "**/*.test.jsx", "**/*.test.ts", "**/*.stories.tsx", "**/*.fixtures.ts"]
-          },
+          { devDependencies: true },
         ],
         'no-only-tests/no-only-tests': 'error',
         'max-classes-per-file': 0,
