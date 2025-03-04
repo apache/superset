@@ -191,15 +191,15 @@ class DatabaseDAO(BaseDAO[Database]):
             access_id = match.group("username")
             project = match.group("project")
             endpoint = match.group("endpoint")
-        odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
-        table = odps_client.get_table(table_name)
-        if table.exist_partition:
-            partition_spec = table.table_schema.partitions
-            partition_fields = [partition.name for partition in partition_spec]
-            return True, partition_fields
-        else:
-            return False, []
-
+            odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+            table = odps_client.get_table(table_name)
+            if table.exist_partition:
+                partition_spec = table.table_schema.partitions
+                partition_fields = [partition.name for partition in partition_spec]
+                return True, partition_fields
+            else:
+                return False, []
+        return False, []
 
 class SSHTunnelDAO(BaseDAO[SSHTunnel]):
     @classmethod

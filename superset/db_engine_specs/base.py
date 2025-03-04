@@ -1084,7 +1084,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param table: A Table instance
         :return: Basic table metadata
         """
-        return get_table_metadata(database, table)
+        return get_table_metadata(database, table, partition)
 
     @classmethod
     def get_extra_table_metadata(
