@@ -343,6 +343,7 @@ const ResultSet = ({
             {csv && canExportData && (
               <Button
                 buttonSize="small"
+                buttonStyle="secondary"
                 href={getExportCsvUrl(query.id)}
                 data-test="export-csv-button"
                 onClick={() => {
@@ -372,6 +373,7 @@ const ResultSet = ({
                 copyNode={
                   <Button
                     buttonSize="small"
+                    buttonStyle="secondary"
                     data-test="copy-to-clipboard-button"
                   >
                     <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
