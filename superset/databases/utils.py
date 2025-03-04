@@ -102,7 +102,11 @@ def get_table_metadata(
         "name": table.table,
         "columns": payload_columns,
         "selectStar": database.select_star(
-            table, indent=True, cols=columns, latest_partition=True, partition=partition
+            table,
+            indent=True,
+            cols=columns,
+            latest_partition=True,
+            partition=partition
         ),
         "primaryKey": primary_key,
         "foreignKeys": foreign_keys,
