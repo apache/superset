@@ -1324,7 +1324,7 @@ def test_slack_chart_report_schedule_converts_to_v2(
     get_channels_with_search_mock.return_value = [
         {
             "id": channel_id,
-            "name": "Channel 1",
+            "name": "slack_channel",
             "is_member": True,
             "is_private": False,
         },
