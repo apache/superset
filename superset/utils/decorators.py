@@ -255,6 +255,11 @@ def transaction(  # pylint: disable=redefined-outer-name
         def wrapped(*args: Any, **kwargs: Any) -> Any:
             from superset import db  # pylint: disable=import-outside-toplevel
 
+            if getattr(g, "in_transaction", False):
+                # If already in a transaction, call the function directly
+                return func(*args, **kwargs)
+
+            g.in_transaction = True
             try:
                 result = func(*args, **kwargs)
                 db.session.commit()  # pylint: disable=consider-using-transaction
@@ -266,6 +271,8 @@ def transaction(  # pylint: disable=redefined-outer-name
                     return on_error(ex)
 
                 raise
+            finally:
+                g.in_transaction = False
 
         return wrapped
 

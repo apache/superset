@@ -456,7 +456,7 @@ def test_create_table_as():
     assert "CREATE TABLE tmp AS \nSELECT * FROM outer_space" == q.as_create_table("tmp")
 
     # now a multi-line query
-    multi_line_query = "SELECT * FROM planets WHERE\n" "Luke_Father = 'Darth Vader'"
+    multi_line_query = "SELECT * FROM planets WHERE\nLuke_Father = 'Darth Vader'"
     q = ParsedQuery(multi_line_query)
     assert (
         "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\nLuke_Father = 'Darth Vader'"
@@ -473,15 +473,15 @@ def test_in_app_context():
     # Expect True within an app context
     with app.app_context():
         result = my_task.apply().get()
-        assert (
-            result is True
-        ), "Task should have access to current_app within app context"
+        assert result is True, (
+            "Task should have access to current_app within app context"
+        )
 
     # Expect True outside of an app context
     result = my_task.apply().get()
-    assert (
-        result is True
-    ), "Task should have access to current_app outside of app context"
+    assert result is True, (
+        "Task should have access to current_app outside of app context"
+    )
 
 
 def delete_tmp_view_or_table(name: str, db_object_type: str):

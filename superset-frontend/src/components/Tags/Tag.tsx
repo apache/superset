@@ -43,11 +43,13 @@ const Tag = ({
   editable = false,
   onClick = undefined,
   toolTipTitle = name,
+  children,
+  ...rest
 }: TagType) => {
   const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
   const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
 
-  const handleClose = () => (index ? onDelete?.(index) : null);
+  const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
 
   const whatRole = onClick ? (!id ? 'button' : 'link') : undefined;
 
@@ -59,25 +61,32 @@ const Tag = ({
             key={id}
             closable={editable}
             onClose={handleClose}
-            color="blue"
             closeIcon={editable ? CustomCloseIcon : undefined}
+            {...rest}
           >
-            {tagDisplay}
+            {children || tagDisplay}
           </StyledTag>
         </Tooltip>
       ) : (
         <Tooltip title={toolTipTitle} key={toolTipTitle}>
-          <StyledTag data-test="tag" key={id} onClick={onClick} role={whatRole}>
+          <StyledTag
+            data-test="tag"
+            key={id}
+            onClick={onClick}
+            role={whatRole}
+            {...rest}
+          >
+            {' '}
             {id ? (
               <a
                 href={`/superset/all_entities/?id=${id}`}
                 target="_blank"
                 rel="noreferrer"
               >
-                {tagDisplay}
+                {children || tagDisplay}
               </a>
             ) : (
-              tagDisplay
+              children || tagDisplay
             )}
           </StyledTag>
         </Tooltip>

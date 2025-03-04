@@ -92,6 +92,7 @@ You can find documentation about each field in the default `config.py` in the Gi
 You need to replace default values with your custom Redis, Slack and/or SMTP config.
 
 Superset uses Celery beat and Celery worker(s) to send alerts and reports.
+
 - The beat is the scheduler that tells the worker when to perform its tasks. This schedule is defined when you create the alert or report.
 - The worker will process the  tasks that need to be performed when an alert or report is fired.
 
@@ -143,7 +144,7 @@ SLACK_API_TOKEN = "xoxb-"
 SMTP_HOST = "smtp.sendgrid.net" # change to your host
 SMTP_PORT = 2525 # your port, e.g. 587
 SMTP_STARTTLS = True
-SMTP_SSL_SERVER_AUTH = True # If your using an SMTP server with a valid certificate
+SMTP_SSL_SERVER_AUTH = True # If you're using an SMTP server with a valid certificate
 SMTP_SSL = False
 SMTP_USER = "your_user" # use the empty string "" if using an unauthenticated SMTP server
 SMTP_PASSWORD = "your_password" # use the empty string "" if using an unauthenticated SMTP server
@@ -187,7 +188,6 @@ ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 
 Please refer to `ExecutorType` in the codebase for other executor types.
 
-
 **Important notes**
 
 - Be mindful of the concurrency setting for celery (using `-c 4`). Selenium/webdriver instances can
@@ -198,7 +198,6 @@ Please refer to `ExecutorType` in the codebase for other executor types.
   done using the `queue` field in `task_annotations`.
 - Adjust `WEBDRIVER_BASEURL` in your configuration file if celery workers can’t access Superset via
   its default value of `http://0.0.0.0:8080/`.
-
 
 It's also possible to specify a minimum interval between each report's execution through the config file:
 
@@ -305,6 +304,7 @@ One symptom of an invalid connection to an email server is receiving an error of
 Confirm via testing that your outbound email configuration is correct.  Here is the simplest test, for an un-authenticated email SMTP email service running on port 25.  If you are sending over SSL, for instance, study how [Superset's codebase sends emails](https://github.com/apache/superset/blob/master/superset/utils/core.py#L818) and then test with those commands and arguments.
 
 Start Python in your worker environment, replace all example values, and run:
+
 ```python
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -326,6 +326,7 @@ mailserver.quit()
 This should send an email.
 
 Possible fixes:
+
 - Some cloud hosts disable outgoing unauthenticated SMTP email to prevent spam.  For instance, [Azure blocks port 25 by default on some machines](https://learn.microsoft.com/en-us/azure/virtual-network/troubleshoot-outbound-smtp-connectivity). Enable that port or use another sending method.
 - Use another set of SMTP credentials that you verify works in this setup.
 

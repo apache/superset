@@ -19,11 +19,10 @@
 import { useRef, useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { Button, AntdSelect } from 'src/components';
-import InfoTooltip from 'src/components/InfoTooltip';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
-import { infoTooltip, labelMarginBottom, CredentialInfoForm } from '../styles';
+import { infoTooltip, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
   JsonUpload,
@@ -38,8 +37,6 @@ export const encryptedCredentialsMap = {
   bigquery: 'credentials_info',
 };
 
-const castStringToBoolean = (optionValue: string) => optionValue === 'true';
-
 export const EncryptedField = ({
   changeMethods,
   isEditMode,
@@ -53,10 +50,7 @@ export const EncryptedField = ({
   const [fileToUpload, setFileToUpload] = useState<string | null | undefined>(
     null,
   );
-  const [isPublic, setIsPublic] = useState<boolean>(true);
-  const showCredentialsInfo =
-    db?.engine === 'gsheets' ? !isEditMode && !isPublic : !isEditMode;
-  const isEncrypted = isEditMode && db?.masked_encrypted_extra !== '{}';
+  const showCredentialsInfo = !isEditMode;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
@@ -68,33 +62,9 @@ export const EncryptedField = ({
       : paramValue;
   return (
     <CredentialInfoForm>
-      {db?.engine === 'gsheets' && (
-        <div className="catalog-type-select">
-          <FormLabel
-            css={(theme: SupersetTheme) => labelMarginBottom(theme)}
-            required
-          >
-            {t('Type of Google Sheets allowed')}
-          </FormLabel>
-          <AntdSelect
-            style={{ width: '100%' }}
-            defaultValue={isEncrypted ? 'false' : 'true'}
-            onChange={(value: string) =>
-              setIsPublic(castStringToBoolean(value))
-            }
-          >
-            <AntdSelect.Option value="true" key={1}>
-              {t('Publicly shared sheets only')}
-            </AntdSelect.Option>
-            <AntdSelect.Option value="false" key={2}>
-              {t('Public and privately shared sheets')}
-            </AntdSelect.Option>
-          </AntdSelect>
-        </div>
-      )}
       {showCredentialsInfo && (
         <>
-          <FormLabel required>
+          <FormLabel>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
           <AntdSelect
@@ -116,7 +86,7 @@ export const EncryptedField = ({
       isEditMode ||
       editNewDb ? (
         <div className="input-container">
-          <FormLabel required>{t('Service Account')}</FormLabel>
+          <FormLabel>{t('Service Account')}</FormLabel>
           <textarea
             className="input-form"
             name={encryptedField}
@@ -130,9 +100,6 @@ export const EncryptedField = ({
               'Paste content of service credentials JSON file here',
             )}
           />
-          <span className="label-paste">
-            {t('Copy and paste the entire service account .json file here')}
-          </span>
         </div>
       ) : (
         showCredentialsInfo && (
@@ -140,27 +107,18 @@ export const EncryptedField = ({
             className="input-container"
             css={(theme: SupersetTheme) => infoTooltip(theme)}
           >
-            <div css={{ display: 'flex', alignItems: 'center' }}>
-              <FormLabel required>{t('Upload Credentials')}</FormLabel>
-              <InfoTooltip
-                tooltip={t(
-                  'Use the JSON file you automatically downloaded when creating your service account.',
-                )}
-                viewBox="0 0 24 24"
-              />
-            </div>
-
             {!fileToUpload && (
-              <Button
-                className="input-upload-btn"
-                onClick={() => selectedFileInputRef.current?.click()}
-              >
-                {t('Choose File')}
+              <Button onClick={() => selectedFileInputRef.current?.click()}>
+                <Icons.Link iconSize="m" />
+                {t('Upload credentials')}
               </Button>
             )}
             {fileToUpload && (
-              <div className="input-upload-current">
-                {fileToUpload}
+              <div className="credentials-uploaded">
+                <Button block disabled>
+                  <Icons.Link iconSize="m" />
+                  {t('Credentials uploaded')}
+                </Button>
                 <Icons.DeleteFilled
                   iconSize="m"
                   onClick={() => {

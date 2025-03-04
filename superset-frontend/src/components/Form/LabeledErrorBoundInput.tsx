@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Input, Tooltip } from 'antd';
 import { styled, css, SupersetTheme, t } from '@superset-ui/core';
+import { Tooltip } from 'src/components/Tooltip';
+import { Input } from 'src/components/Input';
 import InfoTooltip from 'src/components/InfoTooltip';
 import Icons from 'src/components/Icons';
 import Button from 'src/components/Button';

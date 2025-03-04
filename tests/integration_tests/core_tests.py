@@ -359,7 +359,7 @@ class TestCore(SupersetTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(ADMIN_USERNAME)
-        url = "/superset/fetch_datasource_metadata?" "datasourceKey=1__table"
+        url = "/superset/fetch_datasource_metadata?datasourceKey=1__table"
         resp = self.get_json_resp(url)
         keys = [
             "name",

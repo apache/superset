@@ -125,6 +125,31 @@ const config: ControlPanelConfig = {
         ['linear_color_scheme'],
         [
           {
+            name: 'border_color',
+            config: {
+              type: 'ColorPickerControl',
+              label: t('Border color'),
+              renderTrigger: true,
+              description: t('The color of the elements border'),
+              default: { r: 0, g: 0, b: 0, a: 1 },
+            },
+          },
+          {
+            name: 'border_width',
+            config: {
+              type: 'SliderControl',
+              label: t('Border width'),
+              renderTrigger: true,
+              min: 0,
+              max: 2,
+              default: 0,
+              step: 0.1,
+              description: t('The width of the elements border'),
+            },
+          },
+        ],
+        [
+          {
             name: 'xscale_interval',
             config: {
               type: 'SelectControl',

@@ -43,7 +43,7 @@ test('should render a tooltip when user is provided', async () => {
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toBeInTheDocument();
   expect(screen.getByText('Modified by: Foo Bar')).toBeInTheDocument();
-}, 10000);
+});
 
 test('should render only the date if username is not provided', async () => {
   render(<ModifiedInfo date={TEST_DATE} />);

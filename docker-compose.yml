@@ -176,7 +176,7 @@ services:
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
-      superset: "http://host.docker.internal:8088"
+      superset: "http://superset:8088"
     ports:
       - "127.0.0.1:9000:9000"  # exposing the dynamic webpack dev server
     container_name: superset_node

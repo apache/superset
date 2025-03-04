@@ -267,7 +267,7 @@ def execute_sql_statement(  # pylint: disable=too-many-statements, too-many-loca
         if not query.tmp_table_name:
             start_dttm = datetime.fromtimestamp(query.start_time)
             query.tmp_table_name = (
-                f'tmp_{query.user_id}_table_{start_dttm.strftime("%Y_%m_%d_%H_%M_%S")}'
+                f"tmp_{query.user_id}_table_{start_dttm.strftime('%Y_%m_%d_%H_%M_%S')}"
             )
         sql = parsed_query.as_create_table(
             query.tmp_table_name,

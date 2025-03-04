@@ -20,8 +20,16 @@
 import { PureComponent } from 'react';
 import { formatNumber } from '@superset-ui/core';
 
-class NumberFormatValidator extends PureComponent {
-  state: { formatString: string; testValues: (number | null | undefined)[] } = {
+interface NumberFormatValidatorState {
+  formatString: string;
+  testValues: (number | null | undefined)[];
+}
+
+class NumberFormatValidator extends PureComponent<
+  Record<string, never>,
+  NumberFormatValidatorState
+> {
+  state: NumberFormatValidatorState = {
     formatString: '.3~s',
     testValues: [
       987654321,
@@ -45,13 +53,13 @@ class NumberFormatValidator extends PureComponent {
     ],
   };
 
-  constructor(props) {
+  constructor(props: Record<string, never>) {
     super(props);
 
     this.handleFormatChange = this.handleFormatChange.bind(this);
   }
 
-  handleFormatChange(event) {
+  handleFormatChange(event: React.ChangeEvent<HTMLInputElement>) {
     this.setState({
       formatString: event.target.value,
     });

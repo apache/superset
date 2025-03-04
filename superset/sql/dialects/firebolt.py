@@ -17,7 +17,7 @@
 
 from __future__ import annotations
 
-from sqlglot import exp, generator, parser
+from sqlglot import exp, generator, parser, tokens
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.helper import csv
 from sqlglot.tokens import TokenType
@@ -83,6 +83,9 @@ class FireboltOld(Firebolt):
     The main difference is that `UNNEST` is an operator like `JOIN`, instead of a
     function.
     """
+
+    class Tokenizer(tokens.Tokenizer):
+        STRING_ESCAPES = ["'", "\\"]
 
     class Parser(Firebolt.Parser):
         TABLE_ALIAS_TOKENS = Firebolt.Parser.TABLE_ALIAS_TOKENS - {TokenType.UNNEST}

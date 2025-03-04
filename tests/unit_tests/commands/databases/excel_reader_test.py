@@ -226,7 +226,7 @@ def test_excel_reader_wrong_date():
     with pytest.raises(DatabaseUploadFailed) as ex:
         excel_reader.file_to_dataframe(create_excel_file(EXCEL_DATA))
     assert str(ex.value) == (
-        "Parsing error: Missing column provided to 'parse_dates':" " 'xpto' (sheet: 0)"
+        "Parsing error: Missing column provided to 'parse_dates': 'xpto' (sheet: 0)"
     )
 
 

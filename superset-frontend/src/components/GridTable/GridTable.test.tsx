@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render } from 'spec/helpers/testing-library';
+import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import GridTable from '.';
 
 jest.mock('src/components/ErrorBoundary', () => ({
@@ -39,6 +40,10 @@ const mockedProps = {
   ],
   height: 500,
 };
+
+beforeAll(() => {
+  setupAGGridModules();
+});
 
 test('renders a grid with 3 Table rows', () => {
   const { queryByText } = render(<GridTable {...mockedProps} />);

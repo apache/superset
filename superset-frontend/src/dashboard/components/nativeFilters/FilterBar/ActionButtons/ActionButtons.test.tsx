@@ -82,10 +82,9 @@ describe('custom width', () => {
     const mockedProps = createProps();
     render(<ActionButtons {...mockedProps} />, { useRedux: true });
     const container = screen.getByTestId('filterbar-action-buttons');
-    expect(container).toHaveStyleRule(
-      'width',
-      `${OPEN_FILTER_BAR_WIDTH - 1}px`,
-    );
+    expect(container).toHaveStyle({
+      width: `${OPEN_FILTER_BAR_WIDTH - 1}px`,
+    });
   });
 
   it('sets custom width', () => {
@@ -98,6 +97,8 @@ describe('custom width', () => {
       },
     );
     const container = getByTestId('filterbar-action-buttons');
-    expect(container).toHaveStyleRule('width', `${expectedWidth - 1}px`);
+    expect(container).toHaveStyle({
+      width: `${expectedWidth - 1}px`,
+    });
   });
 });
