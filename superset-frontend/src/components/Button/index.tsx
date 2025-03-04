@@ -94,8 +94,8 @@ export default function Button(props: ButtonProps) {
   if (!buttonStyle || buttonStyle === 'primary') {
     variant = 'solid';
   } else if (buttonStyle === 'secondary') {
-    variant = 'outlined';
-    color = 'default';
+    variant = 'filled';
+    color = 'primary';
   } else if (buttonStyle === 'dashed') {
     color = 'primary';
     variant = 'dashed';
