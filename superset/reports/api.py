@@ -574,7 +574,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         """
         try:
             params = kwargs.get("rison", {})
-            search_string = params.get("search_string")
+            search_string = [params.get("search_string", "").strip()]
             types = params.get("types", [])
             exact_match = params.get("exact_match", False)
             channels = get_channels_with_search(
