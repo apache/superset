@@ -108,7 +108,7 @@ const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     [data-icon='caret-down'] {
       color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.xs}px;
+      font-size: ${theme.typography.sizes.xxs}px;
     }
     &.antd5-menu-submenu-active {
       .antd5-menu-title-content {

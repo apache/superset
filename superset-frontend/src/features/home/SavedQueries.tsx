@@ -277,7 +277,7 @@ const SavedQueries = ({
                   css={css`
                     margin: auto ${theme.gridUnit * 2}px auto 0;
                   `}
-                  iconSize="s"
+                  iconSize="xs"
                   iconColor={theme.colors.primary.dark1}
                 />
                 {t('SQL Query')}

@@ -236,7 +236,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
                 css={css`
                   [data-icon='caret-down'] {
                     color: ${theme.colors.grayscale.base};
-                    font-size: ${theme.typography.sizes.xs}px;
+                    font-size: ${theme.typography.sizes.xxs}px;
                   }
                 `}
                 key={i}

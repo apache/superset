@@ -284,7 +284,10 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           onClick={refreshTableMetadata}
           tooltip={t('Refresh table schema')}
         >
-          <Icons.SyncOutlined iconSize="m" />
+          <Icons.SyncOutlined
+            iconSize="m"
+            iconColor={theme.colors.primary.dark2}
+          />
         </IconTooltip>
         {keyLink}
         <IconTooltip
@@ -306,7 +309,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
                 aria-label="Copy"
                 tooltip={t('Copy SELECT statement to the clipboard')}
               >
-                <Icons.CopyOutlined iconSize="s" aria-hidden />
+                <Icons.CopyOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark2}
+                  aria-hidden
+                />
               </IconTooltip>
             }
             text={tableData.selectStar}
@@ -325,7 +332,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           onClick={removeTable}
           tooltip={t('Remove table preview')}
         >
-          <Icons.CloseOutlined iconSize="s" aria-hidden />
+          <Icons.CloseOutlined
+            iconSize="m"
+            iconColor={theme.colors.primary.dark2}
+            aria-hidden
+          />
         </IconTooltip>
       </ButtonGroup>
     );

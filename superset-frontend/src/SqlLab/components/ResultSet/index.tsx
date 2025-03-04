@@ -385,7 +385,11 @@ const ResultSet = ({
                     buttonSize="small"
                     data-test="copy-to-clipboard-button"
                   >
-                    <Icons.CopyOutlined iconSize="m" /> {t('Copy to Clipboard')}
+                    <Icons.CopyOutlined
+                      iconSize="s"
+                      iconColor={theme.colors.primary.dark2}
+                    />{' '}
+                    {t('Copy to Clipboard')}
                   </Button>
                 }
                 hideTooltip

@@ -330,9 +330,8 @@ function TagList(props: TagListProps) {
     name: (
       <>
         <Icons.PlusOutlined
-          iconSize="m"
+          iconSize="s"
           iconColor={theme.colors.primary.light5}
-          css={{ margin: 0 }}
         />{' '}
         {t('Tag')}
       </>

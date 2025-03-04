@@ -372,7 +372,7 @@ class SliceAdder extends Component<SliceAdderProps, SliceAdderState> {
             }
           >
             <Icons.PlusOutlined
-              iconSize="s"
+              iconSize="xs"
               iconColor={theme.colors.primary.dark1}
             />
             {t('Create new chart')}

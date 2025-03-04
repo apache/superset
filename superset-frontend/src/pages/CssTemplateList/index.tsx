@@ -157,7 +157,7 @@ function CssTemplatesList({
                   label: 'edit-action',
                   tooltip: t('Edit template'),
                   placement: 'bottom',
-                  icon: 'Edit',
+                  icon: 'EditOutlined',
                   onClick: handleEdit,
                 }
               : null,

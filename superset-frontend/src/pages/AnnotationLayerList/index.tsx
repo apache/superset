@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient, css, useTheme } from '@superset-ui/core';
+import { t, SupersetClient, useTheme } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -218,10 +218,7 @@ function AnnotationLayersList({
         <>
           <Icons.PlusOutlined
             iconColor={theme.colors.primary.light5}
-            iconSize="m"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-            `}
+            iconSize="s"
           />
           {t('Annotation layer')}
         </>

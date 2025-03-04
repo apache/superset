@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { getClientErrorObject, t } from '@superset-ui/core';
+import { getClientErrorObject, t, useTheme } from '@superset-ui/core';
 import Popover, { PopoverProps } from 'src/components/Popover';
 import CopyToClipboard from 'src/components/CopyToClipboard';
 import { getDashboardPermalink } from 'src/utils/urlUtils';
@@ -41,6 +41,7 @@ export default function URLShortLinkButton({
   emailContent = '',
   emailSubject = '',
 }: URLShortLinkButtonProps) {
+  const theme = useTheme();
   const [shortUrl, setShortUrl] = useState('');
   const { addDangerToast } = useToasts();
   const { dataMask, activeTabs } = useSelector(
@@ -90,14 +91,19 @@ export default function URLShortLinkButton({
             text={shortUrl}
             copyNode={
               <>
-                <Icons.CopyOutlined iconSize="m" />
-                &nbsp;{t('Copy to clipboard')}
+                <Icons.CopyOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark1}
+                />
               </>
             }
           />
           &nbsp;&nbsp;
           <a href={emailLink} aria-label="Email link">
-            <Icons.MailOutlined iconSize="m" />
+            <Icons.MailOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.dark1}
+            />
           </a>
         </div>
       }
@@ -112,7 +118,7 @@ export default function URLShortLinkButton({
         }}
         aria-label={t('Copy URL')}
       >
-        <i className="short-link-trigger fa fa-link" />
+        <Icons.LinkOutlined iconSize="m" className="short-link-trigger" />
         &nbsp;
       </span>
     </Popover>

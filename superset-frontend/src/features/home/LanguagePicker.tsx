@@ -62,7 +62,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
       css={css`
         [data-icon='caret-down'] {
           color: ${theme.colors.grayscale.base};
-          font-size: ${theme.typography.sizes.xs}px;
+          font-size: ${theme.typography.sizes.xxs}px;
         }
       `}
       aria-label="Languages"

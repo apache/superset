@@ -24,7 +24,6 @@ import {
   styled,
   SupersetClient,
   t,
-  css,
   useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
@@ -764,12 +763,9 @@ function ChartList(props: ChartListProps) {
         <>
           <Icons.PlusOutlined
             iconColor={theme.colors.primary.light5}
-            iconSize="s"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-            `}
+            iconSize="xs"
           />
-          {t('Chart')}
+          <span>{t('Chart')}</span>
         </>
       ),
       buttonStyle: 'primary',
@@ -785,7 +781,10 @@ function ChartList(props: ChartListProps) {
           title={t('Import charts')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined iconSize="xl" data-test="import-button" />
+          <Icons.DownloadOutlined
+            data-test="import-button"
+            iconColor={theme.colors.primary.dark1}
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',

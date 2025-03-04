@@ -21,7 +21,6 @@ import {
   styled,
   SupersetClient,
   t,
-  css,
   useTheme,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
@@ -94,12 +93,12 @@ function BooleanDisplay({ value }: { value: Boolean }) {
   const theme = useTheme();
   return value ? (
     <Icons.CheckOutlined
-      iconSize="m"
+      iconSize="s"
       iconColor={theme.colors.grayscale.dark1}
     />
   ) : (
     <Icons.CloseOutlined
-      iconSize="m"
+      iconSize="s"
       iconColor={theme.colors.grayscale.light1}
     />
   );
@@ -326,9 +325,6 @@ function DatabaseList({
             <Icons.PlusOutlined
               iconColor={theme.colors.primary.light5}
               iconSize="s"
-              css={css`
-                margin: auto ${theme.gridUnit * 2}px auto 0;
-              `}
             />
             {t('Database')}
           </>
@@ -517,7 +513,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined css={{ verticalAlign: 'baseline' }} />
+                    <Icons.UploadOutlined />
                   </span>
                 </Tooltip>
               )}

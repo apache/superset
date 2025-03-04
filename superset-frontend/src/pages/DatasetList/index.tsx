@@ -442,10 +442,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined
-                      iconSize="xl"
-                      css={{ verticalAlign: 'middle' }}
-                    />
+                    <Icons.UploadOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -634,11 +631,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         <>
           <Icons.PlusOutlined
             iconColor={theme.colors.primary.light5}
-            iconSize="s"
-            css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
-              vertical-align: baseline;
-            `}
+            iconSize="xs"
           />
           {t('Dataset')}
         </>
@@ -656,7 +649,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           title={t('Import datasets')}
           placement="bottomRight"
         >
-          <Icons.DownloadOutlined data-test="import-button" />
+          <Icons.DownloadOutlined
+            iconColor={theme.colors.primary.dark1}
+            data-test="import-button"
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',

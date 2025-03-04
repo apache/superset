@@ -105,12 +105,7 @@ function DashboardCard({
             onClick={() => openDashboardEditModal?.(dashboard)}
             data-test="dashboard-card-option-edit-button"
           >
-            <Icons.EditOutlined
-              iconSize="l"
-              css={{ verticalAlign: 'baseline' }}
-              data-test="edit-alt"
-            />{' '}
-            {t('Edit')}
+            <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
           </div>
         </Menu.Item>
       )}
@@ -123,11 +118,7 @@ function DashboardCard({
             className="action-button"
             data-test="dashboard-card-option-export-button"
           >
-            <Icons.UploadOutlined
-              iconSize="l"
-              css={{ verticalAlign: 'baseline' }}
-            />{' '}
-            {t('Export')}
+            <Icons.UploadOutlined iconSize="l" /> {t('Export')}
           </div>
         </Menu.Item>
       )}
@@ -140,11 +131,7 @@ function DashboardCard({
             onClick={() => onDelete(dashboard)}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.DeleteOutlined
-              css={{ verticalAlign: 'baseline' }}
-              iconSize="l"
-            />{' '}
-            {t('Delete')}
+            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
           </div>
         </Menu.Item>
       )}
