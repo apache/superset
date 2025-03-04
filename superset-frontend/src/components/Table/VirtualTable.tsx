@@ -20,7 +20,7 @@
 import AntTable, {
   TablePaginationConfig,
   TableProps as AntTableProps,
-} from 'antd/lib/table';
+} from 'antd-v5/lib/table';
 import classNames from 'classnames';
 import { useResizeDetector } from 'react-resize-detector';
 import { useEffect, useRef, useState, useCallback, CSSProperties } from 'react';
@@ -29,7 +29,8 @@ import { useTheme, styled, safeHtmlSpan } from '@superset-ui/core';
 
 import { TableSize, ETableAction } from './index';
 
-interface VirtualTableProps<RecordType> extends AntTableProps<RecordType> {
+export interface VirtualTableProps<RecordType>
+  extends AntTableProps<RecordType> {
   height?: number;
   allowHTML?: boolean;
 }
@@ -48,7 +49,7 @@ const StyledCell = styled('div')<{ height?: number }>(
 `,
 );
 
-const StyledTable = styled(AntTable)<{ height?: number }>(
+const StyledTable = styled(AntTable)(
   ({ theme }) => `
     th.ant-table-cell {
       font-weight: ${theme.typography.weights.bold};
@@ -65,8 +66,13 @@ const StyledTable = styled(AntTable)<{ height?: number }>(
     .ant-table.ant-table-small {
       font-size: ${theme.typography.sizes.s}px;
     }
+
+    .ant-spin-nested-loading .ant-spin .ant-spin-dot {
+      width: ${theme.gridUnit * 12}px;
+      height: unset;
+    }
 `,
-);
+) as unknown as typeof AntTable;
 
 const SMALL = 39;
 const MIDDLE = 47;
@@ -183,7 +189,10 @@ const VirtualTable = <RecordType extends object>(
     );
   };
 
-  const renderVirtualList = (rawData: object[], { ref, onScroll }: any) => {
+  const renderVirtualList = (
+    rawData: readonly object[],
+    { ref, onScroll }: any,
+  ) => {
     // eslint-disable-next-line no-param-reassign
     ref.current = connectObject;
     const cellSize = size === TableSize.Middle ? MIDDLE : SMALL;
@@ -258,11 +267,12 @@ const VirtualTable = <RecordType extends object>(
         {...props}
         sticky={false}
         className="virtual-table"
-        columns={mergedColumns}
         components={{
           body: renderVirtualList,
         }}
         pagination={pagination ? modifiedPagination : false}
+        scroll={scroll}
+        columns={mergedColumns}
       />
     </div>
   );
