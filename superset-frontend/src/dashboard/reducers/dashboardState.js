@@ -221,24 +221,24 @@ export default function dashboardStateReducer(state = {}, action) {
       };
     },
     [SET_SUPERSET_URL]() {
-      console.log('SET_SUPERSET_URL', action);
+      // console.log('SET_SUPERSET_URL', action);
       const { supersetUrl } = action;
       let ikigaiOrigin = '';
       const iframeUrl = new URL(supersetUrl);
       if (iframeUrl && iframeUrl.search) {
-        console.log('iframeUrl2', iframeUrl);
+        // console.log('iframeUrl2', iframeUrl);
         const iframeUrlParameters = new URLSearchParams(iframeUrl.search);
-        console.log('iframeUrlParameters', iframeUrlParameters);
+        // console.log('iframeUrlParameters', iframeUrlParameters);
         if (iframeUrlParameters) {
           const ikigaiURL = iframeUrlParameters.get('dash_url')
             ? new URL(iframeUrlParameters.get('dash_url'))
             : '';
-          console.log('ikigaiURL', ikigaiURL);
+          // console.log('ikigaiURL', ikigaiURL);
           ikigaiOrigin = ikigaiURL ? ikigaiURL.origin : '';
-          console.log('ikigaiOrigin', ikigaiOrigin);
+          // console.log('ikigaiOrigin', ikigaiOrigin);
         }
       }
-      console.log('ikigaiOrigin2', ikigaiOrigin);
+      // console.log('ikigaiOrigin2', ikigaiOrigin);
       return {
         ...state,
         supersetUrl,

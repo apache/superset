@@ -143,8 +143,21 @@ class FilterBox extends React.PureComponent {
   }
 
   componentDidMount() {
-    // Send filters on initial render to apply preexisting filters
-    this.sendFilterToDynamicMarkdown();
+    this.handleIncomingWindowMsg();
+  }
+
+  handleIncomingWindowMsg() {
+    window.addEventListener('message', event => {
+      const messageObject = JSON.parse(event.data);
+
+      if (
+        messageObject.info !== 'widget-to-superset/sending-filter-hook-mounted'
+      ) {
+        return;
+      }
+
+      this.sendFilterToDynamicMarkdown();
+    });
   }
 
   onFilterMenuOpen(column) {
