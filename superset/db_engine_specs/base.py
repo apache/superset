@@ -1074,7 +1074,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     @classmethod
     def get_table_metadata(
-        cls, database: Database, table: Table, partition: Optional[Partition] = None
+        cls,
+        database: Database,
+        table: Table,
+        partition: Optional[Partition] = None
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
