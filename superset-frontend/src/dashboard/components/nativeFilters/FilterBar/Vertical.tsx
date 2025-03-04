@@ -71,6 +71,7 @@ const Bar = styled.div<{ width: number }>`
     display: none;
     &.open {
       display: flex;
+      background-color: ${theme.colorBgBase};
     }
   `}
 `;

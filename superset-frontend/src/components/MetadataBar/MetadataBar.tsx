@@ -41,7 +41,7 @@ const Bar = styled.div<{ count: number }>`
     display: flex;
     align-items: center;
     padding: ${VERTICAL_PADDING}px ${HORIZONTAL_PADDING}px;
-    background-color: ${theme.colorBgElevated};
+    background-color: ${theme.colorBgLayout};
     color: ${theme.colorTextTertiary};
     font-size: ${theme.fontSizeSM}px;
     min-width: ${
