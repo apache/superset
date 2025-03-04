@@ -18,8 +18,12 @@
  */
 import * as reactRedux from 'react-redux';
 import fetchMock from 'fetch-mock';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import RightMenu from './RightMenu';
 import { GlobalMenuDataOptions, RightMenuProps } from './types';
 
@@ -156,7 +160,7 @@ beforeEach(async () => {
   );
 });
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({

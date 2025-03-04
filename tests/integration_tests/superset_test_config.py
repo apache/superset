@@ -73,7 +73,6 @@ FEATURE_FLAGS = {
     "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
-    "HORIZONTAL_FILTER_BAR": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"

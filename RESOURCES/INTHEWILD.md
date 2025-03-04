@@ -120,8 +120,11 @@ Join our growing community!
 - [PubNub](https://pubnub.com) [@jzucker2]
 - [ReadyTech](https://www.readytech.io)
 - [Reward Gateway](https://www.rewardgateway.com)
+- [RIADVICE](https://riadvice.tn) [@riadvice]
 - [ScopeAI](https://www.getscopeai.com) [@iloveluce]
+- [shipmnts](https://shipmnts.com)
 - [Showmax](https://showmax.com) [@bobek]
+- [SingleStore](https://www.singlestore.com/)
 - [TechAudit](https://www.techaudit.info) [@ETselikov]
 - [Tenable](https://www.tenable.com) [@dflionis]
 - [Tentacle](https://www.linkedin.com/company/tentacle-cmi/) [@jdclarke5]

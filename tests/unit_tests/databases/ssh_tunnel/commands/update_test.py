@@ -103,6 +103,37 @@ def test_update_shh_tunnel_invalid_params(session_with_data: Session) -> None:
     "session_with_data", ["postgresql://u:p@localhost/testdb"], indirect=True
 )
 def test_update_shh_tunnel_no_port(session_with_data: Session) -> None:
+    """
+    Test that SSH Tunnel can be updated without explicit port but with a default one.
+    """
+    from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
+    from superset.daos.database import DatabaseDAO
+    from superset.databases.ssh_tunnel.models import SSHTunnel
+
+    result = DatabaseDAO.get_ssh_tunnel(1)
+
+    assert result
+    assert isinstance(result, SSHTunnel)
+    assert 1 == result.database_id
+    assert "Test" == result.server_address
+
+    update_payload = {"server_address": "Test2"}
+    UpdateSSHTunnelCommand(1, update_payload).run()
+
+    result = DatabaseDAO.get_ssh_tunnel(1)
+
+    assert result
+    assert isinstance(result, SSHTunnel)
+    assert "Test2" == result.server_address
+
+
+@pytest.mark.parametrize(
+    "session_with_data", ["weird+db://u:p@localhost/testdb"], indirect=True
+)
+def test_update_shh_tunnel_no_port_no_default(session_with_data: Session) -> None:
+    """
+    Test that error is raised when updating SSH Tunnel without explicit/default ports.
+    """
     from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand
     from superset.daos.database import DatabaseDAO
     from superset.databases.ssh_tunnel.models import SSHTunnel

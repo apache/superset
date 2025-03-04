@@ -22,15 +22,12 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addAlpha,
   css,
-  isFeatureEnabled,
-  FeatureFlag,
   JsonObject,
   styled,
   t,
   useTheme,
   useElementOnScreen,
 } from '@superset-ui/core';
-import { Global } from '@emotion/react';
 import { useDispatch, useSelector } from 'react-redux';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
@@ -397,10 +394,7 @@ const DashboardBuilder = () => {
     state => state.dashboardState.fullSizeChartId,
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
-        ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.Vertical,
+    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
   const handleChangeTab = useCallback(
@@ -653,13 +647,6 @@ const DashboardBuilder = () => {
         </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        <Global
-          styles={css`
-            // @z-index-above-dashboard-header (100) + 1 = 101
-            ${fullSizeChartId &&
-            `div > .filterStatusPopover.ant-popover{z-index: 101}`}
-          `}
-        />
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (

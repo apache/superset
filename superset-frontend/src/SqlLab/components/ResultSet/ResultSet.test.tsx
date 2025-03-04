@@ -27,6 +27,7 @@ import configureStore from 'redux-mock-store';
 import { Store } from 'redux';
 import thunk from 'redux-thunk';
 import fetchMock from 'fetch-mock';
+import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import {
   cachedQuery,
@@ -143,6 +144,17 @@ const setup = (props?: any, store?: Store) =>
   });
 
 describe('ResultSet', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
+  // Add cleanup after each test
+  afterEach(async () => {
+    fetchMock.resetHistory();
+    // Wait for any pending effects to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   test('renders a Table', async () => {
     const { getByTestId } = setup(
       mockedProps,
@@ -157,8 +169,10 @@ describe('ResultSet', () => {
         },
       }),
     );
-    const table = getByTestId('table-container');
-    expect(table).toBeInTheDocument();
+    await waitFor(() => {
+      const table = getByTestId('table-container');
+      expect(table).toBeInTheDocument();
+    });
   });
 
   test('should render success query', async () => {
@@ -354,7 +368,7 @@ describe('ResultSet', () => {
       );
     });
     const { getByRole } = setup(mockedProps, mockStore(initialState));
-    expect(getByRole('treegrid')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
   });
 
   test('renders if there is a limit in query.results but not queryLimit', async () => {
@@ -372,7 +386,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(getByRole('treegrid')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
   });
 
   test('Async queries - renders "Fetch data preview" button when data preview has no results', () => {
@@ -400,7 +414,7 @@ describe('ResultSet', () => {
         name: /fetch data preview/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('treegrid')).not.toBeInTheDocument();
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders "Refetch results" button when a query has no results', () => {
@@ -429,7 +443,7 @@ describe('ResultSet', () => {
         name: /refetch results/i,
       }),
     ).toBeVisible();
-    expect(screen.queryByRole('treegrid')).not.toBeInTheDocument();
+    expect(screen.queryByRole('grid')).not.toBeInTheDocument();
   });
 
   test('Async queries - renders on the first call', () => {
@@ -449,7 +463,7 @@ describe('ResultSet', () => {
         },
       }),
     );
-    expect(screen.getByRole('treegrid')).toBeVisible();
+    expect(screen.getByRole('grid')).toBeVisible();
     expect(
       screen.queryByRole('button', {
         name: /fetch data preview/i,
@@ -508,12 +522,21 @@ describe('ResultSet', () => {
         },
       }),
     );
+
+    await waitFor(() => {
+      const downloadButton = getByTestId('export-csv-button');
+      expect(downloadButton).toBeInTheDocument();
+    });
+
     const downloadButton = getByTestId('export-csv-button');
-    fireEvent.click(downloadButton);
+    await waitFor(() => fireEvent.click(downloadButton));
+
     const warningModal = await findByRole('dialog');
-    expect(
-      within(warningModal).getByText(`Download is on the way`),
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        within(warningModal).getByText(`Download is on the way`),
+      ).toBeInTheDocument();
+    });
   });
 
   test('should not allow download as CSV when user does not have permission to export data', async () => {

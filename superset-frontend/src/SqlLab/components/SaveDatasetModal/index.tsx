@@ -96,32 +96,36 @@ interface SaveDatasetModalProps {
 }
 
 const Styles = styled.div`
+  ${({ theme }) => `
   .sdm-body {
-    margin: 0 8px;
+    margin: 0 ${theme.gridUnit * 2}px;
   }
   .sdm-input {
-    margin-left: 45px;
+    margin-left: ${theme.gridUnit * 10}px;
     width: 401px;
   }
   .sdm-autocomplete {
     width: 401px;
     align-self: center;
+    margin-left: ${theme.gridUnit}px;
   }
   .sdm-radio {
-    display: block;
     height: 30px;
     margin: 10px 0px;
     line-height: 30px;
   }
+  .sdm-radio span {
+    display: inline-flex;
+    padding-right: 0px;
+  }
   .sdm-overwrite-msg {
-    margin: 7px;
+    margin: ${theme.gridUnit * 2}px;
   }
   .sdm-overwrite-container {
     flex: 1 1 auto;
     display: flex;
-  }
+  `}
 `;
-
 const updateDataset = async (
   dbId: number,
   datasetId: number,

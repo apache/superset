@@ -283,7 +283,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
     ...
 ```
 
-This file must be located at the same directory than `superset_config.py` with the name
+This file must be located in the same directory as `superset_config.py` with the name
 `custom_sso_security_manager.py`. Finally, add the following 2 lines to `superset_config.py`:
 
 ```
@@ -319,7 +319,7 @@ CUSTOM_SECURITY_MANAGER = CustomSsoSecurityManager
 
 If you are using Keycloak as OpenID Connect 1.0 Provider, the above configuration based on [`Authlib`](https://authlib.org/) might not work. In this case using [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is a viable option.
 
-Make sure the pip package [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is installed on the webserver. This was succesfully tested using version 2.2.0. This package requires [`Flask-OpenID`](https://pypi.org/project/Flask-OpenID/) as a dependency.
+Make sure the pip package [`Flask-OIDC`](https://pypi.org/project/flask-oidc/) is installed on the webserver. This was successfully tested using version 2.2.0. This package requires [`Flask-OpenID`](https://pypi.org/project/Flask-OpenID/) as a dependency.
 
 The following code defines a new security manager.  Add it to a new file named `keycloak_security_manager.py`, placed in the same directory as your `superset_config.py` file.
 
@@ -486,7 +486,7 @@ def FLASK_APP_MUTATOR(app: Flask) -> None:
 
 To support a diverse set of users, Superset has some features that are not enabled by default. For
 example, some users have stronger security restrictions, while some others may not. So Superset
-allow users to enable or disable some features by config. For feature owners, you can add optional
+allows users to enable or disable some features by config. For feature owners, you can add optional
 functionalities in Superset, but will be only affected by a subset of users.
 
 You can enable or disable features with flag from `superset_config.py`:

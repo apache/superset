@@ -26,7 +26,7 @@ from superset.utils.hashing import md5_sha_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ScreenshotCachePayload,
-    StatusValues,
+    ScreenshotCachePayloadType,
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
@@ -121,24 +121,24 @@ class TestComputeAndCache:
     def test_happy_path(self, mocker: MockerFixture, screenshot_obj):
         self._setup_compute_and_cache(mocker, screenshot_obj)
         screenshot_obj.compute_and_cache(force=False)
-        cache_payload: ScreenshotCachePayload = screenshot_obj.cache.get("key")
-        assert cache_payload.status == StatusValues.UPDATED
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["status"] == "Updated"
 
     def test_screenshot_error(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
         get_screenshot: MagicMock = mocks.get("get_screenshot")
         get_screenshot.side_effect = Exception
         screenshot_obj.compute_and_cache(force=False)
-        cache_payload: ScreenshotCachePayload = screenshot_obj.cache.get("key")
-        assert cache_payload.status == StatusValues.ERROR
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["status"] == "Error"
 
     def test_resize_error(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
         resize_image: MagicMock = mocks.get("resize_image")
         resize_image.side_effect = Exception
         screenshot_obj.compute_and_cache(force=False)
-        cache_payload: ScreenshotCachePayload = screenshot_obj.cache.get("key")
-        assert cache_payload.status == StatusValues.ERROR
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["status"] == "Error"
 
     def test_skips_if_computing(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
@@ -155,8 +155,8 @@ class TestComputeAndCache:
         # Ensure that it processes when force = True
         screenshot_obj.compute_and_cache(force=True)
         get_screenshot.assert_called_once()
-        cache_payload: ScreenshotCachePayload = screenshot_obj.cache.get("key")
-        assert cache_payload.status == StatusValues.UPDATED
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["status"] == "Updated"
 
     def test_skips_if_updated(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
@@ -177,8 +177,8 @@ class TestComputeAndCache:
             force=True, window_size=window_size, thumb_size=thumb_size
         )
         get_screenshot.assert_called_once()
-        cache_payload: ScreenshotCachePayload = screenshot_obj.cache.get("key")
-        assert cache_payload._image != b"initial_value"
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["image"] != b"initial_value"
 
     def test_resize(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
