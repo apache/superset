@@ -153,9 +153,12 @@ def import_dashboard(  # noqa: C901
         "Dashboard",
     )
     existing = db.session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
-        if overwrite and can_write and get_user():
-            if not security_manager.can_access_dashboard(existing):
+        if overwrite and can_write and user:
+            if not security_manager.can_access_dashboard(existing) or (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A dashboard already exists and user doesn't "
                     "have permissions to overwrite it"
