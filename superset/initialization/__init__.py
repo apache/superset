@@ -731,6 +731,6 @@ class SupersetIndexView(IndexView):
         self.update_redirect()
 
         redirect_to = request.headers.get("Referer")
-        if not redirect_to or not self.is_safe_url(redirect_to):
-            redirect_to = self.get_redirect()
-        return redirect(redirect_to)
+        if redirect_to and self.is_safe_url(redirect_to):
+            return redirect(redirect_to)
+        return redirect(self.get_redirect())
