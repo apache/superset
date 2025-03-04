@@ -23,7 +23,6 @@ import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { DashboardInfo, FilterBarOrientation } from 'src/dashboard/types';
 import * as mockedMessageActions from 'src/components/MessageToasts/actions';
-import { FeatureFlag } from '@superset-ui/core';
 import FilterBarSettings from '.';
 
 const initialState: { dashboardInfo: DashboardInfo } = {
@@ -76,20 +75,12 @@ beforeEach(() => {
   fetchMock.restore();
 });
 
-test('Dropdown trigger renders with FF HORIZONTAL_FILTER_BAR on', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
+test('Dropdown trigger renders', async () => {
   await setup();
   expect(screen.getByLabelText('gear')).toBeVisible();
 });
 
 test('Dropdown trigger renders with dashboard edit permissions', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup({
     dash_edit_perm: true,
   });
@@ -97,10 +88,6 @@ test('Dropdown trigger renders with dashboard edit permissions', async () => {
 });
 
 test('Dropdown trigger does not render without dashboard edit permissions', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup({
     dash_edit_perm: false,
   });
@@ -131,10 +118,6 @@ test('Can enable/disable cross-filtering', async () => {
 });
 
 test('Popover opens with "Vertical" selected', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup();
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
@@ -146,10 +129,6 @@ test('Popover opens with "Vertical" selected', async () => {
 });
 
 test('Popover opens with "Horizontal" selected', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   await setup({ filterBarOrientation: FilterBarOrientation.Horizontal });
   userEvent.click(screen.getByLabelText('gear'));
   userEvent.hover(screen.getByText('Orientation of filter bar'));
@@ -161,10 +140,6 @@ test('Popover opens with "Horizontal" selected', async () => {
 });
 
 test('On selection change, send request and update checked value', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   fetchMock.put('glob:*/api/v1/dashboard/1', {
     result: {
       json_metadata: JSON.stringify({
@@ -218,10 +193,6 @@ test('On selection change, send request and update checked value', async () => {
 });
 
 test('On failed request, restore previous selection', async () => {
-  // @ts-ignore
-  global.featureFlags = {
-    [FeatureFlag.HorizontalFilterBar]: true,
-  };
   fetchMock.put('glob:*/api/v1/dashboard/1', 400);
 
   const dangerToastSpy = jest.spyOn(mockedMessageActions, 'addDangerToast');
