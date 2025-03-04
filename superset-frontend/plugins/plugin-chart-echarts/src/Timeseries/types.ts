@@ -14,6 +14,7 @@ import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
+  EchartsSharedColumnConfigProp, // DODO added 44211769
   LegendFormData,
   StackType,
   TitleFormData,
@@ -36,6 +37,7 @@ export enum EchartsTimeseriesSeriesType {
 }
 
 type EchartsTimeseriesFormDataDodoExtended = {
+  columnConfig: Record<string, EchartsSharedColumnConfigProp>; // DODO added 44211769
   valueAlign: LabelPositionDodo; // DODO added 45525377
 };
 export type EchartsTimeseriesFormData = QueryFormData & {

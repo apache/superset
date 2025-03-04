@@ -65,6 +65,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   forecastPeriods: [],
   forecastInterval: 0,
   forecastSeasonalityDaily: 0,
+  columnConfig: {}, // DODO added 44211769
   valueAlign: LabelPositionDodo.Top, // DODO added 45525377
   valueAlignB: LabelPositionDodo.Top, // DODO added 45525377
 };

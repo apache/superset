@@ -1,22 +1,5 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-import { useState } from 'react';
+// DODO was here
+import { useEffect, useState } from 'react';
 import { styled, SupersetTheme, t, useTheme } from '@superset-ui/core';
 import { ColorSchemeEnum } from '@superset-ui/plugin-chart-table';
 import {
@@ -28,6 +11,8 @@ import Select from 'src/components/Select/Select';
 import { Col, Row } from 'src/components';
 import { InputNumber } from 'src/components/Input';
 import Button from 'src/components/Button';
+import { Switch } from 'src/components/Switch'; // DODO added 44728517
+import ColorPickerControl from 'src/explore/components/controls/ColorPickerControl'; // DODO added 44728517
 import { ConditionalFormattingConfig } from './types';
 
 const FullWidthInputNumber = styled(InputNumber)`
@@ -199,66 +184,156 @@ export const FormattingPopoverContent = ({
 }) => {
   const theme = useTheme();
   const colorScheme = colorSchemeOptions(theme);
-  const [showOperatorFields, setShowOperatorFields] = useState(
+  // DODO added start 44728517
+  const fullColorScheme = [...colorScheme, ...extraColorChoices];
+
+  const [control, setControl] = useState(config?.isFixedColor);
+  const [loaded, setLoaded] = useState(false);
+  const [chosenColor, setChosenColor] = useState<string>(
+    config?.colorScheme || '#000',
+  );
+  const [colorsValues, setColorsValues] = useState<
+    { value: string; label: string }[]
+  >([]);
+  const alteredColorScheme = fullColorScheme.concat({
+    value: 'custom',
+    label: 'Custom',
+  });
+  const parseColorValue = (value: string | 'custom') => {
+    if (value === 'custom') {
+      setChosenColor(colorsValues[0].value);
+    } else {
+      setChosenColor(value || '#000');
+    }
+  };
+  const parseInitialColor = (
+    value: string,
+    values: { value: string; label: string }[],
+  ) => {
+    const filteredColorScheme = values.filter(val => val.value === value);
+    if (filteredColorScheme.length) {
+      return filteredColorScheme[0].value;
+    }
+    return value;
+  };
+  useEffect(() => {
+    const initialColor = parseInitialColor(
+      config?.colorScheme || '#000',
+      fullColorScheme,
+    );
+    if (initialColor) {
+      setChosenColor(initialColor);
+    }
+    setColorsValues(alteredColorScheme);
+    setLoaded(true);
+  }, [config]);
+  // DODO added stop 44728517
+
+  // const [showOperatorFields, setShowOperatorFields] = useState(
+  // DODO changed 44728517
+  const [showOperatorFields] = useState(
     config === undefined ||
       (config?.colorScheme !== ColorSchemeEnum.Green &&
         config?.colorScheme !== ColorSchemeEnum.Red),
   );
-  const handleChange = (event: any) => {
-    setShowOperatorFields(
-      !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
-    );
-  };
+  // const handleChange = (event: any) => {
+  //   setShowOperatorFields(
+  //     !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
+  //   );
+  // };
 
   return (
-    <Form
-      onFinish={onChange}
-      initialValues={config}
-      requiredMark="optional"
-      layout="vertical"
-    >
-      <Row gutter={12}>
-        <Col span={12}>
-          <FormItem
-            name="column"
-            label={t('Column')}
-            rules={rulesRequired}
-            initialValue={columns[0]?.value}
-          >
-            <Select ariaLabel={t('Select column')} options={columns} />
-          </FormItem>
-        </Col>
-        <Col span={12}>
-          <FormItem
-            name="colorScheme"
-            label={t('Color scheme')}
-            rules={rulesRequired}
-            initialValue={colorScheme[0].value}
-          >
-            <Select
-              onChange={event => handleChange(event)}
-              ariaLabel={t('Color scheme')}
-              options={[...colorScheme, ...extraColorChoices]}
-            />
-          </FormItem>
-        </Col>
-      </Row>
-      <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
-        {showOperatorFields ? (
-          renderOperatorFields
-        ) : (
+    <>
+      {loaded ? ( // DODO added 44728517
+        <Form
+          onFinish={onChange}
+          initialValues={config}
+          requiredMark="optional"
+          layout="vertical"
+        >
           <Row gutter={12}>
-            <Col span={6}>{renderOperator({ showOnlyNone: true })}</Col>
+            <Col span={12}>
+              <FormItem
+                name="column"
+                label={t('Column')}
+                rules={rulesRequired}
+                initialValue={columns[0]?.value}
+              >
+                <Select ariaLabel={t('Select column')} options={columns} />
+              </FormItem>
+            </Col>
+            <Col span={12}>
+              <FormItem
+                name="colorScheme"
+                label={t('Color scheme')}
+                rules={rulesRequired}
+                initialValue={fullColorScheme[0].value}
+              >
+                {/* <Select
+                  onChange={event => handleChange(event)}
+                  ariaLabel={t('Color scheme')}
+                  options={[...colorScheme, ...extraColorChoices]}
+                /> */}
+                {/* DODO changed 44728517 */}
+                <Select
+                  ariaLabel={t('Color scheme')}
+                  options={colorsValues}
+                  onChange={parseColorValue}
+                />
+              </FormItem>
+            </Col>
           </Row>
-        )}
-      </FormItem>
-      <FormItem>
-        <JustifyEnd>
-          <Button htmlType="submit" buttonStyle="primary">
-            {t('Apply')}
-          </Button>
-        </JustifyEnd>
-      </FormItem>
-    </Form>
+          {/* DODO added 44728517 */}
+          <Row gutter={12}>
+            <Col span={12}>
+              <FormItem
+                name="isFixedColor"
+                label={t('No gradient')}
+                initialValue={control}
+              >
+                <Switch
+                  data-test="toggle-active"
+                  checked={control}
+                  onClick={setControl}
+                  size="default"
+                />
+              </FormItem>
+            </Col>
+            <Col span={12}>
+              <FormItem
+                name="colorScheme"
+                label={t('Color')}
+                initialValue={chosenColor}
+              >
+                <ColorPickerControl
+                  onChange={setChosenColor}
+                  value={chosenColor}
+                  isHex
+                />
+              </FormItem>
+            </Col>
+          </Row>
+          <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
+            {showOperatorFields ? (
+              renderOperatorFields
+            ) : (
+              <Row gutter={12}>
+                <Col span={6}>{renderOperator({ showOnlyNone: true })}</Col>
+              </Row>
+            )}
+          </FormItem>
+          <FormItem>
+            <JustifyEnd>
+              <Button htmlType="submit" buttonStyle="primary">
+                {t('Apply')}
+              </Button>
+            </JustifyEnd>
+          </FormItem>
+        </Form>
+      ) : (
+        // DODO added 44728517
+        'Loading...'
+      )}
+    </>
   );
 };

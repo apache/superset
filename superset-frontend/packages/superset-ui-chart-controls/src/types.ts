@@ -436,6 +436,7 @@ export const MultipleValueComparators = [
 ];
 
 type ConditionalFormattingConfigDodoExtended = {
+  isFixedColor?: boolean; // DODO added 44728517
   messageRU?: string; // DODO added 45525377
   messageEN?: string; // DODO added 45525377
 };

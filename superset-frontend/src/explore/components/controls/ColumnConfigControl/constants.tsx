@@ -34,11 +34,15 @@ const d3NumberFormat: ControlFormItemSpec<'Select'> = {
   controlType: 'Select',
   label: t('D3 format'),
   description: D3_FORMAT_DOCS,
-  options: D3_FORMAT_OPTIONS.map(option => ({
+  // options: D3_FORMAT_OPTIONS.map(option => ({
+  // DODO changed 44211769
+  options: [['', t('Default')], ...D3_FORMAT_OPTIONS].map(option => ({
     value: option[0],
     label: option[1],
   })),
-  defaultValue: D3_FORMAT_OPTIONS[0][0],
+  // defaultValue: D3_FORMAT_OPTIONS[0][0],
+  // DODO changed 44211769
+  defaultValue: '',
   creatable: true,
   minWidth: '14em',
   debounceDelay: 500,

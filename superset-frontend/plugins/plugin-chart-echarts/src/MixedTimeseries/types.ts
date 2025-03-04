@@ -13,6 +13,7 @@ import {
   BaseTransformedProps,
   ContextMenuTransformedProps,
   CrossFilterTransformedProps,
+  EchartsSharedColumnConfigProp, // DODO added 44211769
   EchartsTimeseriesSeriesType,
   LegendFormData,
   StackType,
@@ -26,6 +27,7 @@ import {
 import { LabelPositionDodo } from '../DodoExtensions/types'; // DODO added 45525377
 
 type EchartsMixedTimeseriesFormDataDodoExtended = {
+  columnConfig: Record<string, EchartsSharedColumnConfigProp>; // DODO added 44211769
   valueAlign: LabelPositionDodo; // DODO added 45525377
   valueAlignB: LabelPositionDodo; // DODO added 45525377
 };

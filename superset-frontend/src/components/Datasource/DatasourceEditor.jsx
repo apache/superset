@@ -37,6 +37,7 @@ import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Icons from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
+import NumberFormatControl from 'src/DodoExtensions/explore/components/controls/NumberFormatControl'; // DODO added 44211769
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -1299,6 +1300,12 @@ class DatasourceEditor extends PureComponent {
                     `}
                   />
                 }
+              />
+              {/* DODO added 44211769 */}
+              <Field
+                fieldKey="number_format"
+                label={t('Number format')}
+                control={<NumberFormatControl />}
               />
               <Field
                 label={t('Certified by')}

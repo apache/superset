@@ -6,13 +6,17 @@ import {
   D3_TIME_FORMAT_OPTIONS,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  yAxisFormatOverrides, // DODO added 44211769
+} from '../sharedControls';
 // DODO added 45525377
 import {
   Alignment,
   conditionalMessageFontSize,
 } from '../../DodoExtensions/BigNumber/sharedControls';
-import { BigNumberControlPanelConditionalFormatting } from '../../DodoExtensions/BigNumber/BigNumberTotal/controlPanelDodo';
+import { BigNumberControlPanelConditionalFormatting } from '../../DodoExtensions/BigNumber/BigNumberTotal/controlPanelDodo'; // DODO added 45525377
 
 export default {
   controlPanelSections: [
@@ -124,9 +128,7 @@ export default {
     { ...BigNumberControlPanelConditionalFormatting }, // DODO added 45525377
   ],
   controlOverrides: {
-    y_axis_format: {
-      label: t('Number format'),
-    },
+    y_axis_format: yAxisFormatOverrides, // DODO changed 44211769
   },
   formDataOverrides: formData => ({
     ...formData,

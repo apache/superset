@@ -184,6 +184,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.expression",
         "metrics.extra",
         "metrics.id",
+        "metrics.number_format",  # dodo added 44728517
         "metrics.metric_name",
         "metrics.metric_type",
         "metrics.verbose_name",

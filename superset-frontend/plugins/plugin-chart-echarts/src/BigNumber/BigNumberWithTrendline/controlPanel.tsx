@@ -8,7 +8,11 @@ import {
   getStandardizedControls,
   temporalColumnMixin,
 } from '@superset-ui/chart-controls';
-import { headerFontSize, subheaderFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  yAxisFormatOverrides, // DODO added 44211769
+} from '../sharedControls';
 // DODO added 45525377
 import {
   Alignment,
@@ -267,9 +271,7 @@ const config: ControlPanelConfig = {
     },
   ],
   controlOverrides: {
-    y_axis_format: {
-      label: t('Number format'),
-    },
+    y_axis_format: yAxisFormatOverrides, // DODO changed 44211769
     x_axis: {
       label: t('TEMPORAL X-AXIS'),
       ...temporalColumnMixin,

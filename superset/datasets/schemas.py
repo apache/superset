@@ -88,6 +88,9 @@ class DatasetMetricsPutSchema(Schema):
     extra = fields.String(allow_none=True)
     metric_name = fields.String(required=True, validate=Length(1, 255))
     metric_type = fields.String(allow_none=True, validate=Length(1, 32))
+    number_format = fields.String(
+        allow_none=True, metadata={Length: (1, 1024)}
+    )  # dodo added 44728517
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
     currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})

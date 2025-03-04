@@ -878,6 +878,21 @@ PivotData.propTypes = {
   ]),
 };
 
+// DODO added 44211769
+const filterColumnConfigByd3NumberFormat = columnConfig => {
+  const filteredConfig = {};
+  Object.keys(columnConfig).forEach(column => {
+    if (columnConfig[column].d3NumberFormat) {
+      filteredConfig[column] = columnConfig[column];
+    }
+  });
+  return filteredConfig;
+};
+
+// DODO added 44211769
+const getMetricNumberFormat = (metrics, metricName) =>
+  metrics.find(metric => metric.metric_name === metricName)?.number_format;
+
 export {
   aggregatorTemplates,
   aggregators,
@@ -885,6 +900,8 @@ export {
   locales,
   naturalSort,
   numberFormat,
+  filterColumnConfigByd3NumberFormat, // DODO added 44211769
+  getMetricNumberFormat, // DODO added 44211769
   getSort,
   sortAs,
   flatKey,

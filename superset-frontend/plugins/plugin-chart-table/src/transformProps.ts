@@ -176,7 +176,12 @@ const processColumns = memoizeOne(function processColumns(
   props: TableChartProps,
 ) {
   const {
-    datasource: { columnFormats, currencyFormats, verboseMap },
+    datasource: {
+      columnFormats,
+      currencyFormats,
+      verboseMap,
+      metrics: datasourceMetrics, // DODO added 44211769
+    },
     rawFormData: {
       table_timestamp_format: tableTimestampFormat,
       metrics: metrics_,
@@ -217,7 +222,14 @@ const processColumns = memoizeOne(function processColumns(
       const isNumber = dataType === GenericDataType.Numeric;
       const savedFormat = columnFormats?.[key];
       const savedCurrency = currencyFormats?.[key];
-      const numberFormat = config.d3NumberFormat || savedFormat;
+      // DODO added 44211769
+      const metricNumberFormat = datasourceMetrics?.find(
+        metric => metric.metric_name === key,
+      )?.number_format;
+      // const numberFormat = config.d3NumberFormat || savedFormat;
+      // DODO changed 44211769
+      const numberFormat =
+        config.d3NumberFormat || metricNumberFormat || savedFormat;
       const currency = config.currencyFormat?.symbol
         ? config.currencyFormat
         : savedCurrency;

@@ -87,6 +87,7 @@ export const Styles = styled.div`
     }
 
     table.pvtTable tbody tr td {
+      // color: ${theme.colors.primary.dark2};
       color: ${theme.colors.grayscale.base}; // DODO changed 45525377
       padding: ${theme.gridUnit}px;
       background-color: ${theme.colors.grayscale.light5};

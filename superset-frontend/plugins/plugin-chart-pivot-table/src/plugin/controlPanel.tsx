@@ -23,7 +23,12 @@ import { METRIC_KEY } from '../DodoExtensions/utils/getPinnedColumnIndexes'; // 
 
 // DODO added 45525377
 const columnConfig = {
-  '0': [['aggregation'], ['hideValueInTotal'], ['pinColumn']],
+  '0': [
+    ['d3NumberFormat'], // DODO added 44211769
+    ['aggregation'],
+    ['hideValueInTotal'],
+    ['pinColumn'],
+  ],
   '1': [['pinColumn']],
   '2': [['pinColumn']],
   '3': [['pinColumn']],

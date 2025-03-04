@@ -1047,6 +1047,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     d3format = Column(String(128))
     currency = Column(String(128))
     warning_text = Column(Text)
+    number_format = Column(Text, nullable=True)  # dodo added 44728517
     table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
     expression = Column(utils.MediumText(), nullable=False)
     extra = Column(Text)
@@ -1126,6 +1127,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
             "description_ru",  # dodo added 44728914
             "expression",
             "id",
+            "number_format",  # dodo added 44728517
             "is_certified",
             "metric_name",
             "warning_markdown",

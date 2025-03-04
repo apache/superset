@@ -136,6 +136,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
               metric_name: metric.metric_name,
               metric_type: metric.metric_type,
               d3format: metric.d3format || null,
+              number_format: metric.number_format, // DODO added 44211769
               currency: !isDefined(metric.currency)
                 ? null
                 : JSON.stringify(metric.currency),

@@ -10,6 +10,7 @@ import {
   getValueFormatter,
   t,
   tooltipHtml,
+  isSavedMetric, // DODO added 44211769
 } from '@superset-ui/core';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { getColorFormattersWithConditionalMessage } from '@superset-ui/chart-controls'; // DODO added 45525377
@@ -42,7 +43,11 @@ export default function transformProps(
     theme,
     hooks,
     inContextMenu,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      metrics: datasourceMetrics = [], // DODO added 44211769
+    },
   } = chartProps;
   const {
     colorPicker,
@@ -160,12 +165,22 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
+  // DODO added 44211769
+  const columnConfigImmitation = {
+    [isSavedMetric(metric) ? metric : metric.label || '']: {
+      d3NumberFormat: yAxisFormat,
+    },
+  };
+
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
     columnFormats,
     yAxisFormat,
     currencyFormat,
+    undefined, // DODO added 44211769
+    datasourceMetrics, // DODO added 44211769
+    columnConfigImmitation, // DODO added 44211769
   );
 
   const headerFormatter =

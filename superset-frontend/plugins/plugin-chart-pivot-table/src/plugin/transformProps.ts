@@ -193,6 +193,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
+    datasourceMetrics, // DODO added 44211769
     columnConfig, // DODO added 45525377
     pinnedColumns, // DODO added 45525377
     datasourceDescriptions, // DODO added 44728892

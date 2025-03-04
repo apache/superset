@@ -43,6 +43,7 @@ export const getColorFunction = (
     targetValueLeft,
     targetValueRight,
     colorScheme,
+    isFixedColor, // DODO added 44728517
   }: ConditionalFormattingConfig,
   columnValues: number[],
   alpha?: boolean,
@@ -160,6 +161,9 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue } = compareResult;
+
+    if (isFixedColor) return colorScheme; // DODO added 44728517
+
     if (alpha === undefined || alpha) {
       return addAlpha(
         colorScheme,

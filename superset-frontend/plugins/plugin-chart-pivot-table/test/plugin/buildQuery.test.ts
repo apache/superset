@@ -37,6 +37,8 @@ const formData: PivotTableQueryFormData = {
   time_grain_sqla: TimeGranularity.MONTH,
   temporal_columns_lookup: { col1: true },
   currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+  datasourceMetrics: [], // DODO added 44211769
+  columnConfig: {}, // DODO added 44211769
   datasourceDescriptions: {}, // DODO added 44728892
 };
 
