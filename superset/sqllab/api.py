@@ -193,7 +193,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @protect()
     @permission_name("read")
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".format",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.format",
         log_to_statsd=False,
     )
     def format_sql(self) -> FlaskResponse:
@@ -238,8 +238,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".export_csv",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_csv",
         log_to_statsd=False,
     )
     def export_csv(self, client_id: str) -> CsvResponse:
@@ -300,8 +299,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @rison(sql_lab_get_results_schema)
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_results",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
         log_to_statsd=False,
     )
     def get_results(self, **kwargs: Any) -> FlaskResponse:
@@ -355,8 +353,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".get_results",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
         log_to_statsd=False,
     )
     def execute_sql_query(self) -> FlaskResponse:

@@ -568,7 +568,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".duplicate",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.duplicate",
         log_to_statsd=False,
     )
     @requires_json
@@ -638,7 +638,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".refresh",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.refresh",
         log_to_statsd=False,
     )
     def refresh(self, pk: int) -> Response:
@@ -1016,8 +1016,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".warm_up_cache",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.warm_up_cache",
         log_to_statsd=False,
     )
     def warm_up_cache(self) -> Response:
@@ -1075,7 +1074,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".get",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get",
         log_to_statsd=False,
     )
     def get(self, pk: int, **kwargs: Any) -> Response:

@@ -67,6 +67,18 @@ class GSheetsParametersSchema(Schema):
             "field_name": "service_account_info",
         },
     )
+    oauth2_client_info = EncryptedString(
+        required=False,
+        metadata={
+            "description": "OAuth2 client information",
+            "default": {
+                "scope": " ".join(SCOPES),
+                "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                "token_request_uri": "https://oauth2.googleapis.com/token",
+            },
+        },
+        allow_none=True,
+    )
 
 
 class GSheetsParametersType(TypedDict):
@@ -165,7 +177,21 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         _: GSheetsParametersType,
         encrypted_extra: None | (dict[str, Any]) = None,
     ) -> str:
+        if encrypted_extra and "oauth2_client_info" in encrypted_extra:
+            del encrypted_extra["oauth2_client_info"]
+
         return "gsheets://"
+
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Remove `oauth2_client_info` from `encrypted_extra`.
+        """
+        if "oauth2_client_info" in params.get("encrypted_extra", {}):
+            del params["encrypted_extra"]["oauth2_client_info"]
 
     @classmethod
     def get_parameters_from_uri(
@@ -210,9 +236,9 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # via parameters for validation
         parameters = properties.get("parameters", {})
         if parameters and parameters.get("catalog"):
-            table_catalog = parameters.get("catalog", {})
+            table_catalog = parameters.get("catalog") or {}
         else:
-            table_catalog = properties.get("catalog", {})
+            table_catalog = properties.get("catalog") or {}
 
         encrypted_credentials = parameters.get("service_account_info") or "{}"
 
@@ -220,18 +246,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
             encrypted_credentials = json.loads(encrypted_credentials)
-
-        if not table_catalog:
-            # Allowing users to submit empty catalogs
-            errors.append(
-                SupersetError(
-                    message="Sheet name is required",
-                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
-                    level=ErrorLevel.WARNING,
-                    extra={"catalog": {"idx": 0, "name": True}},
-                ),
-            )
-            return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets

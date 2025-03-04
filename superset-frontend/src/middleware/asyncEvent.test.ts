@@ -98,7 +98,7 @@ describe('asyncEvent middleware', () => {
     mockedIsFeatureEnabled.mockRestore();
   });
 
-  afterAll(fetchMock.reset);
+  afterAll(() => fetchMock.reset());
 
   describe('polling transport', () => {
     const config = {

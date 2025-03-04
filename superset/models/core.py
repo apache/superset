@@ -38,6 +38,7 @@ import sqlalchemy as sqla
 import sshtunnel
 from flask import g, request
 from flask_appbuilder import Model
+from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
     Boolean,
     Column,
@@ -1134,9 +1135,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         admins to create custom OAuth2 clients from the Superset UI, and assign them to
         specific databases.
         """
-        encrypted_extra = json.loads(self.encrypted_extra or "{}")
-        oauth2_client_info = encrypted_extra.get("oauth2_client_info", {})
-        return bool(oauth2_client_info) or self.db_engine_spec.is_oauth2_enabled()
+        try:
+            client_config = self.get_oauth2_config()
+        except ValidationError:
+            logger.warning("Invalid OAuth2 client configuration for database %s", self)
+            client_config = None
+
+        return client_config is not None or self.db_engine_spec.is_oauth2_enabled()
 
     def get_oauth2_config(self) -> OAuth2ClientConfig | None:
         """
