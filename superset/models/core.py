@@ -478,7 +478,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
         self.db_engine_spec.validate_database_uri(sqlalchemy_url)
 
-        extra = self.get_extra()
+        extra = self.get_extra(source)
         params = extra.get("engine_params", {})
         if nullpool:
             params["poolclass"] = NullPool
@@ -955,8 +955,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_time_grains()
 
-    def get_extra(self) -> dict[str, Any]:
-        return self.db_engine_spec.get_extra_params(self)
+    def get_extra(self, source: utils.QuerySource | None = None) -> dict[str, Any]:
+        return self.db_engine_spec.get_extra_params(self, source)
 
     def get_encrypted_extra(self) -> dict[str, Any]:
         encrypted_extra = {}
