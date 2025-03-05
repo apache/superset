@@ -158,17 +158,17 @@ describe('Dashboards list', () => {
       cy.getBySel('styled-card').first().contains('1 - Sample dashboard');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-unselected']")
+        .find("[aria-label='StarOutlined']")
         .click();
       cy.wait('@select');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-selected']")
+        .find("[aria-label='StarFilled']")
         .click();
       cy.wait('@unselect');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-selected']")
+        .find("[aria-label='StarFilled']")
         .should('not.exist');
     });
 

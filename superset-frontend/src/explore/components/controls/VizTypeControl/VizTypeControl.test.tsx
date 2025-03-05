@@ -120,7 +120,7 @@ describe('VizTypeControl', () => {
       isModalOpenInit: false,
     };
     await waitForRenderWrapper(props);
-    expect(screen.getByLabelText('table-chart-tile')).toBeVisible();
+    expect(screen.getByLabelText('TableOutlined')).toBeVisible();
     expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('pie-chart-tile')).toBeVisible();
     expect(screen.getByLabelText('bar-chart-tile')).toBeVisible();

@@ -32,9 +32,7 @@ test('render right content', async () => {
 
   const { rerender, findByRole } = render(<FaveStar {...props} isStarred />);
   expect(screen.getByRole('button')).toBeInTheDocument();
-  expect(
-    screen.getByRole('img', { name: 'favorite-selected' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'StarFilled' })).toBeInTheDocument();
 
   expect(props.saveFaveStar).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button'));

@@ -219,9 +219,9 @@ const expectDrillToDetailDisabled = async (tooltipContent?: string) => {
  * "Drill to detail by" item should not be present
  */
 const expectNoDrillToDetailBy = async () => {
-  const drillToDetailBy = screen
-    .getAllByRole('menuitem')
-    .find(menuItem => within(menuItem).queryByText('Drill to detail by'));
+  const drillToDetailBy = screen.queryByRole('menuitem', {
+    name: 'Drill to detail by',
+  });
 
   expect(drillToDetailBy).not.toBeInTheDocument();
 };

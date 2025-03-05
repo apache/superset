@@ -78,7 +78,7 @@ const FILTER_NAME = 'Time filter 1';
 const addFilterFlow = async () => {
   // open filter config modal
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.click(screen.getByLabelText('SettingOutlined'));
   userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));

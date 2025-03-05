@@ -61,10 +61,13 @@ test('renders a dropdown trigger when overflowing', async () => {
 test('renders a dropdown trigger with custom icon', async () => {
   await mockOverflowingIndex(3, async () => {
     render(
-      <DropdownContainer items={ITEMS} dropdownTriggerIcon={<Icons.Link />} />,
+      <DropdownContainer
+        items={ITEMS}
+        dropdownTriggerIcon={<Icons.LinkOutlined />}
+      />,
     );
     expect(
-      await screen.findByRole('img', { name: 'link' }),
+      await screen.findByRole('img', { name: 'LinkOutlined' }),
     ).toBeInTheDocument();
   });
 });
