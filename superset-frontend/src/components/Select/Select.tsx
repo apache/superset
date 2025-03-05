@@ -225,7 +225,7 @@ const Select = forwardRef(
                     label: option.label,
                     value: option.value,
                   } as unknown as RawValue) // TODO: @msyavuz Type these properly
-                : (option.valu as unknown as RawValue),
+                : (option.value as unknown as RawValue),
             ),
         );
       }
