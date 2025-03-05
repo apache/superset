@@ -85,7 +85,6 @@ from superset.superset_typing import (
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.aws import run_query_and_get_s3_url
 from superset.utils.backports import StrEnum
-
 from superset.utils.core import get_username
 from superset.utils.oauth2 import (
     check_for_oauth2,
