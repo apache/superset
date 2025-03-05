@@ -98,8 +98,10 @@ export function useListViewResource<D extends object = any>(
 
   useEffect(() => {
     if (!infoEnable) return;
+    // temporal change
+    const cleanedResource = resource.replace(/\/search$/, '');
     SupersetClient.get({
-      endpoint: `/api/v1/${resource}/_info?q=${rison.encode({
+      endpoint: `/api/v1/${cleanedResource}/_info?q=${rison.encode({
         keys: ['permissions'],
       })}`,
     }).then(
