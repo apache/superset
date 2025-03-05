@@ -411,8 +411,8 @@ def test_get_user_agent(mocker: MockerFixture) -> None:
     assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
         "The default user agent should be returned"
     )
-    current_app_mock["USER_AGENT_FUNC"] = (
-        lambda database, source: f"abc {database.database_name} {source.name}",
+    current_app_mock.config["USER_AGENT_FUNC"] = (
+        lambda database, source: f"{database.database_name} {source.name}"
     )
 
     assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
