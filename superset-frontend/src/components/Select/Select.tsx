@@ -34,11 +34,11 @@ import {
   t,
   usePrevious,
 } from '@superset-ui/core';
+import { Select as AntdSelect } from 'antd-v5';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
-} from 'antd-v5/es/select';
-import { LabeledValue } from 'antd-v5/lib/select';
+} from 'antd-v5/lib/select';
 import {
   getValue,
   hasOption,
@@ -50,6 +50,7 @@ import {
   hasCustomLabels,
   isEqual as utilsIsEqual,
   handleFilterOptionHelper,
+  renderSelectOptions,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -87,6 +88,7 @@ const Select = forwardRef(
       invertSelection = false,
       labelInValue = false,
       loading,
+      maxTagCount: propsMaxTagCount,
       mode = 'single',
       name,
       notFoundContent,
@@ -119,11 +121,18 @@ const Select = forwardRef(
       [onChangeCount],
     );
 
+    const maxTagCount = useMemo(
+      () => propsMaxTagCount ?? MAX_TAG_COUNT,
+      [propsMaxTagCount],
+    );
+
     const mappedMode = allowNewOptions
       ? 'tags'
       : isSingleMode
         ? undefined
         : 'multiple';
+
+    const { Option } = AntdSelect;
 
     const [selectOptions, setSelectOptions] =
       useState<SelectOptionsType>(options);
@@ -397,8 +406,28 @@ const Select = forwardRef(
       [selectAllEnabled, options],
     );
 
+    const omittedCount = useMemo(() => {
+      const num_selected = ensureIsArray(selectValue).length;
+      const num_shown = maxTagCount as number;
+      return num_selected - num_shown - (selectAllMode ? 1 : 0);
+    }, [maxTagCount, selectAllMode, selectValue]);
+
+    const customMaxTagPlaceholder = () =>
+      `+ ${omittedCount > 0 ? omittedCount : 1} ...`;
+
+    // We can't remove the + tag so when Select All
+    // is the only item omitted, we subtract one from maxTagCount
+    let actualMaxTagCount = maxTagCount;
+    if (
+      actualMaxTagCount !== 'responsive' &&
+      omittedCount === 0 &&
+      selectAllMode
+    ) {
+      actualMaxTagCount -= 1;
+    }
+
     const getOptions = useMemo(() => {
-      let opts = shouldRenderChildrenOptions ? options : [];
+      let opts = options;
       if (selectAllEnabled) {
         opts = [
           {
@@ -411,12 +440,7 @@ const Select = forwardRef(
       }
 
       return opts;
-    }, [
-      options,
-      selectAllEnabled,
-      selectAllLabel,
-      shouldRenderChildrenOptions,
-    ]);
+    }, [options, selectAllEnabled, selectAllLabel]);
 
     return (
       <StyledContainer headerPosition={headerPosition}>
@@ -434,7 +458,7 @@ const Select = forwardRef(
             }
             return handleFilterOptionHelper(
               input,
-              option as LabeledValue,
+              option as AntdLabeledValue,
               ['label'],
               true,
             );
@@ -444,7 +468,8 @@ const Select = forwardRef(
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
-          maxTagCount={MAX_TAG_COUNT}
+          maxTagCount={actualMaxTagCount}
+          maxTagPlaceholder={customMaxTagPlaceholder}
           mode={mappedMode}
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
@@ -463,13 +488,25 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={getOptions}
+          options={shouldRenderChildrenOptions ? undefined : getOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           css={props.css}
           {...props}
           ref={ref as unknown as Ref<RefSelectProps>}
-        />
+        >
+          {selectAllEnabled && (
+            <Option
+              id="select-all"
+              className="select-all"
+              key={SELECT_ALL_VALUE}
+              value={SELECT_ALL_VALUE}
+            >
+              {selectAllLabel()}
+            </Option>
+          )}
+          {shouldRenderChildrenOptions && renderSelectOptions(options)}
+        </StyledSelect>
       </StyledContainer>
     );
   },
