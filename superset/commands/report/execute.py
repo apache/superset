@@ -72,7 +72,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user
+from superset.utils.core import get_recipients_list, HeaderDataType, override_user
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -139,22 +139,37 @@ class BaseReportState:
                     slack_recipients = json.loads(recipient.recipient_config_json)
                     # we need to ensure that existing reports can also fetch
                     # ids from private channels
+                    channels_list = get_recipients_list(slack_recipients["target"])
+                    channels_list = [channel.lstrip("#") for channel in channels_list]
+                    channels = get_channels_with_search(
+                        search_string=channels_list,
+                        types=[
+                            SlackChannelTypes.PRIVATE,
+                            SlackChannelTypes.PUBLIC,
+                        ],
+                        exact_match=True,
+                    )
+                    if len(channels_list) != len(channels):
+                        missing_channels = set(channels_list) - {
+                            channel["name"] for channel in channels
+                        }
+                        msg = (
+                            "Could not find the following channels: "
+                            f"{', '.join(missing_channels)}"
+                        )
+                        raise UpdateFailedError(msg)
+                    channel_ids = ", ".join(channel["id"] for channel in channels)
                     recipient.recipient_config_json = json.dumps(
                         {
-                            "target": get_channels_with_search(
-                                slack_recipients["target"],
-                                types=[
-                                    SlackChannelTypes.PRIVATE,
-                                    SlackChannelTypes.PUBLIC,
-                                ],
-                            )
+                            "target": channel_ids,
                         }
                     )
         except Exception as ex:
-            logger.warning(
-                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
-            )
-            raise UpdateFailedError from ex
+            # Revert to v1 to preserve configuration (requires manual fix)
+            recipient.type = ReportRecipientType.SLACK
+            msg = f"Failed to update slack recipients to v2: {str(ex)}"
+            logger.error(msg, exc_info=True)
+            raise UpdateFailedError(msg) from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -571,10 +586,13 @@ class BaseReportState:
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
                     notification.send()
-                except (UpdateFailedError, NotificationParamException) as err:
-                    # log the error but keep processing the report with SlackV1
-                    logger.warning(
-                        "Failed to update slack recipients to v2: %s", str(err)
+                except (UpdateFailedError, NotificationParamException) as mig_err:
+                    notification_errors.append(
+                        SupersetError(
+                            message=mig_err.message,
+                            error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
                     )
             except (NotificationError, SupersetException) as ex:
                 # collect errors but keep processing them
