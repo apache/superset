@@ -80,6 +80,9 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,  # noqa: F401
     load_unicode_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.users import (
+    create_gamma_user_group_with_all_database,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
 
 
@@ -260,6 +263,18 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] == 0
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_all_database")
+    def test_get_items_gamma_group(self):
+        """
+        Database API: Test get items gamma with group
+        """
+        self.login("gamma_with_groups", "password1")
+        uri = "api/v1/database/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] > 0
 
     def test_create_database(self):
         """
@@ -2360,6 +2375,17 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("create_gamma_user_group_with_all_database")
+    def test_get_database_related_objects_gamma_group(self):
+        """
+        Database API: Test related objects with gamma group with role all database
+        """
+        database = get_example_database()
+        self.login("gamma_with_groups", "password1")
+        uri = f"api/v1/database/{database.id}/related_objects/"
+        rv = self.get_assert_metric(uri, "related_objects")
+        assert rv.status_code == 200
+
     def test_export_database(self):
         """
         Database API: Test export database
@@ -3447,6 +3473,22 @@ class TestDatabaseApi(SupersetTestCase):
                     "parameters": {
                         "properties": {
                             "catalog": {"type": "object"},
+                            "oauth2_client_info": {
+                                "default": {
+                                    "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                                    "scope": (
+                                        "https://www.googleapis.com/auth/"
+                                        "drive.readonly "
+                                        "https://www.googleapis.com/auth/spreadsheets "
+                                        "https://spreadsheets.google.com/feeds"
+                                    ),
+                                    "token_request_uri": "https://oauth2.googleapis.com/token",
+                                },
+                                "description": "OAuth2 client information",
+                                "nullable": True,
+                                "type": "string",
+                                "x-encrypted-extra": True,
+                            },
                             "service_account_info": {
                                 "description": "Contents of GSheets JSON credentials.",
                                 "type": "string",
