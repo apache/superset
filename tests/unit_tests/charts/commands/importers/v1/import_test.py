@@ -181,7 +181,56 @@ def test_import_existing_chart_without_permission(
         .one_or_none()
     )
 
-    with override_user("admin"):
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_chart(chart_config, overwrite=True)
+        assert (
+            str(excinfo.value)
+            == "A chart already exists and user doesn't have permissions to overwrite it"  # noqa: E501
+        )
+
+    # Assert that the can write to chart was checked
+    mock_can_access.assert_called_once_with("can_write", "Chart")
+    mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_existing_chart_without_owner_permission(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Test importing a chart when a user doesn't have permissions to modify.
+    """
+    mock_can_access = mocker.patch.object(
+        security_manager, "can_access", return_value=True
+    )
+    mock_can_access_chart = mocker.patch.object(
+        security_manager, "can_access_chart", return_value=True
+    )
+
+    slice = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(user):
         with pytest.raises(ImportFailedError) as excinfo:
             import_chart(chart_config, overwrite=True)
         assert (
