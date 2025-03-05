@@ -140,6 +140,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "user_impersonation": (
                 has_custom_method(spec, "update_impersonation_config")
                 or has_custom_method(spec, "get_url_for_impersonation")
+                or has_custom_method(spec, "impersonate_user")
             ),
             "file_upload": spec.supports_file_upload,
             "get_extra_table_metadata": has_custom_method(
