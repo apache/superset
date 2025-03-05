@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  JSXElementConstructor,
-  ReactElement,
-  ReactNode,
-  Ref,
-  RefObject,
-} from 'react';
+import { JSXElementConstructor, ReactElement, ReactNode, Ref } from 'react';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
@@ -170,7 +164,7 @@ export interface SelectProps extends BaseSelectProps {
   options: SelectOptionsType;
 }
 
-export type AsyncSelectRef = RefObject<RefSelectProps> & {
+export type AsyncSelectRef = RefSelectProps & {
   clearCache: () => void;
 };
 

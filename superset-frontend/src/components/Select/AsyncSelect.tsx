@@ -148,7 +148,7 @@ const AsyncSelect = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: AsyncSelectProps,
-    ref: AsyncSelectRef,
+    ref: RefObject<AsyncSelectRef>,
   ) => {
     const isSingleMode = mode === 'single';
     const [selectValue, setSelectValue] = useState(value);
