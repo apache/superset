@@ -56,7 +56,7 @@ test('renders with theme', () => {
 test('renders with icon child', async () => {
   render(
     <Tooltip title="Simple tooltip">
-      <Icons.Alert>Hover me</Icons.Alert>
+      <Icons.WarningOutlined>Hover me</Icons.WarningOutlined>
     </Tooltip>,
   );
   userEvent.hover(screen.getByRole('img'));

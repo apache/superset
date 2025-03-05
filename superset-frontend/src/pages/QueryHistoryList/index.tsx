@@ -159,7 +159,11 @@ function QueryList({ addDangerToast }: QueryListProps) {
           };
           if (status === QueryState.Success) {
             statusConfig.name = (
-              <Icons.Check iconColor={theme.colors.success.base} />
+              <Icons.CheckOutlined
+                iconSize="m"
+                iconColor={theme.colors.success.base}
+                css={{ verticalAlign: '-webkit-baseline-middle' }}
+              />
             );
             statusConfig.label = t('Success');
           } else if (
@@ -167,7 +171,8 @@ function QueryList({ addDangerToast }: QueryListProps) {
             status === QueryState.Stopped
           ) {
             statusConfig.name = (
-              <Icons.XSmall
+              <Icons.CloseOutlined
+                iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colors.error.base
@@ -190,9 +195,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = (
-              <Icons.Queued iconColor={theme.colors.grayscale.base} />
-            );
+            statusConfig.name = <Icons.Queued />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -352,7 +355,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconColor={theme.colors.grayscale.base} />
+              <Icons.Full />
             </Link>
           </Tooltip>
         ),

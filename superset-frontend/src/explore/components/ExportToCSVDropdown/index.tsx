@@ -74,13 +74,13 @@ export const ExportToCSVDropdown = ({
           <Menu.Item key={MenuKeys.ExportOriginal}>
             <MenuItemContent>
               {t('Original')}
-              <Icons.Download />
+              <Icons.DownloadOutlined />
             </MenuItemContent>
           </Menu.Item>
           <Menu.Item key={MenuKeys.ExportPivoted}>
             <MenuItemContent>
               {t('Pivoted')}
-              <Icons.Download />
+              <Icons.DownloadOutlined />
             </MenuItemContent>
           </Menu.Item>
         </Menu>
