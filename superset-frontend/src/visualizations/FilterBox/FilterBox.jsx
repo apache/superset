@@ -150,13 +150,12 @@ class FilterBox extends React.PureComponent {
     window.addEventListener('message', event => {
       const messageObject = JSON.parse(event.data);
 
+      // TODO: check for origin
       if (
-        messageObject.info !== 'widget-to-superset/sending-filter-hook-mounted'
+        messageObject.info === 'widget-to-superset/sending-filter-hook-mounted'
       ) {
-        return;
+        this.sendFilterToDynamicMarkdown();
       }
-
-      this.sendFilterToDynamicMarkdown();
     });
   }
 
@@ -313,21 +312,26 @@ class FilterBox extends React.PureComponent {
   }
 
   /**
-   * Post message with updated filters to all Dynamic Markdown instances within the dashboard
+   * Post message with updated filters to all Dynamic Markdown instances within
+   * the dashboard
    */
   sendFilterToDynamicMarkdown() {
     // ikigaiOrigin does not exist in chart view
     const origin = this.props.ikigaiOrigin || '';
+
     const crossWindowMessage = {
       info: 'widget-to-parent/send-global-filter',
       dataType: 'object',
       data: {
         filters: this.state.selectedValues,
+        filterLabel: this.props.filtersFields[0].label,
         chartId: this.props?.chartId,
       },
     };
+
     const iframes = document.querySelectorAll('iframe');
     const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+
     iframes.forEach(iframe => {
       if (!iframe.name.includes('dynamic-markdown')) return;
       iframe.contentWindow.postMessage(crossBrowserInfoString, origin);
