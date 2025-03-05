@@ -123,13 +123,11 @@ def prune_log() -> None:
 
 
 @celery_app.task(name="prune_query")
-def prune_query() -> None:
+def prune_query(retention_period_days: int) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_query")
 
     try:
-        QueryPruneCommand(
-            prune_query.request.properties.get("retention_period_days")
-        ).run()
+        QueryPruneCommand(retention_period_days).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning queries: %s", ex)
