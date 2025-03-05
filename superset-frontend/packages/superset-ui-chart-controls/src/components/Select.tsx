@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, ReactNode } from 'react';
-import AntdSelect, { SelectProps as AntdSelectProps } from 'antd/lib/select';
+import AntdSelect, { SelectProps as AntdSelectProps } from 'antd-v5/lib/select';
 
 export const { Option }: any = AntdSelect;
 
