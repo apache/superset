@@ -140,6 +140,7 @@ class BaseReportState:
                     # we need to ensure that existing reports can also fetch
                     # ids from private channels
                     channels_list = get_recipients_list(slack_recipients["target"])
+                    channels_list = [channel.lstrip("#") for channel in channels_list]
                     channels = get_channels_with_search(
                         search_string=channels_list,
                         types=[
@@ -164,10 +165,11 @@ class BaseReportState:
                         }
                     )
         except Exception as ex:
-            logger.warning(
-                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
-            )
-            raise UpdateFailedError from ex
+            # Revert to v1 to preserve configuration (requires manual fix)
+            recipient.type = ReportRecipientType.SLACK
+            msg = f"Failed to update slack recipients to v2: {str(ex)}"
+            logger.error(msg, exc_info=True)
+            raise UpdateFailedError(msg) from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -584,10 +586,13 @@ class BaseReportState:
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
                     notification.send()
-                except (UpdateFailedError, NotificationParamException) as err:
-                    # log the error but keep processing the report with SlackV1
-                    logger.warning(
-                        "Failed to update slack recipients to v2: %s", str(err)
+                except (UpdateFailedError, NotificationParamException) as mig_err:
+                    notification_errors.append(
+                        SupersetError(
+                            message=mig_err.message,
+                            error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
                     )
             except (NotificationError, SupersetException) as ex:
                 # collect errors but keep processing them

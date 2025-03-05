@@ -308,7 +308,10 @@ def create_report_slack_chart():
 def create_report_slack_chartv2():
     chart = db.session.query(Slice).first()
     report_schedule = create_report_notification(
-        slack_channel="slack_channel_id", chart=chart, name="report_slack_chartv2"
+        slack_channel="slack_channel_id",
+        chart=chart,
+        name="report_slack_chartv2",
+        use_slack_v2=True,
     )
     yield report_schedule
 
@@ -1300,6 +1303,7 @@ def test_email_dashboard_report_schedule_force_screenshot(
         assert_log(ReportState.SUCCESS)
 
 
+@pytest.mark.usefixtures("create_report_slack_chart")
 @patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
@@ -1309,6 +1313,7 @@ def test_slack_chart_report_schedule_converts_to_v2(
     slack_client_mock,
     slack_should_use_v2_api_mock,
     get_channels_with_search_mock,
+    create_report_slack_chart,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule
@@ -1316,11 +1321,70 @@ def test_slack_chart_report_schedule_converts_to_v2(
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
+    channel_id = "slack_channel_id"
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": "slack_channel",
+            "is_member": True,
+            "is_private": False,
+        },
+    ]
 
+    with freeze_time("2020-01-01T00:00:00Z"):
+        with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
+            AsyncExecuteReportScheduleCommand(
+                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+            ).run()
+
+            assert (
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
+                == channel_id
+            )
+            assert (
+                slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
+                == SCREENSHOT_FILE
+            )
+
+            # Assert that the report recipients were updated
+            assert create_report_slack_chart.recipients[
+                0
+            ].recipient_config_json == json.dumps({"target": channel_id})
+            assert (
+                create_report_slack_chart.recipients[0].type
+                == ReportRecipientType.SLACKV2
+            )
+
+            # Assert logs are correct
+            assert_log(ReportState.SUCCESS)
+            # this will send a warning
+            assert statsd_mock.call_args_list[0] == call(
+                "reports.slack.send.warning", 1
+            )
+            assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
+
+
+@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_chart_report_schedule_converts_to_v2_channel_with_hash(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+):
+    """
+    ExecuteReport Command: Test converting a Slack report to v2 when
+    the channel name includes the leading hash (supported in v1).
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
     channel_id = "slack_channel_id"
     chart = db.session.query(Slice).first()
-    report_schedule = create_report_notification(slack_channel=channel_id, chart=chart)
-
+    report_schedule = create_report_notification(
+        slack_channel="#slack_channel", chart=chart
+    )
     get_channels_with_search_mock.return_value = [
         {
             "id": channel_id,
@@ -1362,10 +1426,59 @@ def test_slack_chart_report_schedule_converts_to_v2(
     cleanup_report_schedule(report_schedule)
 
 
+@patch("superset.commands.report.execute.get_channels_with_search")
+@patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
+@patch("superset.reports.notifications.slackv2.get_slack_client")
+@patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
+def test_slack_chart_report_schedule_fails_to_converts_to_v2(
+    screenshot_mock,
+    slack_client_mock,
+    slack_should_use_v2_api_mock,
+    get_channels_with_search_mock,
+):
+    """
+    ExecuteReport Command: Test converting a Slack report to v2 fails.
+    """
+    # setup screenshot mock
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    channel_id = "slack_channel_id"
+    chart = db.session.query(Slice).first()
+    report_schedule = create_report_notification(
+        slack_channel="#slack_channel,my_member_ID", chart=chart
+    )
+    get_channels_with_search_mock.return_value = [
+        {
+            "id": channel_id,
+            "name": "slack_channel",
+            "is_member": True,
+            "is_private": False,
+        },
+    ]
+
+    with freeze_time("2020-01-01T00:00:00Z"):
+        AsyncExecuteReportScheduleCommand(
+            TEST_ID, report_schedule.id, datetime.utcnow()
+        ).run()
+
+        # Assert failuer with proper log
+        expected_message = (
+            "Failed to update slack recipients to v2: "
+            "Could not find the following channels: my_member_ID"
+        )
+        assert_log(ReportState.ERROR, error_message=expected_message)
+
+        # Assert that previous configuration was kept for manual correction
+        assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+            {"target": "#slack_channel,my_member_ID"}
+        )
+        assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
+
+    cleanup_report_schedule(report_schedule)
+
+
 @pytest.mark.usefixtures(
     "load_birth_names_dashboard_with_slices", "create_report_slack_chartv2"
 )
-@patch("superset.commands.report.execute.get_channels_with_search")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1377,13 +1490,10 @@ def test_slack_chart_report_schedule_v2(
     create_report_slack_chart,
 ):
     """
-    ExecuteReport Command: Test chart slack report schedule
+    ExecuteReport Command: Test chart slack report schedule using Slack v2.
     """
     # setup screenshot mock
     screenshot_mock.return_value = SCREENSHOT_FILE
-    channel_id = "slack_channel_id"
-
-    get_channels_with_search_mock.return_value = channel_id
 
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
@@ -1393,7 +1503,7 @@ def test_slack_chart_report_schedule_v2(
 
             assert (
                 slack_client_mock.return_value.files_upload_v2.call_args[1]["channel"]
-                == channel_id
+                == "slack_channel_id"
             )
             assert (
                 slack_client_mock.return_value.files_upload_v2.call_args[1]["file"]
