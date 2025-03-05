@@ -38,7 +38,6 @@ from trino.sqlalchemy.dialect import TrinoDialect
 
 import superset.config
 from superset.constants import (
-    DEFAULT_USER_AGENT,
     QUERY_CANCEL_KEY,
     QUERY_EARLY_CANCEL_KEY,
 )
@@ -85,7 +84,7 @@ def _assert_columns_equal(actual_cols, expected_cols) -> None:
 @pytest.mark.parametrize(
     "extra,expected",
     [
-        ({}, {"engine_params": {"connect_args": {"source": DEFAULT_USER_AGENT}}}),
+        ({}, {"engine_params": {"connect_args": {"source": "Apache Superset"}}}),
         (
             {
                 "first": 1,
