@@ -1455,23 +1455,23 @@ def test_slack_chart_report_schedule_fails_to_converts_to_v2(
         },
     ]
 
-    with freeze_time("2020-01-01T00:00:00Z"):
+    with pytest.raises(ReportScheduleSystemErrorsException):
         AsyncExecuteReportScheduleCommand(
             TEST_ID, report_schedule.id, datetime.utcnow()
         ).run()
 
-        # Assert failuer with proper log
-        expected_message = (
-            "Failed to update slack recipients to v2: "
-            "Could not find the following channels: my_member_ID"
-        )
-        assert_log(ReportState.ERROR, error_message=expected_message)
+    # Assert failuer with proper log
+    expected_message = (
+        "Failed to update slack recipients to v2: "
+        "Could not find the following channels: my_member_ID"
+    )
+    assert_log(ReportState.ERROR, error_message=expected_message)
 
-        # Assert that previous configuration was kept for manual correction
-        assert report_schedule.recipients[0].recipient_config_json == json.dumps(
-            {"target": "#slack_channel,my_member_ID"}
-        )
-        assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
+    # Assert that previous configuration was kept for manual correction
+    assert report_schedule.recipients[0].recipient_config_json == json.dumps(
+        {"target": "#slack_channel,my_member_ID"}
+    )
+    assert report_schedule.recipients[0].type == ReportRecipientType.SLACK
 
     cleanup_report_schedule(report_schedule)
 
