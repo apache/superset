@@ -131,12 +131,11 @@ def create_report_notification(
         ]
 
     if slack_channel:
+        type = (
+            ReportRecipientType.SLACKV2 if use_slack_v2 else ReportRecipientType.SLACK
+        )
         recipient = ReportRecipients(
-            type=(
-                ReportRecipientType.SLACKV2
-                if use_slack_v2
-                else ReportRecipientType.SLACK
-            ),
+            type=type,
             recipient_config_json=json.dumps(
                 {
                     "target": slack_channel,
