@@ -54,7 +54,7 @@ export class Theme {
 
   private static readonly defaultTokens = {
     // Default colors
-    colorPrimary: '#20a7c9',
+    colorPrimary: '#2893B3', // NOTE: previous lighter primary color was #20a7c9
     colorError: '#e04355',
     colorWarning: '#fcc700',
     colorSuccess: '#5ac189',
