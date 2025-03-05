@@ -148,9 +148,10 @@ class FilterBox extends React.PureComponent {
 
   handleIncomingWindowMsg() {
     window.addEventListener('message', event => {
+      if (event.origin !== this.props.ikigaiOrigin) return;
+
       const messageObject = JSON.parse(event.data);
 
-      // TODO: check for origin
       if (
         messageObject.info === 'widget-to-superset/sending-filter-hook-mounted'
       ) {
