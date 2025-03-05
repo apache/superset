@@ -44,8 +44,17 @@ export const StyledSelect = styled(AntdSelect, {
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
+    line-height: ${theme.gridUnit * 8}px;
+
+    && .ant-select-selection-search {
+      left: 0px;
+    }
     && .ant-select-selector {
       border-radius: ${theme.sizeUnit}px;
+    }
+    .ant-select-selection-item::after {
+      height: 0;
+      display: block !important;
     }
     .select-all {
       border-bottom: 1px solid ${theme.colors.grayscale.light3};

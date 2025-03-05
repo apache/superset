@@ -29,7 +29,7 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import AntdSelect from 'antd/lib/select';
+import AntdSelect from 'antd-v5/lib/select';
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { SelectValue } from 'antd/lib/select';
+import { SelectValue } from 'antd-v5/lib/select';
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
 
 /**
