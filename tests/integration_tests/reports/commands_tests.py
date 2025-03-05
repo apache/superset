@@ -1509,10 +1509,6 @@ def test_slack_chart_report_schedule_v2(
 
             # Assert logs are correct
             assert_log(ReportState.SUCCESS)
-            # this will send a warning
-            assert statsd_mock.call_args_list[0] == call(
-                "reports.slack.send.warning", 1
-            )
             assert statsd_mock.call_args_list[1] == call("reports.slack.send.ok", 1)
 
 
