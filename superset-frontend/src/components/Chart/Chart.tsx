@@ -24,7 +24,6 @@ import {
   logging,
   QueryFormData,
   styled,
-  ErrorTypeEnum,
   t,
   SqlaFormData,
   ClientErrorObject,
