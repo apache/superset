@@ -1476,9 +1476,7 @@ def test_slack_chart_report_schedule_fails_to_converts_to_v2(
     cleanup_report_schedule(report_schedule)
 
 
-@pytest.mark.usefixtures(
-    "load_birth_names_dashboard_with_slices", "create_report_slack_chartv2"
-)
+@pytest.mark.usefixtures("create_report_slack_chartv2")
 @patch("superset.reports.notifications.slack.should_use_v2_api", return_value=True)
 @patch("superset.reports.notifications.slackv2.get_slack_client")
 @patch("superset.utils.screenshots.ChartScreenshot.get_screenshot")
@@ -1486,7 +1484,7 @@ def test_slack_chart_report_schedule_v2(
     screenshot_mock,
     slack_client_mock,
     slack_should_use_v2_api_mock,
-    create_report_slack_chart,
+    create_report_slack_chartv2,
 ):
     """
     ExecuteReport Command: Test chart slack report schedule using Slack v2.
@@ -1497,7 +1495,7 @@ def test_slack_chart_report_schedule_v2(
     with freeze_time("2020-01-01T00:00:00Z"):
         with patch.object(current_app.config["STATS_LOGGER"], "gauge") as statsd_mock:
             AsyncExecuteReportScheduleCommand(
-                TEST_ID, create_report_slack_chart.id, datetime.utcnow()
+                TEST_ID, create_report_slack_chartv2.id, datetime.utcnow()
             ).run()
 
             assert (
