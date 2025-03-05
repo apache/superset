@@ -17,16 +17,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-07-30 17:32-0600\n"
+"POT-Creation-Date: 2025-01-22 15:54+0330\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
 "Language-Team: ko <LL@li.org>\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
+"Plural-Forms: nplurals=1; plural=0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.9.1\n"
 
 msgid ""
 "\n"
@@ -66,7 +66,10 @@ msgstr ""
 #, python-format
 msgid ""
 "\n"
-"            Error: %(text)s\n"
+"            <p>Your report/alert was unable to be generated because of "
+"the following error: %(text)s</p>\n"
+"            <p>Please check your dashboard/chart for errors.</p>\n"
+"            <p><b><a href=\"%(url)s\">%(call_to_action)s</a></b></p>\n"
 "            "
 msgstr ""
 
@@ -85,7 +88,15 @@ msgstr "대시보드 저장"
 msgid " a new one"
 msgstr ""
 
+#, python-format
+msgid " at line %(line)d"
+msgstr ""
+
 msgid " expression which needs to adhere to the "
+msgstr ""
+
+#, python-format
+msgid " near '%(highlight)s'"
 msgstr ""
 
 msgid " source code of Superset's sandboxed parser"
@@ -145,6 +156,10 @@ msgstr "컬럼 보기"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
+msgstr ""
+
+#, python-format
+msgid "%(label)s file"
 msgstr ""
 
 #, python-format
@@ -210,10 +225,6 @@ msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
 "\"%(undefinedParameter)s\"?"
 msgstr[0] ""
-
-#, python-format
-msgid "%(type)s File"
-msgstr ""
 
 #, python-format
 msgid ""
@@ -357,6 +368,10 @@ msgid ""
 "\n"
 msgstr ""
 
+#, python-format
+msgid "... and %s others"
+msgstr ""
+
 msgid "0 Selected"
 msgstr "테이블 선택"
 
@@ -420,6 +435,9 @@ msgstr ""
 
 msgid "10 minute"
 msgstr "10분"
+
+msgid "10000"
+msgstr ""
 
 #, fuzzy
 msgid "104 weeks"
@@ -612,6 +630,9 @@ msgstr ""
 msgid "A database with the same name already exists."
 msgstr "같은 이름의 데이터베이스가 이미 존재합니다"
 
+msgid "A date is required when using custom date shift"
+msgstr ""
+
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -685,11 +706,6 @@ msgstr ""
 msgid ""
 "A set of parameters that become available in the query using Jinja "
 "templating syntax"
-msgstr ""
-
-msgid ""
-"A time series chart that visualizes how a related metric from multiple "
-"groups vary over time. Each group is visualized using a different color."
 msgstr ""
 
 msgid "A timeout occurred while executing the query."
@@ -807,6 +823,17 @@ msgstr "대시보드 추가"
 msgid "Add Database"
 msgstr "데이터베이스 추가"
 
+msgid "Add Divider"
+msgstr ""
+
+#, fuzzy
+msgid "Add Filter"
+msgstr "테이블 추가"
+
+#, fuzzy
+msgid "Add Layer"
+msgstr "차트 추가"
+
 msgid "Add Log"
 msgstr "로그 추가"
 
@@ -906,9 +933,6 @@ msgid ""
 "displayed in the filter."
 msgstr ""
 
-msgid "Add filters and dividers"
-msgstr ""
-
 msgid "Add item"
 msgstr "테이블 추가"
 
@@ -923,6 +947,10 @@ msgstr ""
 
 msgid "Add new formatter"
 msgstr ""
+
+#, fuzzy
+msgid "Add or edit filters"
+msgstr "테이블 추가"
 
 msgid "Add required control values to preview chart"
 msgstr ""
@@ -948,10 +976,6 @@ msgstr "대시보드 추가"
 msgid "Add to dashboard"
 msgstr "대시보드 추가"
 
-#, fuzzy
-msgid "Add/Edit Filters"
-msgstr "테이블 추가"
-
 msgid "Added"
 msgstr ""
 
@@ -968,10 +992,6 @@ msgid "Additional fields may be required"
 msgstr ""
 
 msgid "Additional information"
-msgstr "주석"
-
-#, fuzzy
-msgid "Additional metadata"
 msgstr "주석"
 
 #, fuzzy
@@ -1040,6 +1060,14 @@ msgstr ""
 
 msgid "Advanced-Analytics"
 msgstr ""
+
+#, fuzzy
+msgid "Affected Charts"
+msgstr "차트 추가"
+
+#, fuzzy
+msgid "Affected Dashboards"
+msgstr "대시보드 저장"
 
 #, fuzzy
 msgid "After"
@@ -1168,9 +1196,6 @@ msgstr "필터"
 msgid "All panels"
 msgstr ""
 
-msgid "All panels with this column will be affected by this filter"
-msgstr ""
-
 msgid "Allow CREATE TABLE AS"
 msgstr ""
 
@@ -1186,8 +1211,11 @@ msgstr ""
 msgid "Allow Csv Upload"
 msgstr ""
 
-msgid "Allow DML"
-msgstr "DML 허용"
+msgid "Allow DDL and DML"
+msgstr ""
+
+msgid "Allow DDL/DML"
+msgstr ""
 
 msgid "Allow changing catalogs"
 msgstr ""
@@ -1217,15 +1245,16 @@ msgstr ""
 msgid "Allow file uploads to database"
 msgstr ""
 
-msgid ""
-"Allow manipulation of the database using non-SELECT statements such as "
-"UPDATE, DELETE, CREATE, etc."
-msgstr ""
-
 msgid "Allow node selections"
 msgstr ""
 
 msgid "Allow sending multiple polygons as a filter event"
+msgstr ""
+
+msgid ""
+"Allow the execution of DDL (Data Definition Language: CREATE, DROP, "
+"TRUNCATE, etc.) and DML (Data Modification Language: INSERT, UPDATE, "
+"DELETE, etc)"
 msgstr ""
 
 msgid "Allow this database to be explored"
@@ -1289,6 +1318,10 @@ msgid "An error occurred when running alert query"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
+msgid "An error occurred while accessing the copy link."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
 msgid "An error occurred while accessing the value."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -1299,6 +1332,10 @@ msgstr ""
 
 #, fuzzy, python-format
 msgid "An error occurred while creating %ss: %s"
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "An error occurred while creating the copy link."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 msgid "An error occurred while creating the data source"
@@ -1639,12 +1676,6 @@ msgstr "필터"
 msgid "Apply metrics on"
 msgstr "메트릭"
 
-msgid "Apply to all panels"
-msgstr ""
-
-msgid "Apply to specific panels"
-msgstr ""
-
 msgid "April"
 msgstr ""
 
@@ -1744,6 +1775,10 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr ""
 
+#, fuzzy
+msgid "Attribution"
+msgstr "설명"
+
 msgid "August"
 msgstr ""
 
@@ -1815,6 +1850,9 @@ msgstr ""
 msgid "Backend"
 msgstr ""
 
+msgid "Background Color"
+msgstr ""
+
 msgid "Backward values"
 msgstr ""
 
@@ -1832,9 +1870,6 @@ msgstr ""
 msgid "Bar Chart"
 msgstr "차트 보기"
 
-msgid "Bar Chart (legacy)"
-msgstr ""
-
 msgid "Bar Charts are used to show metrics as a series of bars."
 msgstr ""
 
@@ -1849,9 +1884,24 @@ msgstr "주석"
 msgid "Base"
 msgstr "데이터베이스"
 
+#, fuzzy
+msgid "Base exponent"
+msgstr "데이터베이스"
+
+#, fuzzy
+msgid "Base height"
+msgstr "차트 유형"
+
 #, python-format
 msgid "Base layer map style. See Mapbox documentation: %s"
 msgstr ""
+
+msgid "Base slope"
+msgstr ""
+
+#, fuzzy
+msgid "Base width"
+msgstr "차트 유형"
 
 msgid "Based on a metric"
 msgstr ""
@@ -1870,9 +1920,6 @@ msgstr ""
 
 #, python-format
 msgid "Batch editing %d filters:"
-msgstr ""
-
-msgid "Battery level over time"
 msgstr ""
 
 msgid "Be careful."
@@ -2078,7 +2125,7 @@ msgid "CSS templates could not be deleted."
 msgstr "CSS 템플릿을 삭제할 수 없습니다."
 
 #, fuzzy
-msgid "CSV Upload"
+msgid "CSV upload"
 msgstr "CSV 업로드"
 
 msgid "CTAS & CVAS SCHEMA"
@@ -2092,6 +2139,10 @@ msgstr ""
 
 msgid "CTAS Schema"
 msgstr ""
+
+#, fuzzy
+msgid "CUSTOM"
+msgstr "생성자"
 
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -2152,9 +2203,6 @@ msgstr ""
 msgid "Can select multiple values"
 msgstr ""
 
-msgid "Can't have overlap between Series and Breakdowns"
-msgstr ""
-
 msgid "Cancel"
 msgstr "취소"
 
@@ -2176,6 +2224,10 @@ msgstr ""
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr ""
+
+#, fuzzy
+msgid "Cartodiagram"
+msgstr "실패"
 
 msgid "Catalog"
 msgstr ""
@@ -2424,6 +2476,10 @@ msgid "Chart properties updated"
 msgstr "대시보드"
 
 #, fuzzy
+msgid "Chart size"
+msgstr "차트"
+
+#, fuzzy
 msgid "Chart title"
 msgstr "차트 유형"
 
@@ -2472,6 +2528,9 @@ msgstr ""
 msgid "Choose File"
 msgstr "CSV 파일"
 
+msgid "Choose a chart for displaying on the map"
+msgstr ""
+
 msgid "Choose a chart or dashboard not both"
 msgstr ""
 
@@ -2494,10 +2553,6 @@ msgstr ""
 
 #, fuzzy
 msgid "Choose a source"
-msgstr "데이터소스 선택"
-
-#, fuzzy
-msgid "Choose a source and a target"
 msgstr "데이터소스 선택"
 
 #, fuzzy
@@ -2580,9 +2635,6 @@ msgstr ""
 msgid "Circular"
 msgstr ""
 
-msgid "Classic chart that visualizes how metrics change over time."
-msgstr ""
-
 msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to "
 "showcase a view into the underlying data or to show aggregated metrics."
@@ -2604,7 +2656,9 @@ msgstr "차트 추가"
 msgid "Clear form"
 msgstr ""
 
-msgid "Click on \"+Add/Edit Filters\" button to create new dashboard filters"
+msgid ""
+"Click on \"Add or Edit Filters\" option in Settings to create new "
+"dashboard filters"
 msgstr ""
 
 msgid ""
@@ -2630,6 +2684,10 @@ msgstr ""
 
 msgid "Click to add a contour"
 msgstr ""
+
+#, fuzzy
+msgid "Click to add new layer"
+msgstr "클릭하여 제목 수정하기"
 
 msgid "Click to cancel sorting"
 msgstr ""
@@ -2755,10 +2813,6 @@ msgid "Column Configuration"
 msgstr ""
 
 #, fuzzy
-msgid "Column Data Types"
-msgstr "차트 유형"
-
-#, fuzzy
 msgid "Column Formatting"
 msgstr "주석"
 
@@ -2776,10 +2830,6 @@ msgstr ""
 #, fuzzy
 msgid "Column data types"
 msgstr "차트 유형"
-
-#, fuzzy
-msgid "Column datatype"
-msgstr "컬럼 추가"
 
 msgid "Column header tooltip"
 msgstr ""
@@ -2810,18 +2860,15 @@ msgid ""
 msgstr ""
 
 #, fuzzy
-msgid "Columnar Upload"
+msgid "Column type"
+msgstr "컬럼 추가"
+
+#, fuzzy
+msgid "Columnar upload"
 msgstr "컬럼 추가"
 
 msgid "Columns"
 msgstr "칼럼"
-
-msgid "Columns To Be Parsed as Dates"
-msgstr ""
-
-#, fuzzy
-msgid "Columns To Read"
-msgstr "컬럼 보기"
 
 #, fuzzy, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
@@ -2832,6 +2879,9 @@ msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "데이터 소스의 컬럼이 없습니다 : %(invalid_columns)s"
 
 msgid "Columns subtotal position"
+msgstr ""
+
+msgid "Columns to be parsed as dates"
 msgstr ""
 
 msgid "Columns to calculate distribution across."
@@ -2848,6 +2898,10 @@ msgstr ""
 
 msgid "Columns to group by on the rows"
 msgstr ""
+
+#, fuzzy
+msgid "Columns to read"
+msgstr "컬럼 보기"
 
 #, fuzzy
 msgid "Combine metrics"
@@ -2882,17 +2936,6 @@ msgid ""
 "Compares how a metric changes over time between different groups. Each "
 "group is mapped to a row and change over time is visualized bar lengths "
 "and color."
-msgstr ""
-
-msgid ""
-"Compares metrics from different categories using bars. Bar lengths are "
-"used to indicate the magnitude of each value and color is used to "
-"differentiate groups."
-msgstr ""
-
-msgid ""
-"Compares the lengths of time different activities take in a shared "
-"timeline view."
 msgstr ""
 
 #, fuzzy
@@ -2957,6 +3000,9 @@ msgid "Configure filter scopes"
 msgstr ""
 
 msgid "Configure the basics of your Annotation Layer."
+msgstr ""
+
+msgid "Configure the chart size for each zoom level"
 msgstr ""
 
 msgid "Configure this dashboard to embed it into an external web application."
@@ -3095,6 +3141,9 @@ msgstr ""
 
 msgid "Copy to clipboard"
 msgstr "클립보드에 복사하기"
+
+msgid "Corner Radius"
+msgstr ""
 
 msgid "Correlation"
 msgstr ""
@@ -3414,6 +3463,21 @@ msgstr ""
 msgid "Dashboard [{}] just got created and chart [{}] was added to it"
 msgstr ""
 
+msgid "Dashboard cannot be copied due to invalid parameters."
+msgstr ""
+
+#, fuzzy
+msgid "Dashboard cannot be favorited."
+msgstr "대시보드를 업데이트할 수 없습니다."
+
+#, fuzzy
+msgid "Dashboard cannot be unfavorited."
+msgstr "대시보드를 업데이트할 수 없습니다."
+
+#, fuzzy
+msgid "Dashboard color configuration could not be updated."
+msgstr "대시보드를 업데이트할 수 없습니다."
+
 msgid "Dashboard could not be deleted."
 msgstr "대시보드를 삭제할 수 없습니다."
 
@@ -3426,6 +3490,10 @@ msgstr "대시보드가 존재하지 않습니다"
 #, fuzzy
 msgid "Dashboard imported"
 msgstr "대시보드"
+
+#, fuzzy
+msgid "Dashboard native filters could not be patched."
+msgstr "대시보드를 업데이트할 수 없습니다."
 
 msgid "Dashboard parameters are invalid."
 msgstr "대시보드 인자가 부적절합니다."
@@ -3474,10 +3542,6 @@ msgid "Data"
 msgstr "데이터베이스"
 
 #, fuzzy
-msgid "Data Imported"
-msgstr "데이터베이스"
-
-#, fuzzy
 msgid "Data Table"
 msgstr "테이블 수정"
 
@@ -3501,6 +3565,10 @@ msgstr ""
 #, python-format
 msgid "Data for %s"
 msgstr ""
+
+#, fuzzy
+msgid "Data imported"
+msgstr "데이터베이스"
 
 msgid "Data preview"
 msgstr "데이터 미리보기"
@@ -3747,8 +3815,9 @@ msgstr ""
 msgid "Decides which measure to sort the base axis by."
 msgstr ""
 
-msgid "Decimal Character"
-msgstr ""
+#, fuzzy
+msgid "Decimal character"
+msgstr "차트 추가"
 
 msgid "Deck.gl - 3D Grid"
 msgstr ""
@@ -3803,7 +3872,10 @@ msgstr "테이블 선택"
 msgid "Default URL"
 msgstr ""
 
-msgid "Default URL to redirect to when accessing from the dataset list page"
+msgid ""
+"Default URL to redirect to when accessing from the dataset list page.\n"
+"            Accepts relative URLs such as <span style=„white-space: "
+"nowrap;”>/superset/dashboard/{id}/</span>"
 msgstr ""
 
 msgid "Default Value"
@@ -3869,9 +3941,6 @@ msgstr ""
 msgid ""
 "Defines a rolling window function to apply, works along with the "
 "[Periods] text box"
-msgstr ""
-
-msgid "Defines how each series is broken down"
 msgstr ""
 
 msgid "Defines the grid size in pixels"
@@ -4013,8 +4082,8 @@ msgid "Deleted: %s"
 msgstr "삭제"
 
 msgid ""
-"Deleting a tab will remove all content within it. You may still reverse "
-"this action with the"
+"Deleting a tab will remove all content within it and will deactivate any "
+"related alerts or reports. You may still reverse this action with the"
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -4027,18 +4096,11 @@ msgstr "구분자"
 msgid "Delivery method"
 msgstr "월"
 
-msgid "Demographics"
-msgstr ""
-
 msgid "Density"
 msgstr ""
 
 msgid "Dependent on"
 msgstr ""
-
-#, fuzzy
-msgid "Deprecated"
-msgstr "생성자"
 
 msgid "Description"
 msgstr "설명"
@@ -4188,9 +4250,6 @@ msgstr ""
 msgid "Distribution"
 msgstr "설명"
 
-msgid "Distribution - Bar Chart"
-msgstr ""
-
 msgid "Divider"
 msgstr ""
 
@@ -4221,7 +4280,16 @@ msgstr ""
 msgid "Download as image"
 msgstr ""
 
+msgid "Download is on the way"
+msgstr ""
+
 msgid "Download to CSV"
+msgstr ""
+
+#, python-format
+msgid ""
+"Downloading %(rows)s rows based on the LIMIT configuration. If you want "
+"the entire result set, you need to adjust the LIMIT."
 msgstr ""
 
 msgid "Draft"
@@ -4366,6 +4434,9 @@ msgid "Duration in ms (1.40008 => 1ms 400µs 80ns)"
 msgstr ""
 
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
+msgstr ""
+
+msgid "Duration in ms (10500 => 0:10.5)"
 msgstr ""
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -4554,6 +4625,10 @@ msgstr ""
 msgid "Embed dashboard"
 msgstr "대시보드 저장"
 
+#, fuzzy
+msgid "Embedded dashboard could not be deleted."
+msgstr "대시보드를 삭제할 수 없습니다."
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -4562,9 +4637,6 @@ msgid "Emit Filter Events"
 msgstr "필터"
 
 msgid "Emphasis"
-msgstr ""
-
-msgid "Employment and education"
 msgstr ""
 
 msgid "Empty circle"
@@ -4696,10 +4768,10 @@ msgstr "차트 유형"
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr ""
 
-msgid "Entity"
+msgid "Enter the unique project id for your database."
 msgstr ""
 
-msgid "Entity ID"
+msgid "Entity"
 msgstr ""
 
 msgid "Equal Date Sizes"
@@ -4715,6 +4787,10 @@ msgstr "%s 에러"
 #, fuzzy
 msgid "Error Fetching Tagged Objects"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+#, fuzzy
+msgid "Error faving chart"
+msgstr "차트 수정"
 
 #, python-format
 msgid "Error in jinja expression in HAVING clause: %(msg)s"
@@ -4738,6 +4814,9 @@ msgstr ""
 msgid "Error message"
 msgstr ""
 
+msgid "Error parsing"
+msgstr ""
+
 #, fuzzy
 msgid "Error reading CSV file"
 msgstr "차트 수정"
@@ -4752,6 +4831,10 @@ msgstr "엑셀 업로드"
 
 #, fuzzy
 msgid "Error saving dataset"
+msgstr "차트 수정"
+
+#, fuzzy
+msgid "Error unfaving chart"
 msgstr "차트 수정"
 
 #, fuzzy
@@ -4790,16 +4873,6 @@ msgstr ""
 msgid "Event"
 msgstr "월"
 
-msgid "Event Flow"
-msgstr ""
-
-#, fuzzy
-msgid "Event Names"
-msgstr "테이블 명"
-
-msgid "Event definition"
-msgstr ""
-
 msgid "Event flow"
 msgstr ""
 
@@ -4822,12 +4895,12 @@ msgstr ""
 msgid "Examples"
 msgstr ""
 
-#, fuzzy
-msgid "Excel Upload"
-msgstr "CSV 업로드"
-
 msgid "Excel file format cannot be determined"
 msgstr ""
+
+#, fuzzy
+msgid "Excel upload"
+msgstr "CSV 업로드"
 
 msgid "Exclude selected values"
 msgstr ""
@@ -4952,6 +5025,9 @@ msgstr ""
 msgid "Expression"
 msgstr "표현식"
 
+msgid "Extent"
+msgstr ""
+
 msgid "Extra"
 msgstr ""
 
@@ -4992,6 +5068,10 @@ msgstr ""
 msgid "FEB"
 msgstr ""
 
+#, fuzzy
+msgid "FIT DATA"
+msgstr "차트 수정"
+
 msgid "FRI"
 msgstr ""
 
@@ -5006,10 +5086,6 @@ msgid "Failed"
 msgstr "실패"
 
 msgid "Failed at retrieving results"
-msgstr ""
-
-#, python-format
-msgid "Failed at stopping query. %s"
 msgstr ""
 
 msgid "Failed to create report"
@@ -5040,6 +5116,10 @@ msgstr "필터"
 
 msgid "Failed to start remote query on a worker."
 msgstr ""
+
+#, fuzzy
+msgid "Failed to stop query."
+msgstr "테이블 선택"
 
 #, fuzzy
 msgid "Failed to tag items"
@@ -5092,12 +5172,12 @@ msgstr ""
 msgid "File"
 msgstr "CSV 파일"
 
-#, fuzzy
-msgid "File Settings"
-msgstr "Query 공유"
-
 msgid "File extension is not allowed."
 msgstr ""
+
+#, fuzzy
+msgid "File settings"
+msgstr "Query 공유"
 
 msgid "File size exceeds the maximum allowed size."
 msgstr ""
@@ -5419,6 +5499,10 @@ msgstr "Query 공유"
 msgid "Geohash"
 msgstr ""
 
+#, fuzzy
+msgid "Geometry Column"
+msgstr "컬럼 추가"
+
 msgid "Get the last date by the date unit."
 msgstr ""
 
@@ -5497,11 +5581,6 @@ msgstr "템플릿 불러오기"
 msgid "Hard value bounds applied for color coding."
 msgstr ""
 
-msgid ""
-"Hard value bounds applied for color coding. Is only relevant and applied "
-"when the normalization is applied against the whole heatmap."
-msgstr ""
-
 #, fuzzy
 msgid "Has created by"
 msgstr "생성자"
@@ -5509,21 +5588,11 @@ msgstr "생성자"
 msgid "Header"
 msgstr ""
 
-msgid "Header Row"
-msgstr ""
-
 #, fuzzy
 msgid "Header row"
 msgstr "차트 이동"
 
 msgid "Heatmap"
-msgstr ""
-
-#, fuzzy
-msgid "Heatmap (legacy)"
-msgstr "차트 보기"
-
-msgid "Heatmap Options"
 msgstr ""
 
 msgid "Height"
@@ -5558,10 +5627,6 @@ msgstr "검색"
 
 msgid "Histogram"
 msgstr ""
-
-#, fuzzy
-msgid "Histogram (legacy)"
-msgstr "차트 보기"
 
 msgid "Home"
 msgstr ""
@@ -5645,10 +5710,6 @@ msgid ""
 "hive.server2.proxy.user property."
 msgstr ""
 
-#, fuzzy
-msgid "If Table Already Exists"
-msgstr "데이터셋 %(name)s 은 이미 존재합니다"
-
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
 
@@ -5659,6 +5720,10 @@ msgstr ""
 
 msgid "If selected, please set the schemas allowed for csv upload in Extra."
 msgstr ""
+
+#, fuzzy
+msgid "If table already exists"
+msgstr "데이터셋 %(name)s 은 이미 존재합니다"
 
 msgid "Ignore cache when generating report"
 msgstr ""
@@ -5729,11 +5794,6 @@ msgstr "대시보드 가져오기"
 msgid "Import saved query failed for an unknown reason."
 msgstr "차트 불러오기는 알 수 없는 이유로 실패했습니다"
 
-msgid ""
-"Important! Select this if the table is not already sorted by entity id, "
-"else there is no guarantee that all events for each entity are returned."
-msgstr ""
-
 #, fuzzy
 msgid "In"
 msgstr "활동"
@@ -5763,12 +5823,9 @@ msgstr "생성자"
 msgid "Index"
 msgstr "분"
 
-msgid "Index Column"
-msgstr ""
-
 #, fuzzy
-msgid "Index Label"
-msgstr "레이블"
+msgid "Index column"
+msgstr "컬럼 수정"
 
 #, fuzzy
 msgid "Index label"
@@ -5790,6 +5847,12 @@ msgid "Input custom width in pixels"
 msgstr ""
 
 msgid "Input field supports custom rotation. e.g. 30 for 30°"
+msgstr ""
+
+msgid "Insert Layer URL"
+msgstr ""
+
+msgid "Insert Layer title"
 msgstr ""
 
 msgid "Intensity"
@@ -5826,9 +5889,6 @@ msgstr "컬럼 목록"
 #, fuzzy
 msgid "Intervals"
 msgstr "새로고침 간격"
-
-msgid "Intesity"
-msgstr ""
 
 msgid ""
 "Invalid Connection String: Expecting String of the form "
@@ -6163,14 +6223,40 @@ msgstr "주"
 msgid "Last year"
 msgstr "년"
 
+msgid "Lat"
+msgstr ""
+
 msgid "Latitude"
 msgstr ""
 
 msgid "Latitude of default viewport"
 msgstr ""
 
+#, fuzzy
+msgid "Layer"
+msgstr "년"
+
+#, fuzzy
+msgid "Layer Name"
+msgstr "테이블 명"
+
+msgid "Layer URL"
+msgstr ""
+
 msgid "Layer configuration"
 msgstr ""
+
+#, fuzzy
+msgid "Layer title"
+msgstr "차트 유형"
+
+#, fuzzy
+msgid "Layer type"
+msgstr "필터"
+
+#, fuzzy
+msgid "Layers"
+msgstr "경고"
 
 msgid "Layout"
 msgstr ""
@@ -6182,11 +6268,6 @@ msgid "Layout type of graph"
 msgstr ""
 
 msgid "Layout type of tree"
-msgstr ""
-
-msgid ""
-"Leaf nodes that represent fewer than this number of events will be "
-"initially hidden in the visualization"
 msgstr ""
 
 msgid "Least recently modified"
@@ -6258,11 +6339,6 @@ msgstr ""
 msgid "Limit type"
 msgstr "시각화 유형"
 
-msgid ""
-"Limiting rows may result in incomplete data and misleading charts. "
-"Consider filtering or grouping source/target names instead."
-msgstr ""
-
 msgid "Limits the number of cells that get retrieved."
 msgstr ""
 
@@ -6298,6 +6374,9 @@ msgid ""
 " Line chart is a type of chart which displays information as a series of "
 "data points connected by straight line segments. It is a basic type of "
 "chart common in many fields."
+msgstr ""
+
+msgid "Line charts on a map"
 msgstr ""
 
 msgid "Line interpolation as defined by d3.js"
@@ -6410,6 +6489,9 @@ msgstr "로그아웃"
 msgid "Logs"
 msgstr "로그"
 
+msgid "Lon"
+msgstr ""
+
 msgid "Long dashed"
 msgstr ""
 
@@ -6488,6 +6570,10 @@ msgstr ""
 msgid "Map"
 msgstr "트리맵"
 
+#, fuzzy
+msgid "Map Options"
+msgstr "주석"
+
 msgid "Map Style"
 msgstr ""
 
@@ -6531,13 +6617,16 @@ msgstr ""
 msgid "Markup type"
 msgstr ""
 
+msgid "Match time shift color with original series"
+msgstr ""
+
 msgid "Max"
 msgstr ""
 
 msgid "Max Bubble Size"
 msgstr ""
 
-msgid "Max Events"
+msgid "Max. features"
 msgstr ""
 
 msgid "Maximum"
@@ -6547,6 +6636,9 @@ msgid "Maximum Font Size"
 msgstr ""
 
 msgid "Maximum Radius"
+msgstr ""
+
+msgid "Maximum number of features to fetch from service"
 msgstr ""
 
 msgid ""
@@ -6591,13 +6683,16 @@ msgstr "원본 값"
 msgid "Medium"
 msgstr ""
 
+msgid "Memory in bytes - binary (1024B => 1KiB)"
+msgstr ""
+
+msgid "Memory in bytes - decimal (1024B => 1.024kB)"
+msgstr ""
+
 msgid "Menu actions trigger"
 msgstr ""
 
 msgid "Message content"
-msgstr ""
-
-msgid "Metadata"
 msgstr ""
 
 msgid "Metadata Parameters"
@@ -6686,11 +6781,6 @@ msgid ""
 "appropriate)."
 msgstr ""
 
-msgid ""
-"Metric used to order the limit if a series limit is present. If undefined"
-" reverts to the first metric (where appropriate)."
-msgstr ""
-
 msgid "Metrics"
 msgstr "메트릭"
 
@@ -6732,9 +6822,6 @@ msgid "Minimum Font Size"
 msgstr ""
 
 msgid "Minimum Radius"
-msgstr ""
-
-msgid "Minimum leaf node event count"
 msgstr ""
 
 msgid ""
@@ -6863,9 +6950,6 @@ msgid "Must choose either a chart or a dashboard"
 msgstr ""
 
 msgid "Must have a [Group By] column to have 'count' as the [Label]"
-msgstr ""
-
-msgid "Must have at least one numeric column specified"
 msgstr ""
 
 msgid "Must provide credentials for the SSH Tunnel"
@@ -7011,6 +7095,10 @@ msgid "No Tags created"
 msgstr "생성자"
 
 #, fuzzy
+msgid "No actions"
+msgstr "주석"
+
+#, fuzzy
 msgid "No annotation layers"
 msgstr "주석 레이어"
 
@@ -7094,9 +7182,6 @@ msgid "No global filters are currently added"
 msgstr ""
 
 msgid "No matching records found"
-msgstr ""
-
-msgid "No of Bins"
 msgstr ""
 
 msgid "No recents yet"
@@ -7368,6 +7453,10 @@ msgstr ""
 msgid "One or many metrics to display"
 msgstr ""
 
+#, fuzzy
+msgid "One or more annotation layers failed loading."
+msgstr "주석 레이어"
+
 msgid "One or more columns already exist"
 msgstr "하나 이상의 칼럼이 이미 존재합니다"
 
@@ -7395,12 +7484,6 @@ msgstr ""
 msgid "One or more parameters specified in the query are missing."
 msgstr ""
 
-msgid "One ore more annotation layers failed loading."
-msgstr ""
-
-msgid "Only SELECT statements are allowed against this database."
-msgstr ""
-
 msgid "Only Total"
 msgstr ""
 
@@ -7411,9 +7494,6 @@ msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr ""
 
 msgid "Only applies when \"Label Type\" is set to show values."
-msgstr ""
-
-msgid "Only selected panels will be affected by this filter"
 msgstr ""
 
 msgid ""
@@ -7495,13 +7575,17 @@ msgstr "주석"
 msgid "Or choose from a list of other databases we support:"
 msgstr ""
 
-msgid "Order by entity id"
-msgstr ""
-
 msgid "Order results by selected columns"
 msgstr ""
 
 msgid "Ordering"
+msgstr ""
+
+msgid ""
+"Orders the query result that generates the source data for this chart. If"
+" a series or row limit is reached, this determines what data are "
+"truncated. If undefined, defaults to the first metric (where "
+"appropriate)."
 msgstr ""
 
 #, fuzzy
@@ -7614,6 +7698,9 @@ msgstr ""
 msgid ""
 "Owners is a list of users who can alter the dashboard. Searchable by name"
 " or username."
+msgstr ""
+
+msgid "PDF download failed, please refresh and try again."
 msgstr ""
 
 msgid "Page length"
@@ -7749,9 +7836,6 @@ msgstr ""
 msgid "Physical (table or view)"
 msgstr ""
 
-msgid "Physical dataset"
-msgstr "데이터소스 선택"
-
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr ""
 
@@ -7773,14 +7857,8 @@ msgstr ""
 msgid "Pick a title for you annotation."
 msgstr ""
 
-msgid "Pick at least one field for [Series]"
-msgstr ""
-
 msgid "Pick at least one metric"
 msgstr "적어도 하나의 메트릭을 선택하세요"
-
-msgid "Pick exactly 2 columns as [Source / Target]"
-msgstr ""
 
 msgid ""
 "Pick one or more columns that should be shown in the annotation. If you "
@@ -7794,9 +7872,8 @@ msgstr ""
 msgid "Pie Chart"
 msgstr "차트 이동"
 
-#, fuzzy
-msgid "Pie Chart (legacy)"
-msgstr "차트 보기"
+msgid "Pie charts on a map"
+msgstr ""
 
 msgid "Pie shape"
 msgstr ""
@@ -7883,9 +7960,6 @@ msgid "Please reach out to the Chart Owner for assistance."
 msgid_plural "Please reach out to the Chart Owners for assistance."
 msgstr[0] ""
 
-msgid "Please save the query to enable sharing"
-msgstr ""
-
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
 
@@ -7958,9 +8032,6 @@ msgid "Polyline"
 msgstr ""
 
 msgid "Populate \"Default value\" to enable this control"
-msgstr ""
-
-msgid "Population age data"
 msgstr ""
 
 #, fuzzy
@@ -8081,8 +8152,9 @@ msgstr ""
 msgid "Progressive"
 msgstr ""
 
-msgid "Propagate"
-msgstr ""
+#, fuzzy
+msgid "Project Id"
+msgstr "생성자"
 
 msgid "Proportional"
 msgstr ""
@@ -8110,9 +8182,6 @@ msgid "Put some positive value greater than 0"
 msgstr "값은 0보다 커야합니다"
 
 msgid "Put the labels outside of the pie?"
-msgstr ""
-
-msgid "Put the labels outside the pie?"
 msgstr ""
 
 msgid "Put your code here"
@@ -8227,10 +8296,6 @@ msgstr ""
 msgid "Radius in miles"
 msgstr ""
 
-#, python-format
-msgid "Ran %s"
-msgstr ""
-
 #, fuzzy
 msgid "Range"
 msgstr "관리"
@@ -8334,6 +8399,10 @@ msgstr "새로고침 간격"
 msgid "Refresh interval saved"
 msgstr "새로고침 간격"
 
+#, fuzzy
+msgid "Refresh table schema"
+msgstr "테이블 선택"
+
 msgid "Refresh the default values"
 msgstr ""
 
@@ -8404,10 +8473,9 @@ msgstr ""
 msgid "Render columns in HTML format"
 msgstr ""
 
-msgid "Render data in HTML format if applicable."
-msgstr ""
-
-msgid "Rendering"
+msgid ""
+"Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; "
+"tags will be rendered as hyperlinks."
 msgstr ""
 
 msgid "Replace"
@@ -8567,6 +8635,10 @@ msgstr ""
 msgid "Results backend needed for asynchronous queries is not configured."
 msgstr ""
 
+#, fuzzy
+msgid "Retry fetching results"
+msgstr "검색 결과"
+
 msgid "Return to specific datetime."
 msgstr ""
 
@@ -8679,9 +8751,6 @@ msgid "Rows per page, 0 means no pagination"
 msgstr ""
 
 msgid "Rows subtotal position"
-msgstr ""
-
-msgid "Rows to Read"
 msgstr ""
 
 #, fuzzy
@@ -8853,19 +8922,9 @@ msgstr "데이터베이스를 생성할 수 없습니다."
 msgid "Samples for datasource could not be retrieved."
 msgstr "데이터베이스를 생성할 수 없습니다."
 
-msgid "Sankey"
-msgstr ""
-
 #, fuzzy
 msgid "Sankey Chart"
 msgstr "차트 보기"
-
-#, fuzzy
-msgid "Sankey Diagram (legacy)"
-msgstr "차트 보기"
-
-msgid "Sankey Diagram with Loops"
-msgstr ""
 
 #, fuzzy
 msgid "Satellite"
@@ -8932,9 +8991,6 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Query 저장"
-
-msgid "Save the query to enable this feature"
-msgstr ""
 
 msgid "Save this query as a virtual dataset to continue exploring"
 msgstr ""
@@ -9214,6 +9270,10 @@ msgstr ""
 msgid "Select a sheet name from the uploaded file"
 msgstr ""
 
+#, fuzzy
+msgid "Select a tab"
+msgstr "데이터베이스 선택"
+
 msgid ""
 "Select a time grain for the visualization. The grain is the time interval"
 " represented by a single point on the chart."
@@ -9232,9 +9292,6 @@ msgstr "테이블 선택"
 #, fuzzy
 msgid "Select all items"
 msgstr "테이블 선택"
-
-msgid "Select any columns for metadata inspection"
-msgstr ""
 
 msgid "Select catalog or type to search catalogs"
 msgstr ""
@@ -9353,6 +9410,10 @@ msgid "Select owners"
 msgstr ""
 
 #, fuzzy
+msgid "Select page size"
+msgstr "테이블 선택"
+
+#, fuzzy
 msgid "Select saved metrics"
 msgstr "저장된 Query"
 
@@ -9367,8 +9428,18 @@ msgstr ""
 msgid "Select scheme"
 msgstr "테이블 선택"
 
+msgid ""
+"Select shape for computing values. \"FIXED\" sets all zoom levels to the "
+"same size. \"LINEAR\" increases sizes linearly based on specified slope. "
+"\"EXP\" increases sizes exponentially based on specified exponent"
+msgstr ""
+
 msgid "Select subject"
 msgstr ""
+
+#, fuzzy
+msgid "Select tab"
+msgstr "테이블 선택"
 
 msgid "Select table or type to search tables"
 msgstr ""
@@ -9396,12 +9467,6 @@ msgstr ""
 msgid "Select the geojson column"
 msgstr "테이블 선택"
 
-msgid "Select the number of bins for the histogram"
-msgstr ""
-
-msgid "Select the numeric columns to draw the histogram"
-msgstr ""
-
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -9424,9 +9489,6 @@ msgstr ""
 msgid "Send as text"
 msgstr ""
 
-msgid "Send range filter events to other charts"
-msgstr ""
-
 msgid "September"
 msgstr ""
 
@@ -9437,12 +9499,6 @@ msgid "Series"
 msgstr ""
 
 msgid "Series Height"
-msgstr ""
-
-msgid "Series Limit Sort By"
-msgstr ""
-
-msgid "Series Limit Sort Descending"
 msgstr ""
 
 #, fuzzy
@@ -9476,6 +9532,9 @@ msgstr ""
 msgid "Service Account"
 msgstr ""
 
+msgid "Service version"
+msgstr ""
+
 msgid "Set auto-refresh interval"
 msgstr "새로고침 간격"
 
@@ -9503,6 +9562,10 @@ msgstr ""
 
 msgid "Settings for time series"
 msgstr ""
+
+#, fuzzy
+msgid "Shape"
+msgstr "관리"
 
 msgid "Share"
 msgstr "Query 공유"
@@ -9668,6 +9731,10 @@ msgstr ""
 msgid "Show empty columns"
 msgstr "컬럼 수정"
 
+#, fuzzy, python-format
+msgid "Show entries per page"
+msgstr "메트릭 보기"
+
 msgid ""
 "Show hierarchical relationships of data, with the value represented by "
 "area, showing proportion and contribution to the whole."
@@ -9732,6 +9799,10 @@ msgstr "차트 보기"
 
 msgid "Show the value on top of the bar"
 msgstr ""
+
+#, fuzzy
+msgid "Show total"
+msgstr "컬럼 보기"
 
 msgid ""
 "Show total aggregations of selected metrics. Note that row limit does not"
@@ -9804,16 +9875,13 @@ msgstr "원본 값"
 msgid "Single value type"
 msgstr ""
 
+msgid "Size in pixels"
+msgstr ""
+
 msgid "Size of edge symbols"
 msgstr ""
 
 msgid "Size of marker. Also applies to forecast observations."
-msgstr ""
-
-msgid "Sizes of vehicles"
-msgstr ""
-
-msgid "Skip Rows"
 msgstr ""
 
 msgid "Skip blank lines rather than interpreting them as Not A Number values"
@@ -9885,9 +9953,6 @@ msgstr ""
 msgid "Sorry, something went wrong. Try again later."
 msgstr ""
 
-msgid "Sorry, there appears to be no data"
-msgstr ""
-
 #, python-format
 msgid "Sorry, there was an error saving this %s: %s"
 msgstr ""
@@ -9904,10 +9969,6 @@ msgstr ""
 
 msgid "Sort"
 msgstr ""
-
-#, fuzzy
-msgid "Sort Bars"
-msgstr "대시보드 가져오기"
 
 msgid "Sort Descending"
 msgstr ""
@@ -9931,9 +9992,6 @@ msgid "Sort Y Axis"
 msgstr ""
 
 msgid "Sort ascending"
-msgstr ""
-
-msgid "Sort bars by x labels."
 msgstr ""
 
 msgid "Sort by"
@@ -9963,6 +10021,10 @@ msgstr "필터"
 msgid "Sort metric"
 msgstr "메트릭"
 
+#, fuzzy
+msgid "Sort query by"
+msgstr "Query 공유"
+
 msgid "Sort rows by"
 msgstr ""
 
@@ -9975,10 +10037,6 @@ msgstr "차트 유형"
 
 msgid "Source"
 msgstr ""
-
-#, fuzzy
-msgid "Source / Target"
-msgstr "데이터소스 명"
 
 msgid "Source SQL"
 msgstr ""
@@ -10041,9 +10099,6 @@ msgid "Stacked Bars"
 msgstr ""
 
 msgid "Stacked Style"
-msgstr ""
-
-msgid "Stacked style"
 msgstr ""
 
 msgid "Standard time series"
@@ -10144,9 +10199,6 @@ msgid "Streets"
 msgstr ""
 
 msgid "Strength to pull the graph toward center"
-msgstr ""
-
-msgid "Stretched style"
 msgstr ""
 
 #, fuzzy
@@ -10250,9 +10302,6 @@ msgstr "이슈 1002 - 데이터베이스에 예상치 못한 에러가 발생했
 msgid "Supported databases"
 msgstr "데이터베이스 선택"
 
-msgid "Survey Responses"
-msgstr ""
-
 #, fuzzy
 msgid "Swap dataset"
 msgstr "데이터소스 선택"
@@ -10264,6 +10313,12 @@ msgid ""
 "Swiss army knife for visualizing data. Choose between step, line, "
 "scatter, and bar charts. This viz type has many customization options as "
 "well."
+msgstr ""
+
+msgid "Switch to the next tab"
+msgstr ""
+
+msgid "Switch to the previous tab"
 msgstr ""
 
 msgid "Symbol"
@@ -10286,9 +10341,6 @@ msgid "Syntax Error: %(qualifier)s input \"%(input)s\" expecting \"%(expected)s"
 msgstr ""
 
 msgid "TABLES"
-msgstr ""
-
-msgid "TEMPORAL X-AXIS"
 msgstr ""
 
 msgid "TEMPORAL_RANGE"
@@ -10338,6 +10390,10 @@ msgstr "차트 유형"
 #, fuzzy
 msgid "Table columns"
 msgstr "컬럼 수정"
+
+#, fuzzy
+msgid "Table name"
+msgstr "테이블 명"
 
 msgid "Table name undefined"
 msgstr "테이블 명이 정해지지 않았습니다"
@@ -10410,11 +10466,6 @@ msgstr "데이터베이스를 삭제할 수 없습니다."
 msgid "Tags"
 msgstr "상태"
 
-msgid ""
-"Take your data points, and group them into \"bins\" to see where the "
-"densest areas of information lie"
-msgstr ""
-
 #, fuzzy
 msgid "Target"
 msgstr "시작 시간"
@@ -10441,6 +10492,9 @@ msgstr ""
 msgid ""
 "Templated link, it's possible to include {{ metric }} or other values "
 "coming from the controls."
+msgstr ""
+
+msgid "Temporal X-Axis"
 msgstr ""
 
 msgid ""
@@ -10487,9 +10541,6 @@ msgid ""
 "interactive polygons, lines and points (circles, icons and/or texts)."
 msgstr ""
 
-msgid "The SQL is invalid and cannot be parsed."
-msgstr ""
-
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -10520,6 +10571,10 @@ msgstr "주석 레이어"
 #, fuzzy
 msgid "The annotation has been updated"
 msgstr "주석 레이어"
+
+#, fuzzy
+msgid "The background color of the charts."
+msgstr "새 차트 생성"
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -10564,6 +10619,12 @@ msgid ""
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
 
+msgid ""
+"The colors of this chart might be overridden by custom label colors of "
+"the related dashboard.\n"
+"    Check the JSON metadata in the Advanced settings."
+msgstr ""
+
 msgid "The column header label"
 msgstr ""
 
@@ -10574,6 +10635,12 @@ msgid "The column to be used as the target of the edge."
 msgstr ""
 
 msgid "The column was deleted or renamed in the database."
+msgstr ""
+
+msgid "The configuration for the map layers"
+msgstr ""
+
+msgid "The corner radius of the chart background"
 msgstr ""
 
 msgid ""
@@ -10593,12 +10660,9 @@ msgid ""
 "most case users should not need to alter this."
 msgstr ""
 
-#, python-format
-msgid ""
-"The database %s is linked to %s charts that appear on %s dashboards and "
-"users have %s SQL Lab tabs using this database open. Are you sure you "
-"want to continue? Deleting the database will break those objects."
-msgstr ""
+#, fuzzy
+msgid "The database"
+msgstr "데이터베이스 선택"
 
 msgid "The database columns that contains lines information"
 msgstr ""
@@ -10634,12 +10698,9 @@ msgstr "데이터베이스를 삭제할 수 없습니다."
 msgid "The database was not found."
 msgstr "데이터베이스를 찾을 수 없습니다."
 
-#, python-format
-msgid ""
-"The dataset %s is linked to %s charts that appear on %s dashboards. Are "
-"you sure you want to continue? Deleting the dataset will break those "
-"objects."
-msgstr ""
+#, fuzzy
+msgid "The dataset"
+msgstr "데이터소스 선택"
 
 msgid "The dataset associated with this chart no longer exists"
 msgstr ""
@@ -10698,6 +10759,15 @@ msgid ""
 "call."
 msgstr ""
 
+msgid "The exponent to compute all sizes from. \"EXP\" only"
+msgstr ""
+
+msgid ""
+"The extent of the map on application start. FIT DATA automatically sets "
+"the extent so that all data points are included in the viewport. CUSTOM "
+"allows users to define the extent manually."
+msgstr ""
+
 #, python-format
 msgid ""
 "The following entries in `series_columns` are missing in `columns`: "
@@ -10713,6 +10783,9 @@ msgid ""
 msgstr ""
 
 msgid "The function to use when aggregating points into groups"
+msgstr ""
+
+msgid "The height of the current zoom level to compute all heights from"
 msgstr ""
 
 msgid ""
@@ -10747,6 +10820,9 @@ msgstr ""
 msgid "The id of the active chart"
 msgstr ""
 
+msgid "The layer attribution"
+msgstr ""
+
 msgid ""
 "The list of charts associated with this table. By altering this "
 "datasource, you may change how these associated charts behave. Also note "
@@ -10756,9 +10832,6 @@ msgid ""
 msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
-msgstr ""
-
-msgid "The maximum number of events to return, equivalent to the number of rows"
 msgstr ""
 
 msgid ""
@@ -10791,6 +10864,18 @@ msgid ""
 "Period\" to be 7, so that all data points shown are the total of 7 "
 "periods. This will hide the \"ramp up\" taking place over the first 7 "
 "periods"
+msgstr ""
+
+msgid ""
+"The minimum value of metrics. It is an optional configuration. If not "
+"set, it will be the minimum value of the data"
+msgstr ""
+
+#, fuzzy
+msgid "The name of the geometry column"
+msgstr "컬럼 수정"
+
+msgid "The name of the layer as described in GetCapabilities"
 msgstr ""
 
 #, fuzzy
@@ -10985,6 +11070,9 @@ msgid ""
 "function)."
 msgstr ""
 
+msgid "The result size exceeds the allowed limit."
+msgstr ""
+
 msgid "The results backend no longer has the data from the query."
 msgstr ""
 
@@ -11022,16 +11110,23 @@ msgstr ""
 msgid "The screenshot could not be downloaded. Please, try again later."
 msgstr ""
 
+#, fuzzy
+msgid "The screenshot has been downloaded."
+msgstr "주석 레이어"
+
 msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
-msgid "The screenshot is now being downloaded."
+msgid "The service url of the layer"
 msgstr ""
 
 msgid "The size of each cell in meters"
 msgstr ""
 
 msgid "The size of the square cell, in pixels"
+msgstr ""
+
+msgid "The slope to compute all sizes from. \"LINEAR\" only"
 msgstr ""
 
 msgid "The submitted payload failed validation."
@@ -11104,6 +11199,10 @@ msgstr ""
 msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
+#, fuzzy
+msgid "The type of the layer"
+msgstr "새 차트 생성"
+
 msgid "The type of visualization to display"
 msgstr ""
 
@@ -11126,10 +11225,19 @@ msgstr "메트릭 '%(metric)s' 이 존재하지 않습니다."
 msgid "The username provided when connecting to a database is not valid."
 msgstr ""
 
+msgid "The version of the service"
+msgstr ""
+
+msgid "The visible title of the layer"
+msgstr ""
+
 msgid "The way the ticks are laid out on the X-axis"
 msgstr ""
 
 msgid "The width of the Isoline in pixels"
+msgstr ""
+
+msgid "The width of the current zoom level to compute all widths from"
 msgstr ""
 
 msgid "The width of the lines"
@@ -11205,6 +11313,10 @@ msgstr ""
 
 msgid "There was an error loading the tables"
 msgstr ""
+
+#, fuzzy
+msgid "There was an error retrieving dashboard tabs."
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
@@ -11296,11 +11408,6 @@ msgstr ""
 msgid "There was an issue previewing the selected query. %s"
 msgstr ""
 
-msgid ""
-"There's a loop in your Sankey, please provide a tree. Here's a faulty "
-"link: {}"
-msgstr ""
-
 msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
@@ -11352,11 +11459,6 @@ msgstr ""
 msgid ""
 "This chart type is not supported when using an unsaved query as a chart "
 "source. "
-msgstr ""
-
-msgid ""
-"This color scheme is being overridden by custom label colors.\n"
-"    Check the JSON metadata in the Advanced settings"
 msgstr ""
 
 msgid "This column might be incompatible with current dataset"
@@ -11425,6 +11527,12 @@ msgstr ""
 msgid "This dashboard was saved successfully."
 msgstr ""
 
+msgid ""
+"This database does not allow for DDL/DML, and the query could not be "
+"parsed to confirm it is a read-only query. Please contact your "
+"administrator for more assistance."
+msgstr ""
+
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
 
@@ -11484,12 +11592,6 @@ msgid "This markdown component has an error. Please revert your recent changes."
 msgstr ""
 
 msgid "This may be triggered by:"
-msgstr ""
-
-msgid ""
-"This metric is used to define row selection criteria (how the rows are "
-"sorted) if a series or row limit is present. If not defined, it reverts "
-"to the first metric (where appropriate)."
 msgstr ""
 
 msgid "This metric might be incompatible with current dataset"
@@ -11610,9 +11712,6 @@ msgstr "D3 포멧"
 msgid "Time Series"
 msgstr "컬럼 수정"
 
-msgid "Time Series - Bar Chart"
-msgstr ""
-
 msgid "Time Series - Line Chart"
 msgstr ""
 
@@ -11626,9 +11725,6 @@ msgid "Time Series - Percent Change"
 msgstr ""
 
 msgid "Time Series - Period Pivot"
-msgstr ""
-
-msgid "Time Series - Stacked"
 msgstr ""
 
 #, fuzzy
@@ -11722,17 +11818,6 @@ msgstr ""
 msgid ""
 "Time string is ambiguous. Please specify [%(human_readable)s ago] or "
 "[%(human_readable)s later]."
-msgstr ""
-
-#, fuzzy
-msgid "Time-series Area Chart (legacy)"
-msgstr "차트 보기"
-
-#, fuzzy
-msgid "Time-series Bar Chart (legacy)"
-msgstr "시계열 테이블"
-
-msgid "Time-series Line Chart (legacy)"
 msgstr ""
 
 #, fuzzy
@@ -12008,6 +12093,9 @@ msgid ""
 "later. Please contact your administrator if this problem persists."
 msgstr ""
 
+msgid "Unable to parse SQL"
+msgstr ""
+
 msgid "Unable to retrieve dashboard colors"
 msgstr ""
 
@@ -12230,6 +12318,10 @@ msgid ""
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
 
+#, fuzzy
+msgid "Use current extent"
+msgstr "Query 실행"
+
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
@@ -12359,9 +12451,6 @@ msgid ""
 "show relevant values"
 msgstr ""
 
-msgid "Vehicle Types"
-msgstr ""
-
 msgid "Verbose Name"
 msgstr ""
 
@@ -12375,9 +12464,6 @@ msgid "Vertical"
 msgstr ""
 
 msgid "Vertical (Left)"
-msgstr ""
-
-msgid "Video game consoles"
 msgstr ""
 
 #, fuzzy
@@ -12425,9 +12511,6 @@ msgstr ""
 msgid "Virtual (SQL)"
 msgstr ""
 
-msgid "Virtual dataset"
-msgstr "차트 수정"
-
 msgid "Virtual dataset query cannot be empty"
 msgstr ""
 
@@ -12462,11 +12545,6 @@ msgstr ""
 msgid ""
 "Visualize geospatial data like 3D buildings, landscapes, or objects in "
 "grid view."
-msgstr ""
-
-msgid ""
-"Visualize how a metric changes over time using bars. Add a group by "
-"column to visualize group level metrics and how they change over time."
 msgstr ""
 
 msgid ""
@@ -12514,13 +12592,6 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Visualizes the flow of different group's values through different stages "
-"of a system. New stages in the pipeline are visualized as nodes or "
-"layers. The thickness of the bars or edges represent the metric being "
-"visualized."
-msgstr ""
-
-msgid ""
 "Visualizes the words in a column that appear the most often. Bigger font "
 "corresponds to higher frequency."
 msgstr ""
@@ -12532,6 +12603,12 @@ msgid "Viz type"
 msgstr "시각화 유형"
 
 msgid "WED"
+msgstr ""
+
+msgid "WFS"
+msgstr ""
+
+msgid "WMS"
 msgstr ""
 
 #, python-format
@@ -12706,6 +12783,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"When unchecked, colors from the selected color scheme will be used for "
+"time shifted series"
+msgstr ""
+
+msgid ""
 "When using \"Autocomplete filters\", this can be used to improve "
 "performance of the query fetching the values. Use this option to apply a "
 "predicate (WHERE clause) to the query selecting the distinct values from "
@@ -12719,7 +12801,9 @@ msgstr "'Group By'를 사용 할 때 오직 하나의 메트릭만 사용 가능
 msgid "When using other than adaptive formatting, labels may overlap"
 msgstr ""
 
-msgid "When using this option, default value can’t be set"
+msgid ""
+"When using this option, default value can’t be set. Using this option may"
+" impact the load times for your dashboard."
 msgstr ""
 
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
@@ -12779,11 +12863,6 @@ msgstr ""
 msgid "Whether to display the labels."
 msgstr ""
 
-msgid ""
-"Whether to display the labels. Note that the label only displays when the"
-" 5% threshold."
-msgstr ""
-
 msgid "Whether to display the legend (toggles)"
 msgstr ""
 
@@ -12799,6 +12878,9 @@ msgstr ""
 msgid "Whether to display the numerical values within the cells"
 msgstr ""
 
+msgid "Whether to display the percentage value in the tooltip"
+msgstr ""
+
 msgid "Whether to display the stroke"
 msgstr ""
 
@@ -12809,6 +12891,9 @@ msgid "Whether to display the timestamp"
 msgstr ""
 
 msgid "Whether to display the tooltip labels."
+msgstr ""
+
+msgid "Whether to display the total value in the tooltip"
 msgstr ""
 
 msgid "Whether to display the trend line"
@@ -12838,15 +12923,9 @@ msgstr ""
 msgid "Whether to make the grid 3D"
 msgstr ""
 
-msgid "Whether to make the histogram cumulative"
-msgstr ""
-
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
-msgstr ""
-
-msgid "Whether to normalize the histogram"
 msgstr ""
 
 msgid "Whether to populate autocomplete filters options"
@@ -12863,7 +12942,7 @@ msgstr ""
 
 msgid ""
 "Whether to show extra controls or not. Extra controls include things like"
-" making mulitBar charts stacked or side by side."
+" making multiBar charts stacked or side by side."
 msgstr ""
 
 msgid "Whether to show minor ticks on the axis"
@@ -12882,9 +12961,6 @@ msgid "Whether to sort ascending or descending on the base Axis."
 msgstr ""
 
 msgid "Whether to sort descending or ascending"
-msgstr ""
-
-msgid "Whether to sort descending or ascending if a series limit is present"
 msgstr ""
 
 msgid "Whether to sort results by the selected metric in descending order."
@@ -12989,6 +13065,9 @@ msgstr ""
 #, fuzzy
 msgid "XScale Interval"
 msgstr "새로고침 간격"
+
+msgid "XYZ"
+msgstr ""
 
 msgid "Y 2 bounds"
 msgstr ""
@@ -13099,6 +13178,19 @@ msgid ""
 "You are importing one or more saved queries that already exist. "
 "Overwriting might cause you to lose some of your work. Are you sure you "
 "want to overwrite?"
+msgstr ""
+
+msgid ""
+"You are viewing this chart in a dashboard context with labels shared "
+"across multiple charts.\n"
+"        The color scheme selection is disabled."
+msgstr ""
+
+msgid ""
+"You are viewing this chart in the context of a dashboard that is directly"
+" affecting its colors.\n"
+"        To edit the color scheme, open this chart outside of the "
+"dashboard."
 msgstr ""
 
 msgid "You can"
@@ -13245,6 +13337,9 @@ msgstr ""
 msgid "Your chart is ready to go!"
 msgstr ""
 
+msgid "Your dashboard is near the size limit."
+msgstr ""
+
 msgid "Your dashboard is too large. Please reduce its size before saving it."
 msgstr ""
 
@@ -13283,6 +13378,9 @@ msgid "Zero imputation"
 msgstr "설명"
 
 msgid "Zoom"
+msgstr ""
+
+msgid "Zoom level"
 msgstr ""
 
 msgid "Zoom level of the map"
@@ -13402,9 +13500,6 @@ msgstr ""
 msgid "auto"
 msgstr "생성자"
 
-msgid "auto (Smooth)"
-msgstr ""
-
 msgid "background"
 msgstr ""
 
@@ -13468,6 +13563,9 @@ msgstr "필터"
 msgid "click here"
 msgstr ""
 
+msgid "close"
+msgstr ""
+
 msgid "code ISO 3166-1 alpha-2 (cca2)"
 msgstr ""
 
@@ -13522,9 +13620,6 @@ msgid "css_template"
 msgstr ""
 
 msgid "cumsum"
-msgstr ""
-
-msgid "cumulative"
 msgstr ""
 
 msgid "dashboard"
@@ -13602,9 +13697,6 @@ msgstr ""
 msgid "default"
 msgstr "삭제"
 
-msgid "delete"
-msgstr "삭제"
-
 msgid "descendant"
 msgstr ""
 
@@ -13662,10 +13754,6 @@ msgid "e.g. xy12345.us-east-2.aws"
 msgstr ""
 
 #, fuzzy
-msgid "e.g., a \"user id\" column"
-msgstr "컬럼 수정"
-
-#, fuzzy
 msgid "edit mode"
 msgstr "Query 검색"
 
@@ -13674,6 +13762,10 @@ msgstr ""
 
 #, fuzzy
 msgid "entries"
+msgstr "저장된 Query"
+
+#, fuzzy
+msgid "entries per page"
 msgstr "저장된 Query"
 
 #, fuzzy
@@ -13749,11 +13841,6 @@ msgstr "Query 공유"
 msgid "hour"
 msgstr "시간"
 
-msgid ""
-"image-rendering CSS attribute of the canvas object that defines how the "
-"browser scales up the image"
-msgstr ""
-
 msgid "in"
 msgstr ""
 
@@ -13770,6 +13857,19 @@ msgid "is expected to be a number"
 msgstr ""
 
 msgid "is expected to be an integer"
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards and users have %s SQL"
+" Lab tabs using this database open. Are you sure you want to continue? "
+"Deleting the database will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
+"is linked to %s charts that appear on %s dashboards. Are you sure you "
+"want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 msgid "key a-z"
@@ -13904,16 +14004,7 @@ msgstr ""
 msgid "page_size.all"
 msgstr ""
 
-msgid "page_size.entries"
-msgstr ""
-
-msgid "page_size.show"
-msgstr ""
-
 msgid "pending"
-msgstr ""
-
-msgid "percentile (exclusive)"
 msgstr ""
 
 msgid ""
@@ -13924,9 +14015,6 @@ msgstr ""
 #, fuzzy
 msgid "permalink state not found"
 msgstr "CSS 템플릿을 찾을수 없습니다."
-
-msgid "pixelated (Sharp)"
-msgstr ""
 
 msgid "pixels"
 msgstr ""
@@ -13989,6 +14077,10 @@ msgid "running"
 msgstr ""
 
 #, fuzzy
+msgid "save"
+msgstr "저장"
+
+#, fuzzy
 msgid "saved queries"
 msgstr "저장된 Query"
 
@@ -14005,10 +14097,6 @@ msgid ""
 " scale; change: Show changes compared to the first data point in each "
 "series"
 msgstr ""
-
-#, fuzzy
-msgid "shift start date"
-msgstr "시작 시간"
 
 msgid "sql"
 msgstr ""
@@ -14069,10 +14157,6 @@ msgid "textarea"
 msgstr ""
 
 #, fuzzy
-msgid "to"
-msgstr "중지"
-
-#, fuzzy
 msgid "top"
 msgstr "중지"
 
@@ -14082,6 +14166,14 @@ msgstr ""
 #, fuzzy
 msgid "unknown type icon"
 msgstr "알 수 없는 에러"
+
+#, fuzzy
+msgid "unset"
+msgstr "컬럼 추가"
+
+#, fuzzy
+msgid "updated"
+msgstr "분기"
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"
@@ -14106,9 +14198,6 @@ msgstr ""
 #, fuzzy
 msgid "view instructions"
 msgstr "10초"
-
-msgid "virtual"
-msgstr ""
 
 #, fuzzy
 msgid "viz type"
@@ -14145,4 +14234,7 @@ msgid "year"
 msgstr "년"
 
 msgid "zoom area"
+msgstr ""
+
+msgid "© Layer attribution"
 msgstr ""
