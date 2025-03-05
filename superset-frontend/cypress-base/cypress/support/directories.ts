@@ -501,7 +501,7 @@ export const exploreView = {
     optionField: dataTestLocator('option-label'),
     fieldInput: '.Select__control input',
     removeFieldValue: dataTestLocator('remove-control-button'),
-    addFieldValue: '[aria-label="plus-small"]',
+    addFieldValue: '[aria-label="PlusOutlined"]',
     vizType: dataTestLocator('visualization-type'),
     runButton: dataTestLocator('run-query-button'),
     saveQuery: dataTestLocator('query-save-button'),
