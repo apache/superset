@@ -384,6 +384,7 @@ LANGUAGES = {
     "zh_TW": {"flag": "tw", "name": "Traditional Chinese"},
     "ja": {"flag": "jp", "name": "Japanese"},
     "de": {"flag": "de", "name": "German"},
+    "pl": {"flag": "pl", "name": "Polish"},
     "pt": {"flag": "pt", "name": "Portuguese"},
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
@@ -526,7 +527,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "DRILL_TO_DETAIL": True,  # deprecated
     "DRILL_BY": True,
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
-    "HORIZONTAL_FILTER_BAR": False,
     # The feature is off by default, and currently only supported in Presto and Postgres,  # noqa: E501
     # and Bigquery.
     # It also needs to be enabled on a per-database basis, by adding the key/value pair
@@ -1914,6 +1914,15 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # catalog. These secondary permissions can be created later by editing the DB
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
+
+
+# When updating a DB connection or manually triggering a perm sync, the command
+# happens in sync mode. If you have a celery worker configured, it's recommended
+# to change below config to ``True`` to run this process in async mode. A DB
+# connection might have hundreds of catalogs with thousands of schemas each, which
+# considerably increases the time to process it. Running it in async mode prevents
+# keeping a web API call open for this long.
+SYNC_DB_PERMISSIONS_IN_ASYNC_MODE: bool = False
 
 
 # -------------------------------------------------------------------
