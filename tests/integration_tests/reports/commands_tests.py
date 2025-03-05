@@ -1486,7 +1486,6 @@ def test_slack_chart_report_schedule_v2(
     screenshot_mock,
     slack_client_mock,
     slack_should_use_v2_api_mock,
-    get_channels_with_search_mock,
     create_report_slack_chart,
 ):
     """
