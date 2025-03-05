@@ -563,7 +563,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Adds a switch to the navbar to enable/disable the dark theme
     # This is used for development to expose what is dynamic (css-in-js) vs
     # what is managed by `.less` files.
-    "DARK_THEME_SWITCH": True,
+    "DARK_THEME_SWITCH": False,
 }
 
 # ------------------------------

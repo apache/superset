@@ -632,7 +632,7 @@ const Header = () => {
                   css={discardBtnStyle}
                   buttonSize="small"
                   onClick={discardChanges}
-                  buttonStyle="default"
+                  buttonStyle="secondary"
                   data-test="discard-changes-button"
                   aria-label={t('Discard')}
                 >
