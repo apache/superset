@@ -32,7 +32,7 @@ const viewTypeIcons = {
 
 export function setGridMode(type: 'card' | 'list') {
   const icon = viewTypeIcons[type];
-  cy.get(`[aria-label="${icon}-view"]`).click();
+  cy.get(`[aria-label="${icon}"]`).click();
 }
 
 export function toggleBulkSelect() {
