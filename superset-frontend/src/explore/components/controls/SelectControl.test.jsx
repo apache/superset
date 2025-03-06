@@ -141,7 +141,9 @@ describe('SelectControl', () => {
       expect(
         container.querySelector('[role="option"]'),
       ).not.toBeInTheDocument();
-      expect(within(selectorWrapper).getByText('No Data')).toBeInTheDocument();
+      expect(
+        within(selectorWrapper).getByText('No data', { selector: 'div' }),
+      ).toBeInTheDocument();
     });
 
     it('renders with tokenSeparators', () => {
