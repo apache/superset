@@ -46,12 +46,12 @@ jobs:
       - name: Install Frontend Dependencies
         run: |
           cd superset-frontend
-          npm install
+          npm ci
 
       - name: Install Docs Dependencies
         run: |
           cd docs
-          yarn install
+          yarn install --immutable
 
       - name: pre-commit
         run: |
@@ -66,7 +66,7 @@ jobs:
             if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ]; then
               echo "❌ Pre-commit check failed (exit code: ${EXIT_CODE})."
             else
-              echo "❌ Git working directory is dirty after running pre-commit."
+              echo "❌ Git working directory is dirty."
               echo "📌 This likely means that pre-commit made changes that were not committed."
               echo "🔍 Modified files:"
               git diff --name-only
