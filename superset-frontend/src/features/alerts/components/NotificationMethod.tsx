@@ -36,6 +36,7 @@ import {
 } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
+import RefreshLabel from 'src/components/RefreshLabel';
 import {
   NotificationMethodOption,
   NotificationSetting,
@@ -75,6 +76,9 @@ const StyledNotificationMethod = styled.div`
       .delete-button {
         margin-left: ${theme.gridUnit * 2}px;
         padding-top: ${theme.gridUnit}px;
+      }
+      .anticon {
+        margin-left: ${theme.gridUnit}px;
       }
     }
 
@@ -221,6 +225,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   ]);
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
+  const [isSlackChannelsLoading, setIsSlackChannelsLoading] =
+    useState<boolean>(true);
 
   const onMethodChange = (selected: {
     label: string;
@@ -248,14 +254,68 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
     searchString = '',
     types = [],
     exactMatch = false,
+    force = false,
   }: {
     searchString?: string | undefined;
     types?: string[];
     exactMatch?: boolean | undefined;
+    force?: boolean | undefined;
   } = {}): Promise<JsonResponse> => {
-    const queryString = rison.encode({ searchString, types, exactMatch });
+    const queryString = rison.encode({
+      searchString,
+      types,
+      exactMatch,
+      force,
+    });
     const endpoint = `/api/v1/report/slack_channels/?q=${queryString}`;
     return SupersetClient.get({ endpoint });
+  };
+
+  const updateSlackOptions = async ({
+    force,
+  }: {
+    force?: boolean | undefined;
+  } = {}) => {
+    setIsSlackChannelsLoading(true);
+    fetchSlackChannels({ types: ['public_channel', 'private_channel'], force })
+      .then(({ json }) => {
+        const { result } = json;
+        const options: SlackOptionsType = mapChannelsToOptions(result);
+
+        setSlackOptions(options);
+
+        if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
+          // for edit mode, map existing ids to names for display if slack v2
+          // or names to ids if slack v1
+          const [publicOptions, privateOptions] = options;
+          if (
+            method &&
+            [
+              NotificationMethodOption.SlackV2,
+              NotificationMethodOption.Slack,
+            ].includes(method)
+          ) {
+            setSlackRecipients(
+              mapSlackValues({
+                method,
+                recipientValue,
+                slackOptions: [
+                  ...publicOptions.options,
+                  ...privateOptions.options,
+                ],
+              }),
+            );
+          }
+        }
+      })
+      .catch(e => {
+        // Fallback to slack v1 if slack v2 is not compatible
+        setUseSlackV1(true);
+      })
+      .finally(() => {
+        setMethodOptionsLoading(false);
+        setIsSlackChannelsLoading(false);
+      });
   };
 
   useEffect(() => {
@@ -265,44 +325,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
         option === NotificationMethodOption.SlackV2,
     );
     if (slackEnabled && !slackOptions[0]?.options.length) {
-      fetchSlackChannels({ types: ['public_channel', 'private_channel'] })
-        .then(({ json }) => {
-          const { result } = json;
-          const options: SlackOptionsType = mapChannelsToOptions(result);
-
-          setSlackOptions(options);
-
-          if (isFeatureEnabled(FeatureFlag.AlertReportSlackV2)) {
-            // for edit mode, map existing ids to names for display if slack v2
-            // or names to ids if slack v1
-            const [publicOptions, privateOptions] = options;
-            if (
-              method &&
-              [
-                NotificationMethodOption.SlackV2,
-                NotificationMethodOption.Slack,
-              ].includes(method)
-            ) {
-              setSlackRecipients(
-                mapSlackValues({
-                  method,
-                  recipientValue,
-                  slackOptions: [
-                    ...publicOptions.options,
-                    ...privateOptions.options,
-                  ],
-                }),
-              );
-            }
-          }
-        })
-        .catch(e => {
-          // Fallback to slack v1 if slack v2 is not compatible
-          setUseSlackV1(true);
-        })
-        .finally(() => {
-          setMethodOptionsLoading(false);
-        });
+      updateSlackOptions();
     }
   }, []);
 
@@ -518,18 +541,26 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   </>
                 ) : (
                   // for SlackV2
-                  <Select
-                    ariaLabel={t('Select channels')}
-                    mode="multiple"
-                    name="recipients"
-                    value={slackRecipients}
-                    options={slackOptions}
-                    onChange={onSlackRecipientsChange}
-                    allowClear
-                    data-test="recipients"
-                    allowSelectAll={false}
-                    labelInValue
-                  />
+                  <div className="input-container">
+                    <Select
+                      ariaLabel={t('Select channels')}
+                      mode="multiple"
+                      name="recipients"
+                      value={slackRecipients}
+                      options={slackOptions}
+                      onChange={onSlackRecipientsChange}
+                      allowClear
+                      data-test="recipients"
+                      loading={isSlackChannelsLoading}
+                      allowSelectAll={false}
+                      labelInValue
+                    />
+                    <RefreshLabel
+                      onClick={() => updateSlackOptions({ force: true })}
+                      tooltipContent={t('Force refresh Slack channels list')}
+                      disabled={isSlackChannelsLoading}
+                    />
+                  </div>
                 )}
               </div>
             </StyledInputContainer>
