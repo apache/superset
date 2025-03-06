@@ -16,16 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sqlLab } from './sqlLab';
+import { commands } from './commands';
+import { environment } from './environment';
+import { extensions } from './extensions';
 
-import { Avatar as AntdAvatar } from 'antd-v5';
-import { AvatarProps, GroupProps } from 'antd-v5/lib/avatar';
-
-export function Avatar(props: AvatarProps) {
-  return <AntdAvatar {...props} />;
+declare module '@apache-superset/types' {
+  export { sqlLab } from './sqlLab';
+  export { commands } from './commands';
+  export { environment } from './environment';
+  export { extensions } from './extensions';
 }
-
-export function AvatarGroup(props: GroupProps) {
-  return <AntdAvatar.Group {...props} />;
-}
-
-export type { AvatarProps, GroupProps };

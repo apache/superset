@@ -148,11 +148,6 @@ const plugins = [
   new ModuleFederationPlugin({
     name: 'superset',
     filename: 'remoteEntry.js',
-    exposes: {
-      './Avatar': './src/components/Avatar/index.tsx',
-      './formatNumber':
-        './packages/superset-ui-core/src/number-format/NumberFormatterRegistrySingleton.ts',
-    },
     shared: {
       react: {
         singleton: true,
@@ -559,7 +554,10 @@ Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
   const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
   const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
+  if (
+    (/^@superset-ui/.test(pkg) || /^@apache-superset/.test(pkg)) &&
+    fs.existsSync(srcPath)
+  ) {
     console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
     config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
   }

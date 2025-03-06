@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import getOwnerName from 'src/utils/getOwnerName';
 import { Tooltip } from 'src/components/Tooltip';
-import { Avatar, AvatarGroup } from 'src/components/Avatar';
+import { Avatar, AvatarGroup } from '@apache-superset/components';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getRandomColor } from './utils';
 

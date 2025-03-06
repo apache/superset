@@ -16,11 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { Avatar } from 'src/components/Avatar';
+import React from 'react';
+import { Avatar as AntdAvatar } from 'antd-v5';
+import { AvatarProps, GroupProps } from 'antd-v5/lib/avatar';
 
-test('renders with default props', async () => {
-  const { container } = render(<Avatar />);
+export function Avatar(props: AvatarProps) {
+  return <AntdAvatar {...props} />;
+}
 
-  expect(container).toBeInTheDocument();
-});
+export function AvatarGroup(props: GroupProps) {
+  return <AntdAvatar.Group {...props} />;
+}
+
+export type { AvatarProps, GroupProps };

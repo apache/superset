@@ -1,0 +1,31 @@
+{
+  "name": "superset-components",
+  "version": "0.0.1",
+  "description": "This package contains UI elements and utility functions used by Superset.",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.26.0",
+    "@types/react": "^17.0.83",
+    "install": "^0.13.0",
+    "npm": "^11.1.0"
+  },
+  "peerDependencies": {
+    "antd-v5": "npm:antd@^5.18.0",
+    "react": "^17.0.2"
+  },
+  "scripts": {
+    "build": "babel src --out-dir lib --extensions \".ts,.tsx\""
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
