@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import {
   t,
@@ -26,7 +26,7 @@ import {
   styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
@@ -109,7 +109,7 @@ function AlertList({
   user,
   addSuccessToast,
 }: AlertListProps) {
-  const title = isReportEnabled ? t('report') : t('alert');
+  const title = isReportEnabled ? t('Report') : t('Alert');
   const titlePlural = isReportEnabled ? t('reports') : t('alerts');
   const pathName = isReportEnabled ? 'Reports' : 'Alerts';
   const initialFilters = useMemo(
@@ -137,7 +137,7 @@ function AlertList({
     toggleBulkSelect,
   } = useListViewResource<AlertObject>(
     'report',
-    t('reports'),
+    t('report'),
     addDangerToast,
     true,
     undefined,
@@ -263,7 +263,10 @@ function AlertList({
           },
         }: any) =>
           lastEvalDttm
-            ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
+            ? extendedDayjs
+                .utc(lastEvalDttm)
+                .local()
+                .format(DATETIME_WITH_TIME_ZONE)
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),

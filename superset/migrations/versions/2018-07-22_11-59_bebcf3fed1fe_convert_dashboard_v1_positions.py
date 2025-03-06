@@ -24,7 +24,6 @@ Create Date: 2018-07-22 11:59:07.025119
 
 # revision identifiers, used by Alembic.
 import collections
-import json
 import sys
 import uuid
 from functools import reduce
@@ -35,6 +34,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 
 from superset import db
+from superset.utils import json
 
 revision = "bebcf3fed1fe"
 down_revision = "fc480c87706c"
@@ -120,7 +120,7 @@ def generate_id():
     return uuid.uuid4().hex[:8]
 
 
-def has_overlap(positions, xAxis=True):
+def has_overlap(positions, xAxis=True):  # noqa: N803
     sorted_positions = (
         sorted(positions[:], key=lambda pos: pos["col"])
         if xAxis
@@ -225,14 +225,14 @@ def get_children_max(children, attr, root):
 
 
 def get_children_sum(children, attr, root):
-    return reduce((lambda sum, childId: sum + root[childId]["meta"][attr]), children, 0)
+    return reduce((lambda sum, childId: sum + root[childId]["meta"][attr]), children, 0)  # noqa: N803
 
 
 # find column that: width > 2 and
 # each row has at least 1 chart can reduce width
 def get_wide_column_ids(children, root):
     return list(
-        filter(lambda childId: can_reduce_column_width(root[childId], root), children)
+        filter(lambda childId: can_reduce_column_width(root[childId], root), children)  # noqa: N803
     )
 
 
@@ -248,12 +248,12 @@ def can_reduce_column_width(column_component, root):
         column_component["type"] == COLUMN_TYPE
         and column_component["meta"]["width"] > GRID_MIN_COLUMN_COUNT
         and all(
-            [
+            [  # noqa: C419
                 is_wide_leaf_component(root[childId])
                 or (
                     root[childId]["type"] == ROW_TYPE
                     and all(
-                        [
+                        [  # noqa: C419
                             is_wide_leaf_component(root[id])
                             for id in root[childId]["children"]
                         ]
@@ -268,7 +268,7 @@ def can_reduce_column_width(column_component, root):
 def reduce_row_width(row_component, root):
     wide_leaf_component_ids = list(
         filter(
-            lambda childId: is_wide_leaf_component(root[childId]),
+            lambda childId: is_wide_leaf_component(root[childId]),  # noqa: N803
             row_component["children"],
         )
     )
@@ -292,7 +292,7 @@ def reduce_component_width(component):
     return component["meta"]["width"]
 
 
-def convert(positions, level, parent, root):
+def convert(positions, level, parent, root):  # noqa: C901
     if len(positions) == 0:
         return
 
@@ -424,7 +424,7 @@ def convert(positions, level, parent, root):
         )
 
 
-def convert_to_layout(positions):
+def convert_to_layout(positions):  # noqa: C901
     root = get_empty_layout()
 
     convert(positions, 0, root[DASHBOARD_GRID_ID], root)
@@ -444,7 +444,7 @@ def convert_to_layout(positions):
                 while current_width > GRID_COLUMN_COUNT and len(
                     list(
                         filter(
-                            lambda childId: is_wide_leaf_component(root[childId]),
+                            lambda childId: is_wide_leaf_component(root[childId]),  # noqa: N803
                             item["children"],
                         )
                     )
@@ -463,7 +463,7 @@ def convert_to_layout(positions):
                         # need 2nd loop since same column may reduce multiple times
                         while idx < len(col_ids) and current_width > GRID_COLUMN_COUNT:
                             current_column = col_ids[idx]
-                            for childId in root[current_column]["children"]:
+                            for childId in root[current_column]["children"]:  # noqa: N806
                                 if root[childId]["type"] == ROW_TYPE:
                                     root[childId]["meta"]["width"] = reduce_row_width(
                                         root[childId], root

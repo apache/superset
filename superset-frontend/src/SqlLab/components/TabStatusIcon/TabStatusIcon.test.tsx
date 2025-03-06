@@ -17,7 +17,6 @@
  * under the License.
  */
 import { QueryState } from '@superset-ui/core';
-import React from 'react';
 
 import { render } from 'spec/helpers/testing-library';
 import TabStatusIcon from 'src/SqlLab/components/TabStatusIcon';

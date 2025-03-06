@@ -17,8 +17,7 @@
 
 from __future__ import annotations
 
-import contextlib
-import json
+import logging
 import re
 import urllib
 from datetime import datetime
@@ -35,22 +34,24 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy import column, types
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import sqltypes
 
-from superset import sql_parse
-from superset.constants import PASSWORD_MASK, TimeGrain
+from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import BaseEngineSpec, BasicPropertiesType
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException
+from superset.sql.parse import SQLScript
 from superset.sql_parse import Table
 from superset.superset_typing import ResultSetColumnType
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.hashing import md5_sha_from_str
 
 try:
+    import google.auth
     from google.cloud import bigquery
     from google.oauth2 import service_account
 
@@ -67,6 +68,9 @@ except ModuleNotFoundError:
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
+
+
+logger = logging.getLogger()
 
 CONNECTION_DATABASE_PERMISSIONS_REGEX = re.compile(
     "Access Denied: Project (?P<project_name>.+?): User does not have "
@@ -127,7 +131,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
 
     allows_hidden_cc_in_orderby = True
 
-    supports_catalog = False
+    supports_catalog = supports_dynamic_catalog = True
+
+    # when editing the database, mask this field in `encrypted_extra`
+    # pylint: disable=invalid-name
+    encrypted_extra_sensitive_fields = {"$.credentials_info.private_key"}
 
     """
     https://www.python.org/dev/peps/pep-0249/#arraysize
@@ -406,7 +414,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         pandas_gbq.to_gbq(df, **to_gbq_kwargs)
 
     @classmethod
-    def _get_client(cls, engine: Engine) -> bigquery.Client:
+    def _get_client(
+        cls,
+        engine: Engine,
+        database: Database,  # pylint: disable=unused-argument
+    ) -> bigquery.Client:
         """
         Return the BigQuery client associated with an engine.
         """
@@ -415,10 +427,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                 "Could not import libraries needed to connect to BigQuery."
             )
 
-        credentials = service_account.Credentials.from_service_account_info(
-            engine.dialect.credentials_info
-        )
-        return bigquery.Client(credentials=credentials)
+        if credentials_info := engine.dialect.credentials_info:
+            credentials = service_account.Credentials.from_service_account_info(
+                credentials_info
+            )
+            return bigquery.Client(credentials=credentials)
+
+        try:
+            credentials = google.auth.default()[0]
+            return bigquery.Client(credentials=credentials)
+        except google.auth.exceptions.DefaultCredentialsError as ex:
+            raise SupersetDBAPIConnectionError(
+                "The database credentials could not be found."
+            ) from ex
 
     @classmethod
     def estimate_query_cost(  # pylint: disable=too-many-arguments
@@ -438,26 +459,44 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         :param sql: SQL query with possibly multiple statements
         :param source: Source of the query (eg, "sql_lab")
         """
-        extra = database.get_extra() or {}
+        extra = database.get_extra(source) or {}
         if not cls.get_allow_cost_estimate(extra):
             raise SupersetException("Database does not support cost estimation")
 
-        parsed_query = sql_parse.ParsedQuery(sql, engine=cls.engine)
-        statements = parsed_query.get_statements()
+        parsed_script = SQLScript(sql, engine=cls.engine)
 
         with cls.get_engine(
             database,
             catalog=catalog,
             schema=schema,
+            source=source,
         ) as engine:
-            client = cls._get_client(engine)
+            client = cls._get_client(engine, database)
             return [
                 cls.custom_estimate_statement_cost(
                     cls.process_statement(statement, database),
                     client,
                 )
-                for statement in statements
+                for statement in parsed_script.statements
             ]
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        """
+        Get the default catalog.
+        """
+        url = database.url_object
+
+        # The SQLAlchemy driver accepts both `bigquery://project` (where the project is
+        # technically a host) and `bigquery:///project` (where it's a database). But
+        # both can be missing, and the project is inferred from the authentication
+        # credentials.
+        if project := url.host or url.database:
+            return project
+
+        with database.get_sqla_engine() as engine:
+            client = cls._get_client(engine, database)
+            return client.project
 
     @classmethod
     def get_catalog_names(
@@ -472,10 +511,33 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         """
         engine: Engine
         with database.get_sqla_engine() as engine:
-            client = cls._get_client(engine)
+            try:
+                client = cls._get_client(engine, database)
+            except SupersetDBAPIConnectionError:
+                logger.warning(
+                    "Could not connect to database to get catalogs due to missing "
+                    "credentials. This is normal in certain circustances, for example, "
+                    "doing an import."
+                )
+                # return {} here, since it will be repopulated when creds are added
+                return set()
+
             projects = client.list_projects()
 
         return {project.project_id for project in projects}
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        if catalog:
+            uri = uri.set(host=catalog, database="")
+
+        return uri, connect_args
 
     @classmethod
     def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
@@ -562,47 +624,6 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return {**encrypted_extra, "query": dict(value.query)}
 
         raise ValidationError("Invalid service credentials")
-
-    @classmethod
-    def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
-        if encrypted_extra is None:
-            return encrypted_extra
-
-        try:
-            config = json.loads(encrypted_extra)
-        except (json.JSONDecodeError, TypeError):
-            return encrypted_extra
-
-        with contextlib.suppress(KeyError):
-            config["credentials_info"]["private_key"] = PASSWORD_MASK
-        return json.dumps(config)
-
-    @classmethod
-    def unmask_encrypted_extra(cls, old: str | None, new: str | None) -> str | None:
-        """
-        Reuse ``private_key`` if available and unchanged.
-        """
-        if old is None or new is None:
-            return new
-
-        try:
-            old_config = json.loads(old)
-            new_config = json.loads(new)
-        except (TypeError, json.JSONDecodeError):
-            return new
-
-        if "credentials_info" not in new_config:
-            return new
-
-        if "private_key" not in new_config["credentials_info"]:
-            return new
-
-        if new_config["credentials_info"]["private_key"] == PASSWORD_MASK:
-            new_config["credentials_info"]["private_key"] = old_config[
-                "credentials_info"
-            ]["private_key"]
-
-        return json.dumps(new_config)
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -745,7 +766,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     @classmethod
     def parse_error_exception(cls, exception: Exception) -> Exception:
         try:
-            return Exception(str(exception).splitlines()[0].strip())
+            return type(exception)(str(exception).splitlines()[0].strip())
         except Exception:  # pylint: disable=broad-except
             # If for some reason we get an exception, for example, no new line
             # We will return the original exception

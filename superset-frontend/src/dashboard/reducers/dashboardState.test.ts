@@ -18,7 +18,7 @@
  */
 
 import dashboardStateReducer from './dashboardState';
-import { setActiveTab } from '../actions/dashboardState';
+import { setActiveTab, setActiveTabs } from '../actions/dashboardState';
 
 describe('DashboardState reducer', () => {
   it('SET_ACTIVE_TAB', () => {
@@ -34,5 +34,16 @@ describe('DashboardState reducer', () => {
         setActiveTab('tab2', 'tab1'),
       ),
     ).toEqual({ activeTabs: ['tab2'] });
+  });
+  it('SET_ACTIVE_TABS', () => {
+    expect(
+      dashboardStateReducer({ activeTabs: [] }, setActiveTabs(['tab1'])),
+    ).toEqual({ activeTabs: ['tab1'] });
+    expect(
+      dashboardStateReducer(
+        { activeTabs: ['tab1', 'tab2'] },
+        setActiveTabs(['tab3', 'tab4']),
+      ),
+    ).toEqual({ activeTabs: ['tab3', 'tab4'] });
   });
 });

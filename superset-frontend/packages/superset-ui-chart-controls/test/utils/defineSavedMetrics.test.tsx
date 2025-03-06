@@ -54,7 +54,7 @@ describe('defineSavedMetrics', () => {
     expect(defineSavedMetrics({ ...dataset, metrics: undefined })).toEqual([]);
   });
 
-  it('returns default saved metrics if souce is a Query', () => {
+  it('returns default saved metrics if source is a Query', () => {
     expect(defineSavedMetrics(testQuery as QueryResponse)).toEqual(
       DEFAULT_METRICS,
     );

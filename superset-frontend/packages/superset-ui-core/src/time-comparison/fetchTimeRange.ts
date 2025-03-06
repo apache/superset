@@ -17,7 +17,12 @@
  * under the License.
  */
 import rison from 'rison';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { isEmpty } from 'lodash';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  ensureIsArray,
+} from '@superset-ui/core';
 
 export const SEPARATOR = ' : ';
 
@@ -39,20 +44,64 @@ export const formatTimeRange = (
   )} ≤ ${columnPlaceholder} < ${formatDateEndpoint(splitDateRange[1])}`;
 };
 
+export const formatTimeRangeComparison = (
+  initialTimeRange: string,
+  shiftedTimeRange: string,
+  columnPlaceholder = 'col',
+) => {
+  const splitInitialDateRange = initialTimeRange.split(SEPARATOR);
+  const splitShiftedDateRange = shiftedTimeRange.split(SEPARATOR);
+  return `${columnPlaceholder}: ${formatDateEndpoint(
+    splitInitialDateRange[0],
+    true,
+  )} to ${formatDateEndpoint(splitInitialDateRange[1])} vs
+  ${formatDateEndpoint(splitShiftedDateRange[0], true)} to ${formatDateEndpoint(
+    splitShiftedDateRange[1],
+  )}`;
+};
+
 export const fetchTimeRange = async (
   timeRange: string,
   columnPlaceholder = 'col',
+  shifts?: string[],
 ) => {
-  const query = rison.encode_uri(timeRange);
-  const endpoint = `/api/v1/time_range/?q=${query}`;
+  let query;
+  let endpoint;
+  if (!isEmpty(shifts)) {
+    const timeRanges = ensureIsArray(shifts).map(shift => ({
+      timeRange,
+      shift,
+    }));
+    query = rison.encode_uri([{ timeRange }, ...timeRanges]);
+    endpoint = `/api/v1/time_range/?q=${query}`;
+  } else {
+    query = rison.encode_uri(timeRange);
+    endpoint = `/api/v1/time_range/?q=${query}`;
+  }
   try {
     const response = await SupersetClient.get({ endpoint });
-    const timeRangeString = buildTimeRangeString(
-      response?.json?.result[0]?.since || '',
-      response?.json?.result[0]?.until || '',
+    if (isEmpty(shifts)) {
+      const timeRangeString = buildTimeRangeString(
+        response?.json?.result[0]?.since || '',
+        response?.json?.result[0]?.until || '',
+      );
+      return {
+        value: formatTimeRange(timeRangeString, columnPlaceholder),
+      };
+    }
+    const timeRanges = response?.json?.result.map((result: any) =>
+      buildTimeRangeString(result.since, result.until),
     );
     return {
-      value: formatTimeRange(timeRangeString, columnPlaceholder),
+      value: timeRanges
+        .slice(1)
+        .map((timeRange: string) =>
+          formatTimeRangeComparison(
+            timeRanges[0],
+            timeRange,
+            columnPlaceholder,
+          ),
+        ),
     };
   } catch (response) {
     const clientError = await getClientErrorObject(response);

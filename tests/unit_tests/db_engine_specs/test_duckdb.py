@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 from datetime import datetime
 from typing import Optional
 
@@ -23,6 +22,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.config import VERSION_STRING
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -40,7 +40,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.duckdb import DuckDBEngineSpec as spec
+    from superset.db_engine_specs.duckdb import DuckDBEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -100,16 +100,16 @@ def test_md_build_sqlalchemy_uri() -> None:
 
     # No access token provided, throw ValueError
     parameters = DuckDBParametersType(database="my_db")
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError):  # noqa: PT011
         MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
 
     # No database provided, default to "md:"
-    parameters = DuckDBParametersType(access_token="token")
+    parameters = DuckDBParametersType(access_token="token")  # noqa: S106
     uri = MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
     assert "duckdb:///md:?motherduck_token=token"
 
     # Database and access_token provided
-    parameters = DuckDBParametersType(database="my_db", access_token="token")
+    parameters = DuckDBParametersType(database="my_db", access_token="token")  # noqa: S106
     uri = MotherDuckEngineSpec.build_sqlalchemy_uri(parameters)
     assert "duckdb:///md:my_db?motherduck_token=token" == uri
 
@@ -126,4 +126,4 @@ def test_get_parameters_from_uri() -> None:
     parameters = DuckDBEngineSpec.get_parameters_from_uri(uri)
 
     assert parameters["database"] == "md:my_db"
-    assert parameters["access_token"] == "token"
+    assert parameters["access_token"] == "token"  # noqa: S105

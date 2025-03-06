@@ -30,8 +30,8 @@ from werkzeug.wrappers import Response
 from superset import db
 from superset.extensions import cache_manager
 from superset.models.cache import CacheKey
-from superset.utils.core import json_int_dttm_ser
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.stats_logger import BaseStatsLogger
@@ -115,7 +115,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
     :param key: a callable function that takes function arguments and returns
                 the caching key.
     :param cache: a FlaskCache instance that will store the cache.
-    """
+    """  # noqa: E501
 
     def wrap(f: Callable[..., Any]) -> Callable[..., Any]:
         def wrapped_f(*args: Any, **kwargs: Any) -> Any:
@@ -144,7 +144,7 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
     return wrap
 
 
-def etag_cache(
+def etag_cache(  # noqa: C901
     cache: Cache = cache_manager.cache,
     get_last_modified: Callable[..., datetime] | None = None,
     max_age: int | float = app.config["CACHE_DEFAULT_TIMEOUT"],
@@ -164,9 +164,9 @@ def etag_cache(
 
     """
 
-    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:
+    def decorator(f: Callable[..., Any]) -> Callable[..., Any]:  # noqa: C901
         @wraps(f)
-        def wrapper(*args: Any, **kwargs: Any) -> Response:
+        def wrapper(*args: Any, **kwargs: Any) -> Response:  # noqa: C901
             # Check if the user can access the resource
             if raise_for_access:
                 try:

@@ -21,7 +21,7 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.engine import create_engine
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm.session import Session
@@ -105,7 +105,7 @@ def table2(session: Session, database2: "Database") -> Iterator[None]:
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
-def test_superset(mocker: MockFixture, app_context: None, table1: None) -> None:
+def test_superset(mocker: MockerFixture, app_context: None, table1: None) -> None:
     """
     Simple test querying a table.
     """
@@ -118,7 +118,7 @@ def test_superset(mocker: MockFixture, app_context: None, table1: None) -> None:
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
-def test_superset_limit(mocker: MockFixture, app_context: None, table1: None) -> None:
+def test_superset_limit(mocker: MockerFixture, app_context: None, table1: None) -> None:
     """
     Simple that limit is applied when querying a table.
     """
@@ -140,7 +140,7 @@ def test_superset_limit(mocker: MockFixture, app_context: None, table1: None) ->
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_superset_joins(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
     table1: None,
     table2: None,
@@ -165,7 +165,7 @@ def test_superset_joins(
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
 def test_dml(
-    mocker: MockFixture,
+    mocker: MockerFixture,
     app_context: None,
     table1: None,
     table2: None,
@@ -201,7 +201,9 @@ def test_dml(
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
-def test_security_manager(mocker: MockFixture, app_context: None, table1: None) -> None:
+def test_security_manager(
+    mocker: MockerFixture, app_context: None, table1: None
+) -> None:
     """
     Test that we use the security manager to check for permissions.
     """
@@ -232,7 +234,7 @@ def test_security_manager(mocker: MockFixture, app_context: None, table1: None) 
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
-def test_allowed_dbs(mocker: MockFixture, app_context: None, table1: None) -> None:
+def test_allowed_dbs(mocker: MockerFixture, app_context: None, table1: None) -> None:
     """
     Test that DBs can be restricted.
     """

@@ -18,7 +18,6 @@
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import json
 import os
 import re
 from typing import Any, Optional
@@ -45,20 +44,16 @@ from superset.models.core import Database, Log
 from superset.models.dashboard import Dashboard  # noqa: F401
 from superset.models.slice import Slice  # noqa: F401
 from superset.utils.core import (
-    base_json_conv,
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     DTTM_ALIAS,
     extract_dataframe_dtypes,
-    format_timedelta,
     GenericDataType,
     get_form_data_token,
     as_list,
-    get_email_address_list,
+    recipients_string_to_list,
     get_stacktrace,
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -66,11 +61,11 @@ from superset.utils.core import (
     parse_ssl_cert,
     parse_js_uri_path_item,
     split,
-    validate_json,
     zlib_compress,
     zlib_decompress,
     DateColumn,
 )
+from superset.utils import json
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
@@ -89,61 +84,62 @@ class TestUtils(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
-        assert json_int_dttm_ser(dttm) == ts
-        assert json_int_dttm_ser(date(2020, 1, 1)) == ts
-        assert json_int_dttm_ser(datetime(1970, 1, 1)) == 0
-        assert json_int_dttm_ser(date(1970, 1, 1)) == 0
-        assert json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
-        assert json_int_dttm_ser(np.int64(1)) == 1
+        assert json.json_int_dttm_ser(dttm) == ts
+        assert json.json_int_dttm_ser(date(2020, 1, 1)) == ts
+        assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
+        assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
+        assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+        assert json.json_int_dttm_ser(np.int64(1)) == 1
 
-        with self.assertRaises(TypeError):
-            json_int_dttm_ser(np.datetime64())
+        with self.assertRaises(TypeError):  # noqa: PT027
+            json.json_int_dttm_ser(np.datetime64())
 
     def test_json_iso_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         dt = date(2020, 1, 1)
         t = time()
-        assert json_iso_dttm_ser(dttm) == dttm.isoformat()
-        assert json_iso_dttm_ser(dt) == dt.isoformat()
-        assert json_iso_dttm_ser(t) == t.isoformat()
-        assert json_iso_dttm_ser(np.int64(1)) == 1
+        assert json.json_iso_dttm_ser(dttm) == dttm.isoformat()
+        assert json.json_iso_dttm_ser(dt) == dt.isoformat()
+        assert json.json_iso_dttm_ser(t) == t.isoformat()
+        assert json.json_iso_dttm_ser(np.int64(1)) == 1
 
         assert (
-            json_iso_dttm_ser(np.datetime64(), pessimistic=True)
+            json.json_iso_dttm_ser(np.datetime64(), pessimistic=True)
             == "Unserializable [<class 'numpy.datetime64'>]"
         )
 
-        with self.assertRaises(TypeError):
-            json_iso_dttm_ser(np.datetime64())
+        with self.assertRaises(TypeError):  # noqa: PT027
+            json.json_iso_dttm_ser(np.datetime64())
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(np.bool_(1)), bool)
-        assert isinstance(base_json_conv(np.int64(1)), int)
-        assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
-        assert base_json_conv(np.array(None)) is None
-        assert isinstance(base_json_conv({1}), list)
-        assert isinstance(base_json_conv(Decimal("1.0")), float)
-        assert isinstance(base_json_conv(uuid.uuid4()), str)
-        assert isinstance(base_json_conv(time()), str)
-        assert isinstance(base_json_conv(timedelta(0)), str)
-        assert isinstance(base_json_conv(b""), str)
-        assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
+        assert isinstance(json.base_json_conv(np.bool_(1)), bool)
+        assert isinstance(json.base_json_conv(np.int64(1)), int)
+        assert isinstance(json.base_json_conv(np.array([1, 2, 3])), list)
+        assert json.base_json_conv(np.array(None)) is None
+        assert isinstance(json.base_json_conv({1}), list)
+        assert isinstance(json.base_json_conv(Decimal("1.0")), float)
+        assert isinstance(json.base_json_conv(uuid.uuid4()), str)
+        assert isinstance(json.base_json_conv(time()), str)
+        assert isinstance(json.base_json_conv(timedelta(0)), str)
+        assert isinstance(json.base_json_conv(b""), str)
+        assert isinstance(json.base_json_conv(b"\xff\xfe"), str)
+        assert json.base_json_conv(b"\xff") == "[bytes]"
 
         with pytest.raises(TypeError):
-            base_json_conv(np.datetime64())
+            json.base_json_conv(np.datetime64())
 
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
         blob = zlib_compress(json_str)
         got_str = zlib_decompress(blob)
-        self.assertEqual(json_str, got_str)
+        assert json_str == got_str
 
     def test_merge_extra_filters(self):
         # does nothing if no extra filters
         form_data = {"A": 1, "B": 2, "c": "test"}
         expected = {**form_data, "adhoc_filters": [], "applied_time_extras": {}}
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
         # empty extra_filters
         form_data = {"A": 1, "B": 2, "c": "test", "extra_filters": []}
         expected = {
@@ -154,7 +150,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
         # copy over extra filters into empty filters
         form_data = {
             "extra_filters": [
@@ -186,7 +182,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
         # adds extra filters to existing filters
         form_data = {
             "extra_filters": [
@@ -234,7 +230,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
         # adds extra filters to existing filters and sets time options
         form_data = {
             "extra_filters": [
@@ -266,7 +262,7 @@ class TestUtils(SupersetTestCase):
             },
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_merge_extra_filters_ignores_empty_filters(self):
         form_data = {
@@ -277,7 +273,7 @@ class TestUtils(SupersetTestCase):
         }
         expected = {"adhoc_filters": [], "applied_time_extras": {}}
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_merge_extra_filters_ignores_nones(self):
         form_data = {
@@ -305,7 +301,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_merge_extra_filters_ignores_equal_filters(self):
         form_data = {
@@ -365,7 +361,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_merge_extra_filters_merges_different_val_types(self):
         form_data = {
@@ -419,7 +415,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
         form_data = {
             "extra_filters": [
                 {"col": "a", "op": "in", "val": "someval"},
@@ -471,7 +467,7 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_merge_extra_filters_adds_unequal_lists(self):
         form_data = {
@@ -534,27 +530,24 @@ class TestUtils(SupersetTestCase):
             "applied_time_extras": {},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_merge_extra_filters_when_applied_time_extras_predefined(self):
         form_data = {"applied_time_extras": {"__time_range": "Last week"}}
         merge_extra_filters(form_data)
 
-        self.assertEqual(
-            form_data,
-            {
-                "applied_time_extras": {"__time_range": "Last week"},
-                "adhoc_filters": [],
-            },
-        )
+        assert form_data == {
+            "applied_time_extras": {"__time_range": "Last week"},
+            "adhoc_filters": [],
+        }
 
     def test_merge_request_params_when_url_params_undefined(self):
         form_data = {"since": "2000", "until": "now"}
         url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
         merge_request_params(form_data, url_params)
-        self.assertIn("url_params", form_data.keys())
-        self.assertIn("dashboard_ids", form_data["url_params"])
-        self.assertNotIn("form_data", form_data.keys())
+        assert "url_params" in form_data.keys()
+        assert "dashboard_ids" in form_data["url_params"]
+        assert "form_data" not in form_data.keys()
 
     def test_merge_request_params_when_url_params_predefined(self):
         form_data = {
@@ -564,31 +557,29 @@ class TestUtils(SupersetTestCase):
         }
         url_params = {"form_data": form_data, "dashboard_ids": "(1,2,3,4,5)"}
         merge_request_params(form_data, url_params)
-        self.assertIn("url_params", form_data.keys())
-        self.assertIn("abc", form_data["url_params"])
-        self.assertEqual(
-            url_params["dashboard_ids"], form_data["url_params"]["dashboard_ids"]
-        )
+        assert "url_params" in form_data.keys()
+        assert "abc" in form_data["url_params"]
+        assert url_params["dashboard_ids"] == form_data["url_params"]["dashboard_ids"]
 
     def test_format_timedelta(self):
-        self.assertEqual(format_timedelta(timedelta(0)), "0:00:00")
-        self.assertEqual(format_timedelta(timedelta(days=1)), "1 day, 0:00:00")
-        self.assertEqual(format_timedelta(timedelta(minutes=-6)), "-0:06:00")
-        self.assertEqual(
-            format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
-            "-1 day, 5:06:00",
+        assert json.format_timedelta(timedelta(0)) == "0:00:00"
+        assert json.format_timedelta(timedelta(days=1)) == "1 day, 0:00:00"
+        assert json.format_timedelta(timedelta(minutes=-6)) == "-0:06:00"
+        assert (
+            json.format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6))
+            == "-1 day, 5:06:00"
         )
-        self.assertEqual(
-            format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
-            "-16 days, 4:03:00",
+        assert (
+            json.format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3))
+            == "-16 days, 4:03:00"
         )
 
     def test_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
-        self.assertIsNone(validate_json(valid))
+        assert json.validate_json(valid) is None
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        with self.assertRaises(SupersetException):
-            validate_json(invalid)
+        with self.assertRaises(json.JSONDecodeError):  # noqa: PT027
+            json.validate_json(invalid)
 
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {"where": "a = 1"}
@@ -603,7 +594,7 @@ class TestUtils(SupersetTestCase):
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_convert_legacy_filters_into_adhoc_filters(self):
         form_data = {"filters": [{"col": "a", "op": "in", "val": "someval"}]}
@@ -620,7 +611,7 @@ class TestUtils(SupersetTestCase):
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_convert_legacy_filters_into_adhoc_present_and_empty(self):
         form_data = {"adhoc_filters": [], "where": "a = 1"}
@@ -635,7 +626,7 @@ class TestUtils(SupersetTestCase):
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_convert_legacy_filters_into_adhoc_having(self):
         form_data = {"having": "COUNT(1) = 1"}
@@ -650,7 +641,7 @@ class TestUtils(SupersetTestCase):
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_convert_legacy_filters_into_adhoc_present_and_nonempty(self):
         form_data = {
@@ -666,23 +657,23 @@ class TestUtils(SupersetTestCase):
             ]
         }
         convert_legacy_filters_into_adhoc(form_data)
-        self.assertEqual(form_data, expected)
+        assert form_data == expected
 
     def test_parse_js_uri_path_items_eval_undefined(self):
-        self.assertIsNone(parse_js_uri_path_item("undefined", eval_undefined=True))
-        self.assertIsNone(parse_js_uri_path_item("null", eval_undefined=True))
-        self.assertEqual("undefined", parse_js_uri_path_item("undefined"))
-        self.assertEqual("null", parse_js_uri_path_item("null"))
+        assert parse_js_uri_path_item("undefined", eval_undefined=True) is None
+        assert parse_js_uri_path_item("null", eval_undefined=True) is None
+        assert "undefined" == parse_js_uri_path_item("undefined")
+        assert "null" == parse_js_uri_path_item("null")
 
     def test_parse_js_uri_path_items_unquote(self):
-        self.assertEqual("slashed/name", parse_js_uri_path_item("slashed%2fname"))
-        self.assertEqual(
-            "slashed%2fname", parse_js_uri_path_item("slashed%2fname", unquote=False)
+        assert "slashed/name" == parse_js_uri_path_item("slashed%2fname")
+        assert "slashed%2fname" == parse_js_uri_path_item(
+            "slashed%2fname", unquote=False
         )
 
     def test_parse_js_uri_path_items_item_optional(self):
-        self.assertIsNone(parse_js_uri_path_item(None))
-        self.assertIsNotNone(parse_js_uri_path_item("item"))
+        assert parse_js_uri_path_item(None) is None
+        assert parse_js_uri_path_item("item") is not None
 
     def test_get_stacktrace(self):
         app.config["SHOW_STACKTRACE"] = True
@@ -690,7 +681,7 @@ class TestUtils(SupersetTestCase):
             raise Exception("NONONO!")
         except Exception:
             stacktrace = get_stacktrace()
-            self.assertIn("NONONO", stacktrace)
+            assert "NONONO" in stacktrace
 
         app.config["SHOW_STACKTRACE"] = False
         try:
@@ -700,36 +691,36 @@ class TestUtils(SupersetTestCase):
             assert stacktrace is None
 
     def test_split(self):
-        self.assertEqual(list(split("a b")), ["a", "b"])
-        self.assertEqual(list(split("a,b", delimiter=",")), ["a", "b"])
-        self.assertEqual(list(split("a,(b,a)", delimiter=",")), ["a", "(b,a)"])
-        self.assertEqual(
-            list(split('a,(b,a),"foo , bar"', delimiter=",")),
-            ["a", "(b,a)", '"foo , bar"'],
-        )
-        self.assertEqual(
-            list(split("a,'b,c'", delimiter=",", quote="'")), ["a", "'b,c'"]
-        )
-        self.assertEqual(list(split('a "b c"')), ["a", '"b c"'])
-        self.assertEqual(list(split(r'a "b \" c"')), ["a", r'"b \" c"'])
+        assert list(split("a b")) == ["a", "b"]
+        assert list(split("a,b", delimiter=",")) == ["a", "b"]
+        assert list(split("a,(b,a)", delimiter=",")) == ["a", "(b,a)"]
+        assert list(split('a,(b,a),"foo , bar"', delimiter=",")) == [
+            "a",
+            "(b,a)",
+            '"foo , bar"',
+        ]
+        assert list(split("a,'b,c'", delimiter=",", quote="'")) == ["a", "'b,c'"]
+        assert list(split('a "b c"')) == ["a", '"b c"']
+        assert list(split('a "b \\" c"')) == ["a", '"b \\" c"']
 
     def test_get_or_create_db(self):
         get_or_create_db("test_db", "sqlite:///superset.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
-        self.assertIsNotNone(database)
-        self.assertEqual(database.sqlalchemy_uri, "sqlite:///superset.db")
-        self.assertIsNotNone(
+        assert database is not None
+        assert database.sqlalchemy_uri == "sqlite:///superset.db"
+        assert (
             security_manager.find_permission_view_menu("database_access", database.perm)
+            is not None
         )
         # Test change URI
         get_or_create_db("test_db", "sqlite:///changed.db")
         database = db.session.query(Database).filter_by(database_name="test_db").one()
-        self.assertEqual(database.sqlalchemy_uri, "sqlite:///changed.db")
+        assert database.sqlalchemy_uri == "sqlite:///changed.db"
         db.session.delete(database)
         db.session.commit()
 
     def test_get_or_create_db_invalid_uri(self):
-        with self.assertRaises(DatabaseInvalidError):
+        with self.assertRaises(DatabaseInvalidError):  # noqa: PT027
             get_or_create_db("test_db", "yoursql:superset.db/()")
 
     def test_get_or_create_db_existing_invalid_uri(self):
@@ -740,22 +731,16 @@ class TestUtils(SupersetTestCase):
         assert database.sqlalchemy_uri == "sqlite:///superset.db"
 
     def test_as_list(self):
-        self.assertListEqual(as_list(123), [123])
-        self.assertListEqual(as_list([123]), [123])
-        self.assertListEqual(as_list("foo"), ["foo"])
+        self.assertListEqual(as_list(123), [123])  # noqa: PT009
+        self.assertListEqual(as_list([123]), [123])  # noqa: PT009
+        self.assertListEqual(as_list("foo"), ["foo"])  # noqa: PT009
 
     def test_merge_extra_filters_with_no_extras(self):
         form_data = {
             "time_range": "Last 10 days",
         }
         merge_extra_form_data(form_data)
-        self.assertEqual(
-            form_data,
-            {
-                "time_range": "Last 10 days",
-                "adhoc_filters": [],
-            },
-        )
+        assert form_data == {"time_range": "Last 10 days", "adhoc_filters": []}
 
     def test_merge_extra_filters_with_unset_legacy_time_range(self):
         """
@@ -769,14 +754,11 @@ class TestUtils(SupersetTestCase):
             "extra_form_data": {"time_range": "Last year"},
         }
         merge_extra_filters(form_data)
-        self.assertEqual(
-            form_data,
-            {
-                "time_range": "Last year",
-                "applied_time_extras": {},
-                "adhoc_filters": [],
-            },
-        )
+        assert form_data == {
+            "time_range": "Last year",
+            "applied_time_extras": {},
+            "adhoc_filters": [],
+        }
 
     def test_merge_extra_filters_with_extras(self):
         form_data = {
@@ -819,41 +801,45 @@ class TestUtils(SupersetTestCase):
 
     def test_ssl_certificate_parse(self):
         parsed_certificate = parse_ssl_cert(ssl_certificate)
-        self.assertEqual(parsed_certificate.serial_number, 12355228710836649848)
+        assert parsed_certificate.serial_number == 12355228710836649848
 
     def test_ssl_certificate_file_creation(self):
         path = create_ssl_cert_file(ssl_certificate)
         expected_filename = md5_sha_from_str(ssl_certificate)
-        self.assertIn(expected_filename, path)
-        self.assertTrue(os.path.exists(path))
+        assert expected_filename in path
+        assert os.path.exists(path)
 
-    def test_get_email_address_list(self):
-        self.assertEqual(get_email_address_list("a@a"), ["a@a"])
-        self.assertEqual(get_email_address_list(" a@a "), ["a@a"])
-        self.assertEqual(get_email_address_list("a@a\n"), ["a@a"])
-        self.assertEqual(get_email_address_list(",a@a;"), ["a@a"])
-        self.assertEqual(
-            get_email_address_list(",a@a; b@b c@c a-c@c; d@d, f@f"),
-            ["a@a", "b@b", "c@c", "a-c@c", "d@d", "f@f"],
-        )
+    def test_recipients_string_to_list(self):
+        assert recipients_string_to_list("a@a") == ["a@a"]
+        assert recipients_string_to_list(" a@a ") == ["a@a"]
+        assert recipients_string_to_list("a@a\n") == ["a@a"]
+        assert recipients_string_to_list(",a@a;") == ["a@a"]
+        assert recipients_string_to_list(",a@a; b@b c@c a-c@c; d@d, f@f") == [
+            "a@a",
+            "b@b",
+            "c@c",
+            "a-c@c",
+            "d@d",
+            "f@f",
+        ]
 
     def test_get_form_data_default(self) -> None:
         form_data, slc = get_form_data()
-        self.assertEqual(slc, None)
+        assert slc is None
 
     def test_get_form_data_request_args(self) -> None:
         with app.test_request_context(
             query_string={"form_data": json.dumps({"foo": "bar"})}
         ):
             form_data, slc = get_form_data()
-            self.assertEqual(form_data, {"foo": "bar"})
-            self.assertEqual(slc, None)
+            assert form_data == {"foo": "bar"}
+            assert slc is None
 
     def test_get_form_data_request_form(self) -> None:
         with app.test_request_context(data={"form_data": json.dumps({"foo": "bar"})}):
             form_data, slc = get_form_data()
-            self.assertEqual(form_data, {"foo": "bar"})
-            self.assertEqual(slc, None)
+            assert form_data == {"foo": "bar"}
+            assert slc is None
 
     def test_get_form_data_request_form_with_queries(self) -> None:
         # the CSV export uses for requests, even when sending requests to
@@ -864,8 +850,8 @@ class TestUtils(SupersetTestCase):
             }
         ):
             form_data, slc = get_form_data()
-            self.assertEqual(form_data, {"url_params": {"foo": "bar"}})
-            self.assertEqual(slc, None)
+            assert form_data == {"url_params": {"foo": "bar"}}
+            assert slc is None
 
     def test_get_form_data_request_args_and_form(self) -> None:
         with app.test_request_context(
@@ -873,16 +859,16 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": json.dumps({"baz": "bar"})},
         ):
             form_data, slc = get_form_data()
-            self.assertEqual(form_data, {"baz": "bar", "foo": "bar"})
-            self.assertEqual(slc, None)
+            assert form_data == {"baz": "bar", "foo": "bar"}
+            assert slc is None
 
     def test_get_form_data_globals(self) -> None:
         with app.test_request_context():
             g.form_data = {"foo": "bar"}
             form_data, slc = get_form_data()
             delattr(g, "form_data")
-            self.assertEqual(form_data, {"foo": "bar"})
-            self.assertEqual(slc, None)
+            assert form_data == {"foo": "bar"}
+            assert slc is None
 
     def test_get_form_data_corrupted_json(self) -> None:
         with app.test_request_context(
@@ -890,14 +876,14 @@ class TestUtils(SupersetTestCase):
             query_string={"form_data": '{"baz": "bar"'},
         ):
             form_data, slc = get_form_data()
-            self.assertEqual(form_data, {})
-            self.assertEqual(slc, None)
+            assert form_data == {}
+            assert slc is None
 
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
         self.login(ADMIN_USERNAME)
-        slc = self.get_slice("Top 10 Girl Name Share")
+        slc = self.get_slice("Life Expectancy VS Rural %")
         dashboard_id = 1
 
         assert slc.viz is not None
@@ -914,31 +900,31 @@ class TestUtils(SupersetTestCase):
             .first()
         )
 
-        self.assertEqual(record.dashboard_id, dashboard_id)
-        self.assertEqual(json.loads(record.json)["dashboard_id"], str(dashboard_id))
-        self.assertEqual(json.loads(record.json)["form_data"]["slice_id"], slc.id)
+        assert record.dashboard_id == dashboard_id
+        assert json.loads(record.json)["dashboard_id"] == str(dashboard_id)
+        assert json.loads(record.json)["form_data"]["slice_id"] == slc.id
 
-        self.assertEqual(
-            json.loads(record.json)["form_data"]["viz_type"],
-            slc.viz.form_data["viz_type"],
+        assert (
+            json.loads(record.json)["form_data"]["viz_type"]
+            == slc.viz.form_data["viz_type"]
         )
 
     def test_schema_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
-        self.assertIsNone(schema.validate_json(valid))
+        assert schema.validate_json(valid) is None
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        self.assertRaises(marshmallow.ValidationError, schema.validate_json, invalid)
+        self.assertRaises(marshmallow.ValidationError, schema.validate_json, invalid)  # noqa: PT027
 
     def test_schema_one_of_case_insensitive(self):
         validator = schema.OneOfCaseInsensitive(choices=[1, 2, 3, "FoO", "BAR", "baz"])
-        self.assertEqual(1, validator(1))
-        self.assertEqual(2, validator(2))
-        self.assertEqual("FoO", validator("FoO"))
-        self.assertEqual("FOO", validator("FOO"))
-        self.assertEqual("bar", validator("bar"))
-        self.assertEqual("BaZ", validator("BaZ"))
-        self.assertRaises(marshmallow.ValidationError, validator, "qwerty")
-        self.assertRaises(marshmallow.ValidationError, validator, 4)
+        assert 1 == validator(1)
+        assert 2 == validator(2)
+        assert "FoO" == validator("FoO")
+        assert "FOO" == validator("FOO")
+        assert "bar" == validator("bar")
+        assert "BaZ" == validator("BaZ")
+        self.assertRaises(marshmallow.ValidationError, validator, "qwerty")  # noqa: PT027
+        self.assertRaises(marshmallow.ValidationError, validator, 4)  # noqa: PT027
 
     def test_cast_to_num(self) -> None:
         assert cast_to_num("5") == 5
@@ -999,7 +985,7 @@ class TestUtils(SupersetTestCase):
             df = df.copy()
             normalize_dttm_col(
                 df,
-                tuple(
+                tuple(  # noqa: C409
                     [
                         DateColumn.get_legacy_time_column(
                             timestamp_format=timestamp_format,

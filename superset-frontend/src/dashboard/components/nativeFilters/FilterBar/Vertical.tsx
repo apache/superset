@@ -19,19 +19,21 @@
 
 /* eslint-disable no-param-reassign */
 import { throttle } from 'lodash';
-import React, {
+import {
+  memo,
   useEffect,
   useState,
   useCallback,
   useMemo,
   useRef,
   createContext,
+  FC,
 } from 'react';
 import cx from 'classnames';
-import { FeatureFlag, isFeatureEnabled, styled, t } from '@superset-ui/core';
+import { styled, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
-import { EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { getFilterBarTestId } from './utils';
 import { VerticalBarProps } from './types';
 import Header from './Header';
@@ -117,7 +119,7 @@ const FilterControlsWrapper = styled.div`
 `;
 
 export const FilterBarScrollContext = createContext(false);
-const VerticalFilterBar: React.FC<VerticalBarProps> = ({
+const VerticalFilterBar: FC<VerticalBarProps> = ({
   actions,
   canEdit,
   dataMaskSelected,
@@ -166,13 +168,14 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     () =>
       filterValues.length === 0 ? (
         <FilterBarEmptyStateContainer>
-          <EmptyStateSmall
+          <EmptyState
+            size="small"
             title={t('No global filters are currently added')}
             image="filter.svg"
             description={
               canEdit &&
               t(
-                'Click on "+Add/Edit Filters" button to create new dashboard filters',
+                'Click on "Add or Edit Filters" option in Settings to create new dashboard filters',
               )
             }
           />
@@ -186,14 +189,6 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
         </FilterControlsWrapper>
       ),
     [canEdit, dataMaskSelected, filterValues.length, onSelectionChange],
-  );
-
-  const crossFilters = useMemo(
-    () =>
-      isFeatureEnabled(FeatureFlag.DashboardCrossFilters) ? (
-        <CrossFiltersVertical />
-      ) : null,
-    [],
   );
 
   return (
@@ -228,7 +223,7 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
-                {crossFilters}
+                <CrossFiltersVertical />
                 {filterControls}
               </>
             </div>
@@ -239,4 +234,4 @@ const VerticalFilterBar: React.FC<VerticalBarProps> = ({
     </FilterBarScrollContext.Provider>
   );
 };
-export default React.memo(VerticalFilterBar);
+export default memo(VerticalFilterBar);

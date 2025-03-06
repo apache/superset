@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { FC, SVGProps, useEffect, useRef, useState } from 'react';
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
@@ -36,6 +36,10 @@ const AntdIconComponent = ({
 
 export const StyledIcon = styled(AntdIconComponent)<IconType>`
   ${({ iconColor }) => iconColor && `color: ${iconColor};`};
+  span {
+    // Fixing alignement on some of the icons
+    line-height: 0px;
+  }
   font-size: ${({ iconSize, theme }) =>
     iconSize
       ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
@@ -49,7 +53,7 @@ export interface IconProps extends IconType {
 export const Icon = (props: IconProps) => {
   const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
-  const ImportedSVG = useRef<React.FC<React.SVGProps<SVGSVGElement>>>();
+  const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
   const name = fileName.replace('_', '-');
 
   useEffect(() => {

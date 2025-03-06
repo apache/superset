@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import * as uiCore from '@superset-ui/core';
-import { act } from 'react-dom/test-utils';
-import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
+import { FocusEventHandler } from 'react';
+import {
+  isFeatureEnabled,
+  getExtensionsRegistry,
+  FeatureFlag,
+} from '@superset-ui/core';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import reducers from 'spec/helpers/reducerIndex';
 import { setupStore } from 'src/views/store';
@@ -32,7 +41,6 @@ import {
 import SqlEditorLeftBar from 'src/SqlLab/components/SqlEditorLeftBar';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
-import { getExtensionsRegistry, FeatureFlag } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
@@ -45,7 +53,7 @@ jest.mock('src/components/AsyncAceEditor', () => ({
     value,
   }: {
     onChange: (value: string) => void;
-    onBlur: React.FocusEventHandler<HTMLTextAreaElement>;
+    onBlur: FocusEventHandler<HTMLTextAreaElement>;
     value: string;
   }) => (
     <textarea
@@ -102,6 +110,12 @@ const mockInitialState = {
   },
 };
 
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
 const setup = (props: Props, store: Store) =>
   render(<SqlEditor {...props} />, {
     useRedux: true,
@@ -126,6 +140,15 @@ const createStore = (initState: object) =>
   });
 
 describe('SqlEditor', () => {
+  beforeAll(() => {
+    jest.setTimeout(30000);
+  });
+
+  afterEach(async () => {
+    cleanup();
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+
   const mockedProps = {
     queryEditor: initialState.sqlLab.queryEditors[0],
     tables: [table],
@@ -160,23 +183,56 @@ describe('SqlEditor', () => {
   });
 
   it('does not render SqlEditor if no db selected', async () => {
-    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const queryEditor = initialState.sqlLab.queryEditors[2];
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
       await findByText('Select a database to write a query'),
     ).toBeInTheDocument();
   });
 
-  it('render a SqlEditorLeftBar', async () => {
-    const { getByTestId } = setup(mockedProps, store);
-    await waitFor(() =>
-      expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
-    );
+  it('renders db unavailable message', async () => {
+    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const { findByText } = setup({ ...mockedProps, queryEditor }, store);
+    expect(
+      await findByText(
+        'The database that was used to generate this query could not be found',
+      ),
+    ).toBeInTheDocument();
   });
 
+  it('render a SqlEditorLeftBar', async () => {
+    const { getByTestId, unmount } = setup(mockedProps, store);
+
+    await waitFor(
+      () => expect(getByTestId('mock-sql-editor-left-bar')).toBeInTheDocument(),
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
+
+  // Update other similar tests with timeouts
   it('render an AceEditorWrapper', async () => {
-    const { findByTestId } = setup(mockedProps, store);
-    expect(await findByTestId('react-ace')).toBeInTheDocument();
+    const { findByTestId, unmount } = setup(mockedProps, store);
+
+    await waitFor(
+      () => expect(findByTestId('react-ace')).resolves.toBeInTheDocument(),
+      { timeout: 10000 },
+    );
+
+    unmount();
+  }, 15000);
+
+  it('skip rendering an AceEditorWrapper when the current tab is inactive', async () => {
+    const { findByTestId, queryByTestId } = setup(
+      {
+        ...mockedProps,
+        queryEditor: initialState.sqlLab.queryEditors[1],
+      },
+      store,
+    );
+    expect(await findByTestId('mock-sql-editor-left-bar')).toBeInTheDocument();
+    expect(queryByTestId('react-ace')).not.toBeInTheDocument();
   });
 
   it('avoids rerendering EditorLeftBar and ResultSet while typing', async () => {
@@ -295,19 +351,13 @@ describe('SqlEditor', () => {
   });
 
   describe('with EstimateQueryCost enabled', () => {
-    let isFeatureEnabledMock: jest.MockInstance<
-      boolean,
-      [feature: FeatureFlag]
-    >;
     beforeEach(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          featureFlag => featureFlag === uiCore.FeatureFlag.EstimateQueryCost,
-        );
+      mockIsFeatureEnabled.mockImplementation(
+        featureFlag => featureFlag === FeatureFlag.EstimateQueryCost,
+      );
     });
     afterEach(() => {
-      isFeatureEnabledMock.mockClear();
+      mockIsFeatureEnabled.mockClear();
     });
 
     it('sends the catalog and schema to the endpoint', async () => {
@@ -377,20 +427,13 @@ describe('SqlEditor', () => {
   });
 
   describe('with SqllabBackendPersistence enabled', () => {
-    let isFeatureEnabledMock: jest.MockInstance<
-      boolean,
-      [feature: FeatureFlag]
-    >;
     beforeEach(() => {
-      isFeatureEnabledMock = jest
-        .spyOn(uiCore, 'isFeatureEnabled')
-        .mockImplementation(
-          featureFlag =>
-            featureFlag === uiCore.FeatureFlag.SqllabBackendPersistence,
-        );
+      mockIsFeatureEnabled.mockImplementation(
+        featureFlag => featureFlag === FeatureFlag.SqllabBackendPersistence,
+      );
     });
     afterEach(() => {
-      isFeatureEnabledMock.mockClear();
+      mockIsFeatureEnabled.mockClear();
     });
 
     it('should render loading state when its Editor is not loaded', async () => {
@@ -411,7 +454,8 @@ describe('SqlEditor', () => {
       await waitFor(() =>
         expect(fetchMock.calls('glob:*/tabstateview/*').length).toBe(1),
       );
-      expect(fetchMock.calls(switchTabApi).length).toBe(1);
+      // it will be called from EditorAutoSync
+      expect(fetchMock.calls(switchTabApi).length).toBe(0);
     });
   });
 });

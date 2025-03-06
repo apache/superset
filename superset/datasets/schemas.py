@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from datetime import datetime
 from typing import Any
 
@@ -22,16 +21,14 @@ from dateutil.parser import isoparse
 from flask_babel import lazy_gettext as _
 from marshmallow import fields, pre_load, Schema, ValidationError
 from marshmallow.validate import Length
-from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
-from superset.datasets.models import Dataset
 from superset.exceptions import SupersetMarshmallowValidationError
+from superset.utils import json
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
 openapi_spec_methods_override = {
-    "get": {"get": {"summary": "Get a dataset detail information"}},
     "get_list": {
         "get": {
             "summary": "Get a list of datasets",
@@ -251,6 +248,7 @@ class ImportV1DatasetSchema(Schema):
     offset = fields.Integer()
     cache_timeout = fields.Integer(allow_none=True)
     schema = fields.String(allow_none=True)
+    catalog = fields.String(allow_none=True)
     sql = fields.String(allow_none=True)
     params = fields.Dict(allow_none=True)
     template_params = fields.Dict(allow_none=True)
@@ -291,17 +289,6 @@ class GetOrCreateDatasetSchema(Schema):
     always_filter_main_dttm = fields.Boolean(load_default=False)
 
 
-class DatasetSchema(SQLAlchemyAutoSchema):
-    """
-    Schema for the ``Dataset`` model.
-    """
-
-    class Meta:  # pylint: disable=too-few-public-methods
-        model = Dataset
-        load_instance = True
-        include_relationships = True
-
-
 class DatasetCacheWarmUpRequestSchema(Schema):
     db_name = fields.String(
         required=True,
@@ -313,7 +300,7 @@ class DatasetCacheWarmUpRequestSchema(Schema):
     )
     dashboard_id = fields.Integer(
         metadata={
-            "description": "The ID of the dashboard to get filters for when warming cache"
+            "description": "The ID of the dashboard to get filters for when warming cache"  # noqa: E501
         }
     )
     extra_filters = fields.String(

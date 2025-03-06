@@ -16,62 +16,46 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import React from 'react';
-import { ReactWrapper } from 'enzyme';
-import {
-  styledMount as mount,
-  styledShallow as shallow,
-} from 'spec/helpers/theming';
+import Checkbox from 'src/components/Checkbox';
 
-import Checkbox, {
-  CheckboxChecked,
-  CheckboxUnchecked,
-} from 'src/components/Checkbox';
+jest.mock('src/components/Checkbox/CheckboxIcons', () => ({
+  CheckboxChecked: () => <div data-test="mock-CheckboxChecked" />,
+  CheckboxUnchecked: () => <div data-test="mock-CheckboxUnchecked" />,
+}));
 
-describe('Checkbox', () => {
-  let wrapper: ReactWrapper;
-
-  it('renders the base component', () => {
-    expect(
-      React.isValidElement(
-        <Checkbox style={{}} checked={false} onChange={() => true} />,
-      ),
-    ).toBe(true);
-  });
-
-  describe('when unchecked', () => {
-    it('renders the unchecked component', () => {
-      const shallowWrapper = shallow(
-        <Checkbox style={{}} checked={false} onChange={() => true} />,
-      );
-      expect(shallowWrapper.dive().find(CheckboxUnchecked)).toExist();
-    });
-  });
-
-  describe('when checked', () => {
-    it('renders the checked component', () => {
-      const shallowWrapper = shallow(
-        <Checkbox style={{}} checked onChange={() => true} />,
-      );
-      expect(shallowWrapper.dive().find(CheckboxChecked)).toExist();
-    });
-  });
-
-  it('works with an onChange handler', () => {
-    const mockAction = jest.fn();
-    wrapper = mount(
-      <Checkbox style={{}} checked={false} onChange={mockAction} />,
+describe('when unchecked', () => {
+  test('renders the unchecked component', () => {
+    const { getByTestId } = render(
+      <Checkbox style={{}} checked={false} onChange={() => true} />,
     );
-    wrapper.find('Checkbox').first().simulate('click');
-    expect(mockAction).toHaveBeenCalled();
+    expect(getByTestId('mock-CheckboxUnchecked')).toBeInTheDocument();
   });
+});
 
-  it('renders custom Checkbox styles without melting', () => {
-    wrapper = mount(
-      <Checkbox onChange={() => true} checked={false} style={{ opacity: 1 }} />,
+describe('when checked', () => {
+  test('renders the checked component', () => {
+    const { getByTestId } = render(
+      <Checkbox style={{}} checked onChange={() => true} />,
     );
-    expect(wrapper.find('Checkbox')).toExist();
-    expect(wrapper.find('Checkbox')).toHaveStyle({ opacity: 1 });
+    expect(getByTestId('mock-CheckboxChecked')).toBeInTheDocument();
   });
+});
+
+test('works with an onChange handler', () => {
+  const mockAction = jest.fn();
+  const { getByRole } = render(
+    <Checkbox style={{}} checked={false} onChange={mockAction} />,
+  );
+  fireEvent.click(getByRole('checkbox'));
+  expect(mockAction).toHaveBeenCalled();
+});
+
+test('renders custom Checkbox styles without melting', () => {
+  const { getByRole } = render(
+    <Checkbox onChange={() => true} checked={false} style={{ opacity: 1 }} />,
+  );
+  expect(getByRole('checkbox')).toBeInTheDocument();
+  expect(getByRole('checkbox')).toHaveStyle({ opacity: 1 });
 });

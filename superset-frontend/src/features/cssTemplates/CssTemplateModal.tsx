@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
@@ -26,6 +27,7 @@ import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CssEditor } from 'src/components/AsyncAceEditor';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { TemplateObject } from './types';
 
 interface CssTemplateModalProps {
@@ -35,6 +37,11 @@ interface CssTemplateModalProps {
   onHide: () => void;
   show: boolean;
 }
+
+type CssTemplateStringKeys = keyof Pick<
+  TemplateObject,
+  OnlyKeyWithType<TemplateObject, String>
+>;
 
 const StyledCssTemplateTitle = styled.div`
   margin: ${({ theme }) => theme.gridUnit * 2}px auto
@@ -136,7 +143,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
     }
   };
 
-  const onTemplateNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const onTemplateNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { target } = event;
 
     const data = {
@@ -145,7 +152,7 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
       css: currentCssTemplate ? currentCssTemplate.css : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as CssTemplateStringKeys] = target.value;
     setCurrentCssTemplate(data);
   };
 

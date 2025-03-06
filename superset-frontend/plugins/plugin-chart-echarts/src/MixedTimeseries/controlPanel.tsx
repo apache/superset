@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { ensureIsArray, t } from '@superset-ui/core';
 import { cloneDeep } from 'lodash';
 import {
@@ -300,6 +299,7 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['color_scheme'],
+        ['time_shift_color'],
         ...createCustomizeSection(t('Query A'), ''),
         ...createCustomizeSection(t('Query B'), 'B'),
         [

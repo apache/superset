@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import React, { lazy } from 'react';
+import { lazy, ComponentType, ComponentProps } from 'react';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -125,9 +125,9 @@ const RowLevelSecurityList = lazy(
 
 type Routes = {
   path: string;
-  Component: React.ComponentType;
-  Fallback?: React.ComponentType;
-  props?: React.ComponentProps<any>;
+  Component: ComponentType;
+  Fallback?: ComponentType;
+  props?: ComponentProps<any>;
 }[];
 
 export const routes: Routes = [
@@ -238,7 +238,7 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   });
 }
 
-const frontEndRoutes = routes
+const frontEndRoutes: Record<string, boolean> = routes
   .map(r => r.path)
   .reduce(
     (acc, curr) => ({
@@ -248,10 +248,10 @@ const frontEndRoutes = routes
     {},
   );
 
-export function isFrontendRoute(path?: string) {
+export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
     const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
     return !!frontEndRoutes[basePath];
   }
   return false;
-}
+};

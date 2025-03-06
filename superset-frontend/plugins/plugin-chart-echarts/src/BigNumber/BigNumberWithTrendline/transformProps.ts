@@ -28,7 +28,7 @@ import {
   t,
   tooltipHtml,
 } from '@superset-ui/core';
-import { EChartsCoreOption, graphic } from 'echarts';
+import { EChartsCoreOption, graphic } from 'echarts/core';
 import {
   BigNumberVizProps,
   BigNumberDatum,

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
-from pytest_mock import MockFixture
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -64,10 +64,10 @@ def session_with_data(session: Session):
     session.add(saved_query)
     session.add(dashboard_obj)
     session.commit()
-    yield session
+    return session
 
 
-def test_create_command_success(session_with_data: Session, mocker: MockFixture):
+def test_create_command_success(session_with_data: Session, mocker: MockerFixture):
     from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
@@ -108,7 +108,9 @@ def test_create_command_success(session_with_data: Session, mocker: MockFixture)
         )
 
 
-def test_create_command_success_clear(session_with_data: Session, mocker: MockFixture):
+def test_create_command_success_clear(
+    session_with_data: Session, mocker: MockerFixture
+):
     from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice

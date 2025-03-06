@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent, useState, useEffect } from 'react';
+import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
+
 import { styled, t } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
@@ -25,7 +26,13 @@ import { StyledIcon } from 'src/views/CRUD/utils';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
+import { OnlyKeyWithType } from 'src/utils/types';
 import { AnnotationLayerObject } from './types';
+
+type AnnotationLayerObjectStringKeys = keyof Pick<
+  AnnotationLayerObject,
+  OnlyKeyWithType<AnnotationLayerObject, string>
+>;
 
 interface AnnotationLayerModalProps {
   addDangerToast: (msg: string) => void;
@@ -157,9 +164,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   };
 
   const onTextChange = (
-    event:
-      | React.ChangeEvent<HTMLTextAreaElement>
-      | React.ChangeEvent<HTMLInputElement>,
+    event: ChangeEvent<HTMLTextAreaElement> | ChangeEvent<HTMLInputElement>,
   ) => {
     const { target } = event;
     const data = {
@@ -168,7 +173,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       descr: currentLayer ? currentLayer.descr : '',
     };
 
-    data[target.name] = target.value;
+    data[target.name as AnnotationLayerObjectStringKeys] = target.value;
     setCurrentLayer(data);
   };
 

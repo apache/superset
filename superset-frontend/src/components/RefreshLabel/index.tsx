@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { MouseEventHandler, forwardRef } from 'react';
+import { MouseEventHandler, forwardRef } from 'react';
 import { SupersetTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons, { IconType } from 'src/components/Icons';
@@ -24,9 +24,14 @@ import Icons, { IconType } from 'src/components/Icons';
 export interface RefreshLabelProps {
   onClick: MouseEventHandler<HTMLSpanElement>;
   tooltipContent: string;
+  disabled?: boolean;
 }
 
-const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
+const RefreshLabel = ({
+  onClick,
+  tooltipContent,
+  disabled,
+}: RefreshLabelProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
     <Icons.Refresh {...props} />
@@ -36,7 +41,7 @@ const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
     <Tooltip title={tooltipContent}>
       <IconWithoutRef
         role="button"
-        onClick={onClick}
+        onClick={disabled ? undefined : onClick}
         css={(theme: SupersetTheme) => ({
           cursor: 'pointer',
           color: theme.colors.grayscale.base,

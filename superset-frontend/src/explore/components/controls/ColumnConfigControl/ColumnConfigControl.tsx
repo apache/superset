@@ -16,13 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useState } from 'react';
-import {
-  ChartDataResponseResult,
-  useTheme,
-  t,
-  GenericDataType,
-} from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import { useTheme, t, GenericDataType } from '@superset-ui/core';
 
 import {
   COLUMN_NAME_ALIASES,
@@ -39,7 +34,7 @@ import ControlHeader from '../../ControlHeader';
 
 export type ColumnConfigControlProps<T extends ColumnConfig> =
   ControlComponentProps<Record<string, T>> & {
-    queryResponse?: ChartDataResponseResult;
+    columnsPropsObject?: { colnames: string[]; coltypes: GenericDataType[] };
     configFormLayout?: ColumnConfigFormLayout;
     appliedColumnNames?: string[];
     width?: number | string;
@@ -55,7 +50,7 @@ const MAX_NUM_COLS = 10;
  * Add per-column config to queried results.
  */
 export default function ColumnConfigControl<T extends ColumnConfig>({
-  queryResponse,
+  columnsPropsObject,
   appliedColumnNames = [],
   value,
   onChange,
@@ -64,7 +59,7 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
   height,
   ...props
 }: ColumnConfigControlProps<T>) {
-  const { colnames: _colnames, coltypes: _coltypes } = queryResponse || {};
+  const { colnames: _colnames, coltypes: _coltypes } = columnsPropsObject || {};
   let colnames: string[] = [];
   let coltypes: GenericDataType[] = [];
   if (appliedColumnNames.length === 0) {
@@ -145,7 +140,6 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
               padding: theme.gridUnit * 2,
               textAlign: 'center',
               cursor: 'pointer',
-              textTransform: 'uppercase',
               fontSize: theme.typography.sizes.xs,
               color: theme.colors.text.label,
               ':hover': {

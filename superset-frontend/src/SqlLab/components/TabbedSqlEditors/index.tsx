@@ -16,17 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import { pick } from 'lodash';
 import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
 import URI from 'urijs';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
+import { Logger } from 'src/logger/LogUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
-import { EmptyStateBig } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { locationContext } from 'src/pages/SqlLab/LocationContext';
 import SqlEditor from '../SqlEditor';
@@ -61,7 +62,7 @@ type TabbedSqlEditorsProps = ReturnType<typeof mergeProps>;
 
 const SQL_LAB_URL = '/sqllab';
 
-class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
+class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
   constructor(props: TabbedSqlEditorsProps) {
     super(props);
     this.removeQueryEditor = this.removeQueryEditor.bind(this);
@@ -70,38 +71,13 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
   }
 
   componentDidMount() {
-    // migrate query editor and associated tables state to server
-    if (isFeatureEnabled(FeatureFlag.SqllabBackendPersistence)) {
-      const localStorageTables = this.props.tables.filter(
-        table => table.inLocalStorage,
-      );
-      const localStorageQueries = Object.values(this.props.queries).filter(
-        query => query.inLocalStorage,
-      );
-      this.props.queryEditors
-        .filter(qe => qe.inLocalStorage)
-        .forEach(qe => {
-          // get all queries associated with the query editor
-          const queries = localStorageQueries.filter(
-            query => query.sqlEditorId === qe.id,
-          );
-          const tables = localStorageTables.filter(
-            table => table.queryEditorId === qe.id,
-          );
-          this.props.actions.migrateQueryEditorFromLocalStorage(
-            qe,
-            tables,
-            queries,
-          );
-        });
-    }
-
     // merge post form data with GET search params
     // Hack: this data should be coming from getInitialState
     // but for some reason this data isn't being passed properly through
     // the reducer.
     const bootstrapData = getBootstrapData();
     const queryParameters = URI(window.location).search(true);
+    const path = URI(window.location).path();
     const {
       id,
       name,
@@ -121,10 +97,13 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
       ...bootstrapData.requested_query,
       ...queryParameters,
     } as Record<string, string>;
+    const permalink = path.match(/\/p\/\w+/)?.[0].slice(3);
 
     // Popping a new tab based on the querystring
-    if (id || sql || savedQueryId || datasourceKey || queryId) {
-      if (id) {
+    if (permalink || id || sql || savedQueryId || datasourceKey || queryId) {
+      if (permalink) {
+        this.props.actions.popPermalink(permalink);
+      } else if (id) {
         this.props.actions.popStoredQuery(id);
       } else if (savedQueryId) {
         this.props.actions.popSavedQuery(savedQueryId);
@@ -157,7 +136,7 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
         };
         this.props.actions.addQueryEditor(newQueryEditor);
       }
-      this.popNewTab(pick(urlParams, Object.keys(queryParameters)));
+      this.popNewTab(pick(urlParams, Object.keys(queryParameters ?? {})));
     } else if (isNewQuery || this.props.queryEditors.length === 0) {
       this.newQueryEditor();
 
@@ -207,10 +186,7 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
       if (!queryEditor) {
         return;
       }
-      this.props.actions.switchQueryEditor(
-        queryEditor,
-        this.props.displayLimit,
-      );
+      this.props.actions.setActiveQueryEditor(queryEditor);
     }
   }
 
@@ -222,6 +198,7 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
       }
     }
     if (action === 'add') {
+      Logger.markTimeOrigin();
       this.newQueryEditor();
     }
   }
@@ -229,6 +206,14 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
   removeQueryEditor(qe: QueryEditor) {
     this.props.actions.removeQueryEditor(qe);
   }
+
+  onTabClicked = () => {
+    Logger.markTimeOrigin();
+    const noQueryEditors = this.props.queryEditors?.length === 0;
+    if (noQueryEditors) {
+      this.newQueryEditor();
+    }
+  };
 
   render() {
     const noQueryEditors = this.props.queryEditors?.length === 0;
@@ -274,8 +259,9 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
         tab={emptyTab}
         closable={false}
       >
-        <EmptyStateBig
+        <EmptyState
           image="empty_sql_chart.svg"
+          size="large"
           description={t('Add a new tab to create SQL Query')}
         />
       </EditableTabs.TabPane>
@@ -290,7 +276,7 @@ class TabbedSqlEditors extends React.PureComponent<TabbedSqlEditorsProps> {
         onChange={this.handleSelect}
         fullWidth={false}
         hideAdd={this.props.offline}
-        onTabClick={() => noQueryEditors && this.newQueryEditor()}
+        onTabClick={this.onTabClicked}
         onEdit={this.handleEdit}
         type={noQueryEditors ? 'card' : 'editable-card'}
         addIcon={
@@ -322,7 +308,6 @@ export function mapStateToProps({ sqlLab, common }: SqlLabRootState) {
     queryEditors: sqlLab.queryEditors ?? DEFAULT_PROPS.queryEditors,
     queries: sqlLab.queries,
     tabHistory: sqlLab.tabHistory,
-    tables: sqlLab.tables,
     defaultDbId: common.conf.SQLLAB_DEFAULT_DBID,
     displayLimit: common.conf.DISPLAY_MAX_ROW,
     offline: sqlLab.offline ?? DEFAULT_PROPS.offline,

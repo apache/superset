@@ -21,6 +21,7 @@ import { interceptGet as interceptDashboardGet } from 'cypress/e2e/dashboard/uti
 import { FORM_DATA_DEFAULTS, NUM_METRIC } from './visualizations/shared.helper';
 import {
   interceptFiltering,
+  interceptV1ChartData,
   saveChartToDashboard,
   visitSampleChartFromList,
 } from './utils';
@@ -30,35 +31,35 @@ const SAMPLE_DASHBOARDS_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 function openDashboardsAddedTo() {
   cy.getBySel('actions-trigger').click();
-  cy.get('.ant-dropdown-menu-submenu-title')
+  cy.get('.antd5-dropdown-menu-submenu-title')
     .contains('On dashboards')
     .trigger('mouseover', { force: true });
 }
 
 function closeDashboardsAddedTo() {
-  cy.get('.ant-dropdown-menu-submenu-title')
+  cy.get('.antd5-dropdown-menu-submenu-title')
     .contains('On dashboards')
     .trigger('mouseout', { force: true });
   cy.getBySel('actions-trigger').click();
 }
 
 function verifyDashboardsSubmenuItem(dashboardName) {
-  cy.get('.ant-dropdown-menu-submenu-popup').contains(dashboardName);
+  cy.get('.antd5-dropdown-menu-submenu-popup').contains(dashboardName);
   closeDashboardsAddedTo();
 }
 
 function verifyDashboardSearch() {
   openDashboardsAddedTo();
-  cy.get('.ant-dropdown-menu-submenu-popup').trigger('mouseover');
-  cy.get('.ant-dropdown-menu-submenu-popup')
+  cy.get('.antd5-dropdown-menu-submenu-popup').trigger('mouseover');
+  cy.get('.antd5-dropdown-menu-submenu-popup')
     .find('input[placeholder="Search"]')
     .type('1');
-  cy.get('.ant-dropdown-menu-submenu-popup').contains('1 - Sample dashboard');
-  cy.get('.ant-dropdown-menu-submenu-popup')
+  cy.get('.antd5-dropdown-menu-submenu-popup').contains('1 - Sample dashboard');
+  cy.get('.antd5-dropdown-menu-submenu-popup')
     .find('input[placeholder="Search"]')
     .type('Blahblah');
-  cy.get('.ant-dropdown-menu-submenu-popup').contains('No results found');
-  cy.get('.ant-dropdown-menu-submenu-popup')
+  cy.get('.antd5-dropdown-menu-submenu-popup').contains('No results found');
+  cy.get('.antd5-dropdown-menu-submenu-popup')
     .find('[aria-label="close-circle"]')
     .click();
   closeDashboardsAddedTo();
@@ -67,8 +68,8 @@ function verifyDashboardSearch() {
 function verifyDashboardLink() {
   interceptDashboardGet();
   openDashboardsAddedTo();
-  cy.get('.ant-dropdown-menu-submenu-popup').trigger('mouseover');
-  cy.get('.ant-dropdown-menu-submenu-popup a')
+  cy.get('.antd5-dropdown-menu-submenu-popup').trigger('mouseover');
+  cy.get('.antd5-dropdown-menu-submenu-popup a')
     .first()
     .invoke('removeAttr', 'target')
     .click();
@@ -124,14 +125,14 @@ describe('Cross-referenced dashboards', () => {
 
 describe('No Results', () => {
   beforeEach(() => {
-    cy.intercept('POST', '/superset/explore_json/**').as('getJson');
+    interceptV1ChartData();
   });
 
   it('No results message shows up', () => {
     const formData = {
       ...FORM_DATA_DEFAULTS,
       metrics: [NUM_METRIC],
-      viz_type: 'line',
+      viz_type: 'echarts_timeseries_line',
       adhoc_filters: [
         {
           expressionType: 'SIMPLE',
@@ -145,7 +146,7 @@ describe('No Results', () => {
     };
 
     cy.visitChartByParams(formData);
-    cy.wait('@getJson').its('response.statusCode').should('eq', 200);
+    cy.wait('@v1Data').its('response.statusCode').should('eq', 200);
     cy.get('div.chart-container').contains(
       'No results were returned for this query',
     );

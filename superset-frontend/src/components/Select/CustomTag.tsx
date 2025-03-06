@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { MouseEvent } from 'react';
 import { Tag as AntdTag } from 'antd';
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
@@ -62,7 +62,7 @@ const Tag = (props: any) => {
 export const customTagRender = (props: CustomTagProps) => {
   const { label, value } = props;
 
-  const onPreventMouseDown = (event: React.MouseEvent<HTMLElement>) => {
+  const onPreventMouseDown = (event: MouseEvent<HTMLElement>) => {
     // if close icon is clicked, stop propagation to avoid opening the dropdown
     const target = event.target as HTMLElement;
     if (

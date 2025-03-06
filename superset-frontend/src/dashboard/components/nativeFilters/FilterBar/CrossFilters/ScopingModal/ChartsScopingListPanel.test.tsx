@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import userEvent from '@testing-library/user-event';
-import { render, screen, within } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   ChartsScopingListPanel,

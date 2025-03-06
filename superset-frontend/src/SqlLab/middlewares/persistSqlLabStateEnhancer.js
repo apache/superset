@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: requires redux-localstorage > 1.0 for typescript support
 import persistState from 'redux-localstorage';
 import { pickBy } from 'lodash';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
@@ -49,13 +48,23 @@ const sqlLabPersistStateConfig = {
             tables,
             queries,
             tabHistory,
+            lastUpdatedActiveTab,
+            destroyedQueryEditors,
           } = state.sqlLab;
           const unsavedQueryEditors = filterUnsavedQueryEditorList(
             queryEditors,
             unsavedQueryEditor,
             editorTabLastUpdatedAt,
           );
-          if (unsavedQueryEditors.length > 0) {
+          const hasUnsavedActiveTabState =
+            tabHistory.slice(-1)[0] !== lastUpdatedActiveTab;
+          const hasUnsavedDeletedQueryEditors =
+            Object.keys(destroyedQueryEditors).length > 0;
+          if (
+            unsavedQueryEditors.length > 0 ||
+            hasUnsavedActiveTabState ||
+            hasUnsavedDeletedQueryEditors
+          ) {
             const hasFinishedMigrationFromLocalStorage =
               unsavedQueryEditors.every(
                 ({ inLocalStorage }) => !inLocalStorage,
@@ -70,6 +79,10 @@ const sqlLabPersistStateConfig = {
                   query => query.inLocalStorage && !query.isDataPreview,
                 ),
               }),
+              ...(hasUnsavedActiveTabState && {
+                tabHistory,
+              }),
+              destroyedQueryEditors,
             };
           }
           return;
@@ -115,6 +128,8 @@ const sqlLabPersistStateConfig = {
   },
 };
 
+// TODO: requires redux-localstorage > 1.0 for typescript support
+/** @type {any} */
 export const persistSqlLabStateEnhancer = persistState(
   sqlLabPersistStateConfig.paths,
   sqlLabPersistStateConfig.config,

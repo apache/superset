@@ -16,19 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import { useState, MouseEventHandler, FC } from 'react';
+
 import { t } from '@superset-ui/core';
 import Label from 'src/components/Label';
 import { Tooltip } from 'src/components/Tooltip';
 import { TooltipContent } from './TooltipContent';
 
 export interface CacheLabelProps {
-  onClick?: React.MouseEventHandler<HTMLElement>;
+  onClick?: MouseEventHandler<HTMLElement>;
   cachedTimestamp?: string;
   className?: string;
 }
 
-const CacheLabel: React.FC<CacheLabelProps> = ({
+const CacheLabel: FC<CacheLabelProps> = ({
   className,
   onClick,
   cachedTimestamp,

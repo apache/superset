@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactChild, useCallback } from 'react';
+import { ReactChild, useCallback, Key } from 'react';
+
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 
 enum MenuKeys {
@@ -50,7 +51,7 @@ export const ExportToCSVDropdown = ({
   children,
 }: ExportToCSVButtonProps) => {
   const handleMenuClick = useCallback(
-    ({ key }: { key: React.Key }) => {
+    ({ key }: { key: Key }) => {
       switch (key) {
         case MenuKeys.ExportOriginal:
           exportCSVOriginal();
@@ -66,9 +67,9 @@ export const ExportToCSVDropdown = ({
   );
 
   return (
-    <AntdDropdown
+    <Dropdown
       trigger={['click']}
-      overlay={
+      dropdownRender={() => (
         <Menu onClick={handleMenuClick} selectable={false}>
           <Menu.Item key={MenuKeys.ExportOriginal}>
             <MenuItemContent>
@@ -83,9 +84,9 @@ export const ExportToCSVDropdown = ({
             </MenuItemContent>
           </Menu.Item>
         </Menu>
-      }
+      )}
     >
       {children}
-    </AntdDropdown>
+    </Dropdown>
   );
 };

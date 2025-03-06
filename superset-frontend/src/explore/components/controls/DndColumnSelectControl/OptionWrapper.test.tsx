@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';

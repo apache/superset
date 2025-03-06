@@ -53,8 +53,8 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
   [LabelPositionEnum.Right, 'Right'],
   [LabelPositionEnum.Bottom, 'Bottom'],
   [LabelPositionEnum.Inside, 'Inside'],
-  [LabelPositionEnum.InsideBottomLeft, 'Inside left'],
-  [LabelPositionEnum.InsideBottomRight, 'Inside right'],
+  [LabelPositionEnum.InsideLeft, 'Inside left'],
+  [LabelPositionEnum.InsideRight, 'Inside right'],
   [LabelPositionEnum.InsideTop, 'Inside top'],
   [LabelPositionEnum.InsideBottom, 'Inside bottom'],
   [LabelPositionEnum.InsideTopLeft, 'Inside top left'],
@@ -66,6 +66,7 @@ export const LABEL_POSITION: [LabelPositionEnum, string][] = [
 export enum OpacityEnum {
   Transparent = 0,
   SemiTransparent = 0.3,
+  DerivedSeries = 0.7,
   NonTransparent = 1,
 }
 

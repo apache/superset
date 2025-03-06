@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from collections.abc import Iterator
 from typing import Any
 from uuid import uuid3
@@ -28,6 +27,7 @@ from superset.key_value.models import KeyValueEntry
 from superset.key_value.types import KeyValueResource, MarshmallowKeyValueCodec
 from superset.key_value.utils import decode_permalink_id, encode_permalink_key
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import DatasourceType
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401

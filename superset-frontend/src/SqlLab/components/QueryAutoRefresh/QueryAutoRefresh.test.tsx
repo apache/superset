@@ -17,7 +17,6 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { render, waitFor } from 'spec/helpers/testing-library';
@@ -163,7 +162,7 @@ describe('QueryAutoRefresh', () => {
     expect(fetchMock.calls(refreshApi)).toHaveLength(1);
   });
 
-  it('Does not fail and attempts to refresh when given pending query and invlaid query', async () => {
+  it('Does not fail and attempts to refresh when given pending query and invalid query', async () => {
     const store = mockStore();
     fetchMock.get(refreshApi, {
       result: [

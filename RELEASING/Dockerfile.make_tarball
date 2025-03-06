@@ -17,7 +17,9 @@
 FROM python:3.10-slim-bookworm
 
 RUN apt-get update -y
-RUN apt-get install -y jq
+RUN apt-get install -y \
+    git \
+    jq
 
 COPY make_tarball_entrypoint.sh /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

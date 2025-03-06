@@ -24,7 +24,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -51,7 +51,6 @@ import { TagsList } from 'src/components/Tags';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
-import copyTextToClipboard from 'src/utils/copy';
 import Tag from 'src/types/TagType';
 import ImportModelsModal from 'src/components/ImportModal/index';
 import { ModifiedInfo } from 'src/components/AuditInfo';
@@ -233,16 +232,31 @@ function SavedQueryList({
   };
 
   const copyQueryLink = useCallback(
-    (id: number) => {
-      copyTextToClipboard(() =>
-        Promise.resolve(`${window.location.origin}/sqllab?savedQueryId=${id}`),
-      )
-        .then(() => {
-          addSuccessToast(t('Link Copied!'));
-        })
-        .catch(() => {
-          addDangerToast(t('Sorry, your browser does not support copying.'));
+    async (savedQuery: SavedQueryObject) => {
+      try {
+        const payload = {
+          dbId: savedQuery.db_id,
+          name: savedQuery.label,
+          schema: savedQuery.schema,
+          catalog: savedQuery.catalog,
+          sql: savedQuery.sql,
+          autorun: false,
+          templateParams: null,
+        };
+
+        const response = await SupersetClient.post({
+          endpoint: '/api/v1/sqllab/permalink',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
         });
+
+        const { url: permalink } = response.json;
+
+        await navigator.clipboard.writeText(permalink);
+        addSuccessToast(t('Link Copied!'));
+      } catch (error) {
+        addDangerToast(t('There was an error generating the permalink.'));
+      }
     },
     [addDangerToast, addSuccessToast],
   );
@@ -296,6 +310,15 @@ function SavedQueryList({
       {
         accessor: 'label',
         Header: t('Name'),
+        Cell: ({
+          row: {
+            original: { id, label },
+          },
+        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+      },
+      {
+        accessor: 'description',
+        Header: t('Description'),
       },
       {
         accessor: 'database.database_name',
@@ -382,9 +405,9 @@ function SavedQueryList({
           const handlePreview = () => {
             handleSavedQueryPreview(original.id);
           };
-          const handleEdit = ({ metaKey }: React.MouseEvent) =>
+          const handleEdit = ({ metaKey }: MouseEvent) =>
             openInSqlLab(original.id, Boolean(metaKey));
-          const handleCopy = () => copyQueryLink(original.id);
+          const handleCopy = () => copyQueryLink(original);
           const handleExport = () => handleBulkSavedQueryExport([original]);
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
@@ -443,11 +466,13 @@ function SavedQueryList({
   const filters: Filters = useMemo(
     () => [
       {
-        Header: t('Name'),
+        Header: t('Search'),
         id: 'label',
         key: 'search',
         input: 'search',
         operator: FilterOperator.AllText,
+        toolTipDescription:
+          'Searches all text fields: Name, Description, Database & Schema',
       },
       {
         Header: t('Database'),
@@ -495,7 +520,7 @@ function SavedQueryList({
               id: 'tags',
               key: 'tags',
               input: 'select',
-              operator: FilterOperator.SavedQueryTags,
+              operator: FilterOperator.SavedQueryTagById,
               fetchSelects: loadTags,
             },
           ]

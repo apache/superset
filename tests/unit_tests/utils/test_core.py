@@ -14,8 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import datetime
-import json
 import os
 from dataclasses import dataclass
 from typing import Any, Optional
@@ -23,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -32,12 +31,12 @@ from superset.utils.core import (
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
     get_datasource_full_name,
+    get_user_agent,
     is_test,
-    json_iso_dttm_ser,
     normalize_dttm_col,
     parse_boolean_string,
-    pessimistic_json_iso_dttm_ser,
     QueryObjectFilterClause,
+    QuerySource,
     remove_extra_adhoc_filters,
 )
 
@@ -224,7 +223,7 @@ def test_check_if_safe_zip_success(app_context: None) -> None:
     """
     Test if ZIP files are safe
     """
-    ZipFile = MagicMock()
+    ZipFile = MagicMock()  # noqa: N806
     ZipFile.infolist.return_value = [
         MockZipInfo(file_size=1000, compress_size=10),
         MockZipInfo(file_size=1000, compress_size=10),
@@ -239,7 +238,7 @@ def test_check_if_safe_zip_high_rate(app_context: None) -> None:
     """
     Test if ZIP files is not highly compressed
     """
-    ZipFile = MagicMock()
+    ZipFile = MagicMock()  # noqa: N806
     ZipFile.infolist.return_value = [
         MockZipInfo(file_size=1000, compress_size=1),
         MockZipInfo(file_size=1000, compress_size=1),
@@ -255,7 +254,7 @@ def test_check_if_safe_zip_hidden_bomb(app_context: None) -> None:
     """
     Test if ZIP file does not contain a big file highly compressed
     """
-    ZipFile = MagicMock()
+    ZipFile = MagicMock()  # noqa: N806
     ZipFile.infolist.return_value = [
         MockZipInfo(file_size=1000, compress_size=100),
         MockZipInfo(file_size=1000, compress_size=100),
@@ -402,38 +401,20 @@ def test_get_datasource_full_name():
     )
 
 
-def test_json_iso_dttm_ser():
-    data = {
-        "datetime": datetime.datetime(2021, 1, 1, 0, 0, 0),
-        "date": datetime.date(2021, 1, 1),
-    }
-    json_str = json.dumps(data, default=json_iso_dttm_ser)
-    reloaded_data = json.loads(json_str)
-    assert reloaded_data["datetime"] == "2021-01-01T00:00:00"
-    assert reloaded_data["date"] == "2021-01-01"
+def test_get_user_agent(mocker: MockerFixture) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
 
+    current_app_mock = mocker.patch("superset.utils.core.current_app")
+    current_app_mock.config = {"USER_AGENT_FUNC": None}
 
-def test_pessimistic_json_iso_dttm_ser():
-    data = {
-        "datetime": datetime.datetime(2021, 1, 1, 0, 0, 0),
-        "date": datetime.date(2021, 1, 1),
-        "UNSERIALIZABLE": MagicMock(),
-    }
-    json_str = json.dumps(data, default=pessimistic_json_iso_dttm_ser)
-    reloaded_data = json.loads(json_str)
-    assert reloaded_data["datetime"] == "2021-01-01T00:00:00"
-    assert reloaded_data["date"] == "2021-01-01"
-    assert (
-        reloaded_data["UNSERIALIZABLE"]
-        == "Unserializable [<class 'unittest.mock.MagicMock'>]"
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
+        "The default user agent should be returned"
+    )
+    current_app_mock.config["USER_AGENT_FUNC"] = (
+        lambda database, source: f"{database.database_name} {source.name}"
     )
 
-
-def test_pessimistic_json_iso_dttm_ser_nonutf8():
-    data = {
-        "INVALID_UTF8_BYTES": b"\xff",
-    }
-    assert isinstance(data["INVALID_UTF8_BYTES"], bytes)
-    json_str = json.dumps(data, default=pessimistic_json_iso_dttm_ser)
-    reloaded_data = json.loads(json_str)
-    assert reloaded_data["INVALID_UTF8_BYTES"] == "[bytes]"
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
+        "the custom user agent function result should have been returned"
+    )

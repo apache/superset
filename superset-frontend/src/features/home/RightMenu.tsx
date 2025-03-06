@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { Fragment, useState, useEffect } from 'react';
+import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
+
 import rison from 'rison';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
-import { isEmpty } from 'lodash';
+import { get, isEmpty } from 'lodash';
 
 import {
   t,
@@ -32,7 +33,7 @@ import {
   getExtensionsRegistry,
   useTheme,
 } from '@superset-ui/core';
-import { MainNav as Menu } from 'src/components/Menu';
+import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
@@ -70,21 +71,15 @@ const StyledI = styled.div`
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
-  .ant-menu-item-active {
-    color: ${theme.colors.grayscale.light1};
-    cursor: default;
-  }
 `;
 
 const StyledDiv = styled.div<{ align: string }>`
   display: flex;
+  height: 100%;
   flex-direction: row;
   justify-content: ${({ align }) => align};
   align-items: center;
   margin-right: ${({ theme }) => theme.gridUnit}px;
-  .ant-menu-submenu-title > svg {
-    top: ${({ theme }) => theme.gridUnit * 5.25}px;
-  }
 `;
 
 const StyledMenuItemWithIcon = styled.div`
@@ -111,6 +106,14 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 `;
 
 const { SubMenu } = Menu;
+
+const StyledSubMenu = styled(SubMenu)`
+  &.antd5-menu-submenu-active {
+    .antd5-menu-title-content {
+      color: ${({ theme }) => theme.colors.primary.base};
+    }
+  }
+`;
 
 const RightMenu = ({
   align,
@@ -246,7 +249,7 @@ const RightMenu = ({
     SupersetClient.get({
       endpoint: `/api/v1/database/?q=${rison.encode(payload)}`,
     }).then(({ json }: Record<string, any>) => {
-      // There might be some existings Gsheets and Clickhouse DBs
+      // There might be some existing Gsheets and Clickhouse DBs
       // with allow_file_upload set as True which is not possible from now on
       const allowedDatabasesWithFileUpload =
         json?.result?.filter(
@@ -279,11 +282,8 @@ const RightMenu = ({
     }
   }, [canDatabase, canDataset]);
 
-  const menuIconAndLabel = (menu: MenuObjectProps) => (
-    <>
-      <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
-      {menu.label}
-    </>
+  const menuIcon = (menu: MenuObjectProps) => (
+    <i data-test={`menu-item-${menu.label}`} className={`fa ${menu.icon}`} />
   );
 
   const handleMenuSelection = (itemChose: any) => {
@@ -312,7 +312,7 @@ const RightMenu = ({
 
   const buildMenuItem = (item: MenuObjectChildProps) =>
     item.disable ? (
-      <Menu.Item key={item.name} css={styledDisabled}>
+      <Menu.Item key={item.name} css={styledDisabled} disabled>
         <Tooltip placement="top" title={tooltipText}>
           {item.label}
         </Tooltip>
@@ -346,6 +346,10 @@ const RightMenu = ({
   );
 
   const handleDatabaseAdd = () => setQuery({ databaseAdded: true });
+
+  const handleLogout = () => {
+    localStorage.removeItem('redux');
+  };
 
   const theme = useTheme();
 
@@ -389,9 +393,7 @@ const RightMenu = ({
           color={
             /^#(?:[0-9a-f]{3}){1,2}$/i.test(environmentTag.color)
               ? environmentTag.color
-              : environmentTag.color
-                  .split('.')
-                  .reduce((o, i) => o[i], theme.colors)
+              : get(theme.colors, environmentTag.color)
           }
         >
           <span css={tagStyles}>{environmentTag.text}</span>
@@ -402,10 +404,12 @@ const RightMenu = ({
         mode="horizontal"
         onClick={handleMenuSelection}
         onOpenChange={onMenuOpen}
+        disabledOverflow
       >
         {RightMenuExtension && <RightMenuExtension />}
         {!navbarRight.user_is_anonymous && showActionDropdown && (
-          <SubMenu
+          <StyledSubMenu
+            key="sub1"
             data-test="new-dropdown"
             title={
               <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
@@ -419,10 +423,11 @@ const RightMenu = ({
               if (menu.childs) {
                 if (canShowChild) {
                   return (
-                    <SubMenu
+                    <StyledSubMenu
                       key={`sub2_${menu.label}`}
                       className="data-menu"
-                      title={menuIconAndLabel(menu)}
+                      title={menu.label}
+                      icon={menuIcon(menu)}
                     >
                       {menu?.childs?.map?.((item, idx) =>
                         typeof item !== 'string' && item.name && item.perm ? (
@@ -432,7 +437,7 @@ const RightMenu = ({
                           </Fragment>
                         ) : null,
                       )}
-                    </SubMenu>
+                    </StyledSubMenu>
                   );
                 }
                 if (!menu.url) {
@@ -467,9 +472,10 @@ const RightMenu = ({
                 )
               );
             })}
-          </SubMenu>
+          </StyledSubMenu>
         )}
-        <SubMenu
+        <StyledSubMenu
+          key="sub3_settings"
           title={t('Settings')}
           icon={<Icons.TriangleDown iconSize="xl" />}
         >
@@ -511,7 +517,7 @@ const RightMenu = ({
                   <a href={navbarRight.user_info_url}>{t('Info')}</a>
                 </Menu.Item>
               )}
-              <Menu.Item key="logout">
+              <Menu.Item key="logout" onClick={handleLogout}>
                 <a href={navbarRight.user_logout_url}>{t('Logout')}</a>
               </Menu.Item>
             </Menu.ItemGroup>,
@@ -543,7 +549,7 @@ const RightMenu = ({
               </div>
             </Menu.ItemGroup>,
           ]}
-        </SubMenu>
+        </StyledSubMenu>
         {navbarRight.show_language_picker && (
           <LanguagePicker
             locale={navbarRight.locale}
@@ -600,7 +606,7 @@ const RightMenu = ({
   );
 };
 
-const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
+const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
   const [, setQuery] = useQueryParams({
     databaseAdded: BooleanParam,
     datasetAdded: BooleanParam,
@@ -614,7 +620,7 @@ const RightMenuWithQueryWrapper: React.FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
-class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
+class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
   state = {
     hasError: false,
   };
@@ -634,7 +640,7 @@ class RightMenuErrorWrapper extends React.PureComponent<RightMenuProps> {
   }
 }
 
-const RightMenuWrapper: React.FC<RightMenuProps> = props => (
+const RightMenuWrapper: FC<RightMenuProps> = props => (
   <RightMenuErrorWrapper {...props}>
     <RightMenuWithQueryWrapper {...props} />
   </RightMenuErrorWrapper>

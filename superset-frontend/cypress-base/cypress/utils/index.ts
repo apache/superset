@@ -106,8 +106,12 @@ export function drag(selector: string, content: string | number | RegExp) {
     to(target: string | Cypress.Chainable) {
       cy.get('.dragdroppable')
         .contains(selector, content)
-        .trigger('mousedown', { which: 1, force: true })
-        .trigger('dragstart', { dataTransfer, force: true })
+        .trigger('mousedown', { which: 1, force: true });
+      cy.get('.dragdroppable')
+        .contains(selector, content)
+        .trigger('dragstart', { dataTransfer, force: true });
+      cy.get('.dragdroppable')
+        .contains(selector, content)
         .trigger('drag', { force: true });
 
       (typeof target === 'string' ? cy.get(target) : target)
@@ -122,10 +126,14 @@ export function drag(selector: string, content: string | number | RegExp) {
 export function resize(selector: string) {
   return {
     to(cordX: number, cordY: number) {
-      cy.get(selector)
-        .trigger('mousedown', { which: 1, force: true })
-        .trigger('mousemove', { which: 1, cordX, cordY, force: true })
-        .trigger('mouseup', { which: 1, force: true });
+      cy.get(selector).trigger('mousedown', { which: 1, force: true });
+      cy.get(selector).trigger('mousemove', {
+        which: 1,
+        cordX,
+        cordY,
+        force: true,
+      });
+      cy.get(selector).trigger('mouseup', { which: 1, force: true });
     },
   };
 }

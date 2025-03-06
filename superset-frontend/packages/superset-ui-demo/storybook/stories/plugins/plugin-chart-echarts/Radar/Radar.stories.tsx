@@ -17,8 +17,11 @@
  * under the License.
  */
 
-import React from 'react';
-import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
+import {
+  SuperChart,
+  VizType,
+  getChartTransformPropsRegistry,
+} from '@superset-ui/core';
 import {
   EchartsRadarChartPlugin,
   RadarTransformProps,
@@ -26,10 +29,10 @@ import {
 import { withResizableChartDemo } from '../../../../shared/components/ResizableChartDemo';
 import { basic } from './data';
 
-new EchartsRadarChartPlugin().configure({ key: 'echarts-radar' }).register();
+new EchartsRadarChartPlugin().configure({ key: VizType.Radar }).register();
 
 getChartTransformPropsRegistry().registerValue(
-  'echarts-radar',
+  VizType.Radar,
   RadarTransformProps,
 );
 
@@ -38,9 +41,9 @@ export default {
   decorators: [withResizableChartDemo],
 };
 
-export const Radar = ({ width, height }) => (
+export const Radar = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
-    chartType="echarts-radar"
+    chartType={VizType.Radar}
     width={width}
     height={height}
     queriesData={[{ data: basic }]}

@@ -48,8 +48,10 @@ def df_to_records(dframe: pd.DataFrame) -> list[dict[str, Any]]:
         logger.warning(
             "DataFrame columns are not unique, some columns will be omitted."
         )
-    columns = dframe.columns
-    return list(
-        dict(zip(columns, map(_convert_big_integers, row)))
-        for row in zip(*[dframe[col] for col in columns])
-    )
+    records = dframe.to_dict(orient="records")
+
+    for record in records:
+        for key in record:
+            record[key] = _convert_big_integers(record[key])
+
+    return records

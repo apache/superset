@@ -16,34 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useResizeDetector } from 'react-resize-detector';
 import { uniqWith } from 'lodash';
 import { styled } from '@superset-ui/core';
 import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { ContentType } from './ContentType';
 import { config } from './ContentConfig';
-
-export const MIN_NUMBER_ITEMS = 2;
-export const MAX_NUMBER_ITEMS = 6;
-
-const HORIZONTAL_PADDING = 12;
-const VERTICAL_PADDING = 8;
-const ICON_PADDING = 8;
-const SPACE_BETWEEN_ITEMS = 16;
-const ICON_WIDTH = 16;
-const TEXT_MIN_WIDTH = 70;
-const TEXT_MAX_WIDTH = 150;
-const ORDER = {
-  dashboards: 0,
-  table: 1,
-  sql: 2,
-  rows: 3,
-  tags: 4,
-  description: 5,
-  owner: 6,
-  lastModified: 7,
-};
+import {
+  HORIZONTAL_PADDING,
+  ICON_PADDING,
+  ICON_WIDTH,
+  VERTICAL_PADDING,
+  TEXT_MIN_WIDTH,
+  TEXT_MAX_WIDTH,
+  SPACE_BETWEEN_ITEMS,
+  ORDER,
+  MIN_NUMBER_ITEMS,
+  MAX_NUMBER_ITEMS,
+} from './constants';
 
 const Bar = styled.div<{ count: number }>`
   ${({ theme, count }) => `
@@ -109,8 +100,8 @@ const StyledItem = styled.div<{
   `}
 `;
 
-// Make sure big tootips are truncated
-const TootipContent = styled.div`
+// Make sure big tooltips are truncated
+const TooltipContent = styled.div`
   display: -webkit-box;
   -webkit-line-clamp: 20;
   -webkit-box-orient: vertical;
@@ -161,7 +152,7 @@ const Item = ({
   return isTruncated || collapsed || (tooltip && tooltip !== title) ? (
     <Tooltip
       placement={tooltipPlacement}
-      title={<TootipContent>{tooltip}</TootipContent>}
+      title={<TooltipContent>{tooltip}</TooltipContent>}
     >
       {content}
     </Tooltip>

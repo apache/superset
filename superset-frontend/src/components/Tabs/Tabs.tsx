@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css, styled } from '@superset-ui/core';
 import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs';
 import Icons from 'src/components/Icons';
@@ -75,7 +74,6 @@ const StyledTabs = ({
         justify-content: center;
         font-size: ${theme.typography.sizes.s}px;
         text-align: center;
-        text-transform: uppercase;
         user-select: none;
         .required {
           margin-left: ${theme.gridUnit / 2}px;

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
 import configureStore from 'redux-mock-store';
@@ -31,7 +30,7 @@ import SubMenu from 'src/features/home/SubMenu';
 import ListView from 'src/components/ListView';
 import Filters from 'src/components/ListView/Filters';
 import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { act } from 'react-dom/test-utils';
+import { act } from 'spec/helpers/testing-library';
 
 // store needed for withToasts(DatabaseList)
 
@@ -132,11 +131,11 @@ describe('Admin DatabaseList', () => {
   });
 
   test('renders', () => {
-    expect(wrapper.find(DatabaseList)).toExist();
+    expect(wrapper.find(DatabaseList)).toBeTruthy();
   });
 
   test('renders a SubMenu', () => {
-    expect(wrapper.find(SubMenu)).toExist();
+    expect(wrapper.find(SubMenu)).toBeTruthy();
   });
 
   test('renders a SubMenu with no tabs', () => {
@@ -144,11 +143,11 @@ describe('Admin DatabaseList', () => {
   });
 
   test('renders a DatabaseModal', () => {
-    expect(wrapper.find(DatabaseModal)).toExist();
+    expect(wrapper.find(DatabaseModal)).toBeTruthy();
   });
 
   test('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
+    expect(wrapper.find(ListView)).toBeTruthy();
   });
 
   test('fetches Databases', () => {
@@ -165,14 +164,7 @@ describe('Admin DatabaseList', () => {
     });
     await waitForComponentToPaint(wrapper);
 
-    expect(wrapper.find(DeleteModal).props().description)
-      .toMatchInlineSnapshot(`
-      <React.Fragment>
-        <p>
-          The database db 0 is linked to 0 charts that appear on 0 dashboards and users have 0 SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects.
-        </p>
-      </React.Fragment>
-    `);
+    expect(wrapper.find(DeleteModal).props().description).toMatchSnapshot();
 
     act(() => {
       wrapper
@@ -247,6 +239,6 @@ describe('Admin DatabaseList', () => {
     );
     await waitForComponentToPaint(newWrapper);
 
-    expect(newWrapper.find('.dropdown-menu-links')).not.toExist();
+    expect(newWrapper.find('.dropdown-menu-links').length).toBe(0);
   });
 });

@@ -22,8 +22,8 @@ import { makeApi, SupersetApiError } from '../../../../src/query';
 import setupClientForTest from '../setupClientForTest';
 
 describe('makeApi()', () => {
-  beforeAll(setupClientForTest);
-  afterEach(fetchMock.restore);
+  beforeAll(() => setupClientForTest());
+  afterEach(() => fetchMock.restore());
 
   it('should expose method and endpoint', () => {
     const api = makeApi({

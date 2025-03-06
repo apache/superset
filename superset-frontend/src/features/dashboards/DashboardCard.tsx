@@ -16,18 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  t,
+  useTheme,
+  SupersetClient,
+} from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import ListViewCard from 'src/components/ListViewCard';
 import Icons from 'src/components/Icons';
-import Label from 'src/components/Label';
+import { PublishedLabel } from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
+import { Button } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -62,6 +69,35 @@ function DashboardCard({
   const canExport = hasPerm('can_export');
 
   const theme = useTheme();
+
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [fetchingThumbnail, setFetchingThumbnail] = useState<boolean>(false);
+
+  useEffect(() => {
+    // fetch thumbnail only if it's not already fetched
+    if (
+      !fetchingThumbnail &&
+      dashboard.id &&
+      (thumbnailUrl === undefined || thumbnailUrl === null) &&
+      isFeatureEnabled(FeatureFlag.Thumbnails)
+    ) {
+      // fetch thumbnail
+      if (dashboard.thumbnail_url) {
+        // set to empty string if null so that we don't
+        // keep fetching the thumbnail
+        setThumbnailUrl(dashboard.thumbnail_url || '');
+        return;
+      }
+      setFetchingThumbnail(true);
+      SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${dashboard.id}`,
+      }).then(({ json = {} }) => {
+        setThumbnailUrl(json.result?.thumbnail_url || '');
+        setFetchingThumbnail(false);
+      });
+    }
+  }, [dashboard, thumbnailUrl]);
+
   const menu = (
     <Menu>
       {canEdit && openDashboardEditModal && (
@@ -118,9 +154,7 @@ function DashboardCard({
         title={dashboard.dashboard_title}
         certifiedBy={dashboard.certified_by}
         certificationDetails={dashboard.certification_details}
-        titleRight={
-          <Label>{dashboard.published ? t('published') : t('draft')}</Label>
-        }
+        titleRight={<PublishedLabel isPublished={dashboard.published} />}
         cover={
           !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
             <></>
@@ -146,9 +180,11 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </AntdDropdown>
+            <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
+              <Button buttonSize="xsmall" type="link">
+                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+              </Button>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

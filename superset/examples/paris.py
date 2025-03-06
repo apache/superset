@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
+
+import logging
 
 import pandas as pd
 from sqlalchemy import inspect, String, Text
@@ -22,8 +23,11 @@ from sqlalchemy import inspect, String, Text
 import superset.utils.database as database_utils
 from superset import db
 from superset.sql_parse import Table
+from superset.utils import json
 
 from .helpers import get_example_url, get_table_connector_registry
+
+logger = logging.getLogger(__name__)
 
 
 def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) -> None:
@@ -53,7 +57,7 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
                 index=False,
             )
 
-    print(f"Creating table {tbl_name} reference")
+    logger.debug(f"Creating table {tbl_name} reference")
     table = get_table_connector_registry()
     tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
     if not tbl:
@@ -62,5 +66,4 @@ def load_paris_iris_geojson(only_metadata: bool = False, force: bool = False) ->
     tbl.description = "Map of Paris"
     tbl.database = database
     tbl.filter_select_enabled = True
-    db.session.commit()
     tbl.fetch_metadata()

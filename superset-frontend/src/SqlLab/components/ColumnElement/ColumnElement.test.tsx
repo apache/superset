@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { styledMount as mount } from 'spec/helpers/theming';
+import { isValidElement } from 'react';
+import { render } from 'spec/helpers/testing-library';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { mockedActions, table } from 'src/SqlLab/fixtures';
 
@@ -27,22 +27,28 @@ describe('ColumnElement', () => {
     column: table.columns[0],
   };
   it('is valid with props', () => {
-    expect(React.isValidElement(<ColumnElement {...mockedProps} />)).toBe(true);
+    expect(isValidElement(<ColumnElement {...mockedProps} />)).toBe(true);
   });
   it('renders a proper primary key', () => {
-    const wrapper = mount(<ColumnElement column={table.columns[0]} />);
-    expect(wrapper.find('i.fa-key')).toExist();
-    expect(wrapper.find('.col-name').first().text()).toBe('id');
+    const { container } = render(<ColumnElement column={table.columns[0]} />);
+    expect(container.querySelector('i.fa-key')).toBeInTheDocument();
+    expect(container.querySelector('.col-name')?.firstChild).toHaveTextContent(
+      'id',
+    );
   });
   it('renders a multi-key column', () => {
-    const wrapper = mount(<ColumnElement column={table.columns[1]} />);
-    expect(wrapper.find('i.fa-link')).toExist();
-    expect(wrapper.find('i.fa-bookmark')).toExist();
-    expect(wrapper.find('.col-name').first().text()).toBe('first_name');
+    const { container } = render(<ColumnElement column={table.columns[1]} />);
+    expect(container.querySelector('i.fa-link')).toBeInTheDocument();
+    expect(container.querySelector('i.fa-bookmark')).toBeInTheDocument();
+    expect(container.querySelector('.col-name')?.firstChild).toHaveTextContent(
+      'first_name',
+    );
   });
   it('renders a column with no keys', () => {
-    const wrapper = mount(<ColumnElement column={table.columns[2]} />);
-    expect(wrapper.find('i')).not.toExist();
-    expect(wrapper.find('.col-name').first().text()).toBe('last_name');
+    const { container } = render(<ColumnElement column={table.columns[2]} />);
+    expect(container.querySelector('i')).not.toBeInTheDocument();
+    expect(container.querySelector('.col-name')?.firstChild).toHaveTextContent(
+      'last_name',
+    );
   });
 });

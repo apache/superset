@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { t } from '@superset-ui/core';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
@@ -55,7 +54,7 @@ export const titleControls: ControlPanelSectionConfig = {
           type: 'SelectControl',
           freeForm: true,
           clearable: true,
-          label: t('X AXIS TITLE BOTTOM MARGIN'),
+          label: t('X Axis Title Margin'),
           renderTrigger: true,
           default: TITLE_MARGIN_OPTIONS[0],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),

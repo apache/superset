@@ -24,56 +24,45 @@
  */
 export { default as Select } from './Select/Select';
 export { default as AsyncSelect } from './Select/AsyncSelect';
+export { default as Button } from './Button';
+export { default as Card } from './Card';
 
-/*
- * Components that don't conflict with the ones in src/components.
- * As Superset progresses to support full theming, this list should
- * decrease in favor of the components defined in src/components.
- */
+// Vanilla Ant Design components from v5
 export {
   AutoComplete,
-  Avatar,
   Col,
-  Divider,
-  Empty,
   Grid,
-  List,
+  Layout,
   Row,
   Skeleton,
-  Space,
-  Steps,
   Tag,
   Tree,
+  TreeSelect,
   Typography,
-  Upload,
-} from 'antd';
+} from 'antd-v5';
+
+// Vanilla Ant Design components from v4 that require migration
+export { Upload } from 'antd';
 
 /*
  * Components that conflict with the ones in src/components.
  * We should try to avoid using Ant Design directly. The components
- * listed bellow may need review. Avoid incrementing this list by using
+ * listed below may need review. Avoid incrementing this list by using
  * or extending the components in src/components.
  */
 export {
-  Breadcrumb as AntdBreadcrumb,
-  Button as AntdButton,
+  Breadcrumb as AntdBreadcrumb, // TODO: Make this a real Component
   Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
-  Dropdown as AntdDropdown,
   Form as AntdForm,
   Input as AntdInput,
-  Modal as AntdModal,
   Select as AntdSelect,
   Slider as AntdSlider,
-  Switch as AntdSwitch,
   Tabs as AntdTabs,
   Tooltip as AntdTooltip,
 } from 'antd';
 
 // Exported types
 export type { FormInstance } from 'antd/lib/form';
-export type { ListItemProps } from 'antd/lib/list';
-export type { ModalProps as AntdModalProps } from 'antd/lib/modal';
-export type { DropDownProps as AntdDropdownProps } from 'antd/lib/dropdown';
 export type { RadioChangeEvent } from 'antd/lib/radio';

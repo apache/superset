@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-paired-t-test",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - Paired T Test",
   "keywords": [
     "superset"
@@ -23,14 +23,14 @@
     "lib"
   ],
   "dependencies": {
-    "distributions": "^1.0.0",
+    "distributions": "^2.2.0",
     "prop-types": "^15.8.1",
     "reactable": "^1.1.0"
   },
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "react": "^15 || ^16"
+    "react": "^17.0.2"
   },
   "publishConfig": {
     "access": "public"

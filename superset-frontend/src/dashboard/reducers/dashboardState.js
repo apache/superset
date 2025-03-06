@@ -38,6 +38,7 @@ import {
   SET_FOCUSED_FILTER_FIELD,
   UNSET_FOCUSED_FILTER_FIELD,
   SET_ACTIVE_TAB,
+  SET_ACTIVE_TABS,
   SET_FULL_SIZE_CHART_ID,
   ON_FILTERS_REFRESH,
   ON_FILTERS_REFRESH_SUCCESS,
@@ -45,6 +46,10 @@ import {
   SET_OVERRIDE_CONFIRM,
   SAVE_DASHBOARD_STARTED,
   SAVE_DASHBOARD_FINISHED,
+  SET_DASHBOARD_LABELS_COLORMAP_SYNCABLE,
+  SET_DASHBOARD_LABELS_COLORMAP_SYNCED,
+  SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE,
+  SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -98,6 +103,30 @@ export default function dashboardStateReducer(state = {}, action) {
         ...state,
         colorScheme: action.colorScheme,
         updatedColorScheme: true,
+      };
+    },
+    [SET_DASHBOARD_LABELS_COLORMAP_SYNCABLE]() {
+      return {
+        ...state,
+        labelsColorMapMustSync: true,
+      };
+    },
+    [SET_DASHBOARD_LABELS_COLORMAP_SYNCED]() {
+      return {
+        ...state,
+        labelsColorMapMustSync: false,
+      };
+    },
+    [SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCABLE]() {
+      return {
+        ...state,
+        sharedLabelsColorsMustSync: true,
+      };
+    },
+    [SET_DASHBOARD_SHARED_LABELS_COLORS_SYNCED]() {
+      return {
+        ...state,
+        sharedLabelsColorsMustSync: false,
       };
     },
     [TOGGLE_EXPAND_SLICE]() {
@@ -186,6 +215,12 @@ export default function dashboardStateReducer(state = {}, action) {
       return {
         ...state,
         activeTabs: Array.from(newActiveTabs),
+      };
+    },
+    [SET_ACTIVE_TABS]() {
+      return {
+        ...state,
+        activeTabs: action.activeTabs,
       };
     },
     [SET_OVERRIDE_CONFIRM]() {

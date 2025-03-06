@@ -70,7 +70,7 @@ def upgrade():
         session.commit()
     except SQLAlchemyError as ex:
         session.rollback()
-        raise Exception(f"An error occurred while upgrading permissions: {ex}")
+        raise Exception(f"An error occurred while upgrading permissions: {ex}") from ex
 
 
 def downgrade():

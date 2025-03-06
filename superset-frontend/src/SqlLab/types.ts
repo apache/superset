@@ -86,7 +86,7 @@ export interface Table {
   schema: string;
   name: string;
   queryEditorId: QueryEditor['id'];
-  dataPreviewQueryId: string | null;
+  dataPreviewQueryId?: string | null;
   expanded: boolean;
   initialized?: boolean;
   inLocalStorage?: boolean;
@@ -109,6 +109,8 @@ export type SqlLabRootState = {
     unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
     editorTabLastUpdatedAt: number;
+    lastUpdatedActiveTab: string;
+    destroyedQueryEditors: Record<string, number>;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

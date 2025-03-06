@@ -19,7 +19,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { memo } from 'react';
+import { memo } from 'react';
 import { formatNumber, styled } from '@superset-ui/core';
 
 const StyledLegend = styled.div`
@@ -40,11 +40,13 @@ const StyledLegend = styled.div`
       margin: 0;
 
       & li a {
+        display: flex;
         color: ${theme.colors.grayscale.base};
         text-decoration: none;
+        padding: ${theme.gridUnit}px 0;
 
         & span {
-          margin-right: ${theme.gridUnit * 3}px;
+          margin-right: ${theme.gridUnit}px;
         }
       }
     }
@@ -57,7 +59,7 @@ export type LegendProps = {
   format: string | null;
   forceCategorical?: boolean;
   position?: null | 'tl' | 'tr' | 'bl' | 'br';
-  categories: Record<string, { enabled: boolean; color: number[] }>;
+  categories: Record<string, { enabled: boolean; color: number[] | undefined }>;
   toggleCategory?: (key: string) => void;
   showSingleCategory?: (key: string) => void;
 };
@@ -99,7 +101,7 @@ const Legend = ({
   }
 
   const categories = Object.entries(categoriesObject).map(([k, v]) => {
-    const style = { color: `rgba(${v.color.join(', ')})` };
+    const style = { color: `rgba(${v.color?.join(', ')})` };
     const icon = v.enabled ? '\u25FC' : '\u25FB';
 
     return (

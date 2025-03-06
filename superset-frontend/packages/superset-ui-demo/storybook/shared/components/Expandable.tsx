@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode } from 'react';
+import { Component, ReactNode } from 'react';
 
 export type Props = {
   children: ReactNode;
@@ -28,7 +28,7 @@ type State = {
   open: boolean;
 };
 
-export default class Expandable extends React.Component<Props, State> {
+export default class Expandable extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { open: false };

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { SupersetClient, logging, t } from '@superset-ui/core';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';

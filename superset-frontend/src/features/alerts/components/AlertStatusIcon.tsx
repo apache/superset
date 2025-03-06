@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t, SupersetTheme, useTheme } from '@superset-ui/core';
-import React from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 import { AlertState } from '../types';
@@ -35,11 +34,11 @@ function getStatusColor(
     case AlertState.Success:
       return isReportEnabled
         ? theme.colors.success.base
-        : theme.colors.alert.base;
+        : theme.colors.warning.base;
     case AlertState.Noop:
       return theme.colors.success.base;
     case AlertState.Grace:
-      return theme.colors.alert.base;
+      return theme.colors.warning.base;
     default:
       return theme.colors.grayscale.base;
   }

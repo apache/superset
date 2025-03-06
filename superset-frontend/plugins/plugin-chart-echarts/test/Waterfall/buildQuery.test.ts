@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SqlaFormData } from '@superset-ui/core';
+import { SqlaFormData, VizType } from '@superset-ui/core';
 import buildQuery from '../../src/Waterfall/buildQuery';
 
 describe('Waterfall buildQuery', () => {
@@ -26,7 +26,7 @@ describe('Waterfall buildQuery', () => {
     metric: 'foo',
     x_axis: 'bar',
     groupby: ['baz'],
-    viz_type: 'waterfall',
+    viz_type: VizType.Waterfall,
   };
 
   it('should build query fields from form data', () => {

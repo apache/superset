@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { getNumberFormatter, t, tn } from '@superset-ui/core';
 
 import Label from 'src/components/Label';

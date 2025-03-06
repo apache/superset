@@ -16,9 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import userEvent from '@testing-library/user-event';
-import { screen, render } from 'spec/helpers/testing-library';
+import { screen, render, userEvent } from 'spec/helpers/testing-library';
 import Button from '../Button';
 import Icons from '../Icons';
 import DropdownContainer from '.';
@@ -35,7 +33,7 @@ const mockOverflowingIndex = async (
   overflowingIndex: number,
   func: Function,
 ) => {
-  const spy = jest.spyOn(React, 'useState');
+  const spy = jest.spyOn(global.React, 'useState');
   spy.mockImplementation(() => [overflowingIndex, jest.fn()]);
   await func();
   spy.mockRestore();

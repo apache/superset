@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import json
 import logging
 from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 from superset.utils.core import get_user
 
 logger = logging.getLogger(__name__)
@@ -57,7 +57,7 @@ def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     }
 
 
-def update_id_refs(  # pylint: disable=too-many-locals
+def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     config: dict[str, Any],
     chart_ids: dict[str, int],
     dataset_info: dict[str, dict[str, Any]],
@@ -143,7 +143,7 @@ def update_id_refs(  # pylint: disable=too-many-locals
     return fixed
 
 
-def import_dashboard(
+def import_dashboard(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
@@ -153,9 +153,12 @@ def import_dashboard(
         "Dashboard",
     )
     existing = db.session.query(Dashboard).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
-        if overwrite and can_write and get_user():
-            if not security_manager.can_access_dashboard(existing):
+        if overwrite and can_write and user:
+            if not security_manager.can_access_dashboard(existing) or (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A dashboard already exists and user doesn't "
                     "have permissions to overwrite it"
@@ -188,7 +191,7 @@ def import_dashboard(
     if dashboard.id is None:
         db.session.flush()
 
-    if user := get_user():
+    if (user := get_user()) and user not in dashboard.owners:
         dashboard.owners.append(user)
 
     return dashboard

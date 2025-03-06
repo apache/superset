@@ -70,7 +70,7 @@ export default class EchartsAreaChartPlugin extends EchartsChartPlugin<
           t('Line'),
           t('Transformable'),
           t('Stacked'),
-          t('Popular'),
+          t('Featured'),
         ],
         thumbnail,
       },

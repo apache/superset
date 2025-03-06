@@ -16,7 +16,6 @@
 # under the License.
 """Unit tests for Superset"""
 
-import json
 from unittest import mock
 from unittest.mock import patch  # noqa: F401
 
@@ -24,6 +23,7 @@ import pytest
 
 from superset.commands.dashboard.exceptions import DashboardForbiddenError
 from superset.daos.dashboard import DashboardDAO
+from superset.utils import json
 from superset.utils.core import backend, override_user
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import (
@@ -207,7 +207,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, new_role)  # noqa: F405
@@ -224,7 +224,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         assert response.status_code == 302
 
     @pytest.mark.usefixtures("public_role_like_gamma")
-    def test_get_dashboard_view__public_user_with_dashboard_permission_can_not_access_draft(
+    def test_get_dashboard_view__public_user_with_dashboard_permission_can_not_access_draft(  # noqa: E501
         self,
     ):
         # arrange
@@ -480,12 +480,12 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         self.login(GAMMA_USERNAME)
         rv = self.client.post(uri, json=data)
-        self.assertEqual(rv.status_code, 403)
+        assert rv.status_code == 403
         self.logout()
 
         self.login(ADMIN_USERNAME)
         rv = self.client.post(uri, json=data)
-        self.assertEqual(rv.status_code, 200)
+        assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
 
         target = (

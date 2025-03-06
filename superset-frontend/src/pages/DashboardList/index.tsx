@@ -24,7 +24,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -34,6 +34,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { PublishedLabel } from 'src/components/Label';
 import { TagsList } from 'src/components/Tags';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
@@ -111,6 +112,30 @@ const Actions = styled.div`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
+const DASHBOARD_COLUMNS_TO_FETCH = [
+  'id',
+  'dashboard_title',
+  'published',
+  'url',
+  'slug',
+  'changed_by',
+  'changed_by.id',
+  'changed_by.first_name',
+  'changed_by.last_name',
+  'changed_on_delta_humanized',
+  'owners',
+  'owners.id',
+  'owners.first_name',
+  'owners.last_name',
+  'tags.id',
+  'tags.name',
+  'tags.type',
+  'status',
+  'certified_by',
+  'certification_details',
+  'changed_on',
+];
+
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
 
@@ -135,6 +160,11 @@ function DashboardList(props: DashboardListProps) {
     'dashboard',
     t('dashboard'),
     addDangerToast,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    DASHBOARD_COLUMNS_TO_FETCH,
   );
   const dashboardIds = useMemo(() => dashboards.map(d => d.id), [dashboards]);
   const [saveFavoriteStatus, favoriteStatus] = useFavoriteStatus(
@@ -317,8 +347,9 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { status },
           },
-        }: any) =>
-          status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
+        }: any) => (
+          <PublishedLabel isPublished={status === DashboardStatus.PUBLISHED} />
+        ),
         Header: t('Status'),
         accessor: 'published',
         size: 'xl',
@@ -357,9 +388,6 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Owners'),
         accessor: 'owners',
         disableSortBy: true,
-        cellProps: {
-          style: { padding: '0px' },
-        },
         size: 'xl',
       },
       {
@@ -521,7 +549,7 @@ function DashboardList(props: DashboardListProps) {
               key: 'tags',
               id: 'tags',
               input: 'select',
-              operator: FilterOperator.DashboardTags,
+              operator: FilterOperator.DashboardTagById,
               unfilteredLabel: t('All'),
               fetchSelects: loadTags,
             },

@@ -17,7 +17,6 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from pprint import pformat
@@ -34,19 +33,20 @@ from superset.exceptions import (
     QueryClauseValidationException,
     QueryObjectValidationError,
 )
+from superset.extensions import event_logger
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
-from superset.utils import pandas_postprocessing
+from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
-    json_int_dttm_ser,
     QueryObjectFilterClause,
 )
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -277,7 +277,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
-                raise ex
+                raise
             return ex
 
     def _validate_no_have_duplicate_labels(self) -> None:
@@ -347,7 +347,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             default=str,
         )
 
-    def cache_key(self, **extra: Any) -> str:
+    def cache_key(self, **extra: Any) -> str:  # noqa: C901
         """
         The cache key is made out of the key/values from to_dict(), plus any
         other key/values in `extra`
@@ -429,19 +429,20 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                  is incorrect
         """
         logger.debug("post_processing: \n %s", pformat(self.post_processing))
-        for post_process in self.post_processing:
-            operation = post_process.get("operation")
-            if not operation:
-                raise InvalidPostProcessingError(
-                    _("`operation` property of post processing object undefined")
-                )
-            if not hasattr(pandas_postprocessing, operation):
-                raise InvalidPostProcessingError(
-                    _(
-                        "Unsupported post processing operation: %(operation)s",
-                        type=operation,
+        with event_logger.log_context(f"{self.__class__.__name__}.post_processing"):
+            for post_process in self.post_processing:
+                operation = post_process.get("operation")
+                if not operation:
+                    raise InvalidPostProcessingError(
+                        _("`operation` property of post processing object undefined")
                     )
-                )
-            options = post_process.get("options", {})
-            df = getattr(pandas_postprocessing, operation)(df, **options)
-        return df
+                if not hasattr(pandas_postprocessing, operation):
+                    raise InvalidPostProcessingError(
+                        _(
+                            "Unsupported post processing operation: %(operation)s",
+                            type=operation,
+                        )
+                    )
+                options = post_process.get("options", {})
+                df = getattr(pandas_postprocessing, operation)(df, **options)
+            return df

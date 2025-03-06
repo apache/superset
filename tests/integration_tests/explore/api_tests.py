@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from unittest.mock import patch
 
 import pytest
@@ -27,6 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.explore.exceptions import DatasetAccessDeniedError
 from superset.extensions import cache_manager
 from superset.models.slice import Slice
+from superset.utils import json
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401

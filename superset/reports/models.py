@@ -62,6 +62,7 @@ class ReportScheduleValidatorType(StrEnum):
 class ReportRecipientType(StrEnum):
     EMAIL = "Email"
     SLACK = "Slack"
+    SLACKV2 = "SlackV2"
 
 
 class ReportState(StrEnum):
@@ -172,6 +173,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     custom_height = Column(Integer, nullable=True)
 
     extra: ReportScheduleExtra  # type: ignore
+
+    email_subject = Column(String(255))
 
     def __repr__(self) -> str:
         return str(self.name)

@@ -77,6 +77,7 @@ export function useListViewResource<D extends object = any>(
   defaultCollectionValue: D[] = [],
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
+  selectColumns?: string[],
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -162,6 +163,7 @@ export function useListViewResource<D extends object = any>(
         page: pageIndex,
         page_size: pageSize,
         ...(filterExps.length ? { filters: filterExps } : {}),
+        ...(selectColumns?.length ? { select_columns: selectColumns } : {}),
       });
 
       return SupersetClient.get({
@@ -593,10 +595,13 @@ export function useFavoriteStatus(
     }
     favoriteApis[type](ids).then(
       ({ result }) => {
-        const update = result.reduce((acc, element) => {
-          acc[element.id] = element.value;
-          return acc;
-        }, {});
+        const update = result.reduce<Record<string, boolean>>(
+          (acc, element) => {
+            acc[element.id] = element.value;
+            return acc;
+          },
+          {},
+        );
         updateFavoriteStatus(update);
       },
       createErrorHandler(errMsg =>

@@ -16,16 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import {
   render,
+  userEvent,
   waitForElementToBeRemoved,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { exploreActions } from 'src/explore/actions/exploreActions';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin, VizType } from '@superset-ui/core';
 import { ResultsPaneOnDashboard } from '../components';
 import { createResultsPaneOnDashboardProps } from './fixture';
 
@@ -163,11 +162,11 @@ describe('ResultsPaneOnDashboard', () => {
       metadata,
       Chart: FakeChart,
     });
-    plugin.configure({ key: 'mixed_timeseries' }).register();
+    plugin.configure({ key: VizType.MixedTimeseries }).register();
 
     const props = createResultsPaneOnDashboardProps({
       sliceId: 196,
-      vizType: 'mixed_timeseries',
+      vizType: VizType.MixedTimeseries,
     });
     const { findByText } = render(<ResultsPaneOnDashboard {...props} />, {
       useRedux: true,

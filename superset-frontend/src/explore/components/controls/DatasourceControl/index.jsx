@@ -18,7 +18,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
   DatasourceType,
@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core';
 import { getTemporalColumns } from '@superset-ui/chart-controls';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
@@ -51,7 +51,6 @@ import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModal
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
-import { isString } from 'lodash';
 import { Link } from 'react-router-dom';
 
 const propTypes = {
@@ -83,12 +82,8 @@ const Styles = styled.div`
   .error-alert {
     margin: ${({ theme }) => 2 * theme.gridUnit}px;
   }
-  .ant-dropdown-trigger {
+  .antd5-dropdown-trigger {
     margin-left: ${({ theme }) => 2 * theme.gridUnit}px;
-    box-shadow: none;
-    &:active {
-      box-shadow: none;
-    }
   }
   .btn-group .open .dropdown-toggle {
     box-shadow: none;
@@ -136,7 +131,7 @@ const SAVE_AS_DATASET = 'save_as_dataset';
 // a tooltip for user can see the full name by hovering over the visually truncated string in UI
 const VISIBLE_TITLE_LENGTH = 25;
 
-// Assign icon for each DatasourceType.  If no icon assingment is found in the lookup, no icon will render
+// Assign icon for each DatasourceType.  If no icon assignment is found in the lookup, no icon will render
 export const datasourceIconLookup = {
   [DatasourceType.Query]: (
     <Icons.ConsoleSqlOutlined className="datasource-svg" />
@@ -171,7 +166,7 @@ const preventRouterLinkWhileMetaClicked = evt => {
   }
 };
 
-class DatasourceControl extends React.PureComponent {
+class DatasourceControl extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -188,7 +183,7 @@ class DatasourceControl extends React.PureComponent {
     const { columns } = datasource;
     // the current granularity_sqla might not be a temporal column anymore
     const timeCol = this.props.form_data?.granularity_sqla;
-    const isGranularitySqalTemporal = columns.find(
+    const isGranularitySqlaTemporal = columns.find(
       ({ column_name }) => column_name === timeCol,
     )?.is_dttm;
     // the current main_dttm_col might not be a temporal column anymore
@@ -198,7 +193,7 @@ class DatasourceControl extends React.PureComponent {
 
     // if the current granularity_sqla is empty or it is not a temporal column anymore
     // let's update the control value
-    if (datasource.type === 'table' && !isGranularitySqalTemporal) {
+    if (datasource.type === 'table' && !isGranularitySqlaTemporal) {
       const temporalColumn = isDefaultTemporal
         ? defaultTemporalColumn
         : temporalColumns?.[0];
@@ -343,7 +338,7 @@ class DatasourceControl extends React.PureComponent {
         <Menu.Item key={QUERY_PREVIEW}>
           <ModalTrigger
             triggerNode={
-              <span data-test="view-query-menu-item">{t('Query preview')}</span>
+              <div data-test="view-query-menu-item">{t('Query preview')}</div>
             }
             modalTitle={t('Query preview')}
             modalBody={
@@ -383,7 +378,7 @@ class DatasourceControl extends React.PureComponent {
 
     let extra;
     if (datasource?.extra) {
-      if (isString(datasource.extra)) {
+      if (typeof datasource.extra === 'string') {
         try {
           extra = JSON.parse(datasource.extra);
         } catch {} // eslint-disable-line no-empty
@@ -411,8 +406,8 @@ class DatasourceControl extends React.PureComponent {
           {extra?.warning_markdown && (
             <WarningIconWithTooltip warningMarkdown={extra.warning_markdown} />
           )}
-          <AntdDropdown
-            overlay={
+          <Dropdown
+            dropdownRender={() =>
               datasource.type === DatasourceType.Query
                 ? queryDatasourceMenu
                 : defaultDatasourceMenu
@@ -424,24 +419,17 @@ class DatasourceControl extends React.PureComponent {
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />
-          </AntdDropdown>
+          </Dropdown>
         </div>
         {/* missing dataset */}
         {isMissingDatasource && isMissingParams && (
           <div className="error-alert">
             <ErrorAlert
               level="warning"
-              title={t('Missing URL parameters')}
-              source="explore"
-              subtitle={
-                <>
-                  <p>
-                    {t(
-                      'The URL is missing the dataset_id or slice_id parameters.',
-                    )}
-                  </p>
-                </>
-              }
+              errorType={t('Missing URL parameters')}
+              description={t(
+                'The URL is missing the dataset_id or slice_id parameters.',
+              )}
             />
           </div>
         )}
@@ -449,25 +437,18 @@ class DatasourceControl extends React.PureComponent {
           <div className="error-alert">
             <ErrorAlert
               level="warning"
-              title={t('Missing dataset')}
-              source="explore"
-              subtitle={
+              errorType={t('Missing dataset')}
+              description={
                 <>
-                  <p>
-                    {t(
-                      'The dataset linked to this chart may have been deleted.',
-                    )}
-                  </p>
-                  <p>
-                    <Button
-                      buttonStyle="primary"
-                      onClick={() =>
-                        this.handleMenuItemClick({ key: CHANGE_DATASET })
-                      }
-                    >
-                      {t('Swap dataset')}
-                    </Button>
-                  </p>
+                  {t('The dataset linked to this chart may have been deleted.')}
+                  <Button
+                    buttonStyle="primary"
+                    onClick={() =>
+                      this.handleMenuItemClick({ key: CHANGE_DATASET })
+                    }
+                  >
+                    {t('Swap dataset')}
+                  </Button>
                 </>
               }
             />

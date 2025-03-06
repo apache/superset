@@ -27,6 +27,9 @@ metadata:
     chart: {{ template "superset.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
     {{- if .Values.supersetNode.deploymentLabels }}
       {{- toYaml .Values.supersetNode.deploymentLabels | nindent 4 }}
     {{- end }}
@@ -34,8 +37,8 @@ metadata:
   annotations: {{- toYaml .Values.supersetNode.deploymentAnnotations | nindent 4 }}
   {{- end }}
 spec:
-  {{- if not .Values.supersetNode.autoscaling.enabled }}
-  replicas: {{ .Values.supersetNode.replicaCount }}
+  {{- if and (not .Values.supersetNode.autoscaling.enabled) .Values.supersetNode.replicas.enabled }}
+  replicas: {{ .Values.supersetNode.replicas.replicaCount }}
   {{- end }}
   {{- if .Values.supersetNode.strategy }}
   strategy: {{- toYaml .Values.supersetNode.strategy | nindent 4 }}
@@ -66,6 +69,9 @@ spec:
       labels:
         app: {{ template "superset.name" . }}
         release: {{ .Release.Name }}
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
         {{- if .Values.supersetNode.podLabels }}
           {{- toYaml .Values.supersetNode.podLabels | nindent 8 }}
         {{- end }}
@@ -158,6 +164,9 @@ spec:
         {{- with .Values.supersetNode.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.priorityClassName }}
+      priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetNode.topologySpreadConstraints }}
       topologySpreadConstraints:

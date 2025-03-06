@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useTheme, SafeMarkdown } from '@superset-ui/core';
 import Icons, { IconType } from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
@@ -39,7 +38,7 @@ function WarningIconWithTooltip({
       title={<SafeMarkdown source={warningMarkdown} />}
     >
       <Icons.AlertSolid
-        iconColor={theme.colors.alert.base}
+        iconColor={theme.colors.warning.base}
         iconSize={size}
         css={{ marginRight: marginRight ?? theme.gridUnit * 2 }}
       />

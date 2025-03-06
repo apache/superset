@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FunctionComponent } from 'react';
+import { FunctionComponent } from 'react';
 import { styled, t } from '@superset-ui/core';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -30,7 +30,6 @@ const QueryTitle = styled.div`
   color: ${({ theme }) => theme.colors.secondary.light2};
   font-size: ${({ theme }) => theme.typography.sizes.s}px;
   margin-bottom: 0;
-  text-transform: uppercase;
 `;
 
 const QueryLabel = styled.div`
@@ -40,10 +39,7 @@ const QueryLabel = styled.div`
 `;
 
 const StyledModal = styled(Modal)`
-  .ant-modal-content {
-  }
-
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 24px;
   }
 

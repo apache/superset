@@ -16,30 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import React from 'react';
-import { ReactWrapper } from 'enzyme';
-import { styledMount as mount } from 'spec/helpers/theming';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
 import LastUpdated from '.';
 
-describe('LastUpdated', () => {
-  let wrapper: ReactWrapper;
-  const updatedAt = new Date('Sat Dec 12 2020 00:00:00 GMT-0800');
+const updatedAt = new Date('Sat Dec 12 2020 00:00:00 GMT-0800');
 
-  it('renders the base component (no refresh)', () => {
-    const wrapper = mount(<LastUpdated updatedAt={updatedAt} />);
-    expect(/^Last Updated .+$/.test(wrapper.text())).toBe(true);
-  });
+test('renders the base component (no refresh)', () => {
+  const { getByText } = render(<LastUpdated updatedAt={updatedAt} />);
+  expect(getByText(/^Last Updated .+$/)).toBeInTheDocument();
+});
 
-  it('renders a refresh action', async () => {
-    const mockAction = jest.fn();
-    wrapper = mount(<LastUpdated updatedAt={updatedAt} update={mockAction} />);
-    await waitForComponentToPaint(wrapper);
-    const props = wrapper.find('[aria-label="refresh"]').first().props();
-    if (props.onClick) {
-      props.onClick({} as React.MouseEvent);
-    }
-    expect(mockAction).toHaveBeenCalled();
-  });
+test('renders a refresh action', async () => {
+  const mockAction = jest.fn();
+  const { getByLabelText } = render(
+    <LastUpdated updatedAt={updatedAt} update={mockAction} />,
+  );
+  fireEvent.click(getByLabelText('refresh'));
+  expect(mockAction).toHaveBeenCalled();
 });

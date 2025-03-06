@@ -14,8 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
+from functools import partial
 from typing import Any, Optional
 
 from flask_babel import gettext as _
@@ -32,7 +32,6 @@ from superset.commands.report.exceptions import (
     ReportScheduleNameUniquenessValidationError,
 )
 from superset.daos.database import DatabaseDAO
-from superset.daos.exceptions import DAOCreateFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.reports.models import (
     ReportCreationMethod,
@@ -40,6 +39,8 @@ from superset.reports.models import (
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
+from superset.utils import json
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -48,13 +49,10 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+    @transaction(on_error=partial(on_error, reraise=ReportScheduleCreateFailedError))
     def run(self) -> ReportSchedule:
         self.validate()
-        try:
-            return ReportScheduleDAO.create(attributes=self._properties)
-        except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ReportScheduleCreateFailedError() from ex
+        return ReportScheduleDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
         """
@@ -63,7 +61,7 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         a list of `ValidationErrors` to be returned in the API response if any.
 
         Fields were loaded according to the `ReportSchedulePostSchema` schema.
-        """
+        """  # noqa: E501
         # Required fields
         cron_schedule = self._properties["crontab"]
         name = self._properties["name"]
@@ -145,10 +143,17 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
 
         position_data = json.loads(dashboard.position_json or "{}")
         active_tabs = dashboard_state.get("activeTabs") or []
-        anchor = dashboard_state.get("anchor")
         invalid_tab_ids = set(active_tabs) - set(position_data.keys())
-        if anchor and anchor not in position_data:
-            invalid_tab_ids.add(anchor)
+
+        if anchor := dashboard_state.get("anchor"):
+            try:
+                anchor_list: list[str] = json.loads(anchor)
+                if _invalid_tab_ids := set(anchor_list) - set(position_data.keys()):
+                    invalid_tab_ids.update(_invalid_tab_ids)
+            except json.JSONDecodeError:
+                if anchor not in position_data:
+                    invalid_tab_ids.add(anchor)
+
         if invalid_tab_ids:
             exceptions.append(
                 ValidationError(
