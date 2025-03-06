@@ -36,6 +36,6 @@ gunicorn \
     --max-requests-jitter ${WORKER_MAX_REQUESTS_JITTER:-0} \
     --limit-request-line ${SERVER_LIMIT_REQUEST_LINE:-0} \
     --limit-request-field_size ${SERVER_LIMIT_REQUEST_FIELD_SIZE:-0} \
-    --statsd-host="${STATSD_ADDRESS}" \
-    --statsd-prefix="${SERVER_STATSD_PREFIX:-superset}" \
+    --statsd-host "${STATSD_ADDRESS}" \
+    --statsd-prefix "${SERVER_STATSD_PREFIX:-superset}" \
     "${FLASK_APP}"
