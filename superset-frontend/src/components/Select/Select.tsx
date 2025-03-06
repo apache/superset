@@ -391,6 +391,11 @@ const Select = forwardRef(
     };
 
     useEffect(() => {
+      // when `options` list is updated from component prop, reset states
+      setSelectOptions(initialOptions);
+    }, [initialOptions]);
+
+    useEffect(() => {
       if (loading !== undefined && loading !== isLoading) {
         setIsLoading(loading);
       }
