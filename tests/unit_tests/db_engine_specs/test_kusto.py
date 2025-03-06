@@ -19,7 +19,9 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from sqlalchemy import column
 
+from superset.db_engine_specs.kusto import KustoKqlEngineSpec
 from superset.sql.parse import SQLScript
 from superset.sql_parse import ParsedQuery
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -149,3 +151,25 @@ def test_sql_convert_dttm(
     from superset.db_engine_specs.kusto import KustoSqlEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
+
+
+@pytest.mark.parametrize(
+    "in_duration,expected_result",
+    [
+        ("PT1S", "bin(temporal,1s)"),
+        ("PT1M", "bin(temporal,1m)"),
+        ("PT5M", "bin(temporal,5m)"),
+        ("PT1H", "bin(temporal,1h)"),
+        ("P1D", "startofday(temporal)"),
+        ("P1W", "startofweek(temporal)"),
+        ("P1M", "startofmonth(temporal)"),
+        ("P1Y", "startofyear(temporal)"),
+    ],
+)
+def test_timegrain_expressions(in_duration: str, expected_result: str) -> None:
+    col = column("temporal")
+
+    actual_result = KustoKqlEngineSpec.get_timestamp_expr(
+        col=col, pdf=None, time_grain=in_duration
+    )
+    assert str(actual_result) == expected_result

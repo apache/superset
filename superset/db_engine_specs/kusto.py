@@ -117,14 +117,16 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
     _time_grain_expressions = {
         None: "{col}",
-        TimeGrain.SECOND: "{col}/ time(1s)",
-        TimeGrain.MINUTE: "{col}/ time(1min)",
-        TimeGrain.HOUR: "{col}/ time(1h)",
-        TimeGrain.DAY: "{col}/ time(1d)",
-        TimeGrain.MONTH: "datetime_diff('month', CreateDate, \
-            datetime(0001-01-01 00:00:00))+1",
-        TimeGrain.YEAR: "datetime_diff('year', CreateDate, \
-            datetime(0001-01-01 00:00:00))+1",
+        TimeGrain.SECOND: "bin({col},1s)",
+        TimeGrain.THIRTY_SECONDS: "bin({col},30s)",
+        TimeGrain.MINUTE: "bin({col},1m)",
+        TimeGrain.FIVE_MINUTES: "bin({col},5m)",
+        TimeGrain.THIRTY_MINUTES: "bin({col},30m)",
+        TimeGrain.HOUR: "bin({col},1h)",
+        TimeGrain.DAY: "startofday({col})",
+        TimeGrain.WEEK: "startofweek({col})",
+        TimeGrain.MONTH: "startofmonth({col})",
+        TimeGrain.YEAR: "startofyear({col})",
     }
 
     type_code_map: dict[int, str] = {}  # loaded from get_datatype only if needed
