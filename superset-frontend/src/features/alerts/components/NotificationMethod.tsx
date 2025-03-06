@@ -36,6 +36,7 @@ import {
 } from '@superset-ui/core';
 import { Select } from 'src/components';
 import Icons from 'src/components/Icons';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import RefreshLabel from 'src/components/RefreshLabel';
 import {
   NotificationMethodOption,
@@ -225,6 +226,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   ]);
 
   const [useSlackV1, setUseSlackV1] = useState<boolean>(false);
+  const { addInfoToast, addSuccessToast } = useToasts();
 
   const onMethodChange = (selected: {
     label: string;
@@ -274,6 +276,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
   }: {
     force?: boolean | undefined;
   } = {}) => {
+    if (force) {
+      addInfoToast(
+        t('Fetching Slack channels. This operation may take a while.'),
+      );
+    }
     fetchSlackChannels({ types: ['public_channel', 'private_channel'], force })
       .then(({ json }) => {
         const { result } = json;
@@ -311,6 +318,9 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
       })
       .finally(() => {
         setMethodOptionsLoading(false);
+        if (force) {
+          addSuccessToast(t('List of Slack channels updated'));
+        }
       });
   };
 
