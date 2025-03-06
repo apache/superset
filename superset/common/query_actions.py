@@ -107,7 +107,6 @@ def _get_full(
     if datasource.database.db_engine_spec.supports_remote_download(query_context.result_location):
         # Generate presigned URL for output CSV
         presigned_output_location = generate_presigned_url(payload["output_location"])
-        logger.info("ATHENA OUTPUT LOCATION PRESIGNED %s", presigned_output_location)
         return {
             "output_location": presigned_output_location,
         }
