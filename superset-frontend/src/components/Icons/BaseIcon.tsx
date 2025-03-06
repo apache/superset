@@ -45,50 +45,51 @@ export const BaseIconComponent: React.FC<
   customIcons,
   ...rest
 }) => {
-  const theme = useTheme();
-  const iconCss = css`
+    const theme = useTheme();
+    const iconCss = css`
     color: ${iconColor || theme.colors.grayscale.base};
     font-size: ${iconSize
-      ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-      : '24px'};
+        ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+        : '24px'};
   `;
-  const whatRole = rest?.onClick ? 'button' : 'img';
-  const ariaLabel = genAriaLabel(rest.fileName || '');
+    const whatRole = rest?.onClick ? 'button' : 'img';
+    const ariaLabel = genAriaLabel(rest.fileName || '');
 
-  return customIcons ? (
-    <span
-      role={whatRole}
-      aria-label={ariaLabel}
-      data-test={ariaLabel}
-      css={css`
-        display: inline-flex;
-        align-items: center;
-        line-height: 0;
-        ...${iconCss}
-      `}
-    >
+    return customIcons ? (
+      <span
+        role={whatRole}
+        aria-label={ariaLabel}
+        data-test={ariaLabel}
+        css={[css`
+          display: inline-flex;
+          align-items: center;
+          line-height: 0;
+        `,
+          iconCss,
+        ]}
+      >
+        <Component
+          viewBox={viewBox || '0 0 24 24'}
+          width={
+            iconSize
+              ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+              : '24px'
+          }
+          height={
+            iconSize
+              ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
+              : '24px'
+          }
+          {...(rest as CustomIconType)}
+        />
+      </span>
+    ) : (
       <Component
-        viewBox={viewBox || '0 0 24 24'}
-        width={
-          iconSize
-            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-            : '24px'
-        }
-        height={
-          iconSize
-            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-            : '24px'
-        }
-        {...(rest as CustomIconType)}
+        css={iconCss}
+        role={whatRole}
+        aria-label={ariaLabel}
+        data-test={ariaLabel}
+        {...(rest as AntdIconType)}
       />
-    </span>
-  ) : (
-    <Component
-      css={iconCss}
-      role={whatRole}
-      aria-label={ariaLabel}
-      data-test={ariaLabel}
-      {...(rest as AntdIconType)}
-    />
-  );
-};
+    );
+  };
