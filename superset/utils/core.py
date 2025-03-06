@@ -74,6 +74,7 @@ from sqlalchemy.types import TypeEngine
 from typing_extensions import TypeGuard
 
 from superset.constants import (
+    DEFAULT_USER_AGENT,
     EXTRA_FORM_DATA_APPEND_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS,
     EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS,
@@ -103,6 +104,7 @@ from superset.utils.hashing import md5_sha_from_dict, md5_sha_from_str
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource, TableColumn
+    from superset.models.core import Database
     from superset.models.sql_lab import Query
 
 logging.getLogger("MARKDOWN").setLevel(logging.INFO)
@@ -1795,3 +1797,10 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
         return int(v)
     except (ValueError, TypeError):
         return value_if_invalid
+
+
+def get_user_agent(database: Database, source: QuerySource | None) -> str:
+    if user_agent_func := current_app.config["USER_AGENT_FUNC"]:
+        return user_agent_func(database, source)
+
+    return DEFAULT_USER_AGENT
