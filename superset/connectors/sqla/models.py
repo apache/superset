@@ -1219,6 +1219,7 @@ class SqlaTable(
         "extra",
         "normalize_columns",
         "always_filter_main_dttm",
+        "folders",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
