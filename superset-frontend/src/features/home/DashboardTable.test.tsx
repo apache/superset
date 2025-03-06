@@ -267,7 +267,7 @@ describe('DashboardTable', () => {
     );
 
     const moreOptionsButton = screen.getAllByRole('img', {
-      name: 'MoreOutlined',
+      name: 'more',
     })[0];
     await userEvent.click(moreOptionsButton);
 
@@ -311,7 +311,7 @@ describe('DashboardTable', () => {
       { store },
     );
 
-    const moreOptionsButton = screen.getAllByLabelText('MoreOutlined')[0];
+    const moreOptionsButton = screen.getAllByLabelText('more')[0];
     await userEvent.click(moreOptionsButton);
 
     await waitFor(() => {

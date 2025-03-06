@@ -28,7 +28,7 @@ describe('charts list view', () => {
   });
 
   it('should load the Charts list', () => {
-    cy.get('[aria-label="UnorderedListOutlined"]').click();
+    cy.get('[aria-label="unordered-list"]').click();
     cy.eyesOpen({
       testName: 'Charts UnorderedListOutlined',
     });
@@ -36,7 +36,7 @@ describe('charts list view', () => {
   });
 
   it('should load the Charts card list', () => {
-    cy.get('[aria-label="card-AppstoreOutlined"]').click();
+    cy.get('[aria-label="appstore"]').click();
     cy.eyesOpen({
       testName: 'Charts AppstoreOutlined',
     });

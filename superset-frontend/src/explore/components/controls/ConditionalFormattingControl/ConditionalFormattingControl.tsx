@@ -166,7 +166,9 @@ const ConditionalFormattingControl = ({
                 <CaretContainer>
                   <Icons.CaretRightOutlined
                     iconSize="l"
-                    css={{ marginTop: theme.gridUnit }}
+                    css={css`
+                      margin-top: ${theme.gridUnit}px;
+                    `}
                     iconColor={theme.colors.grayscale.light1}
                   />
                 </CaretContainer>

@@ -324,7 +324,5 @@ test('renders a warning icon when a table name has a preexisting dataset', async
   userEvent.type(tableSelect, 'Sheet2');
 
   // Sheet2 should now show the warning icon
-  expect(
-    screen.getByRole('img', { name: 'WarningOutlined' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'warning' })).toBeInTheDocument();
 });

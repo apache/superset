@@ -124,12 +124,12 @@ test('Should render "appliedCrossFilterIndicators"', async () => {
     await screen.findByText('Applied cross-filters (1)'),
   ).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'SearchOutlined Clinical Stage' }),
+    screen.getByRole('button', { name: 'search Clinical Stage' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
   userEvent.click(
-    screen.getByRole('button', { name: 'SearchOutlined Clinical Stage' }),
+    screen.getByRole('button', { name: 'search Clinical Stage' }),
   );
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
   expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
@@ -158,13 +158,11 @@ test('Should render "appliedIndicators"', async () => {
   userEvent.hover(screen.getByTestId('details-panel-content'));
   expect(await screen.findByText('Applied filters (1)')).toBeInTheDocument();
   expect(
-    screen.getByRole('button', { name: 'SearchOutlined Country' }),
+    screen.getByRole('button', { name: 'search Country' }),
   ).toBeInTheDocument();
 
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(0);
-  userEvent.click(
-    screen.getByRole('button', { name: 'SearchOutlined Country' }),
-  );
+  userEvent.click(screen.getByRole('button', { name: 'search Country' }));
   expect(props.onHighlightFilterSource).toHaveBeenCalledTimes(1);
   expect(props.onHighlightFilterSource).toHaveBeenCalledWith([
     'ROOT_ID',
@@ -246,10 +244,10 @@ test('Arrow key navigation switches focus between indicators', () => {
 
   // Query the indicators
   const firstIndicator = screen.getByRole('button', {
-    name: 'SearchOutlined Clinical Stage',
+    name: 'search Clinical Stage',
   });
   const secondIndicator = screen.getByRole('button', {
-    name: 'SearchOutlined Age Group',
+    name: 'search Age Group',
   });
 
   // Focus the first indicator

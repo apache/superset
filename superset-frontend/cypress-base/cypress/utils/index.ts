@@ -26,8 +26,8 @@ export interface ChartSpec {
 }
 
 const viewTypeIcons = {
-  card: 'AppstoreOutlined',
-  list: 'UnorderedListOutlined',
+  card: 'appstore',
+  list: 'unordered-list',
 };
 
 export function setGridMode(type: 'card' | 'list') {

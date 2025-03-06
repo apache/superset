@@ -39,7 +39,7 @@ test('should render the expand button', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
   expect(
-    screen.getByRole('button', { name: 'VerticalAlignTopOutlined' }),
+    screen.getByRole('button', { name: 'vertical-align' }),
   ).toBeInTheDocument();
 });
 
@@ -47,7 +47,7 @@ test('should toggle', () => {
   const mockedProps = createProps();
   render(<Header {...mockedProps} />, { useRedux: true });
   const expandBtn = screen.getByRole('button', {
-    name: 'VerticalAlignTopOutlined',
+    name: 'vertical-align',
   });
   expect(mockedProps.toggleFiltersBar).not.toHaveBeenCalled();
   userEvent.click(expandBtn);

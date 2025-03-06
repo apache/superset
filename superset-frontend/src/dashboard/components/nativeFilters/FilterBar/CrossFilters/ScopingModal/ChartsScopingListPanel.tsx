@@ -77,7 +77,9 @@ const ScopingTitle = ({
           event.stopPropagation();
           onRemove(id);
         }}
-        css={{ margin: `auto auto auto ${theme.gridUnit}px` }}
+        css={css`
+          margin: auto auto auto ${theme.gridUnit}px;
+        `}
       />
     </FilterTitle>
   );

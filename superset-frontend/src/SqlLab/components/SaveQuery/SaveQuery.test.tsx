@@ -179,7 +179,7 @@ describe('SavedQuery', () => {
 
     await waitFor(() => {
       const saveBtn = screen.getByRole('button', { name: /save/i });
-      const caretBtn = screen.getByRole('button', { name: /DownOutlined/i });
+      const caretBtn = screen.getByRole('button', { name: /down/i });
 
       expect(saveBtn).toBeVisible();
       expect(caretBtn).toBeVisible();
@@ -193,7 +193,7 @@ describe('SavedQuery', () => {
     });
 
     const caretBtn = await screen.findByRole('button', {
-      name: /DownOutlined/i,
+      name: /down/i,
     });
     userEvent.click(caretBtn);
 
@@ -212,7 +212,7 @@ describe('SavedQuery', () => {
     });
 
     const caretBtn = await screen.findByRole('button', {
-      name: /DownOutlined/i,
+      name: /down/i,
     });
     userEvent.click(caretBtn);
 

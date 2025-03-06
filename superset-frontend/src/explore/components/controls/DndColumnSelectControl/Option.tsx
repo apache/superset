@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import {
   CaretContainer,
@@ -53,7 +53,9 @@ export default function Option({
     <OptionControlContainer data-test="option-label" withCaret={withCaret}>
       {canDelete && (
         <CloseContainer
-          css={{ textAlign: 'center' }}
+          css={css`
+            text-align: center;
+          `}
           role="button"
           data-test="remove-control-button"
           onClick={onClickClose}
@@ -83,7 +85,9 @@ export default function Option({
         <CaretContainer>
           <Icons.CaretRightOutlined
             iconSize="l"
-            css={{ marginTop: theme.gridUnit * 1 }}
+            css={css`
+              margin-top: ${theme.gridUnit}px;
+            `}
             iconColor={theme.colors.grayscale.light1}
           />
         </CaretContainer>

@@ -682,7 +682,7 @@ describe('DatabaseModal', () => {
       });
       // const tooltipIcons = within(advancedTabPanel).getAllByTestId('info-circle-filled');
       const tooltipIcons = within(advancedTabPanel).getAllByRole('img', {
-        name: /InfoCircleFilled/i,
+        name: /info-circle/i,
       });
 
       const exposeInSQLLabCheckbox = screen.getByRole('checkbox', {

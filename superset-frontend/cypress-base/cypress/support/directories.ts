@@ -252,7 +252,7 @@ export const datasetsList = {
     aceTextInput: '.ace_text-input',
     sourceSQLInput: '.ace_content',
     sourceVirtualSQLRadio: ':nth-child(2) > .ant-radio > .ant-radio-inner',
-    sourcePadlock: '[aria-label=LockOutlined]',
+    sourcePadlock: '[aria-label=lock]',
     legacy: {
       panel: '.panel-body',
       sqlInput: '#sql',
@@ -275,8 +275,8 @@ export const chartListView = {
     bulkSelect: dataTestLocator('bulk-select'),
   },
   header: {
-    cardView: '[aria-label="AppstoreOutlined"]',
-    listView: '[aria-label="UnorderedListOutlined"]',
+    cardView: '[aria-label="appstore"]',
+    listView: '[aria-label="unordered-list"]',
     sort: '[class="ant-select-selection-search-input"][aria-label="Sort"]',
     sortRecentlyModifiedMenuOption: '[label="Recently modified"]',
     sortAlphabeticalMenuOption: '[label="Alphabetical"]',
@@ -328,7 +328,7 @@ export const nativeFilters = {
       filterItemsContainer: dataTestLocator('filter-title-container'),
       tabsContainer: '[class="ant-tabs-nav-list"]',
       tab: '.ant-tabs-tab',
-      removeTab: '[aria-label="DeleteOutlined"]',
+      removeTab: '[aria-label="delete"]',
     },
     addFilter: dataTestLocator('add-filter-button'),
     defaultValueCheck: '.ant-checkbox-checked',
@@ -373,7 +373,7 @@ export const nativeFilters = {
     listItemNotActive: '[class="ant-tabs-tab ant-tabs-tab-with-remove"]',
     listItemActive:
       '[class="ant-tabs-tab ant-tabs-tab-with-remove ant-tabs-tab-active"]',
-    removeIcon: '[aria-label="DeleteOutlined"]',
+    removeIcon: '[aria-label="delete"]',
   },
   filterItem: dataTestLocator('form-item-value'),
   filterItemDropdown: '.ant-select-selection-search',
@@ -400,8 +400,8 @@ export const dashboardListView = {
     card: dataTestLocator('styled-card'),
     cardCover: '[class="antd5-card-cover"]',
     cardImage: '[class="gradient-container"]',
-    selectedStarIcon: "[aria-label='StarFilled']",
-    unselectedStarIcon: "[aria-label='StarOutlined']",
+    selectedStarIcon: "[aria-label='star']",
+    unselectedStarIcon: "[aria-label='star']",
     starIcon: dataTestLocator('fave-unfave-icon'),
   },
   deleteModal: {
@@ -410,8 +410,8 @@ export const dashboardListView = {
   },
   table: {
     starIcon: dataTestLocator('fave-unfave-icon'),
-    selectedStarIcon: "[aria-label='StarFilled']",
-    unselectedStarIcon: "[aria-label='StarOutlined']",
+    selectedStarIcon: "[aria-label='star']",
+    unselectedStarIcon: "[aria-label='star']",
     bulkSelect: {
       checkboxOff: '[aria-label="checkbox-off"]',
       checkboxOn: '[aria-label="checkbox-on"]',
@@ -436,8 +436,8 @@ export const dashboardListView = {
     importButton: dataTestLocator('modal-confirm-button'),
   },
   header: {
-    cardView: '[aria-label="AppstoreOutlined"]',
-    listView: '[aria-label="UnorderedListOutlined"]',
+    cardView: '[aria-label="appstore"]',
+    listView: '[aria-label="unordered-list"]',
     sort: dataTestLocator('sort-header'),
     sortDropdown: '.Select__menu',
     statusFilterInput: `${dataTestLocator(
@@ -501,7 +501,7 @@ export const exploreView = {
     optionField: dataTestLocator('option-label'),
     fieldInput: '.Select__control input',
     removeFieldValue: dataTestLocator('remove-control-button'),
-    addFieldValue: '[aria-label="PlusOutlined"]',
+    addFieldValue: '[aria-label="plus"]',
     vizType: dataTestLocator('visualization-type'),
     runButton: dataTestLocator('run-query-button'),
     saveQuery: dataTestLocator('query-save-button'),

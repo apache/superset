@@ -232,7 +232,9 @@ const FilterBarSettings = () => {
                   FilterBarOrientation.Horizontal && (
                   <Icons.CheckOutlined
                     iconSize="m"
-                    css={{ verticalAlign: 'middle' }}
+                    css={css`
+                      vertical-align: middle;
+                    `}
                   />
                 )}
               </Space>

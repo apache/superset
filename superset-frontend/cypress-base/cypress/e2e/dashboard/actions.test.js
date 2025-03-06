@@ -30,7 +30,7 @@ describe('Dashboard actions', () => {
 
     // Find and click StarOutlined (adds to favorites)
     cy.getBySel('dashboard-header-container')
-      .find("[aria-label='StarOutlined']")
+      .find("[aria-label='star']")
       .as('starIconOutlined')
       .should('exist')
       .click();
@@ -39,7 +39,7 @@ describe('Dashboard actions', () => {
 
     // After clicking, StarFilled should appear
     cy.getBySel('dashboard-header-container')
-      .find("[aria-label='StarFilled']")
+      .find("[aria-label='star']")
       .as('starIconFilled')
       .should('exist');
 
@@ -55,7 +55,7 @@ describe('Dashboard actions', () => {
 
     // After clicking, StarOutlined should reappear
     cy.getBySel('dashboard-header-container')
-      .find("[aria-label='StarOutlined']")
+      .find("[aria-label='star']")
       .as('starIconOutlinedAfter')
       .should('exist');
 

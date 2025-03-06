@@ -21,7 +21,7 @@ import { FC } from 'react';
 import { startCase } from 'lodash';
 import AntdEnhancedIcons from './AntdEnhanced';
 import Icon from './Icon';
-import IconType from './IconType';
+import IconType from './types';
 
 const IconFileNames = [
   // to keep custom

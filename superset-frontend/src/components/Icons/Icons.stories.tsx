@@ -20,7 +20,7 @@ import { useState } from 'react';
 import { styled, supersetTheme } from '@superset-ui/core';
 import { Input } from 'antd-v5';
 import Icons from '.';
-import IconType from './IconType';
+import IconType from './types';
 import Icon from './Icon';
 
 export default {

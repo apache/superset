@@ -153,7 +153,9 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               <Tooltip id="error-tooltip" placement="top" title={warning}>
                 <Icons.WarningOutlined
                   iconColor={colors.warning.base}
-                  css={{ verticalAlign: 'baseline' }}
+                  css={css`
+                    vertical-align: baseline;
+                  `}
                   iconSize="s"
                 />
               </Tooltip>{' '}

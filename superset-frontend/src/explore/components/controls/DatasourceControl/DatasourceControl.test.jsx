@@ -102,7 +102,7 @@ describe('DatasourceControl', () => {
     expect(
       container.querySelector('[data-test="datasource-menu-trigger"]'),
     ).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('MoreOutlined'));
+    userEvent.click(screen.getByLabelText('more'));
     await waitFor(() => {
       expect(screen.queryAllByRole('menuitem')).toHaveLength(3);
     });
@@ -121,7 +121,7 @@ describe('DatasourceControl', () => {
     expect(
       container.querySelector('[data-test="datasource-menu-trigger"]'),
     ).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('MoreOutlined'));
+    userEvent.click(screen.getByLabelText('more'));
     await waitFor(() => {
       expect(screen.queryAllByRole('menuitem')).toHaveLength(2);
     });
@@ -129,7 +129,7 @@ describe('DatasourceControl', () => {
 
   it('should render health check message', async () => {
     setup();
-    const modalTrigger = screen.getByLabelText('WarningOutlined');
+    const modalTrigger = screen.getByLabelText('warning');
     expect(modalTrigger).toBeInTheDocument();
 
     // Hover the modal so healthcheck message can show up

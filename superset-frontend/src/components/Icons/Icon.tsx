@@ -17,87 +17,15 @@
  * under the License.
  */
 
-import {
-  FC,
-  SVGProps,
-  useEffect,
-  useRef,
-  useState,
-  ComponentType,
-} from 'react';
-import { styled, css, useTheme } from '@superset-ui/core';
+import { FC, SVGProps, useEffect, useRef, useState } from 'react';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
-import IconType from './IconType';
+import { IconType } from './types';
+import { BaseIconComponent } from './BaseIcon';
 
-interface BaseIconProps extends SVGProps<SVGSVGElement> {
-  component?: ComponentType<SVGProps<SVGSVGElement>>;
-  iconColor?: IconType['iconColor'];
-  iconSize?: IconType['iconSize'];
-}
-
-const BaseIconComponent: React.FC<BaseIconProps> = ({
-  component: Component,
-  iconColor,
-  iconSize,
-  viewBox,
-  // @ts-ignore
-  customIcons,
-  ...rest
-}) => {
-  const theme = useTheme();
-  if (!Component) return null;
-  return customIcons ? (
-    <span
-      role={rest?.onClick ? 'button' : 'img'}
-      css={theme => css`
-        font-size: ${iconSize
-          ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-          : '24px'};
-        color: ${iconColor || theme.colors.grayscale.base};
-        display: inline-flex;
-        align-items: center;
-        line-height: 0;
-      `}
-    >
-      <Component
-        {...rest}
-        viewBox={viewBox || '0 0 24 24'}
-        width={
-          iconSize
-            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-            : '24px'
-        }
-        height={
-          iconSize
-            ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-            : '24px'
-        }
-      />
-    </span>
-  ) : (
-    <Component {...(rest as SVGProps<SVGSVGElement>)} />
-  );
-};
-
-export const StyledIcon = styled(BaseIconComponent)<BaseIconProps & IconType>`
-  ${({ iconColor, theme }) =>
-    `color: ${iconColor || theme.colors.grayscale.base};`}
-  font-size: ${({ iconSize, theme }) =>
-    iconSize
-      ? `${theme.typography.sizes[iconSize] || theme.typography.sizes.m}px`
-      : '24px'};
-`;
-
-export interface IconProps extends IconType {
-  fileName: string;
-  customIcons?: boolean;
-}
-
-export const Icon = (props: IconProps) => {
+export const Icon = (props: IconType) => {
   const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
-  const name = fileName.replace('_', '-');
 
   useEffect(() => {
     let cancelled = false;
@@ -115,13 +43,9 @@ export const Icon = (props: IconProps) => {
     };
   }, [fileName, ImportedSVG]);
 
-  const whatRole = props?.onClick ? 'button' : 'img';
   return (
-    // @ts-ignore to be removed
-    <StyledIcon
+    <BaseIconComponent
       component={ImportedSVG.current || TransparentIcon}
-      aria-label={name}
-      role={whatRole}
       {...iconProps}
     />
   );

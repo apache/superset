@@ -389,7 +389,7 @@ test('deletes a filter', async () => {
     onSave,
   });
   const removeButtons = screen.getAllByRole('button', {
-    name: 'DeleteOutlined',
+    name: 'delete',
   });
   userEvent.click(removeButtons[2]);
 
@@ -426,7 +426,7 @@ test('deletes a filter including dependencies', async () => {
     onSave,
   });
   const removeButtons = screen.getAllByRole('button', {
-    name: 'DeleteOutlined',
+    name: 'delete',
   });
   userEvent.click(removeButtons[1]);
   userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -518,7 +518,7 @@ test('rearranges three filters and deletes one of them', async () => {
 
   const draggableFilters = screen.getAllByRole('tab');
   const deleteButtons = screen.getAllByRole('button', {
-    name: 'DeleteOutlined',
+    name: 'delete',
   });
   userEvent.click(deleteButtons[1]);
 

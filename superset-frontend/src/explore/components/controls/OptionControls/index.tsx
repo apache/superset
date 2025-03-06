@@ -373,7 +373,9 @@ export const OptionControlLabel = ({
       withCaret={withCaret}
       data-test="option-label"
       {...props}
-      css={{ textAlign: 'center' }}
+      css={css`
+        text-align: center;
+      `}
     >
       <CloseContainer
         role="button"

@@ -77,16 +77,14 @@ beforeEach(() => {
 
 test('Dropdown trigger renders', async () => {
   await setup();
-  expect(screen.getByLabelText('SettingOutlined')).toBeVisible();
+  expect(screen.getByLabelText('setting')).toBeVisible();
 });
 
 test('Dropdown trigger renders with dashboard edit permissions', async () => {
   await setup({
     dash_edit_perm: true,
   });
-  expect(
-    screen.getByRole('img', { name: 'SettingOutlined' }),
-  ).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
 });
 
 test('Dropdown trigger does not render without dashboard edit permissions', async () => {
@@ -95,14 +93,14 @@ test('Dropdown trigger does not render without dashboard edit permissions', asyn
   });
 
   expect(
-    screen.queryByRole('img', { name: 'SettingOutlined' }),
+    screen.queryByRole('img', { name: 'setting' }),
   ).not.toBeInTheDocument();
 });
 
 test('Popover shows cross-filtering option on by default', async () => {
   await setup();
   const settingsButton = screen.getByRole('button', {
-    name: 'SettingOutlined',
+    name: 'setting',
   });
   userEvent.click(settingsButton);
   expect(screen.getByText('Enable cross-filtering')).toBeInTheDocument();
@@ -115,7 +113,7 @@ test('Can enable/disable cross-filtering', async () => {
   });
   await setup();
   const settingsButton = screen.getByRole('button', {
-    name: 'SettingOutlined',
+    name: 'setting',
   });
   userEvent.click(settingsButton);
   const initialCheckbox = screen.getByRole('checkbox');
@@ -123,35 +121,35 @@ test('Can enable/disable cross-filtering', async () => {
 
   userEvent.click(initialCheckbox);
 
-  userEvent.click(screen.getByLabelText('SettingOutlined'));
+  userEvent.click(screen.getByLabelText('setting'));
   expect(screen.getByRole('checkbox')).not.toBeChecked();
 });
 
 test('Popover opens with "Vertical" selected', async () => {
   await setup();
   const settingsButton = screen.getByRole('button', {
-    name: 'SettingOutlined',
+    name: 'setting',
   });
   userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[4]).getByLabelText('CheckOutlined'),
+    within(screen.getAllByRole('menuitem')[4]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
 test('Popover opens with "Horizontal" selected', async () => {
   await setup({ filterBarOrientation: FilterBarOrientation.Horizontal });
   const settingsButton = screen.getByRole('button', {
-    name: 'SettingOutlined',
+    name: 'setting',
   });
   userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
   expect(await screen.findByText('Vertical (Left)')).toBeInTheDocument();
   expect(screen.getByText('Horizontal (Top)')).toBeInTheDocument();
   expect(
-    within(screen.getAllByRole('menuitem')[5]).getByLabelText('CheckOutlined'),
+    within(screen.getAllByRole('menuitem')[5]).getByLabelText('check'),
   ).toBeInTheDocument();
 });
 
@@ -168,14 +166,14 @@ test('On selection change, send request and update checked value', async () => {
   await setup();
 
   const settingsButton = screen.getByRole('button', {
-    name: 'SettingOutlined',
+    name: 'setting',
   });
   userEvent.click(settingsButton);
   userEvent.hover(screen.getByText('Orientation of filter bar'));
 
   const verticalItem = await screen.findByText('Vertical (Left)');
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('CheckOutlined'),
+    within(verticalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
 
   userEvent.click(screen.getByText('Horizontal (Top)'));
@@ -185,7 +183,7 @@ test('On selection change, send request and update checked value', async () => {
 
   const horizontalItem = await screen.findByText('Horizontal (Top)');
   expect(
-    within(horizontalItem.closest('li')!).getByLabelText('CheckOutlined'),
+    within(horizontalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
 
   await waitFor(() =>
@@ -200,16 +198,14 @@ test('On selection change, send request and update checked value', async () => {
   );
 
   await waitFor(() => {
-    userEvent.click(screen.getByRole('button', { name: 'SettingOutlined' }));
+    userEvent.click(screen.getByRole('button', { name: 'setting' }));
     userEvent.hover(screen.getByText('Orientation of filter bar'));
     const updatedHorizontalItem = screen.getByText('Horizontal (Top)');
     expect(
-      within(updatedHorizontalItem.closest('li')!).getByLabelText(
-        'CheckOutlined',
-      ),
+      within(updatedHorizontalItem.closest('li')!).getByLabelText('check'),
     ).toBeInTheDocument();
     expect(
-      within(verticalItem.closest('li')!).queryByLabelText('CheckOutlined'),
+      within(verticalItem.closest('li')!).queryByLabelText('check'),
     ).not.toBeInTheDocument();
   });
 });
@@ -233,10 +229,10 @@ test('On failed request, restore previous selection', async () => {
 
   // Verify initial state
   expect(
-    within(verticalItem.closest('li')!).getByLabelText('CheckOutlined'),
+    within(verticalItem.closest('li')!).getByLabelText('check'),
   ).toBeInTheDocument();
   expect(
-    within(horizontalItem.closest('li')!).queryByLabelText('CheckOutlined'),
+    within(horizontalItem.closest('li')!).queryByLabelText('check'),
   ).not.toBeInTheDocument();
 
   // Click horizontal option
@@ -258,12 +254,10 @@ test('On failed request, restore previous selection', async () => {
     const verticalItemAfter = screen.getByText('Vertical (Left)');
     const horizontalItemAfter = screen.getByText('Horizontal (Top)');
     expect(
-      within(verticalItemAfter.closest('li')!).getByLabelText('CheckOutlined'),
+      within(verticalItemAfter.closest('li')!).getByLabelText('check'),
     ).toBeInTheDocument();
     expect(
-      within(horizontalItemAfter.closest('li')!).queryByLabelText(
-        'CheckOutlined',
-      ),
+      within(horizontalItemAfter.closest('li')!).queryByLabelText('check'),
     ).not.toBeInTheDocument();
   });
 });

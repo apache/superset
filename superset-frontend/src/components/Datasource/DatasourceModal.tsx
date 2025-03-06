@@ -28,6 +28,7 @@ import {
   t,
   SupersetError,
   useTheme,
+  css,
 } from '@superset-ui/core';
 
 import Icons from 'src/components/Icons';
@@ -302,7 +303,9 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       title={
         <span>
           <Icons.EditOutlined
-            css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
             data-test="edit-alt"
           />
           {t('Edit Dataset ')}

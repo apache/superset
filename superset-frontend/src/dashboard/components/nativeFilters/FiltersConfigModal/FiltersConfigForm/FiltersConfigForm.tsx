@@ -41,6 +41,7 @@ import {
   getClientErrorObject,
   SLOW_DEBOUNCE,
   useTheme,
+  css,
 } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
 import {
@@ -1323,7 +1324,9 @@ const FiltersConfigForm = (
                             <Icons.SyncOutlined
                               iconSize="xl"
                               iconColor={theme.colors.primary.base}
-                              css={{ marginLeft: `${theme.gridUnit * 2}px` }}
+                              css={css`
+                                margin-left: ${theme.gridUnit * 2}px;
+                              `}
                               onClick={() => refreshHandler(true)}
                             />
                           </Tooltip>

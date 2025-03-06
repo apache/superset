@@ -32,12 +32,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="MoreOutlined"]').first().click();
+  cy.get('[aria-label="more"]').first().click();
   cy.getBySel('dashboard-card-option-edit-button').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="MoreOutlined"]').first().click();
+  cy.get('[aria-label="more"]').first().click();
 }
 
 function confirmDelete(bulk = false) {
@@ -156,19 +156,13 @@ describe('Dashboards list', () => {
       orderAlphabetical();
 
       cy.getBySel('styled-card').first().contains('1 - Sample dashboard');
-      cy.getBySel('styled-card')
-        .first()
-        .find("[aria-label='StarOutlined']")
-        .click();
+      cy.getBySel('styled-card').first().find("[aria-label='star']").click();
       cy.wait('@select');
-      cy.getBySel('styled-card')
-        .first()
-        .find("[aria-label='StarFilled']")
-        .click();
+      cy.getBySel('styled-card').first().find("[aria-label='star']").click();
       cy.wait('@unselect');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='StarFilled']")
+        .find("[aria-label='star']")
         .should('not.exist');
     });
 

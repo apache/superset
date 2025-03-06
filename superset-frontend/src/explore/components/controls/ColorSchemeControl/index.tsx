@@ -117,7 +117,9 @@ const Label = ({
         <Tooltip title={alertTitle}>
           <Icons.WarningOutlined
             iconColor={theme.colors.warning.base}
-            css={{ verticalAlign: 'baseline' }}
+            css={css`
+              vertical-align: baseline;
+            `}
             iconSize="s"
           />
         </Tooltip>

@@ -67,7 +67,7 @@ test('renders a dropdown trigger with custom icon', async () => {
       />,
     );
     expect(
-      await screen.findByRole('img', { name: 'LinkOutlined' }),
+      await screen.findByRole('img', { name: 'link' }),
     ).toBeInTheDocument();
   });
 });

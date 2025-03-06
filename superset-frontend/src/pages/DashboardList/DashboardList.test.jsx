@@ -146,11 +146,11 @@ describe('DashboardList', () => {
     await screen.findByTestId('dashboard-list-view');
 
     // Initially in card view
-    const cardViewIcon = screen.getByRole('img', { name: 'AppstoreOutlined' });
+    const cardViewIcon = screen.getByRole('img', { name: 'appstore' });
     expect(cardViewIcon).toBeInTheDocument();
 
     // Switch to table view
-    const listViewIcon = screen.getByRole('img', { name: 'AppstoreOutlined' });
+    const listViewIcon = screen.getByRole('img', { name: 'appstore' });
     const listViewButton = listViewIcon.closest('[role="button"]');
     fireEvent.click(listViewButton);
 
@@ -167,7 +167,7 @@ describe('DashboardList', () => {
 
     // Find and click the first more options button
     const moreIcons = await screen.findAllByRole('img', {
-      name: 'MoreOutlined',
+      name: 'more',
     });
     fireEvent.click(moreIcons[0]);
 
@@ -189,7 +189,7 @@ describe('DashboardList', () => {
 
     // Find and click the first more options button
     const moreIcons = await screen.findAllByRole('img', {
-      name: 'MoreOutlined',
+      name: 'more',
     });
     fireEvent.click(moreIcons[0]);
 

@@ -106,8 +106,8 @@ import {
   UnorderedListOutlined,
   WarningOutlined,
 } from '@ant-design/icons';
-import { StyledIcon } from './Icon';
-import IconType from './IconType';
+import { IconType } from './types';
+import { BaseIconComponent } from './BaseIcon';
 
 const AntdIcons = {
   AlignCenterOutlined,
@@ -201,19 +201,13 @@ const AntdIcons = {
 const AntdEnhancedIcons = Object.keys(AntdIcons)
   .filter(k => !k.includes('TwoTone'))
   .map(k => ({
-    [k]: (props: IconType) => {
-      const whatRole = props?.onClick ? 'button' : 'img';
-      const ariaLabel = props['aria-label'] || k;
-      return (
-        <StyledIcon
-          // @ts-ignore to remove
-          component={AntdIcons[k as keyof typeof AntdIcons]}
-          role={whatRole}
-          aria-label={ariaLabel}
-          {...props}
-        />
-      );
-    },
+    [k]: (props: IconType) => (
+      <BaseIconComponent
+        component={AntdIcons[k as keyof typeof AntdIcons]}
+        fileName={k}
+        {...props}
+      />
+    ),
   }))
   .reduce((l, r) => ({ ...l, ...r }));
 
