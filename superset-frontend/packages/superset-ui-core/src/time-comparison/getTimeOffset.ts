@@ -78,6 +78,34 @@ export const parseDttmToDate = (
         now.setMonth(now.getMonth() - 1);
       }
       return now;
+    case 'previous calendar quarter': {
+      const prevQuarter = Math.ceil((now.getMonth() + 1) / 3) - 1;
+      const startDate = new Date();
+      startDate.setDate(0);
+      const endDate = new Date();
+      endDate.setDate(0);
+      if (prevQuarter === 0) {
+        startDate.setFullYear(now.getFullYear() - 1);
+        startDate.setMonth(9);
+        endDate.setFullYear(now.getFullYear() - 1);
+        endDate.setMonth(11);
+      } else {
+        endDate.setFullYear(now.getFullYear());
+        endDate.setMonth(prevQuarter * 3 - 1);
+        startDate.setFullYear(now.getFullYear());
+        startDate.setMonth(endDate.getMonth() - 2);
+      }
+      if (isEndDate) {
+        now.setFullYear(endDate.getFullYear());
+        now.setMonth(endDate.getMonth());
+        now.setDate(endDate.getDate());
+      } else {
+        now.setFullYear(startDate.getFullYear());
+        now.setMonth(startDate.getMonth());
+        now.setDate(startDate.getDate());
+      }
+      return now;
+    }
     case 'previous calendar year':
       if (isEndDate) {
         now.setFullYear(now.getFullYear(), 0, 1); // end date is the last day of the previous year
