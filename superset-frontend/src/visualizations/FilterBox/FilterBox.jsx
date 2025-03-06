@@ -20,6 +20,7 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
+import { connect } from 'react-redux';
 import { max as d3Max } from 'd3-array';
 import { AsyncCreatableSelect, CreatableSelect } from 'src/components/Select';
 // import Button from 'src/components/Button';
@@ -56,6 +57,7 @@ import {
 export const TIME_RANGE = TIME_FILTER_MAP.time_range;
 
 const propTypes = {
+  ikigaiOrigin: PropTypes.string,
   chartId: PropTypes.number.isRequired,
   origSelectedValues: PropTypes.object,
   datasource: PropTypes.object.isRequired,
@@ -140,6 +142,24 @@ class FilterBox extends React.PureComponent {
     this.onFilterMenuClose = this.onFilterMenuClose.bind(this);
   }
 
+  componentDidMount() {
+    this.handleIncomingWindowMsg();
+  }
+
+  handleIncomingWindowMsg() {
+    window.addEventListener('message', event => {
+      if (event.origin !== this.props.ikigaiOrigin) return;
+
+      const messageObject = JSON.parse(event.data);
+
+      if (
+        messageObject.info === 'widget-to-superset/sending-filter-hook-mounted'
+      ) {
+        this.sendFilterToDynamicMarkdown();
+      }
+    });
+  }
+
   onFilterMenuOpen(column) {
     return this.props.onFilterMenuOpen(this.props.chartId, column);
   }
@@ -212,6 +232,7 @@ class FilterBox extends React.PureComponent {
           this.props.onChange({ [fltr]: vals }, false);
         }
         this.clickApply();
+        this.sendFilterToDynamicMarkdown();
       },
     );
   }
@@ -289,6 +310,33 @@ class FilterBox extends React.PureComponent {
       });
     }
     return this.transformOptions(options, this.getKnownMax(key, options));
+  }
+
+  /**
+   * Post message with updated filters to all Dynamic Markdown instances within
+   * the dashboard
+   */
+  sendFilterToDynamicMarkdown() {
+    // ikigaiOrigin does not exist in chart view
+    const origin = this.props.ikigaiOrigin || '';
+
+    const crossWindowMessage = {
+      info: 'widget-to-parent/send-global-filter',
+      dataType: 'object',
+      data: {
+        filters: this.state.selectedValues,
+        filterLabel: this.props.filtersFields[0].label,
+        chartId: this.props?.chartId,
+      },
+    };
+
+    const iframes = document.querySelectorAll('iframe');
+    const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+
+    iframes.forEach(iframe => {
+      if (!iframe.name.includes('dynamic-markdown')) return;
+      iframe.contentWindow.postMessage(crossBrowserInfoString, origin);
+    });
   }
 
   renderDateFilter() {
@@ -495,4 +543,10 @@ class FilterBox extends React.PureComponent {
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-export default withTheme(FilterBox);
+function mapStateToProps(state) {
+  return {
+    ikigaiOrigin: state?.dashboardState?.ikigaiOrigin,
+  };
+}
+
+export default withTheme(connect(mapStateToProps)(FilterBox));

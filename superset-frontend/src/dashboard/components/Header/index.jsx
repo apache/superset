@@ -466,8 +466,6 @@ class Header extends React.PureComponent {
       supersetUrl,
     } = this.props;
 
-    console.log('ikigaiOrigin', ikigaiOrigin, supersetUrl);
-
     const userCanEdit =
       dashboardInfo.dash_edit_perm &&
       filterboxMigrationState !== FILTER_BOX_MIGRATION_STATES.REVIEWING &&
