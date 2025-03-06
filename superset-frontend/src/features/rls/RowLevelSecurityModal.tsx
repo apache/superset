@@ -336,12 +336,16 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
         <h4 data-test="rls-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="xl"
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           )}
           {isEditMode ? t('Edit Rule') : t('Add Rule')}

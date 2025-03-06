@@ -18,7 +18,7 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
@@ -238,12 +238,16 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         <h4 data-test="annotation-layer-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="l"
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           )}
           {isEditMode

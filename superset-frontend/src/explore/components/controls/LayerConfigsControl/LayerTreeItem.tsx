@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CloseOutlined, RightOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { Button, Tag } from 'antd';
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
@@ -39,7 +39,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
     <Tag className={className}>
       <Button
         className="layer-tree-item-close"
-        icon={<CloseOutlined />}
+        icon={<Icons.CloseOutlined />}
         onClick={onCloseTag}
         size="small"
       />
@@ -61,7 +61,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
       </span>
       <Button
         className="layer-tree-item-edit"
-        icon={<RightOutlined />}
+        icon={<Icons.RightOutlined />}
         onClick={onEditTag}
         size="small"
       />

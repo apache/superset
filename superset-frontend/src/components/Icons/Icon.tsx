@@ -23,9 +23,9 @@ import { IconType } from './types';
 import { BaseIconComponent } from './BaseIcon';
 
 export const Icon = (props: IconType) => {
-  const { fileName, ...iconProps } = props;
   const [, setLoaded] = useState(false);
   const ImportedSVG = useRef<FC<SVGProps<SVGSVGElement>>>();
+  const { fileName } = props;
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +46,7 @@ export const Icon = (props: IconType) => {
   return (
     <BaseIconComponent
       component={ImportedSVG.current || TransparentIcon}
-      {...iconProps}
+      {...props}
     />
   );
 };

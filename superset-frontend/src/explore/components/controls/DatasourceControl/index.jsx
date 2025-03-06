@@ -21,6 +21,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
+  css,
   DatasourceType,
   SupersetClient,
   styled,
@@ -401,7 +402,9 @@ class DatasourceControl extends PureComponent {
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
               <Icons.WarningOutlined
-                css={{ marginLeft: theme.gridUnit * 2 }}
+                css={css`
+                  margin-left: ${theme.gridUnit * 2}px;
+                `}
                 iconColor={theme.colors.warning.base}
               />
             </Tooltip>

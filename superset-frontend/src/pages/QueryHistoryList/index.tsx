@@ -19,6 +19,7 @@
 import { useMemo, useState, useCallback, ReactElement } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
+  css,
   QueryState,
   styled,
   SupersetClient,
@@ -162,7 +163,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
               <Icons.CheckOutlined
                 iconSize="m"
                 iconColor={theme.colors.success.base}
-                css={{ verticalAlign: '-webkit-baseline-middle' }}
+                css={css`
+                  vertical-align: -webkit-baseline-middle;
+                `}
               />
             );
             statusConfig.label = t('Success');

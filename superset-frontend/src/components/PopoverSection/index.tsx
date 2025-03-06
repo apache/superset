@@ -17,7 +17,7 @@
  * under the License.
  */
 import { MouseEventHandler, ReactNode } from 'react';
-import { useTheme } from '@superset-ui/core';
+import { css, useTheme } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
 
@@ -48,17 +48,20 @@ export default function PopoverSection({
         role="button"
         tabIndex={0}
         onClick={onSelect}
-        css={{
-          display: 'flex',
-          alignItems: 'center',
-          cursor: onSelect ? 'pointer' : 'default',
-        }}
+        css={css`
+          display: flex;
+          align-items: center;
+          cursor: ${onSelect ? 'pointer' : 'default'};
+        `}
       >
         <strong data-test="popover-title">{title}</strong>
         {info && (
           <Tooltip
             title={info}
-            css={{ marginLeft: theme.gridUnit, marginRight: theme.gridUnit }}
+            css={css`
+              margin-left: ${theme.gridUnit}px;
+              margin-right: ${theme.gridUnit}px;
+            `}
           >
             <Icons.InfoCircleFilled
               role="img"
@@ -76,10 +79,10 @@ export default function PopoverSection({
         />
       </div>
       <div
-        css={{
-          marginLeft: theme.gridUnit,
-          marginTop: theme.gridUnit,
-        }}
+        css={css`
+          margin-left: ${theme.gridUnit}px;
+          margin-top: ${theme.gridUnit}px;
+        `}
       >
         {children}
       </div>

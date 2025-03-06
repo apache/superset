@@ -43,7 +43,7 @@ import {
   Select,
   Upload,
 } from 'src/components';
-import { UploadOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
@@ -630,7 +630,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   >
                     <Button
                       aria-label={t('Select')}
-                      icon={<UploadOutlined />}
+                      icon={<Icons.UploadOutlined />}
                       loading={fileLoading}
                     >
                       {t('Select')}

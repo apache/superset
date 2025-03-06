@@ -630,7 +630,9 @@ function ExploreViewContainer(props) {
             >
               <Icons.VerticalAlignTopOutlined
                 iconSize="xl"
-                css={{ transform: 'rotate(-90deg)' }}
+                css={css`
+                  transform: rotate(-90deg);
+                `}
                 className="collapse-icon"
                 iconColor={theme.colors.primary.base}
               />
@@ -657,7 +659,9 @@ function ExploreViewContainer(props) {
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
-                  css={{ transform: 'rotate(90deg)' }}
+                  css={css`
+                    transform: rotate(90deg);
+                  `}
                   className="collapse-icon"
                   iconColor={theme.colors.primary.base}
                 />

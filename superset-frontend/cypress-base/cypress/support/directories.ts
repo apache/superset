@@ -171,7 +171,7 @@ export const sqlLabView = {
     header: '[role=columnheader]',
     table: '.QueryTable',
     row: dataTestLocator('table-row'),
-    failureMarkIcon: '[aria-label=CloseOutlined]',
+    failureMarkIcon: '[aria-label=close]',
     successMarkIcon: '[aria-label=check]',
   },
 };

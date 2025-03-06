@@ -33,6 +33,7 @@ import {
   getClientErrorObject,
   ensureIsArray,
   useTheme,
+  css,
 } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Chart, { Slice } from 'src/types/Chart';
@@ -250,7 +251,9 @@ function PropertiesModal({
       title={
         <span>
           <Icons.EditOutlined
-            css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
             data-test="edit-alt"
           />
           {t('Edit Chart Properties')}

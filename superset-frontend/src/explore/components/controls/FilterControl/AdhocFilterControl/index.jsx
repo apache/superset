@@ -19,6 +19,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
+  css,
   t,
   logging,
   SupersetClient,
@@ -377,7 +378,9 @@ class AdhocFilterControl extends Component {
             : this.addNewFilterPopoverTrigger(
                 <AddControlLabel>
                   <Icons.PlusOutlined
-                    css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+                    css={css`
+                      margin: auto ${theme.gridUnit * 2}px auto 0;
+                    `}
                     iconSize="xs"
                     iconColor={theme.colors.grayscale.light1}
                   />

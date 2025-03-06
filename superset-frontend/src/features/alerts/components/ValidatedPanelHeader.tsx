@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { CheckCircleOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 
 const ValidatedPanelHeader = ({
   title,
@@ -30,7 +30,7 @@ const ValidatedPanelHeader = ({
   validateCheckStatus: boolean;
   testId?: string;
 }): JSX.Element => {
-  const checkmark = <CheckCircleOutlined />;
+  const checkmark = <Icons.CheckCircleOutlined />;
 
   return (
     <div className="collapse-panel-header">

@@ -409,7 +409,9 @@ export const OptionControlLabel = ({
         <CaretContainer>
           <Icons.CaretRightOutlined
             iconSize="l"
-            css={{ marginTop: theme.gridUnit * 1 }}
+            css={css`
+              margin-top: ${theme.gridUnit}px;
+            `}
             iconColor={theme.colors.grayscale.light1}
           />
         </CaretContainer>

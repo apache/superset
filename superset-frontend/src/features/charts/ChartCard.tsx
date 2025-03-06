@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { isFeatureEnabled, FeatureFlag, t, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -80,7 +80,9 @@ export default function ChartCard({
           >
             <Icons.EditOutlined
               iconSize="l"
-              css={{ verticalAlign: 'baseline' }}
+              css={css`
+                vertical-align: baseline;
+              `}
             />{' '}
             {t('Edit')}
           </div>
@@ -95,7 +97,9 @@ export default function ChartCard({
           >
             <Icons.UploadOutlined
               iconSize="l"
-              css={{ verticalAlign: 'baseline' }}
+              css={css`
+                vertical-align: baseline;
+              `}
             />{' '}
             {t('Export')}
           </div>
@@ -132,7 +136,9 @@ export default function ChartCard({
               >
                 <Icons.DeleteOutlined
                   iconSize="l"
-                  css={{ verticalAlign: 'baseline' }}
+                  css={css`
+                    vertical-align: baseline;
+                  `}
                 />{' '}
                 {t('Delete')}
               </div>

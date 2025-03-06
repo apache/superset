@@ -22,7 +22,13 @@ import { EditableTabs } from 'src/components/Tabs';
 import { connect } from 'react-redux';
 import URI from 'urijs';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { FeatureFlag, styled, t, isFeatureEnabled } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  styled,
+  t,
+  isFeatureEnabled,
+  css,
+} from '@superset-ui/core';
 import { Logger } from 'src/logger/LogUtils';
 import { Tooltip } from 'src/components/Tooltip';
 import { detectOS } from 'src/utils/common';
@@ -250,7 +256,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
         >
           <Icons.PlusCircleOutlined
             iconSize="s"
-            css={{ verticalAlign: 'middle' }}
+            css={css`
+              vertical-align: middle;
+            `}
             data-test="add-tab-icon"
           />
         </Tooltip>
@@ -296,7 +304,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
           >
             <Icons.PlusCircleOutlined
               iconSize="l"
-              css={{ verticalAlign: 'middle' }}
+              css={css`
+                vertical-align: middle;
+              `}
               data-test="add-tab-icon"
             />
           </Tooltip>

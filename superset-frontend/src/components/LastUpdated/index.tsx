@@ -24,7 +24,7 @@ import {
 } from 'react';
 
 import { extendedDayjs } from 'src/utils/dates';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import dayjs from 'dayjs';
 
@@ -85,7 +85,9 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
       {update && (
         <RefreshIcon
           iconSize="l"
-          css={{ verticalAlign: 'text-bottom' }}
+          css={css`
+            vertical-align: text-bottom;
+          `}
           onClick={update}
         />
       )}

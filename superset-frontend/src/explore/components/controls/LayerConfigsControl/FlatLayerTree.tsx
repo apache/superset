@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PlusOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
 import { Button, Tree } from 'antd';
 import { TreeProps } from 'antd/lib/tree';
@@ -133,7 +133,7 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
           onClick={onAddLayer}
           size="small"
           type="dashed"
-          icon={<PlusOutlined />}
+          icon={<Icons.PlusOutlined />}
         >
           {addLayerLabel}
         </Button>

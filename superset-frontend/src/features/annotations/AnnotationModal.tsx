@@ -18,7 +18,7 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { RangePicker } from 'src/components/DatePicker';
 import { extendedDayjs } from 'src/utils/dates';
@@ -280,12 +280,16 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <h4 data-test="annotation-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           ) : (
             <Icons.PlusOutlined
               iconSize="l"
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           )}
           {isEditMode ? t('Edit annotation') : t('Add annotation')}

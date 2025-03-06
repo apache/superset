@@ -282,7 +282,7 @@ describe('ChartList', () => {
     // Wait for favorite stars to appear
     await waitFor(() => {
       const favoriteStars = screen.getAllByRole('img', {
-        name: 'star',
+        name: 'starred',
       });
       expect(favoriteStars.length).toBeGreaterThan(0);
     });

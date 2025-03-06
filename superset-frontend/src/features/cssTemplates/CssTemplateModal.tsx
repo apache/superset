@@ -18,7 +18,7 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t, useTheme } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
@@ -231,13 +231,17 @@ const CssTemplateModal: FunctionComponent<CssTemplateModalProps> = ({
         <h4 data-test="css-template-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           ) : (
             <Icons.PlusOutlined
               iconColor={theme.colors.primary.light5}
               iconSize="l"
-              css={{ margin: `auto ${theme.gridUnit * 2}px auto 0` }}
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
             />
           )}
           {isEditMode

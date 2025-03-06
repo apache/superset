@@ -148,7 +148,7 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
     />,
   );
 
-  const infoTooltipTrigger = screen.getByTestId('info-circle-filled');
+  const infoTooltipTrigger = screen.getByTestId('info-tooltip-icon');
   expect(infoTooltipTrigger).toBeInTheDocument();
 
   userEvent.hover(infoTooltipTrigger);

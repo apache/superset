@@ -337,7 +337,7 @@ test('should NOT render the "Draft" status', () => {
 test('should render the unselected fave icon', () => {
   setup();
   expect(fetchFaveStar).toHaveBeenCalled();
-  expect(screen.getByRole('img', { name: 'star' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'unstarred' })).toBeInTheDocument();
 });
 
 test('should render the selected fave icon', () => {
@@ -348,7 +348,7 @@ test('should render the selected fave icon', () => {
     },
   };
   setup(favedState);
-  expect(screen.getByRole('img', { name: 'star' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'starred' })).toBeInTheDocument();
 });
 
 test('should NOT render the fave icon on anonymous user', () => {
@@ -356,17 +356,17 @@ test('should NOT render the fave icon on anonymous user', () => {
     user: undefined,
   };
   setup(anonymousUserState);
-  expect(() => screen.getByRole('img', { name: 'star' })).toThrow(
+  expect(() => screen.getByRole('img', { name: 'unstarred' })).toThrow(
     'Unable to find',
   );
-  expect(() => screen.getByRole('img', { name: 'star' })).toThrow(
+  expect(() => screen.getByRole('img', { name: 'starred' })).toThrow(
     'Unable to find',
   );
 });
 
 test('should fave', async () => {
   setup();
-  const fave = screen.getByRole('img', { name: 'star' });
+  const fave = screen.getByRole('img', { name: 'unstarred' });
   expect(saveFaveStar).not.toHaveBeenCalled();
   userEvent.click(fave);
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
