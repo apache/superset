@@ -42,10 +42,16 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
+import { commands, sqlLab } from 'src/extensions';
 
 setupApp();
 setupPlugins();
 setupExtensions();
+
+(window as any)['superset'] = {
+  commands,
+  sqlLab,
+};
 
 const bootstrapData = getBootstrapData();
 
