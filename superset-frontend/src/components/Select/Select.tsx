@@ -69,12 +69,7 @@ import {
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
-import {
-  DEFAULT_SORT_COMPARATOR,
-  EMPTY_OPTIONS,
-  MAX_TAG_COUNT,
-  TOKEN_SEPARATORS,
-} from './constants';
+import { EMPTY_OPTIONS, MAX_TAG_COUNT, TOKEN_SEPARATORS } from './constants';
 import { customTagRender } from './CustomTag';
 
 /**
