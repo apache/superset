@@ -24,11 +24,14 @@ import {
   useMemo,
   useState,
   useCallback,
+  ClipboardEvent,
   Ref,
+  ReactElement,
 } from 'react';
 
 import {
   ensureIsArray,
+  FAST_DEBOUNCE,
   formatNumber,
   NumberFormats,
   t,
@@ -39,6 +42,7 @@ import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
 } from 'antd-v5/lib/select';
+import { debounce, isEqual, uniq } from 'lodash';
 import {
   getValue,
   hasOption,
@@ -51,6 +55,12 @@ import {
   isEqual as utilsIsEqual,
   handleFilterOptionHelper,
   renderSelectOptions,
+  sortComparatorWithSearchHelper,
+  dropDownRenderHelper,
+  sortSelectedFirstHelper,
+  getOption,
+  isObject,
+  getSuffixIcon,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -60,7 +70,12 @@ import {
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
-import { MAX_TAG_COUNT, TOKEN_SEPARATORS } from './constants';
+import {
+  DEFAULT_SORT_COMPARATOR,
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+} from './constants';
 import { customTagRender } from './CustomTag';
 
 /**
@@ -83,27 +98,33 @@ const Select = forwardRef(
       allowSelectAll = true,
       ariaLabel,
       autoClearSearchValue = false,
+      filterOption = true,
       header = null,
       headerPosition = 'top',
+      helperText,
       invertSelection = false,
       labelInValue = false,
       loading,
-      maxTagCount: propsMaxTagCount,
       mode = 'single',
       name,
       notFoundContent,
       onBlur,
       onChange,
       onClear,
+      onDropdownVisibleChange,
       onDeselect,
+      onSearch,
       onSelect,
+      optionFilterProps = ['label', 'value'],
       options,
       placeholder = t('Select ...'),
       showSearch = true,
+      sortComparator = DEFAULT_SORT_COMPARATOR,
       tokenSeparators = TOKEN_SEPARATORS,
       value,
       getPopupContainer,
       oneLine,
+      maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
     ref: RefObject<RefSelectProps>,
@@ -113,6 +134,10 @@ const Select = forwardRef(
     const [selectValue, setSelectValue] = useState(value);
     const [inputValue, setInputValue] = useState('');
     const [isLoading, setIsLoading] = useState(loading);
+    const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+    const [maxTagCount, setMaxTagCount] = useState(
+      propsMaxTagCount ?? MAX_TAG_COUNT,
+    );
     const [onChangeCount, setOnChangeCount] = useState(0);
     const previousChangeCount = usePrevious(onChangeCount, 0);
 
@@ -121,10 +146,11 @@ const Select = forwardRef(
       [onChangeCount],
     );
 
-    const maxTagCount = useMemo(
-      () => propsMaxTagCount ?? MAX_TAG_COUNT,
-      [propsMaxTagCount],
-    );
+    useEffect(() => {
+      if (oneLine) {
+        setMaxTagCount(isDropdownVisible ? 0 : 1);
+      }
+    }, [isDropdownVisible, oneLine]);
 
     const mappedMode = allowNewOptions
       ? 'tags'
@@ -134,20 +160,60 @@ const Select = forwardRef(
 
     const { Option } = AntdSelect;
 
+    const sortSelectedFirst = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortSelectedFirstHelper(a, b, selectValue),
+      [selectValue],
+    );
+
+    const initialOptions = useMemo(
+      () => (Array.isArray(options) ? options.slice() : EMPTY_OPTIONS),
+      [options],
+    );
+    const initialOptionsSorted = useMemo(
+      () => initialOptions.slice().sort(sortSelectedFirst),
+      [initialOptions, sortSelectedFirst],
+    );
+
     const [selectOptions, setSelectOptions] =
-      useState<SelectOptionsType>(options);
+      useState<SelectOptionsType>(initialOptionsSorted);
+
+    // add selected values to options list if they are not in it
+    const fullSelectOptions = useMemo(() => {
+      // check to see if selectOptions are grouped
+      let groupedOptions: SelectOptionsType;
+      if (selectOptions.some(opt => opt.options)) {
+        // @ts-ignore
+        groupedOptions = selectOptions.reduce(
+          (acc, group) => [...acc, ...group.options],
+          [] as SelectOptionsType,
+        );
+      }
+      const missingValues: SelectOptionsType = ensureIsArray(selectValue)
+        .filter(
+          opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
+        )
+        .map(opt =>
+          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+        );
+      const result =
+        missingValues.length > 0
+          ? missingValues.concat(selectOptions)
+          : selectOptions;
+      return result.filter(opt => opt.value !== SELECT_ALL_VALUE);
+    }, [selectOptions, selectValue]);
 
     const enabledOptions = useMemo(
-      () => options.filter(option => !option.disabled),
-      [options],
+      () => fullSelectOptions.filter(option => !option.disabled),
+      [fullSelectOptions],
     );
 
     const selectAllEligible = useMemo(
       () =>
-        options.filter(
+        fullSelectOptions.filter(
           option => hasOption(option.value, selectValue) || !option.disabled,
         ),
-      [options, selectValue],
+      [fullSelectOptions, selectValue],
     );
 
     const selectAllEnabled = useMemo(
@@ -224,7 +290,7 @@ const Select = forwardRef(
         setSelectValue(undefined);
       } else {
         setSelectValue(
-          options
+          fullSelectOptions
             .filter(
               option => option.disabled && hasOption(option.value, selectValue),
             )
@@ -261,7 +327,7 @@ const Select = forwardRef(
           // removes new option
           if (option.isNewOption) {
             setSelectOptions(
-              options.filter(
+              fullSelectOptions.filter(
                 option => getValue(option.value) !== getValue(value),
               ),
             );
@@ -271,6 +337,58 @@ const Select = forwardRef(
       fireOnChange();
       onDeselect?.(value, option);
     };
+
+    const handleOnSearch = debounce((search: string) => {
+      const searchValue = search.trim();
+      if (allowNewOptions) {
+        const newOption = searchValue &&
+          !hasOption(searchValue, fullSelectOptions, true) && {
+            label: searchValue,
+            value: searchValue,
+            isNewOption: true,
+          };
+        const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
+          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+        );
+        const newOptions = newOption
+          ? [newOption, ...cleanSelectOptions]
+          : cleanSelectOptions;
+        setSelectOptions(newOptions);
+      }
+      setInputValue(searchValue);
+      onSearch?.(searchValue);
+    }, FAST_DEBOUNCE);
+
+    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+
+    const handleFilterOption = (search: string, option: AntdLabeledValue) =>
+      handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
+
+    const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
+      setIsDropdownVisible(isDropdownVisible);
+
+      // if no search input value, force sort options because it won't be sorted by
+      // `filterSort`.
+      if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
+        if (!isEqual(initialOptionsSorted, selectOptions)) {
+          setSelectOptions(initialOptionsSorted);
+        }
+      }
+      if (onDropdownVisibleChange) {
+        onDropdownVisibleChange(isDropdownVisible);
+      }
+    };
+
+    const dropdownRender = (
+      originNode: ReactElement & { ref?: RefObject<HTMLElement> },
+    ) =>
+      dropDownRenderHelper(
+        originNode,
+        isDropdownVisible,
+        isLoading,
+        fullSelectOptions.length,
+        helperText,
+      );
 
     const handleClear = () => {
       clear();
@@ -385,6 +503,10 @@ const Select = forwardRef(
     useEffect(() => {
       if (onChangeCount !== previousChangeCount) {
         const array = ensureIsArray(selectValue);
+        const set = new Set(array.map(getValue));
+        const options = mapOptions(
+          fullSelectOptions.filter(opt => set.has(opt.value)),
+        );
         if (isSingleMode) {
           handleOnChange(selectValue, selectValue ? options[0] : undefined);
         } else {
@@ -392,7 +514,7 @@ const Select = forwardRef(
         }
       }
     }, [
-      options,
+      fullSelectOptions,
       handleOnChange,
       isSingleMode,
       onChange,
@@ -426,21 +548,55 @@ const Select = forwardRef(
       actualMaxTagCount -= 1;
     }
 
-    const getOptions = useMemo(() => {
-      let opts = options;
-      if (selectAllEnabled) {
-        opts = [
-          {
-            label: selectAllLabel(),
-            className: 'select-all',
-            value: SELECT_ALL_VALUE,
-          },
-          ...options,
-        ];
-      }
+    const getPastedTextValue = useCallback(
+      (text: string) => {
+        const option = getOption(text, fullSelectOptions, true);
+        if (!option && !allowNewOptions) {
+          return undefined;
+        }
+        if (labelInValue) {
+          const value: AntdLabeledValue = {
+            label: text,
+            value: text,
+          };
+          if (option) {
+            value.label = isObject(option) ? option.label : option;
+            value.value = isObject(option) ? option.value! : option;
+          }
+          return value;
+        }
+        return option ? (isObject(option) ? option.value! : option) : text;
+      },
+      [allowNewOptions, fullSelectOptions, labelInValue],
+    );
 
-      return opts;
-    }, [options, selectAllEnabled, selectAllLabel]);
+    const onPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+      const pastedText = e.clipboardData.getData('text');
+      if (isSingleMode) {
+        const value = getPastedTextValue(pastedText);
+        if (value) {
+          setSelectValue(value);
+        }
+      } else {
+        const token = tokenSeparators.find(token => pastedText.includes(token));
+        const array = token ? uniq(pastedText.split(token)) : [pastedText];
+        const values = array
+          .map(item => getPastedTextValue(item))
+          .filter(item => item !== undefined);
+        if (labelInValue) {
+          setSelectValue(previous => [
+            ...((previous || []) as AntdLabeledValue[]),
+            ...(values as AntdLabeledValue[]),
+          ]);
+        } else {
+          setSelectValue(previous => [
+            ...((previous || []) as string[]),
+            ...(values as string[]),
+          ]);
+        }
+      }
+      fireOnChange();
+    };
 
     return (
       <StyledContainer headerPosition={headerPosition}>
@@ -452,17 +608,8 @@ const Select = forwardRef(
           allowClear={!isLoading && allowClear}
           aria-label={ariaLabel}
           autoClearSearchValue={autoClearSearchValue}
-          filterOption={(input, option) => {
-            if (option?.value === SELECT_ALL_VALUE) {
-              return false;
-            }
-            return handleFilterOptionHelper(
-              input,
-              option as AntdLabeledValue,
-              ['label'],
-              true,
-            );
-          }}
+          dropdownRender={dropdownRender}
+          filterOption={handleFilterOption}
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
@@ -474,13 +621,22 @@ const Select = forwardRef(
           notFoundContent={isLoading ? t('Loading...') : notFoundContent}
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
+          onDropdownVisibleChange={handleOnDropdownVisibleChange}
+          // @ts-ignore
+          onPaste={onPaste}
           onPopupScroll={undefined}
+          onSearch={shouldShowSearch ? handleOnSearch : undefined}
           onSelect={handleOnSelect}
           onClear={handleClear}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
+          suffixIcon={getSuffixIcon(
+            isLoading,
+            shouldShowSearch,
+            isDropdownVisible,
+          )}
           menuItemSelectedIcon={
             invertSelection ? (
               <StyledStopOutlined iconSize="m" aria-label="stop" />
@@ -488,7 +644,7 @@ const Select = forwardRef(
               <StyledCheckOutlined iconSize="m" aria-label="check" />
             )
           }
-          options={shouldRenderChildrenOptions ? undefined : getOptions}
+          options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           oneLine={oneLine}
           tagRender={customTagRender}
           css={props.css}
