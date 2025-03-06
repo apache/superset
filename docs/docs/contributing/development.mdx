@@ -52,7 +52,7 @@ Note that:
   [docker-compose.yml](https://github.com/apache/superset/blob/master/docker-compose.yml)
 - The local repository is mounted within the services, meaning updating
   the code on the host will be reflected in the docker images
-- Superset is served at localhost:8088/
+- Superset is served at localhost:9000/
 - You can login with admin/admin
 
 :::note
@@ -72,10 +72,10 @@ documentation.
 configured to be secure.
 :::
 
-
 ### Supported environment variables
 
 Affecting the Docker build process:
+
 - **SUPERSET_BUILD_TARGET (default=dev):** which --target to build, either `lean` or `dev` are commonly used
 - **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build
 - **INCLUDE_CHROMIUM (default=false):** whether to include the Firefox headless browser in the build
@@ -90,6 +90,7 @@ For more env vars that affect your configuration, see this
 used in the `docker compose` context to assign env vars to the superset configuration.
 
 ### Accessing the postgres database
+
 Sometimes it's useful to access the database in the docker container directly.
 You can enter a `psql` shell (the official Postgres client) by running the following command:
 
@@ -269,22 +270,22 @@ If you have made changes to the FAB-managed templates, which are not built the s
 If you add a new requirement or update an existing requirement (per the `install_requires` section in `setup.py`) you must recompile (freeze) the Python dependencies to ensure that for CI, testing, etc. the build is deterministic. This can be achieved via,
 
 ```bash
-$ python3 -m venv venv
-$ source venv/bin/activate
-$ python3 -m pip install -r requirements/development.txt
-$ ./scripts/uv-pip-compile.sh
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install -r requirements/development.txt
+./scripts/uv-pip-compile.sh
 ```
 
 When upgrading the version number of a single package, you should run `./scripts/uv-pip-compile.sh` with the `-P` flag:
 
 ```bash
-$ ./scripts/uv-pip-compile.sh -P some-package-to-upgrade
+./scripts/uv-pip-compile.sh -P some-package-to-upgrade
 ```
 
 To bring all dependencies up to date as per the restrictions defined in `setup.py` and `requirements/*.in`, run `./scripts/uv-pip-compile.sh --upgrade`
 
 ```bash
-$ ./scripts/uv-pip-compile.sh --upgrade
+./scripts/uv-pip-compile.sh --upgrade
 ```
 
 This should be done periodically, but it is recommended to do thorough manual testing of the application to ensure no breaking changes have been introduced that aren't caught by the unit and integration tests.
@@ -505,11 +506,9 @@ pre-commit install
 
 A series of checks will now run when you make a git commit.
 
-
 ## Linting
 
 See [how tos](/docs/contributing/howtos#linting)
-
 
 ## GitHub Actions and `act`
 
@@ -523,6 +522,7 @@ For more targetted iteration, see the `gh workflow run --ref {BRANCH}` subcomman
 
 For automation and CI/CD, Superset makes extensive use of GitHub Actions (GHA). You
 can find all of the workflows and other assets under the `.github/` folder. This includes:
+
 - running the backend unit test suites (`tests/`)
 - running the frontend test suites (`superset-frontend/src/**.*.test.*`)
 - running our Cypress end-to-end tests (`superset-frontend/cypress-base/`)
@@ -564,6 +564,7 @@ act pull_request --job {workflow_name} --secret GITHUB_TOKEN=$GITHUB_TOKEN --con
 ```
 
 In the example above, notice that:
+
 - we target a specific workflow, using `--job`
 - we pass a secret using `--secret`, as many jobs require read access (public) to the repo
 - we simulate a `pull_request` event by specifying it as the first arg,
@@ -785,7 +786,7 @@ To debug Flask running in POD inside a kubernetes cluster, you'll need to make s
       add: ["SYS_PTRACE"]
 ```
 
-See (set capabilities for a container)[https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container] for more details.
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
 
 Once the pod is running as root and has the SYS_PTRACE capability it will be able to debug the Flask app.
 

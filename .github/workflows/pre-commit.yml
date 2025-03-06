@@ -59,8 +59,19 @@ jobs:
           # Skip auto-fixing in CI to ensure changes are committed locally
           export SKIP_FIX=1
           pre-commit run --all-files
-          if [ $? -ne 0 ] || ! git diff --quiet --exit-code; then
-            echo "❌ Pre-commit check failed."
+          PRE_COMMIT_EXIT_CODE=$?
+          git diff --quiet --exit-code
+          GIT_DIFF_EXIT_CODE=$?
+          if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ] || [ "${GIT_DIFF_EXIT_CODE}" -ne 0 ]; then
+            if [ "${PRE_COMMIT_EXIT_CODE}" -ne 0 ]; then
+              echo "❌ Pre-commit check failed (exit code: ${EXIT_CODE})."
+            else
+              echo "❌ Git working directory is dirty after running pre-commit."
+              echo "📌 This likely means that pre-commit made changes that were not committed."
+              echo "🔍 Modified files:"
+              git diff --name-only
+            fi
+
             echo "🚒 To prevent/address this CI issue, please install/use pre-commit locally."
             echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
