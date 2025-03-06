@@ -72,6 +72,7 @@ from sqlalchemy.sql.selectable import Alias, TableClause
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.common.chart_data import ChartDataResultLocation
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.utils import (
     get_columns_description,
@@ -1710,7 +1711,7 @@ class SqlaTable(
 
         return or_(*groups)
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def query(self, query_obj: QueryObjectDict, result_location: ChartDataResultLocation = ChartDataResultLocation.SUPERSET) -> QueryResult:
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
@@ -1746,9 +1747,11 @@ class SqlaTable(
         try:
             df = self.database.get_df(
                 sql,
-                self.catalog,
-                self.schema or None,
+                catalog = self.catalog,
+                schema = self.schema or None,
                 mutator=assign_column_label,
+                result_location=result_location
+
             )
         except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should

@@ -31,6 +31,7 @@ import {
   LOG_ACTIONS_CHANGE_DASHBOARD_FILTER,
   LOG_ACTIONS_EXPLORE_DASHBOARD_CHART,
   LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART,
+  LOG_ACTIONS_EXPORT_CSV_FROM_S3,
   LOG_ACTIONS_EXPORT_XLSX_DASHBOARD_CHART,
   LOG_ACTIONS_FORCE_REFRESH_CHART,
 } from 'src/logger/LogUtils';
@@ -376,6 +377,33 @@ const Chart = props => {
     ],
   );
 
+  const exportFromS3 = useCallback(
+    (format = 'csv') => {
+      const logAction = LOG_ACTIONS_EXPORT_CSV_FROM_S3;
+    
+      boundActionCreators.logEvent(logAction, {
+        slice_id: this.props.slice.slice_id,
+        is_cached: this.props.isCached,
+      });
+      exportChart({
+        formData: { ...formData, row_limit: props.maxRows },
+        resultType: 'full',
+        resultFormat: format,
+        resultLocation: 's3',
+        force: true,
+        ownState: props.ownState,
+      });
+    },
+    [
+      slice.slice_id,
+      props.isCached,
+      formData,
+      props.maxRows,
+      props.ownState,
+      boundActionCreators.logEvent,
+    ],
+  );
+
   const exportCSV = useCallback(
     (isFullCSV = false) => {
       exportTable('csv', isFullCSV);
@@ -390,6 +418,10 @@ const Chart = props => {
   const exportPivotCSV = useCallback(() => {
     exportTable('csv', false, true);
   }, [exportTable]);
+
+  const downloadCSVFromS3 = useCallback(() => {
+    exportFromS3('csv');
+  }, [exportFromS3]);
 
   const exportXLSX = useCallback(() => {
     exportTable('xlsx', false);
@@ -453,6 +485,7 @@ const Chart = props => {
         exportPivotCSV={exportPivotCSV}
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
+        downloadCSVFromS3={downloadCSVFromS3}
         exportFullXLSX={exportFullXLSX}
         updateSliceName={props.updateSliceName}
         sliceName={props.sliceName}
@@ -470,6 +503,7 @@ const Chart = props => {
         formData={formData}
         width={width}
         height={getHeaderHeight()}
+        databaseBackend={datasource.database?.backend}
       />
 
       {/*

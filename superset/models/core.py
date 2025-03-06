@@ -63,6 +63,7 @@ from sqlalchemy.sql import ColumnElement, expression, Select
 
 from superset import app, db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.common.chart_data import ChartDataResultLocation
 from superset.constants import LRU_CACHE_MAX_SIZE, PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType, TimeGrain
@@ -83,6 +84,7 @@ from superset.superset_typing import (
     ResultSetColumnType,
 )
 from superset.utils import cache as cache_util, core as utils, json
+from superset.utils.aws import run_query_and_get_s3_url
 from superset.utils.backports import StrEnum
 from superset.utils.core import get_username
 from superset.utils.oauth2 import (
@@ -678,6 +680,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        result_location: ChartDataResultLocation | None = None,
     ) -> pd.DataFrame:
         sqls = self.db_engine_spec.parse_sql(sql)
         with self.get_sqla_engine(catalog=catalog, schema=schema) as engine:
@@ -692,6 +695,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                     __name__,
                     security_manager,
                 )
+        
+        if self.db_engine_spec.supports_remote_download(result_location):
+            return self.db_engine_spec.get_remote_download_url(sqls[-1])
 
         with self.get_raw_connection(catalog=catalog, schema=schema) as conn:
             cursor = conn.cursor()
