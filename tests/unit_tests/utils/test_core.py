@@ -31,6 +31,7 @@ from superset.utils.core import (
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
     get_datasource_full_name,
+    get_query_source_from_request,
     get_user_agent,
     is_test,
     normalize_dttm_col,
@@ -399,6 +400,28 @@ def test_get_datasource_full_name():
         get_datasource_full_name("db", "table", "catalog", None)
         == "[db].[catalog].[table]"
     )
+
+
+@pytest.mark.parametrize(
+    "referrer,expected",
+    [
+        (None, None),
+        ("https://mysuperset.com/abc", None),
+        ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/explore/", QuerySource.CHART),
+        ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
+    ],
+)
+def test_get_query_source_from_request(
+    referrer: str | None,
+    expected: QuerySource | None,
+    mocker: MockerFixture,
+) -> None:
+    if referrer:
+        request_mock = mocker.patch("superset.utils.core.request")
+        request_mock.referrer = referrer
+
+    assert get_query_source_from_request() == expected
 
 
 def test_get_user_agent(mocker: MockerFixture) -> None:
