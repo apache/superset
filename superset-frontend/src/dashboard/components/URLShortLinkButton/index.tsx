@@ -90,12 +90,10 @@ export default function URLShortLinkButton({
           <CopyToClipboard
             text={shortUrl}
             copyNode={
-              <>
-                <Icons.CopyOutlined
-                  iconSize="m"
-                  iconColor={theme.colors.primary.dark1}
-                />
-              </>
+              <Icons.CopyOutlined
+                iconSize="m"
+                iconColor={theme.colors.primary.dark1}
+              />
             }
           />
           &nbsp;&nbsp;
