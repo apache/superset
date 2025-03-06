@@ -17,7 +17,7 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Updating Superset
+## Updating Superset
 
 This file documents any backwards-incompatible changes in Superset and
 assists people when migrating to a new version.
