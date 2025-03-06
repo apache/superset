@@ -22,6 +22,7 @@ from typing import Optional
 from flask import current_app
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
 from superset.exceptions import SupersetException
@@ -43,7 +44,12 @@ def get_slack_client() -> WebClient:
     token: str = current_app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+    client = WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+
+    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
+    client.retry_handlers.append(rate_limit_handler)
+
+    return client
 
 
 def get_channels_with_search(
