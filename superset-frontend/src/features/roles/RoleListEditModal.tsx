@@ -205,7 +205,7 @@ function EditRoleModal({
                 mode="multiple"
                 name="selectedPermissions"
                 options={permissions.map(p => ({
-                  label: p.value,
+                  label: p.label,
                   value: p.id,
                 }))}
                 getPopupContainer={trigger =>

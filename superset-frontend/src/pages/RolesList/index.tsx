@@ -81,11 +81,17 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
     t('Role'),
     addDangerToast,
   );
-  const [roleModalOpen, setRoleModalOpen] = useState<boolean>(false);
+  const [modalState, setModalState] = useState({
+    edit: false,
+    add: false,
+    duplicate: false,
+  });
+  const openModal = (type: 'edit' | 'add' | 'duplicate') =>
+    setModalState(prev => ({ ...prev, [type]: true }));
+  const closeModal = (type: 'edit' | 'add' | 'duplicate') =>
+    setModalState(prev => ({ ...prev, [type]: false }));
+
   const [currentRole, setCurrentRole] = useState<RoleObject | null>(null);
-  const [roleModalAddOpen, setRoleModalAddOpen] = useState<boolean>(false);
-  const [roleDuplicateModalOpen, setRoleDuplicateModalOpen] =
-    useState<boolean>(false);
   const [roleCurrentlyDeleting, setRoleCurrentlyDeleting] =
     useState<RoleObject | null>(null);
   const [permissions, setPermissions] = useState<FormattedPermission[]>([]);
@@ -178,36 +184,6 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       });
   };
 
-  function handleRoleEdit(role: RoleObject | null) {
-    setCurrentRole(role);
-    setRoleModalOpen(true);
-  }
-
-  function handleRoleDuplicate(role: RoleObject | null) {
-    setCurrentRole(role);
-    setRoleDuplicateModalOpen(true);
-  }
-
-  function handleRoleAdd() {
-    setRoleModalAddOpen(true);
-  }
-
-  function handleRoleModalAddSave() {
-    refreshData();
-    setRoleModalAddOpen(false);
-  }
-
-  function handleRoleModalEditSave() {
-    refreshData();
-    setRoleModalOpen(false);
-    fetchUsers();
-  }
-
-  function handleRoleModalDuplicateSave() {
-    refreshData();
-    setRoleDuplicateModalOpen(false);
-  }
-
   const initialSort = [{ id: 'name', desc: true }];
   const columns = useMemo(
     () => [
@@ -216,7 +192,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         Header: t('Name'),
         Cell: ({
           row: {
-            original: { id, name },
+            original: { name },
           },
         }: any) => <span>{name}</span>,
       },
@@ -248,9 +224,15 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const handleEdit = () => handleRoleEdit(original);
+          const handleEdit = () => {
+            setCurrentRole(original);
+            openModal('edit');
+          };
           const handleDelete = () => setRoleCurrentlyDeleting(original);
-          const handleDuplicate = () => handleRoleDuplicate(original);
+          const handleDuplicate = () => {
+            setCurrentRole(original);
+            openModal('duplicate');
+          };
 
           const actions = isAdmin
             ? [
@@ -301,7 +283,9 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           </>
         ),
         buttonStyle: 'primary',
-        onClick: handleRoleAdd,
+        onClick: () => {
+          openModal('add');
+        },
         disabled: loadingState.permissions,
       },
       {
@@ -352,43 +336,59 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   const emptyState = {
     title: t('No roles yet'),
     image: 'filter-results.svg',
-    buttonAction: () => handleRoleAdd(),
-    buttonText: (
-      <>
-        <i className="fa fa-plus" /> {t('Role')}
-      </>
-    ),
+    ...(isAdmin && {
+      buttonAction: () => {
+        openModal('add');
+      },
+      buttonText: (
+        <>
+          <i className="fa fa-plus" /> {t('Role')}
+        </>
+      ),
+    }),
   };
 
   return (
     <>
       <SubMenu name={t('List Roles')} buttons={subMenuButtons} />
-      <RoleListAddModal
-        addDangerToast={addDangerToast}
-        onHide={() => setRoleModalAddOpen(false)}
-        show={roleModalAddOpen}
-        onSave={handleRoleModalAddSave}
-        permissions={permissions}
-        addSuccessToast={addSuccessToast}
-      />
-      {roleModalOpen && currentRole && (
+      {modalState.add && (
+        <RoleListAddModal
+          addDangerToast={addDangerToast}
+          onHide={() => closeModal('add')}
+          show={modalState.add}
+          onSave={() => {
+            refreshData();
+            closeModal('add');
+          }}
+          permissions={permissions}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
+      {modalState.edit && currentRole && (
         <RoleListEditModal
           role={currentRole}
-          show={roleModalOpen}
-          onHide={() => setRoleModalOpen(false)}
-          onSave={handleRoleModalEditSave}
+          show={modalState.edit}
+          onHide={() => closeModal('edit')}
+          onSave={() => {
+            refreshData();
+            closeModal('edit');
+            fetchUsers();
+          }}
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
           permissions={permissions}
           users={users}
         />
       )}
-      {roleDuplicateModalOpen && currentRole && (
+      {modalState.duplicate && currentRole && (
         <RoleListDuplicateModal
           role={currentRole}
-          show={roleDuplicateModalOpen}
-          onHide={() => setRoleDuplicateModalOpen(false)}
-          onSave={handleRoleModalDuplicateSave}
+          show={modalState.duplicate}
+          onHide={() => closeModal('duplicate')}
+          onSave={() => {
+            refreshData();
+            closeModal('duplicate');
+          }}
           addDangerToast={addDangerToast}
           addSuccessToast={addSuccessToast}
         />
