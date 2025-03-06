@@ -27,6 +27,7 @@ from superset import feature_flag_manager
 from superset.exceptions import SupersetException
 from superset.reports.schemas import SlackChannelSchema
 from superset.utils.backports import StrEnum
+from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ def get_slack_client() -> WebClient:
 
 
 def get_channels_with_search(
-    search_string: list[str] | None = None,
+    search_string: str = "",
     limit: int = 999,
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
@@ -80,6 +81,7 @@ def get_channels_with_search(
 
         # The search string can be multiple channels separated by commas
         if search_string:
+            search_array = recipients_string_to_list(search_string)
             channels = [
                 channel
                 for channel in channels
@@ -93,7 +95,7 @@ def get_channels_with_search(
                             or search.lower() in channel["id"].lower()
                         )
                     )
-                    for search in search_string
+                    for search in search_array
                 )
             ]
         return channels

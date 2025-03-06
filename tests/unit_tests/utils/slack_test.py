@@ -60,7 +60,7 @@ class TestGetChannelsWithSearch:
         mock_client.conversations_list.return_value = mock_response_instance
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
-        result = get_channels_with_search(search_string=[])
+        result = get_channels_with_search(search_string="")
         assert result == [{"name": "general", "id": "C12345"}]
 
     def test_handle_exact_match_search_string_single_channel(self, mocker):
@@ -81,7 +81,7 @@ class TestGetChannelsWithSearch:
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
         # Call the function with a search string that matches a single channel
-        result = get_channels_with_search(search_string=["general"], exact_match=True)
+        result = get_channels_with_search(search_string="general", exact_match=True)
 
         # Assert that the result is a list with a single channel dictionary
         assert result == [{"name": "general", "id": "C12345"}]
@@ -102,7 +102,7 @@ class TestGetChannelsWithSearch:
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
         result = get_channels_with_search(
-            search_string=["general", "random"], exact_match=True
+            search_string="general,random", exact_match=True
         )
         assert result == [
             {"name": "general", "id": "C12345"},
@@ -124,7 +124,7 @@ class TestGetChannelsWithSearch:
         mock_client.conversations_list.return_value = mock_response_instance
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
 
-        result = get_channels_with_search(search_string=["general", "random"])
+        result = get_channels_with_search(search_string="general,random")
         assert result == [
             {"name": "general", "id": "C12345"},
             {"name": "general2", "id": "C13454"},

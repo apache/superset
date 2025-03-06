@@ -52,7 +52,7 @@ from superset.utils.core import (
     GenericDataType,
     get_form_data_token,
     as_list,
-    get_recipients_list,
+    recipients_string_to_list,
     get_stacktrace,
     merge_extra_filters,
     merge_extra_form_data,
@@ -809,12 +809,12 @@ class TestUtils(SupersetTestCase):
         assert expected_filename in path
         assert os.path.exists(path)
 
-    def test_get_recipients_list(self):
-        assert get_recipients_list("a@a") == ["a@a"]
-        assert get_recipients_list(" a@a ") == ["a@a"]
-        assert get_recipients_list("a@a\n") == ["a@a"]
-        assert get_recipients_list(",a@a;") == ["a@a"]
-        assert get_recipients_list(",a@a; b@b c@c a-c@c; d@d, f@f") == [
+    def test_recipients_string_to_list(self):
+        assert recipients_string_to_list("a@a") == ["a@a"]
+        assert recipients_string_to_list(" a@a ") == ["a@a"]
+        assert recipients_string_to_list("a@a\n") == ["a@a"]
+        assert recipients_string_to_list(",a@a;") == ["a@a"]
+        assert recipients_string_to_list(",a@a; b@b c@c a-c@c; d@d, f@f") == [
             "a@a",
             "b@b",
             "c@c",
