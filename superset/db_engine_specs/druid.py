@@ -29,6 +29,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.exceptions import SupersetException
 from superset.utils import core as utils, json
+from superset.utils.core import QuerySource
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -78,11 +79,14 @@ class DruidEngineSpec(BaseEngineSpec):
             orm_col.is_dttm = True
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         For Druid, the path to a SSL certificate is placed in `connect_args`.
 
         :param database: database instance from which to extract extras
+        :param source: in which context is the connection needed
         :raises CertificateException: If certificate is not valid/unparseable
         :raises SupersetException: If database extra json payload is unparseable
         """

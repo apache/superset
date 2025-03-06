@@ -23,6 +23,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.core import QuerySource
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -73,7 +74,9 @@ class ParseableEngineSpec(BaseEngineSpec):
             orm_col.is_dttm = True
 
     @classmethod
-    def get_extra_params(cls, database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        cls, database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """Additional parameters for Parseable connections."""
         return {
             "engine_params": {

@@ -37,7 +37,7 @@ from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils, json
-from superset.utils.core import GenericDataType
+from superset.utils.core import GenericDataType, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
@@ -411,7 +411,9 @@ WHERE datistemplate = false;
         )
 
     @staticmethod
-    def get_extra_params(database: Database) -> dict[str, Any]:
+    def get_extra_params(
+        database: Database, source: QuerySource | None = None
+    ) -> dict[str, Any]:
         """
         For Postgres, the path to a SSL certificate is placed in `connect_args`.
 
