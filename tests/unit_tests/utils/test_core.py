@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
@@ -30,10 +31,12 @@ from superset.utils.core import (
     generic_find_constraint_name,
     generic_find_fk_constraint_name,
     get_datasource_full_name,
+    get_user_agent,
     is_test,
     normalize_dttm_col,
     parse_boolean_string,
     QueryObjectFilterClause,
+    QuerySource,
     remove_extra_adhoc_filters,
 )
 
@@ -395,4 +398,23 @@ def test_get_datasource_full_name():
     assert (
         get_datasource_full_name("db", "table", "catalog", None)
         == "[db].[catalog].[table]"
+    )
+
+
+def test_get_user_agent(mocker: MockerFixture) -> None:
+    database_mock = mocker.MagicMock()
+    database_mock.database_name = "mydb"
+
+    current_app_mock = mocker.patch("superset.utils.core.current_app")
+    current_app_mock.config = {"USER_AGENT_FUNC": None}
+
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "Apache Superset", (
+        "The default user agent should be returned"
+    )
+    current_app_mock.config["USER_AGENT_FUNC"] = (
+        lambda database, source: f"{database.database_name} {source.name}"
+    )
+
+    assert get_user_agent(database_mock, QuerySource.DASHBOARD) == "mydb DASHBOARD", (
+        "the custom user agent function result should have been returned"
     )
