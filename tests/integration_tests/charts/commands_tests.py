@@ -104,11 +104,13 @@ class TestExportChartsCommand(SupersetTestCase):
             "query_context": None,
         }
 
+    @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_export_chart_command_no_access(self, mock_g):
+    def test_export_chart_command_no_access(self, utils_mock_g, manager_mock_g):
         """Test that users can't export datasets they don't have access to"""
-        mock_g.user = security_manager.find_user("gamma")
+        manager_mock_g.user = security_manager.find_user("gamma")
+        utils_mock_g.user = manager_mock_g.user
 
         example_chart = db.session.query(Slice).all()[0]
         command = ExportChartsCommand([example_chart.id])

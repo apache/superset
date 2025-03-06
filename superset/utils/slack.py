@@ -22,10 +22,13 @@ from typing import Optional
 from flask import current_app
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
 from superset.exceptions import SupersetException
+from superset.reports.schemas import SlackChannelSchema
 from superset.utils.backports import StrEnum
+from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +46,12 @@ def get_slack_client() -> WebClient:
     token: str = current_app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+    client = WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+
+    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
+    client.retry_handlers.append(rate_limit_handler)
+
+    return client
 
 
 def get_channels_with_search(
@@ -51,7 +59,7 @@ def get_channels_with_search(
     limit: int = 999,
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
-) -> list[str]:
+) -> list[SlackChannelSchema]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
@@ -60,7 +68,8 @@ def get_channels_with_search(
 
     try:
         client = get_slack_client()
-        channels = []
+        channel_schema = SlackChannelSchema()
+        channels: list[SlackChannelSchema] = []
         cursor = None
         extra_params = {}
         extra_params["types"] = ",".join(types) if types else None
@@ -69,29 +78,27 @@ def get_channels_with_search(
             response = client.conversations_list(
                 limit=limit, cursor=cursor, exclude_archived=True, **extra_params
             )
-            channels.extend(response.data["channels"])
+            channels.extend(
+                channel_schema.load(channel) for channel in response.data["channels"]
+            )
             cursor = response.data.get("response_metadata", {}).get("next_cursor")
             if not cursor:
                 break
 
         # The search string can be multiple channels separated by commas
         if search_string:
-            search_array = [
-                search.lower()
-                for search in (search_string.split(",") if search_string else [])
-            ]
-
+            search_array = recipients_string_to_list(search_string)
             channels = [
                 channel
                 for channel in channels
                 if any(
                     (
-                        search == channel["name"].lower()
-                        or search == channel["id"].lower()
+                        search.lower() == channel["name"].lower()
+                        or search.lower() == channel["id"].lower()
                         if exact_match
                         else (
-                            search in channel["name"].lower()
-                            or search in channel["id"].lower()
+                            search.lower() in channel["name"].lower()
+                            or search.lower() in channel["id"].lower()
                         )
                     )
                     for search in search_array
