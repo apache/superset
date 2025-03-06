@@ -60,6 +60,7 @@ import {
   getOption,
   isObject,
   getSuffixIcon,
+  sortComparatorWithSearchHelper,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -69,7 +70,12 @@ import {
   StyledSelect,
   StyledStopOutlined,
 } from './styles';
-import { EMPTY_OPTIONS, MAX_TAG_COUNT, TOKEN_SEPARATORS } from './constants';
+import {
+  DEFAULT_SORT_COMPARATOR,
+  EMPTY_OPTIONS,
+  MAX_TAG_COUNT,
+  TOKEN_SEPARATORS,
+} from './constants';
 import { customTagRender } from './CustomTag';
 
 /**
@@ -113,6 +119,7 @@ const Select = forwardRef(
       options,
       placeholder = t('Select ...'),
       showSearch = true,
+      sortComparator = DEFAULT_SORT_COMPARATOR,
       tokenSeparators = TOKEN_SEPARATORS,
       value,
       getPopupContainer,
@@ -157,6 +164,18 @@ const Select = forwardRef(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortSelectedFirstHelper(a, b, selectValue),
       [selectValue],
+    );
+
+    const sortComparatorWithSearch = useCallback(
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortComparatorWithSearchHelper(
+          a,
+          b,
+          inputValue,
+          sortSelectedFirst,
+          sortComparator,
+        ),
+      [inputValue, sortComparator, sortSelectedFirst],
     );
 
     const initialOptions = useMemo(
@@ -608,6 +627,7 @@ const Select = forwardRef(
           autoClearSearchValue={autoClearSearchValue}
           dropdownRender={dropdownRender}
           filterOption={handleFilterOption}
+          filterSort={sortComparatorWithSearch}
           getPopupContainer={
             getPopupContainer || (triggerNode => triggerNode.parentNode)
           }
@@ -659,7 +679,8 @@ const Select = forwardRef(
               {selectAllLabel()}
             </Option>
           )}
-          {shouldRenderChildrenOptions && renderSelectOptions(options)}
+          {shouldRenderChildrenOptions &&
+            renderSelectOptions(fullSelectOptions)}
         </StyledSelect>
       </StyledContainer>
     );
