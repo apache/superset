@@ -85,7 +85,7 @@ def upgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
     # Adjust adhoc_custom
     if "adhoc_custom" in params and params["adhoc_custom"]:
         adhoc = params["adhoc_custom"][0]  # As there's always only one element
-        if adhoc["comparator"] != "No filter":
+        if adhoc["comparator"] and adhoc["comparator"] != "No filter":
             # Set start_date_offset in params, not in adhoc
             start_date_offset, _ = get_since_until(adhoc["comparator"])
             params["start_date_offset"] = start_date_offset.strftime("%Y-%m-%d")
