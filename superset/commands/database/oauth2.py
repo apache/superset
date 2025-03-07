@@ -36,9 +36,9 @@ class OAuth2StoreTokenCommand(BaseCommand):
     """
 
     def __init__(self, parameters: OAuth2ProviderResponseSchema):
-        self._database: Database | None = None
         self._parameters = parameters
         self._state: OAuth2State | None = None
+        self._database: Database | None = None
 
     @transaction(on_error=partial(on_error, reraise=OAuth2Error))
     def run(self) -> DatabaseUserOAuth2Tokens:
