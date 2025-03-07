@@ -26,6 +26,8 @@ interface UiConfigType {
   hideTab: boolean;
   hideNav: boolean;
   hideChartControls: boolean;
+  // Only used in superset-embedded-sdk to emit data masks to the parent window
+  emitDataMasks: boolean;
 }
 interface EmbeddedUiConfigProviderProps {
   children: JSX.Element;
@@ -36,6 +38,7 @@ export const UiConfigContext = createContext<UiConfigType>({
   hideTab: false,
   hideNav: false,
   hideChartControls: false,
+  emitDataMasks: false,
 });
 
 export const useUiConfig = () => useContext(UiConfigContext);
@@ -49,6 +52,7 @@ export const EmbeddedUiConfigProvider: FC<EmbeddedUiConfigProviderProps> = ({
     hideTab: (config & 2) !== 0,
     hideNav: (config & 4) !== 0,
     hideChartControls: (config & 8) !== 0,
+    emitDataMasks: (config & 16) !== 0,
   });
 
   return (
