@@ -52,7 +52,6 @@ export { Upload } from 'antd';
  */
 export {
   Breadcrumb as AntdBreadcrumb, // TODO: Make this a real Component
-  Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
