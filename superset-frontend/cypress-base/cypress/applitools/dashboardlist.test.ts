@@ -30,7 +30,7 @@ describe('dashboard list view', () => {
   it('should load the Dashboards list', () => {
     cy.get('[aria-label="unordered-list"]').click();
     cy.eyesOpen({
-      testName: 'Dashboards UnorderedListOutlined',
+      testName: 'Dashboards list-view',
     });
     cy.eyesCheckWindow('Dashboards list-view loaded');
   });
