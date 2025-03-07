@@ -102,6 +102,7 @@ def validate_data_uri(data_uri: str) -> None:
     raise DatasetForbiddenDataURI()
 
 
+# pylint: disable=too-many-branches
 def import_dataset(
     config: dict[str, Any],
     overwrite: bool = False,

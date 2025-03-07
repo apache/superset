@@ -392,6 +392,7 @@ export default function DatabaseSelector({
         options={catalogOptions}
         showSearch
         value={currentCatalog || undefined}
+        allowClear
       />,
       refreshIcon,
     );
@@ -418,6 +419,7 @@ export default function DatabaseSelector({
         options={schemaOptions}
         showSearch
         value={currentSchema}
+        allowClear
       />,
       refreshIcon,
     );
