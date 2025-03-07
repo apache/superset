@@ -38,7 +38,7 @@ describe('charts list view', () => {
   it('should load the Charts card list', () => {
     cy.get('[aria-label="appstore"]').click();
     cy.eyesOpen({
-      testName: 'Charts AppstoreOutlined',
+      testName: 'Charts card-view',
     });
     cy.eyesCheckWindow('Charts card-view loaded');
   });
