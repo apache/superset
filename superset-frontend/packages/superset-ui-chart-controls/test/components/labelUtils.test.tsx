@@ -168,7 +168,6 @@ test('should get null as tooltip in metric', () => {
   expect(
     getMetricTooltipNode(
       {
-        uuid: '123',
         metric_name: 'count',
         label: '',
         verbose_name: '',
@@ -185,7 +184,6 @@ test('should get metric name, verbose name and description as tooltip in metric'
     <>
       {getMetricTooltipNode(
         {
-          uuid: '123',
           metric_name: 'count',
           label: 'count(*)',
           verbose_name: 'count(*)',
@@ -209,7 +207,6 @@ test('should get metric name as tooltip if it overflowed', () => {
     <>
       {getMetricTooltipNode(
         {
-          uuid: '123',
           metric_name: 'long long long long metric name',
           label: '',
           verbose_name: '',
@@ -231,7 +228,6 @@ test('should get metric name, verbose name and description in tooltip if it over
     <>
       {getMetricTooltipNode(
         {
-          uuid: '123',
           metric_name: 'count',
           label: '',
           verbose_name: 'longlonglonglonglong verbose metric',
