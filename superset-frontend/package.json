@@ -82,7 +82,7 @@
   ],
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@apache-superset/components": "file:packages/superset-components",
+    "@apache-superset/primitives": "file:packages/superset-primitives",
     "@emotion/cache": "^11.4.0",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.3.0",

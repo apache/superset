@@ -35,7 +35,7 @@ class ExtensionsRestApi(BaseSupersetApi):
     @permission_name("read")
     def get(self, **kwargs: Any) -> Response:
         app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-        extensions_path = f"{app_dir}/static/uploads/extensions/"
+        extensions_path = f"{app_dir}/static/extensions/"
         extensions = os.listdir(extensions_path)
         result = []
         for extension in extensions:
@@ -61,7 +61,7 @@ class ExtensionsRestApi(BaseSupersetApi):
     @permission_name("read")
     def content(self, name: str, file: str, **kwargs: Any) -> Response:
         app_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-        folder_path = f"{app_dir}/static/uploads/extensions/{name}"
+        folder_path = f"{app_dir}/static/extensions/{name}"
         file_path = os.path.join(folder_path, file)
 
         if not os.path.exists(file_path):

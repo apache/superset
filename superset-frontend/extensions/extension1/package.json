@@ -1,0 +1,31 @@
+{
+  "name": "extension1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack serve --mode development",
+    "build": "webpack --stats-error-details --mode production"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@apache-superset/primitives": "file:../../packages/superset-primitives",
+    "react": "^17.0.2"
+  },
+  "devDependencies": {
+    "@apache-superset/types": "file:../../packages/superset-types",
+    "@babel/preset-react": "^7.26.3",
+    "@babel/preset-typescript": "^7.26.0",
+    "@types/react": "^19.0.10",
+    "install": "^0.13.0",
+    "npm": "^11.1.0",
+    "ts-loader": "^9.2.6",
+    "typescript": "^4.5.4",
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.7.1"
+  }
+}
