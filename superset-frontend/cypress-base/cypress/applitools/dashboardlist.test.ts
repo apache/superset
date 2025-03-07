@@ -32,7 +32,7 @@ describe('dashboard list view', () => {
     cy.eyesOpen({
       testName: 'Dashboards UnorderedListOutlined',
     });
-    cy.eyesCheckWindow('Dashboards UnorderedListOutlined loaded');
+    cy.eyesCheckWindow('Dashboards list-view loaded');
   });
 
   it('should load the Dashboards card list', () => {
