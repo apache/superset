@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType } from 'antd-v5/es/table';
 import { Table, TableSize } from './index';
 
 interface BasicData {

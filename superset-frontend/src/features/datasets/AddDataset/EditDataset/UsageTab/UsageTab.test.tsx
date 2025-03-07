@@ -94,12 +94,12 @@ const expectLastChartRequest = (params?: {
 };
 
 test('shows loading state', async () => {
-  mockChartsFetch(
-    new Promise(resolve =>
-      setTimeout(() => resolve(getChartResponse([])), 250),
-    ),
-  );
+  let resolveFetch = () => {};
+  const fetchPromise = new Promise(resolve => {
+    resolveFetch = () => resolve(getChartResponse([]));
+  });
 
+  mockChartsFetch(fetchPromise);
   renderDatasetUsage();
 
   const loadingIndicator = await screen.findByRole('status', {
@@ -108,6 +108,10 @@ test('shows loading state', async () => {
 
   await waitFor(() => {
     expect(loadingIndicator).toBeVisible();
+  });
+  resolveFetch();
+  await waitFor(() => {
+    expect(loadingIndicator).not.toBeInTheDocument();
   });
 });
 
