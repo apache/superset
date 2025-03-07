@@ -284,6 +284,15 @@ test('should sort selected to the top when in multi mode', async () => {
   ).toBe(true);
 });
 
+test('order of selected values is preserved until dropdown is closed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowSelectAll={false} />);
+  const originalLabels = OPTIONS.map(option => option.label);
+  await open();
+  userEvent.click(await findSelectOption(originalLabels[1]));
+  userEvent.click(await findSelectOption(originalLabels[5]));
+  expect(await matchOrder(originalLabels)).toBe(true);
+});
+
 test('searches for label or value', async () => {
   const option = OPTIONS[11];
   render(<Select {...defaultProps} />);
