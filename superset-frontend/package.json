@@ -306,7 +306,7 @@
     "enzyme-matchers": "^7.1.2",
     "eslint": "^8.56.0",
     "eslint-config-airbnb": "^19.0.4",
-    "eslint-config-prettier": "^7.2.0",
+    "eslint-config-prettier": "^10.0.2",
     "eslint-import-resolver-typescript": "^3.7.0",
     "eslint-plugin-cypress": "^3.6.0",
     "eslint-plugin-file-progress": "^1.5.0",
