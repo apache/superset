@@ -96,7 +96,7 @@ const Divider = styled.div`
   `}
 `;
 
-interface DatasourcePanelItemProps {
+export interface DatasourcePanelItemProps {
   index: number;
   style: CSSProperties;
   data: {
@@ -162,7 +162,9 @@ const DatasourcePanelItem = ({
         </LabelWrapper>
       )}
 
-      {item.type === 'divider' && <Divider />}
+      {item.type === 'divider' && (
+        <Divider data-test="datasource-panel-divider" />
+      )}
     </div>
   );
 };

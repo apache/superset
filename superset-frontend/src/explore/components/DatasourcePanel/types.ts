@@ -83,7 +83,6 @@ export interface Folder {
 export interface FlattenedItem {
   type: 'header' | 'item' | 'divider';
   folderId: string;
-  index?: number;
   depth: number;
   item?: FolderItem;
   height: number;

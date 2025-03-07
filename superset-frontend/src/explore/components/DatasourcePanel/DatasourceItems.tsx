@@ -45,11 +45,10 @@ const flattenFolderStructure = (
     });
 
     if (!folder.isCollapsed) {
-      folder.items.forEach((item, idx) => {
+      folder.items.forEach(item => {
         flattenedItems.push({
           type: 'item',
           folderId: folder.id,
-          index: idx,
           depth,
           item,
           height: METRIC_OR_COLUMN_ITEM_HEIGHT,
