@@ -31,7 +31,7 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-export const CustomCloseIcon = <Icons.CloseOutlined role="button" />;
+export const CustomCloseIcon = <Icons.CloseOutlined iconSize='xs' role="button" />;
 
 const MAX_DISPLAY_CHAR = 20;
 
