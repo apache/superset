@@ -1,5 +1,5 @@
 {
-  "name": "superset-components",
+  "name": "superset-primitives",
   "version": "0.0.1",
   "description": "This package contains UI elements and utility functions used by Superset.",
   "sideEffects": false,
