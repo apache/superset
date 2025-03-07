@@ -71,7 +71,12 @@ export default function Timer({
 
   return (
     <TimerLabel
-      icon={<Icons.ClockCircleOutlined iconColor={theme.colors.success.dark2} iconSize="m" />}
+      icon={
+        <Icons.ClockCircleOutlined
+          iconColor={theme.colors.success.dark2}
+          iconSize="m"
+        />
+      }
       type={status}
       role="timer"
     >

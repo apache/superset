@@ -242,7 +242,10 @@ export const ExploreChartHeader = ({
                 data-test="query-save-button"
                 css={saveButtonStyles}
               >
-                <Icons.SaveOutlined iconSize="l" iconColor={ theme.colors.primary.dark2} />
+                <Icons.SaveOutlined
+                  iconSize="l"
+                  iconColor={theme.colors.primary.dark2}
+                />
                 {t('Save')}
               </Button>
             </div>

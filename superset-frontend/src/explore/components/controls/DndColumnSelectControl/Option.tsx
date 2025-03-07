@@ -65,7 +65,7 @@ export default function Option({
             iconColor={theme.colors.grayscale.light1}
             css={css`
               vertical-align: sub;
-            `} 
+            `}
           />
         </CloseContainer>
       )}

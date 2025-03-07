@@ -387,7 +387,7 @@ export const OptionControlLabel = ({
           iconColor={theme.colors.grayscale.light1}
           css={css`
             vertical-align: sub;
-          `} 
+          `}
         />
       </CloseContainer>
       <Label data-test="control-label">
