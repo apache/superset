@@ -40,6 +40,6 @@ describe('charts list view', () => {
     cy.eyesOpen({
       testName: 'Charts AppstoreOutlined',
     });
-    cy.eyesCheckWindow('Charts AppstoreOutlined loaded');
+    cy.eyesCheckWindow('Charts card-view loaded');
   });
 });
