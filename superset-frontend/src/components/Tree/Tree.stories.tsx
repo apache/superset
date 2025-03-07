@@ -1,0 +1,163 @@
+import { Meta, ArgTypes } from '@storybook/react';
+import Icons from 'src/components/Icons';
+import Tree, { TreeProps } from './index';
+import type { TreeDataNode } from './index';
+
+const meta: Meta<TreeProps> = {
+  title: 'Components/Tree',
+  component: Tree,
+  tags: ['autodocs'],
+};
+
+export default meta;
+
+const treeData: TreeDataNode[] = [
+  {
+    title: 'parent 1',
+    key: '0-0',
+    children: [
+      {
+        title: 'parent 1-0',
+        key: '0-0-0',
+        icon: <Icons.FileImageOutlined />,
+        children: [
+          {
+            title: 'leaf',
+            key: '0-0-0-0',
+          },
+          {
+            title: 'leaf',
+            key: '0-0-0-1',
+          },
+          {
+            title: 'leaf',
+            key: '0-0-0-2',
+          },
+        ],
+      },
+      {
+        title: 'parent 1-1',
+        key: '0-0-1',
+        icon: <Icons.FileImageOutlined />,
+        children: [
+          {
+            title: 'leaf',
+            key: '0-0-1-0',
+          },
+        ],
+      },
+      {
+        title: 'parent 1-2',
+        key: '0-0-2',
+        icon: <Icons.FileImageOutlined />,
+        children: [
+          {
+            title: 'leaf',
+            key: '0-0-2-0',
+          },
+          {
+            title: 'leaf',
+            key: '0-0-2-1',
+          },
+        ],
+      },
+    ],
+  },
+];
+const TreeArgsType: ArgTypes<TreeProps> = {
+  autoExpandParent: {
+    control: { type: 'boolean' },
+    description: 'Whether to automatically expand a parent treeNode',
+  },
+  defaultExpandAll: {
+    control: { type: 'boolean' },
+    description: 'Whether to expand all treeNodes by default',
+  },
+  multiple: {
+    control: { type: 'boolean' },
+    description: 'Allows selecting multiple treeNodes',
+  },
+  checkable: {
+    control: { type: 'boolean' },
+    desciption: 'Add a Checkbox before the treeNodes',
+  },
+  selectable: {
+    control: { type: 'boolean' },
+    descrtiption: 'Whether can be selected',
+  },
+  draggable: {
+    control: { type: 'boolean' },
+    description:
+      'Specifies whether this Tree or the node is draggable. Use icon: false to disable drag handler icon',
+  },
+  showLine: {
+    control: { type: 'boolean' },
+    description: 'Shows a connecting line',
+  },
+  blockNode: {
+    control: { type: 'boolean' },
+    description: 'Whether treeNode fill remaining horizontal space',
+  },
+  checkStrictly: {
+    control: { type: 'boolean' },
+    description:
+      'Check treeNode precisely; parent treeNode and children treeNodes are not associated',
+  },
+  defaultExpandParent: {
+    control: { type: 'boolean' },
+    description: 'If auto expand parent treeNodes when init',
+  },
+  showIcon: {
+    control: { type: 'boolean' },
+    description: 'Controls whether to display the icon node, no default style',
+  },
+  virtual: {
+    control: { type: 'boolean' },
+    description: 'Disable virtual scroll when set to false',
+  },
+  titleRender: {
+    control: { type: 'text' },
+    description: 'Customize the title of the treeNode',
+  },
+  switcherLoadingIcon: {
+    control: { type: 'text' },
+    description: 'Customize the loading icon',
+  },
+  switcherIcon: {
+    control: { type: 'boolean' },
+    description: 'Customize the switcher icon',
+  },
+  treeData: { control: { type: 'object' }, description: 'TreeNodes data' },
+  loadData: {
+    control: { type: 'object' },
+    description: 'Load data asynchronously',
+  },
+  defaultExpandedKeys: {
+    control: { type: 'object' },
+    description: 'Default expanded treeNodes',
+  },
+  defaultSelectedKeys: {
+    control: { type: 'object' },
+    description: 'Default selected treeNodes',
+  },
+};
+
+export const TreeStory = (args: TreeProps) => <Tree {...args} />;
+
+TreeStory.args = {
+  multiple: false,
+  checkable: false,
+  selectable: true,
+  draggable: false,
+  showLine: false,
+  blockNode: false,
+  defaultExpandAll: false,
+  checkStrictly: false,
+  defaultExpandParent: false,
+  showIcon: false,
+  autoExpandParent: true,
+  defaultExpandedKeys: ['0-0-0', '0-0-1'],
+  defaultSelectedKeys: ['0-0-1'],
+  treeData,
+};
+TreeStory.argTypes = TreeArgsType;

@@ -35,7 +35,6 @@ export {
   Row,
   Skeleton,
   Tag,
-  Tree,
   TreeSelect,
   Typography,
 } from 'antd-v5';

@@ -17,7 +17,12 @@
  * under the License.
  */
 import { useState } from 'react';
-import { render, screen, userEvent, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { AutoComplete, Input } from 'antd';
 
 const searchResult = (query: string): Array<{ value: string; label: string }> =>
@@ -27,7 +32,9 @@ const searchResult = (query: string): Array<{ value: string; label: string }> =>
   }));
 
 const AutoCompleteTest = () => {
-  const [options, setOptions] = useState<{ value: string; label: string }[]>([]);
+  const [options, setOptions] = useState<{ value: string; label: string }[]>(
+    [],
+  );
 
   const handleSearch = (value: string) => {
     setOptions(value ? searchResult(value) : []);
@@ -43,7 +50,9 @@ const AutoCompleteTest = () => {
 describe('AutoComplete Component', () => {
   test('renders input field', () => {
     render(<AutoCompleteTest />);
-    expect(screen.getByPlaceholderText('Type to search...')).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText('Type to search...'),
+    ).toBeInTheDocument();
   });
 
   test('shows options when user types', async () => {
@@ -63,7 +72,9 @@ describe('AutoComplete Component', () => {
     const input = screen.getByPlaceholderText('Type to search...');
     userEvent.type(input, 'test');
 
-    await waitFor(() => expect(screen.getByText('test result 0')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByText('test result 0')).toBeInTheDocument(),
+    );
 
     userEvent.clear(input);
 
