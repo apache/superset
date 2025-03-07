@@ -57,14 +57,13 @@ const SortSeqLabel = styled.span`
 const HeaderAction = styled.div`
   display: none;
   position: absolute;
-  right: ${({ theme }) => theme.gridUnit * 3}px;
+  right: 0;
   &.main {
-    margin: 0 auto;
-    left: 0;
-    right: 0;
-    width: 20px;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
   }
-  & .ant-dropdown-trigger {
+  & .antd5-dropdown-trigger {
     cursor: context-menu;
     padding: ${({ theme }) => theme.gridUnit * 2}px;
     background-color: var(--ag-background-color);

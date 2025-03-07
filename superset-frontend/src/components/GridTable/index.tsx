@@ -132,7 +132,7 @@ function GridTable<RecordType extends object>({
           field: PIVOT_COL_ID,
           valueGetter: 'node.rowIndex+1',
           cellClass: 'locked-col',
-          width: 20 + rowIndexLength * 6,
+          width: 30 + rowIndexLength * 6,
           suppressNavigable: true,
           resizable: false,
           pinned: 'left' as const,
@@ -218,7 +218,7 @@ function GridTable<RecordType extends object>({
             overflow: hidden;
           }
           & [role='columnheader']:hover .customHeaderAction {
-            display: block;
+            display: flex;
           }
         `}
       />
