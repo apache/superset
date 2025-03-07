@@ -32,7 +32,7 @@ describe('charts list view', () => {
     cy.eyesOpen({
       testName: 'Charts list-view',
     });
-    cy.eyesCheckWindow('Charts UnorderedListOutlined loaded');
+    cy.eyesCheckWindow('Charts list-view loaded');
   });
 
   it('should load the Charts card list', () => {
