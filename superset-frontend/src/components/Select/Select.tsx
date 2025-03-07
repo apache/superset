@@ -152,11 +152,7 @@ const Select = forwardRef(
       }
     }, [isDropdownVisible, oneLine]);
 
-    const mappedMode = allowNewOptions
-      ? 'tags'
-      : isSingleMode
-        ? undefined
-        : 'multiple';
+    const mappedMode = isSingleMode ? undefined : 'multiple';
 
     const { Option } = AntdSelect;
 
