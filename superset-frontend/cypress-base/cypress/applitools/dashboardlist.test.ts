@@ -38,7 +38,7 @@ describe('dashboard list view', () => {
   it('should load the Dashboards card list', () => {
     cy.get('[aria-label="appstore"]').click();
     cy.eyesOpen({
-      testName: 'Dashboards AppstoreOutlined',
+      testName: 'Dashboards card-view',
     });
     cy.eyesCheckWindow('Dashboards AppstoreOutlined loaded');
   });
