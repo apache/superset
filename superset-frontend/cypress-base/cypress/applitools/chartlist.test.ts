@@ -30,7 +30,7 @@ describe('charts list view', () => {
   it('should load the Charts list', () => {
     cy.get('[aria-label="unordered-list"]').click();
     cy.eyesOpen({
-      testName: 'Charts UnorderedListOutlined',
+      testName: 'Charts list-view',
     });
     cy.eyesCheckWindow('Charts UnorderedListOutlined loaded');
   });
