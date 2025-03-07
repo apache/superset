@@ -40,6 +40,6 @@ describe('dashboard list view', () => {
     cy.eyesOpen({
       testName: 'Dashboards card-view',
     });
-    cy.eyesCheckWindow('Dashboards AppstoreOutlined loaded');
+    cy.eyesCheckWindow('Dashboards card-view loaded');
   });
 });
