@@ -171,7 +171,7 @@ const Select = forwardRef(
           sortSelectedFirst,
           sortComparator,
         ),
-      [inputValue, sortComparator, sortSelectedFirst],
+      [inputValue, sortComparator, isDropdownVisible],
     );
 
     const initialOptions = useMemo(
@@ -179,8 +179,13 @@ const Select = forwardRef(
       [options],
     );
     const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortSelectedFirst),
-      [initialOptions, sortSelectedFirst],
+      () =>
+        [...initialOptions].sort((a, b) => {
+          if (a.value === SELECT_ALL_VALUE) return -1;
+          if (b.value === SELECT_ALL_VALUE) return 1;
+          return 0;
+        }),
+      [initialOptions],
     );
 
     const [selectOptions, setSelectOptions] =
@@ -646,6 +651,7 @@ const Select = forwardRef(
           showSearch={shouldShowSearch}
           tokenSeparators={tokenSeparators}
           value={selectValue}
+          virtual={false}
           suffixIcon={getSuffixIcon(
             isLoading,
             shouldShowSearch,
