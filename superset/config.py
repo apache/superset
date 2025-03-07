@@ -58,7 +58,7 @@ from superset.stats_logger import DummyStatsLogger
 from superset.superset_typing import CacheConfig
 from superset.tasks.types import ExecutorType
 from superset.utils import core as utils
-from superset.utils.core import NO_TIME_RANGE, parse_boolean_string
+from superset.utils.core import NO_TIME_RANGE, parse_boolean_string, QuerySource
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
@@ -595,6 +595,10 @@ DEFAULT_FEATURE_FLAGS.update(
     }
 )
 
+# This function can be overridden to customize the name of the user agent
+# triggering the query.
+USER_AGENT_FUNC: Callable[[Database, QuerySource | None], str] | None = None
+
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
@@ -1034,7 +1038,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         # "prune_query": {
         #     "task": "prune_query",
         #     "schedule": crontab(minute=0, hour=0, day_of_month=1),
-        #     "options": {"retention_period_days": 180},
+        #     "kwargs": {"retention_period_days": 180},
         # },
     }
 
