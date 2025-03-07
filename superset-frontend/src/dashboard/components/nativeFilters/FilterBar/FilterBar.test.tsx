@@ -76,9 +76,9 @@ const getModalTestId = testWithId<string>(FILTERS_CONFIG_MODAL_TEST_ID, true);
 const FILTER_NAME = 'Time filter 1';
 
 const addFilterFlow = async () => {
-  // open filter config modal
+  // open filter config modals
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
-  userEvent.click(screen.getByLabelText('gear'));
+  userEvent.click(screen.getByLabelText('setting'));
   userEvent.click(screen.getByText('Add or edit filters'));
   // select filter
   userEvent.click(screen.getByText('Value'));
@@ -200,7 +200,9 @@ describe('FilterBar', () => {
 
   it('should render the collapse icon', () => {
     renderWrapper();
-    expect(screen.getByRole('img', { name: 'collapse' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('img', { name: 'vertical-align' }),
+    ).toBeInTheDocument();
   });
 
   it('should render the filter icon', () => {
@@ -210,7 +212,9 @@ describe('FilterBar', () => {
 
   it('should toggle', () => {
     renderWrapper();
-    const collapse = screen.getByRole('img', { name: 'collapse' });
+    const collapse = screen.getByRole('img', {
+      name: 'vertical-align',
+    });
     expect(toggleFiltersBar).not.toHaveBeenCalled();
     userEvent.click(collapse);
     expect(toggleFiltersBar).toHaveBeenCalled();

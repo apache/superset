@@ -91,7 +91,7 @@ const RenderIcon = (
 ) => {
   const component =
     iconOrientation === IconOrientation.Horizontal ? (
-      <Icons.MoreHoriz iconSize="xl" />
+      <Icons.EllipsisOutlined iconSize="xl" />
     ) : (
       <MenuDots />
     );

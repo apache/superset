@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, useTheme } from '@superset-ui/core';
 import Label, { Type } from 'src/components/Label';
 import Icons from 'src/components/Icons';
 
@@ -41,6 +41,7 @@ export default function Timer({
   startTime,
   status = 'success',
 }: TimerProps) {
+  const theme = useTheme();
   const [clockStr, setClockStr] = useState('00:00:00.00');
   const timer = useRef<ReturnType<typeof setInterval>>();
 
@@ -69,7 +70,16 @@ export default function Timer({
   }, [endTime, isRunning, startTime]);
 
   return (
-    <TimerLabel icon={<Icons.Clock iconSize="m" />} type={status} role="timer">
+    <TimerLabel
+      icon={
+        <Icons.ClockCircleOutlined
+          iconColor={theme.colors.success.dark2}
+          iconSize="m"
+        />
+      }
+      type={status}
+      role="timer"
+    >
       {clockStr}
     </TimerLabel>
   );

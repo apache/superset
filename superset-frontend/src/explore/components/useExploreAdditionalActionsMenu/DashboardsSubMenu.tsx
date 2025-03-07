@@ -57,7 +57,7 @@ const DashboardsSubMenu = ({
         <Input
           allowClear
           placeholder={t('Search')}
-          prefix={<Icons.Search iconSize="l" />}
+          prefix={<Icons.StarOutlined iconSize="l" />}
           css={css`
             width: ${WIDTH}px;
             margin: ${theme.gridUnit * 2}px ${theme.gridUnit * 3}px;
@@ -105,7 +105,6 @@ const DashboardsSubMenu = ({
                 </div>
                 <Icons.Full
                   iconSize="l"
-                  iconColor={theme.colors.grayscale.base}
                   css={css`
                     margin-left: ${theme.gridUnit * 2}px;
                     visibility: ${hoveredItem === dashboard.id

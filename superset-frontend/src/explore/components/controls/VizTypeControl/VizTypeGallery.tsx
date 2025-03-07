@@ -618,7 +618,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
       },
       [Sections.Tags]: {
         title: t('Tags'),
-        icon: <Icons.Tags iconSize="m" />,
+        icon: <Icons.NumberOutlined iconSize="m" />,
         selectors: tags,
       },
     }),
@@ -737,13 +737,13 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           data-test={`${VIZ_TYPE_CONTROL_TEST_ID}__search-input`}
           prefix={
             <InputIconAlignment>
-              <Icons.Search iconSize="m" />
+              <Icons.SearchOutlined iconSize="m" />
             </InputIconAlignment>
           }
           suffix={
             <InputIconAlignment>
               {searchInputValue && (
-                <Icons.XLarge iconSize="m" onClick={stopSearching} />
+                <Icons.CloseOutlined iconSize="m" onClick={stopSearching} />
               )}
             </InputIconAlignment>
           }

@@ -142,7 +142,7 @@ describe('SavedQueryList', () => {
     const deleteInput = screen.getByTestId('delete-modal-input');
     fireEvent.change(deleteInput, { target: { value: 'DELETE' } });
 
-    const confirmButton = screen.getByRole('button', { name: /delete/i });
+    const confirmButton = screen.getByTestId('modal-confirm-button');
     fireEvent.click(confirmButton);
 
     // Verify API call
