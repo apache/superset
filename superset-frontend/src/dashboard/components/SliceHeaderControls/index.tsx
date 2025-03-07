@@ -134,6 +134,7 @@ export interface SliceHeaderControlsProps {
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
+  downloadCSVFromS3?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
 
   addDangerToast: (message: string) => void;
@@ -215,6 +216,10 @@ const SliceHeaderControls = (
         }
         break;
       case MenuKeys.ExportCsv:
+        if (isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) && props.databaseBackend === 'awsathena') {
+          props.downloadCSVFromS3?.(props.slice.slice_id);
+          break;
+        }
         // eslint-disable-next-line no-unused-expressions
         props.exportCSV?.(props.slice.slice_id);
         break;
@@ -226,6 +231,10 @@ const SliceHeaderControls = (
         props.handleToggleFullSize();
         break;
       case MenuKeys.ExportFullCsv:
+        if (isFeatureEnabled(FeatureFlag.DownloadCSVFromS3) && props.databaseBackend === 'awsathena') {
+          props.downloadCSVFromS3?.(props.slice.slice_id);
+          break;
+        }
         // eslint-disable-next-line no-unused-expressions
         props.exportFullCSV?.(props.slice.slice_id);
         break;
