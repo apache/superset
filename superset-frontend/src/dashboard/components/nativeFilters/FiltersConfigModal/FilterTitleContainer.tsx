@@ -141,6 +141,7 @@ const FilterTitleContainer = forwardRef<HTMLDivElement, Props>(
             {isRemoved ? null : (
               <Icons.DeleteOutlined
                 iconColor={theme.colors.grayscale.light3}
+                iconSize="m"
                 onClick={event => {
                   event.stopPropagation();
                   onRemove(id);

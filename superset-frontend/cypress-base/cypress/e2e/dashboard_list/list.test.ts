@@ -172,7 +172,7 @@ describe('Dashboards list', () => {
     it('should bulk delete correctly', () => {
       toggleBulkSelect();
 
-      // bulk deletes in AppstoreOutlined
+      // bulk deletes in card-view
       setGridMode('card');
       orderAlphabetical();
 
@@ -219,7 +219,7 @@ describe('Dashboards list', () => {
     });
 
     it('should delete correctly in card mode', () => {
-      // deletes in AppstoreOutlined
+      // deletes in card-view
       setGridMode('card');
       orderAlphabetical();
 
@@ -238,7 +238,7 @@ describe('Dashboards list', () => {
     it('should edit correctly', () => {
       interceptUpdate();
 
-      // edits in AppstoreOutlined
+      // edits in card-view
       setGridMode('card');
       orderAlphabetical();
       cy.getBySel('styled-card').eq(0).contains('1 - Sample dashboard');

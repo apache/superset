@@ -82,7 +82,7 @@ export const CaretContainer = styled.div`
 `;
 
 export const CloseContainer = styled.div`
-  height: 100%;
+  height: auto;
   width: ${({ theme }) => theme.gridUnit * 6}px;
   border-right: solid 1px ${({ theme }) => theme.colors.grayscale.dark2}0C;
   cursor: pointer;
