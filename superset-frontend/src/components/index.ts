@@ -56,7 +56,6 @@ export {
   Collapse as AntdCollapse,
   Form as AntdForm,
   Input as AntdInput,
-  Select as AntdSelect,
 } from 'antd';
 
 // Exported types

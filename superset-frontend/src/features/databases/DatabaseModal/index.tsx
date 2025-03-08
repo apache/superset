@@ -38,7 +38,7 @@ import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
 import Tabs from 'src/components/Tabs';
-import { AntdSelect, Upload } from 'src/components';
+import { Select, Upload } from 'src/components';
 import Alert from 'src/components/Alert';
 import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -1056,26 +1056,23 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {t('Or choose from a list of other databases we support:')}
       </h4>
       <div className="control-label">{t('Supported databases')}</div>
-      <AntdSelect
+      <Select
         className="available-select"
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
+        options={[
+          [...(availableDbs?.databases || [])]
+            ?.sort((a: DatabaseForm, b: DatabaseForm) =>
+              a.name.localeCompare(b.name),
+            )
+            .map((database: DatabaseForm) => ({
+              value: database.name,
+              label: database.name,
+            })),
+          { value: 'Other', label: t('Other') },
+        ]}
         showSearch
-      >
-        {[...(availableDbs?.databases || [])]
-          ?.sort((a: DatabaseForm, b: DatabaseForm) =>
-            a.name.localeCompare(b.name),
-          )
-          .map((database: DatabaseForm, index: number) => (
-            <AntdSelect.Option value={database.name} key={`database-${index}`}>
-              {database.name}
-            </AntdSelect.Option>
-          ))}
-        {/* Allow users to connect to DB via legacy SQLA form */}
-        <AntdSelect.Option value="Other" key="Other">
-          {t('Other')}
-        </AntdSelect.Option>
-      </AntdSelect>
+      />
       <Alert
         showIcon
         closable={false}

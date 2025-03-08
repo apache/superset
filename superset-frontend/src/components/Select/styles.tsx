@@ -18,8 +18,8 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin, Tag } from 'antd';
-import AntdSelect from 'antd/lib/select';
+import { Spin, Tag } from 'antd-v5';
+import Select from 'antd-v5/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -39,18 +39,22 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
   `}
 `;
 
-export const StyledSelect = styled(AntdSelect, {
+export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
+    line-height: ${theme.gridUnit * 8}px;
+
+    && .ant-select-selection-search {
+      left: 0px;
+    }
     && .ant-select-selector {
       border-radius: ${theme.gridUnit}px;
     }
-    // Open the dropdown when clicking on the suffix
-    // This is fixed in version 4.16
-    .ant-select-arrow .anticon:not(.ant-select-suffix) {
-      pointer-events: none;
+    .ant-select-selection-item::after {
+      height: 0;
+      display: block !important;
     }
     .select-all {
       border-bottom: 1px solid ${theme.colors.grayscale.light3};
@@ -81,11 +85,16 @@ export const NoElement = styled.span`
 `;
 
 export const StyledTag = styled(Tag)`
-  ${({ theme }) => `
-    background: ${theme.colors.grayscale.light3};
-    font-size: ${theme.typography.sizes.m}px;
-    border: none;
-  `}
+  & .antd5-tag-close-icon {
+    display: inline-flex;
+    align-items: center;
+    margin-left: ${({ theme }) => theme.gridUnit}px;
+  }
+
+  & .tag-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 `;
 
 export const StyledStopOutlined = styled(Icons.StopOutlined)`
