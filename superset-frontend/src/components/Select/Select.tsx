@@ -127,7 +127,7 @@ const Select = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
-    ref: RefObject<RefSelectProps>,
+    ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
     const shouldShowSearch = allowNewOptions ? true : showSearch;

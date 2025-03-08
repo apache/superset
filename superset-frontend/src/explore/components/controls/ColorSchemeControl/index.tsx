@@ -29,7 +29,7 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import AntdSelect from 'antd-v5/lib/select';
+import Select from 'antd-v5/lib/select';
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
@@ -40,7 +40,7 @@ import { handleFilterOptionHelper } from 'src/components/Select/utils';
 import { getColorNamespace } from 'src/utils/colorScheme';
 import ColorSchemeLabel from './ColorSchemeLabel';
 
-const { Option, OptGroup } = AntdSelect;
+const { Option, OptGroup } = Select;
 
 export type OptionData = SelectOptionsType[number]['options'][number];
 
