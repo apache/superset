@@ -234,7 +234,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         <DropdownContainer
           items={items}
           dropdownTriggerIcon={
-            <Icons.FilterSmall
+            <Icons.FilterOutlined
               css={css`
                 && {
                   margin-right: -4px;

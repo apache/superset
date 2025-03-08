@@ -28,7 +28,7 @@ describe('dashboard list view', () => {
   });
 
   it('should load the Dashboards list', () => {
-    cy.get('[aria-label="list-view"]').click();
+    cy.get('[aria-label="unordered-list"]').click();
     cy.eyesOpen({
       testName: 'Dashboards list-view',
     });
@@ -36,7 +36,7 @@ describe('dashboard list view', () => {
   });
 
   it('should load the Dashboards card list', () => {
-    cy.get('[aria-label="card-view"]').click();
+    cy.get('[aria-label="appstore"]').click();
     cy.eyesOpen({
       testName: 'Dashboards card-view',
     });

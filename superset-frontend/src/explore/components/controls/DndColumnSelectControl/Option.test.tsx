@@ -42,7 +42,7 @@ describe('Option', () => {
     );
     expect(container).toBeInTheDocument();
     expect(
-      await screen.findByRole('img', { name: 'x-small' }),
+      await screen.findByRole('img', { name: 'close' }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('img', { name: 'caret-right' }),
@@ -57,7 +57,7 @@ describe('Option', () => {
       </Option>,
     );
     expect(
-      await screen.findByRole('img', { name: 'x-small' }),
+      await screen.findByRole('img', { name: 'close' }),
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('img', { name: 'caret-right' }),
@@ -84,7 +84,7 @@ describe('Option', () => {
         Option
       </Option>,
     );
-    userEvent.click(await screen.findByRole('img', { name: 'x-small' }));
+    userEvent.click(await screen.findByRole('img', { name: 'close' }));
     expect(clickClose).toHaveBeenCalled();
     unmount();
   });

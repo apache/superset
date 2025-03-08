@@ -17,8 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { css } from '@emotion/react';
-import { Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
+import { css, Divider, Filter, SupersetTheme, t } from '@superset-ui/core';
 import { AntdCollapse } from 'src/components';
 
 export interface FiltersOutOfScopeCollapsibleProps {

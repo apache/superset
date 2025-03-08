@@ -25,8 +25,14 @@ export interface ChartSpec {
   viz: string;
 }
 
+const viewTypeIcons = {
+  card: 'appstore',
+  list: 'unordered-list',
+};
+
 export function setGridMode(type: 'card' | 'list') {
-  cy.get(`[aria-label="${type}-view"]`).click();
+  const icon = viewTypeIcons[type];
+  cy.get(`[aria-label="${icon}"]`).click();
 }
 
 export function toggleBulkSelect() {

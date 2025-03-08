@@ -24,7 +24,7 @@ import {
 } from 'react';
 
 import { extendedDayjs } from 'src/utils/dates';
-import { t, styled } from '@superset-ui/core';
+import { t, styled, css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import dayjs from 'dayjs';
 
@@ -49,14 +49,15 @@ const TextStyles = styled.span`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 
-const Refresh = styled(Icons.Refresh)`
-  color: ${({ theme }) => theme.colors.primary.base};
+const RefreshIcon = styled(Icons.SyncOutlined)`
+  ${({ theme }) => `
   width: auto;
-  height: ${({ theme }) => theme.gridUnit * 5}px;
+  height: ${theme.gridUnit * 5}px;
   position: relative;
-  top: ${({ theme }) => theme.gridUnit}px;
-  left: ${({ theme }) => theme.gridUnit}px;
+  top: ${theme.gridUnit}px;
+  left: ${theme.gridUnit}px;
   cursor: pointer;
+`};
 `;
 
 export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
@@ -81,7 +82,15 @@ export const LastUpdated: FunctionComponent<LastUpdatedProps> = ({
   return (
     <TextStyles>
       {t('Last Updated %s', timeSince.isValid() ? timeSince.calendar() : '--')}
-      {update && <Refresh onClick={update} />}
+      {update && (
+        <RefreshIcon
+          iconSize="l"
+          css={css`
+            vertical-align: text-bottom;
+          `}
+          onClick={update}
+        />
+      )}
     </TextStyles>
   );
 };
