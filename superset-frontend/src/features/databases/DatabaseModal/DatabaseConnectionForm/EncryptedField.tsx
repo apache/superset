@@ -69,8 +69,8 @@ export const EncryptedField = ({
           </FormLabel>
           <Select
             defaultValue={uploadOption}
-            style={{ width: '100%' }}
-            onChange={option => setUploadOption(option)}
+            css={{ width: '100%' }}
+            onChange={option => setUploadOption(option as number)}
             options={[
               {
                 value: CredentialInfoOptions.JsonUpload,

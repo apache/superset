@@ -41,6 +41,7 @@ import { Select as AntdSelect } from 'antd-v5';
 import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
+  BaseOptionType,
 } from 'antd-v5/lib/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import {
@@ -689,3 +690,4 @@ const Select = forwardRef(
 );
 
 export default Select;
+export const { Option }: { Option: BaseOptionType } = AntdSelect;

@@ -1060,22 +1060,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         className="available-select"
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
+        options={[
+          [...(availableDbs?.databases || [])]
+            ?.sort((a: DatabaseForm, b: DatabaseForm) =>
+              a.name.localeCompare(b.name),
+            )
+            .map((database: DatabaseForm) => ({
+              value: database.name,
+              label: database.name,
+            })),
+          { value: 'Other', label: t('Other') },
+        ]}
         showSearch
-      >
-        {[...(availableDbs?.databases || [])]
-          ?.sort((a: DatabaseForm, b: DatabaseForm) =>
-            a.name.localeCompare(b.name),
-          )
-          .map((database: DatabaseForm, index: number) => (
-            <Select.Option value={database.name} key={`database-${index}`}>
-              {database.name}
-            </Select.Option>
-          ))}
-        {/* Allow users to connect to DB via legacy SQLA form */}
-        <Select.Option value="Other" key="Other">
-          {t('Other')}
-        </Select.Option>
-      </Select>
+      />
       <Alert
         showIcon
         closable={false}
