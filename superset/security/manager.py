@@ -239,7 +239,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Log",
         "List Users",
         "List Roles",
-        "List Groups",
+        "Roles",
         "ResetPasswordView",
         "RoleModelView",
         "UserGroupModelView",
@@ -252,6 +252,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "Role",
+        "RoleRestAPI",
         "Permission",
         "PermissionViewMenu",
         "ViewMenu",
@@ -279,6 +280,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "update_roles_users",
+        "list_roles",
         "can_update_role",
         "all_query_access",
         "can_grant_guest_token",
