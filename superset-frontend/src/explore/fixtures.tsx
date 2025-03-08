@@ -133,7 +133,10 @@ export const exploreInitialData: ExplorePageInitialData = {
     id: 8,
     type: DatasourceType.Table,
     columns: [{ column_name: 'a' }],
-    metrics: [{ metric_name: 'first' }, { metric_name: 'second' }],
+    metrics: [
+      { metric_name: 'first', uuid: '1' },
+      { metric_name: 'second', uuid: '2' },
+    ],
     column_formats: {},
     currency_formats: {},
     verbose_map: {},
