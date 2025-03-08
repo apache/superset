@@ -442,6 +442,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     DEFAULT_NOTIFICATION_FORMAT,
   );
   const [forceScreenshot, setForceScreenshot] = useState<boolean>(false);
+  const [removeIndex, setRemoveIndex] = useState<boolean>(false);
 
   const [isScreenshot, setIsScreenshot] = useState<boolean>(false);
   useEffect(() => {
@@ -669,6 +670,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ...currentAlert,
       type: isReport ? 'Report' : 'Alert',
       force_screenshot: shouldEnableForceScreenshot || forceScreenshot,
+      remove_index: removeIndex,
       validator_type: conditionNotNull ? 'not null' : 'operator',
       validator_config_json: conditionNotNull
         ? {}
@@ -1117,6 +1119,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const onForceScreenshotChange = (event: any) => {
     setForceScreenshot(event.target.checked);
+  };
+
+  const onRemoveIndexChange = (event: any) => {
+    setRemoveIndex(event.target.checked);
   };
 
   // Make sure notification settings has the required info
@@ -1810,6 +1816,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               </StyledCheckbox>
             </div>
           )}
+          {isReport &&
+            contentType === ContentType.Chart &&
+            reportFormat === 'CSV' && (
+              <div className="inline-container">
+                <StyledCheckbox
+                  data-test="include-index"
+                  className="checkbox"
+                  checked={removeIndex}
+                  onChange={onRemoveIndexChange}
+                >
+                  {t('Remove index column')}
+                </StyledCheckbox>
+              </div>
+            )}
         </StyledPanel>
         <StyledPanel
           header={
