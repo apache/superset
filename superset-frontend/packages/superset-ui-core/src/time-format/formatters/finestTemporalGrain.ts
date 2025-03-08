@@ -48,26 +48,30 @@ export default function finestTemporalGrain(
   } = useLocalTime ? localTimeUtils : utcUtils;
 
   let formatFunc = formatYear;
-  values.forEach((value: any) => {
-    if (formatFunc === formatYear && isNotFirstMonth(value)) {
-      formatFunc = formatMonth;
-    }
-    if (formatFunc === formatMonth && isNotFirstDayOfMonth(value)) {
-      formatFunc = formatDay;
-    }
-    if (formatFunc === formatDay && hasHour(value)) {
-      formatFunc = formatHour;
-    }
-    if (formatFunc === formatHour && hasMinute(value)) {
-      formatFunc = formatMinute;
-    }
-    if (formatFunc === formatMinute && hasSecond(value)) {
-      formatFunc = formatSecond;
-    }
-    if (formatFunc === formatSecond && hasMillisecond(value)) {
-      formatFunc = formatMillisecond;
-    }
-  });
+  try {
+    values.forEach((value: any) => {
+      if (formatFunc === formatYear && isNotFirstMonth(value)) {
+        formatFunc = formatMonth;
+      }
+      if (formatFunc === formatMonth && isNotFirstDayOfMonth(value)) {
+        formatFunc = formatDay;
+      }
+      if (formatFunc === formatDay && hasHour(value)) {
+        formatFunc = formatHour;
+      }
+      if (formatFunc === formatHour && hasMinute(value)) {
+        formatFunc = formatMinute;
+      }
+      if (formatFunc === formatMinute && hasSecond(value)) {
+        formatFunc = formatSecond;
+      }
+      if (formatFunc === formatSecond && hasMillisecond(value)) {
+        formatFunc = formatMillisecond;
+      }
+    });
+  } catch (e) {
+    // ignore
+  }
 
   return new TimeFormatter({
     description:
