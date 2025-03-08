@@ -23,6 +23,7 @@ import { ParseMethod, TextResponse, JsonResponse } from '../types';
 
 const JSONbig = _JSONbig({
   constructorAction: 'preserve',
+  useNativeBigInt: true,
 });
 
 export default async function parseResponse<T extends ParseMethod = 'json'>(
