@@ -18,7 +18,7 @@
  */
 import { useRef, useState } from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
-import { Button, AntdSelect } from 'src/components';
+import { Button, Select } from 'src/components';
 import FormLabel from 'src/components/Form/FormLabel';
 import Icons from 'src/components/Icons';
 import { DatabaseParameters, FieldPropTypes } from '../../types';
@@ -67,19 +67,21 @@ export const EncryptedField = ({
           <FormLabel>
             {t('How do you want to enter service account credentials?')}
           </FormLabel>
-          <AntdSelect
+          <Select
             defaultValue={uploadOption}
             style={{ width: '100%' }}
             onChange={option => setUploadOption(option)}
-          >
-            <AntdSelect.Option value={CredentialInfoOptions.JsonUpload}>
-              {t('Upload JSON file')}
-            </AntdSelect.Option>
-
-            <AntdSelect.Option value={CredentialInfoOptions.CopyPaste}>
-              {t('Copy and Paste JSON credentials')}
-            </AntdSelect.Option>
-          </AntdSelect>
+            options={[
+              {
+                value: CredentialInfoOptions.JsonUpload,
+                label: t('Upload JSON file'),
+              },
+              {
+                value: CredentialInfoOptions.CopyPaste,
+                label: t('Copy and Paste JSON credentials'),
+              },
+            ]}
+          />
         </>
       )}
       {uploadOption === CredentialInfoOptions.CopyPaste ||

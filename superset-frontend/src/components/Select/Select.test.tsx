@@ -37,7 +37,7 @@ type Option = {
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
-const NO_DATA = 'No Data';
+const NO_DATA = 'No data';
 const LOADING = 'Loading...';
 const OPTIONS: Option[] = [
   { label: 'John', value: 1, gender: 'Male' },
@@ -367,7 +367,9 @@ test('searches for custom fields', async () => {
   expect(options[4]).toHaveTextContent('Nikole');
   expect(options[5]).toHaveTextContent('Olivia');
   await type('1');
-  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('removes duplicated values', async () => {
@@ -443,7 +445,9 @@ test('does not add a new option if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={OPTIONS} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('adds the null option when selected in single mode', async () => {
@@ -478,7 +482,9 @@ test('renders the select with default props', () => {
 test('opens the select without any data', async () => {
   render(<Select {...defaultProps} options={[]} />);
   await open();
-  expect(screen.getByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('makes a selection in single mode', async () => {
@@ -552,7 +558,9 @@ test('shows "No data" when allowNewOptions is false and a new option is entered'
   render(<Select {...defaultProps} allowNewOptions={false} />);
   await open();
   await type(NEW_OPTION);
-  expect(await screen.findByText(NO_DATA)).toBeInTheDocument();
+  expect(
+    await screen.findByText(NO_DATA, { selector: '.ant-empty-description' }),
+  ).toBeInTheDocument();
 });
 
 test('does not show "No data" when allowNewOptions is true and a new option is entered', async () => {

@@ -72,7 +72,7 @@ export default function Select<VT extends string | number>({
     : onChange;
 
   return (
-    <AntdSelect<VT>
+    <Select<VT>
       dropdownMatchSelectWidth={dropdownMatchSelectWidth}
       showSearch={showSearch}
       onSearch={handleSearch}
@@ -98,7 +98,7 @@ export default function Select<VT extends string | number>({
           {searchValue}
         </Option>
       )}
-    </AntdSelect>
+    </Select>
   );
 }
 

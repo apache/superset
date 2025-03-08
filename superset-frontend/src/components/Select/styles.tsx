@@ -19,7 +19,7 @@
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { Spin, Tag } from 'antd-v5';
-import AntdSelect from 'antd-v5/lib/select';
+import Select from 'antd-v5/lib/select';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -39,7 +39,7 @@ export const StyledContainer = styled.div<{ headerPosition: string }>`
   `}
 `;
 
-export const StyledSelect = styled(AntdSelect, {
+export const StyledSelect = styled(Select, {
   shouldForwardProp: prop => prop !== 'headerPosition' && prop !== 'oneLine',
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `

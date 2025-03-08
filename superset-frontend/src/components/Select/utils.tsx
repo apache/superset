@@ -119,11 +119,14 @@ export const sortSelectedFirstHelper = (
     | AntdLabeledValue[]
     | undefined
     | null,
-) =>
-  selectValue && a.value !== undefined && b.value !== undefined
+) => {
+  if (a.value === SELECT_ALL_VALUE) return -1;
+  if (b.value === SELECT_ALL_VALUE) return 1;
+  return selectValue && a.value !== undefined && b.value !== undefined
     ? Number(hasOption(b.value, selectValue)) -
-      Number(hasOption(a.value, selectValue))
+        Number(hasOption(a.value, selectValue))
     : 0;
+};
 
 export const sortComparatorWithSearchHelper = (
   a: AntdLabeledValue,
