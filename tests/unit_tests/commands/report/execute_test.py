@@ -24,9 +24,11 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
+from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.execute import BaseReportState
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
+    ReportRecipients,
     ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
@@ -480,3 +482,78 @@ def test_screenshot_width_calculation(
                     f"Test {test_id}: Expected width {expected_width}, "
                     f"but got {kwargs['window_size'][0]}"
                 )
+
+
+def test_update_recipient_to_slack_v2(mocker: MockerFixture):
+    """
+    Test converting a Slack recipient to Slack v2 format.
+    """
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        return_value=[
+            {
+                "id": "abc124f",
+                "name": "channel-1",
+                "is_member": True,
+                "is_private": False,
+            },
+            {
+                "id": "blah_!channel_2",
+                "name": "Channel_2",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+    )
+    mock_report_schedule = ReportSchedule(
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=json.dumps({"target": "Channel-1, Channel_2"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    mock_cmmd.update_report_schedule_slack_v2()
+
+    assert (
+        mock_cmmd._report_schedule.recipients[0].recipient_config_json
+        == '{"target": "abc124f,blah_!channel_2"}'
+    )
+    assert mock_cmmd._report_schedule.recipients[0].type == ReportRecipientType.SLACKV2
+
+
+def test_update_recipient_to_slack_v2_missing_channels(mocker: MockerFixture):
+    """
+    Test converting a Slack recipient to Slack v2 format raises an error
+    in case it can't find all channels.
+    """
+    mocker.patch(
+        "superset.commands.report.execute.get_channels_with_search",
+        return_value=[
+            {
+                "id": "blah_!channel_2",
+                "name": "Channel 2",
+                "is_member": True,
+                "is_private": False,
+            },
+        ],
+    )
+    mock_report_schedule = ReportSchedule(
+        name="Test Report",
+        recipients=[
+            ReportRecipients(
+                type=ReportRecipientType.SLACK,
+                recipient_config_json=json.dumps({"target": "Channel 1, Channel 2"}),
+            ),
+        ],
+    )
+
+    mock_cmmd: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    with pytest.raises(UpdateFailedError):
+        mock_cmmd.update_report_schedule_slack_v2()

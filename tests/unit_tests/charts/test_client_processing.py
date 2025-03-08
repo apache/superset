@@ -987,8 +987,12 @@ def test_pivot_df_complex():
         show_columns_total=False,
         apply_metrics_on_rows=False,
     )
+
+    # Sort the pivoted DataFrame to ensure deterministic output
+    pivoted_sorted = pivoted.sort_index()
+
     assert (
-        pivoted.to_markdown()
+        pivoted_sorted.to_markdown()
         == """
 |                    |   ('SUM(num)', 'CA') |   ('SUM(num)', 'FL') |   ('MAX(num)', 'CA') |   ('MAX(num)', 'FL') |
 |:-------------------|---------------------:|---------------------:|---------------------:|---------------------:|
@@ -2499,3 +2503,62 @@ def test_apply_client_processing_verbose_map(session: Session):
             }
         ]
     }
+
+
+def test_pivot_multi_level_index():
+    """
+    Pivot table with multi-level indexing.
+    """
+    arrays = [
+        ["Region1", "Region1", "Region1", "Region2", "Region2", "Region2"],
+        ["State1", "State1", "State2", "State3", "State3", "State4"],
+        ["City1", "City2", "City3", "City4", "City5", "City6"],
+    ]
+    index = pd.MultiIndex.from_tuples(
+        list(zip(*arrays, strict=False)),
+        names=["Region", "State", "City"],
+    )
+
+    data = {
+        "Metric1": [10, 20, 30, 40, 50, 60],
+        "Metric2": [5, 10, 15, 20, 25, 30],
+        "Metric3": [None, None, None, None, None, None],
+    }
+    df = pd.DataFrame(data, index=index)
+
+    pivoted = pivot_df(
+        df,
+        rows=["Region", "State", "City"],
+        columns=[],
+        metrics=["Metric1", "Metric2", "Metric3"],
+        aggfunc="Sum",
+        transpose_pivot=False,
+        combine_metrics=False,
+        show_rows_total=False,
+        show_columns_total=True,
+        apply_metrics_on_rows=False,
+    )
+
+    # Sort the pivoted DataFrame to ensure deterministic output
+    pivoted_sorted = pivoted.sort_index()
+
+    assert (
+        pivoted_sorted.to_markdown()
+        == """
+|                                   |   ('Metric1',) |   ('Metric2',) |   ('Metric3',) |
+|:----------------------------------|---------------:|---------------:|---------------:|
+| ('Region1', 'State1', 'City1')    |             10 |              5 |            nan |
+| ('Region1', 'State1', 'City2')    |             20 |             10 |            nan |
+| ('Region1', 'State1', 'Subtotal') |             30 |             15 |              0 |
+| ('Region1', 'State2', 'City3')    |             30 |             15 |            nan |
+| ('Region1', 'State2', 'Subtotal') |             30 |             15 |              0 |
+| ('Region1', 'Subtotal', '')       |             60 |             30 |              0 |
+| ('Region2', 'State3', 'City4')    |             40 |             20 |            nan |
+| ('Region2', 'State3', 'City5')    |             50 |             25 |            nan |
+| ('Region2', 'State3', 'Subtotal') |             90 |             45 |              0 |
+| ('Region2', 'State4', 'City6')    |             60 |             30 |            nan |
+| ('Region2', 'State4', 'Subtotal') |             60 |             30 |              0 |
+| ('Region2', 'Subtotal', '')       |            150 |             75 |              0 |
+| ('Total (Sum)', '', '')           |            210 |            105 |              0 |
+    """.strip()
+    )

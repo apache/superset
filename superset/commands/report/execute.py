@@ -72,7 +72,7 @@ from superset.reports.notifications.exceptions import (
 )
 from superset.tasks.utils import get_executor
 from superset.utils import json
-from superset.utils.core import HeaderDataType, override_user
+from superset.utils.core import HeaderDataType, override_user, recipients_string_to_list
 from superset.utils.csv import get_chart_csv_data, get_chart_dataframe
 from superset.utils.decorators import logs_context, transaction
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -137,24 +137,40 @@ class BaseReportState:
                 if recipient.type == ReportRecipientType.SLACK:
                     recipient.type = ReportRecipientType.SLACKV2
                     slack_recipients = json.loads(recipient.recipient_config_json)
+                    # V1 method allowed to use leading `#` in the channel name
+                    channel_names = (slack_recipients["target"] or "").replace("#", "")
                     # we need to ensure that existing reports can also fetch
                     # ids from private channels
+                    channels = get_channels_with_search(
+                        search_string=channel_names,
+                        types=[
+                            SlackChannelTypes.PRIVATE,
+                            SlackChannelTypes.PUBLIC,
+                        ],
+                        exact_match=True,
+                    )
+                    channels_list = recipients_string_to_list(channel_names)
+                    if len(channels_list) != len(channels):
+                        missing_channels = set(channels_list) - {
+                            channel["name"] for channel in channels
+                        }
+                        msg = (
+                            "Could not find the following channels: "
+                            f"{', '.join(missing_channels)}"
+                        )
+                        raise UpdateFailedError(msg)
+                    channel_ids = ",".join(channel["id"] for channel in channels)
                     recipient.recipient_config_json = json.dumps(
                         {
-                            "target": get_channels_with_search(
-                                slack_recipients["target"],
-                                types=[
-                                    SlackChannelTypes.PRIVATE,
-                                    SlackChannelTypes.PUBLIC,
-                                ],
-                            )
+                            "target": channel_ids,
                         }
                     )
         except Exception as ex:
-            logger.warning(
-                "Failed to update slack recipients to v2: %s", str(ex), exc_info=True
-            )
-            raise UpdateFailedError from ex
+            # Revert to v1 to preserve configuration (requires manual fix)
+            recipient.type = ReportRecipientType.SLACK
+            msg = f"Failed to update slack recipients to v2: {str(ex)}"
+            logger.exception(msg)
+            raise UpdateFailedError(msg) from ex
 
     def create_log(self, error_message: Optional[str] = None) -> None:
         """
@@ -553,30 +569,32 @@ class BaseReportState:
         for recipient in recipients:
             notification = create_notification(recipient, notification_content)
             try:
-                if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
-                    logger.info(
-                        "Would send notification for alert %s, to %s. "
-                        "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
-                        "set it to False to send notifications.",
-                        self._report_schedule.name,
-                        recipient.recipient_config_json,
-                    )
-                else:
-                    notification.send()
-            except SlackV1NotificationError as ex:
-                # The slack notification should be sent with the v2 api
-                logger.info("Attempting to upgrade the report to Slackv2: %s", str(ex))
                 try:
+                    if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
+                        logger.info(
+                            "Would send notification for alert %s, to %s. "
+                            "ALERT_REPORTS_NOTIFICATION_DRY_RUN is enabled, "
+                            "set it to False to send notifications.",
+                            self._report_schedule.name,
+                            recipient.recipient_config_json,
+                        )
+                    else:
+                        notification.send()
+                except SlackV1NotificationError as ex:
+                    # The slack notification should be sent with the v2 api
+                    logger.info(
+                        "Attempting to upgrade the report to Slackv2: %s", str(ex)
+                    )
                     self.update_report_schedule_slack_v2()
                     recipient.type = ReportRecipientType.SLACKV2
                     notification = create_notification(recipient, notification_content)
                     notification.send()
-                except (UpdateFailedError, NotificationParamException) as err:
-                    # log the error but keep processing the report with SlackV1
-                    logger.warning(
-                        "Failed to update slack recipients to v2: %s", str(err)
-                    )
-            except (NotificationError, SupersetException) as ex:
+            except (
+                UpdateFailedError,
+                NotificationParamException,
+                NotificationError,
+                SupersetException,
+            ) as ex:
                 # collect errors but keep processing them
                 notification_errors.append(
                     SupersetError(

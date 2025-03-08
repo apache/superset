@@ -24,7 +24,6 @@ import {
   logging,
   QueryFormData,
   styled,
-  ErrorTypeEnum,
   t,
   SqlaFormData,
   ClientErrorObject,
@@ -240,15 +239,7 @@ class Chart extends PureComponent<ChartProps, {}> {
       height,
       datasetsStatus,
     } = this.props;
-    let error = queryResponse?.errors?.[0];
-    if (error === undefined) {
-      error = {
-        error_type: ErrorTypeEnum.FRONTEND_NETWORK_ERROR,
-        level: 'error',
-        message: t('Check your network connection'),
-        extra: null,
-      };
-    }
+    const error = queryResponse?.errors?.[0];
     const message = chartAlert || queryResponse?.message;
 
     // if datasource is still loading, don't render JS errors

@@ -577,8 +577,12 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             search_string = params.get("search_string")
             types = params.get("types", [])
             exact_match = params.get("exact_match", False)
+            force = params.get("force", False)
             channels = get_channels_with_search(
-                search_string=search_string, types=types, exact_match=exact_match
+                search_string=search_string,
+                types=types,
+                exact_match=exact_match,
+                force=force,
             )
             return self.response(200, result=channels)
         except SupersetException as ex:

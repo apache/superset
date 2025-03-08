@@ -24,9 +24,14 @@ import Icons, { IconType } from 'src/components/Icons';
 export interface RefreshLabelProps {
   onClick: MouseEventHandler<HTMLSpanElement>;
   tooltipContent: string;
+  disabled?: boolean;
 }
 
-const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
+const RefreshLabel = ({
+  onClick,
+  tooltipContent,
+  disabled,
+}: RefreshLabelProps) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const IconWithoutRef = forwardRef((props: IconType, ref: any) => (
     <Icons.Refresh {...props} />
@@ -36,7 +41,7 @@ const RefreshLabel = ({ onClick, tooltipContent }: RefreshLabelProps) => {
     <Tooltip title={tooltipContent}>
       <IconWithoutRef
         role="button"
-        onClick={onClick}
+        onClick={disabled ? undefined : onClick}
         css={(theme: SupersetTheme) => ({
           cursor: 'pointer',
           color: theme.colors.grayscale.base,
