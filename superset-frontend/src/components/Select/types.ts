@@ -38,6 +38,8 @@ export type AntdExposedProps = Pick<
   | 'allowClear'
   | 'autoClearSearchValue'
   | 'autoFocus'
+  | 'className'
+  | 'defaultValue'
   | 'disabled'
   | 'filterOption'
   | 'filterSort'
