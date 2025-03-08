@@ -26,7 +26,7 @@ import {
 
 import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { AntdInput } from 'src/components';
+import { Input } from 'src/components/Input';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';
 import InfoTooltip from 'src/components/InfoTooltip';
@@ -45,10 +45,6 @@ const Container = styled.div`
 
 const SearchIcon = styled(Icons.Search)`
   color: ${({ theme }) => theme.colors.grayscale.light1};
-`;
-
-const StyledInput = styled(AntdInput)`
-  border-radius: ${({ theme }) => theme.gridUnit}px;
 `;
 
 function SearchFilter(
@@ -87,7 +83,7 @@ function SearchFilter(
       {toolTipDescription && (
         <InfoTooltip tooltip={toolTipDescription} viewBox="0 -7 28 28" />
       )}
-      <StyledInput
+      <Input
         allowClear
         data-test="filters-search"
         placeholder={t('Type a value')}
