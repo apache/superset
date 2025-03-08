@@ -164,7 +164,7 @@ export const getSuffixIcon = (
   if (showSearch && isDropdownVisible) {
     return <Icons.SearchOutlined iconSize="s" />;
   }
-  return <Icons.DownOutlined iconSize="s" />;
+  return <Icons.DownOutlined iconSize="s" aria-label="down" />;
 };
 
 export const dropDownRenderHelper = (
