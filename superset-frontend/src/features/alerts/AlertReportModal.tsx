@@ -40,6 +40,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
+// todo(hughhh): migrate to src/components/Form
 import { AntdForm } from 'src/components';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -511,12 +512,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
   const [nativeFilterOptions, setNativeFilterOptions] = useState<object>([]);
-  const [nativeFilterValues, setNativeFilterValues] = useState<object>([]);
   const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
     [],
   );
-  const theme = useTheme();
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -729,14 +728,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
 
-    // todo(hughhh): refactor to handle multiple native filters
-    console.log('nativeFilterData', nativeFilterData);
     currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
-      filter => ({
-        columnName: filter.columnName,
-        columnLabel: filter.columnLabel,
-        nativeFilterId: filter.nativeFilterId,
-        filterValues: filter.filterValues,
+      ({ columnName, columnLabel, nativeFilterId, filterValues }) => ({
+        columnName,
+        columnLabel,
+        nativeFilterId,
+        filterValues,
       }),
     );
 
