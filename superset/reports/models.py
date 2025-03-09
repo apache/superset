@@ -16,7 +16,7 @@
 # under the License.
 """A collection of ORM sqlalchemy models for Superset"""
 
-from typing import Optional
+from typing import Any, Optional
 
 import prison
 from cron_descriptor import get_description
@@ -187,7 +187,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         return get_description(self.crontab)
 
     def get_native_filters_params(self) -> Optional[str]:
-        params = {}
+        params: dict[str, Any] = {}
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
             for filter in dashboard.get("nativeFilters", []):
@@ -203,7 +203,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
 
     def _generate_native_filter(
         self, native_filter_id: str, column_name: str, values: list[str]
-    ) -> dict:
+    ) -> dict[str, Any]:
         return {
             native_filter_id: {
                 "id": native_filter_id,

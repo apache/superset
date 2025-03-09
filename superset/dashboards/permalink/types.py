@@ -22,6 +22,7 @@ class DashboardPermalinkState(TypedDict):
     activeTabs: Optional[list[str]]
     anchor: Optional[str]
     urlParams: Optional[list[tuple[str, str]]]
+    nativeFilters: Optional[list[dict[str, Any]]]
 
 
 class DashboardPermalinkValue(TypedDict):

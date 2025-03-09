@@ -1,5 +1,3 @@
-
-
 from superset.reports.models import ReportSchedule
 
 
@@ -21,8 +19,9 @@ def test_get_native_filters_params():
     }
 
     assert report_schedule.get_native_filters_params() == (
-        '(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!(value1,value2)))),filterState:(label:column_name,validateStatus:!f,value:!(value1,value2)),id:filter_id,ownState:()))'
+        "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!(value1,value2)))),filterState:(label:column_name,validateStatus:!f,value:!(value1,value2)),id:filter_id,ownState:()))"
     )
+
 
 def test_get_native_filters_params_multiple_filters():
     """
@@ -41,14 +40,15 @@ def test_get_native_filters_params_multiple_filters():
                     "nativeFilterId": "filter_id_2",
                     "columnName": "column_name_2",
                     "filterValues": ["value3", "value4"],
-                }
+                },
             ]
         }
     }
 
     assert report_schedule.get_native_filters_params() == (
-        '(filter_id_1:(extraFormData:(filters:!((col:column_name_1,op:IN,val:!(value1,value2)))),filterState:(label:column_name_1,validateStatus:!f,value:!(value1,value2)),id:filter_id_1,ownState:()),filter_id_2:(extraFormData:(filters:!((col:column_name_2,op:IN,val:!(value3,value4)))),filterState:(label:column_name_2,validateStatus:!f,value:!(value3,value4)),id:filter_id_2,ownState:()))'
+        "(filter_id_1:(extraFormData:(filters:!((col:column_name_1,op:IN,val:!(value1,value2)))),filterState:(label:column_name_1,validateStatus:!f,value:!(value1,value2)),id:filter_id_1,ownState:()),filter_id_2:(extraFormData:(filters:!((col:column_name_2,op:IN,val:!(value3,value4)))),filterState:(label:column_name_2,validateStatus:!f,value:!(value3,value4)),id:filter_id_2,ownState:()))"
     )
+
 
 def test_report_generate_native_filter_no_values():
     """
@@ -61,7 +61,21 @@ def test_report_generate_native_filter_no_values():
 
     assert report_schedule._generate_native_filter(
         native_filter_id, column_name, values
-    ) == {'filter_id': {'id': 'filter_id', 'extraFormData': {'filters': [{'col': 'column_name', 'op': 'IN', 'val': None}]}, 'filterState': {'label': 'column_name', 'validateStatus': False, 'value': None}, 'ownState': {}}}
+    ) == {
+        "filter_id": {
+            "id": "filter_id",
+            "extraFormData": {
+                "filters": [{"col": "column_name", "op": "IN", "val": None}]
+            },
+            "filterState": {
+                "label": "column_name",
+                "validateStatus": False,
+                "value": None,
+            },
+            "ownState": {},
+        }
+    }
+
 
 def test_get_native_filters_params_invalid_structure():
     """
@@ -79,8 +93,13 @@ def test_get_native_filters_params_invalid_structure():
             ]
         }
     }
-    
-    assert report_schedule.get_native_filters_params() == '(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!n))),filterState:(label:column_name,validateStatus:!f,value:!n),id:filter_id,ownState:()))'
+
+    assert (
+        report_schedule.get_native_filters_params()
+        == "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!n))),"
+        "filterState:(label:column_name,validateStatus:!f,value:!n),id:filter_id,ownState:()))"
+    )
+
 
 # todo(hugh): how do we want to handle this case?
 # def test_report_generate_native_filter_invalid_filter_id():
@@ -96,6 +115,7 @@ def test_get_native_filters_params_invalid_structure():
 #         native_filter_id, column_name, values
 #     ) == {}
 
+
 def test_report_generate_native_filter():
     """
     Test the ``_generate_native_filter`` method.
@@ -105,13 +125,17 @@ def test_report_generate_native_filter():
     column_name = "column_name"
     values = ["value1", "value2"]
 
-    print(report_schedule._generate_native_filter(native_filter_id, column_name, values))
+    print(
+        report_schedule._generate_native_filter(native_filter_id, column_name, values)
+    )
     assert report_schedule._generate_native_filter(
         native_filter_id, column_name, values
     ) == {
         "filter_id": {
             "extraFormData": {
-                "filters": [{"col": "column_name", "op": "IN", "val": ["value1", "value2"]}]
+                "filters": [
+                    {"col": "column_name", "op": "IN", "val": ["value1", "value2"]}
+                ]
             },
             "filterState": {
                 "label": "column_name",
@@ -123,6 +147,7 @@ def test_report_generate_native_filter():
         }
     }
 
+
 def test_get_native_filters_params_empty():
     """
     Test the ``get_native_filters_params`` method with empty extra.
@@ -130,20 +155,18 @@ def test_get_native_filters_params_empty():
     report_schedule = ReportSchedule()
     report_schedule.extra = {}
 
-    assert report_schedule.get_native_filters_params() == '()'
+    assert report_schedule.get_native_filters_params() == "()"
+
 
 def test_get_native_filters_params_no_native_filters():
     """
     Test the ``get_native_filters_params`` method with no native filters.
     """
     report_schedule = ReportSchedule()
-    report_schedule.extra = {
-        "dashboard": {
-            "nativeFilters": []
-        }
-    }
+    report_schedule.extra = {"dashboard": {"nativeFilters": []}}
 
-    assert report_schedule.get_native_filters_params() == '()'
+    assert report_schedule.get_native_filters_params() == "()"
+
 
 def test_report_generate_native_filter_empty_values():
     """
@@ -170,6 +193,7 @@ def test_report_generate_native_filter_empty_values():
             "ownState": {},
         }
     }
+
 
 def test_report_generate_native_filter_no_column_name():
     """
