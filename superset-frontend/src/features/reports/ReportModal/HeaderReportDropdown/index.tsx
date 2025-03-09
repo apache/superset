@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { isEmpty } from 'lodash';
 import {
@@ -24,7 +24,6 @@ import {
   SupersetTheme,
   css,
   styled,
-  useTheme,
   FeatureFlag,
   isFeatureEnabled,
   getExtensionsRegistry,
@@ -36,15 +35,11 @@ import { AlertObject } from 'src/features/alerts/types';
 import { Menu } from 'src/components/Menu';
 import Checkbox from 'src/components/Checkbox';
 import { noOp } from 'src/utils/common';
-import { NoAnimationDropdown } from 'src/components/Dropdown';
-import DeleteModal from 'src/components/DeleteModal';
-import ReportModal from 'src/features/reports/ReportModal';
 import { ChartState } from 'src/explore/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   fetchUISpecificReport,
   toggleActive,
-  deleteActiveReport,
 } from 'src/features/reports/ReportModal/actions';
 import { reportSelector } from 'src/views/CRUD/hooks';
 import { MenuItemWithCheckboxContainer } from 'src/explore/components/useExploreAdditionalActionsMenu/index';
@@ -99,9 +94,10 @@ export interface HeaderReportProps {
   chart?: ChartState;
   useTextMenu?: boolean;
   setShowReportSubMenu?: (show: boolean) => void;
-  setIsDropdownVisible?: (visible: boolean) => void;
-  isDropdownVisible?: boolean;
   showReportSubMenu?: boolean;
+  submenuTitle?: string;
+  showReportModal: () => void;
+  setCurrentReportDeleting: (report: AlertObject | null) => void;
 }
 
 // Same instance to be used in useEffects
@@ -112,9 +108,9 @@ export default function HeaderReportDropDown({
   chart,
   useTextMenu = false,
   setShowReportSubMenu,
-  setIsDropdownVisible,
-  isDropdownVisible,
-  ...rest
+  submenuTitle,
+  showReportModal,
+  setCurrentReportDeleting,
 }: HeaderReportProps) {
   const dispatch = useDispatch();
   const report = useSelector<any, AlertObject>(state => {
@@ -156,20 +152,11 @@ export default function HeaderReportDropDown({
     return permissions.some(permission => permission.length > 0);
   };
 
-  const [currentReportDeleting, setCurrentReportDeleting] =
-    useState<AlertObject | null>(null);
-  const theme = useTheme();
   const prevDashboard = usePrevious(dashboardId);
-  const [showModal, setShowModal] = useState<boolean>(false);
   const toggleActiveKey = async (data: AlertObject, checked: boolean) => {
     if (data?.id) {
       dispatch(toggleActive(data, checked));
     }
-  };
-
-  const handleReportDelete = async (report: AlertObject) => {
-    await dispatch(deleteActiveReport(report));
-    setCurrentReportDeleting(null);
   };
 
   const shouldFetch =
@@ -191,12 +178,6 @@ export default function HeaderReportDropDown({
 
   const showReportSubMenu = report && setShowReportSubMenu && canAddReports();
 
-  // @z-index-below-dashboard-header (100) - 1 = 99
-  const dropdownOverlayStyle = {
-    zIndex: 99,
-    animationDuration: '0s',
-  };
-
   useEffect(() => {
     if (showReportSubMenu) {
       setShowReportSubMenu(true);
@@ -206,22 +187,16 @@ export default function HeaderReportDropDown({
   }, [report]);
 
   const handleShowMenu = () => {
-    if (setIsDropdownVisible) {
-      setIsDropdownVisible(false);
-      setShowModal(true);
-    }
+    showReportModal();
   };
 
   const handleDeleteMenuClick = () => {
-    if (setIsDropdownVisible) {
-      setIsDropdownVisible(false);
-      setCurrentReportDeleting(report);
-    }
+    setCurrentReportDeleting(report);
   };
 
   const textMenu = () =>
     isEmpty(report) ? (
-      <Menu selectable={false} {...rest} css={onMenuHover}>
+      <Menu.SubMenu title={submenuTitle} css={onMenuHover}>
         <Menu.Item onClick={handleShowMenu}>
           {DropdownItemExtension ? (
             <StyledDropdownItemWithIcon>
@@ -233,9 +208,14 @@ export default function HeaderReportDropDown({
           )}
         </Menu.Item>
         <Menu.Divider />
-      </Menu>
+      </Menu.SubMenu>
     ) : (
-      <Menu selectable={false} css={{ border: 'none' }}>
+      <Menu.SubMenu
+        title={submenuTitle}
+        css={css`
+          border: none;
+        `}
+      >
         <Menu.Item
           css={onMenuItemHover}
           onClick={() => toggleActiveKey(report, !isReportActive)}
@@ -251,10 +231,15 @@ export default function HeaderReportDropDown({
         <Menu.Item css={onMenuItemHover} onClick={handleDeleteMenuClick}>
           {t('Delete email report')}
         </Menu.Item>
-      </Menu>
+      </Menu.SubMenu>
     );
-  const menu = () => (
-    <Menu selectable={false} css={{ width: '200px' }}>
+  const menu = (title: ReactNode) => (
+    <Menu.SubMenu
+      title={title}
+      css={css`
+        width: 200px;
+      `}
+    >
       <Menu.Item>
         {t('Email reports active')}
         <Switch
@@ -262,10 +247,12 @@ export default function HeaderReportDropDown({
           checked={isReportActive}
           onClick={(checked: boolean) => toggleActiveKey(report, checked)}
           size="small"
-          css={{ marginLeft: theme.gridUnit * 2 }}
+          css={theme => css`
+            margin-left: ${theme.gridUnit * 2}px;
+          `}
         />
       </Menu.Item>
-      <Menu.Item onClick={() => setShowModal(true)}>
+      <Menu.Item onClick={() => showReportModal()}>
         {t('Edit email report')}
       </Menu.Item>
       <Menu.Item
@@ -274,7 +261,7 @@ export default function HeaderReportDropDown({
       >
         {t('Delete email report')}
       </Menu.Item>
-    </Menu>
+    </Menu.SubMenu>
   );
 
   const iconMenu = () =>
@@ -284,65 +271,12 @@ export default function HeaderReportDropDown({
         title={t('Schedule email report')}
         tabIndex={0}
         className="action-button action-schedule-report"
-        onClick={() => setShowModal(true)}
+        onClick={() => showReportModal()}
       >
         <Icons.Calendar />
       </span>
     ) : (
-      <>
-        <NoAnimationDropdown
-          overlay={menu()}
-          overlayStyle={dropdownOverlayStyle}
-          trigger={['click']}
-          getPopupContainer={(triggerNode: any) =>
-            triggerNode.closest('.action-button')
-          }
-        >
-          <span
-            role="button"
-            className="action-button action-schedule-report"
-            tabIndex={0}
-          >
-            <Icons.Calendar />
-          </span>
-        </NoAnimationDropdown>
-      </>
+      menu(<Icons.Calendar />)
     );
-
-  return (
-    <>
-      {canAddReports() && (
-        <>
-          <ReportModal
-            userId={user.userId}
-            show={showModal}
-            onHide={() => setShowModal(false)}
-            userEmail={user.email}
-            dashboardId={dashboardId}
-            chart={chart}
-            creationMethod={
-              dashboardId ? CreationMethod.Dashboards : CreationMethod.Charts
-            }
-          />
-          {isDropdownVisible ? (useTextMenu ? textMenu() : iconMenu()) : null}
-          {currentReportDeleting && (
-            <DeleteModal
-              description={t(
-                'This action will permanently delete %s.',
-                currentReportDeleting?.name,
-              )}
-              onConfirm={() => {
-                if (currentReportDeleting) {
-                  handleReportDelete(currentReportDeleting);
-                }
-              }}
-              onHide={() => setCurrentReportDeleting(null)}
-              open
-              title={t('Delete Report?')}
-            />
-          )}
-        </>
-      )}
-    </>
-  );
+  return <>{canAddReports() && (useTextMenu ? textMenu() : iconMenu())}</>;
 }

@@ -41,10 +41,10 @@ dependencies = [
     "colorama",
     "croniter>=0.3.28",
     "cron-descriptor",
-    "cryptography>=42.0.4, <44.0.0",
+    "cryptography>=42.0.4, <45.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <3.0.0",
-    "flask-appbuilder>=4.5.3, <5.0.0",
+    "flask-appbuilder>=4.6.0, <5.0.0",
     "flask-caching>=2.1.0, <3",
     "flask-compress>=1.13, <2.0",
     "flask-talisman>=1.0.0, <2.0",
@@ -71,7 +71,7 @@ dependencies = [
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)
     "pandas[excel]>=2.0.3, <2.1",
-    "bottleneck",
+    "bottleneck", # recommended performance dependency for pandas, see https://pandas.pydata.org/docs/getting_started/install.html#performance-dependencies-recommended
     # --------------------------
     "parsedatetime",
     "paramiko>=3.4.0",
@@ -79,7 +79,7 @@ dependencies = [
     "polyline>=2.0.0, <3.0",
     "pyparsing>=3.0.6, <4",
     "python-dateutil",
-    "python-dotenv",
+    "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "python-geohash",
     "pyarrow>=14.0.1, <15",
     "pyyaml>=6.0.0, <7.0.0",
@@ -87,7 +87,6 @@ dependencies = [
     "redis>=4.6.0, <5.0",
     "selenium>=4.14.0, <5.0",
     "shillelagh[gsheetsapi]>=1.2.18, <2.0",
-    "shortid",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=3.15.0",
     "slack_sdk>=3.19.0, <4",
@@ -114,7 +113,7 @@ bigquery = [
 ]
 clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
-cors = ["flask-cors>=2.0.0"]
+cors = ["flask-cors>=4.0.2, <5.0"]
 crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
 databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
 databricks = [
@@ -126,7 +125,7 @@ denodo = ["denodo-sqlalchemy~=1.0.6"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.4, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb-engine>=0.9.5, <0.10"]
+duckdb = ["duckdb-engine>=0.10", "duckdb>=1.1.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.9, <0.3.0"]
@@ -145,7 +144,7 @@ hive = [
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>0.16.2, <0.17"]
-kusto = ["sqlalchemy-kusto>=2.0.0, <3"]
+kusto = ["sqlalchemy-kusto>=3.0.0, <4"]
 kylin = ["kylinpy>=2.8.1, <2.9"]
 mssql = ["pymssql>=2.2.8, <3"]
 mysql = ["mysqlclient>=2.1.0, <3"]
@@ -172,6 +171,10 @@ spark = [
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
     "thrift>=0.14.1, <1",
+]
+tdengine = [
+    "taospy>=2.7.21",
+    "taos-ws-py>=0.3.8"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
 thumbnails = ["Pillow>=10.0.1, <11"]

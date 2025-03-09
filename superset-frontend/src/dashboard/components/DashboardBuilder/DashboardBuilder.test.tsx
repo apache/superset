@@ -17,8 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render } from 'spec/helpers/testing-library';
-import { fireEvent, within } from '@testing-library/react';
+import { fireEvent, render, within } from 'spec/helpers/testing-library';
 import DashboardBuilder from 'src/dashboard/components/DashboardBuilder/DashboardBuilder';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import {
@@ -35,8 +34,9 @@ import mockState from 'spec/fixtures/mockState';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
-
 fetchMock.put('glob:*/api/v1/dashboard/*', {});
+// Add mock for logging endpoint
+fetchMock.post('glob:*/superset/log/?*', {});
 
 jest.mock('src/dashboard/actions/dashboardState', () => ({
   ...jest.requireActual('src/dashboard/actions/dashboardState'),
@@ -52,9 +52,6 @@ jest.mock('src/components/Select/Select', () => () => (
 ));
 jest.mock('src/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
-));
-jest.mock('src/dashboard/components/Header/HeaderActionsDropdown', () => () => (
-  <div data-test="mock-header-actions-dropdown" />
 ));
 jest.mock('src/components/PageHeaderWithActions', () => ({
   PageHeaderWithActions: () => (

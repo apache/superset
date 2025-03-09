@@ -18,10 +18,19 @@
  */
 import { isValidElement } from 'react';
 import FilterableTable from 'src/components/FilterableTable';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
+import { setupAGGridModules } from 'src/setup/setupAGGridModules';
 
 describe('FilterableTable', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
   const mockedProps = {
     orderedColumnKeys: ['a', 'b', 'c', 'children'],
     data: [
@@ -38,7 +47,7 @@ describe('FilterableTable', () => {
     const { getByRole, getByText } = render(
       <FilterableTable {...mockedProps} />,
     );
-    expect(getByRole('treegrid')).toBeInTheDocument();
+    expect(getByRole('grid')).toBeInTheDocument();
     mockedProps.data.forEach(({ b: columnBContent }) => {
       expect(getByText(columnBContent)).toBeInTheDocument();
     });
@@ -66,6 +75,10 @@ describe('FilterableTable', () => {
 });
 
 describe('FilterableTable sorting - RTL', () => {
+  beforeAll(() => {
+    setupAGGridModules();
+  });
+
   it('sorts strings correctly', () => {
     const stringProps = {
       orderedColumnKeys: ['columnA'],
@@ -78,7 +91,7 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...stringProps} />);
 
-    const stringColumn = within(screen.getByRole('treegrid'))
+    const stringColumn = within(screen.getByRole('grid'))
       .getByText('columnA')
       .closest('[role=button]');
     const gridCells = screen.getByText('Bravo').closest('[role=rowgroup]');
@@ -123,7 +136,7 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...integerProps} />);
 
-    const integerColumn = within(screen.getByRole('treegrid'))
+    const integerColumn = within(screen.getByRole('grid'))
       .getByText('columnB')
       .closest('[role=button]');
     const gridCells = screen.getByText('21').closest('[role=rowgroup]');
@@ -158,7 +171,7 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...floatProps} />);
 
-    const floatColumn = within(screen.getByRole('treegrid'))
+    const floatColumn = within(screen.getByRole('grid'))
       .getByText('columnC')
       .closest('[role=button]');
     const gridCells = screen.getByText('45.67').closest('[role=rowgroup]');
@@ -213,7 +226,7 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...mixedFloatProps} />);
 
-    const mixedFloatColumn = within(screen.getByRole('treegrid'))
+    const mixedFloatColumn = within(screen.getByRole('grid'))
       .getByText('columnD')
       .closest('[role=button]');
     const gridCells = screen.getByText('48710.92').closest('[role=rowgroup]');
@@ -311,7 +324,7 @@ describe('FilterableTable sorting - RTL', () => {
     };
     render(<FilterableTable {...dsProps} />);
 
-    const dsColumn = within(screen.getByRole('treegrid'))
+    const dsColumn = within(screen.getByRole('grid'))
       .getByText('columnDS')
       .closest('[role=button]');
     const gridCells = screen.getByText('2021-01-01').closest('[role=rowgroup]');

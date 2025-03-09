@@ -17,8 +17,7 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
@@ -112,11 +111,13 @@ const renderWrapper = (
   });
 };
 
+const openMenu = () => {
+  userEvent.click(screen.getByRole('button', { name: 'More Options' }));
+};
+
 test('Should render', () => {
   renderWrapper();
-  expect(
-    screen.getByRole('button', { name: 'More Options' }),
-  ).toBeInTheDocument();
+  openMenu();
   expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
 });
 
@@ -143,6 +144,7 @@ test('Should render default props', () => {
   delete props.isExpanded;
 
   renderWrapper(props);
+  openMenu();
   expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
   expect(screen.getByText('Force refresh')).toBeInTheDocument();
   expect(screen.getByText('Show chart description')).toBeInTheDocument();
@@ -159,6 +161,7 @@ test('Should render default props', () => {
 test('Should "export to CSV"', async () => {
   const props = createProps();
   renderWrapper(props);
+  openMenu();
   expect(props.exportCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to .CSV'));
@@ -169,6 +172,7 @@ test('Should "export to CSV"', async () => {
 test('Should "export to Excel"', async () => {
   const props = createProps();
   renderWrapper(props);
+  openMenu();
   expect(props.exportXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to Excel'));
@@ -182,6 +186,7 @@ test('Export full CSV is under featureflag', async () => {
   };
   const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
@@ -193,6 +198,7 @@ test('Should "export full CSV"', async () => {
   };
   const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   expect(props.exportFullCSV).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full .CSV'));
@@ -205,6 +211,7 @@ test('Should not show export full CSV if report is not table', async () => {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
   expect(screen.queryByText('Export to full .CSV')).not.toBeInTheDocument();
@@ -216,6 +223,7 @@ test('Export full Excel is under featureflag', async () => {
   };
   const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
@@ -227,6 +235,7 @@ test('Should "export full Excel"', async () => {
   };
   const props = createProps(VizType.Table);
   renderWrapper(props);
+  openMenu();
   expect(props.exportFullXLSX).toHaveBeenCalledTimes(0);
   userEvent.hover(screen.getByText('Download'));
   userEvent.click(await screen.findByText('Export to full Excel'));
@@ -239,6 +248,7 @@ test('Should not show export full Excel if report is not table', async () => {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
   renderWrapper();
+  openMenu();
   userEvent.hover(screen.getByText('Download'));
   expect(await screen.findByText('Export to Excel')).toBeInTheDocument();
   expect(screen.queryByText('Export to full Excel')).not.toBeInTheDocument();
@@ -247,6 +257,7 @@ test('Should not show export full Excel if report is not table', async () => {
 test('Should "Show chart description"', () => {
   const props = createProps();
   renderWrapper(props);
+  openMenu();
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Show chart description'));
   expect(props.toggleExpandSlice).toHaveBeenCalledTimes(1);
@@ -256,6 +267,7 @@ test('Should "Show chart description"', () => {
 test('Should "Force refresh"', () => {
   const props = createProps();
   renderWrapper(props);
+  openMenu();
   expect(props.forceRefresh).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Force refresh'));
   expect(props.forceRefresh).toHaveBeenCalledTimes(1);
@@ -266,6 +278,7 @@ test('Should "Force refresh"', () => {
 test('Should "Enter fullscreen"', () => {
   const props = createProps();
   renderWrapper(props);
+  openMenu();
 
   expect(props.handleToggleFullSize).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByText('Enter fullscreen'));
@@ -278,6 +291,7 @@ test('Drill to detail modal is under featureflag', () => {
   };
   const props = createProps();
   renderWrapper(props);
+  openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -293,6 +307,7 @@ test('Should show "Drill to detail" with `can_explore` & `can_samples` perms', (
       ['can_explore', 'Superset'],
     ],
   });
+  openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -311,6 +326,7 @@ test('Should show "Drill to detail" with `can_drill` & `can_samples` perms', () 
       ['can_drill', 'Dashboard'],
     ],
   });
+  openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -329,6 +345,7 @@ test('Should show "Drill to detail" with both `canexplore` + `can_drill` & `can_
       ['can_drill', 'Dashboard'],
     ],
   });
+  openMenu();
   expect(screen.getByText('Drill to detail')).toBeInTheDocument();
 });
 
@@ -344,6 +361,7 @@ test('Should not show "Drill to detail" with neither of required perms', () => {
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -359,6 +377,7 @@ test('Should not show "Drill to detail" only `can_dril` perm', () => {
   renderWrapper(props, {
     Admin: [['can_drill', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
@@ -371,6 +390,7 @@ test('Should show "View query"', () => {
   renderWrapper(props, {
     Admin: [['can_view_query', 'Dashboard']],
   });
+  openMenu();
   expect(screen.getByText('View query')).toBeInTheDocument();
 });
 
@@ -383,6 +403,7 @@ test('Should not show "View query"', () => {
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('View query')).not.toBeInTheDocument();
 });
 
@@ -395,6 +416,7 @@ test('Should show "View as table"', () => {
   renderWrapper(props, {
     Admin: [['can_view_chart_as_table', 'Dashboard']],
   });
+  openMenu();
   expect(screen.getByText('View as table')).toBeInTheDocument();
 });
 
@@ -407,6 +429,7 @@ test('Should not show "View as table"', () => {
   renderWrapper(props, {
     Admin: [['invalid_permission', 'Dashboard']],
   });
+  openMenu();
   expect(screen.queryByText('View as table')).not.toBeInTheDocument();
 });
 
@@ -423,5 +446,6 @@ test('Should not show the "Edit chart" button', () => {
       ['can_view_chart_as_table', 'Dashboard'],
     ],
   });
+  openMenu();
   expect(screen.queryByText('Edit chart')).not.toBeInTheDocument();
 });

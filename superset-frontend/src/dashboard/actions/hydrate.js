@@ -17,7 +17,6 @@
  * under the License.
  */
 /* eslint-disable camelcase */
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { chart } from 'src/components/Chart/chartReducer';
 import { initSliceEntities } from 'src/dashboard/reducers/sliceEntities';
 import { getInitialState as getInitialNativeFilterState } from 'src/dashboard/reducers/nativeFilters';
@@ -279,9 +278,7 @@ export const hydrateDashboard =
             conf: common?.conf,
           },
           filterBarOrientation:
-            (isFeatureEnabled(FeatureFlag.HorizontalFilterBar) &&
-              metadata.filter_bar_orientation) ||
-            FilterBarOrientation.Vertical,
+            metadata.filter_bar_orientation || FilterBarOrientation.Vertical,
           crossFiltersEnabled,
         },
         dataMask,
@@ -310,7 +307,8 @@ export const hydrateDashboard =
           isRefreshing: false,
           isFiltersRefreshing: false,
           activeTabs: activeTabs || dashboardState?.activeTabs || [],
-          datasetsStatus: ResourceStatus.Loading,
+          datasetsStatus:
+            dashboardState?.datasetsStatus || ResourceStatus.Loading,
         },
         dashboardLayout,
       },

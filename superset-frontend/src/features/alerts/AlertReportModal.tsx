@@ -897,16 +897,20 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          const {
-            tab_tree: tabTree,
-            all_tabs: allTabs,
-            native_filters: nativeFilters,
-          } = response.json.result;
-          tabTree.push({
-            title: 'All Tabs',
-            // select tree only works with string value
-            value: JSON.stringify(Object.keys(allTabs)),
-          });
+          const { tab_tree: tabTree, all_tabs: allTabs, native_filters: nativeFilters } = response.json.result;
+          const allTabsWithOrder = tabTree.map(
+            (tab: { value: string }) => tab.value,
+          );
+
+          // Only show all tabs when there are more than one tab
+          if (allTabsWithOrder.length > 1) {
+            tabTree.push({
+              title: 'All Tabs',
+              // select tree only works with string value
+              value: JSON.stringify(allTabsWithOrder),
+            });
+          }
+
           setTabOptions(tabTree);
           setTabNativeFilters(nativeFilters);
 

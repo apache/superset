@@ -31,7 +31,6 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import SupersetErrorType
 
 if TYPE_CHECKING:
-    # prevent circular imports
     from superset.models.core import Database
 
 

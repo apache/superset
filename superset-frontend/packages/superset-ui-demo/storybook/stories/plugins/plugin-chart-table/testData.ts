@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartDataResponseResult, GenericDataType } from '@superset-ui/core';
+import {
+  ChartDataResponseResult,
+  GenericDataType,
+  VizType,
+} from '@superset-ui/core';
 import {
   TableChartFormData,
   TableChartProps,

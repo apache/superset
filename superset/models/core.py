@@ -36,8 +36,9 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import g, request
+from flask import g
 from flask_appbuilder import Model
+from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
     Boolean,
     Column,
@@ -83,8 +84,12 @@ from superset.superset_typing import (
 )
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
-from superset.utils.core import get_username
-from superset.utils.oauth2 import get_oauth2_access_token, OAuth2ClientConfigSchema
+from superset.utils.core import get_query_source_from_request, get_username
+from superset.utils.oauth2 import (
+    check_for_oauth2,
+    get_oauth2_access_token,
+    OAuth2ClientConfigSchema,
+)
 
 config = app.config
 custom_password_store = config["SQLALCHEMY_CUSTOM_PASSWORD_STORE"]
@@ -451,13 +456,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
 
             engine_context_manager = config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
-                yield self._get_sqla_engine(
-                    catalog=catalog,
-                    schema=schema,
-                    nullpool=nullpool,
-                    source=source,
-                    sqlalchemy_uri=sqlalchemy_uri,
-                )
+                with check_for_oauth2(self):
+                    yield self._get_sqla_engine(
+                        catalog=catalog,
+                        schema=schema,
+                        nullpool=nullpool,
+                        source=source,
+                        sqlalchemy_uri=sqlalchemy_uri,
+                    )
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -472,7 +478,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
         self.db_engine_spec.validate_database_uri(sqlalchemy_url)
 
-        extra = self.get_extra()
+        extra = self.get_extra(source)
         params = extra.get("engine_params", {})
         if nullpool:
             params["poolclass"] = NullPool
@@ -531,13 +537,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         self.update_params_from_encrypted_extra(params)
 
         if DB_CONNECTION_MUTATOR:
-            if not source and request and request.referrer:
-                if "/superset/dashboard/" in request.referrer:
-                    source = utils.QuerySource.DASHBOARD
-                elif "/explore/" in request.referrer:
-                    source = utils.QuerySource.CHART
-                elif "/sqllab/" in request.referrer:
-                    source = utils.QuerySource.SQL_LAB
+            source = source or get_query_source_from_request()
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url,
@@ -583,10 +583,9 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             nullpool=nullpool,
             source=source,
         ) as engine:
-            try:
+            with check_for_oauth2(self):
                 with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected schema and, in the  # noqa: E501
-                    # future, the selected catalog
+                    # pre-session queries are used to set the selected catalog/schema
                     for prequery in self.db_engine_spec.get_prequeries(
                         database=self,
                         catalog=catalog,
@@ -596,11 +595,6 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                         cursor.execute(prequery)
 
                     yield conn
-
-            except Exception as ex:
-                if self.is_oauth2_enabled() and self.db_engine_spec.needs_oauth2(ex):
-                    self.db_engine_spec.start_oauth2_dance(self)
-                raise
 
     def get_default_catalog(self) -> str | None:
         """
@@ -955,8 +949,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_time_grains()
 
-    def get_extra(self) -> dict[str, Any]:
-        return self.db_engine_spec.get_extra_params(self)
+    def get_extra(self, source: utils.QuerySource | None = None) -> dict[str, Any]:
+        return self.db_engine_spec.get_extra_params(self, source)
 
     def get_encrypted_extra(self) -> dict[str, Any]:
         encrypted_extra = {}
@@ -1133,9 +1127,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         admins to create custom OAuth2 clients from the Superset UI, and assign them to
         specific databases.
         """
-        encrypted_extra = json.loads(self.encrypted_extra or "{}")
-        oauth2_client_info = encrypted_extra.get("oauth2_client_info", {})
-        return bool(oauth2_client_info) or self.db_engine_spec.is_oauth2_enabled()
+        try:
+            client_config = self.get_oauth2_config()
+        except ValidationError:
+            logger.warning("Invalid OAuth2 client configuration for database %s", self)
+            client_config = None
+
+        return client_config is not None or self.db_engine_spec.is_oauth2_enabled()
 
     def get_oauth2_config(self) -> OAuth2ClientConfig | None:
         """

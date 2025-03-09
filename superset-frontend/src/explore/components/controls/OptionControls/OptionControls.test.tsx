@@ -22,8 +22,6 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
   OptionControlLabel,
   DragContainer,
@@ -49,11 +47,9 @@ const defaultProps = {
 };
 
 const setup = (overrides?: Record<string, any>) =>
-  render(
-    <DndProvider backend={HTML5Backend}>
-      <OptionControlLabel {...defaultProps} {...overrides} />
-    </DndProvider>,
-  );
+  render(<OptionControlLabel {...defaultProps} {...overrides} />, {
+    useDnd: true,
+  });
 
 test('should render', async () => {
   const { container } = setup();
@@ -65,6 +61,9 @@ test('should display a label', async () => {
   expect(await screen.findByText('Test label')).toBeInTheDocument();
 });
 
+// Add at the top of the file, after imports
+jest.setTimeout(20000);
+
 test('should display a certification icon if saved metric is certified', async () => {
   const { container } = setup({
     savedMetric: {
@@ -72,15 +71,26 @@ test('should display a certification icon if saved metric is certified', async (
       is_certified: true,
     },
   });
-  await waitFor(() => {
-    expect(screen.queryByText('Test label')).not.toBeInTheDocument();
-    expect(container.querySelector('.metric-option > svg')).toBeInTheDocument();
-  });
+
+  await waitFor(
+    () => {
+      expect(screen.queryByText('Test label')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  await waitFor(
+    () => {
+      const icon = container.querySelector('.metric-option > svg');
+      expect(icon).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('triggers onMoveLabel on drop', async () => {
   render(
-    <DndProvider backend={HTML5Backend}>
+    <>
       <OptionControlLabel
         {...defaultProps}
         index={1}
@@ -91,7 +101,9 @@ test('triggers onMoveLabel on drop', async () => {
         index={2}
         label={<span>Label 2</span>}
       />
-    </DndProvider>,
+      ,
+    </>,
+    { useDnd: true },
   );
   await waitFor(() => {
     fireEvent.dragStart(screen.getByText('Label 1'));

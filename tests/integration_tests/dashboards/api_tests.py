@@ -1158,6 +1158,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                     "TAB-hyTv5L7zz": "P1 - T2 - T2",
                     "TAB-qL7fSzr3jl": "Parent Tab 1",
                 },
+                'native_filters': {},
                 "tab_tree": [
                     {
                         "children": [
@@ -2437,30 +2438,27 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         response = json.loads(rv.data.decode("utf-8"))
 
         assert rv.status_code == 422
-        assert (
-            response
-            == {
-                "errors": [
-                    {
-                        "message": "Error importing dashboard",
-                        "error_type": "GENERIC_COMMAND_ERROR",
-                        "level": "warning",
-                        "extra": {
-                            "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
-                            "issue_codes": [
-                                {
-                                    "code": 1010,
-                                    "message": (
-                                        "Issue 1010 - Superset encountered an "
-                                        "error while running a command."
-                                    ),
-                                }
-                            ],
-                        },
-                    }
-                ]
-            }
-        )
+        assert response == {
+            "errors": [
+                {
+                    "message": "Error importing dashboard",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "dashboards/imported_dashboard.yaml": "Dashboard already exists and `overwrite=true` was not passed",  # noqa: E501
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ],
+                    },
+                }
+            ]
+        }
 
         # import with overwrite flag
         buf = self.create_dashboard_import()

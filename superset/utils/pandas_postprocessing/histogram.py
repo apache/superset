@@ -60,8 +60,7 @@ def histogram(
 
     # convert the bin edges to strings
     bin_edges_str = [
-        f"{int(bin_edges[i])} - {int(bin_edges[i+1])}"
-        for i in range(len(bin_edges) - 1)
+        f"{bin_edges[i]} - {bin_edges[i + 1]}" for i in range(len(bin_edges) - 1)
     ]
 
     def hist_values(series: Series) -> np.ndarray:

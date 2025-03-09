@@ -1,3 +1,4 @@
+/* eslint-env node */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,41 +17,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Icons from 'src/components/Icons';
-import DropdownSelectableIcon, { DropDownSelectableProps } from '.';
-
-export default {
-  title: 'DropdownSelectableIcon',
-  component: DropdownSelectableIcon,
-};
-
-export const Component = (props: DropDownSelectableProps) => (
-  <DropdownSelectableIcon
-    {...props}
-    icon={<Icons.Gear name="gear" iconColor="#000000" />}
-  />
-);
-
-Component.args = {
-  info: 'Info go here',
-  selectedKeys: ['vertical'],
-  menuItems: [
-    {
-      key: 'vertical',
-      label: 'Vertical',
-    },
-    {
-      key: 'horizontal',
-      label: 'Horizontal',
-    },
+module.exports = {
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:prettier/recommended',
   ],
-};
-
-Component.argTypes = {
-  onSelect: {
-    action: 'onSelect',
-    table: {
-      disable: true,
+  parser: '@typescript-eslint/parser',
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true,
+    },
+    ecmaVersion: 2020,
+    sourceType: 'module',
+  },
+  plugins: ['@typescript-eslint', 'react', 'prettier'],
+  rules: {
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+  },
+  settings: {
+    react: {
+      version: 'detect',
     },
   },
+  ignorePatterns: ['build/**/*', '.docusaurus/**/*', 'node_modules/**/*'],
 };

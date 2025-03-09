@@ -17,11 +17,31 @@
  * under the License.
  */
 
-import { Popover as AntdPopover } from 'antd';
-import type { PopoverProps as AntdPopoverProps } from 'antd/lib/popover';
+import { styled } from '@superset-ui/core';
 
-export interface PopoverProps extends AntdPopoverProps {
-  forceRender?: boolean;
-}
+const MetadataWrapper = styled.div`
+  display: flex;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
+`;
 
-export const Popover = (props: PopoverProps) => <AntdPopover {...props} />;
+const MetadataText = styled.span`
+  font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+  font-weight: ${({ theme }) => theme.typography.weights.medium};
+`;
+
+export type MetadataProps = {
+  value: string;
+};
+
+const Metadata: React.FC<MetadataProps> = ({ value }) => (
+  <MetadataWrapper>
+    <MetadataText>{value}</MetadataText>
+  </MetadataWrapper>
+);
+
+export default Metadata;
