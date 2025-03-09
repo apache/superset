@@ -897,7 +897,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         endpoint: `/api/v1/dashboard/${dashboard.value}/tabs`,
       })
         .then(response => {
-          const { tab_tree: tabTree, all_tabs: allTabs, native_filters: nativeFilters } = response.json.result;
+          const {
+            tab_tree: tabTree,
+            all_tabs: allTabs,
+            native_filters: nativeFilters,
+          } = response.json.result;
           const allTabsWithOrder = tabTree.map(
             (tab: { value: string }) => tab.value,
           );
