@@ -84,7 +84,6 @@ import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
-import InfoTooltip from 'src/components/InfoTooltip';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -328,6 +327,55 @@ export const StyledInputContainer = styled.div`
 
     .input-label {
       margin-left: 10px;
+    }
+
+    .filters {
+      margin: 5px 0;
+
+      .filters-container {
+        display: flex;
+      }
+
+      .filters-dash-container {
+        display: flex;
+        flex-direction: column;
+        max-width: 174px;
+        flex: 1;
+        margin-right: 16px;
+
+        .control-label {
+          flex: 1;
+        }
+      }
+
+      .filters-dash-select {
+        flex: 1;
+      }
+
+      .filters-dashvalue-container {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      .filters-delete {
+        display: flex;
+        margin-top: 23px;
+      }
+
+      .filters-trashcan {
+        display: 'flex';
+        color: ${theme.colors.grayscale.light1};
+      }
+      .filters-add-container {
+        flex: '.25';
+        padding: '7px 0';
+
+        .filters-add-btn {
+          padding: 0;
+          color: ${theme.colors.primary.base};
+        }
+      }
     }
   `}
 `;
@@ -1170,8 +1218,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
-    console.log('dashboardFilter', nativeFilterId);
-
     // set dashboardFilter
     const anchor = currentAlert?.extra?.dashboard?.anchor;
     const inScopeFilters = tabNativeFilters[anchor];
@@ -1899,11 +1945,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   placeholder={t('Select a tab')}
                 />
               </div>
-              <AntdForm
-                name="form1"
-                autoComplete="off"
-                style={{ margin: '5px 0' }}
-              >
+              <AntdForm className="filters" name="form" autoComplete="off">
                 <AntdForm.List
                   name="filters"
                   initialValue={isEditMode ? nativeFilterData : [{}]} // only show one filter field on create
@@ -1911,25 +1953,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   {(fields, { add, remove }) => (
                     <div>
                       {fields.map(({ key, name }) => (
-                        <div style={{ display: 'flex' }} key={key}>
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              maxWidth: '174px',
-                              flex: 1,
-                              marginRight: '16px',
-                            }}
-                          >
-                            <div className="control-label" style={{ flex: 1 }}>
+                        <div className="filters-container" key={key}>
+                          <div className="filters-dash-container">
+                            <div className="control-label">
                               <span>{t('Select Dashboard Filter')}</span>
                               <StyledTooltip
                                 tooltip={t(
-                                  'Choose from existing dashboard filters and select a value to refine your report results.'
+                                  'Choose from existing dashboard filters and select a value to refine your report results.',
                                 )}
                               />
                             </div>
                             <Select
+                              className="filters-dash-select"
                               disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
@@ -1938,17 +1973,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               onChange={value =>
                                 onChangeDashboardFilter(key, value)
                               }
-                              style={{ flex: 1 }}
                               oneLine
                             />
                           </div>
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              flex: 1,
-                            }}
-                          >
+                          <div className="filters-dashvalue-container">
                             <div className="control-label">{t('Value')}</div>
                             <Select
                               ariaLabel={t('Value')}
@@ -1964,29 +1992,23 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             />
                           </div>
                           {name !== 0 && (
-                            <div style={{ display: 'flex', marginTop: 23 }}>
+                            <div className="filters-delete">
                               <Icons.Trash
+                                className="filters-trashcan"
                                 onClick={() => {
                                   handleRemoveFilterField(name);
                                   remove(name);
-                                }}
-                                style={{
-                                  display: 'flex',
-                                  color: `${theme.colors.grayscale.light1}`,
                                 }}
                               />
                             </div>
                           )}
                         </div>
                       ))}
-                      <div style={{ flex: '.25', padding: '7px 0' }}>
+                      <div className="filters-add-container">
                         <Button
+                          className="filters-add-btn"
                           type="link"
                           onClick={() => handleAddFilterField(add)}
-                          style={{
-                            padding: 0,
-                            color: `${theme.colors.primary.base}`,
-                          }}
                         >
                           + {t('Apply another dashboard filter')}
                         </Button>

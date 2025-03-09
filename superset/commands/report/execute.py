@@ -335,8 +335,6 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
-            print("urls", urls)
-
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
