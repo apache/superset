@@ -57,6 +57,7 @@ are compatible with Superset.
 | [CrateDB](/user-docs/6.0.0/configuration/databases#cratedb)                        | `pip install sqlalchemy-cratedb`                                                   | `crate://{username}:{password}@{hostname}:{port}`, often useful: `?ssl=true/false` or `?schema=testdrive`.                                             |
 | [Denodo](/user-docs/6.0.0/configuration/databases#denodo)                          | `pip install denodo-sqlalchemy`                                                    | `denodo://{username}:{password}@{hostname}:{port}/{database}`                                                                                          |
 | [Dremio](/user-docs/6.0.0/configuration/databases#dremio)                          | `pip install sqlalchemy_dremio`                                                    |`dremio+flight://{username}:{password}@{host}:32010`, often useful: `?UseEncryption=true/false`. For Legacy ODBC: `dremio+pyodbc://{username}:{password}@{host}:31010`                                                                                                                           |
+| [DuckDB](/user-docs/6.0.0/configuration/databases#duckdb)                          | `pip install duckdb duckdb-engine`                                                 | `duckdb:////path/to/database.db`                                                                                                                       |
 | [Elasticsearch](/user-docs/6.0.0/configuration/databases#elasticsearch)            | `pip install elasticsearch-dbapi`                                                  | `elasticsearch+http://{user}:{password}@{host}:9200/`                                                                                                  |
 | [Exasol](/user-docs/6.0.0/configuration/databases#exasol)                          | `pip install sqlalchemy-exasol`                                                    | `exa+pyodbc://{username}:{password}@{hostname}:{port}/my_schema?CONNECTIONLCALL=en_US.UTF-8&driver=EXAODBC`                                            |
 | [Google BigQuery](/user-docs/6.0.0/configuration/databases#google-bigquery)                     | `pip install sqlalchemy-bigquery`                                                  | `bigquery://{project_id}`                                                                                                                              |
@@ -549,6 +550,24 @@ dremio+flight://{username}:{password}@{host}:{port}/dremio
 
 This [blog post by Dremio](https://www.dremio.com/tutorials/dremio-apache-superset/) has some
 additional helpful instructions on connecting Superset to Dremio.
+
+#### DuckDB
+
+The recommended connector library for DuckDB is
+[duckdb-engine](https://pypi.org/project/duckdb-engine/).
+
+```
+pip install duckdb duckdb-engine
+```
+
+The expected connection string is formatted as follows:
+
+```
+duckdb:////path/to/database.db
+```
+
+For [MotherDuck](https://motherduck.com/), see their guide on
+[connecting Superset to MotherDuck](https://motherduck.com/docs/integrations/bi-tools/superset-preset/).
 
 #### Apache Drill
 
