@@ -162,7 +162,6 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
 
         if show_cols:
             fields = cls._get_fields(cols)
-        print()
         full_table_name = cls.quote_table(table, engine.dialect)
         qry = select(fields).select_from(text(full_table_name))
         if database.backend == "odps":
