@@ -18,6 +18,7 @@
  */
 
 // NOTE: Targeted import (as opposed to `import *`) is important here for proper tree-shaking
+// eslint-disable-next-line icons/no-direct-ant-icons-import
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
