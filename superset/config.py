@@ -475,7 +475,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Enables the endpoints to cache and retrieve dashboard screenshots via webdriver.
     # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
     "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
     # Generate screenshots (PDF or JPG) of dashboards using the web driver.
@@ -1140,8 +1140,8 @@ SQLLAB_CTAS_NO_LIMIT = False
 #         else:
 #             return f'tmp_{schema}'
 # Function accepts database object, user object, schema name and sql that will be run.
-SQLLAB_CTAS_SCHEMA_NAME_FUNC: None | (
-    Callable[[Database, models.User, str, str], str]
+SQLLAB_CTAS_SCHEMA_NAME_FUNC: (
+    None | (Callable[[Database, models.User, str, str], str])
 ) = None
 
 # If enabled, it can be used to store the results of long-running queries
