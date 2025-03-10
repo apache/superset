@@ -74,6 +74,7 @@ module.exports = {
     'file-progress',
     'lodash',
     'theme-colors',
+    'icons',
     'i18n-strings',
     'react-prefer-function-component',
     'prettier',
@@ -284,6 +285,8 @@ module.exports = {
       ],
       rules: {
         'theme-colors/no-literal-colors': 0,
+        'icons/no-direct-ant-icons-import': 0,
+        'icons/no-fa-icons-usage': 0,
         'i18n-strings/no-template-vars': 0,
         'no-restricted-imports': 0,
         'react/no-void-elements': 0,
@@ -292,6 +295,8 @@ module.exports = {
   ],
   rules: {
     'theme-colors/no-literal-colors': 'error',
+    'icons/no-direct-ant-icons-import': 'error',
+    'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
     camelcase: [
       'error',

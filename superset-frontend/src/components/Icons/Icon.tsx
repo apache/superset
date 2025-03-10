@@ -18,6 +18,7 @@
  */
 
 import { FC, SVGProps, useEffect, useRef, useState } from 'react';
+// eslint-disable-next-line icons/no-direct-ant-icons-import
 import AntdIcon from '@ant-design/icons';
 import { styled } from '@superset-ui/core';
 import TransparentIcon from 'src/assets/images/icons/transparent.svg';
