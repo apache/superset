@@ -39,9 +39,6 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
-
-// todo(hughhh): migrate to src/components/Form
-import { AntdForm } from 'src/components';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
 
@@ -53,7 +50,14 @@ import TimezoneSelector from 'src/components/TimezoneSelector';
 import { propertyComparator } from 'src/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import Owner from 'src/types/Owner';
-import { AntdCheckbox, AsyncSelect, Select, TreeSelect } from 'src/components';
+// todo(hughhh): migrate to src/components/Form
+import {
+  AntdCheckbox,
+  AsyncSelect,
+  Select,
+  TreeSelect,
+  AntdForm,
+} from 'src/components';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
 import { useCommonConf } from 'src/features/databases/state';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -78,13 +82,13 @@ import {
 } from 'src/features/alerts/types';
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [

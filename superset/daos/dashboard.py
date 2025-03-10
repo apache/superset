@@ -322,7 +322,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dash
 
     @classmethod
-    def get_native_filter_configuration(cls, id: int):
+    def get_native_filter_configuration(
+        cls, id: str
+    ) -> dict[str, list[dict[str, Any]]]:
         dashboard = cls.get_by_id_or_slug(id)
         metadata = json.loads(dashboard.json_metadata or "{}")
         native_filter_configuration = metadata.get("native_filter_configuration", [])

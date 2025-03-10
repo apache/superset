@@ -855,7 +855,7 @@ class Superset(BaseSupersetView):
                     # native_filters doesnt need to be encoded here
                     url = f"{url}&native_filters={param_val}"
                 else:
-                    params = parse.urlencode([param_key, param_val])
+                    params = parse.urlencode([param_key, param_val])  # type: ignore
                     url = f"{url}&{params}"
         if original_params := request.query_string.decode():
             url = f"{url}&{original_params}"

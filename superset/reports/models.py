@@ -186,11 +186,11 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     def crontab_humanized(self) -> str:
         return get_description(self.crontab)
 
-    def get_native_filters_params(self) -> Optional[str]:
+    def get_native_filters_params(self) -> str:
         params: dict[str, Any] = {}
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
-            for filter in dashboard.get("nativeFilters", []):
+            for filter in dashboard.get("nativeFilters") or []:
                 params = {
                     **params,
                     **self._generate_native_filter(
@@ -202,18 +202,23 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         return prison.dumps(params)
 
     def _generate_native_filter(
-        self, native_filter_id: str, column_name: str, values: list[str]
+        self,
+        native_filter_id: Optional[str],
+        column_name: Optional[str],
+        values: Optional[list[Optional[str]]],
     ) -> dict[str, Any]:
         return {
-            native_filter_id: {
-                "id": native_filter_id,
+            native_filter_id or "": {
+                "id": native_filter_id or "",
                 "extraFormData": {
-                    "filters": [{"col": column_name, "op": "IN", "val": values}]
+                    "filters": [
+                        {"col": column_name or "", "op": "IN", "val": values or []}
+                    ]
                 },
                 "filterState": {
-                    "label": column_name,
+                    "label": column_name or "",
                     "validateStatus": False,
-                    "value": values,
+                    "value": values or [],
                 },
                 "ownState": {},
             }
