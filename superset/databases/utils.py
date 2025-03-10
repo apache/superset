@@ -17,11 +17,12 @@
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 from sqlalchemy.engine.url import make_url, URL
 
 from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.sql.parse import Partition
 from superset.sql_parse import Table
 
 if TYPE_CHECKING:
@@ -62,11 +63,14 @@ def get_col_type(col: dict[Any, Any]) -> str:
     return dtype
 
 
-def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
+def get_table_metadata(
+    database: Any, table: Table, partition: Optional[Partition] = None
+) -> TableMetadataResponse:
     """
     Get table metadata information, including type, pk, fks.
     This function raises SQLAlchemyError when a schema is not found.
 
+    :param partition: The table's partition info
     :param database: The database model
     :param table: Table instance
     :return: Dict table metadata ready for API response
@@ -102,6 +106,7 @@ def get_table_metadata(database: Any, table: Table) -> TableMetadataResponse:
             indent=True,
             cols=columns,
             latest_partition=True,
+            partition=partition
         ),
         "primaryKey": primary_key,
         "foreignKeys": foreign_keys,
