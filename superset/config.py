@@ -478,7 +478,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    # Enable the endpoints to cache and retrieve dashboard screenshots via webdriver.
+    # Enables the endpoints to cache and retrieve dashboard screenshots via webdriver.
     # Requires configuring Celery and a cache using THUMBNAIL_CACHE_CONFIG.
     "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS": False,
     # Generate screenshots (PDF or JPG) of dashboards using the web driver.
@@ -1024,6 +1024,12 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "task": "prune_query",
         #     "schedule": crontab(minute=0, hour=0, day_of_month=1),
         #     "options": {"retention_period_days": 180},
+        # },
+        # Uncomment to enable pruning of the logs table
+        # "prune_logs": {
+        #     "task": "prune_logs",
+        #     "schedule": crontab(minute="*", hour="*"),
+        #     "kwargs": {"retention_period_days": 180},
         # },
     }
 
