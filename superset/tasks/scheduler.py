@@ -23,6 +23,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
 from superset.commands.exceptions import CommandException
+from superset.commands.logs.prune import LogPruneCommand
 from superset.commands.report.exceptions import ReportScheduleUnexpectedError
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
@@ -142,3 +143,24 @@ def prune_query(retention_period_days: Optional[int] = None) -> None:
         QueryPruneCommand(retention_period_days).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning queries: %s", ex)
+
+
+@celery_app.task(name="prune_logs")
+def prune_logs(retention_period_days: Optional[int] = None) -> None:
+    stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
+    stats_logger.incr("prune_logs")
+
+    # TODO: Deprecated: Remove support for passing retention period via options in 6.0
+    if retention_period_days is None:
+        retention_period_days = prune_logs.request.properties.get(
+            "retention_period_days"
+        )
+        logger.warning(
+            "Your `prune_logs` beat schedule uses `options` to pass the retention "
+            "period, please use `kwargs` instead."
+        )
+
+    try:
+        LogPruneCommand(retention_period_days).run()
+    except CommandException as ex:
+        logger.exception("An error occurred while pruning logs: %s", ex)
