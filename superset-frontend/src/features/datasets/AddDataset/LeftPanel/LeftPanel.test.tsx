@@ -241,7 +241,7 @@ test('searches for a table name', async () => {
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(screen.getByText('public'));
   await waitFor(() => expect(fetchMock.calls(tablesEndpoint).length).toBe(1));
   userEvent.click(tableSelect);
 
@@ -310,7 +310,7 @@ test('renders a warning icon when a table name has a preexisting dataset', async
 
   // Click 'public' schema to access tables
   userEvent.click(schemaSelect);
-  userEvent.click(screen.getAllByText('public')[1]);
+  userEvent.click(screen.getByText('public'));
   userEvent.click(tableSelect);
 
   await waitFor(() => {
