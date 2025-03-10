@@ -14,7 +14,7 @@
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
- * under the License.
+ * under the License.src/pages/DatabaseList/DatabaseList.test.jsx
  */
 import thunk from 'redux-thunk';
 import * as reactRedux from 'react-redux';
@@ -175,7 +175,11 @@ describe('Admin DatabaseList', () => {
     });
     await waitForComponentToPaint(wrapper);
     act(() => {
-      wrapper.find('button').last().props().onClick();
+      wrapper
+        .find({ 'data-test': 'modal-confirm-button' })
+        .last()
+        .props()
+        .onClick();
     });
 
     await waitForComponentToPaint(wrapper);
