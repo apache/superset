@@ -11,6 +11,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
+from authlib.integrations.flask_client import OAuth
 
 class CustomOAuthView(AuthOAuthView):
     @expose('/login/', methods=['GET', 'POST'])
@@ -28,6 +29,15 @@ class CustomOAuthView(AuthOAuthView):
         else :
             return super(CustomOAuthView,self).login(provider)
 
+
+class CustomOAuthClient(OAuth):
+    def fetch_token(self, url, code=None, authorization_response=None, body='', auth=None, **kwargs):
+        if code:
+            body = 'grant_type=authorization_code&code={}&client_id={}&client_secret={}'.format(
+                code, self.client_id, self.client_secret)
+        return super(CustomOAuthClient, self).fetch_token(
+            url, code=code, authorization_response=authorization_response, body=body, auth=None, **kwargs)
+    
 guest_role_pvms = [
     ("can_read", "SavedQuery"),
     ("can_read", "CSSTemplate"),
@@ -76,6 +86,7 @@ client_admin_pvms = [
 
 class CustomSsoSecurityManager(SupersetSecurityManager):
     authoauthview = CustomOAuthView
+    oauth = CustomOAuthClient()
     def __init__(self, appbuilder):
         super(CustomSsoSecurityManager, self).__init__(appbuilder)
 
@@ -88,3 +99,20 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
         for (action, model) in client_admin_pvms:
             pvm = self.find_permission_view_menu(action, model)
             self.add_permission_role(client_admin_role, pvm)
+
+    def oauth_user_info(self, provider, response=None):
+        if provider == 'datakimia':
+            me = self.appbuilder.sm.oauth_remotes[provider].get('userinfo')
+            #if me.status != 200:
+            #    log.error('Failed to obtain user info: %s', me.data)
+            #    return {}
+            data = me.json()
+            return {
+                'username': data.get('username'),
+                'first_name': data.get('first_name'),
+                'last_name': data.get('last_name'),
+                'email': data.get('email'),
+                # Add other fields as needed
+            }
+        
+        return super().get_oauth_user_info(provider, response)         

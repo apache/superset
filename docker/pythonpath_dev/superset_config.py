@@ -249,6 +249,25 @@ for key in oauth2_provider_array:
     if key in PROVIDERS:
         OAUTH_PROVIDERS.append(PROVIDERS[key])
 
+DATAKIMIA_PROVIDER =     {
+    'name': 'datakimia',
+    'token_key': 'access_token',  # Name of the token key in the token response
+    'icon': 'fa-heart',  # Icon for the provider
+    'remote_app': {
+        'client_id': 'your-client-id',
+        'client_secret': 'your-client-secret',
+        'api_base_url': 'https://5771-143-208-36-166.ngrok-free.app/',
+        'client_kwargs': {
+            'scope': 'email profile'  # Adjust the scope to what you need
+        },
+        'access_token_url': 'https://5771-143-208-36-166.ngrok-free.app/token',
+        'authorize_url': 'https://5771-143-208-36-166.ngrok-free.app/authorize',
+        'redirect_uri': 'http://localhost:8088/login/datakimia',
+        'userinfo_endpoint': 'https://5771-143-208-36-166.ngrok-free.app/userinfo',
+    }
+}
+
+OAUTH_PROVIDERS.append(DATAKIMIA_PROVIDER)
 
 # Enable CORS 
 ENABLE_CORS = True
