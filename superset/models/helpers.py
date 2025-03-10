@@ -583,6 +583,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         errors: Optional[list[dict[str, Any]]] = None,
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
+        output_location: Optional[str] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -595,6 +596,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.errors = errors or []
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
+        self.output_location = output_location
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
