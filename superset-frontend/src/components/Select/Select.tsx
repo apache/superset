@@ -277,8 +277,12 @@ const Select = forwardRef(
             }
             return [
               SELECT_ALL_VALUE,
-              ...selectAllEligible.map(opt => opt.value),
-            ] as unknown as AntdLabeledValue[];
+              ...selectAllEligible
+                .map(opt => opt.value)
+                .filter(
+                  (val): val is RawValue => val !== null && val !== undefined,
+                ),
+            ];
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
@@ -310,11 +314,14 @@ const Select = forwardRef(
             )
             .map(option =>
               labelInValue
-                ? ({
+                ? {
                     label: option.label,
                     value: option.value,
-                  } as unknown as RawValue) // TODO: @msyavuz Type these properly
-                : (option.value as unknown as RawValue),
+                  }
+                : option.value,
+            )
+            .filter(
+              (val): val is RawValue => val !== null && val !== undefined,
             ),
         );
       }
@@ -449,7 +456,11 @@ const Select = forwardRef(
           labelInValue ? option : option.value,
         );
         optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
-        setSelectValue(optionsToSelect as unknown as RawValue);
+        setSelectValue(
+          optionsToSelect.filter(
+            (val): val is RawValue => val !== null && val !== undefined,
+          ),
+        );
         fireOnChange();
       }
     }, [
@@ -670,7 +681,7 @@ const Select = forwardRef(
           tagRender={customTagRender}
           css={props.css}
           {...props}
-          ref={ref as unknown as Ref<RefSelectProps>}
+          ref={ref}
         >
           {selectAllEnabled && (
             <Option
