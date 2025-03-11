@@ -27,6 +27,7 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
+import { isEqual } from 'lodash';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -165,6 +166,16 @@ class IkiDynamicMarkdown extends React.PureComponent {
         this.handleChangeEditorMode('preview');
       }, 500);
     }
+
+    // Send post message of new present dashboard layout to custom markdown
+    if (
+      !isEqual(
+        prevProps.dashboardLayout.present,
+        this.props.dashboardLayout.present,
+      )
+    ) {
+      this.sendDashboardLayoutToMarkdown();
+    }
   }
 
   componentDidCatch() {
@@ -192,6 +203,12 @@ class IkiDynamicMarkdown extends React.PureComponent {
             messageData = JSON.parse(messageObject.data);
           } else {
             messageData = messageObject.data;
+            switch (messageObject.info) {
+              case 'widget-to-superset/sending-markdown-component-mounted':
+                this.sendDashboardLayoutToMarkdown();
+              default:
+                break;
+            }
           }
 
           if (
@@ -236,6 +253,24 @@ class IkiDynamicMarkdown extends React.PureComponent {
           }
         }
       }
+    });
+  }
+
+  sendDashboardLayoutToMarkdown() {
+    const { ikigaiOrigin } = this.props;
+    const iframes = document.querySelectorAll('iframe');
+    const crossWindowMessage = {
+      info: 'widget-to-parent/send-dashboard-layout',
+      dataType: 'object',
+      data: {
+        dashboardLayout: this.props.dashboardLayout.present,
+      },
+    };
+    const crossBrowserInfoString = JSON.stringify(crossWindowMessage);
+
+    iframes.forEach(iframe => {
+      if (!iframe.name.includes('dynamic-markdown')) return;
+      iframe.contentWindow.postMessage(crossBrowserInfoString, ikigaiOrigin);
     });
   }
 
@@ -510,6 +545,7 @@ function mapStateToProps(state) {
     undoLength: state.dashboardLayout.past.length,
     redoLength: state.dashboardLayout.future.length,
     dashboardLayout: state.dashboardLayout,
+    ikigaiOrigin: state?.dashboardState?.ikigaiOrigin,
   };
 }
 function mapDispatchToProps(dispatch) {
