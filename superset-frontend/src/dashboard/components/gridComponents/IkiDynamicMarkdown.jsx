@@ -206,6 +206,7 @@ class IkiDynamicMarkdown extends React.PureComponent {
             switch (messageObject.info) {
               case 'widget-to-superset/sending-markdown-component-mounted':
                 this.sendDashboardLayoutToMarkdown();
+                break;
               default:
                 break;
             }
