@@ -38,7 +38,7 @@ def upgrade():
         "extensions",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(255), nullable=False),
-        sa.Column("metadata", sa.Text(), nullable=False),
+        sa.Column("manifest", sa.Text(), nullable=False),
         sa.Column("bundle", sa.Text(), nullable=False),
         sa.Column("enabled", sa.Boolean(), nullable=False),
         sa.Column("uuid", UUIDType(binary=True), default=uuid4),

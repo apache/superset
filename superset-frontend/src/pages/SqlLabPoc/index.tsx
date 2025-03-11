@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CSSObject } from '@emotion/react';
 import { css, styled, SupersetClient } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
@@ -17,21 +17,19 @@ const MainPanel = styled.div`
   flex-direction: row;
 `;
 
-const Toolbar = () => {
-  return (
-    <div
-      css={css`
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        margin: 8px;
-      `}
-    >
-      <Icons.Table />
-      <Icons.NavDashboard />
-    </div>
-  );
-};
+const Toolbar = () => (
+  <div
+    css={css`
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 8px;
+    `}
+  >
+    <Icons.Table />
+    <Icons.NavDashboard />
+  </div>
+);
 
 const LeftPanel = ({ extensions }: { extensions: React.ReactElement[] }) => (
   <div
@@ -54,46 +52,40 @@ const CenterPanel = styled.div`
   flex-direction: column;
 `;
 
-const CenterTopPanel = () => {
-  return (
-    <div
-      css={theme => css`
-        ${PlaceholderStyles};
-        border-bottom: 1px solid ${theme.colors.grayscale.light2};
-      `}
-    >
-      <Icons.Cards />
-      SQL Editor plugin
-    </div>
-  );
-};
+const CenterTopPanel = () => (
+  <div
+    css={theme => css`
+      ${PlaceholderStyles};
+      border-bottom: 1px solid ${theme.colors.grayscale.light2};
+    `}
+  >
+    <Icons.Cards />
+    SQL Editor plugin
+  </div>
+);
 
-const CenterBottomPanel = () => {
-  return (
-    <div css={PlaceholderStyles}>
-      <Icons.Cards />
-      SQL execution plugins
-    </div>
-  );
-};
+const CenterBottomPanel = () => (
+  <div css={PlaceholderStyles}>
+    <Icons.Cards />
+    SQL execution plugins
+  </div>
+);
 
-const RightPanel = () => {
-  return (
-    <div
-      css={theme => css`
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 12px;
-        border-left: 1px solid ${theme.colors.grayscale.light2};
-        width: 400px;
-      `}
-    >
-      <Icons.Cards />
-      AI Chat plugin
-    </div>
-  );
-};
+const RightPanel = () => (
+  <div
+    css={theme => css`
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      border-left: 1px solid ${theme.colors.grayscale.light2};
+      width: 400px;
+    `}
+  >
+    <Icons.Cards />
+    AI Chat plugin
+  </div>
+);
 
 interface Extension {
   scope: string;
@@ -141,7 +133,7 @@ const SqlLabPoc = () => {
     const fetchExtensions = async () => {
       try {
         const response = await SupersetClient.get({
-          endpoint: '/api/v1/extensions',
+          endpoint: '/api/v1/extensions/',
         });
         const extensions: Extension[] = response.json.result;
         const loadedExtensionsArray = await Promise.all(

@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack serve --mode development",
-    "build": "webpack --stats-error-details --mode production"
+    "build": "webpack --stats-error-details --mode production",
+    "bundle": "superset-extensions-cli"
   },
   "keywords": [],
   "author": "",
@@ -13,9 +14,11 @@
   "description": "",
   "dependencies": {
     "@apache-superset/primitives": "file:../../packages/superset-primitives",
-    "react": "^17.0.2"
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
   },
   "devDependencies": {
+    "@apache-superset/superset-extensions-sdk": "file:../../packages/superset-extensions-sdk",
     "@apache-superset/types": "file:../../packages/superset-types",
     "@babel/preset-react": "^7.26.3",
     "@babel/preset-typescript": "^7.26.0",
