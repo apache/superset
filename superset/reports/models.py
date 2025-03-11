@@ -190,7 +190,7 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         params: dict[str, Any] = {}
         dashboard = self.extra.get("dashboard")
         if dashboard and dashboard.get("nativeFilters"):
-            for filter in dashboard.get("nativeFilters") or []:
+            for filter in dashboard.get("nativeFilters") or []:  # type: ignore
                 params = {
                     **params,
                     **self._generate_native_filter(
