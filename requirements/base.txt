@@ -9,7 +9,9 @@ apispec==6.3.0
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
-    # via -r requirements/base.in
+    # via
+    #   -r requirements/base.in
+    #   redis
 attrs==24.2.0
     # via
     #   cattrs
@@ -94,6 +96,11 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
+exceptiongroup==1.2.2
+    # via
+    #   cattrs
+    #   trio
+    #   trio-websocket
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -148,6 +155,7 @@ greenlet==3.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.14.0
@@ -337,7 +345,7 @@ six==1.16.0
     #   python-dateutil
     #   url-normalize
     #   wtforms-json
-slack-sdk==3.33.4
+slack-sdk==3.34.0
     # via apache-superset (pyproject.toml)
 sniffio==1.3.1
     # via trio
@@ -374,8 +382,10 @@ typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   cattrs
     #   flask-limiter
     #   limits
+    #   rich
     #   selenium
     #   shillelagh
 tzdata==2024.2
