@@ -60,7 +60,7 @@ import { Dropdown } from 'src/components/Dropdown';
 import { Skeleton } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
-import { Menu } from 'src/components/Menu';
+import { AntdMenuItemType, Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
@@ -115,6 +115,7 @@ import {
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
   Logger,
 } from 'src/logger/LogUtils';
+import { MenuItemType } from 'antd-v5/lib/menu/interface';
 import TemplateParamsEditor from '../TemplateParamsEditor';
 import SouthPane from '../SouthPane';
 import SaveQuery, { QueryPayload } from '../SaveQuery';
@@ -704,59 +705,81 @@ const SqlEditor: FC<Props> = ({
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
-    return (
-      <Menu css={{ width: theme.gridUnit * 50 }}>
-        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
-          {' '}
-          <span>{t('Render HTML')}</span>{' '}
-          <Switch
-            checked={renderHTMLEnabled}
-            onChange={handleToggleRenderHTMLEnabled}
-          />{' '}
-        </Menu.Item>
-        <Menu.Item css={{ display: 'flex', justifyContent: 'space-between' }}>
-          {' '}
-          <span>{t('Autocomplete')}</span>{' '}
-          <Switch
-            checked={autocompleteEnabled}
-            onChange={handleToggleAutocompleteEnabled}
-          />{' '}
-        </Menu.Item>
-        {isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && (
-          <Menu.Item>
-            <TemplateParamsEditor
-              language="json"
-              onChange={params => {
-                dispatch(queryEditorSetTemplateParams(qe, params));
+
+    const menuItems: MenuItemType[] = [
+      {
+        key: 'render-html',
+        label: (
+          <div css={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>{t('Render HTML')}</span>{' '}
+            <Switch
+              checked={renderHTMLEnabled}
+              onChange={(checked, event) => {
+                event.stopPropagation();
+                handleToggleRenderHTMLEnabled();
               }}
-              queryEditorId={qe.id}
             />
-          </Menu.Item>
-        )}
-        <Menu.Item onClick={() => formatCurrentQuery()}>
-          {t('Format SQL')}
-        </Menu.Item>
-        {!isEmpty(scheduledQueriesConf) && (
-          <Menu.Item>
-            <ScheduleQueryButton
-              defaultLabel={qe.name}
-              sql={qe.sql}
-              onSchedule={(query: Query) => dispatch(scheduleQuery(query))}
-              schema={qe.schema}
-              dbId={qe.dbId}
-              scheduleQueryWarning={scheduleQueryWarning}
-              tooltip={scheduleToolTip}
-              disabled={!successful}
+          </div>
+        ),
+      },
+      {
+        key: 'autocomplete',
+        label: (
+          <div css={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>{t('Autocomplete')}</span>
+            <Switch
+              checked={autocompleteEnabled}
+              onChange={(checked, event) => {
+                event.stopPropagation();
+                handleToggleAutocompleteEnabled();
+              }}
             />
-          </Menu.Item>
-        )}
-        <Menu.Item>
+          </div>
+        ),
+      },
+      isFeatureEnabled(FeatureFlag.EnableTemplateProcessing) && {
+        key: 'template-params',
+        label: (
+          <TemplateParamsEditor
+            language="json"
+            onChange={params => {
+              dispatch(queryEditorSetTemplateParams(qe, params));
+            }}
+            queryEditorId={qe.id}
+          />
+        ),
+      },
+      {
+        key: 'format-sql',
+        label: t('Format SQL'),
+        onClick: () => formatCurrentQuery(),
+      },
+      !isEmpty(scheduledQueriesConf) && {
+        key: 'schedule-query',
+        label: (
+          <ScheduleQueryButton
+            defaultLabel={qe.name}
+            sql={qe.sql}
+            onSchedule={(query: Query) => dispatch(scheduleQuery(query))}
+            schema={qe.schema}
+            dbId={qe.dbId}
+            scheduleQueryWarning={scheduleQueryWarning}
+            tooltip={scheduleToolTip}
+            disabled={!successful}
+          />
+        ),
+      },
+      {
+        key: 'keyboard-shortcuts',
+        label: (
           <KeyboardShortcutButton>
             {t('Keyboard shortcuts')}
           </KeyboardShortcutButton>
-        </Menu.Item>
-      </Menu>
-    );
+        ),
+      },
+    ].filter(Boolean) as MenuItemType[];
+
+    return <Menu css={{ width: theme.gridUnit * 50 }} items={menuItems} />;
   };
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
