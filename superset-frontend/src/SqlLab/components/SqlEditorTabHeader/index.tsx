@@ -31,6 +31,7 @@ import {
   toggleLeftBar,
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import { MenuItemType } from 'antd-v5/es/menu/interface';
 import TabStatusIcon from '../TabStatusIcon';
 
 const TabTitleWrapper = styled.div`
@@ -91,59 +92,76 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       <MenuDotsDropdown
         trigger={['click']}
         overlay={
-          <Menu>
-            <Menu.Item
-              className="close-btn"
-              key="1"
-              onClick={() => actions.removeQueryEditor(qe)}
-              data-test="close-tab-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-close" />
-              </IconContainer>
-              {t('Close tab')}
-            </Menu.Item>
-            <Menu.Item
-              key="2"
-              onClick={renameTab}
-              data-test="rename-tab-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-i-cursor" />
-              </IconContainer>
-              {t('Rename tab')}
-            </Menu.Item>
-            <Menu.Item
-              key="3"
-              onClick={() => actions.toggleLeftBar(qe)}
-              data-test="toggle-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-cogs" />
-              </IconContainer>
-              {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
-            </Menu.Item>
-            <Menu.Item
-              key="4"
-              onClick={() => actions.removeAllOtherQueryEditors(qe)}
-              data-test="close-all-other-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-times-circle-o" />
-              </IconContainer>
-              {t('Close all other tabs')}
-            </Menu.Item>
-            <Menu.Item
-              key="5"
-              onClick={() => actions.cloneQueryToNewTab(qe, false)}
-              data-test="clone-tab-menu-option"
-            >
-              <IconContainer>
-                <i className="fa fa-files-o" />
-              </IconContainer>
-              {t('Duplicate tab')}
-            </Menu.Item>
-          </Menu>
+          <Menu
+            items={[
+              {
+                className: 'close-btn',
+                key: '1',
+                onClick: () => actions.removeQueryEditor(qe),
+                'data-test': 'close-tab-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <i className="fa fa-close" />
+                    </IconContainer>
+                    {t('Close tab')}
+                  </>
+                ),
+              } as MenuItemType, // Explicitly cast to MenuItemType to avoid type error fixed by https://github.com/ant-design/ant-design/pull/53127
+              {
+                key: '2',
+                onClick: renameTab,
+                'data-test': 'rename-tab-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <i className="fa fa-i-cursor" />
+                    </IconContainer>
+                    {t('Rename tab')}
+                  </>
+                ),
+              } as MenuItemType,
+              {
+                key: '3',
+                onClick: () => actions.toggleLeftBar(qe),
+                'data-test': 'toggle-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <i className="fa fa-cogs" />
+                    </IconContainer>
+                    {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
+                  </>
+                ),
+              } as MenuItemType,
+              {
+                key: '4',
+                onClick: () => actions.removeAllOtherQueryEditors(qe),
+                'data-test': 'close-all-other-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <i className="fa fa-times-circle-o" />
+                    </IconContainer>
+                    {t('Close all other tabs')}
+                  </>
+                ),
+              } as MenuItemType,
+              {
+                key: '5',
+                onClick: () => actions.cloneQueryToNewTab(qe, false),
+                'data-test': 'clone-tab-menu-option',
+                label: (
+                  <>
+                    <IconContainer>
+                      <i className="fa fa-files-o" />
+                    </IconContainer>
+                    {t('Duplicate tab')}
+                  </>
+                ),
+              } as MenuItemType,
+            ]}
+          />
         }
       />
       <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryState} />{' '}

@@ -60,7 +60,7 @@ import { Dropdown } from 'src/components/Dropdown';
 import { Skeleton } from 'src/components';
 import { Switch } from 'src/components/Switch';
 import { Input } from 'src/components/Input';
-import { AntdMenuItemType, Menu } from 'src/components/Menu';
+import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
 import { detectOS } from 'src/utils/common';
 import {
@@ -791,38 +791,32 @@ const SqlEditor: FC<Props> = ({
     const { allow_ctas: allowCTAS, allow_cvas: allowCVAS } = database || {};
 
     const showMenu = allowCTAS || allowCVAS;
-    const runMenuBtn = (
-      <Menu>
-        {allowCTAS && (
-          <Menu.Item
-            onClick={() => {
-              logAction(LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS, {
-                shortcut: false,
-              });
-              setShowCreateAsModal(true);
-              setCreateAs(CtasEnum.Table);
-            }}
-            key="1"
-          >
-            {t('CREATE TABLE AS')}
-          </Menu.Item>
-        )}
-        {allowCVAS && (
-          <Menu.Item
-            onClick={() => {
-              logAction(LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS, {
-                shortcut: false,
-              });
-              setShowCreateAsModal(true);
-              setCreateAs(CtasEnum.View);
-            }}
-            key="2"
-          >
-            {t('CREATE VIEW AS')}
-          </Menu.Item>
-        )}
-      </Menu>
-    );
+    const menuItems: MenuItemType[] = [
+      allowCTAS && {
+        key: '1',
+        label: t('CREATE TABLE AS'),
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_TABLE_AS, {
+            shortcut: false,
+          });
+          setShowCreateAsModal(true);
+          setCreateAs(CtasEnum.Table);
+        },
+      },
+      allowCVAS && {
+        key: '2',
+        label: t('CREATE VIEW AS'),
+        onClick: () => {
+          logAction(LOG_ACTIONS_SQLLAB_CREATE_VIEW_AS, {
+            shortcut: false,
+          });
+          setShowCreateAsModal(true);
+          setCreateAs(CtasEnum.View);
+        },
+      },
+    ].filter(Boolean) as MenuItemType[];
+
+    const runMenuBtn = <Menu items={menuItems} />;
 
     return (
       <StyledToolbar className="sql-toolbar" id="js-sql-toolbar">
