@@ -32,7 +32,7 @@ maintainers:
 version: 0.14.0
 dependencies:
   - name: postgresql
-    version: 12.1.6
+    version: 13.4.4
     repository: oci://registry-1.docker.io/bitnamicharts
     condition: postgresql.enabled
   - name: redis
