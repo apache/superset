@@ -68,14 +68,14 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
 
     def _get_inline_files(
         self,
-    ) -> Sequence[Union[str, IOBase, bytes]]:
+    ) -> tuple[Union[str, None], Sequence[Union[str, IOBase, bytes]]]:
         if self._content.csv:
-            return [self._content.csv]
+            return ("csv", [self._content.csv])
         if self._content.screenshots:
-            return self._content.screenshots
+            return ("png", self._content.screenshots)
         if self._content.pdf:
-            return [self._content.pdf]
-        return []
+            return ("pdf", [self._content.pdf])
+        return (None, [])
 
     @backoff.on_exception(backoff.expo, SlackApiError, factor=10, base=2, max_tries=5)
     @statsd_gauge("reports.slack.send")
@@ -91,7 +91,8 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
             if not channels:
                 raise NotificationParamException("No recipients saved in the report")
 
-            files = self._get_inline_files()
+            file_type, files = self._get_inline_files()
+            file_name = f"{title}.{file_type}"
 
             # files_upload returns SlackResponse as we run it in sync mode.
             for channel in channels:
@@ -102,6 +103,7 @@ class SlackV2Notification(SlackMixin, BaseNotification):  # pylint: disable=too-
                             file=file,
                             initial_comment=body,
                             title=title,
+                            filename=file_name,
                         )
                 else:
                     client.chat_postMessage(channel=channel, text=body)
