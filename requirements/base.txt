@@ -9,7 +9,9 @@ apispec==6.3.0
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
-    # via -r requirements/base.in
+    # via
+    #   -r requirements/base.in
+    #   redis
 attrs==24.2.0
     # via
     #   cattrs
@@ -77,7 +79,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==5.0.1
     # via apache-superset (pyproject.toml)
-cryptography==43.0.3
+cryptography==44.0.2
     # via
     #   apache-superset (pyproject.toml)
     #   paramiko
@@ -94,6 +96,11 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
+exceptiongroup==1.2.2
+    # via
+    #   cattrs
+    #   trio
+    #   trio-websocket
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -281,7 +288,7 @@ pyjwt==2.10.1
     #   flask-jwt-extended
 pynacl==1.5.0
     # via paramiko
-pyopenssl==24.2.1
+pyopenssl==25.0.0
     # via shillelagh
 pyparsing==3.2.0
     # via apache-superset (pyproject.toml)
@@ -374,8 +381,11 @@ typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   cattrs
     #   flask-limiter
     #   limits
+    #   pyopenssl
+    #   rich
     #   selenium
     #   shillelagh
 tzdata==2024.2
