@@ -329,12 +329,15 @@ const config: Config = {
     },
   } satisfies ThemeConfig,
   scripts: [
-    '/script/matomo.js',
     // {
     //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
     //   async: true,
     // },
   ],
+  customFields: {
+    matomoUrl: 'https://analytics.apache.org',
+    matomoSiteId: '22',
+  },
 };
 
 export default config;
