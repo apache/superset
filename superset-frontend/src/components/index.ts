@@ -55,7 +55,6 @@ export {
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
-  Input as AntdInput,
   Select as AntdSelect,
 } from 'antd';
 
