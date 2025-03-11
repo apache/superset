@@ -192,9 +192,11 @@ class IkiDynamicMarkdown extends React.PureComponent {
           if (dataType === 'object') {
             messageData = JSON.parse(messageObject.data);
           } else {
-            switch (messageObject.info) {
-              case 'widget-to-superset/sending-markdown-component-mounted':
-                this.sendDashboardLayoutToMarkdown();
+            if (
+              messageObject.info ===
+              'widget-to-superset/sending-markdown-component-mounted'
+            ) {
+              this.sendDashboardLayoutToMarkdown();
             }
             messageData = messageObject.data;
           }
