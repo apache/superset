@@ -48,7 +48,8 @@ FEATURE_FLAGS = {
     "ENABLE_TEMPLATE_PROCESSING": True,
     "DRILL_TO_DETAIL": True,
     "ADHOC_DASHBOARD_NATIVE_FILTERS": True,
-    "CHART_PLUGINS_EXPERIMENTAL": True
+    "CHART_PLUGINS_EXPERIMENTAL": True,
+    "DASHBOARD_VIRTUALIZATION": False
 }
 
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
@@ -62,7 +63,8 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 SUPERSET_WEBSERVER_TIMEOUT = 300
 ENABLE_PROXY_FIX = True
 TALISMAN_ENABLED = False # since we our using embedded sdk, so we dont this option to embedded dashboard access.
-OVERRIDE_HTTP_HEADERS = { "Content-Security-Policy": f"frame-ancestors {FRONTEND_URL}" }
+# OVERRIDE_HTTP_HEADERS = { "Content-Security-Policy": f"frame-ancestors {FRONTEND_URL}" }
+OVERRIDE_HTTP_HEADERS = {'X-Frame-Options': 'ALLOWALL'}
 GUEST_TOKEN_JWT_EXP_SECONDS = 1800
 GUEST_ROLE_NAME = "Gamma"
 WTF_CSRF_ENABLED = True
