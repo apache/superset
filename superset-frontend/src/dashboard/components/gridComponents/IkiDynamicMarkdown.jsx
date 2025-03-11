@@ -27,7 +27,7 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 import { refreshChart } from 'src/components/Chart/chartAction';
-import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
+import { isEqual } from 'lodash';
 
 const propTypes = {
   id: PropTypes.string.isRequired,
@@ -165,6 +165,16 @@ class IkiDynamicMarkdown extends React.PureComponent {
       setTimeout(() => {
         this.handleChangeEditorMode('preview');
       }, 500);
+    }
+
+    // Send post message of new present dashboard layout to custom markdown
+    if (
+      !isEqual(
+        prevProps.dashboardLayout.present,
+        this.props.dashboardLayout.present,
+      )
+    ) {
+      this.sendDashboardLayoutToMarkdown();
     }
   }
 
