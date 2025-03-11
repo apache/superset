@@ -12,6 +12,7 @@ module.exports = {
     },
   },
   output: {
+    clean: true,
     path: path.resolve(__dirname, 'dist'),
     publicPath: `/api/v1/extensions/${packageConfig.name}/`,
   },
@@ -37,9 +38,6 @@ module.exports = {
       filename: 'remoteEntry.js',
       exposes: {
         './ExtensionExample': './src/index.tsx',
-      },
-      remotes: {
-        superset: 'superset@http://localhost:9000/static/assets/remoteEntry.js',
       },
       shared: {
         react: {
