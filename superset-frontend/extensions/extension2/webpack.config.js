@@ -45,18 +45,18 @@ module.exports = {
       shared: {
         react: {
           singleton: true,
-          eager: true,
           requiredVersion: packageConfig.dependencies.react,
+          import: false,
         },
         'react-dom': {
           singleton: true,
-          eager: true,
           requiredVersion: packageConfig.dependencies['react-dom'],
+          import: false,
         },
         'antd-v5': {
           singleton: true,
-          eager: true,
           requiredVersion: 'npm:antd@^5.18.0',
+          import: false,
         },
       },
     }),
