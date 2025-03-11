@@ -129,7 +129,7 @@ jobs:
             const body = `@${user} Processing your ephemeral environment request [here](${workflowUrl}).` +
               ` Action: **${action}**.` +
               ` More information on [how to use or configure ephemeral environments]` +
-              `(https://superset.apache.org/docs/contributing/howtos/#gitHub-ephermeral-environments)`;
+              `(https://superset.apache.org/docs/contributing/howtos/#github-ephemeral-environments)`;
 
 
             await github.rest.issues.createComment({
