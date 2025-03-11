@@ -9,7 +9,9 @@ apispec==6.3.0
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3
-    # via -r requirements/base.in
+    # via
+    #   -r requirements/base.in
+    #   redis
 attrs==24.2.0
     # via
     #   cattrs
@@ -94,6 +96,11 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
+exceptiongroup==1.2.2
+    # via
+    #   cattrs
+    #   trio
+    #   trio-websocket
 flask==2.3.3
     # via
     #   apache-superset (pyproject.toml)
@@ -148,6 +155,7 @@ greenlet==3.0.3
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
+    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.14.0
@@ -302,7 +310,7 @@ python-dotenv==1.0.1
     # via apache-superset (pyproject.toml)
 python-geohash==0.8.5
     # via apache-superset (pyproject.toml)
-pytz==2024.2
+pytz==2025.1
     # via
     #   croniter
     #   flask-babel
@@ -331,7 +339,7 @@ shillelagh==1.2.18
     # via apache-superset (pyproject.toml)
 simplejson==3.19.3
     # via apache-superset (pyproject.toml)
-six==1.16.0
+six==1.17.0
     # via
     #   prison
     #   python-dateutil
@@ -374,11 +382,13 @@ typing-extensions==4.12.2
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
+    #   cattrs
     #   flask-limiter
     #   limits
+    #   rich
     #   selenium
     #   shillelagh
-tzdata==2024.2
+tzdata==2025.1
     # via
     #   celery
     #   kombu
