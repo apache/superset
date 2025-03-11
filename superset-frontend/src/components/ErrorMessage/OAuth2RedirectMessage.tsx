@@ -168,11 +168,10 @@ function OAuth2RedirectMessage({
 
   return (
     <ErrorAlert
-      title={t('Authorization needed')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      body={body}
+      errorType={t('Authorization needed')}
+      message={subtitle}
+      type={level}
+      description={body}
     />
   );
 }

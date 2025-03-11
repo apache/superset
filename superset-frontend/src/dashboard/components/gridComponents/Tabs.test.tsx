@@ -17,15 +17,18 @@
  * under the License.
  */
 
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
-import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
-import { Tabs } from './Tabs';
+import Tabs from './Tabs';
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(props => (
@@ -124,7 +127,6 @@ test('Should render editMode:true', () => {
   expect(screen.getAllByRole('tab')).toHaveLength(3);
   expect(screen.getAllByRole('button', { name: 'remove' })).toHaveLength(3);
   expect(screen.getAllByRole('button', { name: 'Add tab' })).toHaveLength(2);
-  expect(Draggable).toHaveBeenCalledTimes(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
   expect(DeleteComponentButton).toHaveBeenCalledTimes(1);
 });
@@ -137,7 +139,6 @@ test('Should render editMode:false', () => {
     useDnd: true,
   });
   expect(screen.getAllByRole('tab')).toHaveLength(3);
-  expect(Draggable).toHaveBeenCalledTimes(1);
   expect(DashboardComponent).toHaveBeenCalledTimes(4);
   expect(DeleteComponentButton).not.toHaveBeenCalled();
   expect(

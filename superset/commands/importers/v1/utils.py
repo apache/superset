@@ -96,7 +96,7 @@ def validate_metadata_type(
 
 
 # pylint: disable=too-many-locals,too-many-arguments
-def load_configs(
+def load_configs(  # noqa: C901
     contents: dict[str, str],
     schemas: dict[str, Schema],
     passwords: dict[str, str],

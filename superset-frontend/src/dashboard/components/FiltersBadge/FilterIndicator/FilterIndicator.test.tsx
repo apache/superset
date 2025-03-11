@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { Indicator } from 'src/dashboard/components/nativeFilters/selectors';
 import FilterIndicator from '.';
 
@@ -51,9 +50,9 @@ test('Should call "onClick"', () => {
   const props = createProps();
   render(<FilterIndicator {...props} />);
 
-  expect(props.onClick).toBeCalledTimes(0);
+  expect(props.onClick).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'Vaccine Approach' }));
-  expect(props.onClick).toBeCalledTimes(1);
+  expect(props.onClick).toHaveBeenCalledTimes(1);
 });
 
 test('Should render "value"', () => {

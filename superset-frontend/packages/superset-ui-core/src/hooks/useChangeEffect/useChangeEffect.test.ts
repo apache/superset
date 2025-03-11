@@ -24,8 +24,8 @@ test('call callback the first time with undefined and value', () => {
   renderHook(props => useChangeEffect(props.value, props.callback), {
     initialProps: { value: 'value', callback },
   });
-  expect(callback).toBeCalledTimes(1);
-  expect(callback).nthCalledWith(1, undefined, 'value');
+  expect(callback).toHaveBeenCalledTimes(1);
+  expect(callback).toHaveBeenNthCalledWith(1, undefined, 'value');
 });
 
 test('do not call callback 2 times if the value do not change', () => {
@@ -37,7 +37,7 @@ test('do not call callback 2 times if the value do not change', () => {
     },
   );
   hook.rerender({ value: 'value', callback });
-  expect(callback).toBeCalledTimes(1);
+  expect(callback).toHaveBeenCalledTimes(1);
 });
 
 test('call callback whenever the value changes', () => {
@@ -49,6 +49,6 @@ test('call callback whenever the value changes', () => {
     },
   );
   hook.rerender({ value: 'value-2', callback });
-  expect(callback).toBeCalledTimes(2);
-  expect(callback).nthCalledWith(2, 'value', 'value-2');
+  expect(callback).toHaveBeenCalledTimes(2);
+  expect(callback).toHaveBeenNthCalledWith(2, 'value', 'value-2');
 });

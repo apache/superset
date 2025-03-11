@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import CollectionControl from '.';
 
 jest.mock('@superset-ui/chart-controls', () => ({
@@ -108,9 +107,12 @@ test('Should have add button', async () => {
   expect(
     await screen.findByRole('button', { name: 'plus-large' }),
   ).toBeInTheDocument();
-  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'plus-large' }));
-  expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }, undefined]);
+  expect(props.onChange).toHaveBeenCalledWith([
+    { key: 'hrYAZ5iBH' },
+    undefined,
+  ]);
 });
 
 test('Should have remove button', async () => {
@@ -120,9 +122,9 @@ test('Should have remove button', async () => {
   expect(
     await screen.findByRole('button', { name: 'remove-item' }),
   ).toBeInTheDocument();
-  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByRole('button', { name: 'remove-item' }));
-  expect(props.onChange).toBeCalledWith([]);
+  expect(props.onChange).toHaveBeenCalledWith([]);
 });
 
 test('Should have SortableDragger icon', async () => {
@@ -136,7 +138,7 @@ test('Should call Control component', async () => {
   render(<CollectionControl {...props} />);
 
   expect(await screen.findByTestId('TestControl')).toBeInTheDocument();
-  expect(props.onChange).toBeCalledTimes(0);
+  expect(props.onChange).toHaveBeenCalledTimes(0);
   userEvent.click(screen.getByTestId('TestControl'));
-  expect(props.onChange).toBeCalledWith([{ key: 'hrYAZ5iBH' }]);
+  expect(props.onChange).toHaveBeenCalledWith([{ key: 'hrYAZ5iBH' }]);
 });

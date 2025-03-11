@@ -27,7 +27,9 @@ from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
     assoc_permissionview_role,
+    assoc_user_group,
     assoc_user_role,
     Permission,
     PermissionView,
@@ -51,6 +53,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
+from sqlalchemy.sql import exists
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -181,6 +184,7 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         ("metrics", ["metrics"]),
         ("columns", ["columns", "groupby"]),
         ("groupby", ["columns", "groupby"]),
+        ("orderby", ["orderby"]),
     ]:
         requested_values = {freeze_value(value) for value in form_data.get(key) or []}
         stored_values = {
@@ -235,8 +239,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Log",
         "List Users",
         "List Roles",
+        "List Groups",
         "ResetPasswordView",
         "RoleModelView",
+        "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
@@ -269,8 +275,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ALPHA_ONLY_PMVS = {
-        ("can_csv_upload", "Database"),
-        ("can_excel_upload", "Database"),
+        ("can_upload", "Database"),
     }
 
     ADMIN_ONLY_PERMISSIONS = {
@@ -330,6 +335,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
         ("menu_access", "Query Search"),
+        ("can_read", "SqlLabPermalinkRestApi"),
+        ("can_write", "SqlLabPermalinkRestApi"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -477,7 +484,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return (
             self.can_access_all_datasources()
             or self.can_access_all_databases()
-            or self.can_access("database_access", database.perm)  # type: ignore
+            or self.can_access("database_access", database.perm)
         )
 
     def can_access_catalog(self, database: "Database", catalog: str) -> bool:
@@ -731,13 +738,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         if not g.user.is_anonymous:
-            # filter by user id
-            view_menu_names = (
-                base_query.join(assoc_user_role)
-                .join(self.user_model)
-                .filter(self.user_model.id == get_user_id())
-                .filter(self.permission_model.name == permission_name)
-            ).all()
+            user_id = get_user_id()
+
+            user_roles_filter = or_(
+                exists().where(
+                    (assoc_user_role.c.user_id == user_id)
+                    & (assoc_user_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
+                ),
+                exists().where(
+                    (assoc_user_group.c.user_id == user_id)
+                    & (assoc_user_group.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
+                ),
+            )
+
+            view_menu_names = base_query.filter(user_roles_filter).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
@@ -1409,7 +1427,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param old_database_name: the old database name
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
-        """
+        """  # noqa: E501
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
         new_database_name = target.database_name
         old_view_menu_name = self.get_database_perm(target.id, old_database_name)
@@ -1465,7 +1483,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param old_database_name: the old database name
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
-        """
+        """  # noqa: E501
         from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
             SqlaTable,
         )
@@ -2143,7 +2161,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         return []
 
-    def raise_for_access(
+    def raise_for_access(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
         dashboard: Optional["Dashboard"] = None,
@@ -2172,7 +2190,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param schema: Optional schema name
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
@@ -2353,7 +2370,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         if dashboard:
             if self.is_guest_user():
-                # Guest user is currently used for embedded dashboards only. If the guest
+                # Guest user is currently used for embedded dashboards only. If the guest  # noqa: E501
                 # user doesn't have access to the dashboard, ignore all other checks.
                 if self.has_guest_access(dashboard):
                     return
@@ -2423,7 +2440,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user.is_anonymous:
             public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
-        return user.roles
+        return super().get_user_roles(user)
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource"

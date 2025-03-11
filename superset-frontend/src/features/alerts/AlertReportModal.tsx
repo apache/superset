@@ -34,6 +34,7 @@ import {
   SupersetClient,
   SupersetTheme,
   t,
+  VizType,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -79,9 +80,9 @@ import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
-  'pivot_table_v2',
+  VizType.PivotTable,
   'table',
-  'paired_ttest',
+  VizType.PairedTTest,
 ];
 
 export interface AlertReportModalProps {
@@ -188,6 +189,8 @@ const FORMAT_OPTIONS = {
   },
 };
 
+type FORMAT_OPTIONS_KEY = keyof typeof FORMAT_OPTIONS;
+
 // Apply to final text input components of each collapse panel
 const noMarginBottom = css`
   margin-bottom: 0;
@@ -197,7 +200,7 @@ const noMarginBottom = css`
 Height of modal body defined here, total width defined at component invocation as antd prop.
  */
 const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     height: 720px;
   }
 
@@ -823,10 +826,39 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       })
         .then(response => {
           const { tab_tree: tabTree, all_tabs: allTabs } = response.json.result;
+          const allTabsWithOrder = tabTree.map(
+            (tab: { value: string }) => tab.value,
+          );
+
+          // Only show all tabs when there are more than one tab
+          if (allTabsWithOrder.length > 1) {
+            tabTree.push({
+              title: 'All Tabs',
+              // select tree only works with string value
+              value: JSON.stringify(allTabsWithOrder),
+            });
+          }
+
           setTabOptions(tabTree);
+
           const anchor = currentAlert?.extra?.dashboard?.anchor;
-          if (anchor && !(anchor in allTabs)) {
-            updateAnchorState(undefined);
+          if (anchor) {
+            try {
+              const parsedAnchor = JSON.parse(anchor);
+              if (Array.isArray(parsedAnchor)) {
+                // Check if all elements in parsedAnchor list are in allTabs
+                const isValidSubset = parsedAnchor.every(tab => tab in allTabs);
+                if (!isValidSubset) {
+                  updateAnchorState(undefined);
+                }
+              } else {
+                throw new Error('Parsed value is not an array');
+              }
+            } catch (error) {
+              if (!(anchor in allTabs)) {
+                updateAnchorState(undefined);
+              }
+            }
           }
         })
         .catch(() => {
@@ -983,8 +1015,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
+  const onCustomWidthChange = (value: number | string | null | undefined) => {
+    const numValue =
+      value === null ||
+      value === undefined ||
+      (typeof value === 'string' && Number.isNaN(Number(value)))
+        ? null
+        : Number(value);
+    updateAlertState('custom_width', numValue);
   };
 
   const onTimeoutVerifyChange = (
@@ -1710,12 +1748,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                   value={reportFormat}
                   options={
                     contentType === ContentType.Dashboard
-                      ? ['pdf', 'png'].map(key => FORMAT_OPTIONS[key])
+                      ? ['pdf', 'png'].map(
+                          key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                        )
                       : /* If chart is of text based viz type: show text
                   format option */
                         TEXT_BASED_VISUALIZATION_TYPES.includes(chartVizType)
                         ? Object.values(FORMAT_OPTIONS)
-                        : ['pdf', 'png', 'csv'].map(key => FORMAT_OPTIONS[key])
+                        : ['pdf', 'png', 'csv'].map(
+                            key => FORMAT_OPTIONS[key as FORMAT_OPTIONS_KEY],
+                          )
                   }
                   placeholder={t('Select format')}
                 />

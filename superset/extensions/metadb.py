@@ -33,7 +33,7 @@ and applying any filters (as well as sorting, limiting, and offsetting).
 
 Note that no aggregation is done on the database. Aggregations and other operations like
 joins and unions are done in memory, using the SQLite engine.
-"""
+"""  # noqa: E501
 
 from __future__ import annotations
 
@@ -270,7 +270,7 @@ class SupersetShillelaghAdapter(Adapter):
         self.schema = parts.pop(-1) if parts else None
         self.catalog = parts.pop(-1) if parts else None
 
-        # If the table has a single integer primary key we use that as the row ID in order
+        # If the table has a single integer primary key we use that as the row ID in order  # noqa: E501
         # to perform updates and deletes. Otherwise we can only do inserts and selects.
         self._rowid: str | None = None
 
@@ -334,7 +334,9 @@ class SupersetShillelaghAdapter(Adapter):
         primary_keys = [
             column for column in list(self._table.primary_key) if column.primary_key
         ]
-        if len(primary_keys) == 1 and primary_keys[0].type.python_type == int:
+        if len(primary_keys) == 1 and isinstance(
+            primary_keys[0].type.python_type, type(int)
+        ):
             self._rowid = primary_keys[0].name
 
         self.columns = {
@@ -410,7 +412,7 @@ class SupersetShillelaghAdapter(Adapter):
             connection = engine.connect()
             rows = connection.execute(query)
             for i, row in enumerate(rows):
-                data = dict(zip(self.columns, row))
+                data = dict(zip(self.columns, row, strict=False))
                 data["rowid"] = data[self._rowid] if self._rowid else i
                 yield data
 

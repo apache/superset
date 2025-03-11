@@ -19,13 +19,13 @@
 import { cloneDeep } from 'lodash';
 import {
   Behavior,
-  FeatureFlag,
   getChartMetadataRegistry,
   isDefined,
-  isFeatureEnabled,
+  NativeFilterScope,
 } from '@superset-ui/core';
 import { getChartIdsInFilterScope } from './getChartIdsInFilterScope';
 import {
+  ChartConfiguration,
   ChartsState,
   DashboardInfo,
   DashboardLayout,
@@ -33,12 +33,12 @@ import {
   isCrossFilterScopeGlobal,
 } from '../types';
 import { DEFAULT_CROSS_FILTER_SCOPING } from '../constants';
+import { CHART_TYPE } from './componentTypes';
 
 export const isCrossFiltersEnabled = (
   metadataCrossFiltersEnabled: boolean | undefined,
 ): boolean =>
-  isFeatureEnabled(FeatureFlag.DashboardCrossFilters) &&
-  (metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled);
+  metadataCrossFiltersEnabled === undefined || metadataCrossFiltersEnabled;
 
 export const getCrossFiltersConfiguration = (
   dashboardLayout: DashboardLayout,
@@ -48,23 +48,9 @@ export const getCrossFiltersConfiguration = (
   >,
   charts: ChartsState,
 ) => {
-  if (!isFeatureEnabled(FeatureFlag.DashboardCrossFilters)) {
-    return undefined;
-  }
-
-  const chartsByDataSource: Record<string, Set<number>> = Object.values(
-    charts,
-  ).reduce((acc: Record<string, Set<number>>, chart) => {
-    if (!chart.form_data) {
-      return acc;
-    }
-    const { datasource } = chart.form_data;
-    if (!acc[datasource]) {
-      acc[datasource] = new Set();
-    }
-    acc[datasource].add(chart.id);
-    return acc;
-  }, {});
+  const chartLayoutItems = Object.values(dashboardLayout).filter(
+    item => item?.type === CHART_TYPE,
+  );
 
   const globalChartConfiguration = metadata.global_chart_configuration?.scope
     ? {
@@ -72,7 +58,7 @@ export const getCrossFiltersConfiguration = (
         chartsInScope: getChartIdsInFilterScope(
           metadata.global_chart_configuration.scope,
           Object.values(charts).map(chart => chart.id),
-          dashboardLayout,
+          chartLayoutItems,
         ),
       }
     : {
@@ -82,8 +68,8 @@ export const getCrossFiltersConfiguration = (
 
   // If user just added cross filter to dashboard it's not saving its scope on server,
   // so we tweak it until user will update scope and will save it in server
-  const chartConfiguration = {};
-  Object.values(dashboardLayout).forEach(layoutItem => {
+  const chartConfiguration: ChartConfiguration = {};
+  chartLayoutItems.forEach(layoutItem => {
     const chartId = layoutItem.meta?.chartId;
 
     if (!isDefined(chartId)) {
@@ -108,21 +94,20 @@ export const getCrossFiltersConfiguration = (
           id: chartId,
           crossFilters: {
             scope: GLOBAL_SCOPE_POINTER,
+            chartsInScope: [],
           },
         };
       }
-      const chartDataSource = charts[chartId].form_data.datasource;
       chartConfiguration[chartId].crossFilters.chartsInScope =
         isCrossFilterScopeGlobal(chartConfiguration[chartId].crossFilters.scope)
           ? globalChartConfiguration.chartsInScope.filter(
-              id =>
-                id !== Number(chartId) &&
-                chartsByDataSource[chartDataSource]?.has(id),
+              id => id !== Number(chartId),
             )
           : getChartIdsInFilterScope(
-              chartConfiguration[chartId].crossFilters.scope,
+              chartConfiguration[chartId].crossFilters
+                .scope as NativeFilterScope,
               Object.values(charts).map(chart => chart.id),
-              dashboardLayout,
+              chartLayoutItems,
             );
     }
   });

@@ -48,6 +48,7 @@ import {
   CustomControlItem,
   Dataset,
   ExpandedControlItem,
+  isCustomControlItem,
   isTemporalColumn,
   sections,
 } from '@superset-ui/chart-controls';
@@ -448,7 +449,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const renderControl = ({ name, config }: CustomControlItem) => {
     const { controls, chart, exploreState } = props;
-    const { visibility, hidden, ...restConfig } = config;
+    const { visibility, hidden, disableStash, ...restConfig } = config;
 
     // If the control item is not an object, we have to look up the control data from
     // the centralized controls file.
@@ -529,7 +530,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     return (
       <StashFormDataContainer
-        shouldStash={isVisible === false}
+        shouldStash={isVisible === false && disableStash !== true}
         fieldNames={[name]}
         key={`control-container-${name}`}
       >
@@ -587,7 +588,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = sectionHasHadNoErrors.current[sectionId]
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     const PanelHeader = () => (
       <span data-test="collapsible-control-panel-header">
@@ -678,8 +679,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                     return controlItem;
                   }
                   if (
-                    controlItem.name &&
-                    controlItem.config &&
+                    isCustomControlItem(controlItem) &&
                     controlItem.name !== 'datasource'
                   ) {
                     return renderControl(controlItem);
@@ -747,7 +747,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
     const errorColor = dataTabHasHadNoErrors.current
       ? colors.error.base
-      : colors.alert.base;
+      : colors.warning.base;
 
     return (
       <>
@@ -777,7 +777,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     );
   }, [
     colors.error.base,
-    colors.alert.base,
+    colors.warning.base,
     dataTabHasHadNoErrors,
     props.errorMessage,
   ]);

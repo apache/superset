@@ -42,16 +42,38 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple() -> None:
+def test_validate_parameters_simple(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
 
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
-            "catalog": {},
+            "catalog": {"test": "https://docs.google.com/spreadsheets/d/1/edit"},
+        },
+        "catalog": {},
+    }
+    assert GSheetsEngineSpec.validate_parameters(properties)
+
+
+def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
         },
         "catalog": {},
     }
@@ -66,18 +88,21 @@ def test_validate_parameters_simple() -> None:
     ]
 
 
-def test_validate_parameters_simple_with_in_root_catalog() -> None:
+def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
 
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
             "catalog": {},
         },
-        "catalog": {},
+        "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
@@ -137,11 +162,11 @@ def test_validate_parameters_catalog(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -162,11 +187,11 @@ def test_validate_parameters_catalog(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -229,11 +254,11 @@ def test_validate_parameters_catalog_and_credentials(
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -502,7 +527,7 @@ def test_get_url_for_impersonation_access_token() -> None:
         url=make_url("gsheets://"),
         impersonate_user=True,
         username=None,
-        access_token="access-token",
+        access_token="access-token",  # noqa: S106
     ) == make_url("gsheets://?access_token=access-token")
 
 
@@ -559,6 +584,7 @@ def oauth2_config() -> OAuth2ClientConfig:
         "redirect_uri": "http://localhost:8088/api/v1/oauth2/",
         "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
         "token_request_uri": "https://oauth2.googleapis.com/token",
+        "request_content_type": "json",
     }
 
 

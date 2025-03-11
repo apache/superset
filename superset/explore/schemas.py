@@ -106,7 +106,7 @@ class DatasetSchema(Schema):
 class SliceSchema(Schema):
     cache_timeout = fields.Integer(
         metadata={
-            "description": "Duration (in seconds) of the caching timeout for this chart."
+            "description": "Duration (in seconds) of the caching timeout for this chart."  # noqa: E501
         }
     )
     certification_details = fields.String(

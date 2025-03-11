@@ -52,10 +52,15 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDeleteFailedError,
     SSHTunnelingNotEnabledError,
 )
+from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.tables import TablesDatabaseCommand
 from superset.commands.database.test_connection import TestConnectionDatabaseCommand
 from superset.commands.database.update import UpdateDatabaseCommand
-from superset.commands.database.uploaders.base import UploadCommand
+from superset.commands.database.uploaders.base import (
+    BaseDataReader,
+    UploadCommand,
+    UploadFileType,
+)
 from superset.commands.database.uploaders.columnar_reader import ColumnarReader
 from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
@@ -72,10 +77,6 @@ from superset.databases.decorators import check_table_access
 from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilter
 from superset.databases.schemas import (
     CatalogsResponseSchema,
-    ColumnarMetadataUploadFilePostSchema,
-    ColumnarUploadPostSchema,
-    CSVMetadataUploadFilePostSchema,
-    CSVUploadPostSchema,
     database_catalogs_query_schema,
     database_schemas_query_schema,
     database_tables_query_schema,
@@ -88,8 +89,6 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
-    ExcelMetadataUploadFilePostSchema,
-    ExcelUploadPostSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
@@ -99,6 +98,8 @@ from superset.databases.schemas import (
     TableExtraMetadataResponseSchema,
     TableMetadataResponseSchema,
     UploadFileMetadata,
+    UploadFileMetadataPostSchema,
+    UploadPostSchema,
     ValidateSQLRequest,
     ValidateSQLResponse,
 )
@@ -120,7 +121,12 @@ from superset.models.core import Database
 from superset.sql_parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
-from superset.utils.core import error_msg_from_exception, parse_js_uri_path_item
+from superset.utils.core import (
+    error_msg_from_exception,
+    get_username,
+    parse_js_uri_path_item,
+)
+from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base_api import (
@@ -161,13 +167,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
-        "csv_upload",
-        "csv_metadata",
-        "excel_upload",
-        "excel_metadata",
-        "columnar_upload",
-        "columnar_metadata",
+        "upload_metadata",
+        "upload",
         "oauth2",
+        "sync_permissions",
     }
 
     resource_name = "database"
@@ -281,8 +284,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
         CatalogsResponseSchema,
-        ColumnarUploadPostSchema,
-        CSVUploadPostSchema,
         DatabaseConnectionSchema,
         DatabaseFunctionNamesResponse,
         DatabaseSchemaAccessForFileUploadResponse,
@@ -290,15 +291,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
-        ExcelUploadPostSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
         SchemasResponseSchema,
-        CSVMetadataUploadFilePostSchema,
-        ExcelMetadataUploadFilePostSchema,
-        ColumnarMetadataUploadFilePostSchema,
+        UploadFileMetadataPostSchema,
         UploadFileMetadata,
+        UploadPostSchema,
         ValidateSQLRequest,
         ValidateSQLResponse,
     )
@@ -404,7 +403,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def post(self) -> FlaskResponse:
+    def post(self) -> FlaskResponse:  # noqa: C901
         """Create a new database.
         ---
         post:
@@ -570,7 +569,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".delete",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.delete",
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
@@ -620,12 +619,59 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<int:pk>/sync_permissions/", methods=("POST",))
+    @protect()
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        f".sync-permissions",
+        log_to_statsd=False,
+    )
+    def sync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
+        """Sync all permissions for a database connection.
+        ---
+        post:
+          summary: Re-sync all permissions for a database connection
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The database connection ID
+          responses:
+            200:
+              description: Task created to sync permissions.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        current_username = get_username()
+        SyncPermissionsCommand(
+            pk,
+            current_username,
+        ).run()
+        if app.config["SYNC_DB_PERMISSIONS_IN_ASYNC_MODE"]:
+            return self.response(202, message="Async task created to sync permissions")
+        return self.response(200, message="Permissions successfully synced")
+
     @expose("/<int:pk>/catalogs/")
     @protect()
     @rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".catalogs",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.catalogs",
         log_to_statsd=False,
     )
     def catalogs(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -690,7 +736,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".schemas",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schemas",
         log_to_statsd=False,
     )
     def schemas(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -758,7 +804,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".tables",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.tables",
         log_to_statsd=False,
     )
     def tables(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -881,7 +927,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @check_table_access
     @safe
     @statsd_metrics
-    @deprecated(deprecated_in="4.0", removed_in="5.0")
+    @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".table_extra_metadata_deprecated",
@@ -1341,6 +1387,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @expose("/oauth2/", methods=["GET"])
+    @transaction()
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
         log_to_statsd=True,
@@ -1396,7 +1443,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         state = decode_oauth2_state(parameters["state"])
 
         # exchange code for access/refresh tokens
-        database = DatabaseDAO.find_by_id(state["database_id"])
+        database = DatabaseDAO.find_by_id(state["database_id"], skip_base_filter=True)
         if database is None:
             return self.response_404()
 
@@ -1428,7 +1475,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "refresh_token": token_response.get("refresh_token"),
             },
         )
-
         # return blank page that closes itself
         return make_response(
             render_template("superset/oauth2.html", tab_id=state["tab_id"]),
@@ -1620,30 +1666,30 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/csv_metadata/", methods=("POST",))
+    @expose("/upload_metadata/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=(
-            lambda self, *args, **kwargs: f"{self.__class__.__name__}" ".csv_metadata"
+            lambda self, *args, **kwargs: f"{self.__class__.__name__}.upload_metadata"
         ),
         log_to_statsd=False,
     )
     @requires_form_data
-    def csv_metadata(self) -> Response:
-        """Upload an CSV file and returns file metadata.
+    def upload_metadata(self) -> Response:
+        """Upload a file and returns file metadata.
         ---
         post:
-          summary: Upload an CSV file and returns file metadata
+          summary: Upload a file and returns file metadata
           requestBody:
             required: true
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/CSVMetadataUploadFilePostSchema'
+                  $ref: '#/components/schemas/UploadFileMetadataPostSchema'
           responses:
             200:
-              description: Columnar upload response
+              description: Upload response
               content:
                 application/json:
                   schema:
@@ -1663,25 +1709,32 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = CSVMetadataUploadFilePostSchema().load(request_form)
+            parameters = UploadFileMetadataPostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
-        metadata = CSVReader(parameters).file_metadata(parameters["file"])
+        if parameters["type"] == UploadFileType.CSV.value:
+            metadata = CSVReader(parameters).file_metadata(parameters["file"])
+        elif parameters["type"] == UploadFileType.EXCEL.value:
+            metadata = ExcelReader(parameters).file_metadata(parameters["file"])
+        elif parameters["type"] == UploadFileType.COLUMNAR.value:
+            metadata = ColumnarReader(parameters).file_metadata(parameters["file"])
+        else:
+            self.response_400(message="Unexpected Invalid file type")
         return self.response(200, result=UploadFileMetadata().dump(metadata))
 
-    @expose("/<int:pk>/csv_upload/", methods=("POST",))
+    @expose("/<int:pk>/upload/", methods=("POST",))
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.csv_upload",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.upload",
         log_to_statsd=False,
     )
     @requires_form_data
-    def csv_upload(self, pk: int) -> Response:
-        """Upload a CSV file into a database.
+    def upload(self, pk: int) -> Response:
+        """Upload a file into a database.
         ---
         post:
-          summary: Upload a CSV file to a database table
+          summary: Upload a file to a database table
           parameters:
           - in: path
             schema:
@@ -1692,7 +1745,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             content:
               multipart/form-data:
                 schema:
-                  $ref: '#/components/schemas/CSVUploadPostSchema'
+                  $ref: '#/components/schemas/UploadPostSchema'
           responses:
             201:
               description: CSV upload response
@@ -1717,232 +1770,22 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             request_form = request.form.to_dict()
             request_form["file"] = request.files.get("file")
-            parameters = CSVUploadPostSchema().load(request_form)
+            parameters = UploadPostSchema().load(request_form)
+            reader: BaseDataReader
+            if parameters["type"] == UploadFileType.CSV.value:
+                reader = CSVReader(parameters)
+            elif parameters["type"] == UploadFileType.EXCEL.value:
+                reader = ExcelReader(parameters)
+            elif parameters["type"] == UploadFileType.COLUMNAR.value:
+                reader = ColumnarReader(parameters)
+            else:
+                return self.response_400(message="Unexpected Invalid file type")
             UploadCommand(
                 pk,
                 parameters["table_name"],
                 parameters["file"],
                 parameters.get("schema"),
-                CSVReader(parameters),
-            ).run()
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        return self.response(201, message="OK")
-
-    @expose("/excel_metadata/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=(
-            lambda self, *args, **kwargs: f"{self.__class__.__name__}" ".excel_metadata"
-        ),
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def excel_metadata(self) -> Response:
-        """Upload an Excel file and returns file metadata.
-        ---
-        post:
-          summary: Upload an Excel file and returns file metadata
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ExcelMetadataUploadFilePostSchema'
-          responses:
-            200:
-              description: Columnar upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/UploadFileMetadata'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ExcelMetadataUploadFilePostSchema().load(request_form)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        metadata = ExcelReader().file_metadata(parameters["file"])
-        return self.response(200, result=UploadFileMetadata().dump(metadata))
-
-    @expose("/<int:pk>/excel_upload/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.excel_upload",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def excel_upload(self, pk: int) -> Response:
-        """Upload an Excel file into a database.
-        ---
-        post:
-          summary: Upload an Excel file to a database table
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ExcelUploadPostSchema'
-          responses:
-            201:
-              description: Excel upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ExcelUploadPostSchema().load(request_form)
-            UploadCommand(
-                pk,
-                parameters["table_name"],
-                parameters["file"],
-                parameters.get("schema"),
-                ExcelReader(parameters),
-            ).run()
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        return self.response(201, message="OK")
-
-    @expose("/columnar_metadata/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        ".columnar_metadata",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def columnar_metadata(self) -> Response:
-        """Upload a Columnar file and returns file metadata.
-        ---
-        post:
-          summary: Upload a Columnar file and returns file metadata
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ColumnarMetadataUploadFilePostSchema'
-          responses:
-            200:
-              description: Columnar upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        $ref: '#/components/schemas/UploadFileMetadata'
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ColumnarMetadataUploadFilePostSchema().load(request_form)
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
-        metadata = ColumnarReader().file_metadata(parameters["file"])
-        return self.response(200, result=UploadFileMetadata().dump(metadata))
-
-    @expose("/<int:pk>/columnar_upload/", methods=("POST",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.columnar_upload",
-        log_to_statsd=False,
-    )
-    @requires_form_data
-    def columnar_upload(self, pk: int) -> Response:
-        """Upload a Columnar file into a database.
-        ---
-        post:
-          summary: Upload a Columnar file to a database table
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            name: pk
-          requestBody:
-            required: true
-            content:
-              multipart/form-data:
-                schema:
-                  $ref: '#/components/schemas/ColumnarUploadPostSchema'
-          responses:
-            201:
-              description: Columnar upload response
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            request_form = request.form.to_dict()
-            request_form["file"] = request.files.get("file")
-            parameters = ColumnarUploadPostSchema().load(request_form)
-            UploadCommand(
-                pk,
-                parameters["table_name"],
-                parameters["file"],
-                parameters.get("schema"),
-                ColumnarReader(parameters),
+                reader,
             ).run()
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -1993,7 +1836,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}" f".available",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.available",
         log_to_statsd=False,
     )
     def available(self) -> Response:
@@ -2075,7 +1918,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             if (
                 hasattr(engine_spec, "parameters_json_schema")
                 and hasattr(engine_spec, "sqlalchemy_uri_placeholder")
-                and getattr(engine_spec, "default_driver") in drivers
+                and engine_spec.default_driver in drivers
             ):
                 payload["parameters"] = engine_spec.parameters_json_schema()
                 payload["sqlalchemy_uri_placeholder"] = (
@@ -2259,7 +2102,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-        """
+        """  # noqa: E501
         database = DatabaseDAO.find_by_id(pk)
         if not database:
             return self.response_404()

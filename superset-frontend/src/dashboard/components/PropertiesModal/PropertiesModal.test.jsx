@@ -143,7 +143,7 @@ describe.skip('PropertiesModal', () => {
         const spy = jest.spyOn(Modal, 'error');
         expect(() =>
           modalInstance.onColorSchemeChange('THIS_WILL_NOT_WORK'),
-        ).toThrowError('A valid color scheme is required');
+        ).toThrow('A valid color scheme is required');
         expect(spy).toHaveBeenCalled();
       });
     });

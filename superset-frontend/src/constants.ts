@@ -148,7 +148,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   locale: 'en',
   feature_flags: {},
   language_pack: {
-    domain: '',
+    domain: 'superset',
     locale_data: {
       superset: {
         '': {

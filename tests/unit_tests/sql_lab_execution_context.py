@@ -63,7 +63,10 @@ def test_sql_json_execution_context_init(query_params):
 @with_feature_flags(SQLLAB_FORCE_RUN_ASYNC=True)
 @pytest.mark.parametrize("runAsync, expected_async_flag", [(True, True), (False, True)])
 def test_sql_json_execution_context_feature_flag_false(
-    mocker, query_params, runAsync, expected_async_flag
+    mocker,
+    query_params,
+    runAsync,  # noqa: N803
+    expected_async_flag,  # noqa: N803
 ):
     query_params["runAsync"] = runAsync
     context = SqlJsonExecutionContext(query_params)
@@ -76,7 +79,10 @@ def test_sql_json_execution_context_feature_flag_false(
     "runAsync, expected_async_flag", [(True, True), (False, False)]
 )
 def test_sql_json_execution_context_feature_flag_true(
-    mocker, query_params, runAsync, expected_async_flag
+    mocker,
+    query_params,
+    runAsync,  # noqa: N803
+    expected_async_flag,  # noqa: N803
 ):
     query_params["runAsync"] = runAsync
     context = SqlJsonExecutionContext(query_params)

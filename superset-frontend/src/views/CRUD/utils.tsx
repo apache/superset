@@ -376,7 +376,7 @@ export const CardStyles = styled.div`
   a {
     text-decoration: none;
   }
-  .ant-card-cover > div {
+  .antd5-card-cover > div {
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
@@ -507,14 +507,14 @@ export const uploadUserPerms = (
   allowedExt: Array<string>,
 ) => {
   const canUploadCSV =
-    findPermission('can_csv_upload', 'Database', roles) &&
+    findPermission('can_upload', 'Database', roles) &&
     checkUploadExtensions(csvExt, allowedExt);
   const canUploadColumnar =
     checkUploadExtensions(colExt, allowedExt) &&
-    findPermission('can_columnar_upload', 'Database', roles);
+    findPermission('can_upload', 'Database', roles);
   const canUploadExcel =
     checkUploadExtensions(excelExt, allowedExt) &&
-    findPermission('can_excel_upload', 'Database', roles);
+    findPermission('can_upload', 'Database', roles);
   return {
     canUploadCSV,
     canUploadColumnar,

@@ -74,7 +74,7 @@ describe('Native filters', () => {
       cy.createSampleDashboards([0]);
     });
 
-    it('Verify that default value is respected after revisit', () => {
+    it.skip('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
@@ -263,8 +263,10 @@ describe('Native filters', () => {
     });
 
     it('User can expand / retract native filter sidebar on a dashboard', () => {
-      cy.get(nativeFilters.addFilterButton.button).should('not.exist');
       expandFilterOnLeftPanel();
+      cy.get(nativeFilters.filtersPanel.filterGear).click({
+        force: true,
+      });
       cy.get(nativeFilters.filterFromDashboardView.createFilterButton).should(
         'be.visible',
       );

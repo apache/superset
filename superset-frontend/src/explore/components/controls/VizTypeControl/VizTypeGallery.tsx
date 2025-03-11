@@ -143,7 +143,7 @@ const SearchWrapper = styled.div`
     margin-bottom: ${theme.gridUnit}px;
     margin-left: ${theme.gridUnit * 3}px;
     margin-right: ${theme.gridUnit * 3}px;
-    .ant-input-affix-wrapper {
+    .antd5-input-affix-wrapper {
       padding-left: ${theme.gridUnit * 2}px;
     }
   `}
@@ -699,7 +699,7 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
           defaultActiveKey={Sections.Category}
         >
           {Object.keys(sectionMap).map(sectionId => {
-            const section = sectionMap[sectionId];
+            const section = sectionMap[sectionId as keyof typeof sectionMap];
 
             return (
               <AntdCollapse.Panel

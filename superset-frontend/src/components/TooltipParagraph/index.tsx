@@ -17,9 +17,9 @@
  * under the License.
  */
 import { useState, FC } from 'react';
-
-import { Tooltip, Typography } from 'antd';
+import { Typography } from 'antd';
 import { ParagraphProps } from 'antd/es/typography/Paragraph';
+import { Tooltip } from '../Tooltip';
 
 const TooltipParagraph: FC<ParagraphProps> = ({
   children,

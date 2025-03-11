@@ -33,6 +33,7 @@ import {
   getSequentialSchemeRegistry,
   NO_TIME_RANGE,
   QueryFormColumn,
+  VizType,
 } from '@superset-ui/core';
 import {
   getFormDataFromControls,
@@ -67,7 +68,7 @@ export const hydrateExplore =
     const initialSlice = slice ?? fallbackSlice;
     const initialFormData = form_data ?? initialSlice?.form_data;
     if (!initialFormData.viz_type) {
-      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || 'table';
+      const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =
         getUrlParam(URL_PARAMS.vizType) || defaultVizType;
     }

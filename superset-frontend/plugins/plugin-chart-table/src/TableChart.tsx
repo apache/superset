@@ -61,7 +61,7 @@ import {
   PlusCircleOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-import { isEmpty, isNumber } from 'lodash';
+import { isEmpty } from 'lodash';
 import {
   ColorSchemeEnum,
   DataColumnMeta,
@@ -197,33 +197,36 @@ function SelectPageSize({
   onChange,
 }: SelectPageSizeRendererProps) {
   return (
-    <span className="dt-select-page-size form-inline">
-      {t('page_size.show')}{' '}
+    <span
+      className="dt-select-page-size form-inline"
+      role="group"
+      aria-label={t('Select page size')}
+    >
+      <label htmlFor="pageSizeSelect" className="sr-only">
+        {t('Select page size')}
+      </label>
+      {t('Show')}{' '}
       <select
+        id="pageSizeSelect"
         className="form-control input-sm"
         value={current}
-        onBlur={() => {}}
         onChange={e => {
           onChange(Number((e.target as HTMLSelectElement).value));
         }}
+        aria-label={t('Show entries per page')}
       >
         {options.map(option => {
           const [size, text] = Array.isArray(option)
             ? option
             : [option, option];
-          const sizeLabel = size === 0 ? t('all') : size;
           return (
-            <option
-              aria-label={t('Show %s entries', sizeLabel)}
-              key={size}
-              value={size}
-            >
+            <option key={size} value={size}>
               {text}
             </option>
           );
         })}
       </select>{' '}
-      {t('page_size.entries')}
+      {t('entries per page')}
     </span>
   );
 }
@@ -896,7 +899,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    isNumber(value) && value < 0 ? 'negative' : 'positive',
+                    typeof value === 'number' && value < 0
+                      ? 'negative'
+                      : 'positive',
                   )}
                   css={cellBarStyles}
                   role="presentation"

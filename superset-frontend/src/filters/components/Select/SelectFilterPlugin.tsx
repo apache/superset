@@ -293,6 +293,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         extra={formItemExtra}
       >
         <Select
+          name={formData.nativeFilterId}
           allowClear
           allowNewOptions={!searchAllOptions}
           allowSelectAll={!searchAllOptions}

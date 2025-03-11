@@ -124,7 +124,7 @@ export default function AsyncAceEditor(
       { default: ReactAceEditor },
       { config },
       { default: cssWorkerUrl },
-      { acequire },
+      { require: acequire },
     ] = await Promise.all([
       reactAcePromise,
       aceBuildsConfigPromise,

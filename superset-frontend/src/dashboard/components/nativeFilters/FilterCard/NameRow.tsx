@@ -19,6 +19,7 @@
 import { useSelector } from 'react-redux';
 import { css, SupersetTheme, useTheme, useTruncation } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { RootState } from 'src/dashboard/types';
 import { Row, FilterName, InternalRow } from './Styles';
 import { FilterCardRowProps } from './types';
@@ -39,6 +40,12 @@ export const NameRow = ({
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
 
+  const { FilterConfigModalComponent, openFilterConfigModal } =
+    useFilterConfigModal({
+      dashboardId,
+      initialFilterId: filter.id,
+    });
+
   return (
     <Row
       css={(theme: SupersetTheme) => css`
@@ -58,13 +65,21 @@ export const NameRow = ({
       </InternalRow>
       {canEdit && (
         <FilterConfigurationLink
-          dashboardId={dashboardId}
-          onClick={hidePopover}
-          initialFilterId={filter.id}
+          onClick={() => {
+            openFilterConfigModal();
+            hidePopover();
+          }}
         >
-          <Icons.Edit iconSize="l" iconColor={theme.colors.grayscale.light1} />
+          <Icons.Edit
+            iconSize="l"
+            iconColor={theme.colors.grayscale.light1}
+            css={() => css`
+              cursor: pointer;
+            `}
+          />
         </FilterConfigurationLink>
       )}
+      {FilterConfigModalComponent}
     </Row>
   );
 };
