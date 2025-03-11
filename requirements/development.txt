@@ -18,6 +18,10 @@ apsw==3.46.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base.txt
+    #   redis
 attrs==24.2.0
     # via
     #   -c requirements/base.txt
@@ -133,7 +137,7 @@ croniter==5.0.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==43.0.3
+cryptography==44.0.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -171,6 +175,13 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
+exceptiongroup==1.2.2
+    # via
+    #   -c requirements/base.txt
+    #   cattrs
+    #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -619,7 +630,7 @@ pynacl==1.5.0
     # via
     #   -c requirements/base.txt
     #   paramiko
-pyopenssl==24.2.1
+pyopenssl==25.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -800,6 +811,10 @@ tabulate==0.8.10
     # via
     #   -c requirements/base.txt
     #   apache-superset
+tomli==2.2.1
+    # via
+    #   coverage
+    #   pytest
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -820,8 +835,11 @@ typing-extensions==4.12.2
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
+    #   cattrs
     #   flask-limiter
     #   limits
+    #   pyopenssl
+    #   rich
     #   selenium
     #   shillelagh
 tzdata==2024.2
