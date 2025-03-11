@@ -12,12 +12,9 @@ module.exports = {
     },
   },
   output: {
-    path: path.resolve(
-      __dirname,
-      '../../../superset/static/extensions/extension1',
-    ),
+    path: path.resolve(__dirname, 'dist'),
     filename: 'bundle.js',
-    publicPath: '/api/v1/extensions/extension1/',
+    publicPath: `/api/v1/extensions/${packageConfig.name}/`,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
