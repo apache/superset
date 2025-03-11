@@ -67,6 +67,8 @@ jobs:
 
           EXTRA_FLAGS="${{ github.event.inputs.extra-flags }}"
 
+          pwd
+
           supersetbot bump-python \
             --verbose \
             --use-current-repo \
