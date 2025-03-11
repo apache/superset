@@ -13,12 +13,10 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
     publicPath: `/api/v1/extensions/${packageConfig.name}/`,
   },
   resolve: {
     extensions: ['.ts', '.tsx', '.js', '.jsx'],
-    modules: [path.resolve(__dirname, 'node_modules'), 'node_modules'],
   },
   externalsType: 'window',
   externals: {
