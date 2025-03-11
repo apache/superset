@@ -103,7 +103,7 @@ const IndeterminateCheckbox = forwardRef(
           {!indeterminate && !checked && <CheckboxOff />}
           <HiddenInput
             name={id}
-            id={id}
+            id={`checkbox-${id}`}
             type="checkbox"
             ref={resolvedRef}
             checked={checked}
@@ -111,7 +111,7 @@ const IndeterminateCheckbox = forwardRef(
             {...rest}
           />
         </InputContainer>
-        <CheckboxLabel title={title} htmlFor={id}>
+        <CheckboxLabel title={title} htmlFor={`checkbox-${id}`}>
           {labelText}
         </CheckboxLabel>
       </>
