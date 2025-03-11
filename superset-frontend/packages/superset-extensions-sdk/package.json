@@ -4,7 +4,7 @@
   "description": "SDK for building Apache Superset extensions",
   "main": "index.js",
   "bin": {
-    "superset-cli": "./dist/bin/index.js"
+    "superset-extensions-cli": "./dist/bin/index.js"
   },
   "scripts": {
     "build": "tsc && chmod +x dist/bin/index.js"
