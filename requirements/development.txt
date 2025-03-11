@@ -762,7 +762,7 @@ six==1.17.0
     #   rfc3339-validator
     #   url-normalize
     #   wtforms-json
-slack-sdk==3.33.4
+slack-sdk==3.34.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
