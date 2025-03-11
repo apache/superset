@@ -50,7 +50,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 
 | Repository | Name | Version |
 |------------|------|---------|
-| oci://registry-1.docker.io/bitnamicharts | postgresql | 12.1.6 |
+| oci://registry-1.docker.io/bitnamicharts | postgresql | 13.4.4 |
 | oci://registry-1.docker.io/bitnamicharts | redis | 17.9.4 |
 
 ## Values

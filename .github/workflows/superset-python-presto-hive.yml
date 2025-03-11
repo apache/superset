@@ -25,7 +25,7 @@ jobs:
       SUPERSET__SQLALCHEMY_EXAMPLES_URI: presto://localhost:15433/memory/default
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -94,7 +94,7 @@ jobs:
       UPLOAD_FOLDER: /tmp/.superset/uploads/
     services:
       postgres:
-        image: postgres:15-alpine
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
