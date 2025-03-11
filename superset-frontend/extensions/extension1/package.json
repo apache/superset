@@ -6,7 +6,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "webpack serve --mode development",
     "build": "webpack --stats-error-details --mode production",
-    "bundle": "superset-extensions-cli"
+    "bundle": "npm run build && superset-extensions-cli"
   },
   "keywords": [],
   "author": "",
