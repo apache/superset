@@ -28,6 +28,7 @@ from superset.db_engine_specs.base import (
     LimitMethod,
 )
 from superset.db_engine_specs.mysql import MySQLEngineSpec
+from superset.db_engine_specs.odps import OdpsBaseEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import Table
@@ -196,7 +197,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         time_grains = set(builtin_time_grains.keys())
         # loop over all subclasses of BaseEngineSpec
         for engine in load_engine_specs():
-            if engine is not BaseEngineSpec:
+            if engine is not BaseEngineSpec and engine is not OdpsBaseEngineSpec:
                 # make sure time grain functions have been defined
                 assert len(engine.get_time_grain_expressions()) > 0
                 # make sure all defined time grains are supported

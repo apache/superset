@@ -185,20 +185,25 @@ class DatabaseDAO(BaseDAO[Database]):
         uri = database.sqlalchemy_uri
         access_key = database.password
         pattern = re.compile(
-            r"odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?endpoint=(?P<endpoint>[^&]+))"
+            r"odps://(?P<username>[^:]+):(?P<password>[^@]+)@(?P<project>[^/]+)/(?:\?"
+            r"endpoint=(?P<endpoint>[^&]+))"
         )
-        if match := pattern.match(unquote(uri)):
-            access_id = match.group("username")
-            project = match.group("project")
-            endpoint = match.group("endpoint")
-            odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
-            table = odps_client.get_table(table_name)
-            if table.exist_partition:
-                partition_spec = table.table_schema.partitions
-                partition_fields = [partition.name for partition in partition_spec]
-                return True, partition_fields
-            else:
-                return False, []
+        if not uri or not isinstance(uri, str):
+            logger.warning("Invalid or missing sqlalchemy URI, Please provide a "
+                           "correct sqlalchemy URI")
+        else:
+            if match := pattern.match(unquote(uri)):
+                access_id = match.group("username")
+                project = match.group("project")
+                endpoint = match.group("endpoint")
+                odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+                table = odps_client.get_table(table_name)
+                if table.exist_partition:
+                    partition_spec = table.table_schema.partitions
+                    partition_fields = [partition.name for partition in partition_spec]
+                    return True, partition_fields
+                else:
+                    return False, []
         return False, []
 
 
