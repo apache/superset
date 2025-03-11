@@ -68,6 +68,7 @@ jobs:
           EXTRA_FLAGS="${{ github.event.inputs.extra-flags }}"
 
           pwd
+          cat requirements/base.txt
 
           supersetbot bump-python \
             --verbose \
