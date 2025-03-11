@@ -612,9 +612,9 @@ If using the eslint extension with vscode, put the following in your workspace `
 ## GitHub Ephermeral Environments
 
 On any given pull request on GitHub, it's possible to create a temporary environment/deployment
-by simply adding the label `testenv-up` to the PR. This will trigger a GitHub Action that will.
+by simply adding the label `testenv-up` to the PR.  Once you add the `testenv-up` label, a
+GitHub Action will be triggered that will:
 
-Once you add the `testenv-up` label, a GitHub Action will be triggered that will:
 - build a docker image
 - deploy it in EC2 (sponsored by the folks at [Preset](https://preset.io))
 - write a comment on the PR with a link to the ephemeral environment
