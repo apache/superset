@@ -94,7 +94,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
       >
         <DateFilterControl
           value={filterState.value || NO_TIME_RANGE}
-          name="time_range"
+          name={props.formData.nativeFilterId || 'time_range'}
           onChange={handleTimeRangeChange}
           onOpenPopover={() => setFilterActive(true)}
           onClosePopover={() => {

@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { VizType } from '@superset-ui/core';
+
 export const basicFormData = {
   datasource: '1__table',
-  viz_type: 'pivot_table_v2',
+  viz_type: VizType.PivotTable,
   granularity_sqla: 'ts',
   groupbyColumns: ['location'],
   groupbyRows: ['program_language'],

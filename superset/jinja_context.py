@@ -25,7 +25,7 @@ from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
 import dateutil
-from flask import current_app, has_request_context, request
+from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment
 from jinja2.sandbox import SandboxedEnvironment
@@ -104,13 +104,14 @@ class ExtraCache:
     # Regular expression for detecting the presence of templated methods which could
     # be added to the cache key.
     regex = re.compile(
-        r"\{\{.*("
-        r"current_user_id\(.*\)|"
-        r"current_username\(.*\)|"
-        r"current_user_email\(.*\)|"
-        r"cache_key_wrapper\(.*\)|"
-        r"url_param\(.*\)"
-        r").*\}\}"
+        r"(\{\{|\{%)[^{}]*?("
+        r"current_user_id\([^()]*\)|"
+        r"current_username\([^()]*\)|"
+        r"current_user_email\([^()]*\)|"
+        r"cache_key_wrapper\([^()]*\)|"
+        r"url_param\([^()]*\)"
+        r")"
+        r"[^{}]*?(\}\}|\%\})"
     )
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -351,8 +352,7 @@ class ExtraCache:
 
         for flt in form_data.get("adhoc_filters", []):
             val: Union[Any, list[Any]] = flt.get("comparator")
-            op: str = flt["operator"].upper() if flt.get("operator") else None
-            # fltOpName: str = flt.get("filterOptionName")
+            op: str = flt["operator"].upper() if flt.get("operator") else None  # type: ignore
             if (
                 flt.get("expressionType") == "SIMPLE"
                 and flt.get("clause") == "WHERE"
@@ -601,7 +601,12 @@ class BaseTemplateProcessor:
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
-        return template.render(context)
+        try:
+            return template.render(context)
+        except RecursionError as ex:
+            raise SupersetTemplateException(
+                "Infinite recursion detected in template"
+            ) from ex
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
@@ -658,9 +663,16 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
-                "metric": partial(safe_proxy, metric_macro),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
+        )
+
+        # The `metric` filter needs the full context, in order to expand other filters
+        self._context["metric"] = partial(
+            safe_proxy,
+            metric_macro,
+            self.env,
+            self._context,
         )
 
 
@@ -846,39 +858,54 @@ def dataset_macro(
 
 def get_dataset_id_from_context(metric_key: str) -> int:
     """
-    Retrives the Dataset ID from the request context.
+    Retrieves the Dataset ID from the request context.
 
     :param metric_key: the metric key.
     :returns: the dataset ID.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.chart import ChartDAO
-    from superset.views.utils import get_form_data
+    from superset.views.utils import loads_request_json
 
+    form_data: dict[str, Any] = {}
     exc_message = _(
         "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro.",
         name=metric_key,
     )
 
-    form_data, chart = get_form_data()
-    if not (form_data or chart):
-        raise SupersetTemplateException(exc_message)
+    if has_request_context():
+        if payload := request.get_json(cache=True) if request.is_json else None:
+            if dataset_id := payload.get("datasource", {}).get("id"):
+                return dataset_id
+            form_data.update(payload.get("form_data", {}))
+        request_form = loads_request_json(request.form.get("form_data"))
+        form_data.update(request_form)
+        request_args = loads_request_json(request.args.get("form_data"))
+        form_data.update(request_args)
 
-    if chart and chart.datasource_id:
-        return chart.datasource_id
-    if dataset_id := form_data.get("url_params", {}).get("datasource_id"):
-        return dataset_id
-    if chart_id := (
-        form_data.get("slice_id") or form_data.get("url_params", {}).get("slice_id")
-    ):
-        chart_data = ChartDAO.find_by_id(chart_id)
-        if not chart_data:
-            raise SupersetTemplateException(exc_message)
-        return chart_data.datasource_id
+    if form_data := (form_data or getattr(g, "form_data", {})):
+        if datasource_info := form_data.get("datasource"):
+            if isinstance(datasource_info, dict):
+                return datasource_info["id"]
+            return datasource_info.split("__")[0]
+        url_params = form_data.get("queries", [{}])[0].get("url_params", {})
+        if dataset_id := url_params.get("datasource_id"):
+            return dataset_id
+        if chart_id := (form_data.get("slice_id") or url_params.get("slice_id")):
+            chart_data = ChartDAO.find_by_id(chart_id)
+            if not chart_data:
+                raise SupersetTemplateException(exc_message)
+            return chart_data.datasource_id
+
     raise SupersetTemplateException(exc_message)
 
 
-def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
+def metric_macro(
+    env: Environment,
+    context: dict[str, Any],
+    metric_key: str,
+    dataset_id: Optional[int] = None,
+) -> str:
     """
     Given a metric key, returns its syntax.
 
@@ -898,16 +925,21 @@ def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
     dataset = DatasetDAO.find_by_id(dataset_id)
     if not dataset:
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
     metrics: dict[str, str] = {
         metric.metric_name: metric.expression for metric in dataset.metrics
     }
-    dataset_name = dataset.table_name
-    if metric := metrics.get(metric_key):
-        return metric
-    raise SupersetTemplateException(
-        _(
-            "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
-            metric_name=metric_key,
-            dataset_name=dataset_name,
+    if metric_key not in metrics:
+        raise SupersetTemplateException(
+            _(
+                "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
+                metric_name=metric_key,
+                dataset_name=dataset.table_name,
+            )
         )
-    )
+
+    definition = metrics[metric_key]
+    template = env.from_string(definition)
+    definition = template.render(context)
+
+    return definition

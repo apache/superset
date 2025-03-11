@@ -17,7 +17,6 @@
  * under the License.
  */
 import {
-  RefObject,
   ReactElement,
   ReactNode,
   FocusEvent,
@@ -25,8 +24,10 @@ import {
   cloneElement,
 } from 'react';
 
-import { AntdDropdown } from 'src/components';
-import { DropDownProps } from 'antd/lib/dropdown';
+import {
+  Dropdown as AntdDropdown,
+  DropdownProps as AntdDropdownProps,
+} from 'antd-v5';
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -79,7 +80,8 @@ export enum IconOrientation {
   Vertical = 'vertical',
   Horizontal = 'horizontal',
 }
-export interface DropdownProps extends DropDownProps {
+
+export interface MenuDotsDropdownProps extends AntdDropdownProps {
   overlay: ReactElement;
   iconOrientation?: IconOrientation;
 }
@@ -96,23 +98,19 @@ const RenderIcon = (
   return component;
 };
 
-export const Dropdown = ({
+export const MenuDotsDropdown = ({
   overlay,
   iconOrientation = IconOrientation.Vertical,
   ...rest
-}: DropdownProps) => (
-  <AntdDropdown overlay={overlay} {...rest}>
+}: MenuDotsDropdownProps) => (
+  <AntdDropdown dropdownRender={() => overlay} {...rest}>
     <MenuDotsWrapper data-test="dropdown-trigger">
       {RenderIcon(iconOrientation)}
     </MenuDotsWrapper>
   </AntdDropdown>
 );
 
-interface ExtendedDropDownProps extends DropDownProps {
-  ref?: RefObject<HTMLDivElement>;
-}
-
-export interface NoAnimationDropdownProps extends ExtendedDropDownProps {
+export interface NoAnimationDropdownProps extends AntdDropdownProps {
   children: ReactNode;
   onBlur?: (e: FocusEvent<HTMLDivElement>) => void;
   onKeyDown?: (e: KeyboardEvent<HTMLDivElement>) => void;
@@ -126,8 +124,13 @@ export const NoAnimationDropdown = (props: NoAnimationDropdownProps) => {
   });
 
   return (
-    <AntdDropdown overlayStyle={props.overlayStyle} {...rest}>
+    <AntdDropdown autoFocus overlayStyle={props.overlayStyle} {...rest}>
       {childrenWithProps}
     </AntdDropdown>
   );
 };
+
+export type DropdownProps = AntdDropdownProps;
+export const Dropdown = (props: DropdownProps) => (
+  <AntdDropdown autoFocus {...props} />
+);

@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HeatmapLayer, Position, Color } from 'deck.gl/typed';
+import { HeatmapLayer } from '@deck.gl/aggregation-layers';
+import { Position, Color } from '@deck.gl/core';
 import { t, getSequentialSchemeRegistry, JsonObject } from '@superset-ui/core';
 import { commonLayerProps } from '../common';
 import sandboxedEval from '../../utils/sandbox';

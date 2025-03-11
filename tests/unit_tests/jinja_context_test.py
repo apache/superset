@@ -21,6 +21,8 @@ from typing import Any
 
 import pytest
 from freezegun import freeze_time
+from jinja2 import DebugUndefined
+from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
@@ -32,6 +34,7 @@ from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import (
     dataset_macro,
     ExtraCache,
+    get_template_processor,
     metric_macro,
     safe_proxy,
     TimeFilter,
@@ -463,56 +466,37 @@ def test_dataset_macro(mocker: MockerFixture) -> None:
         schema_perm=None,
         extra=json.dumps({"warning_markdown": "*WARNING*"}),
     )
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = dataset
     mocker.patch(
         "superset.connectors.sqla.models.security_manager.get_guest_rls_filters",
         return_value=[],
     )
 
+    space = " "
+
     assert (
         dataset_macro(1)
-        == """(
-SELECT
-  ds AS ds,
-  num_boys AS num_boys,
-  revenue AS revenue,
-  expenses AS expenses,
-  revenue - expenses AS profit
+        == f"""(
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit{space}
 FROM my_schema.old_dataset
-) AS dataset_1"""
+) AS dataset_1"""  # noqa: S608, E501
     )
 
     assert (
         dataset_macro(1, include_metrics=True)
-        == """(
-SELECT
-  ds AS ds,
-  num_boys AS num_boys,
-  revenue AS revenue,
-  expenses AS expenses,
-  revenue - expenses AS profit,
-  COUNT(*) AS cnt
-FROM my_schema.old_dataset
-GROUP BY
-  ds,
-  num_boys,
-  revenue,
-  expenses,
-  revenue - expenses
-) AS dataset_1"""
+        == f"""(
+SELECT ds AS ds, num_boys AS num_boys, revenue AS revenue, expenses AS expenses, revenue-expenses AS profit, COUNT(*) AS cnt{space}
+FROM my_schema.old_dataset GROUP BY ds, num_boys, revenue, expenses, revenue-expenses
+) AS dataset_1"""  # noqa: S608, E501
     )
 
     assert (
         dataset_macro(1, include_metrics=True, columns=["ds"])
-        == """(
-SELECT
-  ds AS ds,
-  COUNT(*) AS cnt
-FROM my_schema.old_dataset
-GROUP BY
-  ds
-) AS dataset_1"""
+        == f"""(
+SELECT ds AS ds, COUNT(*) AS cnt{space}
+FROM my_schema.old_dataset GROUP BY ds
+) AS dataset_1"""  # noqa: S608
     )
 
     DatasetDAO.find_by_id.return_value = None
@@ -532,7 +516,7 @@ def test_dataset_macro_mutator_with_comments(mocker: MockerFixture) -> None:
         """
         return f"-- begin\n{sql}\n-- end"
 
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id().get_query_str_extended().sql = mutator("SELECT 1")
     assert (
         dataset_macro(1)
@@ -549,7 +533,7 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
     Test the ``metric_macro`` when passing a dataset ID.
     """
     mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(
         table_name="test_dataset",
         metrics=[
@@ -559,8 +543,154 @@ def test_metric_macro_with_dataset_id(mocker: MockerFixture) -> None:
         schema="my_schema",
         sql=None,
     )
-    assert metric_macro("count", 1) == "COUNT(*)"
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    assert metric_macro(env, {}, "count", 1) == "COUNT(*)"
     mock_get_form_data.assert_not_called()
+
+
+def test_metric_macro_recursive(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is recursive.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="COUNT(*)"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    assert processor.process_template("{{ metric('c', 1) }}") == "COUNT(*)"
+
+
+def test_metric_macro_expansion(mocker: MockerFixture) -> None:
+    """
+    Test that the ``metric_macro`` expands other macros.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ current_user_id() }}"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mocker.patch("superset.jinja_context.get_user_id", return_value=42)
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    assert processor.process_template("{{ metric('c') }}") == "42"
+
+
+def test_metric_macro_recursive_compound(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is compound.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="SUM(*)"),
+            SqlMetric(metric_name="b", expression="COUNT(*)"),
+            SqlMetric(
+                metric_name="c",
+                expression="{{ metric('a') }} / {{ metric('b') }}",
+            ),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    assert processor.process_template("{{ metric('c') }}") == "SUM(*) / COUNT(*)"
+
+
+def test_metric_macro_recursive_cyclic(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is cyclic.
+
+    In this case it should stop, and not go into an infinite loop.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ metric('c') }}"),
+            SqlMetric(metric_name="b", expression="{{ metric('a') }}"),
+            SqlMetric(metric_name="c", expression="{{ metric('b') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        processor.process_template("{{ metric('c') }}")
+    assert str(excinfo.value) == "Infinite recursion detected in template"
+
+
+def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
+    """
+    Test the ``metric_macro`` when the definition is cyclic.
+
+    In this case it should stop, and not go into an infinite loop.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[
+            SqlMetric(metric_name="a", expression="{{ metric('a') }}"),
+        ],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+
+    processor = get_template_processor(database=database)
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        processor.process_template("{{ metric('a') }}")
+    assert str(excinfo.value) == "Infinite recursion detected in template"
 
 
 def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:
@@ -568,7 +698,7 @@ def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None
     Test the ``metric_macro`` when passing a dataset ID and an invalid key.
     """
     mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(
         table_name="test_dataset",
         metrics=[
@@ -578,8 +708,9 @@ def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None
         schema="my_schema",
         sql=None,
     )
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("blah", 1)
+        metric_macro(env, {}, "blah", 1)
     assert str(excinfo.value) == "Metric ``blah`` not found in test_dataset."
     mock_get_form_data.assert_not_called()
 
@@ -589,10 +720,11 @@ def test_metric_macro_invalid_dataset_id(mocker: MockerFixture) -> None:
     Test the ``metric_macro`` when specifying a dataset that doesn't exist.
     """
     mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = None
+    env = SandboxedEnvironment(undefined=DebugUndefined)
     with pytest.raises(DatasetNotFoundError) as excinfo:
-        metric_macro("macro_key", 100)
+        metric_macro(env, {}, "macro_key", 100)
     assert str(excinfo.value) == "Dataset ID 100 not found."
     mock_get_form_data.assert_not_called()
 
@@ -602,16 +734,17 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
     Test the ``metric_macro`` when not specifying a dataset ID and it's
     not available in the context.
     """
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [None, None]
-    with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("macro_key")
-    assert str(excinfo.value) == (
-        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
-    )
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_not_called()
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context():
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
+        DatasetDAO.find_by_id.assert_not_called()
 
 
 def test_metric_macro_no_dataset_id_with_context_missing_info(
@@ -621,21 +754,34 @@ def test_metric_macro_no_dataset_id_with_context_missing_info(
     Test the ``metric_macro`` when not specifying a dataset ID and request
     has context but no dataset/chart ID.
     """
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "url_params": {},
-        },
-        None,
-    ]
-    with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("macro_key")
-    assert str(excinfo.value) == (
-        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
-    )
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_not_called()
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"queries": []}
+
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "foo",
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            ),
+        }
+    ):
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
+        DatasetDAO.find_by_id.assert_not_called()
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id(
@@ -645,7 +791,7 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
     Test the ``metric_macro`` when not specifying a dataset ID and it's
     available in the context (url_params.datasource_id).
     """
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(
         table_name="test_dataset",
         metrics=[
@@ -655,18 +801,40 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id(
         schema="my_schema",
         sql=None,
     )
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "url_params": {
-                "datasource_id": 1,
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
+
+    # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "queries": [
+                        {
+                            "url_params": {
+                                "datasource_id": 1,
+                            }
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
+
+    # Getting data from g's form_data
+    mock_g.form_data = {
+        "queries": [
+            {
+                "url_params": {
+                    "datasource_id": 1,
+                }
             }
-        },
-        None,
-    ]
-    assert metric_macro("macro_key") == "COUNT(*)"
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_called_once_with(1)
+        ],
+    }
+    with app.test_request_context():
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
 def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
@@ -676,26 +844,48 @@ def test_metric_macro_no_dataset_id_with_context_datasource_id_none(
     Test the ``metric_macro`` when not specifying a dataset ID and it's
     set to None in the context (url_params.datasource_id).
     """
-    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
-    ChartDAO.find_by_id.return_value = None
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "url_params": {
-                "datasource_id": None,
-            }
-        },
-        None,
-    ]
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
 
-    with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("macro_key")
-    assert str(excinfo.value) == (
-        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
-    )
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_not_called()
+    # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "queries": [
+                        {
+                            "url_params": {
+                                "datasource_id": None,
+                            }
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
+
+    # Getting data from g's form_data
+    mock_g.form_data = {
+        "queries": [
+            {
+                "url_params": {
+                    "datasource_id": None,
+                }
+            }
+        ],
+    }
+    with app.test_request_context():
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
 
 
 def test_metric_macro_no_dataset_id_with_context_chart_id(
@@ -705,11 +895,11 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes an existing chart ID (url_params.slice_id).
     """
-    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
+    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")  # noqa: N806
     ChartDAO.find_by_id.return_value = Slice(
         datasource_id=1,
     )
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
     DatasetDAO.find_by_id.return_value = SqlaTable(
         table_name="test_dataset",
         metrics=[
@@ -719,16 +909,41 @@ def test_metric_macro_no_dataset_id_with_context_chart_id(
         schema="my_schema",
         sql=None,
     )
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "slice_id": 1,
-        },
-        None,
-    ]
-    assert metric_macro("macro_key") == "COUNT(*)"
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_called_once_with(1)
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
+
+    # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "queries": [
+                        {
+                            "url_params": {
+                                "slice_id": 1,
+                            }
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
+
+    # Getting data from g's form_data
+    mock_g.form_data = {
+        "queries": [
+            {
+                "url_params": {
+                    "slice_id": 1,
+                }
+            }
+        ],
+    }
+    with app.test_request_context():
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
 def test_metric_macro_no_dataset_id_with_context_slice_id_none(
@@ -738,53 +953,48 @@ def test_metric_macro_no_dataset_id_with_context_slice_id_none(
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes slice_id set to None (url_params.slice_id).
     """
-    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
-    ChartDAO.find_by_id.return_value = None
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "slice_id": None,
-        },
-        None,
-    ]
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
 
-    with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("macro_key")
-    assert str(excinfo.value) == (
-        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
-    )
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_not_called()
+    # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "queries": [
+                        {
+                            "url_params": {
+                                "slice_id": None,
+                            }
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
 
-
-def test_metric_macro_no_dataset_id_with_context_chart(mocker: MockerFixture) -> None:
-    """
-    Test the ``metric_macro`` when not specifying a dataset ID and context
-    includes an existing chart (get_form_data()[1]).
-    """
-    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    DatasetDAO.find_by_id.return_value = SqlaTable(
-        table_name="test_dataset",
-        metrics=[
-            SqlMetric(metric_name="macro_key", expression="COUNT(*)"),
+    # Getting data from g's form_data
+    mock_g.form_data = {
+        "queries": [
+            {
+                "url_params": {
+                    "slice_id": None,
+                }
+            }
         ],
-        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
-        schema="my_schema",
-        sql=None,
-    )
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "slice_id": 1,
-        },
-        Slice(datasource_id=1),
-    ]
-    assert metric_macro("macro_key") == "COUNT(*)"
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_called_once_with(1)
-    ChartDAO.find_by_id.assert_not_called()
+    }
+    with app.test_request_context():
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
 
 
 def test_metric_macro_no_dataset_id_with_context_deleted_chart(
@@ -794,51 +1004,95 @@ def test_metric_macro_no_dataset_id_with_context_deleted_chart(
     Test the ``metric_macro`` when not specifying a dataset ID and context
     includes a deleted chart ID.
     """
-    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
+    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")  # noqa: N806
     ChartDAO.find_by_id.return_value = None
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {
-            "slice_id": 1,
-        },
-        None,
-    ]
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
 
-    with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("macro_key")
-    assert str(excinfo.value) == (
-        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
-    )
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_not_called()
+    # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "queries": [
+                        {
+                            "url_params": {
+                                "slice_id": 1,
+                            }
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
+
+    # Getting data from g's form_data
+    mock_g.form_data = {
+        "queries": [
+            {
+                "url_params": {
+                    "slice_id": 1,
+                }
+            }
+        ],
+    }
+    with app.test_request_context():
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
 
 
-def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
+def test_metric_macro_no_dataset_id_available_in_request_form_data(
     mocker: MockerFixture,
 ) -> None:
     """
     Test the ``metric_macro`` when not specifying a dataset ID and context
-    includes an existing chart (get_form_data()[1]) with no dataset ID.
+    includes an existing dataset ID (datasource.id).
     """
-    ChartDAO = mocker.patch("superset.daos.chart.ChartDAO")
-    ChartDAO.find_by_id.return_value = None
-    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")
-    mock_get_form_data = mocker.patch("superset.views.utils.get_form_data")
-    mock_get_form_data.return_value = [
-        {},
-        Slice(
-            datasource_id=None,
-        ),
-    ]
-
-    with pytest.raises(SupersetTemplateException) as excinfo:
-        metric_macro("macro_key")
-    assert str(excinfo.value) == (
-        "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = SqlaTable(
+        table_name="test_dataset",
+        metrics=[
+            SqlMetric(metric_name="macro_key", expression="COUNT(*)"),
+        ],
+        database=Database(database_name="my_database", sqlalchemy_uri="sqlite://"),
+        schema="my_schema",
+        sql=None,
     )
-    mock_get_form_data.assert_called_once()
-    DatasetDAO.find_by_id.assert_not_called()
+
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
+
+    # Getting the data from the request context
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "datasource": {
+                        "id": 1,
+                    },
+                }
+            )
+        }
+    ):
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
+
+    # Getting data from g's form_data
+    mock_g.form_data = {
+        "datasource": "1__table",
+    }
+
+    with app.test_request_context():
+        assert metric_macro(env, {}, "macro_key") == "COUNT(*)"
 
 
 @pytest.mark.parametrize(
@@ -859,14 +1113,14 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             [],
         ),
         (
-            "Missing time range and filter with default value will return a result with the defaults",
+            "Missing time range and filter with default value will return a result with the defaults",  # noqa: E501
             [],
             {"default": "Last week", "target_type": "TIMESTAMP"},
             "postgresql://mydb",
             [{}],
             TimeFilter(
-                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
-                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
                 time_range="Last week",
             ),
             [],
@@ -879,8 +1133,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
             "postgresql://mydb",
             [{"time_range": "Last week"}],
             TimeFilter(
-                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
-                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
                 time_range="Last week",
             ),
             [],
@@ -903,8 +1157,8 @@ def test_metric_macro_no_dataset_id_with_context_chart_no_datasource_id(
                 }
             ],
             TimeFilter(
-                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
-                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",
+                from_expr="TO_TIMESTAMP('2024-08-27 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
+                to_expr="TO_TIMESTAMP('2024-09-03 00:00:00.000000', 'YYYY-MM-DD HH24:MI:SS.US')",  # noqa: E501
                 time_range="Last week",
             ),
             [],

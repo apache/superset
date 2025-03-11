@@ -13,7 +13,7 @@ In this tutorial, we will introduce key concepts in Apache Superset through the 
 real dataset which contains the flights made by employees of a UK-based organization in 2011. The
 following information about each flight is given:
 
-- The traveller’s department. For the purposes of this tutorial the departments have been renamed
+- The traveler’s department. For the purposes of this tutorial the departments have been renamed
   Orange, Yellow and Purple.
 - The cost of the ticket.
 - The travel class (Economy, Premium Economy, Business and First Class).
@@ -27,33 +27,34 @@ following information about each flight is given:
 You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
 explains how to enable this functionality for the examples database.
 
-In the top menu, select **Data ‣ Databases**. Find the **examples** database in the list and
+In the top menu, select **Settings ‣ Data ‣ Database Connections**. Find the **examples** database in the list and
 select the **Edit** button.
 
 <img src={useBaseUrl("/img/tutorial/edit-record.png" )} />
 
-In the resulting modal window, switch to the **Extra** tab and
-tick the checkbox for **Allow Data Upload**. End by clicking the **Save** button.
+In the resulting modal window, switch to the **Advanced** tab and open **Security** section.
+Then, tick the checkbox for **Allow file uploads to database**. End by clicking the **Finish** button.
 
-<img src={useBaseUrl("/img/tutorial/add-data-upload.png" )} />
+<img src={useBaseUrl("/img/tutorial/allow-file-uploads.png" )} />
 
 ### Loading CSV Data
 
 Download the CSV dataset to your computer from
 [GitHub](https://raw.githubusercontent.com/apache-superset/examples-data/master/tutorial_flights.csv).
-In the Superset menu, select **Data ‣ Upload a CSV**.
+In the top menu, select **Settings ‣ Data ‣ Database Connections**. Then, **Upload file to database ‣ Upload CSV**.
 
 <img src={useBaseUrl("/img/tutorial/upload_a_csv.png" )} />
 
-Then, enter the **Table Name** as _tutorial_flights_ and select the CSV file from your computer.
+Then, select select the CSV file from your computer, select **Database** and **Schema**, and enter the **Table Name**
+as _tutorial_flights_.
 
 <img src={useBaseUrl("/img/tutorial/csv_to_database_configuration.png" )} />
 
-Next enter the text _Travel Date_ into the **Parse Dates** field.
+Next enter the text _Travel Date_ into the **File settings ‣ Columns to be parsed as dates** field.
 
 <img src={useBaseUrl("/img/tutorial/parse_dates_column.png" )} />
 
-Leaving all the other options in their default settings, select **Save** at the bottom of the page.
+Leaving all the other options in their default settings, select **Upload** at the bottom of the page.
 
 ### Table Visualization
 

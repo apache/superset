@@ -17,16 +17,9 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { render, screen, within } from 'spec/helpers/testing-library';
-import { act } from 'react-dom/test-utils';
+import { act, render, screen, within } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { Provider } from 'react-redux';
-import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import ListView from 'src/components/ListView/ListView';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityList from '.';
 
@@ -101,43 +94,6 @@ const mockUser = {
   userId: 1,
 };
 
-const mockedProps = {};
-
-const mockStore = configureStore([thunk]);
-const store = mockStore({});
-
-describe('RulesList Enzyme', () => {
-  let wrapper: any;
-
-  beforeAll(async () => {
-    fetchMock.resetHistory();
-    wrapper = mount(
-      <MemoryRouter>
-        <Provider store={store}>
-          <RowLevelSecurityList {...mockedProps} user={mockUser} />
-        </Provider>
-      </MemoryRouter>,
-    );
-
-    await waitForComponentToPaint(wrapper);
-  });
-
-  it('renders', () => {
-    expect(wrapper.find(RowLevelSecurityList)).toExist();
-  });
-  it('renders a ListView', () => {
-    expect(wrapper.find(ListView)).toExist();
-  });
-  it('fetched data', () => {
-    // wrapper.update();
-    const apiCalls = fetchMock.calls(/rowlevelsecurity\/\?q/);
-    expect(apiCalls).toHaveLength(1);
-    expect(apiCalls[0][0]).toMatchInlineSnapshot(
-      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
-    );
-  });
-});
-
 describe('RuleList RTL', () => {
   async function renderAndWait() {
     const mounted = act(async () => {
@@ -153,6 +109,27 @@ describe('RuleList RTL', () => {
     });
     return mounted;
   }
+
+  it('renders', async () => {
+    await renderAndWait();
+    expect(screen.getByText('Row Level Security')).toBeVisible();
+  });
+
+  it('renders a ListView', async () => {
+    await renderAndWait();
+    expect(screen.getByTestId('rls-list-view')).toBeInTheDocument();
+  });
+
+  it('fetched data', async () => {
+    fetchMock.resetHistory();
+    await renderAndWait();
+    const apiCalls = fetchMock.calls(/rowlevelsecurity\/\?q/);
+    expect(apiCalls).toHaveLength(1);
+    expect(apiCalls[0][0]).toMatchInlineSnapshot(
+      `"http://localhost/api/v1/rowlevelsecurity/?q=(order_column:changed_on_delta_humanized,order_direction:desc,page:0,page_size:25)"`,
+    );
+    fetchMock.resetHistory();
+  });
 
   it('renders add rule button on empty state', async () => {
     fetchMock.get(
@@ -187,7 +164,7 @@ describe('RuleList RTL', () => {
     expect(searchFilters).toHaveLength(2);
 
     const typeFilter = screen.queryAllByTestId('filters-select');
-    expect(typeFilter).toHaveLength(2);
+    expect(typeFilter).toHaveLength(3); // Update to expect 3 select filters
   });
 
   it('renders correct list columns', async () => {

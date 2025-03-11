@@ -18,9 +18,8 @@
  */
 import { ReactElement } from 'react';
 import { styled } from '@superset-ui/core';
-import { Tooltip } from 'src/components/Tooltip';
+import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import Icons from 'src/components/Icons';
-import { TooltipPlacement } from 'antd/lib/tooltip';
 
 export type ActionProps = {
   label: string;

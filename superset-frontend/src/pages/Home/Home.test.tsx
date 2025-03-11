@@ -17,11 +17,14 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import * as uiCore from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import { isFeatureEnabled, getExtensionsRegistry } from '@superset-ui/core';
 import Welcome from 'src/pages/Home';
-import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
 
 const chartsEndpoint = 'glob:*/api/v1/chart/?*';
@@ -114,8 +117,12 @@ const mockedPropsWithoutSqlRole = {
   },
 };
 
-const setupFeatureToggleMock = () =>
-  jest.spyOn(uiCore, 'isFeatureEnabled').mockReturnValue(true);
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const renderWelcome = (props = mockedProps) =>
   waitFor(() => {
@@ -186,19 +193,25 @@ fetchMock.get('glob:*/api/v1/dashboard/*', {
 });
 
 test('With toggle switch - shows a toggle button when feature flag is turned on', async () => {
-  setupFeatureToggleMock();
+  mockedIsFeatureEnabled.mockReturnValue(true);
 
   await renderWelcome();
   expect(screen.getByRole('switch')).toBeInTheDocument();
 });
 
 test('With toggle switch - does not show thumbnails when switch is off', async () => {
-  setupFeatureToggleMock();
+  mockedIsFeatureEnabled.mockReturnValue(true);
 
   await renderWelcome();
-  const toggle = await screen.findByRole('switch');
-  userEvent.click(toggle);
-  expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
+  const toggle = await screen.findByRole('switch', {}, { timeout: 10000 });
+
+  await waitFor(
+    () => {
+      userEvent.click(toggle);
+      expect(screen.queryByAltText('Thumbnails')).not.toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
 });
 
 test('Should render an extension component if one is supplied', async () => {

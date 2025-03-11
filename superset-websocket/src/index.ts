@@ -36,6 +36,7 @@ export type StreamResult = [
 
 // sync with superset-frontend/src/components/ErrorMessage/types
 export type ErrorLevel = 'info' | 'warning' | 'error';
+// eslint-disable-next-line  @typescript-eslint/no-explicit-any
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: string;
   extra: ExtraType;

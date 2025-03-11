@@ -63,6 +63,7 @@ import CopyToClipboard from 'src/components/CopyToClipboard';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { prepareCopyToClipboardTabularData } from 'src/utils/common';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
+import Modal from 'src/components/Modal';
 import {
   addQueryEditor,
   clearQueryResults,
@@ -295,6 +296,9 @@ const ResultSet = ({
 
   const renderControls = () => {
     if (search || visualize || csv) {
+      const { results, queryLimit, limitingFactor, rows } = query;
+      const limit = queryLimit || results.query.limit;
+      const rowsCount = Math.min(rows || 0, results?.data?.length || 0);
       let { data } = query.results;
       if (cache && query.cached) {
         data = cachedData;
@@ -341,7 +345,21 @@ const ResultSet = ({
                 buttonSize="small"
                 href={getExportCsvUrl(query.id)}
                 data-test="export-csv-button"
-                onClick={() => logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {})}
+                onClick={() => {
+                  logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+                  if (
+                    limitingFactor === LimitingFactor.Dropdown &&
+                    limit === rowsCount
+                  ) {
+                    Modal.warning({
+                      title: t('Download is on the way'),
+                      content: t(
+                        'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
+                        { rows: rowsCount.toLocaleString() },
+                      ),
+                    });
+                  }
+                }}
               >
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
@@ -540,18 +558,24 @@ const ResultSet = ({
   }
 
   if (query.state === QueryState.Failed) {
+    const errors = [...(query.extra?.errors || []), ...(query.errors || [])];
+
     return (
       <ResultlessStyles>
-        <ErrorMessageWithStackTrace
-          title={t('Database error')}
-          error={query?.extra?.errors?.[0] || query?.errors?.[0]}
-          subtitle={<MonospaceDiv>{query.errorMessage}</MonospaceDiv>}
-          copyText={query.errorMessage || undefined}
-          link={query.link}
-          source="sqllab"
-        />
-        {(query?.extra?.errors?.[0] || query?.errors?.[0])?.error_type ===
-        ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR ? (
+        {errors.map((error, index) => (
+          <ErrorMessageWithStackTrace
+            key={index}
+            title={t('Database error')}
+            error={error}
+            subtitle={<MonospaceDiv>{error.message}</MonospaceDiv>}
+            copyText={error.message || undefined}
+            link={query.link}
+            source="sqllab"
+          />
+        ))}
+        {errors.some(
+          error => error?.error_type === ErrorTypeEnum.FRONTEND_TIMEOUT_ERROR,
+        ) ? (
           <Button
             className="sql-result-track-job"
             buttonSize="small"
@@ -630,7 +654,7 @@ const ResultSet = ({
         : [];
       const allowHTML = getItem(
         LocalStorageKeys.SqllabIsRenderHtmlEnabled,
-        false,
+        true,
       );
       return (
         <ResultContainer>

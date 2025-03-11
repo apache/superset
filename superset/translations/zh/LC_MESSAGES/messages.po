@@ -12032,7 +12032,7 @@ msgstr "截断X轴"
 #, fuzzy
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr "截断X轴。可以通过指定最小或最大界限来重写。"
 
 msgid "Truncate Y Axis"

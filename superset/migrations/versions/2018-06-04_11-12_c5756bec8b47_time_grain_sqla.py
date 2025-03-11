@@ -54,7 +54,7 @@ def upgrade():
             if params.get("time_grain_sqla") == "Time Column":
                 params["time_grain_sqla"] = None
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()
@@ -72,7 +72,7 @@ def downgrade():
             if params.get("time_grain_sqla") is None:
                 params["time_grain_sqla"] = "Time Column"
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

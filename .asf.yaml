@@ -18,6 +18,7 @@
 # https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
 ---
 github:
+  del_branch_on_merge: true
   description: "Apache Superset is a Data Visualization and Data Exploration Platform"
   homepage: https://superset.apache.org/
   labels:
@@ -53,6 +54,9 @@ github:
     merge: false
     rebase: false
 
+  ghp_branch:  gh-pages
+  ghp_path: /
+
   protected_branches:
     master:
       required_status_checks:
@@ -69,19 +73,24 @@ github:
           - cypress-matrix (3, chrome)
           - cypress-matrix (4, chrome)
           - cypress-matrix (5, chrome)
+          - dependency-review
           - frontend-build
           - pre-commit (current)
-          - pre-commit (next)
           - pre-commit (previous)
           - test-mysql
           - test-postgres (current)
-          - test-postgres (next)
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
           - unit-tests (current)
-          - unit-tests (next)
 
+      required_pull_request_reviews:
+        dismiss_stale_reviews: false
+        require_code_owner_reviews: true
+        required_approving_review_count: 1
+
+      required_signatures: false
+    gh-pages:
       required_pull_request_reviews:
         dismiss_stale_reviews: false
         require_code_owner_reviews: true

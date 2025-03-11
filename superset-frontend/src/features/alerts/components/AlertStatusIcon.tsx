@@ -34,11 +34,11 @@ function getStatusColor(
     case AlertState.Success:
       return isReportEnabled
         ? theme.colors.success.base
-        : theme.colors.alert.base;
+        : theme.colors.warning.base;
     case AlertState.Noop:
       return theme.colors.success.base;
     case AlertState.Grace:
-      return theme.colors.alert.base;
+      return theme.colors.warning.base;
     default:
       return theme.colors.grayscale.base;
   }

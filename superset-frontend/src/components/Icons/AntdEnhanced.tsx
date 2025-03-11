@@ -27,17 +27,22 @@ import {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CaretDownOutlined,
   CalendarOutlined,
+  CaretUpOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
   CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DeleteFilled,
+  DownSquareOutlined,
   DownOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -54,6 +59,7 @@ import {
   LineChartOutlined,
   LoadingOutlined,
   MonitorOutlined,
+  PicCenterOutlined,
   PlusCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -64,8 +70,11 @@ import {
   StopOutlined,
   SyncOutlined,
   TagsOutlined,
+  UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -79,17 +88,22 @@ const AntdIcons = {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CaretDownOutlined,
   CalendarOutlined,
+  CaretUpOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
   CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DeleteFilled,
+  DownSquareOutlined,
   DownOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -106,6 +120,7 @@ const AntdIcons = {
   LineChartOutlined,
   LoadingOutlined,
   MonitorOutlined,
+  PicCenterOutlined,
   PlusCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -116,8 +131,11 @@ const AntdIcons = {
   StopOutlined,
   SyncOutlined,
   TagsOutlined,
+  UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 };
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
@@ -125,6 +143,8 @@ const AntdEnhancedIcons = Object.keys(AntdIcons)
   .map(k => ({
     [k]: (props: IconType) => {
       const whatRole = props?.onClick ? 'button' : 'img';
+      // @ts-ignore TODO(hainenber): fix the type compatiblity between
+      // StyledIcon component prop and AntdIcon values
       return <StyledIcon component={AntdIcons[k]} role={whatRole} {...props} />;
     },
   }))

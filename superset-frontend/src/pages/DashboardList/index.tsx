@@ -34,6 +34,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
+import { PublishedLabel } from 'src/components/Label';
 import { TagsList } from 'src/components/Tags';
 import handleResourceExport from 'src/utils/export';
 import Loading from 'src/components/Loading';
@@ -118,11 +119,14 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'url',
   'slug',
   'changed_by',
+  'changed_by.id',
+  'changed_by.first_name',
+  'changed_by.last_name',
   'changed_on_delta_humanized',
+  'owners',
   'owners.id',
   'owners.first_name',
   'owners.last_name',
-  'owners',
   'tags.id',
   'tags.name',
   'tags.type',
@@ -343,8 +347,9 @@ function DashboardList(props: DashboardListProps) {
           row: {
             original: { status },
           },
-        }: any) =>
-          status === DashboardStatus.PUBLISHED ? t('Published') : t('Draft'),
+        }: any) => (
+          <PublishedLabel isPublished={status === DashboardStatus.PUBLISHED} />
+        ),
         Header: t('Status'),
         accessor: 'published',
         size: 'xl',

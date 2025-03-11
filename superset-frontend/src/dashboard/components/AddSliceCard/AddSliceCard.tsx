@@ -174,7 +174,7 @@ const AddSliceCard: FC<{
   lastModified?: string;
   sliceName: string;
   style?: CSSProperties;
-  thumbnailUrl?: string;
+  thumbnailUrl?: string | null;
   visType: string;
 }> = ({
   datasourceUrl,

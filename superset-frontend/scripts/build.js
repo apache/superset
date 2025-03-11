@@ -126,7 +126,7 @@ if (shouldRunBabel) {
   console.log('--- Run babel esm ---');
   // run again with
   run(`${babelCommand} --out-dir esm`, {
-    env: { ...process.env, BABEL_OUTPUT: 'esm' },
+    env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
   });
 }
 

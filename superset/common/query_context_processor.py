@@ -394,15 +394,15 @@ class QueryContextProcessor:
         :returns: The time offset.
         """
         if offset == "inherit":
-            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix
+            # return the difference in days between the from and the to dttm formatted as a string with the " days ago" suffix  # noqa: E501
             return f"{(outer_to_dttm - outer_from_dttm).days} days ago"
         if self.is_valid_date(offset):
-            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix
+            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
             return f"{(outer_from_dttm - offset_date).days} days ago"
         return ""
 
-    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements
+    def processing_time_offsets(  # pylint: disable=too-many-locals,too-many-statements  # noqa: C901
         self,
         df: pd.DataFrame,
         query_object: QueryObject,
@@ -433,14 +433,14 @@ class QueryContextProcessor:
         for offset in query_object.time_offsets:
             try:
                 # pylint: disable=line-too-long
-                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity
+                # Since the x-axis is also a column name for the time filter, x_axis_label will be set as granularity  # noqa: E501
                 # these query object are equivalent:
-                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}
+                # 1) { granularity: 'dttm_col', time_range: '2020 : 2021', time_offsets: ['1 year ago']}  # noqa: E501
                 # 2) { columns: [
-                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }
+                #        {label: 'dttm_col', sqlExpression: 'dttm_col', "columnType": "BASE_AXIS" }  # noqa: E501
                 #      ],
                 #      time_offsets: ['1 year ago'],
-                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],
+                #      filters: [{col: 'dttm_col', op: 'TEMPORAL_RANGE', val: '2020 : 2021'}],  # noqa: E501
                 #    }
                 original_offset = offset
                 if self.is_valid_date(offset) or offset == "inherit":
@@ -494,10 +494,10 @@ class QueryContextProcessor:
                 if flt.get("col") != x_axis_label
             ]
 
-            # Inherit or custom start dates might compute the same offset but the response cannot be given
-            # using cached data unless you are using the same date of inherited range, that's why we
-            # set the cache cache using a custom key that includes the original offset and the computed offset
-            # for those two scenarios, the rest of the scenarios will use the original offset as cache key
+            # Inherit or custom start dates might compute the same offset but the response cannot be given  # noqa: E501
+            # using cached data unless you are using the same date of inherited range, that's why we  # noqa: E501
+            # set the cache cache using a custom key that includes the original offset and the computed offset  # noqa: E501
+            # for those two scenarios, the rest of the scenarios will use the original offset as cache key  # noqa: E501
             cached_time_offset_key = (
                 offset if offset == original_offset else f"{offset}_{original_offset}"
             )
@@ -824,7 +824,7 @@ class QueryContextProcessor:
         return annotation_data
 
     @staticmethod
-    def get_viz_annotation_data(
+    def get_viz_annotation_data(  # noqa: C901
         annotation_layer: dict[str, Any], force: bool
     ) -> dict[str, Any]:
         # pylint: disable=import-outside-toplevel

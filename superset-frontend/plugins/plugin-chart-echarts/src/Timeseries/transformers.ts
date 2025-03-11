@@ -53,6 +53,7 @@ import {
   EchartsTimeseriesSeriesType,
   ForecastSeriesEnum,
   LegendOrientation,
+  OrientationType,
   StackType,
 } from '../types';
 
@@ -225,7 +226,7 @@ export function transformSeries(
     stackId = forecastSeries.name;
   } else if (stack && isObservation) {
     // the suffix of the observation series is '' (falsy), which disables
-    // stacking. Therefore we need to set something that is truthy.
+    // stacking. Therefore, we need to set something that is truthy.
     stackId = getTimeCompareStackId('obs', timeCompare, name);
   } else if (stack && isTrend) {
     stackId = getTimeCompareStackId(forecastSeries.type, timeCompare, name);
@@ -314,21 +315,22 @@ export function transformSeries(
             opacity: opacity * areaOpacity,
           }
         : undefined,
-    emphasis: {
-      // bold on hover as required since 5.3.0 to retain backwards feature parity:
-      // https://apache.github.io/echarts-handbook/en/basics/release-note/5-3-0/#removing-the-default-bolding-emphasis-effect-in-the-line-chart
-      // TODO: should consider only adding emphasis to currently hovered series
-      lineStyle: {
-        width: 'bolder',
-      },
-      ...emphasis,
-    },
+    emphasis,
     showSymbol,
     symbolSize: markerSize,
     label: {
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
       formatter: (params: any) => {
+        // don't show confidence band value labels, as they're already visible on the tooltip
+        if (
+          [
+            ForecastSeriesEnum.ForecastUpper,
+            ForecastSeriesEnum.ForecastLower,
+          ].includes(forecastSeries.type)
+        ) {
+          return '';
+        }
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];
         const isSelectedLegend = !legendState || legendState[seriesName];
@@ -364,8 +366,11 @@ export function transformFormulaAnnotation(
   xAxisType: AxisType,
   colorScale: CategoricalColorScale,
   sliceId?: number,
+  orientation?: OrientationType,
 ): SeriesOption {
   const { name, color, opacity, width, style } = layer;
+  const isHorizontal = orientation === OrientationType.Horizontal;
+
   return {
     name,
     id: name,
@@ -379,7 +384,9 @@ export function transformFormulaAnnotation(
     },
     type: 'line',
     smooth: true,
-    data: evalFormula(layer, data, xAxisCol, xAxisType),
+    data: evalFormula(layer, data, xAxisCol, xAxisType).map(([x, y]) =>
+      isHorizontal ? [y, x] : [x, y],
+    ),
     symbolSize: 0,
   };
 }
@@ -391,6 +398,7 @@ export function transformIntervalAnnotation(
   colorScale: CategoricalColorScale,
   theme: SupersetTheme,
   sliceId?: number,
+  orientation?: OrientationType,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -398,6 +406,7 @@ export function transformIntervalAnnotation(
     const { name, color, opacity, showLabel } = layer;
     const { descriptions, intervalEnd, time, title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
+    const isHorizontal = orientation === OrientationType.Horizontal;
     const intervalData: (
       | MarkArea1DDataItemOption
       | MarkArea2DDataItemOption
@@ -405,11 +414,9 @@ export function transformIntervalAnnotation(
       [
         {
           name: label,
-          xAxis: time,
+          ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
         },
-        {
-          xAxis: intervalEnd,
-        },
+        isHorizontal ? { yAxis: intervalEnd } : { xAxis: intervalEnd },
       ],
     ];
     const intervalLabel: SeriesLabelOption = showLabel
@@ -466,6 +473,7 @@ export function transformEventAnnotation(
   colorScale: CategoricalColorScale,
   theme: SupersetTheme,
   sliceId?: number,
+  orientation?: OrientationType,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const annotations = extractRecordAnnotations(layer, annotationData);
@@ -473,10 +481,11 @@ export function transformEventAnnotation(
     const { name, color, opacity, style, width, showLabel } = layer;
     const { descriptions, time, title } = annotation;
     const label = formatAnnotationLabel(name, title, descriptions);
+    const isHorizontal = orientation === OrientationType.Horizontal;
     const eventData: MarkLine1DDataItemOption[] = [
       {
         name: label,
-        xAxis: time,
+        ...(isHorizontal ? { yAxis: time } : { xAxis: time }),
       },
     ];
 
@@ -539,10 +548,12 @@ export function transformTimeseriesAnnotation(
   annotationData: AnnotationData,
   colorScale: CategoricalColorScale,
   sliceId?: number,
+  orientation?: OrientationType,
 ): SeriesOption[] {
   const series: SeriesOption[] = [];
   const { hideLine, name, opacity, showMarkers, style, width, color } = layer;
   const result = annotationData[name];
+  const isHorizontal = orientation === OrientationType.Horizontal;
   if (isTimeseriesAnnotationResult(result)) {
     result.forEach(annotation => {
       const { key, values } = annotation;
@@ -550,7 +561,11 @@ export function transformTimeseriesAnnotation(
         type: 'line',
         id: key,
         name: key,
-        data: values.map(row => [row.x, row.y] as [OptionName, number]),
+        data: values.map(({ x, y }) =>
+          isHorizontal
+            ? ([y, x] as [number, OptionName])
+            : ([x, y] as [OptionName, number]),
+        ),
         symbolSize: showMarkers ? markerSize : 0,
         lineStyle: {
           opacity: parseAnnotationOpacity(opacity),

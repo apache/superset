@@ -55,6 +55,8 @@ import {
   ToolboxComponent,
   GraphicComponent,
   AriaComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
@@ -84,6 +86,8 @@ use([
   DataZoomComponent,
   GraphicComponent,
   GridComponent,
+  MarkAreaComponent,
+  MarkLineComponent,
   LegendComponent,
   ToolboxComponent,
   TooltipComponent,

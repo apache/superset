@@ -227,6 +227,7 @@ export const ErrorTypeEnum = {
   ASYNC_WORKERS_ERROR: 'ASYNC_WORKERS_ERROR',
   ADHOC_SUBQUERY_NOT_ALLOWED_ERROR: 'ADHOC_SUBQUERY_NOT_ALLOWED_ERROR',
   INVALID_SQL_ERROR: 'INVALID_SQL_ERROR',
+  RESULT_TOO_LARGE_ERROR: 'RESULT_TOO_LARGE_ERROR',
 
   // Generic errors
   GENERIC_COMMAND_ERROR: 'GENERIC_COMMAND_ERROR',
@@ -348,15 +349,17 @@ export type Query = {
 };
 
 export type QueryResults = {
-  results: {
-    displayLimitReached: boolean;
-    columns: QueryColumn[];
-    data: Record<string, unknown>[];
-    expanded_columns: QueryColumn[];
-    selected_columns: QueryColumn[];
-    query: { limit: number };
-    query_id?: number;
-  };
+  results: InnerQueryResults;
+};
+
+export type InnerQueryResults = {
+  displayLimitReached: boolean;
+  columns: QueryColumn[];
+  data: Record<string, unknown>[];
+  expanded_columns: QueryColumn[];
+  selected_columns: QueryColumn[];
+  query: { limit: number };
+  query_id?: number;
 };
 
 export type QueryResponse = Query & QueryResults;

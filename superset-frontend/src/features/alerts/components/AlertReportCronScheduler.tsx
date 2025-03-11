@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useRef, FocusEvent, FC } from 'react';
+import { useState, useCallback, FocusEvent, FC } from 'react';
 
 import { t, useTheme } from '@superset-ui/core';
 
-import { AntdInput, Select } from 'src/components';
+import { Select } from 'src/components';
 import { Input } from 'src/components/Input';
 import { CronPicker, CronError } from 'src/components/CronPicker';
 import { StyledInputContainer } from '../AlertReportModal';
@@ -51,7 +51,6 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
   onChange,
 }) => {
   const theme = useTheme();
-  const inputRef = useRef<AntdInput>(null);
   const [scheduleFormat, setScheduleFormat] = useState<ScheduleType>(
     ScheduleType.Picker,
   );
@@ -59,9 +58,8 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
   const customSetValue = useCallback(
     (newValue: string) => {
       onChange(newValue);
-      inputRef.current?.setValue(newValue);
     },
-    [inputRef, onChange],
+    [onChange],
   );
 
   const handleBlur = useCallback(
@@ -72,8 +70,8 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
   );
 
   const handlePressEnter = useCallback(() => {
-    onChange(inputRef.current?.input.value || '');
-  }, [onChange]);
+    onChange(value || '');
+  }, [onChange, value]);
 
   const [error, onError] = useState<CronError>();
 
@@ -106,7 +104,6 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
           <Input
             type="text"
             name="crontab"
-            ref={inputRef}
             style={error ? { borderColor: theme.colors.error.base } : {}}
             placeholder={t('CRON expression')}
             value={value}

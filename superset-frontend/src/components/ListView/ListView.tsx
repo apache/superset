@@ -37,7 +37,7 @@ import {
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
-import { EmptyStateBig, EmptyStateProps } from '../EmptyState';
+import { EmptyState, EmptyStateProps } from '../EmptyState';
 
 const ListViewStyles = styled.div`
   text-align: center;
@@ -67,8 +67,8 @@ const ListViewStyles = styled.div`
       overflow-x: auto;
     }
 
-    .ant-empty {
-      .ant-empty-image {
+    .antd5-empty {
+      .antd5-empty-image {
         height: auto;
       }
     }
@@ -130,6 +130,7 @@ const bulkSelectColumnConfig = {
     <IndeterminateCheckbox
       {...getToggleAllRowsSelectedProps()}
       id="header-toggle-all"
+      data-test="header-toggle-all"
     />
   ),
   id: 'selection',
@@ -346,7 +347,7 @@ function ListView<T extends object = any>({
           {cardViewEnabled && (
             <ViewModeToggle mode={viewMode} setMode={setViewMode} />
           )}
-          <div className="controls">
+          <div className="controls" data-test="filters-select">
             {filterable && (
               <FilterControls
                 ref={filterControlsRef}
@@ -445,19 +446,21 @@ function ListView<T extends object = any>({
             />
           )}
           {!loading && rows.length === 0 && (
-            <EmptyWrapper className={viewMode}>
+            <EmptyWrapper className={viewMode} data-test="empty-state">
               {query.filters ? (
-                <EmptyStateBig
+                <EmptyState
                   title={t('No results match your filter criteria')}
                   description={t('Try different criteria to display results.')}
+                  size="large"
                   image="filter-results.svg"
                   buttonAction={() => handleClearFilterControls()}
                   buttonText={t('clear all filters')}
                 />
               ) : (
-                <EmptyStateBig
+                <EmptyState
                   {...emptyState}
                   title={emptyState?.title || t('No Data')}
+                  size="large"
                   image={emptyState?.image || 'filter-results.svg'}
                 />
               )}
