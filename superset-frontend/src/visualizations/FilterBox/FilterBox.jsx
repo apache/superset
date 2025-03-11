@@ -325,7 +325,7 @@ class FilterBox extends React.PureComponent {
       dataType: 'object',
       data: {
         filters: this.state.selectedValues,
-        filterLabel: this.props.filtersFields[0].label,
+        filtersFields: this.props.filtersFields,
         chartId: this.props?.chartId,
       },
     };
