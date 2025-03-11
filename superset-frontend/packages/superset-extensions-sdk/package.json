@@ -1,0 +1,30 @@
+{
+  "name": "superset-extensions-sdk",
+  "version": "1.0.0",
+  "description": "SDK for building Apache Superset extensions",
+  "main": "index.js",
+  "bin": {
+    "superset-cli": "./dist/bin/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x dist/bin/index.js"
+  },
+  "keywords": [
+    "webpack",
+    "module federation",
+    "bundler",
+    "cli",
+    "zip"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
+  }
+}
