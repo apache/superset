@@ -565,7 +565,7 @@ prison==0.2.1
     #   flask-appbuilder
 progress==1.6
     # via apache-superset
-prompt-toolkit==3.0.48
+prompt-toolkit==3.0.50
     # via
     #   -c requirements/base.txt
     #   click-repl

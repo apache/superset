@@ -268,7 +268,7 @@ polyline==2.0.2
     # via apache-superset (pyproject.toml)
 prison==0.2.1
     # via flask-appbuilder
-prompt-toolkit==3.0.48
+prompt-toolkit==3.0.50
     # via click-repl
 pyarrow==14.0.2
     # via apache-superset (pyproject.toml)
