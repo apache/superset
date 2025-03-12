@@ -23,7 +23,7 @@ babel==2.16.0
     # via flask-babel
 backoff==2.2.1
     # via apache-superset (pyproject.toml)
-bcrypt==4.2.1
+bcrypt==4.3.0
     # via paramiko
 billiard==4.2.1
     # via celery
@@ -252,7 +252,7 @@ packaging==24.2
     #   shillelagh
 pandas==2.0.3
     # via apache-superset (pyproject.toml)
-paramiko==3.5.0
+paramiko==3.5.1
     # via
     #   apache-superset (pyproject.toml)
     #   sshtunnel
