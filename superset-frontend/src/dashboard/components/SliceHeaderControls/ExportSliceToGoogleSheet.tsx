@@ -38,7 +38,7 @@ export default function ExportSliceToGoogleSheet({
   };
 
   return (
-    <Menu.Item key="google-sheets" {...rest}>
+    <Menu.Item key="google-sheets-export" {...rest}>
       <div onClick={handleGoogleSheetsExport} role="button" tabIndex={0}>
         {t('Export to Google Sheets')}
       </div>
