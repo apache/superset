@@ -102,7 +102,7 @@ def get_channels_with_search(
     try:
         channels = get_channels(
             force=force,
-            cache_timeout=86400,
+            cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"],
         )
     except (SlackClientError, SlackApiError) as ex:
         raise SupersetException(f"Failed to list channels: {ex}") from ex

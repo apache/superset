@@ -1494,6 +1494,7 @@ EMAIL_REPORTS_CTA = "Explore in Superset"
 # Slack API token for the superset reports, either string or callable
 SLACK_API_TOKEN: Callable[[], str] | str | None = None
 SLACK_PROXY = None
+SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
 # The webdriver to use for generating reports. Use one of the following
 # firefox

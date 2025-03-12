@@ -16,6 +16,8 @@
 # under the License.
 import logging
 
+from flask import current_app
+
 from superset.extensions import celery_app
 from superset.utils.slack import get_channels
 
@@ -24,4 +26,4 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(name="slack.cache_channels")
 def cache_channels() -> None:
-    get_channels(force=True)
+    get_channels(force=True, cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"])
