@@ -130,6 +130,13 @@ const ExportGoogleSheets = lazy(
     ),
 );
 
+const ExportSliceToGoogleSheets = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExportSliceToGoogleSheets" */ 'src/pages/ExportSliceToGoogleSheets'
+    ),
+);
+
 type Routes = {
   path: string;
   Component: React.ComponentType;
@@ -249,6 +256,13 @@ if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
   routes.push({
     path: '/export/dashboard/:dashboardId/google-sheets/',
     Component: ExportGoogleSheets,
+  });
+}
+
+if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+  routes.push({
+    path: '/export/chart/:sliceId/google-sheets/',
+    Component: ExportSliceToGoogleSheets,
   });
 }
 

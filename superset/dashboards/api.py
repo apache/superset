@@ -34,11 +34,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
 from superset import is_feature_enabled, thumbnail_cache
-from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
-from superset.charts.post_processing import apply_post_process
-from superset.charts.schemas import ChartDataQueryContextSchema, ChartEntityResponseSchema
-from superset.commands.chart.data.get_data_command import ChartDataCommand
-from superset.commands.chart.exceptions import ChartInvalidError
+from superset.charts.schemas import ChartEntityResponseSchema
 from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import DeleteDashboardCommand
 from superset.commands.dashboard.exceptions import (
@@ -55,10 +51,8 @@ from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCom
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
-from superset.daos.exceptions import DatasourceNotFound
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -84,7 +78,6 @@ from superset.dashboards.schemas import (
     openapi_spec_methods_override,
     thumbnail_query_schema,
 )
-from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -104,11 +97,6 @@ from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
 )
-from superset.utils.google_sheets import GoogleSheetsExport
-import pandas as pd
-
-from superset.views.utils import get_dashboard_extra_filters, get_form_data, get_viz
-from superset.viz import viz_types
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +146,6 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "delete_embedded",
         "thumbnail",
         "copy_dash",
-        "export_to_google_sheet"
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -1376,119 +1363,3 @@ class DashboardRestApi(BaseSupersetModelRestApi):
                 ).timestamp(),
             },
         )
-
-    @expose("/<id_or_slug>/export/google-sheets", methods=("GET",))
-    @protect()
-    @safe
-    @permission_name("read")
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_to_google_sheet",
-        log_to_statsd=False,
-    )
-    def export_to_google_sheet(self, id_or_slug: str) -> Response:
-        """Export a dashboard's charts to a google sheet.
-        ---
-        get:
-          summary: Get a dashboard's charts to a google sheet.
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: id_or_slug
-          responses:
-            200:
-              description: SQL Export Spreadsheet
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      sheetId:
-                        type: string
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-        """
-        if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
-            return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
-        dashboard_id = id_or_slug
-        logger.info(f"Exporting dashboard {dashboard_id} to Google Sheets")
-        try:
-            dashboard = DashboardDAO().get_by_id_or_slug(id_or_slug)
-            charts = DashboardDAO.get_charts_for_dashboard(dashboard_id)
-            chart_dfs: list[tuple[str, pd.DataFrame]] = []
-            # this is based on the structure of "chart_warmup" to pull down the data
-            for chart in charts:
-                form_data = chart.form_data
-                viz_type = chart.viz_type
-                
-                if not chart.datasource:
-                    logger.info(f"Skipping chart {chart.id} as it does not have a datasource")
-                    continue
-                
-                if not viz_type in ["table", "pivot_table_v2"]:
-                    logger.info(f"Skipping chart {chart.id} as it is not a table or pivot_table")
-                    continue
-
-                logger.info(f"Exporting chart {chart.id} to Google Sheets, viz_type: {viz_type}")
-
-                query_context = chart.get_query_context()
-
-                if not query_context:
-                    logger.warn(f"Skipping chart {chart.slice_name} {chart.id} as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.")
-                    continue
-                
-                query_context.result_type = ChartDataResultType.POST_PROCESSED
-                query_context.result_format = ChartDataResultFormat.JSON
-
-                command = ChartDataCommand(query_context)
-                command.validate()
-                result = command.run()
-
-                for query in result["queries"]:
-                    # force the result format to be JSON
-                    query["result_format"] = ChartDataResultFormat.JSON
-
-                result = apply_post_process(result, form_data, chart.datasource)
-
-                chart_data = result["queries"][0]["data"]
-
-                chart_df = pd.DataFrame(chart_data)
-                
-                logger.info(chart_df)
-                chart_dfs.append((chart.slice_name, chart_df))
-
-                event_info = {
-                    "event_type": "data_export",
-                    "dashboard_id": dashboard_id,
-                    "chart_id": chart.id,
-                    "row_count": len(chart_df.index),
-                    "df_shape": chart_df.shape,
-                    "exported_format": "gsheet",
-                }
-                event_rep = repr(event_info)
-                logger.debug(
-                    "GSheet exported: %s", event_rep, extra={"superset_event": event_info}
-                )
-            google_sheets_export = GoogleSheetsExport()
-            sheet_id = google_sheets_export.upload_dfs_to_new_sheet(dashboard.dashboard_title, chart_dfs)
-            return self.response(200, sheet_id=sheet_id)
-        except DatasourceNotFound:
-            logger.error("Datasource not found")
-            return self.response_404()
-        except QueryObjectValidationError as error:
-            logger.error(f"Query object validation error {error}")
-            return self.response_400(message=error.message)
-        except ValidationError as error:
-            logger.error(f"Validation error {error.normalized_messages()}")
-            return self.response_400(
-                message=error.normalized_messages()
-            )
-        except DashboardAccessDeniedError:
-            return self.response_403()

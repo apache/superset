@@ -39,3 +39,18 @@ class ExportView(BaseSupersetView):
             with contextlib.suppress(json.JSONDecodeError):
                 payload["requested_query"] = json.loads(form_data)
         return self.render_app_template(payload)
+
+
+class ExportChartView(BaseSupersetView):
+    route_base = "/export"
+
+    @expose("/chart/<string:slice_id>/google-sheets/", methods=("GET",))
+    @event_logger.log_this
+    def google_sheets(
+        self, slice_id: int  # pylint: disable=unused-argument
+    ) -> FlaskResponse:
+        payload = {}
+        if form_data := request.form.get("form_data"):
+            with contextlib.suppress(json.JSONDecodeError):
+                payload["requested_query"] = json.loads(form_data)
+        return self.render_app_template(payload)
