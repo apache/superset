@@ -231,7 +231,7 @@ export const getRecentActivityObjs = (
     return getFilteredChartsandDashboards(addDangerToast, filters).then(
       ({ other }) => {
         res.other = other;
-        res.viewed = distinctRes.entries().reverse();
+        res.viewed = distinctRes.values().reverse();
         return res;
       },
     );

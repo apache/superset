@@ -68,7 +68,7 @@ class LRUCache<T> {
     return this.cache.size;
   }
 
-  public entries(): T[] {
+  public values(): T[] {
     return [...this.cache.values()];
   }
 }
