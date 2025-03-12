@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {FeatureFlag, isFeatureEnabled, logging} from '@superset-ui/core';
 import React, { lazy } from 'react';
 
 // not lazy loaded since this is the home page.
@@ -127,6 +127,13 @@ const ExportGoogleSheets = lazy(
   () =>
     import(
       /* webpackChunkName: "ExportGoogleSheets" */ 'src/pages/ExportGoogleSheets'
+    ),
+);
+
+const ExportSliceToGoogleSheets = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "ExportSliceToGoogleSheets" */ 'src/pages/ExportSliceToGoogleSheets'
     ),
 );
 
@@ -247,8 +254,15 @@ if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
 
 if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
   routes.push({
-    path: '/export/dashboard/:dashboardId/google-sheets/',
+    path: '/export/`dashboard`/:dashboardId/google-sheets/',
     Component: ExportGoogleSheets,
+  });
+}
+
+if (isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
+  routes.push({
+    path: '/export/chart/:sliceId/google-sheets/',
+    Component: ExportSliceToGoogleSheets,
   });
 }
 

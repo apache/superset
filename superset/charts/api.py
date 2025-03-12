@@ -22,6 +22,7 @@ from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
+import pandas as pd
 from flask import redirect, request, Response, send_file, url_for
 from flask_appbuilder.api import expose, protect, rison, safe
 from flask_appbuilder.hooks import before_request
@@ -30,6 +31,7 @@ from flask_babel import ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
+from xlsxwriter.chart import Chart
 
 from superset import app, is_feature_enabled, thumbnail_cache
 from superset.charts.filters import (
@@ -42,6 +44,7 @@ from superset.charts.filters import (
     ChartOwnedCreatedFavoredByMeFilter,
     ChartTagFilter,
 )
+from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import (
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
@@ -55,6 +58,7 @@ from superset.charts.schemas import (
     thumbnail_query_schema,
 )
 from superset.commands.chart.create import CreateChartCommand
+from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.delete import DeleteChartCommand
 from superset.commands.chart.exceptions import (
     ChartCreateFailedError,
@@ -69,18 +73,23 @@ from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.importers.dispatcher import ImportChartsCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.common.chart_data import ChartDataResultType, ChartDataResultFormat
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
+from superset.daos.exceptions import DatasourceNotFound
+from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
+from superset.utils.google_sheets import GoogleSheetsExport
 from superset.utils.screenshots import ChartScreenshot, DEFAULT_CHART_WINDOW_SIZE
 from superset.utils.urls import get_url_path
 from superset.views.base_api import (
@@ -121,6 +130,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "screenshot",
         "cache_screenshot",
         "warm_up_cache",
+        "export_chart_to_google_sheet"
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -1120,3 +1130,130 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         command.run()
         return self.response(200, message="OK")
+
+    @expose("/<id_or_slug>/export/google-sheets", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_chart_to_google_sheet",
+        log_to_statsd=False,
+    )
+    def export_chart_to_google_sheet(self, id_or_slug: str) -> Response:
+        """Export a chart to a google sheet.
+        ---
+        get:
+          summary: Exports a chart to a google sheet.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+          responses:
+            200:
+              description: SQL Export Spreadsheet
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      sheetId:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        if not is_feature_enabled("GOOGLE_SHEETS_EXPORT"):
+            return self.response(501, message="GOOGLE_SHEETS_EXPORT is not enabled")
+        slice_id = id_or_slug
+        logger.info(f"Exporting chart with slice id {slice_id} to Google Sheets")
+        try:
+            chart = ChartDAO.find_by_id(slice_id)
+            chart_dfs: list[tuple[str, pd.DataFrame]] = []
+            # this is based on the structure of "chart_warmup" to pull down the data
+            form_data = chart.form_data
+            viz_type = chart.viz_type
+
+            if not chart:
+                logger.info(
+                    f"Could not find any chart with id {slice_id}")
+                return self.response_400(f"Could not find any chart with id {slice_id}")
+
+            if not chart.datasource:
+                logger.info(
+                    f"Chart {chart.id} as it does not have a datasource")
+                return self.response_400(f"Chart {chart.id} does not have a datasource")
+
+            if not viz_type in ["table", "pivot_table_v2"]:
+                logger.info(
+                    f"Chart {chart.id} as it is not a table or pivot_table")
+                return self.response_400(
+                    message="Only table and pivot_table charts can be exported to Google Sheets"
+                )
+
+            logger.info(
+                f"Exporting chart {chart.id} to Google Sheets, viz_type: {viz_type}")
+
+            query_context = chart.get_query_context()
+
+            if not query_context:
+                logger.warn(
+                    f"Chart {chart.slice_name} {chart.id} as it does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart.")
+                return self.response_400(
+                    message="does not have a query context this generally is due to a very old chart never being executed and never being added to a dashboard. This can be fixed by force saving the chart."
+                )
+
+            query_context.result_type = ChartDataResultType.POST_PROCESSED
+            query_context.result_format = ChartDataResultFormat.JSON
+
+            command = ChartDataCommand(query_context)
+            command.validate()
+            result = command.run()
+
+            for query in result["queries"]:
+                # force the result format to be JSON
+                query["result_format"] = ChartDataResultFormat.JSON
+
+            result = apply_post_process(result, form_data, chart.datasource)
+
+            chart_data = result["queries"][0]["data"]
+
+            chart_df = pd.DataFrame(chart_data)
+
+            logger.info(chart_df)
+            chart_dfs.append((chart.slice_name, chart_df))
+
+            event_info = {
+                "event_type": "data_export",
+                "chart_id": chart.id,
+                "row_count": len(chart_df.index),
+                "df_shape": chart_df.shape,
+                "exported_format": "gsheet",
+            }
+            event_rep = repr(event_info)
+            logger.debug(
+                "GSheet exported: %s", event_rep,
+                extra={"superset_event": event_info}
+            )
+            google_sheets_export = GoogleSheetsExport()
+            sheet_id = google_sheets_export.upload_dfs_to_new_sheet(
+                chart.slice_name, chart_dfs)
+            return self.response(200, sheet_id=sheet_id)
+        except DatasourceNotFound:
+            logger.error("Datasource not found")
+            return self.response_404()
+        except QueryObjectValidationError as error:
+            logger.error(f"Query object validation error {error}")
+            return self.response_400(message=error.message)
+        except ValidationError as error:
+            logger.error(f"Validation error {error.normalized_messages()}")
+            return self.response_400(
+                message=error.normalized_messages()
+            )
+        except DashboardAccessDeniedError:
+            return self.response_403()

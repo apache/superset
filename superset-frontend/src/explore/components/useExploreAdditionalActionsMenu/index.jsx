@@ -47,6 +47,7 @@ import {
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
+import ExportSliceToGoogleSheet from "../../../dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet";
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
@@ -365,6 +366,7 @@ export const useExploreAdditionalActionsMenu = (
           >
             {t('Export to Excel')}
           </Menu.Item>
+          <ExportSliceToGoogleSheet sliceId={slice?.slice_id} />
         </Menu.SubMenu>
         <Menu.SubMenu title={t('Share')} key={MENU_KEYS.SHARE_SUBMENU}>
           <Menu.Item key={MENU_KEYS.COPY_PERMALINK}>
