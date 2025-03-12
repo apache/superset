@@ -32,9 +32,16 @@ import sqlalchemy as sa  # noqa: E402
 from alembic import op  # noqa: E402
 from sqlalchemy_utils import UUIDType  # noqa: E402
 
+from superset.migrations.shared.utils import (  # noqa: E402
+    create_index,
+    create_table,
+    drop_index,
+    drop_table,
+)
+
 
 def upgrade():
-    op.create_table(
+    create_table(
         "extensions",
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(255), nullable=False),
@@ -46,15 +53,15 @@ def upgrade():
         sa.Column("created_by_fk", sa.Integer(), nullable=True),
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("changed_by_fk", sa.Integer(), nullable=True),
-        sa.ForeignKeyConstraint(["created_by_fk"], ["ab_user.id"]),
-        sa.ForeignKeyConstraint(["changed_by_fk"], ["ab_user.id"]),
+        sa.ForeignKeyConstraint(("created_by_fk",), ["ab_user.id"]),
+        sa.ForeignKeyConstraint(("changed_by_fk",), ["ab_user.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_extensions_uuid"), "extensions", ["uuid"], unique=True)
-    op.create_index(op.f("ix_extensions_name"), "extensions", ["name"], unique=True)
+    create_index("extensions", op.f("ix_extensions_uuid"), ["uuid"], unique=True)
+    create_index("extensions", op.f("ix_extensions_name"), ["name"], unique=True)
 
 
 def downgrade():
-    op.drop_index(op.f("ix_extensions_uuid"), table_name="extensions")
-    op.drop_index(op.f("ix_extensions_name"), table_name="extensions")
-    op.drop_table("extensions")
+    drop_index("extensions", op.f("ix_extensions_uuid"))
+    drop_index("extensions", op.f("ix_extensions_name"))
+    drop_table("extensions")
