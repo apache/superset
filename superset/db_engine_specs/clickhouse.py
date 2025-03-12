@@ -268,7 +268,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     parameters_schema = ClickHouseParametersSchema()
     encryption_parameters = {"secure": "true"}
 
-    supports_dynamic_schema = False
+    supports_dynamic_schema = True
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
