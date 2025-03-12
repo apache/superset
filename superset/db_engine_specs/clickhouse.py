@@ -429,4 +429,3 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
         return uri, connect_args
-    
