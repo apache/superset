@@ -291,7 +291,7 @@ pynacl==1.5.0
     # via paramiko
 pyopenssl==25.0.0
     # via shillelagh
-pyparsing==3.2.0
+pyparsing==3.2.1
     # via apache-superset (pyproject.toml)
 pyrsistent==0.20.0
     # via jsonschema
