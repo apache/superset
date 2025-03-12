@@ -26,4 +26,10 @@ logger = logging.getLogger(__name__)
 
 @celery_app.task(name="slack.cache_channels")
 def cache_channels() -> None:
-    get_channels(force=True, cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"])
+    try:
+        get_channels(
+            force=True, cache_timeout=current_app.config["SLACK_CACHE_TIMEOUT"]
+        )
+    except Exception as ex:
+        logger.exception("An error occurred while caching Slack channels: %s", ex)
+        raise
