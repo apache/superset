@@ -189,8 +189,10 @@ class DatabaseDAO(BaseDAO[Database]):
             r"endpoint=(?P<endpoint>[^&]+))"
         )
         if not uri or not isinstance(uri, str):
-            logger.warning("Invalid or missing sqlalchemy URI, Please provide a "
-                           "correct sqlalchemy URI")
+            logger.warning(
+                "Invalid or missing sqlalchemy URI, Please provide a "
+                "correct sqlalchemy URI"
+            )
         else:
             if match := pattern.match(unquote(uri)):
                 access_id = match.group("username")
