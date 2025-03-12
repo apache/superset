@@ -30,7 +30,7 @@ export default function ExportSliceToGoogleSheet({
   sliceId: number;
 }) {
   if (!isFeatureEnabled(FeatureFlag.GoogleSheetsExport)) {
-    return <></>;
+    return <div id="export-to-sheets-for-chart-disabled" />;
   }
 
   const handleGoogleSheetsExport = () => {

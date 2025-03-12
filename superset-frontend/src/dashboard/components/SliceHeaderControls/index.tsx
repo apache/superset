@@ -552,7 +552,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
             key={MENU_KEYS.DOWNLOAD_AS_IMAGE}
             icon={<Icons.FileImageOutlined css={dropdownIconsStyles} />}
           >
-            {t('Download as image')}
+            {t('Download as Image')}
           </Menu.Item>
           <ExportSliceToGoogleSheet sliceId={props.slice.slice_id} />
         </Menu.SubMenu>
