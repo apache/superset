@@ -417,7 +417,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         :return: Conditionally mutated label
         """
         return f"{label}_{md5_sha_from_str(label)[:6]}"
-    
+
     @classmethod
     def adjust_engine_params(
         cls,
