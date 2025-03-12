@@ -798,7 +798,7 @@ sqlglot==26.1.3
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
-sqlparse==0.5.2
+sqlparse==0.5.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
