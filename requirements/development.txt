@@ -2,7 +2,7 @@
 #    uv pip compile requirements/development.in -c requirements/base.txt -o requirements/development.txt
 -e .
     # via -r requirements/development.in
-alembic==1.14.0
+alembic==1.15.1
     # via
     #   -c requirements/base.txt
     #   flask-migrate
@@ -91,7 +91,7 @@ charset-normalizer==3.4.0
     # via
     #   -c requirements/base.txt
     #   requests
-click==8.1.7
+click==8.1.8
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -374,7 +374,7 @@ itsdangerous==2.2.0
     #   -c requirements/base.txt
     #   flask
     #   flask-wtf
-jinja2==3.1.5
+jinja2==3.1.6
     # via
     #   -c requirements/base.txt
     #   flask
@@ -408,7 +408,7 @@ limits==3.13.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
-mako==1.3.6
+mako==1.3.9
     # via
     #   -c requirements/base.txt
     #   alembic
