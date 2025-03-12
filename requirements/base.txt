@@ -151,7 +151,7 @@ geopy==2.4.1
     # via apache-superset (pyproject.toml)
 google-auth==2.36.0
     # via shillelagh
-greenlet==3.0.3
+greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh

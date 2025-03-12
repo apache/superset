@@ -311,7 +311,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.0.3
+greenlet==3.1.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
