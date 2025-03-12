@@ -20,8 +20,8 @@ under the License.
 |                                                  |Admin|Alpha|Gamma|SQL_LAB|
 |--------------------------------------------------|---|---|---|---|
 | Permission/role description                      |Admins have all possible rights, including granting or revoking rights from other users and altering other people’s slices and dashboards.|Alpha users have access to all data sources, but they cannot grant or revoke access from other users. They are also limited to altering the objects that they own. Alpha users can add and alter data sources.|Gamma users have limited access. They can only consume data coming from data sources they have been given access to through another complementary role. They only have access to view the slices and dashboards made from data sources that they have access to. Currently Gamma users are not able to alter or add data sources. We assume that they are mostly content consumers, though they can create slices and dashboards.|The sql_lab role grants access to SQL Lab. Note that while Admin users have access to all databases by default, both Alpha and Gamma users need to be given access on a per database basis.||
-| can read on SavedQuery                           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
-| can write on SavedQuery                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+| can read on SavedQuery                           |:heavy_check_mark:|O|O|:heavy_check_mark:|
+| can write on SavedQuery                          |:heavy_check_mark:|O|O|:heavy_check_mark:|
 | can read on CssTemplate                          |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can write on CssTemplate                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can read on ReportSchedule                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
@@ -191,7 +191,7 @@ under the License.
 | can read on ExplorePermalinkRestApi              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can export on ImportExportRestApi                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can import on ImportExportRestApi                |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
-| can export on SavedQuery                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|
+| can export on SavedQuery                         |:heavy_check_mark:|O|O|:heavy_check_mark:|
 | can dashboard permalink on Superset              |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
 | can grant guest token on SecurityRestApi         |:heavy_check_mark:|O|O|O|
 | can read on AdvancedDataType                     |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|O|
