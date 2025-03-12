@@ -5,7 +5,7 @@ export async function getExportGoogleSheetsUrl(
 ): Promise<string> {
   try {
     const res = await SupersetClient.get({
-      endpoint: `/api/v1/dashboard/${dashboardId}/export/google-sheets`,
+      endpoint: `/api/v1/aven/${dashboardId}/export/dashboard_to_google_sheet`,
     });
 
     return `https://docs.google.com/spreadsheets/d/${res.json.sheet_id}/`;
@@ -19,7 +19,7 @@ export async function getExportSliceToGoogleSheetsUrl(
 ): Promise<string> {
   try {
     const res = await SupersetClient.get({
-      endpoint: `/api/v1/chart/${sliceId}/export/google-sheets`,
+      endpoint: `/api/v1/aven/${sliceId}/export/chart_to_google_sheet`,
     });
 
     return `https://docs.google.com/spreadsheets/d/${res.json.sheet_id}/`;
