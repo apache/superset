@@ -170,7 +170,7 @@ test('Should render when show:true', async () => {
     },
     { timeout: 3000 },
   );
-}, 10000);
+});
 
 test('Should have modal header', async () => {
   const props = createProps();
@@ -231,7 +231,7 @@ test('Should render all elements inside modal', async () => {
     },
     { timeout: 10000 },
   );
-}, 20000); // Add timeout for this specific test
+});
 
 test('Should have modal footer', async () => {
   const props = createProps();

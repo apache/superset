@@ -608,3 +608,27 @@ If using the eslint extension with vscode, put the following in your workspace `
   "superset-frontend"
 ]
 ```
+
+## GitHub Ephemeral Environments
+
+On any given pull request on GitHub, it's possible to create a temporary environment/deployment
+by simply adding the label `testenv-up` to the PR.  Once you add the `testenv-up` label, a
+GitHub Action will be triggered that will:
+
+- build a docker image
+- deploy it in EC2 (sponsored by the folks at [Preset](https://preset.io))
+- write a comment on the PR with a link to the ephemeral environment
+
+For more advanced use cases, it's possible to set a feature flag on the PR body, which will
+take effect on the ephemeral environment. For example, if you want to set the `TAGGING_SYSTEM`
+feature flag to `true`, you can add the following line to the PR body/description:
+
+```
+FEATURE_TAGGING_SYSTEM=true
+```
+
+Simarly, it's possible to disable feature flags with:
+
+```
+FEATURE_TAGGING_SYSTEM=false
+```

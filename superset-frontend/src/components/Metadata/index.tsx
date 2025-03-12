@@ -1,4 +1,3 @@
-/* eslint-env browser */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,20 +17,31 @@
  * under the License.
  */
 
-var _paq = (window._paq = window._paq || []);
-/* tracker methods like "setCustomDimension" should be called before "trackPageView" */
-/* We explicitly disable cookie tracking to avoid privacy issues */
-_paq.push(['disableCookies']);
-_paq.push(['trackPageView']);
-_paq.push(['enableLinkTracking']);
-(function () {
-  var u = 'https://analytics.apache.org/';
-  _paq.push(['setTrackerUrl', u + 'matomo.php']);
-  _paq.push(['setSiteId', '22']);
-  var d = document,
-    g = d.createElement('script'),
-    s = d.getElementsByTagName('script')[0];
-  g.async = true;
-  g.src = u + 'matomo.js';
-  s.parentNode.insertBefore(g, s);
-})();
+import { styled } from '@superset-ui/core';
+
+const MetadataWrapper = styled.div`
+  display: flex;
+  width: 100%;
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: ${({ theme }) => theme.gridUnit}px;
+`;
+
+const MetadataText = styled.span`
+  font-size: ${({ theme }) => theme.typography.sizes.xs}px;
+  color: ${({ theme }) => theme.colors.grayscale.light1};
+  font-weight: ${({ theme }) => theme.typography.weights.medium};
+`;
+
+export type MetadataProps = {
+  value: string;
+};
+
+const Metadata: React.FC<MetadataProps> = ({ value }) => (
+  <MetadataWrapper>
+    <MetadataText>{value}</MetadataText>
+  </MetadataWrapper>
+);
+
+export default Metadata;

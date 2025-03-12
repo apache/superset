@@ -36,8 +36,9 @@ import numpy
 import pandas as pd
 import sqlalchemy as sqla
 import sshtunnel
-from flask import g, request
+from flask import g
 from flask_appbuilder import Model
+from marshmallow.exceptions import ValidationError
 from sqlalchemy import (
     Boolean,
     Column,
@@ -83,7 +84,7 @@ from superset.superset_typing import (
 )
 from superset.utils import cache as cache_util, core as utils, json
 from superset.utils.backports import StrEnum
-from superset.utils.core import get_username
+from superset.utils.core import get_query_source_from_request, get_username
 from superset.utils.oauth2 import (
     check_for_oauth2,
     get_oauth2_access_token,
@@ -477,7 +478,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         )
         self.db_engine_spec.validate_database_uri(sqlalchemy_url)
 
-        extra = self.get_extra()
+        extra = self.get_extra(source)
         params = extra.get("engine_params", {})
         if nullpool:
             params["poolclass"] = NullPool
@@ -536,13 +537,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         self.update_params_from_encrypted_extra(params)
 
         if DB_CONNECTION_MUTATOR:
-            if not source and request and request.referrer:
-                if "/superset/dashboard/" in request.referrer:
-                    source = utils.QuerySource.DASHBOARD
-                elif "/explore/" in request.referrer:
-                    source = utils.QuerySource.CHART
-                elif "/sqllab/" in request.referrer:
-                    source = utils.QuerySource.SQL_LAB
+            source = source or get_query_source_from_request()
 
             sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url,
@@ -954,8 +949,8 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         """
         return self.db_engine_spec.get_time_grains()
 
-    def get_extra(self) -> dict[str, Any]:
-        return self.db_engine_spec.get_extra_params(self)
+    def get_extra(self, source: utils.QuerySource | None = None) -> dict[str, Any]:
+        return self.db_engine_spec.get_extra_params(self, source)
 
     def get_encrypted_extra(self) -> dict[str, Any]:
         encrypted_extra = {}
@@ -1132,9 +1127,13 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         admins to create custom OAuth2 clients from the Superset UI, and assign them to
         specific databases.
         """
-        encrypted_extra = json.loads(self.encrypted_extra or "{}")
-        oauth2_client_info = encrypted_extra.get("oauth2_client_info", {})
-        return bool(oauth2_client_info) or self.db_engine_spec.is_oauth2_enabled()
+        try:
+            client_config = self.get_oauth2_config()
+        except ValidationError:
+            logger.warning("Invalid OAuth2 client configuration for database %s", self)
+            client_config = None
+
+        return client_config is not None or self.db_engine_spec.is_oauth2_enabled()
 
     def get_oauth2_config(self) -> OAuth2ClientConfig | None:
         """

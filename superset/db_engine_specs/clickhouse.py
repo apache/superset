@@ -334,9 +334,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         cls, uri: str, encrypted_extra: dict[str, Any] | None = None
     ) -> BasicParametersType:
         url = make_url_safe(uri)
-        query = url.query
+        query = dict(url.query)
         if "secure" in query:
-            encryption = url.query.get("secure") == "true"
+            encryption = query.get("secure") == "true"
             query.pop("secure")
         else:
             encryption = False
@@ -346,7 +346,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             host=url.host,
             port=url.port,
             database="" if url.database == "__default__" else cast(str, url.database),
-            query=dict(query),
+            query=query,
             encryption=encryption,
         )
 
