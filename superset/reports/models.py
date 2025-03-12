@@ -169,9 +169,6 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
     # (Reports) When generating a screenshot, bypass the cache?
     force_screenshot = Column(Boolean, default=False)
 
-    # (Reports) Remove index column in report
-    remove_index = Column(Boolean, default=False)
-
     custom_width = Column(Integer, nullable=True)
     custom_height = Column(Integer, nullable=True)
 

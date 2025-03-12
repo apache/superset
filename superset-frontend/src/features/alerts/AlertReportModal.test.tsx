@@ -506,31 +506,6 @@ test('does not show screenshot width when csv is selected', async () => {
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
 
-test('properly renders remove index checkbox for CSV reports', async () => {
-  render(<AlertReportModal {...generateMockedProps(true, true, true)} />, {
-    useRedux: true,
-  });
-  userEvent.click(screen.getByTestId('contents-panel'));
-  await screen.findByText(/test dashboard/i);
-  const contentTypeSelector = screen.getByRole('combobox', {
-    name: /select content type/i,
-  });
-  await comboboxSelect(contentTypeSelector, 'Chart', () =>
-    screen.getByRole('combobox', { name: /chart/i }),
-  );
-  const reportFormatSelector = screen.getByRole('combobox', {
-    name: /select format/i,
-  });
-  await comboboxSelect(
-    reportFormatSelector,
-    'CSV',
-    () => screen.getAllByText(/Send as CSV/i)[0],
-  );
-  expect(
-    screen.getByRole('checkbox', { name: /remove index column/i }),
-  ).toBeInTheDocument();
-});
-
 // Schedule Section
 test('opens Schedule Section on click', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
