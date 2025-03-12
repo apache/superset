@@ -70,7 +70,7 @@ repos:
       files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
     - id: eslint-docs
       name: eslint (docs)
-      entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --ext .js,.jsx,.ts,.tsx --quiet $([ -z "$SKIP_FIX" ] && echo "--fix") $FILES'
+      entry: bash -c 'cd docs && FILES=$(echo "$@" | sed "s|docs/||g") && yarn eslint --fix --ext .js,.jsx,.ts,.tsx --quiet $FILES'
       language: system
       pass_filenames: true
       files: ^docs/.*\.(js|jsx|ts|tsx)$
