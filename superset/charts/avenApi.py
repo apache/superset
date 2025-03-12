@@ -39,6 +39,7 @@ class AvenRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_slug>/export/chart_to_google_sheet", methods=("GET",))
     @protect()
     @safe
+    @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_chart_to_google_sheet",
