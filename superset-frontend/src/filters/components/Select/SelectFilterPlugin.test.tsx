@@ -239,4 +239,25 @@ describe('SelectFilterPlugin', () => {
     // One call for the search term and other for the empty search
     expect(setDataMask).toHaveBeenCalledTimes(2);
   });
+
+  test('Select big int value', async () => {
+    const bigValue = 1100924931345932234n;
+    render(
+      // @ts-ignore
+      <SelectFilterPlugin
+        // @ts-ignore
+        {...transformProps({
+          ...selectMultipleProps,
+          formData: { ...selectMultipleProps.formData, groupby: 'bval' },
+        })}
+        coltypeMap={{ bval: 1 }}
+        data={[{ bval: bigValue }]}
+        setDataMask={jest.fn()}
+      />,
+    );
+    userEvent.click(screen.getByRole('combobox'));
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('combobox'), '1');
+    expect(screen.queryByLabelText(String(bigValue))).toBeInTheDocument();
+  });
 });
