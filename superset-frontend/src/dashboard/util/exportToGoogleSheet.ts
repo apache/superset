@@ -13,3 +13,17 @@ export async function getExportGoogleSheetsUrl(
     throw error;
   }
 }
+
+export async function getExportSliceToGoogleSheetsUrl(
+  sliceId: number,
+): Promise<string> {
+  try {
+    const res = await SupersetClient.get({
+      endpoint: `/api/v1/chart/${sliceId}/export/google-sheets`,
+    });
+
+    return `https://docs.google.com/spreadsheets/d/${res.json.sheet_id}/`;
+  } catch (error) {
+    throw error;
+  }
+}

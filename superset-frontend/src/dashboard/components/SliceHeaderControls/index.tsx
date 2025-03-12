@@ -59,6 +59,7 @@ import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { RootState } from 'src/dashboard/types';
 import { findPermission } from 'src/utils/findPermission';
 import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFilters/ScopingModal/useCrossFiltersScopingModal';
+import ExportSliceToGoogleSheet from './ExportSliceToGoogleSheet';
 
 const MENU_KEYS = {
   DOWNLOAD_AS_IMAGE: 'download_as_image',
@@ -553,6 +554,7 @@ const SliceHeaderControls = (props: SliceHeaderControlsPropsWithRouter) => {
           >
             {t('Download as image')}
           </Menu.Item>
+          <ExportSliceToGoogleSheet sliceId={props.slice.slice_id} />
         </Menu.SubMenu>
       )}
     </Menu>
