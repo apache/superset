@@ -1,6 +1,6 @@
 const path = require('path');
 const { ModuleFederationPlugin } = require('webpack').container;
-const packageConfig = require('./package.json');
+const packageConfig = require('./package');
 
 module.exports = {
   entry: './src/index.tsx',
@@ -42,12 +42,12 @@ module.exports = {
       shared: {
         react: {
           singleton: true,
-          requiredVersion: packageConfig.dependencies.react,
+          requiredVersion: packageConfig.peerDependencies.react,
           import: false,
         },
         'react-dom': {
           singleton: true,
-          requiredVersion: packageConfig.dependencies['react-dom'],
+          requiredVersion: packageConfig.peerDependencies['react-dom'],
           import: false,
         },
         'antd-v5': {
