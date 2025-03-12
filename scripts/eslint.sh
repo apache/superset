@@ -27,4 +27,4 @@ if [[ ! -d "$root_dir/$frontend_dir" ]]; then
 fi
 
 cd "$root_dir/$frontend_dir"
-npm run eslint -- "${@//$frontend_dir\//}"
+npm run eslint -- "${@//$frontend_dir\//}" --fix
