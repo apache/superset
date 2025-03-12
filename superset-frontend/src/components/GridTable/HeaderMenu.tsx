@@ -21,17 +21,13 @@ import { styled, t } from '@superset-ui/core';
 import type { Column, ColumnPinnedType, GridApi } from 'ag-grid-community';
 
 import Icons from 'src/components/Icons';
-import { Dropdown, DropdownProps } from 'src/components/Dropdown';
+import { MenuDotsDropdown, DropdownProps } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import copyTextToClipboard from 'src/utils/copy';
 import { PIVOT_COL_ID } from './constants';
 
-const IconMenuItem = styled(Menu.Item)`
-  display: flex;
-  align-items: center;
-`;
 const IconEmpty = styled.span`
-  width: 20px;
+  width: 14px;
 `;
 
 type Params = {
@@ -42,7 +38,7 @@ type Params = {
   pinnedRight?: boolean;
   invisibleColumns: Column[];
   isMain?: boolean;
-  onVisibleChange: DropdownProps['onVisibleChange'];
+  onVisibleChange: DropdownProps['onOpenChange'];
 };
 
 const HeaderMenu: React.FC<Params> = ({
@@ -62,14 +58,7 @@ const HeaderMenu: React.FC<Params> = ({
   );
 
   const unHideAction = invisibleColumns.length > 0 && (
-    <Menu.SubMenu
-      title={
-        <>
-          <Icons.EyeOutlined iconSize="m" />
-          {t('Unhide')}
-        </>
-      }
-    >
+    <Menu.SubMenu title={t('Unhide')} icon={<Icons.EyeOutlined iconSize="m" />}>
       {invisibleColumns.length > 1 && (
         <Menu.Item
           onClick={() => {
@@ -94,13 +83,13 @@ const HeaderMenu: React.FC<Params> = ({
 
   if (isMain) {
     return (
-      <Dropdown
+      <MenuDotsDropdown
         placement="bottomLeft"
         trigger={['click']}
-        onVisibleChange={onVisibleChange}
+        onOpenChange={onVisibleChange}
         overlay={
           <Menu style={{ width: 250 }} mode="vertical">
-            <IconMenuItem
+            <Menu.Item
               onClick={() => {
                 copyTextToClipboard(
                   () =>
@@ -121,10 +110,11 @@ const HeaderMenu: React.FC<Params> = ({
                     }),
                 );
               }}
+              icon={<Icons.CopyOutlined iconSize="m" />}
             >
-              <Icons.CopyOutlined iconSize="m" /> {t('Copy the current data')}
-            </IconMenuItem>
-            <IconMenuItem
+              {t('Copy the current data')}
+            </Menu.Item>
+            <Menu.Item
               onClick={() => {
                 api.exportDataAsCsv({
                   columnKeys: api
@@ -133,21 +123,22 @@ const HeaderMenu: React.FC<Params> = ({
                     .filter(id => id !== colId),
                 });
               }}
+              icon={<Icons.DownloadOutlined iconSize="m" />}
             >
-              <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
-            </IconMenuItem>
+              {t('Download to CSV')}
+            </Menu.Item>
             <Menu.Divider />
-            <IconMenuItem
+            <Menu.Item
               onClick={() => {
                 api.autoSizeAllColumns();
               }}
+              icon={<Icons.ColumnWidthOutlined iconSize="m" />}
             >
-              <Icons.ColumnWidthOutlined iconSize="m" />
               {t('Autosize all columns')}
-            </IconMenuItem>
+            </Menu.Item>
             {unHideAction}
             <Menu.Divider />
-            <IconMenuItem
+            <Menu.Item
               onClick={() => {
                 api.setColumnsVisible(invisibleColumns, true);
                 const columns = api.getColumns();
@@ -165,10 +156,10 @@ const HeaderMenu: React.FC<Params> = ({
                   }
                 }
               }}
+              icon={<IconEmpty className="anticon" />}
             >
-              <IconEmpty className="anticon" />
               {t('Reset columns')}
-            </IconMenuItem>
+            </Menu.Item>
           </Menu>
         }
       />
@@ -176,13 +167,13 @@ const HeaderMenu: React.FC<Params> = ({
   }
 
   return (
-    <Dropdown
+    <MenuDotsDropdown
       placement="bottomRight"
       trigger={['click']}
-      onVisibleChange={onVisibleChange}
+      onOpenChange={onVisibleChange}
       overlay={
         <Menu style={{ width: 180 }} mode="vertical">
-          <IconMenuItem
+          <Menu.Item
             onClick={() => {
               copyTextToClipboard(
                 () =>
@@ -199,44 +190,52 @@ const HeaderMenu: React.FC<Params> = ({
                   }),
               );
             }}
+            icon={<Icons.CopyOutlined iconSize="m" />}
           >
-            <Icons.CopyOutlined iconSize="m" /> {t('Copy')}
-          </IconMenuItem>
+            {t('Copy')}
+          </Menu.Item>
           {(pinnedLeft || pinnedRight) && (
-            <IconMenuItem onClick={() => pinColumn(null)}>
-              <Icons.UnlockOutlined iconSize="m" /> {t('Unpin')}
-            </IconMenuItem>
+            <Menu.Item
+              onClick={() => pinColumn(null)}
+              icon={<Icons.UnlockOutlined iconSize="m" />}
+            >
+              {t('Unpin')}
+            </Menu.Item>
           )}
           {!pinnedLeft && (
-            <IconMenuItem onClick={() => pinColumn('left')}>
-              <Icons.VerticalRightOutlined iconSize="m" />
+            <Menu.Item
+              onClick={() => pinColumn('left')}
+              icon={<Icons.VerticalRightOutlined iconSize="m" />}
+            >
               {t('Pin Left')}
-            </IconMenuItem>
+            </Menu.Item>
           )}
           {!pinnedRight && (
-            <IconMenuItem onClick={() => pinColumn('right')}>
-              <Icons.VerticalLeftOutlined iconSize="m" />
+            <Menu.Item
+              onClick={() => pinColumn('right')}
+              icon={<Icons.VerticalLeftOutlined iconSize="m" />}
+            >
               {t('Pin Right')}
-            </IconMenuItem>
+            </Menu.Item>
           )}
           <Menu.Divider />
-          <IconMenuItem
+          <Menu.Item
             onClick={() => {
               api.autoSizeColumns([colId]);
             }}
+            icon={<Icons.ColumnWidthOutlined iconSize="m" />}
           >
-            <Icons.ColumnWidthOutlined iconSize="m" />
             {t('Autosize Column')}
-          </IconMenuItem>
-          <IconMenuItem
+          </Menu.Item>
+          <Menu.Item
             onClick={() => {
               api.setColumnsVisible([colId], false);
             }}
             disabled={api.getColumns()?.length === invisibleColumns.length + 1}
+            icon={<Icons.EyeInvisibleOutlined iconSize="m" />}
           >
-            <Icons.EyeInvisibleOutlined iconSize="m" />
             {t('Hide Column')}
-          </IconMenuItem>
+          </Menu.Item>
           {unHideAction}
         </Menu>
       }
