@@ -363,7 +363,7 @@ export function formatSeriesName(
   if (name === undefined || name === null) {
     return NULL_STRING;
   }
-  if (typeof name === 'boolean') {
+  if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();
   }
   if (name instanceof Date || coltype === GenericDataType.Temporal) {
