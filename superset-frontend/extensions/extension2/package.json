@@ -10,19 +10,19 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "description": "",
-  "dependencies": {
+  "peerDependencies": {
     "react": "^17.0.2"
   },
   "devDependencies": {
     "@apache-superset/superset-extensions-sdk": "file:../../packages/superset-extensions-sdk",
     "@apache-superset/types": "file:../../packages/superset-types",
     "@types/react": "^19.0.10",
-    "ts-loader": "^9.2.6",
-    "typescript": "^4.5.4",
-    "webpack": "^5.64.4",
-    "webpack-cli": "^4.9.1",
-    "webpack-dev-server": "^4.7.1"
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.2",
+    "webpack": "^5.98.0",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
   }
 }
