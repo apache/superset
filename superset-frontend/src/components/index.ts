@@ -52,15 +52,10 @@ export { Upload } from 'antd';
  */
 export {
   Breadcrumb as AntdBreadcrumb, // TODO: Make this a real Component
-  Card as AntdCard,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
-  Input as AntdInput,
   Select as AntdSelect,
-  Slider as AntdSlider,
-  Tabs as AntdTabs,
-  Tooltip as AntdTooltip,
 } from 'antd';
 
 // Exported types

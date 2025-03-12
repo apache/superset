@@ -160,7 +160,7 @@ beforeEach(async () => {
   );
 });
 
-afterEach(fetchMock.restore);
+afterEach(() => fetchMock.restore());
 
 const resetUseSelectorMock = () => {
   useSelectorMock.mockReturnValueOnce({
@@ -253,7 +253,7 @@ test('If only examples DB exist we must show the Connect Database option', async
   userEvent.hover(dataMenu);
   expect(await screen.findByText('Connect database')).toBeInTheDocument();
   expect(screen.queryByText('Create dataset')).not.toBeInTheDocument();
-}, 10000);
+});
 
 test('If more than just examples DB exist we must show the Create dataset option', async () => {
   const mockedProps = createProps();

@@ -27,7 +27,6 @@ import {
   ensureIsArray,
   GenericDataType,
   getCustomFormatter,
-  getMetricLabel,
   getNumberFormatter,
   getXAxisLabel,
   isDefined,
@@ -292,20 +291,12 @@ export default function transformProps(
   const showValueIndexesB = extractShowValueIndexes(rawSeriesB, {
     stack,
   });
-
-  const metricsLabels = metrics
-    .map(metric => getMetricLabel(metric, undefined, undefined, verboseMap))
-    .filter((label): label is string => label !== undefined);
-  const metricsLabelsB = metricsB.map((metric: QueryFormMetric) =>
-    getMetricLabel(metric, undefined, undefined, verboseMap),
-  );
-
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedDataA,
     {
       stack,
       percentageThreshold,
-      metricsLabels,
+      xAxisCol: xAxisLabel,
     },
   );
   const {
@@ -314,7 +305,7 @@ export default function transformProps(
   } = extractDataTotalValues(rebasedDataB, {
     stack: Boolean(stackB),
     percentageThreshold,
-    metricsLabels: metricsLabelsB,
+    xAxisCol: xAxisLabel,
   });
 
   annotationLayers

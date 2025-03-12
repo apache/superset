@@ -52,11 +52,14 @@ class SSHManager:
         ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
     ) -> sshtunnel.SSHTunnelForwarder:
+        from superset.utils.ssh_tunnel import get_default_port
+
         url = make_url_safe(sqlalchemy_database_uri)
+        backend = url.get_backend_name()
         params = {
             "ssh_address_or_host": (ssh_tunnel.server_address, ssh_tunnel.server_port),
             "ssh_username": ssh_tunnel.username,
-            "remote_bind_address": (url.host, url.port),
+            "remote_bind_address": (url.host, url.port or get_default_port(backend)),
             "local_bind_address": (self.local_bind_address,),
             "debug_level": logging.getLogger("flask_appbuilder").level,
         }

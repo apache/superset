@@ -27,7 +27,9 @@ from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
     assoc_permissionview_role,
+    assoc_user_group,
     assoc_user_role,
     Permission,
     PermissionView,
@@ -51,6 +53,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import eagerload
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
+from sqlalchemy.sql import exists
 
 from superset.constants import RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -236,8 +239,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Log",
         "List Users",
         "List Roles",
+        "List Groups",
         "ResetPasswordView",
         "RoleModelView",
+        "UserGroupModelView",
         "Row Level Security",
         "Row Level Security Filters",
         "RowLevelSecurityFiltersModelView",
@@ -330,6 +335,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ("menu_access", "SQL Editor"),
         ("menu_access", "Saved Queries"),
         ("menu_access", "Query Search"),
+        ("can_read", "SqlLabPermalinkRestApi"),
+        ("can_write", "SqlLabPermalinkRestApi"),
     }
 
     SQLLAB_EXTRA_PERMISSION_VIEWS = {
@@ -731,13 +738,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         )
 
         if not g.user.is_anonymous:
-            # filter by user id
-            view_menu_names = (
-                base_query.join(assoc_user_role)
-                .join(self.user_model)
-                .filter(self.user_model.id == get_user_id())
-                .filter(self.permission_model.name == permission_name)
-            ).all()
+            user_id = get_user_id()
+
+            user_roles_filter = or_(
+                exists().where(
+                    (assoc_user_role.c.user_id == user_id)
+                    & (assoc_user_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
+                ),
+                exists().where(
+                    (assoc_user_group.c.user_id == user_id)
+                    & (assoc_user_group.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.group_id == self.group_model.id)
+                    & (assoc_group_role.c.role_id == self.role_model.id)
+                    & (self.permission_model.name == permission_name)
+                ),
+            )
+
+            view_menu_names = base_query.filter(user_roles_filter).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
@@ -2422,7 +2440,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user.is_anonymous:
             public_role = current_app.config.get("AUTH_ROLE_PUBLIC")
             return [self.get_public_role()] if public_role else []
-        return user.roles
+        return super().get_user_roles(user)
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource"

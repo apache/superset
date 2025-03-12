@@ -18,6 +18,10 @@ apsw==3.46.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base.txt
+    #   redis
 attrs==24.2.0
     # via
     #   -c requirements/base.txt
@@ -133,7 +137,7 @@ croniter==5.0.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==43.0.3
+cryptography==44.0.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -171,6 +175,13 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
+exceptiongroup==1.2.2
+    # via
+    #   -c requirements/base.txt
+    #   cattrs
+    #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -190,7 +201,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.5.3
+flask-appbuilder==4.6.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -306,6 +317,7 @@ greenlet==3.0.3
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -619,7 +631,7 @@ pynacl==1.5.0
     # via
     #   -c requirements/base.txt
     #   paramiko
-pyopenssl==24.2.1
+pyopenssl==25.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -670,7 +682,7 @@ python-geohash==0.8.5
     #   apache-superset
 python-ldap==3.4.4
     # via apache-superset
-pytz==2024.2
+pytz==2025.1
     # via
     #   -c requirements/base.txt
     #   croniter
@@ -742,7 +754,7 @@ simplejson==3.19.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
-six==1.16.0
+six==1.17.0
     # via
     #   -c requirements/base.txt
     #   prison
@@ -750,7 +762,7 @@ six==1.16.0
     #   rfc3339-validator
     #   url-normalize
     #   wtforms-json
-slack-sdk==3.33.4
+slack-sdk==3.34.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -800,6 +812,10 @@ tabulate==0.8.10
     # via
     #   -c requirements/base.txt
     #   apache-superset
+tomli==2.2.1
+    # via
+    #   coverage
+    #   pytest
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -820,11 +836,14 @@ typing-extensions==4.12.2
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
+    #   cattrs
     #   flask-limiter
     #   limits
+    #   pyopenssl
+    #   rich
     #   selenium
     #   shillelagh
-tzdata==2024.2
+tzdata==2025.1
     # via
     #   -c requirements/base.txt
     #   celery
