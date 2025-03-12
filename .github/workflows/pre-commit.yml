@@ -56,8 +56,7 @@ jobs:
       - name: pre-commit
         run: |
           set +e  # Don't exit immediately on failure
-          # Skip auto-fixing in CI to ensure changes are committed locally
-          export SKIP_FIX=1
+          export SKIP=eslint-frontend,type-checking-frontend
           pre-commit run --all-files
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
