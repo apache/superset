@@ -21,7 +21,7 @@ default_endpoint: null
 offset: 0
 cache_timeout: null
 catalog: null
-schema: main
+schema: null
 sql: null
 params: null
 template_params: null
