@@ -226,6 +226,7 @@ class Markdown extends PureComponent {
       ...this.state,
       editorMode: mode,
     };
+
     if (mode === 'preview') {
       this.updateMarkdownContent();
       nextState.hasError = false;
@@ -277,7 +278,10 @@ class Markdown extends PureComponent {
         width="100%"
         height="100%"
         showGutter={false}
-        editorProps={{ $blockScrolling: true }}
+        editorProps={{
+          $blockScrolling: true,
+          role: 'textbox',
+        }}
         value={
           // this allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
@@ -382,6 +386,11 @@ class Markdown extends PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
+                  onClick={() => {
+                    if (editMode) {
+                      this.handleChangeFocus(true);
+                    }
+                  }}
                 >
                   {editMode && (
                     <HoverMenu position="top">
