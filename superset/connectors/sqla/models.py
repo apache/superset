@@ -69,6 +69,7 @@ from sqlalchemy.sql import column, ColumnElement, literal_column, table
 from sqlalchemy.sql.elements import ColumnClause, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
+from sqlalchemy.types import JSON
 
 from superset import app, db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -400,6 +401,7 @@ class BaseDatasource(AuditMixinNullable, ImportExportMixin):  # pylint: disable=
             # one to many
             "columns": [o.data for o in self.columns],
             "metrics": [o.data for o in self.metrics],
+            "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
             "owners": [owner.id for owner in self.owners],
@@ -1018,6 +1020,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "filterable",
             "groupby",
             "id",
+            "uuid",
             "is_certified",
             "is_dttm",
             "python_date_format",
@@ -1065,7 +1068,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         "extra",
         "warning_text",
     ]
-    update_from_object_fields = list(s for s in export_fields if s != "table_id")  # noqa: C400
+    update_from_object_fields = [s for s in export_fields if s != "table_id"]
     export_parent = "table"
 
     def __repr__(self) -> str:
@@ -1117,6 +1120,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
             "description",
             "expression",
             "id",
+            "uuid",
             "is_certified",
             "metric_name",
             "warning_markdown",
@@ -1193,6 +1197,7 @@ class SqlaTable(
     extra = Column(Text)
     normalize_columns = Column(Boolean, default=False)
     always_filter_main_dttm = Column(Boolean, default=False)
+    folders = Column(JSON, nullable=True)
 
     baselink = "tablemodelview"
 

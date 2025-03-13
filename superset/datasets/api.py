@@ -194,8 +194,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "metrics.id",
         "metrics.metric_name",
         "metrics.metric_type",
+        "metrics.uuid",
         "metrics.verbose_name",
         "metrics.warning_text",
+        "folders",
         "datasource_type",
         "url",
         "extra",
@@ -621,9 +623,11 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(201, id=new_model.id, result=item)
         except DatasetInvalidError as ex:
             return self.response_422(
-                message=ex.normalized_messages()
-                if isinstance(ex, ValidationError)
-                else str(ex)
+                message=(
+                    ex.normalized_messages()
+                    if isinstance(ex, ValidationError)
+                    else str(ex)
+                )
             )
         except DatasetCreateFailedError as ex:
             logger.error(
@@ -1176,14 +1180,16 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         def render_item_list(item_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
             return [
-                {
-                    **item,
-                    "rendered_expression": processor.process_template(
-                        item["expression"]
-                    ),
-                }
-                if item.get("expression")
-                else item
+                (
+                    {
+                        **item,
+                        "rendered_expression": processor.process_template(
+                            item["expression"]
+                        ),
+                    }
+                    if item.get("expression")
+                    else item
+                )
                 for item in item_list
             ]
 
