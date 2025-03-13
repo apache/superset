@@ -159,7 +159,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
   const canReadSavedQueries = userHasPermission(user, 'SavedQuery', 'can_read');
   const userid = user.userId;
   const id = userid!.toString(); // confident that user is not a guest user
-  const params = rison.encode({ page_size: 6 });
+  const params = rison.encode({ page_size: 24, distinct: false });
   const recent = `/api/v1/log/recent_activity/?q=${params}`;
   const [activeChild, setActiveChild] = useState('Loading');
   const userKey = dangerouslyGetItemDoNotUse(id, null);
