@@ -30,7 +30,7 @@ import {
 const SAMPLE_DASHBOARDS_INDEXES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 function openDashboardsAddedTo() {
-  cy.getBySel('actions-trigger').click();
+  cy.getBySel('actions-trigger').should('be.visible').click();
   cy.get('.antd5-dropdown-menu-submenu-title')
     .contains('On dashboards')
     .trigger('mouseover', { force: true });
