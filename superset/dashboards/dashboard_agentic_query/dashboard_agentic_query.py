@@ -28,7 +28,7 @@ Use the following format:
 
 Question: the input question you must answer
 Thought: you should always think about what to do
-Action: the action to take, should be one of [get_charts_list, get_chart_data]
+Action: the action to take, should be one of [get_charts_list, get_chart_data, convert_unix_to_human_readable]
 Action Input: the input to the action
 Observation: the result of the action
 ... (this Thought/Action/Action Input/Observation can repeat N times)
