@@ -24,6 +24,8 @@ import {
   RefSelectProps,
 } from 'antd-v5/es/select';
 import { TagProps } from 'antd-v5/es/tag';
+import { Interpolation } from '@emotion/styled';
+import { Theme } from '@superset-ui/core';
 
 export type RawValue = string | number;
 
