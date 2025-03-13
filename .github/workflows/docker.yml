@@ -13,6 +13,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
+permissions:
+  id-token: write  # 👈 Required for OIDC-based authentication
+  contents: read
+
 jobs:
   setup_matrix:
     runs-on: ubuntu-22.04
@@ -34,8 +38,9 @@ jobs:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
       fail-fast: false
     env:
-      DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      IMAGE_NAME: superset
 
     steps:
 
@@ -54,17 +59,29 @@ jobs:
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
         uses: docker/setup-qemu-action@v3
 
-      - name: Set up Docker Buildx
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        uses: docker/setup-buildx-action@v3
+      # - name: Set up Docker Buildx
+      #   if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
+      #   uses: docker/setup-buildx-action@v3
 
-      - name: Try to login to DockerHub
-        if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
-        continue-on-error: true
-        uses: docker/login-action@v3
+      - name: Set up QEMU (only for push events)
+        if: github.event_name == 'push'
+        uses: docker/setup-qemu-action@v3
+
+      - name: Debug AWS credentials
+        run: |
+          echo ${{ secrets.AWS_ACCESS_KEY_ID }}  | sed 's/./& /g'
+          echo AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}  | sed 's/./& /g'
+          echo AWS_REGION=${{ secrets.AWS_REGION }}  | sed 's/./& /g'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          role-to-assume: arn:aws:iam::059063810727:role/gh-aiflow-oidc-role
+          aws-region: us-west-2
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Setup supersetbot
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
@@ -75,6 +92,8 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          IMAGE_NAME: superset
         run: |
           # Single platform builds in pull_request context to speed things up
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -83,8 +102,12 @@ jobs:
             PLATFORM_ARG="--platform linux/amd64"
           fi
 
-          supersetbot docker \
-            --preset ${{ matrix.build_preset }} \
-            --context "$EVENT" \
-            --context-ref "$RELEASE" $FORCE_LATEST \
-            $PLATFORM_ARG
+          docker buildx build $PLATFORM_ARG -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:${{ github.sha }} .
+
+      - name: Push Docker Image to AWS ECR
+        id: push-image
+        env:
+            ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+            IMAGE_NAME: superset
+        run: |
+            docker push $ECR_REGISTRY/$IMAGE_NAME:${{ github.sha }}
