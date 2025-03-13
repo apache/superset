@@ -1103,6 +1103,11 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 201
         assert "sqlalchemy_form" in response["result"]["configuration_method"]
 
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
+
     def test_create_database_server_cert_validate(self):
         """
         Database API: Test create server cert validation
@@ -3161,22 +3166,22 @@ class TestDatabaseApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         uri = "api/v1/database/import/"
 
-        masked_database_config = database_config.copy()
-        masked_database_config["extra"]["schema_options"] = {"expand_rows": True}
+        database_config_row_expansion = database_config.copy()
+        database_config_row_expansion["extra"]["schema_options"] = {"expand_rows": True}
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             with bundle.open("database_export/metadata.yaml", "w") as fp:
                 fp.write(yaml.safe_dump(database_metadata_config).encode())
             with bundle.open(
-                "database_export/databases/imported_database.yaml", "w"
+                "database_export/databases/database_to_import.yaml", "w"
             ) as fp:
-                fp.write(yaml.safe_dump(masked_database_config).encode())
+                fp.write(yaml.safe_dump(database_config_row_expansion).encode())
         buf.seek(0)
 
         form_data = {
             "formData": (buf, "database_export.zip"),
-            "passwords": json.dumps({"databases/imported_database.yaml": "SECRET"}),
+            "passwords": json.dumps({"databases/database_to_import.yaml": "SECRET"}),
         }
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
@@ -3185,7 +3190,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert response == {"message": "OK"}
 
         database = (
-            db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+            db.session.query(Database)
+            .filter_by(uuid=database_config_row_expansion["uuid"])
+            .one()
         )
         assert database.extra == json.dumps({"schema_options": {"expand_rows": True}})
 
