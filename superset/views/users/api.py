@@ -17,6 +17,7 @@
 from flask import g, redirect, Response
 from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from flask_jwt_extended.view_decorators import jwt_required
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, is_feature_enabled
@@ -38,6 +39,7 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     @expose("/", methods=("GET",))
     @safe
+    @jwt_required(optional=True)
     def get_me(self) -> Response:
         """Get the user object corresponding to the agent making the request.
         ---
@@ -69,6 +71,7 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     @expose("/roles/", methods=("GET",))
     @safe
+    @jwt_required(optional=True)
     def get_my_roles(self) -> Response:
         """Get the user roles corresponding to the agent making the request.
         ---
