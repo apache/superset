@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
+import { LabeledValue as AntdLabeledValue } from 'antd-v5/es/select';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 
 export const MAX_TAG_COUNT = 4;

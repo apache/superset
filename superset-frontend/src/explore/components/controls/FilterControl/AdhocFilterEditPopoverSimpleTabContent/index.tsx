@@ -54,7 +54,7 @@ import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
 import { Clauses, ExpressionTypes } from '../types';
 
 const SelectWithLabel = styled(Select)<{ labelText: string }>`
-  .ant-select-selector::after {
+  .antd5-select-selector::after {
     content: ${({ labelText }) => labelText || '\\A0'};
     display: inline-block;
     white-space: nowrap;

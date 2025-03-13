@@ -154,15 +154,15 @@ const StyledContainer = styled.div`
       display: inline;
     }
 
-    &&&& .ant-select-selector {
+    &&&& .antd5-select-selector {
       padding: 0;
     }
 
-    &&&& .ant-select-selection-placeholder {
+    &&&& .antd5-select-selection-placeholder {
       padding-left: ${theme.sizeUnit * 3}px;
     }
 
-    &&&& .ant-select-selection-item {
+    &&&& .antd5-select-selection-item {
       padding-left: ${theme.sizeUnit * 3}px;
     }
   `}

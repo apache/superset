@@ -38,7 +38,7 @@ const loadComponent = (mockCurrentTime?: string) => {
 };
 
 const getSelectOptions = () =>
-  waitFor(() => document.querySelectorAll('.ant-select-item-option-content'));
+  waitFor(() => document.querySelectorAll('.antd5-select-item-option-content'));
 
 const openSelectMenu = () => {
   const searchInput = screen.getByRole('combobox');

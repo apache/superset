@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ensureIsArray, t } from '@superset-ui/core';
-import Select, { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
+import Select, { LabeledValue as AntdLabeledValue } from 'antd-v5/es/select';
 import { ReactElement, RefObject } from 'react';
 import Icons from 'src/components/Icons';
 import { StyledHelperText, StyledLoadingText, StyledSpin } from './styles';

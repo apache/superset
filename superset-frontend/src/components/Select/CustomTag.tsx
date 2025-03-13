@@ -32,7 +32,7 @@ const Tag = (props: TagProps) => {
       <StyledTag
         closeIcon={props?.closable ? CustomCloseIcon : undefined}
         {...props}
-        className="ant-select-selection-item"
+        className="antd5-select-selection-item"
       >
         <span className="tag-content" ref={tagRef}>
           {props.children}

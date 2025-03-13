@@ -60,7 +60,7 @@ const tablesApiRoute = 'glob:*/api/v1/database/*/tables/*';
 
 const getSelectItemContainer = (select: HTMLElement) =>
   select.parentElement?.parentElement?.getElementsByClassName(
-    'ant-select-selection-item',
+    'antd5-select-selection-item',
   );
 
 // Add cleanup and increase timeout

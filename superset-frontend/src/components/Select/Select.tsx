@@ -42,7 +42,7 @@ import {
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
   BaseOptionType,
-} from 'antd-v5/lib/select';
+} from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import {
   getValue,

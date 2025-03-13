@@ -556,7 +556,7 @@ describe('AdhocFilterEditPopoverSimpleTabContent Advanced data Type Test', () =>
 
     expect(
       await screen.findByText('Equal to (=)', {
-        selector: '.ant-select-selection-item',
+        selector: '.antd5-select-selection-item',
       }),
     ).toBeInTheDocument();
   });

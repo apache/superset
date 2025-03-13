@@ -22,8 +22,8 @@ import {
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
   RefSelectProps,
-} from 'antd-v5/lib/select';
-import { TagProps } from 'antd-v5/lib/tag';
+} from 'antd-v5/es/select';
+import { TagProps } from 'antd-v5/es/tag';
 
 export type RawValue = string | number;
 

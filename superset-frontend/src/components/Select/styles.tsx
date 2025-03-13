@@ -18,8 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin, Tag } from 'antd-v5';
-import Select from 'antd-v5/lib/select';
+import { Spin, Tag, Select } from 'antd-v5';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -44,16 +43,16 @@ export const StyledSelect = styled(Select, {
 })<{ headerPosition?: string; oneLine?: boolean }>`
   ${({ theme, headerPosition, oneLine }) => `
     flex: ${headerPosition === 'left' ? 1 : 0};
-    line-height: ${theme.gridUnit * 8}px;
+    line-height: ${theme.sizeXL}px;
 
-    && .ant-select-selection-search {
+    && .antd5-select-selection-search {
       left: 0px;
     }
 
-    && .ant-select-selection-item {
-      max-height: ${theme.gridUnit * 8}px;
+    && .antd5-select-selection-item, .antd5-select-selection-placeholder {
+      max-height: ${theme.sizeXL}px;
     }
-    .ant-select-selection-item::after {
+    .antd5-select-selection-item::after {
       height: 0;
       display: block !important;
     }
@@ -63,16 +62,16 @@ export const StyledSelect = styled(Select, {
     ${
       oneLine &&
       `
-        .ant-select-selection-overflow {
+        .antd5-select-selection-overflow {
           flex-wrap: nowrap;
         }
 
-        .ant-select-selection-overflow-item:not(.ant-select-selection-overflow-item-rest):not(.ant-select-selection-overflow-item-suffix) {
+        .antd5-select-selection-overflow-item:not(.antd5-select-selection-overflow-item-rest):not(.antd5-select-selection-overflow-item-suffix) {
           flex-shrink: 1;
           min-width: ${theme.sizeUnit * 13}px;
         }
 
-        .ant-select-selection-overflow-item-suffix {
+        .antd5-select-selection-overflow-item-suffix {
           flex: unset;
           min-width: 0px;
         }
@@ -85,7 +84,7 @@ export const StyledTag = styled(Tag)`
   & .antd5-tag-close-icon {
     display: inline-flex;
     align-items: center;
-    margin-left: ${({ theme }) => theme.gridUnit}px;
+    margin-left: ${({ theme }) => theme.sizeUnit}px;
   }
   & .tag-content {
     overflow: hidden;

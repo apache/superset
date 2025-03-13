@@ -167,7 +167,7 @@ describe('SelectControl', () => {
       fireEvent(selectorInput, paste);
       const yearOption = screen
         .getByText('1 year ago', {
-          selector: '.ant-select-item-option-content',
+          selector: '.antd5-select-item-option-content',
         })
         .closest('[role="option"]');
       expect(yearOption).toHaveAttribute('aria-selected', 'true');

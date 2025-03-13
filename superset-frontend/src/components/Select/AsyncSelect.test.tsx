@@ -102,7 +102,7 @@ const getElementsByClassName = (className: string) =>
 const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
 
 const getAllSelectOptions = () =>
-  getElementsByClassName('.ant-select-item-option-content');
+  getElementsByClassName('.antd5-select-item-option-content');
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -115,13 +115,13 @@ const querySelectOption = (text: string) =>
   );
 
 const findAllSelectOptions = () =>
-  waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
+  waitFor(() => getElementsByClassName('.antd5-select-item-option-content'));
 
 const findSelectValue = () =>
-  waitFor(() => getElementByClassName('.ant-select-selection-item'));
+  waitFor(() => getElementByClassName('.antd5-select-selection-item'));
 
 const findAllSelectValues = () =>
-  waitFor(() => getElementsByClassName('.ant-select-selection-item'));
+  waitFor(() => getElementsByClassName('.antd5-select-selection-item'));
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -380,7 +380,7 @@ test('searches for custom fields', async () => {
 
 test('removes duplicated values', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.antd5-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a,b,b,b,c,d,d',
@@ -812,7 +812,9 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   );
   await open();
 
-  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  const withinSelector = within(
+    getElementByClassName('.antd5-select-selector'),
+  );
   await waitFor(() => {
     expect(
       withinSelector.queryByText(OPTIONS[0].label),
@@ -885,7 +887,7 @@ test('fires onChange when pasting a selection', async () => {
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.antd5-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -920,7 +922,7 @@ test('pasting an existing option does not duplicate it', async () => {
   }));
   render(<AsyncSelect {...defaultProps} options={options} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.antd5-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -948,7 +950,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     />,
   );
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.antd5-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John,Liam,Peter',
@@ -970,7 +972,7 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
     />,
   );
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.antd5-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John',
@@ -984,7 +986,7 @@ test('onChange is called with the value property when pasting an option that was
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.antd5-select-selection-search-input');
   const lastOption = OPTIONS[OPTIONS.length - 1];
   const paste = createEvent.paste(input, {
     clipboardData: {
