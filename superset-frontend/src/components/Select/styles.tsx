@@ -49,8 +49,9 @@ export const StyledSelect = styled(Select, {
     && .ant-select-selection-search {
       left: 0px;
     }
-    && .ant-select-selector {
-      border-radius: ${theme.sizeUnit}px;
+
+    && .ant-select-selection-item {
+      max-height: ${theme.gridUnit * 8}px;
     }
     .ant-select-selection-item::after {
       height: 0;
@@ -80,21 +81,20 @@ export const StyledSelect = styled(Select, {
  `}
 `;
 
-export const NoElement = styled.span`
-  display: none;
-`;
-
 export const StyledTag = styled(Tag)`
   & .antd5-tag-close-icon {
     display: inline-flex;
     align-items: center;
     margin-left: ${({ theme }) => theme.gridUnit}px;
   }
-
   & .tag-content {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+`;
+
+export const NoElement = styled.span`
+  display: none;
 `;
 
 export const StyledStopOutlined = styled(Icons.StopOutlined)`

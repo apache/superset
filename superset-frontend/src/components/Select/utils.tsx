@@ -38,7 +38,13 @@ export const renderSelectOptions = (
     const value = isOptObject ? opt.value : opt;
     const { customLabel, id, ...optProps } = opt;
     return (
-      <Select.Option {...optProps} key={value} label={label} value={value}>
+      <Select.Option
+        {...optProps}
+        key={value}
+        label={label}
+        value={value}
+        aria-label={label}
+      >
         {isOptObject && customLabel ? customLabel : label}
       </Select.Option>
     );
