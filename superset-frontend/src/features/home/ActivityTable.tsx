@@ -33,19 +33,7 @@ import { Chart } from 'src/types/Chart';
 import Icons from 'src/components/Icons';
 import SubMenu from './SubMenu';
 import EmptyState from './EmptyState';
-import { WelcomeTable } from './types';
-
-/**
- * Return result from /api/v1/log/recent_activity/
- */
-interface RecentActivity {
-  action: string;
-  item_type: 'slice' | 'dashboard';
-  item_url: string;
-  item_title: string;
-  time: number;
-  time_delta_humanized?: string;
-}
+import { WelcomeTable, RecentActivity } from './types';
 
 interface RecentSlice extends RecentActivity {
   item_type: 'slice';
