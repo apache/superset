@@ -102,7 +102,7 @@ const getElementsByClassName = (className: string) =>
 const getSelect = () => screen.getByRole('combobox', { name: ARIA_LABEL });
 
 const getAllSelectOptions = () =>
-  getElementsByClassName('.antd5-select-item-option-content');
+  getElementsByClassName('.ant-select-item-option-content');
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -115,13 +115,20 @@ const querySelectOption = (text: string) =>
   );
 
 const findAllSelectOptions = () =>
-  waitFor(() => getElementsByClassName('.antd5-select-item-option-content'));
+  waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
 const findSelectValue = () =>
-  waitFor(() => getElementByClassName('.antd5-select-selection-item'));
+  waitFor(() => getElementByClassName('.ant-select-selection-item'));
 
 const findAllSelectValues = () =>
-  waitFor(() => getElementsByClassName('.antd5-select-selection-item'));
+  waitFor(() => getElementsByClassName('.ant-select-selection-item'));
+
+// Tag sets classname manually.
+const findTagSelectValue = () =>
+  waitFor(() => getElementByClassName('.antd5-select-selection-item'));
+
+const findAllTagSelectValues = () =>
+  waitFor(() => [...getElementsByClassName('.antd5-select-selection-item')]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -380,7 +387,7 @@ test('searches for custom fields', async () => {
 
 test('removes duplicated values', async () => {
   render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.antd5-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a,b,b,b,c,d,d',
@@ -388,7 +395,7 @@ test('removes duplicated values', async () => {
   });
   fireEvent(input, paste);
   await waitFor(async () => {
-    const values = await findAllSelectValues();
+    const values = await findAllTagSelectValues();
     expect(values.length).toBe(4);
     expect(values[0]).toHaveTextContent('a');
     expect(values[1]).toHaveTextContent('b');
@@ -487,7 +494,7 @@ test('adds the null option when selected in multiple mode', async () => {
   await open();
   userEvent.click(await findSelectOption(OPTIONS[0].label));
   userEvent.click(await findSelectOption(NULL_OPTION.label));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(NULL_OPTION.label);
 });
@@ -533,7 +540,7 @@ test('multiple selections in multiple mode', async () => {
   const [firstOption, secondOption] = OPTIONS;
   userEvent.click(await findSelectOption(firstOption.label));
   userEvent.click(await findSelectOption(secondOption.label));
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(firstOption.label);
   expect(values[1]).toHaveTextContent(secondOption.label);
 });
@@ -585,14 +592,14 @@ test('deselects an item in multiple mode', async () => {
   expect(options[0]).toHaveTextContent(option3.label);
   expect(options[1]).toHaveTextContent(option8.label);
 
-  let values = await findAllSelectValues();
+  let values = await findAllTagSelectValues();
   expect(values).toHaveLength(2);
   // should keep the order by which the options were selected
   expect(values[0]).toHaveTextContent(option8.label);
   expect(values[1]).toHaveTextContent(option3.label);
 
   userEvent.click(await findSelectOption(option3.label));
-  values = await findAllSelectValues();
+  values = await findAllTagSelectValues();
   expect(values.length).toBe(1);
   expect(values[0]).toHaveTextContent(option8.label);
 });
@@ -650,7 +657,7 @@ test('sets a initial value in multiple mode', async () => {
       value={[OPTIONS[0], OPTIONS[1]]}
     />,
   );
-  const values = await findAllSelectValues();
+  const values = await findAllTagSelectValues();
   expect(values[0]).toHaveTextContent(OPTIONS[0].label);
   expect(values[1]).toHaveTextContent(OPTIONS[1].label);
 });
@@ -812,9 +819,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   );
   await open();
 
-  const withinSelector = within(
-    getElementByClassName('.antd5-select-selector'),
-  );
+  const withinSelector = within(getElementByClassName('.ant-select-selector'));
   await waitFor(() => {
     expect(
       withinSelector.queryByText(OPTIONS[0].label),
@@ -887,7 +892,7 @@ test('fires onChange when pasting a selection', async () => {
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.antd5-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -922,7 +927,7 @@ test('pasting an existing option does not duplicate it', async () => {
   }));
   render(<AsyncSelect {...defaultProps} options={options} />);
   await open();
-  const input = getElementByClassName('.antd5-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -950,7 +955,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     />,
   );
   await open();
-  const input = getElementByClassName('.antd5-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John,Liam,Peter',
@@ -972,7 +977,7 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
     />,
   );
   await open();
-  const input = getElementByClassName('.antd5-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-selection-search-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John',
@@ -986,7 +991,7 @@ test('onChange is called with the value property when pasting an option that was
   const onChange = jest.fn();
   render(<AsyncSelect {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.antd5-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-selection-search-input');
   const lastOption = OPTIONS[OPTIONS.length - 1];
   const paste = createEvent.paste(input, {
     clipboardData: {
