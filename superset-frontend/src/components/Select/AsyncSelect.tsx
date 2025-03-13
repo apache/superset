@@ -222,7 +222,9 @@ const AsyncSelect = forwardRef(
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
-          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+          isLabeledValue(opt)
+            ? { value: opt.value, label: opt.label }
+            : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)

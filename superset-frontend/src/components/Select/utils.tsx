@@ -36,7 +36,7 @@ export const renderSelectOptions = (
     const isOptObject = typeof opt === 'object';
     const label = isOptObject ? opt?.label || opt.value : opt;
     const value = isOptObject ? opt.value : opt;
-    const { customLabel, ...optProps } = opt;
+    const { customLabel, id, ...optProps } = opt;
     return (
       <Select.Option {...optProps} key={value} label={label} value={value}>
         {isOptObject && customLabel ? customLabel : label}
