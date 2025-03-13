@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 
 import sshtunnel
 from flask import Flask
-from paramiko import RSAKey
+from paramiko import Ed25519Key, PKey, RSAKey
 
 from superset.databases.utils import make_url_safe
 from superset.utils.class_utils import load_class_from_name
@@ -68,9 +68,15 @@ class SSHManager:
             params["ssh_password"] = ssh_tunnel.password
         elif ssh_tunnel.private_key:
             private_key_file = StringIO(ssh_tunnel.private_key)
-            private_key = RSAKey.from_private_key(
-                private_key_file, ssh_tunnel.private_key_password
-            )
+            try:
+                private_key: PKey = RSAKey.from_private_key(
+                    private_key_file, ssh_tunnel.private_key_password
+                )
+            except Exception:
+                private_key_file.seek(0)
+                private_key = Ed25519Key.from_private_key(
+                    private_key_file, ssh_tunnel.private_key_password
+                )
             params["ssh_pkey"] = private_key
 
         return sshtunnel.open_tunnel(**params)
