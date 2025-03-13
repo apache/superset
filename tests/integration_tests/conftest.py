@@ -256,38 +256,6 @@ def with_feature_flags(**mock_feature_flags):
     return decorate
 
 
-def with_config(override_config: dict[str, Any]):
-    """
-    Use this decorator to mock specific config keys.
-
-    Usage:
-
-        class TestYourFeature(SupersetTestCase):
-
-            @with_config({"SOME_CONFIG": True})
-            def test_your_config(self):
-                self.assertEqual(curren_app.config["SOME_CONFIG"), True)
-
-    """
-
-    def decorate(test_fn):
-        config_backup = {}
-
-        def wrapper(*args, **kwargs):
-            from flask import current_app
-
-            for key, value in override_config.items():
-                config_backup[key] = current_app.config[key]
-                current_app.config[key] = value
-            test_fn(*args, **kwargs)
-            for key, value in config_backup.items():
-                current_app.config[key] = value
-
-        return functools.update_wrapper(wrapper, test_fn)
-
-    return decorate
-
-
 @pytest.fixture
 def virtual_dataset():
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
@@ -396,7 +364,7 @@ def physical_dataset():
             col4 VARCHAR(255),
             col5 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
             col6 TIMESTAMP DEFAULT '1970-01-01 00:00:01',
-            {quoter('time column with spaces')} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
+            {quoter("time column with spaces")} TIMESTAMP DEFAULT '1970-01-01 00:00:01'
             );
             """
         )

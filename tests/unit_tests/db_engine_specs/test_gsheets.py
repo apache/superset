@@ -42,16 +42,38 @@ class ProgrammingError(Exception):
     """
 
 
-def test_validate_parameters_simple() -> None:
+def test_validate_parameters_simple(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
 
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
-            "catalog": {},
+            "catalog": {"test": "https://docs.google.com/spreadsheets/d/1/edit"},
+        },
+        "catalog": {},
+    }
+    assert GSheetsEngineSpec.validate_parameters(properties)
+
+
+def test_validate_parameters_no_catalog(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.gsheets import (
+        GSheetsEngineSpec,
+        GSheetsPropertiesType,
+    )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
+
+    properties: GSheetsPropertiesType = {
+        "parameters": {
+            "service_account_info": "",
+            "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
         },
         "catalog": {},
     }
@@ -66,18 +88,21 @@ def test_validate_parameters_simple() -> None:
     ]
 
 
-def test_validate_parameters_simple_with_in_root_catalog() -> None:
+def test_validate_parameters_simple_with_in_root_catalog(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.gsheets import (
         GSheetsEngineSpec,
         GSheetsPropertiesType,
     )
+
+    g = mocker.patch("superset.db_engine_specs.gsheets.g")
+    g.user.email = "admin@example.org"
 
     properties: GSheetsPropertiesType = {
         "parameters": {
             "service_account_info": "",
             "catalog": {},
         },
-        "catalog": {},
+        "catalog": {"": "https://docs.google.com/spreadsheets/d/1/edit"},
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)
     assert errors == [
@@ -120,61 +145,58 @@ def test_validate_parameters_catalog(
     }
     errors = GSheetsEngineSpec.validate_parameters(properties)  # ignore: type
 
-    assert (
-        errors
-        == [
-            SupersetError(
-                message=(
-                    "The URL could not be identified. Please check for typos "
-                    "and make sure that ‘Type of Google Sheets allowed’ "
-                    "selection matches the input."
-                ),
-                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                level=ErrorLevel.WARNING,
-                extra={
-                    "catalog": {
-                        "idx": 0,
-                        "url": True,
-                    },
-                    "issue_codes": [
-                        {
-                            "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
-                        },
-                        {
-                            "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
-                        },
-                    ],
-                },
+    assert errors == [
+        SupersetError(
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
             ),
-            SupersetError(
-                message=(
-                    "The URL could not be identified. Please check for typos "
-                    "and make sure that ‘Type of Google Sheets allowed’ "
-                    "selection matches the input."
-                ),
-                error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
-                level=ErrorLevel.WARNING,
-                extra={
-                    "catalog": {
-                        "idx": 2,
-                        "url": True,
-                    },
-                    "issue_codes": [
-                        {
-                            "code": 1003,
-                            "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
-                        },
-                        {
-                            "code": 1005,
-                            "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
-                        },
-                    ],
+            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "catalog": {
+                    "idx": 0,
+                    "url": True,
                 },
+                "issue_codes": [
+                    {
+                        "code": 1003,
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                    },
+                    {
+                        "code": 1005,
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                    },
+                ],
+            },
+        ),
+        SupersetError(
+            message=(
+                "The URL could not be identified. Please check for typos "
+                "and make sure that ‘Type of Google Sheets allowed’ "
+                "selection matches the input."
             ),
-        ]
-    )
+            error_type=SupersetErrorType.TABLE_DOES_NOT_EXIST_ERROR,
+            level=ErrorLevel.WARNING,
+            extra={
+                "catalog": {
+                    "idx": 2,
+                    "url": True,
+                },
+                "issue_codes": [
+                    {
+                        "code": 1003,
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
+                    },
+                    {
+                        "code": 1005,
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
+                    },
+                ],
+            },
+        ),
+    ]
 
     create_engine.assert_called_with(
         "gsheets://",

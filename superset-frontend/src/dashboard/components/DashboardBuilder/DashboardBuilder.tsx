@@ -22,8 +22,6 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   addAlpha,
   css,
-  isFeatureEnabled,
-  FeatureFlag,
   JsonObject,
   styled,
   t,
@@ -396,10 +394,7 @@ const DashboardBuilder = () => {
     state => state.dashboardState.fullSizeChartId,
   );
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
-        ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.Vertical,
+    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
   const handleChangeTab = useCallback(
