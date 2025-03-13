@@ -130,25 +130,23 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     oauth2_exception = UnauthenticatedError
 
     @classmethod
-    def get_url_for_impersonation(
+    def impersonate_user(
         cls,
-        url: URL,
-        impersonate_user: bool,
+        database: Database,
         username: str | None,
-        access_token: str | None,
-    ) -> URL:
-        if not impersonate_user:
-            return url
-
+        user_token: str | None,
+        url: URL,
+        engine_kwargs: dict[str, Any],
+    ) -> tuple[URL, dict[str, Any]]:
         if username is not None:
             user = security_manager.find_user(username=username)
             if user and user.email:
                 url = url.update_query_dict({"subject": user.email})
 
-        if access_token:
-            url = url.update_query_dict({"access_token": access_token})
+        if user_token:
+            url = url.update_query_dict({"access_token": user_token})
 
-        return url
+        return url, engine_kwargs
 
     @classmethod
     def get_extra_table_metadata(
