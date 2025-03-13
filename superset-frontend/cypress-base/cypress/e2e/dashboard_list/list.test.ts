@@ -87,7 +87,7 @@ describe('Dashboards list', () => {
 
     it('should bulk select in list mode', () => {
       toggleBulkSelect();
-      cy.get('#header-toggle-all').click();
+      cy.get('#checkbox-header-toggle-all').click();
       cy.get('[aria-label="checkbox-on"]').should('have.length', 6);
       cy.getBySel('bulk-select-copy').contains('5 Selected');
       cy.getBySel('bulk-select-action')
