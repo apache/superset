@@ -831,6 +831,7 @@ class ImportV1DatabaseExtraSchema(Schema):
     disable_drill_to_detail = fields.Boolean(required=False)
     allow_multi_catalog = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
+    schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
 
 
 class ImportV1DatabaseSchema(Schema):
