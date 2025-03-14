@@ -33,6 +33,7 @@ export enum FeatureFlag {
   DashboardVirtualization = 'DASHBOARD_VIRTUALIZATION',
   DashboardRbac = 'DASHBOARD_RBAC',
   DatapanelClosedByDefault = 'DATAPANEL_CLOSED_BY_DEFAULT',
+  DownloadCSVFromS3 = 'DOWNLOAD_CSV_FROM_S3',
   /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
