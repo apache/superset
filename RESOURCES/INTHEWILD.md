@@ -199,6 +199,7 @@ Join our growing community!
 ### Travel
 
 - [Agoda](https://www.agoda.com/) [@lostseaway, @maiake, @obombayo]
+- [HomeToGo](https://hometogo.com/) [@pedromartinsteenstrup]
 - [Skyscanner](https://www.skyscanner.net/) [@cleslie, @stanhoucke]
 
 ### Others
