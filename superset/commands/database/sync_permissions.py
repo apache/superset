@@ -249,11 +249,11 @@ class SyncPermissionsCommand(BaseCommand):
         self, catalog: str | None, schemas: Iterable[str]
     ) -> None:
         # rename existing catalog permission
+        new_catalog_perm_name = security_manager.get_catalog_perm(
+            self.db_connection.name,
+            catalog,
+        )
         if catalog:
-            new_catalog_perm_name = security_manager.get_catalog_perm(
-                self.db_connection.name,
-                catalog,
-            )
             new_catalog_vm = add_vm(db.session, security_manager, new_catalog_perm_name)
             perm = security_manager.get_catalog_perm(
                 self.old_db_connection_name,

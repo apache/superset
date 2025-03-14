@@ -335,6 +335,54 @@ def test_rename_without_catalog(
     assert schema2_pvm.view_menu.name == f"[{database_without_catalog.name}].[schema2]"
 
 
+def test_rename_without_catalog_with_assets(
+    mocker: MockerFixture,
+    database_without_catalog: MockerFixture,
+) -> None:
+    """
+    Test that permissions are renamed correctly when the DB connection does not support
+    catalogs, and it has assets associated with it.
+    """
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    original_database = mocker.MagicMock()
+    original_database.database_name = "my_db"
+    database_without_catalog.database_name = "my_other_db"
+    database_without_catalog.get_all_schema_names.return_value = ["schema1"]
+    database_dao.update.return_value = database_without_catalog
+    database_dao.find_by_id.return_value = original_database
+    sync_db_perms_dao = mocker.patch(
+        "superset.commands.database.sync_permissions.DatabaseDAO"
+    )
+    sync_db_perms_dao.find_by_id.return_value = database_without_catalog
+    mocker.patch("superset.commands.database.update.get_username")
+    mocker.patch("superset.security_manager.get_user_by_username")
+
+    dataset = mocker.MagicMock()
+    chart = mocker.MagicMock()
+    sync_db_perms_dao.get_datasets.return_value = [dataset]
+    dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
+    dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+
+    find_permission_view_menu = mocker.patch.object(
+        security_manager,
+        "find_permission_view_menu",
+    )
+    schema_pvm = mocker.MagicMock()
+    schema_pvm.view_menu.name = "[my_db].[schema1]"
+    find_permission_view_menu.side_effect = [
+        "[my_db].[schema1]",
+        schema_pvm,
+    ]
+
+    UpdateDatabaseCommand(1, {}).run()
+
+    assert schema_pvm.view_menu.name == f"[{database_without_catalog.name}].[schema1]"
+    assert dataset.schema_perm == f"[{database_without_catalog.name}].[schema1]"
+    assert dataset.catalog_perm is None
+    assert chart.catalog_perm is None
+    assert chart.schema_perm == f"[{database_without_catalog.name}].[schema1]"
+
+
 def test_update_with_oauth2(
     mocker: MockerFixture,
     database_needs_oauth2: MockerFixture,
