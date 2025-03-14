@@ -444,6 +444,7 @@ def test_import(
     )
 
     command.assert_called_with(
+        encrypted_extras: None,
         contents,
         passwords=None,
         overwrite=False,
