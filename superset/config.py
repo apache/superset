@@ -98,8 +98,6 @@ VERSION_INFO_FILE = str(files("superset") / "static/version_info.json")
 PACKAGE_JSON_FILE = str(files("superset") / "static/assets/package.json")
 
 
-
-
 def _try_json_readversion(filepath: str) -> str | None:
     try:
         with open(filepath) as f:

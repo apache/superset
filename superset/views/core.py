@@ -23,7 +23,7 @@ from datetime import datetime
 from typing import Any, Callable, cast
 from urllib import parse
 
-from flask import abort, flash, g, redirect, request, Response, jsonify
+from flask import abort, flash, g, jsonify, redirect, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import (
     has_access,

@@ -73,7 +73,9 @@ export default function Loading({
           if (response.status === 401) {
             console.error('User is not authenticated');
           } else if (response.status === 403) {
-            console.error('User does not have permission to access this endpoint');
+            console.error(
+              'User does not have permission to access this endpoint',
+            );
           }
           throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -81,7 +83,7 @@ export default function Loading({
       })
       .then(data => {
         console.log('Received data:', data);
-        // Vérifie si l'objet a une clé "src" et l'assigne
+        // Check if object have "src" key and setup
         if (data?.src) {
           setLoader(data.src);
         } else {
