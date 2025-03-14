@@ -3168,6 +3168,7 @@ class TestDatabaseApi(SupersetTestCase):
 
         database_config_row_expansion = database_config.copy()
         database_config_row_expansion["extra"]["schema_options"] = {"expand_rows": True}
+        database_config_row_expansion["uuid"] = "b8a1ccd3-779d-4ab7-8ad8-9ab119d7ff90"
 
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
