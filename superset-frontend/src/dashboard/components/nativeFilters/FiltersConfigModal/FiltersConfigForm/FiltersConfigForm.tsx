@@ -35,6 +35,7 @@ import {
   JsonResponse,
   NativeFilterType,
   styled,
+  useTheme,
   SupersetApiError,
   t,
   ClientErrorObject,
@@ -237,23 +238,6 @@ const StyledCollapse = styled(Collapse)`
   &.ant-collapse > .ant-collapse-item {
     border: 0;
     border-radius: 0;
-  }
-`;
-
-const StyledTabs = styled(Tabs)`
-  .ant-tabs-nav {
-    position: sticky;
-    top: 0;
-    background: ${({ theme }) => theme.colors.grayscale.light5};
-    z-index: 1;
-  }
-
-  .ant-tabs-nav-list {
-    padding: 0;
-  }
-
-  .ant-form-item-label {
-    padding-bottom: 0;
   }
 `;
 
@@ -815,12 +799,12 @@ const FiltersConfigForm = (
       />
     </StyledRowFormItem>
   );
-
+  const theme = useTheme();
   return (
-    <StyledTabs
+    <Tabs
       activeKey={activeTabKey}
       onChange={activeKey => setActiveTabKey(activeKey)}
-      centered
+      tabBarStyle={{ paddingLeft: theme.sizeUnit * 4 }}
     >
       <TabPane
         tab={FilterTabs.configuration.name}
@@ -1358,7 +1342,7 @@ const FiltersConfigForm = (
           initiallyExcludedCharts={initiallyExcludedCharts}
         />
       </TabPane>
-    </StyledTabs>
+    </Tabs>
   );
 };
 

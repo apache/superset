@@ -17,7 +17,7 @@
  * under the License.
  */
 import { css, styled } from '@superset-ui/core';
-import AntdTabs, { TabsProps as AntdTabsProps } from 'antd/lib/tabs';
+import AntdTabs, { TabsProps as AntdTabsProps } from 'antd-v5/es/tabs';
 import Icons from 'src/components/Icons';
 
 export interface TabsProps extends AntdTabsProps {
@@ -42,9 +42,6 @@ const StyledTabs = ({
       }
       .ant-tabs-tab {
         flex: 1 1 auto;
-        &.ant-tabs-tab-active .ant-tabs-tab-btn {
-          color: inherit;
-        }
         &:hover {
           .anchor-link-container {
             cursor: pointer;

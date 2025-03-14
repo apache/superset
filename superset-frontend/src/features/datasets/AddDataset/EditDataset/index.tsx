@@ -28,7 +28,7 @@ const StyledTabs = styled(Tabs)`
   padding-left: ${theme.sizeUnit * 4}px;
   padding-right: ${theme.sizeUnit * 4}px;
 
-  .ant-tabs-top > .ant-tabs-nav::before {
+  .ant-tabs-nav::before {
     width: ${theme.sizeUnit * 50}px;
   }
   `}
@@ -63,15 +63,26 @@ const EditPage = ({ id }: EditPageProps) => {
     </TabStyles>
   );
 
-  return (
-    <StyledTabs moreIcon={null} fullWidth={false}>
-      <Tabs.TabPane tab={TRANSLATIONS.COLUMNS_TEXT} key="1" />
-      <Tabs.TabPane tab={TRANSLATIONS.METRICS_TEXT} key="2" />
-      <Tabs.TabPane tab={usageTab} key="3">
-        <UsageTab datasetId={id} />
-      </Tabs.TabPane>
-    </StyledTabs>
-  );
+  // Create items array for antd v5 Tabs
+  const items = [
+    {
+      key: '1',
+      label: TRANSLATIONS.COLUMNS_TEXT,
+      children: null,
+    },
+    {
+      key: '2',
+      label: TRANSLATIONS.METRICS_TEXT,
+      children: null,
+    },
+    {
+      key: '3',
+      label: usageTab,
+      children: <UsageTab datasetId={id} />,
+    },
+  ];
+
+  return <StyledTabs moreIcon={null} items={items} />;
 };
 
 export default EditPage;
