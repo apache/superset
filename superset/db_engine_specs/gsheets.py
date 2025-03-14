@@ -167,6 +167,19 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     ) -> str:
         return "gsheets://"
 
+    @staticmethod
+    def update_params_from_encrypted_extra(
+        database: Database,
+        params: dict[str, Any],
+    ) -> None:
+        """
+        Remove `oauth2_client_info` from `encrypted_extra`.
+        """
+        ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
+
+        if "oauth2_client_info" in params:
+            del params["oauth2_client_info"]
+
     @classmethod
     def get_parameters_from_uri(
         cls,

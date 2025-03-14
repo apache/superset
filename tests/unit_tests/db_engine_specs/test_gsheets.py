@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, line-too-long
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
@@ -670,3 +670,23 @@ def test_get_oauth2_fresh_token(
         },
         timeout=30.0,
     )
+
+
+def test_update_params_from_encrypted_extra(mocker: MockerFixture) -> None:
+    """
+    Test `update_params_from_encrypted_extra`.
+    """
+    from superset.db_engine_specs.gsheets import GSheetsEngineSpec
+
+    database = mocker.MagicMock(
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": "SECRET",
+                "foo": "bar",
+            }
+        )
+    )
+    params: dict[str, Any] = {}
+
+    GSheetsEngineSpec.update_params_from_encrypted_extra(database, params)
+    assert params == {"foo": "bar"}
