@@ -358,7 +358,7 @@ const Chart = props => {
       });
       exportChart({
         formData: isFullCSV
-          ? { ...formData, row_limit: props.maxRows }
+          ? { ...this.props.formData, row_limit: this.props.maxRows, isFull:isFullCSV }
           : formData,
         resultType: isPivot ? 'post_processed' : 'full',
         resultFormat: format,
