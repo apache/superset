@@ -1061,15 +1061,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
         options={[
-          [...(availableDbs?.databases || [])]
-            ?.sort((a: DatabaseForm, b: DatabaseForm) =>
+          ...(availableDbs?.databases || [])
+            .sort((a: DatabaseForm, b: DatabaseForm) =>
               a.name.localeCompare(b.name),
             )
-            .map((database: DatabaseForm) => ({
+            .map((database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
+              key: `database-${index}`,
             })),
-          { value: 'Other', label: t('Other') },
+          { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
         showSearch
       />

@@ -197,9 +197,8 @@ const Select = forwardRef(
       // check to see if selectOptions are grouped
       let groupedOptions: SelectOptionsType;
       if (selectOptions.some(opt => opt.options)) {
-        // @ts-ignore
         groupedOptions = selectOptions.reduce(
-          (acc, group) => [...acc, ...group.options],
+          (acc, group) => [...acc, ...(group.options as SelectOptionsType)],
           [] as SelectOptionsType,
         );
       }
