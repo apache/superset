@@ -444,8 +444,8 @@ def test_import(
     )
 
     command.assert_called_with(
-        encrypted_extras=None,
         contents,
+        encrypted_extras=None,
         passwords=None,
         overwrite=False,
         ssh_tunnel_passwords=None,
