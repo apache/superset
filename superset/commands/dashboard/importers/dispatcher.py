@@ -62,7 +62,7 @@ class ImportDashboardsCommand(BaseCommand):
                 # found right version, but file is invalid
                 logger.info("Command failed validation")
                 raise
-            except Exception:
+            except Exception as ex:
                 # validation succeeded but something went wrong
                 logger.exception("Error running import command")
                 raise

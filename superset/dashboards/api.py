@@ -1380,6 +1380,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             else None
         )
         overwrite = request.form.get("overwrite") == "true"
+        sparse = request.form.get("sparse") == "true"
 
         ssh_tunnel_passwords = (
             json.loads(request.form["ssh_tunnel_passwords"])
@@ -1401,6 +1402,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             contents,
             passwords=passwords,
             overwrite=overwrite,
+            sparse=sparse,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,

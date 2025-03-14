@@ -46,6 +46,9 @@ from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import dashboard_slices
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 from superset.utils.decorators import on_error, transaction
+from superset.models.core import Database
+from superset.models.slice import Slice
+from superset.models.dashboard import Dashboard
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -81,9 +84,15 @@ class ImportAssetsCommand(BaseCommand):
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any]) -> None:
+    def _import(configs: dict[str, Any], sparse: bool = False) -> None:
         # import databases first
         database_ids: dict[str, int] = {}
+        dataset_info: dict[str, dict[str, Any]] = {}
+        chart_ids: dict[str, int] = {}
+
+        if sparse:
+            existing = db.session.query(Database)
+
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
                 database = import_database(config, overwrite=True)
@@ -96,7 +105,6 @@ class ImportAssetsCommand(BaseCommand):
                 import_saved_query(config, overwrite=True)
 
         # import datasets
-        dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
@@ -109,7 +117,6 @@ class ImportAssetsCommand(BaseCommand):
 
         # import charts
         charts = []
-        chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 dataset_dict = dataset_info[config["dataset_uuid"]]

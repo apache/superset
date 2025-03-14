@@ -40,6 +40,9 @@ from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.migrations.shared.native_filters import migrate_dashboard
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
+from superset.models.core import Database
+from superset.connectors.sqla.models import SqlaTable
 
 
 class ImportDashboardsCommand(ImportModelsCommand):
@@ -59,10 +62,27 @@ class ImportDashboardsCommand(ImportModelsCommand):
     # TODO (betodealmeida): refactor to use code from other commands
     # pylint: disable=too-many-branches, too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any], overwrite: bool = False) -> None:
+    def _import(configs: dict[str, Any], overwrite: bool = False, sparse: bool = False) -> None:
         # discover charts and datasets associated with dashboards
         chart_uuids: set[str] = set()
         dataset_uuids: set[str] = set()
+        database_uuids: set[str] = set()
+
+        chart_ids: dict[str, int] = {}
+
+        if sparse:
+            print("hello world")
+
+        existing_charts = db.session.query(Slice).all()
+        charts_uuids = { str(x.uuid) for x in existing_charts }
+        chart_ids = { str(x.uuid): x.id for x in existing_charts }
+
+        existing_datasets = db.session.query(SqlaTable).all()
+        dataset_uuids = { str(x.uuid) for x in existing_datasets }
+        existing_databases = db.session.query(Database).all()
+        database_uuids = { str(x.uuid) for x in existing_databases }
+
+
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 chart_uuids.update(find_chart_uuids(config["position"]))
@@ -76,7 +96,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
                 dataset_uuids.add(config["dataset_uuid"])
 
         # discover databases associated with datasets
-        database_uuids: set[str] = set()
         for file_name, config in configs.items():
             if file_name.startswith("datasets/") and config["uuid"] in dataset_uuids:
                 database_uuids.add(config["database_uuid"])
@@ -105,7 +124,6 @@ class ImportDashboardsCommand(ImportModelsCommand):
 
         # import charts with the correct parent ref
         charts = []
-        chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if (
                 file_name.startswith("charts/")
