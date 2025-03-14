@@ -3168,6 +3168,12 @@ class TestDatabaseApi(SupersetTestCase):
 
         db_config = {
             "database_name": "DB with expand rows enabled",
+            "allow_csv_upload": True,
+            "allow_ctas": True,
+            "allow_cvas": True,
+            "allow_dml": True,
+            "allow_run_async": False,
+            "cache_timeout": None,
             "expose_in_sqllab": True,
             "extra": {
                 "schema_options": {"expand_rows": True},
