@@ -197,7 +197,7 @@ class TestLogApi(SupersetTestCase):
         assert response == {
             "result": [
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash_slug/",
                     "item_title": "dash_title",
@@ -316,7 +316,7 @@ class TestLogApi(SupersetTestCase):
         assert response == {
             "result": [
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash3_slug/",
                     "item_title": "dash3_title",
@@ -324,7 +324,7 @@ class TestLogApi(SupersetTestCase):
                     "time_delta_humanized": ANY,
                 },
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash2_slug/",
                     "item_title": "dash2_title",
@@ -351,7 +351,7 @@ class TestLogApi(SupersetTestCase):
         assert response == {
             "result": [
                 {
-                    "action": "dashboard",
+                    "action": "log",
                     "item_type": "dashboard",
                     "item_url": "/superset/dashboard/dash_slug/",
                     "item_title": "dash_title",
