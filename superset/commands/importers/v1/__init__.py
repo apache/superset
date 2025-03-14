@@ -60,6 +60,7 @@ class ImportModelsCommand(BaseCommand):
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
         self.overwrite: bool = kwargs.get("overwrite", False)
+        self.sparse: bool = kwargs.get("sparse", False)
         self._configs: dict[str, Any] = {}
 
     @staticmethod
@@ -79,6 +80,7 @@ class ImportModelsCommand(BaseCommand):
         except CommandException:
             raise
         except Exception as ex:
+            logging.exception(ex)
             raise self.import_error() from ex
 
     def validate(self) -> None:  # noqa: F811

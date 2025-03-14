@@ -48,7 +48,7 @@ from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 from superset.utils.decorators import on_error, transaction
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.models.dashboard import Dashboard
+from superset.connectors.sqla.models import SqlaTable
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -81,6 +81,7 @@ class ImportAssetsCommand(BaseCommand):
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
         self._configs: dict[str, Any] = {}
+        self.sparse = kwargs.get("sparse", False)
 
     # pylint: disable=too-many-locals
     @staticmethod
@@ -91,7 +92,17 @@ class ImportAssetsCommand(BaseCommand):
         chart_ids: dict[str, int] = {}
 
         if sparse:
-            existing = db.session.query(Database)
+            existing_charts = db.session.query(Slice).all()
+            existing_datasets = db.session.query(SqlaTable).all()
+            existing_databases = db.session.query(Database).all()
+            chart_ids = { str(x.uuid): x.id for x in existing_charts }
+            database_ids = { str(x.uuid): x.id for x in existing_databases }
+            for x in existing_datasets:
+                dataset_info[str(x.uuid)] = {
+                    "datasource_id": x.id,
+                    "datasource_type": x.datasource_type,
+                    "datasource_name": x.datasource_name,
+                }
 
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
@@ -171,7 +182,7 @@ class ImportAssetsCommand(BaseCommand):
     )
     def run(self) -> None:
         self.validate()
-        self._import(self._configs)
+        self._import(self._configs, self.sparse)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
