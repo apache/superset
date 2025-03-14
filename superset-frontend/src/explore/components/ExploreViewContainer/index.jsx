@@ -359,7 +359,9 @@ function ExploreViewContainer(props) {
   }
 
   useComponentDidMount(() => {
-    props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER);
+    props.actions.logEvent(LOG_ACTIONS_MOUNT_EXPLORER, {
+      slice_id: props.slice.slice_id,
+    });
   });
 
   useChangeEffect(tabId, (previous, current) => {
