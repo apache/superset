@@ -452,7 +452,7 @@ cd ../
 
 
 # Compile translations for the backend
-./scripts/translations/generate_po_files.sh
+./scripts/translations/generate_mo_files.sh
 
 # build the python distribution
 python -m build
