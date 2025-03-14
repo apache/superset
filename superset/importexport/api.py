@@ -177,6 +177,7 @@ class ImportExportRestApi(BaseSupersetApi):
 
         if not contents:
             raise NoValidFilesFoundError()
+        sparse = request.form.get("sparse") == "true"
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -201,6 +202,7 @@ class ImportExportRestApi(BaseSupersetApi):
 
         command = ImportAssetsCommand(
             contents,
+            sparse=sparse,
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,

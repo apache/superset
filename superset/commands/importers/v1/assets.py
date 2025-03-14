@@ -40,11 +40,14 @@ from superset.commands.importers.v1.utils import (
 )
 from superset.commands.query.importers.v1.utils import import_saved_query
 from superset.commands.utils import update_chart_config_dataset
+from superset.connectors.sqla.models import SqlaTable
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.migrations.shared.native_filters import migrate_dashboard
+from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
+from superset.models.slice import Slice
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
 from superset.utils.decorators import on_error, transaction
 
@@ -79,12 +82,29 @@ class ImportAssetsCommand(BaseCommand):
             kwargs.get("ssh_tunnel_priv_key_passwords") or {}
         )
         self._configs: dict[str, Any] = {}
+        self.sparse = kwargs.get("sparse", False)
 
     # pylint: disable=too-many-locals
     @staticmethod
-    def _import(configs: dict[str, Any]) -> None:  # noqa: C901
+    def _import(configs: dict[str, Any], sparse: bool = False) -> None:  # noqa: C901
         # import databases first
         database_ids: dict[str, int] = {}
+        dataset_info: dict[str, dict[str, Any]] = {}
+        chart_ids: dict[str, int] = {}
+
+        if sparse:
+            existing_charts = db.session.query(Slice).all()
+            existing_datasets = db.session.query(SqlaTable).all()
+            existing_databases = db.session.query(Database).all()
+            chart_ids = {str(x.uuid): x.id for x in existing_charts}
+            database_ids = {str(x.uuid): x.id for x in existing_databases}
+            for x in existing_datasets:
+                dataset_info[str(x.uuid)] = {
+                    "datasource_id": x.id,
+                    "datasource_type": x.datasource_type,
+                    "datasource_name": x.datasource_name,
+                }
+
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):
                 database = import_database(config, overwrite=True)
@@ -97,7 +117,6 @@ class ImportAssetsCommand(BaseCommand):
                 import_saved_query(config, overwrite=True)
 
         # import datasets
-        dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
@@ -110,7 +129,6 @@ class ImportAssetsCommand(BaseCommand):
 
         # import charts
         charts = []
-        chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
@@ -161,7 +179,7 @@ class ImportAssetsCommand(BaseCommand):
     )
     def run(self) -> None:
         self.validate()
-        self._import(self._configs)
+        self._import(self._configs, self.sparse)
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
