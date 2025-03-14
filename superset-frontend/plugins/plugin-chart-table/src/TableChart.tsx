@@ -605,9 +605,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
-    // Retrieve the originalLabel from the first column in this group
-    const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
-    
+      // Retrieve the originalLabel from the first column in this group
+      const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
+
+      if (!columnsMeta[columnIndex]?.originalLabel) {
+        console.debug(
+          `originalLabel not found for column at index ${columnIndex}, using key as fallback`,
+        );
+      }
+
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
         headers.push(
