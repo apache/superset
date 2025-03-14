@@ -92,10 +92,10 @@ describe('Color scheme control', () => {
 
   it('should show color options with and without tooltips', () => {
     cy.get('#controlSections-tab-display').click();
-    cy.get('.ant-select-selection-item .color-scheme-label').contains(
+    cy.get('.antd5-select-selection-item .color-scheme-label').contains(
       'Superset Colors',
     );
-    cy.get('.ant-select-selection-item .color-scheme-label').trigger(
+    cy.get('.antd5-select-selection-item .color-scheme-label').trigger(
       'mouseover',
     );
     cy.get('.color-scheme-tooltip').should('be.visible');

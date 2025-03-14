@@ -228,7 +228,7 @@ describe('Horizontal FilterBar', () => {
     });
     cy.getBySel('filter-status-popover').contains('test_9').click();
     cy.getBySel('dropdown-content').should('be.visible');
-    cy.get('.ant-select-focused').should('be.visible');
+    cy.get('.antd5-select-focused').should('be.visible');
   });
 
   it.skip('should show tag count and one plain tag on focus and only count on blur in select ', () => {
@@ -238,13 +238,13 @@ describe('Horizontal FilterBar', () => {
     setFilterBarOrientation('horizontal');
     enterNativeFilterEditModal();
     inputNativeFilterDefaultValue('Albania');
-    cy.get('.ant-select-selection-search-input').clear({ force: true });
+    cy.get('.antd5-select-selection-search-input').clear({ force: true });
     inputNativeFilterDefaultValue('Algeria', true);
     saveNativeFilterSettings([SAMPLE_CHART]);
     cy.getBySel('filter-bar').within(() => {
       cy.get(nativeFilters.filterItem).contains('Albania').should('be.visible');
       cy.get(nativeFilters.filterItem).contains('+ 1 ...').should('be.visible');
-      cy.get('.ant-select-selection-search-input').click();
+      cy.get('.antd5-select-selection-search-input').click();
       cy.get(nativeFilters.filterItem).contains('+ 2 ...').should('be.visible');
     });
   });

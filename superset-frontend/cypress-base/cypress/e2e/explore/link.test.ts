@@ -124,7 +124,7 @@ describe('Test explore links', () => {
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}`, { force: true });
 
-    cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
+    cy.get(`.antd5-select-item[title="${dashboardTitle}"]`).click({
       force: true,
     });
 
@@ -157,7 +157,7 @@ describe('Test explore links', () => {
       .find('input[aria-label="Select a dashboard"]')
       .type(`${dashboardTitle}{enter}`, { force: true });
 
-    cy.get(`.ant-select-item[title="${dashboardTitle}"]`).click({
+    cy.get(`.antd5-select-item[title="${dashboardTitle}"]`).click({
       force: true,
     });
 

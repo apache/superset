@@ -35,8 +35,8 @@ export function toggleBulkSelect() {
 
 export function clearAllInputs() {
   cy.get('body').then($body => {
-    if ($body.find('.ant-select-clear').length) {
-      cy.get('.ant-select-clear').click({ multiple: true, force: true });
+    if ($body.find('.antd5-select-clear').length) {
+      cy.get('.antd5-select-clear').click({ multiple: true, force: true });
     }
   });
 }
