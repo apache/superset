@@ -56,6 +56,7 @@ export interface DataColumnMeta {
   key: string;
   // `label` is verbose column name used for rendering
   label: string;
+  originalLabel?: string;
   dataType: GenericDataType;
   formatter?:
     | TimeFormatter

@@ -605,7 +605,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Calculate the number of placeholder columns needed before the current header
       const startPosition = value[0];
       const colSpan = value.length;
-
+    // Retrieve the originalLabel from the first column in this group
+    const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
+    
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
         headers.push(
@@ -620,7 +622,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Add the current header <th>
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
-          {key}
+          {originalLabel}
           <span
             css={css`
               float: right;
