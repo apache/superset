@@ -57,7 +57,6 @@ export {
   Collapse as AntdCollapse,
   Form as AntdForm,
   Input as AntdInput,
-  Select as AntdSelect,
   Slider as AntdSlider,
   Tabs as AntdTabs,
   Tooltip as AntdTooltip,

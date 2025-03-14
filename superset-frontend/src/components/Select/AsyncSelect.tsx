@@ -37,7 +37,10 @@ import {
   usePrevious,
   getClientErrorObject,
 } from '@superset-ui/core';
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
+import {
+  LabeledValue as AntdLabeledValue,
+  RefSelectProps,
+} from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
 import Icons from 'src/components/Icons';
 import { FAST_DEBOUNCE, SLOW_DEBOUNCE } from 'src/constants';
@@ -219,7 +222,9 @@ const AsyncSelect = forwardRef(
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
         .map(opt =>
-          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
+          isLabeledValue(opt)
+            ? { value: opt.value, label: opt.label }
+            : { value: opt, label: String(opt) },
         );
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)
@@ -533,7 +538,7 @@ const AsyncSelect = forwardRef(
     useImperativeHandle(
       ref,
       () => ({
-        ...(ref.current as HTMLInputElement),
+        ...(ref.current as RefSelectProps),
         clearCache,
       }),
       [ref],
@@ -623,7 +628,6 @@ const AsyncSelect = forwardRef(
           options={shouldRenderChildrenOptions ? undefined : fullSelectOptions}
           placeholder={placeholder}
           showSearch={showSearch}
-          showArrow
           tokenSeparators={tokenSeparators}
           value={selectValue}
           suffixIcon={getSuffixIcon(isLoading, showSearch, isDropdownVisible)}

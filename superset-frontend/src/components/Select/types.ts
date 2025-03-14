@@ -16,19 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  JSXElementConstructor,
-  ReactElement,
-  ReactNode,
-  RefObject,
-} from 'react';
+import { JSXElementConstructor, ReactElement, ReactNode, Ref } from 'react';
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
-import { TagProps } from 'antd/lib/tag';
-import { Interpolation, Theme } from '@emotion/react';
+  RefSelectProps,
+} from 'antd-v5/es/select';
+import { TagProps } from 'antd-v5/es/tag';
+import { Interpolation } from '@emotion/styled';
+import { Theme } from '@emotion/react';
 
 export type RawValue = string | number;
 
@@ -43,6 +40,8 @@ export type AntdExposedProps = Pick<
   | 'allowClear'
   | 'autoClearSearchValue'
   | 'autoFocus'
+  | 'className'
+  | 'defaultValue'
   | 'disabled'
   | 'filterOption'
   | 'filterSort'
@@ -153,7 +152,7 @@ export interface BaseSelectProps extends AntdExposedProps {
 
   suffixIcon?: ReactNode;
 
-  ref: RefObject<HTMLInputElement>;
+  ref: Ref<RefSelectProps>;
 }
 
 export interface SelectProps extends BaseSelectProps {
@@ -170,7 +169,9 @@ export interface SelectProps extends BaseSelectProps {
   options: SelectOptionsType;
 }
 
-export type AsyncSelectRef = HTMLInputElement & { clearCache: () => void };
+export type AsyncSelectRef = RefSelectProps & {
+  clearCache: () => void;
+};
 
 export type SelectOptionsTypePage = {
   data: SelectOptionsType;

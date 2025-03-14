@@ -44,7 +44,7 @@ export const GlobalStyles = () => (
       // Prefer vanilla Ant Design z-indexes that should work out of the box
       .antd5-dropdown,
       .ant-dropdown,
-      .ant-select-dropdown,
+      .antd5-select-dropdown,
       .antd5-modal-wrap,
       .antd5-modal-mask,
       .antd5-picker-dropdown,
