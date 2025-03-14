@@ -44,7 +44,7 @@ def test_escape_value():
     assert result == "'+value"
 
     result = csv.escape_value("-value")
-    assert result == "-value"
+    assert result == "'-value"
 
     result = csv.escape_value("=value")
     assert result == "'=value"
