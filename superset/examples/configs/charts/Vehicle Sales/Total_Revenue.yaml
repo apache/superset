@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Total Revenue
-viz_type: big_number_total
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number
 params:
-  adhoc_filters: []
-  datasource: 23__table
-  granularity_sqla: order_date
-  header_font_size: 0.4
+  datasource: 21__table
+  viz_type: big_number
+  slice_id: 114
+  x_axis: order_date
   metric:
     aggregate: SUM
     column:
@@ -41,14 +44,35 @@ params:
     label: (Sales)
     optionName: metric_twq59hf4ej_g70qjfmehsq
     sqlExpression: null
-  queryFields:
-    metric: metrics
-  subheader: ''
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  show_trend_line: true
+  start_y_axis_at_zero: true
+  color_picker:
+    a: 1
+    b: 135
+    g: 122
+    r: 0
+  header_font_size: 0.4
   subheader_font_size: 0.15
-  time_range: No filter
-  url_params: {}
-  viz_type: big_number_total
-  y_axis_format: $,.2f
+  y_axis_format: .3s
+  currency_format:
+    symbolPosition: prefix
+    symbol: USD
+  time_format: smart_date
+  rolling_type: cumsum
+  extra_form_data: {}
+  dashboards:
+  - 9
+query_context: '{"datasource":{"id":21,"type":"table"},"force":false,"queries":[{"filters":[{"col":"order_date","op":"TEMPORAL_RANGE","val":"No
+  filter"}],"extras":{"having":"","where":""},"applied_time_extras":{},"columns":[{"columnType":"BASE_AXIS","sqlExpression":"order_date","label":"order_date","expressionType":"SQL"}],"metrics":[{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"(Sales)","optionName":"metric_twq59hf4ej_g70qjfmehsq","sqlExpression":null}],"annotation_layers":[],"series_limit":0,"order_desc":true,"url_params":{},"custom_params":{},"custom_form_data":{},"post_processing":[{"operation":"pivot","options":{"index":["order_date"],"columns":[],"aggregates":{"(Sales)":{"operator":"mean"}},"drop_missing_columns":true}},{"operation":"cum","options":{"operator":"sum","columns":{"(Sales)":"(Sales)"}}},{"operation":"flatten"}]}],"form_data":{"datasource":"21__table","viz_type":"big_number","slice_id":114,"x_axis":"order_date","metric":{"aggregate":"SUM","column":{"column_name":"sales","description":null,"expression":null,"filterable":true,"groupby":true,"id":917,"is_dttm":false,"optionName":"_col_Sales","python_date_format":null,"type":"DOUBLE
+  PRECISION","verbose_name":null},"expressionType":"SIMPLE","hasCustomLabel":false,"isNew":false,"label":"(Sales)","optionName":"metric_twq59hf4ej_g70qjfmehsq","sqlExpression":null},"adhoc_filters":[{"clause":"WHERE","comparator":"No
+  filter","expressionType":"SIMPLE","operator":"TEMPORAL_RANGE","subject":"order_date"}],"show_trend_line":true,"start_y_axis_at_zero":true,"color_picker":{"a":1,"b":135,"g":122,"r":0},"header_font_size":0.4,"subheader_font_size":0.15,"y_axis_format":".3s","currency_format":{"symbolPosition":"prefix","symbol":"USD"},"time_format":"smart_date","rolling_type":"cumsum","extra_form_data":{},"dashboards":[9],"force":false,"result_format":"json","result_type":"full"},"result_format":"json","result_type":"full"}'
 cache_timeout: null
 uuid: 7b12a243-88e0-4dc5-ac33-9a840bb0ac5a
 version: 1.0.0

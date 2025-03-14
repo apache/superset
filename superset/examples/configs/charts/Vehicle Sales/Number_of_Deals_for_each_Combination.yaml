@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 slice_name: Number of Deals (for each Combination)
+description: null
+certified_by: null
+certification_details: null
 viz_type: heatmap_v2
 params:
   adhoc_filters: []
@@ -42,10 +45,12 @@ params:
   viz_type: heatmap_v2
   xscale_interval: null
   value_bounds:
-    - null
-    - null
+  - null
+  - null
   y_axis_format: SMART_NUMBER
   yscale_interval: null
+  annotation_layers: []
+query_context: null
 cache_timeout: null
 uuid: bd20fc69-dd51-46c1-99b5-09e37a434bf1
 version: 1.0.0
