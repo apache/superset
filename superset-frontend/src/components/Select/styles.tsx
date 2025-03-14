@@ -57,6 +57,7 @@ export const StyledSelect = styled(Select, {
       display: block !important;
     }
     .select-all {
+      border-radius: 0;
       border-bottom: 1px solid ${theme.colors.grayscale.light3};
     }
     ${
