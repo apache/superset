@@ -479,11 +479,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         self.db_engine_spec.validate_database_uri(sqlalchemy_url)
 
         extra = self.get_extra(source)
-        params = extra.get("engine_params", {})
+        engine_kwargs = extra.get("engine_params", {})
         if nullpool:
-            params["poolclass"] = NullPool
-        connect_args = params.get("connect_args", {})
+            engine_kwargs["poolclass"] = NullPool
+        connect_args = engine_kwargs.setdefault("connect_args", {})
 
+        # modify URL/args for a specific catalog/schema
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
@@ -508,46 +509,32 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
             if oauth2_config and hasattr(g, "user") and hasattr(g.user, "id")
             else None
         )
-        # If using MySQL or Presto for example, will set url.username
-        # If using Hive, will not do anything yet since that relies on a
-        # configuration parameter instead.
-        sqlalchemy_url = self.db_engine_spec.get_url_for_impersonation(
-            sqlalchemy_url,
-            self.impersonate_user,
-            effective_username,
-            access_token,
-        )
-
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
         if self.impersonate_user:
-            # PR #30674 changed the signature of the method to include database.
-            # This ensures that the change is backwards compatible
-            args = [connect_args, str(sqlalchemy_url), effective_username, access_token]
-            args = self.add_database_to_signature(
-                self.db_engine_spec.update_impersonation_config,
-                args,
+            sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
+                self,
+                effective_username,
+                access_token,
+                sqlalchemy_url,
+                engine_kwargs,
             )
-            self.db_engine_spec.update_impersonation_config(*args)
 
-        if connect_args:
-            params["connect_args"] = connect_args
-
-        self.update_params_from_encrypted_extra(params)
+        self.update_params_from_encrypted_extra(engine_kwargs)
 
         if DB_CONNECTION_MUTATOR:
             source = source or get_query_source_from_request()
 
-            sqlalchemy_url, params = DB_CONNECTION_MUTATOR(
+            sqlalchemy_url, engine_kwargs = DB_CONNECTION_MUTATOR(
                 sqlalchemy_url,
-                params,
+                engine_kwargs,
                 effective_username,
                 security_manager,
                 source,
             )
         try:
-            return create_engine(sqlalchemy_url, **params)
+            return create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
 

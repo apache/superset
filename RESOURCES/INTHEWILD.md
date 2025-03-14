@@ -89,6 +89,7 @@ Join our growing community!
 - [Astronomer](https://www.astronomer.io) [@ryw]
 - [Avesta Technologies](https://avestatechnologies.com/) [@TheRum]
 - [Caizin](https://caizin.com/) [@tejaskatariya]
+- [Canonical](https://canonical.com)
 - [Careem](https://www.careem.com/) [@samraHanif0340]
 - [Cloudsmith](https://cloudsmith.io) [@alancarson]
 - [Cyberhaven](https://www.cyberhaven.com/) [@toliver-ch]
@@ -206,6 +207,7 @@ Join our growing community!
 - [AI inside](https://inside.ai/en/)
 - [Automattic](https://automattic.com/) [@Khrol, @Usiel]
 - [Dropbox](https://www.dropbox.com/) [@bkyryliuk]
+- [Flowbird](https://flowbird.com) [@EmmanuelCbd]
 - [GEOTAB](https://www.geotab.com) [@JZ6]
 - [Grassroot](https://www.grassrootinstitute.org/)
 - [Increff](https://www.increff.com/) [@ishansinghania]

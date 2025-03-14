@@ -496,9 +496,9 @@ def test_upload_existing(mocker: MockerFixture) -> None:
     )
 
 
-def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
+def test_impersonate_user_username(mocker: MockerFixture) -> None:
     """
-    Test passing a username to `get_url_for_impersonation`.
+    Test passing a username to `impersonate_user`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
@@ -508,27 +508,32 @@ def test_get_url_for_impersonation_username(mocker: MockerFixture) -> None:
         "superset.db_engine_specs.gsheets.security_manager.find_user",
         return_value=user,
     )
+    database = mocker.MagicMock()
 
-    assert GSheetsEngineSpec.get_url_for_impersonation(
-        url=make_url("gsheets://"),
-        impersonate_user=True,
+    assert GSheetsEngineSpec.impersonate_user(
+        database,
         username="alice",
-        access_token=None,
-    ) == make_url("gsheets://?subject=alice%40example.org")
+        user_token=None,
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    ) == (make_url("gsheets://?subject=alice%40example.org"), {})
 
 
-def test_get_url_for_impersonation_access_token() -> None:
+def test_impersonate_user_access_token(mocker: MockerFixture) -> None:
     """
-    Test passing an access token to `get_url_for_impersonation`.
+    Test passing an access token to `impersonate_user`.
     """
     from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 
-    assert GSheetsEngineSpec.get_url_for_impersonation(
-        url=make_url("gsheets://"),
-        impersonate_user=True,
+    database = mocker.MagicMock()
+
+    assert GSheetsEngineSpec.impersonate_user(
+        database,
         username=None,
-        access_token="access-token",  # noqa: S106
-    ) == make_url("gsheets://?access_token=access-token")
+        user_token="access-token",  # noqa: S106
+        url=make_url("gsheets://"),
+        engine_kwargs={},
+    ) == (make_url("gsheets://?access_token=access-token"), {})
 
 
 def test_is_oauth2_enabled_no_config(mocker: MockerFixture) -> None:
