@@ -273,7 +273,7 @@ test('render time filter types as disabled if there are no temporal columns in t
   const timeRange = await screen.findByText(TIME_RANGE_REGEX);
   const timeGrain = await screen.findByText(TIME_GRAIN_REGEX);
   const timeColumn = await screen.findByText(TIME_COLUMN_REGEX);
-  const disabledClass = '.antd5-select-item-option-disabled';
+  const disabledClass = '.ant-select-item-option-disabled';
 
   expect(timeRange.closest(disabledClass)).toBeInTheDocument();
   expect(timeGrain.closest(disabledClass)).toBeInTheDocument();

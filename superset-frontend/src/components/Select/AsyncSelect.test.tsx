@@ -124,9 +124,6 @@ const findAllSelectValues = () =>
   waitFor(() => getElementsByClassName('.ant-select-selection-item'));
 
 // Tag sets classname manually.
-const findTagSelectValue = () =>
-  waitFor(() => getElementByClassName('.antd5-select-selection-item'));
-
 const findAllTagSelectValues = () =>
   waitFor(() => [...getElementsByClassName('.antd5-select-selection-item')]);
 

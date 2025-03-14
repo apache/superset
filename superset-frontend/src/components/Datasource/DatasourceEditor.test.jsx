@@ -236,7 +236,7 @@ describe('DatasourceEditor RTL', () => {
     expect(
       await waitFor(() =>
         document.querySelector(
-          `[aria-label='Currency prefix or suffix'] .antd5-select-selection-item`,
+          `[aria-label='Currency prefix or suffix'] .ant-select-selection-item`,
         ),
       ),
     ).toHaveTextContent('Prefix');
@@ -245,7 +245,7 @@ describe('DatasourceEditor RTL', () => {
     );
     const positionOptions = await waitFor(() =>
       document.querySelectorAll(
-        `[aria-label='Currency prefix or suffix'] .antd5-select-item-option-content`,
+        `[aria-label='Currency prefix or suffix'] .ant-select-item-option-content`,
       ),
     );
     expect(positionOptions[0]).toHaveTextContent('Prefix');
@@ -266,7 +266,7 @@ describe('DatasourceEditor RTL', () => {
     expect(
       await waitFor(() =>
         document.querySelector(
-          `[aria-label='Currency symbol'] .antd5-select-selection-item`,
+          `[aria-label='Currency symbol'] .ant-select-selection-item`,
         ),
       ),
     ).toHaveTextContent('$ (USD)');
@@ -277,7 +277,7 @@ describe('DatasourceEditor RTL', () => {
     );
     const symbolOptions = await waitFor(() =>
       document.querySelectorAll(
-        `[aria-label='Currency symbol'] .antd5-select-item-option-content`,
+        `[aria-label='Currency symbol'] .ant-select-item-option-content`,
       ),
     );
     expect(symbolOptions[0]).toHaveTextContent('$ (USD)');

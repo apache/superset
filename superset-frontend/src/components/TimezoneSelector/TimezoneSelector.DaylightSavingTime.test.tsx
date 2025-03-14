@@ -55,7 +55,7 @@ test('render timezones in correct order for daylight saving time', async () => {
   userEvent.click(searchInput);
 
   const options = await waitFor(() =>
-    document.querySelectorAll('.antd5-select-item-option-content'),
+    document.querySelectorAll('.ant-select-item-option-content'),
   );
 
   // first option is always current timezone

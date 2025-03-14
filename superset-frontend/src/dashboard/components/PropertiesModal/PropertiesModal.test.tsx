@@ -381,9 +381,7 @@ describe('PropertiesModal', () => {
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
     const findAllSelectOptions = () =>
-      waitFor(() =>
-        getElementsByClassName('.antd5-select-item-option-content'),
-      );
+      waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
@@ -416,9 +414,7 @@ describe('PropertiesModal', () => {
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
     const findAllSelectOptions = () =>
-      waitFor(() =>
-        getElementsByClassName('.antd5-select-item-option-content'),
-      );
+      waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
@@ -451,9 +447,7 @@ describe('PropertiesModal', () => {
       document.querySelectorAll(className)! as NodeListOf<HTMLElement>;
 
     const findAllSelectOptions = () =>
-      waitFor(() =>
-        getElementsByClassName('.antd5-select-item-option-content'),
-      );
+      waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
     render(<PropertiesModal {...propsWithDashboardInfo} />, {
       useRedux: true,
