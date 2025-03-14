@@ -29,30 +29,6 @@
 /** @type {import('eslint').Rule.RuleModule} */
 module.exports = {
   rules: {
-    'no-direct-ant-icons-import': {
-      meta: {
-        type: 'problem',
-        docs: {
-          description:
-            'Warn when importing icons directly from @ant-design/icons',
-          category: 'Best Practices',
-        },
-        schema: [],
-      },
-      create(context) {
-        return {
-          ImportDeclaration(node) {
-            if (node.source.value.startsWith('@ant-design/icons')) {
-              context.report({
-                node,
-                message:
-                  "Avoid importing icons directly from '@ant-design/icons'. Use the src/components/Icons component instead.",
-              });
-            }
-          },
-        };
-      },
-    },
     'no-fa-icons-usage': {
       meta: {
         type: 'problem',

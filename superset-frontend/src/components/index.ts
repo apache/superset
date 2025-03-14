@@ -50,8 +50,10 @@ export { Upload } from 'antd';
  * listed below may need review. Avoid incrementing this list by using
  * or extending the components in src/components.
  */
+// TODO: Remove these imports
+// eslint-disable-next-line no-restricted-imports
 export {
-  Breadcrumb as AntdBreadcrumb, // TODO: Make this a real Component
+  Breadcrumb as AntdBreadcrumb,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
