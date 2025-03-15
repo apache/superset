@@ -16,11 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import { ReactNode, useCallback, useMemo } from 'react';
 import { Global } from '@emotion/react';
 import { css, useTheme } from '@superset-ui/core';
 
-import type { Column } from 'ag-grid-community';
+import type { Column, GridOptions } from 'ag-grid-community';
 import { AgGridReact, type AgGridReactProps } from 'ag-grid-react';
 
 import 'ag-grid-community/styles/ag-grid.css';
@@ -56,7 +56,7 @@ export interface TableProps<RecordType> {
     headerName?: string;
     width?: number;
     comparator?: (valueA: string | number, valueB: string | number) => number;
-    render?: (value: any) => React.ReactNode;
+    render?: (value: any) => ReactNode;
   }[];
 
   size?: GridSize;
@@ -132,7 +132,7 @@ function GridTable<RecordType extends object>({
           field: PIVOT_COL_ID,
           valueGetter: 'node.rowIndex+1',
           cellClass: 'locked-col',
-          width: 20 + rowIndexLength * 6,
+          width: 30 + rowIndexLength * 6,
           suppressNavigable: true,
           resizable: false,
           pinned: 'left' as const,
@@ -159,14 +159,29 @@ function GridTable<RecordType extends object>({
       ].slice(showRowNumber ? 0 : 1),
     [rowIndexLength, columnReorderable, columns, showRowNumber, sortable],
   );
-  const defaultColDef: AgGridReactProps['defaultColDef'] = {
-    ...(!columnReorderable && { suppressMovable: true }),
-    resizable: true,
-    sortable,
-    filter: Boolean(enableActions),
-  };
+  const defaultColDef: AgGridReactProps['defaultColDef'] = useMemo(
+    () => ({
+      ...(!columnReorderable && { suppressMovable: true }),
+      resizable: true,
+      sortable,
+      filter: Boolean(enableActions),
+    }),
+    [columnReorderable, enableActions, sortable],
+  );
 
   const rowHeight = theme.gridUnit * (size === GridSize.Middle ? 9 : 7);
+
+  const gridOptions = useMemo<GridOptions>(
+    () => ({
+      enableCellTextSelection: true,
+      ensureDomOrder: true,
+      suppressFieldDotNotation: true,
+      headerHeight: rowHeight,
+      rowSelection: 'multiple',
+      rowHeight,
+    }),
+    [rowHeight],
+  );
 
   return (
     <ErrorBoundary>
@@ -203,7 +218,7 @@ function GridTable<RecordType extends object>({
             overflow: hidden;
           }
           & [role='columnheader']:hover .customHeaderAction {
-            display: block;
+            display: flex;
           }
         `}
       />
@@ -216,6 +231,7 @@ function GridTable<RecordType extends object>({
         `}
       >
         <AgGridReact
+          // TODO: migrate to Theme API - https://www.ag-grid.com/react-data-grid/theming-migration/
           rowData={data}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
@@ -223,14 +239,7 @@ function GridTable<RecordType extends object>({
           isExternalFilterPresent={isExternalFilterPresent}
           doesExternalFilterPass={externalFilter}
           components={gridComponents}
-          gridOptions={{
-            enableCellTextSelection: true,
-            ensureDomOrder: true,
-            suppressFieldDotNotation: true,
-            headerHeight: rowHeight,
-            rowSelection: 'multiple',
-            rowHeight,
-          }}
+          gridOptions={gridOptions}
           onCellKeyDown={onKeyDown}
         />
       </div>

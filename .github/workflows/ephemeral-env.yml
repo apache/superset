@@ -126,7 +126,11 @@ jobs:
               throw new Error("Issue number is not available.");
             }
 
-            const body = `@${user} Processing your ephemeral environment request [here](${workflowUrl}). Action: **${action}**.`;
+            const body = `@${user} Processing your ephemeral environment request [here](${workflowUrl}).` +
+              ` Action: **${action}**.` +
+              ` More information on [how to use or configure ephemeral environments]` +
+              `(https://superset.apache.org/docs/contributing/howtos/#github-ephemeral-environments)`;
+
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -296,7 +300,7 @@ jobs:
       - name: Get network interface
         id: get-eni
         run: |
-          echo "eni=$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks[0].attachments[0].details | map(select(.name==\"networkInterfaceId\"))[0].value')" >> $GITHUB_OUTPUT
+          echo "eni=$(aws ecs describe-tasks --cluster superset-ci --tasks ${{ steps.list-tasks.outputs.task }} | jq '.tasks[0].attachments[0].details | map(select(.name=="networkInterfaceId"))[0].value')" >> $GITHUB_OUTPUT
       - name: Get public IP
         id: get-ip
         run: |
