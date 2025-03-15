@@ -33,7 +33,7 @@ import type { SqlLabRootState } from 'src/SqlLab/types';
 import { Skeleton, AntdBreadcrumb as Breadcrumb, Button } from 'src/components';
 import { Dropdown } from 'src/components/Dropdown';
 import FilterableTable from 'src/components/FilterableTable';
-import Tabs from 'src/components/Tabs';
+import { Tabs } from 'antd-v5';
 import {
   tableApiUtil,
   TableMetaData,
