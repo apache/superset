@@ -57,7 +57,7 @@ import { rgba } from 'emotion-rgba';
 import { kebabCase, isEqual } from 'lodash';
 
 import Collapse from 'src/components/Collapse';
-import Tabs from 'src/components/Tabs';
+import { Tabs } from 'antd-v5';
 import { PluginContext } from 'src/components/DynamicPlugins';
 import Loading from 'src/components/Loading';
 import Modal from 'src/components/Modal';
@@ -139,9 +139,6 @@ const Styles = styled.div`
     height: 100%;
     overflow: visible;
   }
-  .nav-tabs {
-    flex: 0 0 1;
-  }
   .tab-content {
     overflow: auto;
     flex: 1 1 100%;
@@ -156,40 +153,6 @@ const Styles = styled.div`
     text-align: center;
     font-weight: ${({ theme }) => theme.typography.weights.bold};
   }
-`;
-
-const ControlPanelsTabs = styled(Tabs)`
-  ${({ theme, fullWidth }) => css`
-    height: 100%;
-    overflow: visible;
-    .ant-tabs-nav {
-      margin-bottom: 0;
-    }
-    .ant-tabs-nav-list {
-      width: ${fullWidth ? '100%' : '50%'};
-    }
-    .ant-tabs-tabpane {
-      height: 100%;
-    }
-    .ant-tabs-content-holder {
-      padding-top: ${theme.gridUnit * 4}px;
-    }
-
-    .ant-collapse-ghost > .ant-collapse-item {
-      &:not(:last-child) {
-        border-bottom: 1px solid ${theme.colors.grayscale.light3};
-      }
-
-      & > .ant-collapse-header {
-        font-size: ${theme.typography.sizes.s}px;
-      }
-
-      & > .ant-collapse-content > .ant-collapse-content-box {
-        padding-bottom: 0;
-        font-size: ${theme.typography.sizes.s}px;
-      }
-    }
-  `}
 `;
 
 const isTimeSection = (section: ControlPanelSectionConfig): boolean =>
@@ -269,7 +232,7 @@ function useResetOnChangeRef(initialValue: () => any, resetOnChangeValue: any) {
 }
 
 export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
-  const { colors } = useTheme();
+  const { colors, gridUnit } = useTheme();
   const pluginContext = useContext(PluginContext);
 
   const prevState = usePrevious(props.exploreState);
@@ -791,10 +754,11 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   return (
     <Styles ref={containerRef}>
-      <ControlPanelsTabs
+      <Tabs
         id="controlSections"
         data-test="control-tabs"
         fullWidth={showCustomizeTab}
+        tabBarStyle={{ paddingLeft: gridUnit * 4 }}
         allowOverflow={false}
       >
         <Tabs.TabPane key="query" tab={dataTabTitle}>
@@ -818,7 +782,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             </Collapse>
           </Tabs.TabPane>
         )}
-      </ControlPanelsTabs>
+      </Tabs>
       <div css={actionButtonsContainerStyles}>
         <RunQueryButton
           onQuery={props.onQuery}
