@@ -18736,7 +18736,7 @@
           {
             "description": "Table name",
             "in": "query",
-            "name": "table",
+            "name": "name",
             "required": true,
             "schema": {
               "type": "string"
