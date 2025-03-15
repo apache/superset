@@ -333,6 +333,31 @@ const config: Config = {
     //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
     //   async: true,
     // },
+    '/script/matomo.js',
+    {
+      src: 'https://widget.kapa.ai/kapa-widget.bundle.js',
+      async: true,
+      'data-website-id': 'c6a8a8b8-3127-48f9-97a7-51e9e10d20d0',
+      'data-project-name': 'Apache Superset',
+      'data-project-color': '#1AA1C2',
+      'data-project-logo':
+        'https://images.seeklogo.com/logo-png/50/2/superset-icon-logo-png_seeklogo-500354.png',
+      'data-modal-override-open-id': 'ask-ai-input',
+      'data-modal-override-open-class': 'search-input',
+      'data-modal-open-by-default': 'true',
+      'data-modal-disclaimer':
+        'This is a custom LLM for Apache Superset with access to all [documentation](superset.apache.org/docs/intro/), [GitHub Open Issues, PRs and READMEs](github.com/apache/superset).&#10;&#10;Companies deploy assistants like this ([built by kapa.ai](https://kapa.ai)) on docs via [website widget](https://docs.kapa.ai/integrations/website-widget) (Docker, Reddit), in [support forms](https://docs.kapa.ai/integrations/support-form-deflector) for ticket deflection (Monday.com, Mapbox), or as [Slack bots](https://docs.kapa.ai/integrations/slack-bot) with private sources.',
+      'data-modal-example-questions':
+        'How do I use Docker Compose?,How to run Supersets on kubernetes?',
+      'data-button-text-color': '#FFFFFF',
+      'data-modal-header-bg-color': '#1AA1C2',
+      'data-modal-title-color': '#FFFFFF',
+      'data-modal-title': 'Superset Ask AI',
+      'data-modal-disclaimer-text-color': '#000000',
+      'data-consent-required': 'true',
+      'data-consent-screen-disclaimer':
+        "By clicking \"I agree, let's chat\", you consent to the use of the AI assistant in accordance with kapa.ai's [Privacy Policy](https://www.kapa.ai/content/privacy-policy). This service uses reCAPTCHA, which requires your consent to Google's [Privacy Policy](https://policies.google.com/privacy) and [Terms of Service](https://policies.google.com/terms). By proceeding, you explicitly agree to both kapa.ai's and Google's privacy policies.",
+    },
   ],
   customFields: {
     matomoUrl: 'https://analytics.apache.org',
