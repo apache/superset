@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Meta, StoryFn } from '@storybook/react';
+import { StoryFn } from '@storybook/react';
 import AutoComplete, { AntAutoCompleteProps } from './index';
 import { Input } from '../Input';
 
 export default {
   title: 'Components/AutoComplete',
   component: AutoComplete,
-} as Meta;
+};
 
 const getRandomInt = (max: number, min = 0) =>
   Math.floor(Math.random() * (max - min + 1)) + min;

@@ -18,7 +18,7 @@
  */
 import AutoComplete, {
   AutoCompleteProps as AntAutoCompleteProps,
-} from 'antd-v5/lib/auto-complete';
+} from 'antd-v5';
 
 export type { AntAutoCompleteProps };
 
