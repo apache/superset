@@ -86,8 +86,8 @@ export default function Option({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRightOutlined
-            iconSize="l"
+          <Icons.RightOutlined
+            iconSize="m"
             css={css`
               margin-top: ${theme.gridUnit}px;
             `}

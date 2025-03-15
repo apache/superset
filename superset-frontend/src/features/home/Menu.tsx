@@ -123,7 +123,8 @@ const StyledSubMenu = styled(SubMenu)`
   ${({ theme }) => css`
     [data-icon="caret-down"] {
       color: ${theme.colors.grayscale.base};
-      font-size: ${theme.typography.sizes.xs}px
+      font-size: ${theme.typography.sizes.xs}px;
+      margin-left: ${theme.gridUnit}px;
     }
     &.antd5-menu-submenu {
         padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;

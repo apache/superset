@@ -358,7 +358,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconSize='l' />
+              <Icons.Full iconSize="l" />
             </Link>
           </Tooltip>
         ),

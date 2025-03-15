@@ -164,8 +164,8 @@ const ConditionalFormattingControl = ({
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRightOutlined
-                    iconSize="l"
+                  <Icons.RightOutlined
+                    iconSize="m"
                     css={css`
                       margin-top: ${theme.gridUnit}px;
                     `}

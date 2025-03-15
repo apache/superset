@@ -38,7 +38,6 @@ import { AnnotationLayerObject } from 'src/features/annotationLayers/types';
 import { ModifiedInfo } from 'src/components/AuditInfo';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import Icons from 'src/components/Icons';
-import { text } from 'stream/consumers';
 
 const PAGE_SIZE = 25;
 
