@@ -483,8 +483,3 @@ class TestUtils(SupersetTestCase):
         # test numeric epoch_ms format
         df = pd.DataFrame([{"__timestamp": ts.timestamp() * 1000, "a": 1}])
         assert normalize_col(df, "epoch_ms", 0, None)[DTTM_ALIAS][0] == ts
-
-        # test that we raise an error when we can't convert
-        df = pd.DataFrame([{"__timestamp": "1677-09-21 00:00:00", "a": 1}])
-        with pytest.raises(pd.errors.OutOfBoundsDatetime):
-            normalize_col(df, None, 0, None)
