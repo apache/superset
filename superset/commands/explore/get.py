@@ -120,7 +120,7 @@ class GetExploreCommand(BaseCommand, ABC):
 
         if datasource:
             datasource_name = datasource.name
-            security_manager.can_access_datasource(datasource)
+            security_manager.raise_for_access(datasource=datasource)
 
         viz_type = form_data.get("viz_type")
         if not viz_type and datasource and datasource.default_endpoint:
