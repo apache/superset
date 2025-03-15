@@ -89,6 +89,9 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
+    previousPeriodValueEnabled,
+    valueDifferenceEnabled,
+    percentDifferenceEnabled,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
@@ -188,6 +191,9 @@ export default function transformProps(chartProps: ChartProps) {
     compType,
     comparisonColorEnabled,
     comparisonColorScheme,
+    previousPeriodValueEnabled,
+    valueDifferenceEnabled,
+    percentDifferenceEnabled,
     percentDifferenceNumber: percentDifferenceNum,
     currentTimeRangeFilter,
     startDateOffset,
