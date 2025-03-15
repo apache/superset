@@ -608,13 +608,6 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       // Retrieve the originalLabel from the first column in this group
       const originalLabel = columnsMeta[value[0]]?.originalLabel || key;
 
-      if (!columnsMeta[value[0]]?.originalLabel) {
-        // Use a proper logging function if available
-        console.debug(
-          `originalLabel not found for column at index ${value[0]}, using key as fallback`,
-        );
-      }
-
       // Add placeholder <th> for columns before this header
       for (let i = currentColumnIndex; i < startPosition; i += 1) {
         headers.push(
