@@ -72,26 +72,33 @@ const ColumnSelectPopoverTrigger = ({
     setPopoverLabel(initialPopoverLabel);
   }, [initialPopoverLabel, popoverVisible]);
 
-  const togglePopover = useCallback((visible: boolean) => {
-    setPopoverVisible(visible);
-  }, []);
+  const handleTogglePopover = useCallback(
+    (visible: boolean) => {
+      if (isControlledComponent) {
+        props.togglePopover!(visible);
+      } else {
+        setPopoverVisible(visible);
+      }
 
-  const closePopover = useCallback(() => {
-    setPopoverVisible(false);
-  }, []);
+      if (!visible) {
+        setPopoverLabel(initialPopoverLabel);
+        setHasCustomLabel(false);
+      }
+    },
+    [initialPopoverLabel, isControlledComponent, props.togglePopover],
+  );
 
-  const { visible, handleTogglePopover, handleClosePopover } =
-    isControlledComponent
-      ? {
-          visible: props.visible,
-          handleTogglePopover: props.togglePopover!,
-          handleClosePopover: props.closePopover!,
-        }
-      : {
-          visible: popoverVisible,
-          handleTogglePopover: togglePopover,
-          handleClosePopover: closePopover,
-        };
+  const handleClosePopover = useCallback(() => {
+    if (isControlledComponent) {
+      props.closePopover!();
+    } else {
+      setPopoverVisible(false);
+    }
+    setPopoverLabel(initialPopoverLabel);
+    setHasCustomLabel(false);
+  }, [initialPopoverLabel, isControlledComponent, props.closePopover]);
+
+  const visible = isControlledComponent ? props.visible! : popoverVisible;
 
   const getCurrentTab = useCallback((tab: string) => {
     setIsTitleEditDisabled(tab !== editableTitleTab);
