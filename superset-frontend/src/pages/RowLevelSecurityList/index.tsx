@@ -194,7 +194,7 @@ function RowLevelSecurityList(props: RLSProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.DeleteOutlined data-test="rls-list-trash-icon" />
+                        <Icons.DeleteOutlined data-test="rls-list-trash-icon" iconSize='l'/>
                       </span>
                     </Tooltip>
                   )}
@@ -212,7 +212,7 @@ function RowLevelSecurityList(props: RLSProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize='l'/>
                   </span>
                 </Tooltip>
               )}

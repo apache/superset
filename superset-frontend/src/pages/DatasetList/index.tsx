@@ -426,7 +426,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDelete}
                   >
-                    <Icons.DeleteOutlined />
+                    <Icons.DeleteOutlined iconSize='l'/>
                   </span>
                 </Tooltip>
               )}
@@ -442,7 +442,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined />
+                    <Icons.UploadOutlined iconSize='l'/>
                   </span>
                 </Tooltip>
               )}
@@ -464,7 +464,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className={allowEdit ? 'action-button' : 'disabled'}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditOutlined />
+                    <Icons.EditOutlined iconSize='l'/>
                   </span>
                 </Tooltip>
               )}

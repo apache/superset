@@ -442,7 +442,7 @@ function DashboardList(props: DashboardListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.DeleteOutlined data-test="dashboard-list-trash-icon" />
+                        <Icons.DeleteOutlined iconSize='l' data-test="dashboard-list-trash-icon" />
                       </span>
                     </Tooltip>
                   )}
@@ -460,7 +460,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined />
+                    <Icons.UploadOutlined iconSize='l' />
                   </span>
                 </Tooltip>
               )}
@@ -476,7 +476,7 @@ function DashboardList(props: DashboardListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize='l' />
                   </span>
                 </Tooltip>
               )}

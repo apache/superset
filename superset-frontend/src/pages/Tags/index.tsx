@@ -223,7 +223,7 @@ function TagList(props: TagListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.DeleteOutlined data-test="dashboard-list-trash-icon" />
+                        <Icons.DeleteOutlined data-test="dashboard-list-trash-icon" iconSize='l' />
                       </span>
                     </Tooltip>
                   )}
@@ -241,7 +241,7 @@ function TagList(props: TagListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize='l' />
                   </span>
                 </Tooltip>
               )}

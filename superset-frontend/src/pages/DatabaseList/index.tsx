@@ -497,7 +497,7 @@ function DatabaseList({
                     title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icons.DeleteOutlined />
+                    <Icons.DeleteOutlined iconSize='l'/>
                   </Tooltip>
                 </span>
               )}
@@ -513,7 +513,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined />
+                    <Icons.UploadOutlined iconSize='l'/>
                   </span>
                 </Tooltip>
               )}
@@ -530,7 +530,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize='l'/>
                   </span>
                 </Tooltip>
               )}
@@ -547,7 +547,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleSync}
                   >
-                    <Icons.Refresh />
+                    <Icons.Refresh iconSize='l'/>
                   </span>
                 </Tooltip>
               )}
