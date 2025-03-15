@@ -22,7 +22,7 @@ import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import { CloseOutlined } from '@ant-design/icons';
+import Icons from 'src/components/Icons';
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `
@@ -31,7 +31,9 @@ const StyledTag = styled(AntdTag)`
   `};
 `;
 
-export const CustomCloseIcon = <CloseOutlined role="button" />;
+export const CustomCloseIcon = (
+  <Icons.CloseOutlined iconSize="xs" role="button" />
+);
 
 const MAX_DISPLAY_CHAR = 20;
 

@@ -151,7 +151,7 @@ describe('Drill to detail modal', () => {
         cy.on('uncaught:exception', () => false);
         cy.wait('@samples');
         // reload
-        cy.get("[aria-label='reload']").click();
+        cy.get("[aria-label='Reload']").click();
         cy.wait('@samples');
         // make sure it started back from first page
         cy.get('.ant-pagination-item-active').should('contain', '1');

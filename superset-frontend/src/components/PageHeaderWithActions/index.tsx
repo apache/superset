@@ -168,7 +168,7 @@ export const PageHeaderWithActions = ({
                 placement={tooltipProps?.placement}
                 data-test="actions-trigger"
               >
-                <Icons.MoreHoriz
+                <Icons.EllipsisOutlined
                   iconColor={theme.colors.primary.dark2}
                   iconSize="l"
                 />

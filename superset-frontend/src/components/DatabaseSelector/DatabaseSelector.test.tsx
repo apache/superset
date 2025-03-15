@@ -225,7 +225,7 @@ test('Refresh should work', async () => {
   });
 
   // click schema reload
-  userEvent.click(screen.getByRole('button', { name: 'refresh' }));
+  userEvent.click(screen.getByRole('button', { name: 'sync' }));
 
   await waitFor(() => {
     expect(fetchMock.calls(databaseApiRoute).length).toBe(1);

@@ -17,12 +17,8 @@
  * under the License.
  */
 import { Space } from 'src/components/Space';
-import {
-  BarChartOutlined,
-  DotChartOutlined,
-  LineChartOutlined,
-  PieChartOutlined,
-} from '@ant-design/icons';
+import Icons from 'src/components/Icons';
+import { css } from '@superset-ui/core';
 import { Radio, RadioProps, RadioGroupWrapperProps } from './index';
 
 export default {
@@ -116,7 +112,11 @@ RadioGroupWithOptionsStory.args = {
       value: 1,
       label: (
         <Space align="center" direction="vertical">
-          <LineChartOutlined style={{ fontSize: 18 }} />
+          <Icons.LineChartOutlined
+            css={css`
+              font-size: 18;
+            `}
+          />
           LineChart
         </Space>
       ),
@@ -125,7 +125,11 @@ RadioGroupWithOptionsStory.args = {
       value: 2,
       label: (
         <Space align="center" direction="vertical">
-          <DotChartOutlined style={{ fontSize: 18 }} />
+          <Icons.DotChartOutlined
+            css={css`
+              font-size: 18;
+            `}
+          />
           DotChart
         </Space>
       ),
@@ -134,7 +138,11 @@ RadioGroupWithOptionsStory.args = {
       value: 3,
       label: (
         <Space align="center" direction="vertical">
-          <BarChartOutlined style={{ fontSize: 18 }} />
+          <Icons.BarChartOutlined
+            css={css`
+              font-size: 18;
+            `}
+          />
           BarChart
         </Space>
       ),
@@ -143,7 +151,11 @@ RadioGroupWithOptionsStory.args = {
       value: 4,
       label: (
         <Space align="center" direction="vertical">
-          <PieChartOutlined style={{ fontSize: 18 }} />
+          <Icons.PieChartOutlined
+            css={css`
+              font-size: 18;
+            `}
+          />
           PieChart
         </Space>
       ),

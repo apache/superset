@@ -18,11 +18,10 @@
  */
 import { FunctionComponent, useState, useEffect, ChangeEvent } from 'react';
 
-import { styled, t } from '@superset-ui/core';
+import { css, styled, t, useTheme } from '@superset-ui/core';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 
 import Icons from 'src/components/Icons';
-import { StyledIcon } from 'src/views/CRUD/utils';
 import Modal from 'src/components/Modal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 
@@ -94,6 +93,7 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
   show,
   layer = null,
 }) => {
+  const theme = useTheme();
   const [disableSave, setDisableSave] = useState<boolean>(true);
   const [currentLayer, setCurrentLayer] =
     useState<AnnotationLayerObject | null>();
@@ -237,9 +237,20 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
       title={
         <h4 data-test="annotation-layer-modal-title">
           {isEditMode ? (
-            <Icons.EditAlt css={StyledIcon} />
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
           ) : (
-            <Icons.PlusLarge css={StyledIcon} />
+            <Icons.PlusOutlined
+              iconSize="m"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+                vertical-align: text-top;
+              `}
+            />
           )}
           {isEditMode
             ? t('Edit annotation layer properties')

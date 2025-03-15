@@ -26,6 +26,7 @@ import {
   FeatureFlag,
   t,
   getExtensionsRegistry,
+  useTheme,
 } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
@@ -142,6 +143,9 @@ const undoRedoDisabled = theme => css`
 const saveBtnStyle = theme => css`
   min-width: ${theme.gridUnit * 17}px;
   height: ${theme.gridUnit * 8}px;
+  span > :first-of-type {
+    margin-right: 0;
+  }
 `;
 
 const discardBtnStyle = theme => css`
@@ -157,6 +161,7 @@ const discardChanges = () => {
 };
 
 const Header = () => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
@@ -647,6 +652,10 @@ const Header = () => {
                   data-test="header-save-button"
                   aria-label={t('Save')}
                 >
+                  <Icons.SaveOutlined
+                    iconColor={hasUnsavedChanges && theme.colors.primary.light5}
+                    iconSize="m"
+                  />
                   {t('Save')}
                 </Button>
               </div>
