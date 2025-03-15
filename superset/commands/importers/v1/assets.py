@@ -34,6 +34,7 @@ from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.v1.utils import (
+    get_resource_mappings_batched,
     load_configs,
     load_metadata,
     validate_metadata_type,
@@ -91,19 +92,17 @@ class ImportAssetsCommand(BaseCommand):
         database_ids: dict[str, int] = {}
         dataset_info: dict[str, dict[str, Any]] = {}
         chart_ids: dict[str, int] = {}
-
         if sparse:
-            existing_charts = db.session.query(Slice).all()
-            existing_datasets = db.session.query(SqlaTable).all()
-            existing_databases = db.session.query(Database).all()
-            chart_ids = {str(x.uuid): x.id for x in existing_charts}
-            database_ids = {str(x.uuid): x.id for x in existing_databases}
-            for x in existing_datasets:
-                dataset_info[str(x.uuid)] = {
+            chart_ids = get_resource_mappings_batched(Slice)
+            database_ids = get_resource_mappings_batched(Database)
+            dataset_info = get_resource_mappings_batched(
+                SqlaTable,
+                value_func=lambda x: {
                     "datasource_id": x.id,
                     "datasource_type": x.datasource_type,
                     "datasource_name": x.datasource_name,
-                }
+                },
+            )
 
         for file_name, config in configs.items():
             if file_name.startswith("databases/"):

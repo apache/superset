@@ -147,6 +147,9 @@ class ImportExportRestApi(BaseSupersetApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    sparse:
+                      description: allow sparse update of resources
+                      type: boolean
           responses:
             200:
               description: Assets import result
