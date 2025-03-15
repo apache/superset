@@ -26,7 +26,7 @@ import {
 
 import { t, styled, useTheme, css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { AntdInput } from 'src/components';
+import { Input } from 'src/components/Input';
 import { SELECT_WIDTH } from 'src/components/ListView/utils';
 import { FormLabel } from 'src/components/Form';
 import InfoTooltip from 'src/components/InfoTooltip';
