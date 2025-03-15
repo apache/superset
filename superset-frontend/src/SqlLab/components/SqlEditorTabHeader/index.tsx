@@ -146,7 +146,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
           </Menu>
         }
       />
-      <TabTitle>{qe.name}</TabTitle> <TabStatusIcon tabState={queryState} />{' '}
+      <TabTitle>{qe.name}</TabTitle>{' '}
+      <TabStatusIcon tabState={queryState} />{' '}
     </TabTitleWrapper>
   );
 };
