@@ -152,10 +152,12 @@ export default function PivotTableChart(props: PivotTableProps) {
     currencyFormats,
     metricsLayout,
     metricColorFormatters,
+    columnColorFormatters,
     dateFormatters,
     onContextMenu,
     timeGrainSqla,
     allowRenderHtml,
+    colorHeadersTotals,
   } = props;
 
   const theme = useTheme();
@@ -447,6 +449,8 @@ export default function PivotTableChart(props: PivotTableProps) {
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
       dateFormatters,
+      columnColorFormatters,
+      colorHeadersTotals,
     }),
     [
       colTotals,
@@ -454,10 +458,12 @@ export default function PivotTableChart(props: PivotTableProps) {
       dateFormatters,
       emitCrossFilters,
       metricColorFormatters,
+      columnColorFormatters,
       rowTotals,
       rowSubTotals,
       selectedFilters,
       toggleFilter,
+      colorHeadersTotals,
     ],
   );
 
