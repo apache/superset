@@ -203,7 +203,7 @@ function AnnotationList({
               label: 'edit-action',
               tooltip: t('Edit annotation'),
               placement: 'bottom',
-              icon: 'Edit',
+              icon: 'EditOutlined',
               onClick: handleEdit,
             },
             {
@@ -231,11 +231,11 @@ function AnnotationList({
       <>
         <Icons.PlusOutlined
           iconColor={theme.colors.primary.light5}
-          iconSize="s"
-          css={theme => ({
-            margin: `auto ${theme.gridUnit * 2}px auto 0`,
-            verticalAlign: 'baseline',
-          })}
+          iconSize="m"
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
         />
         {t('Annotation')}
       </>
@@ -272,9 +272,10 @@ function AnnotationList({
       <>
         <Icons.PlusOutlined
           iconColor={theme.colors.primary.light5}
-          iconSize="s"
+          iconSize="m"
           css={css`
             margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
           `}
         />
         {t('Annotation')}

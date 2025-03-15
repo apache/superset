@@ -280,6 +280,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
         <h4 data-test="annotation-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
+              iconSize="l"
               css={css`
                 margin: auto ${theme.gridUnit * 2}px auto 0;
               `}

@@ -22,6 +22,7 @@ import {
   SupersetClient,
   t,
   useTheme,
+  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useEffect } from 'react';
 import rison from 'rison';
@@ -323,8 +324,11 @@ function DatabaseList({
         name: (
           <>
             <Icons.PlusOutlined
+              css={css`
+                vertical-align: text-top;
+              `}
               iconColor={theme.colors.primary.light5}
-              iconSize="s"
+              iconSize="m"
             />
             {t('Database')}
           </>
@@ -497,7 +501,7 @@ function DatabaseList({
                     title={t('Delete database')}
                     placement="bottom"
                   >
-                    <Icons.DeleteOutlined iconSize='l'/>
+                    <Icons.DeleteOutlined iconSize="l" />
                   </Tooltip>
                 </span>
               )}
@@ -513,7 +517,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined iconSize='l'/>
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -530,7 +534,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" iconSize='l'/>
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -547,7 +551,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleSync}
                   >
-                    <Icons.Refresh iconSize='l'/>
+                    <Icons.Refresh iconSize="l" />
                   </span>
                 </Tooltip>
               )}
