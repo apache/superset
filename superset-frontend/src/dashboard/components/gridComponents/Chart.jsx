@@ -157,6 +157,7 @@ const Chart = props => {
         state.datasources[chart.form_data.datasource]) ||
       PLACEHOLDER_DATASOURCE,
   );
+  const dashboardInfo = useSelector(state => state.dashboardInfo);
 
   const [descriptionHeight, setDescriptionHeight] = useState(0);
   const [height, setHeight] = useState(props.height);
@@ -303,6 +304,8 @@ const Chart = props => {
       ownColorScheme,
     ],
   );
+
+  formData.dashboardId = dashboardInfo.id;
 
   const onExploreChart = useCallback(
     async clickEvent => {
