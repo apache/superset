@@ -99,7 +99,8 @@ export type ExtraNativeFilter = {
   columnName?: string;
   columnLabel?: string;
   filterValues?: Array<any> | [];
-  nativeFilterId?: number;
+  nativeFilterId?: string | null;
+  optionFilterValues?: Array<any> | [];
 };
 
 export type Extra = {

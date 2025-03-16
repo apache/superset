@@ -35,7 +35,6 @@ import {
   SupersetTheme,
   t,
   VizType,
-  useTheme,
 } from '@superset-ui/core';
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
@@ -515,7 +514,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [dashboardOptions, setDashboardOptions] = useState<MetaObject[]>([]);
   const [chartOptions, setChartOptions] = useState<MetaObject[]>([]);
   const [tabOptions, setTabOptions] = useState<TabNode[]>([]);
-  const [nativeFilterOptions, setNativeFilterOptions] = useState<object>([]);
+  const [nativeFilterOptions, setNativeFilterOptions] = useState<object[]>([]);
   const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
     [],
@@ -732,14 +731,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
 
-    currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
-      ({ columnName, columnLabel, nativeFilterId, filterValues }) => ({
-        columnName,
-        columnLabel,
-        nativeFilterId,
-        filterValues,
-      }),
-    );
+    if (currentAlert?.extra?.dashboard) {
+      currentAlert.extra.dashboard.nativeFilters = nativeFilterData.map(
+        ({ columnName, columnLabel, nativeFilterId, filterValues }) => ({
+          columnName,
+          columnLabel,
+          nativeFilterId,
+          filterValues,
+        }),
+      );
+    }
 
     const data: any = {
       ...currentAlert,
@@ -1105,7 +1106,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const handleAddFilterField = (formAddfunc: Function) => {
     const filters = nativeFilterData || [];
     filters.push({
-      nativeFilterId: '',
+      nativeFilterId: null,
       columnLabel: '',
       columnName: '',
       filterValues: [],
@@ -1229,6 +1230,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
     // set dashboardFilter
     const anchor = currentAlert?.extra?.dashboard?.anchor;
+    if (!anchor) {
+      return;
+    }
+
+    // @ts-ignore
     const inScopeFilters = tabNativeFilters[anchor];
     const filter = inScopeFilters.filter(
       (f: any) => f.id === nativeFilterId,
@@ -1236,8 +1242,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
     const { datasetId } = filter.targets[0];
     const columnName = filter.targets[0].column.name;
+
     const columnLabel = nativeFilterOptions.filter(
+      // @ts-ignore
       filter => filter.value === nativeFilterId,
+      // @ts-ignore
     )[0].label;
     const dashboardId = currentAlert?.dashboard?.value;
 
@@ -1477,6 +1486,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (resource) {
       // Add native filter settings
+      // @ts-ignore
       setNativeFilterData(resource.extra?.dashboard.nativeFilters);
 
       // Add notification settings
@@ -1977,9 +1987,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               disabled={nativeFilterOptions?.length < 1}
                               ariaLabel={t('Select Filter')}
                               placeholder={t('Select Filter')}
+                              // @ts-ignore
                               value={nativeFilterData[key]?.nativeFilterId}
+                              // @ts-ignore
                               options={nativeFilterOptions}
                               onChange={value =>
+                                // @ts-ignore
                                 onChangeDashboardFilter(key, value)
                               }
                               oneLine
@@ -1991,10 +2004,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               ariaLabel={t('Value')}
                               placeholder={t('Select Value')}
                               value={nativeFilterData[key]?.filterValues}
+                              // @ts-ignore
                               options={
                                 nativeFilterData[key]?.optionFilterValues
                               }
                               onChange={value =>
+                                // @ts-ignore
                                 onChangeDashboardFilterValue(key, value)
                               }
                               mode="multiple"

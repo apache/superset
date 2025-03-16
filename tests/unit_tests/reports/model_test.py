@@ -65,12 +65,12 @@ def test_report_generate_native_filter_no_values():
         "filter_id": {
             "id": "filter_id",
             "extraFormData": {
-                "filters": [{"col": "column_name", "op": "IN", "val": None}]
+                "filters": [{"col": "column_name", "op": "IN", "val": []}]
             },
             "filterState": {
                 "label": "column_name",
                 "validateStatus": False,
-                "value": None,
+                "value": [],
             },
             "ownState": {},
         }
@@ -96,8 +96,8 @@ def test_get_native_filters_params_invalid_structure():
 
     assert (
         report_schedule.get_native_filters_params()
-        == "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!n))),"
-        "filterState:(label:column_name,validateStatus:!f,value:!n),id:filter_id,ownState:()))"
+        == "(filter_id:(extraFormData:(filters:!((col:column_name,op:IN,val:!()))),"
+        "filterState:(label:column_name,validateStatus:!f,value:!()),id:filter_id,ownState:()))"
     )
 
 
