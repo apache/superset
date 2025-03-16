@@ -364,7 +364,7 @@ class AdhocFilterControl extends Component {
           {this.addNewFilterPopoverTrigger(
             <AddIconButton data-test="add-filter-button">
               <Icons.PlusOutlined
-                iconSize="s"
+                iconSize="m"
                 iconColor={theme.colors.grayscale.light5}
               />
             </AddIconButton>,
@@ -379,9 +379,9 @@ class AdhocFilterControl extends Component {
                 <AddControlLabel>
                   <Icons.PlusOutlined
                     css={css`
-                      margin: auto ${theme.gridUnit * 2}px auto 0;
+                      margin: auto ${theme.gridUnit}px auto 0;
                     `}
-                    iconSize="xs"
+                    iconSize="m"
                     iconColor={theme.colors.grayscale.light1}
                   />
                   {t('Add filter')}

@@ -383,7 +383,7 @@ export const OptionControlLabel = ({
         onClick={onRemove}
       >
         <Icons.CloseOutlined
-          iconSize="xs"
+          iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={css`
             vertical-align: sub;

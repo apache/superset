@@ -133,7 +133,7 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
           onClick={onAddLayer}
           size="small"
           type="dashed"
-          icon={<Icons.PlusOutlined />}
+          icon={<Icons.PlusOutlined iconSize="m" />}
         >
           {addLayerLabel}
         </Button>

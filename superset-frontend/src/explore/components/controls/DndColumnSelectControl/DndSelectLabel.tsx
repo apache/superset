@@ -101,10 +101,10 @@ export default function DndSelectLabel({
         onClick={props.onClickGhostButton}
       >
         <Icons.PlusOutlined
-          iconSize="xs"
+          iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={theme => ({
-            margin: `auto ${theme.gridUnit * 2}px auto 0`,
+            margin: `auto ${theme.gridUnit}px auto 0`,
           })}
         />
         {t(props.ghostButtonText)}

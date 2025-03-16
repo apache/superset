@@ -45,7 +45,7 @@ describe('Option', () => {
       await screen.findByRole('img', { name: 'close' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('img', { name: 'caret-right' }),
+      screen.queryByRole('img', { name: 'right' }),
     ).not.toBeInTheDocument();
     unmount();
   });
@@ -60,7 +60,7 @@ describe('Option', () => {
       await screen.findByRole('img', { name: 'close' }),
     ).toBeInTheDocument();
     expect(
-      await screen.findByRole('img', { name: 'caret-right' }),
+      await screen.findByRole('img', { name: 'right' }),
     ).toBeInTheDocument();
     unmount();
   });

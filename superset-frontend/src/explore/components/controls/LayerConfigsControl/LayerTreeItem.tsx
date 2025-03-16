@@ -39,7 +39,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
     <Tag className={className}>
       <Button
         className="layer-tree-item-close"
-        icon={<Icons.CloseOutlined />}
+        icon={<Icons.CloseOutlined iconSize="m" />}
         onClick={onCloseTag}
         size="small"
       />

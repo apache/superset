@@ -267,7 +267,7 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               <Icons.PlusOutlined
                 iconSize="m"
                 css={css`
-                  margin: auto ${theme.gridUnit * 2}px auto 0;
+                  margin: auto ${theme.gridUnit}px auto 0;
                   vertical-align: tex-top;
                 `}
                 data-test="add-annotation-layer-button"
