@@ -28,8 +28,8 @@
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "lodash": "^4.17.11",
     "prop-types": "*",
     "react": "^17.0.2",

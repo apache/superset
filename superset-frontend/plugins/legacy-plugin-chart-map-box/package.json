@@ -32,8 +32,8 @@
     "supercluster": "^8.0.1"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "mapbox-gl": "*",
     "react": "^17.0.2"
   },

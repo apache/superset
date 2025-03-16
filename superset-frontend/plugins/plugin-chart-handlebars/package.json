@@ -32,8 +32,8 @@
     "just-handlebars-helpers": "^1.0.19"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "ace-builds": "^1.4.14",
     "lodash": "^4.17.11",
     "dayjs": "^1.11.13",

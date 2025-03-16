@@ -31,11 +31,6 @@
     "doc": "docs",
     "test": "spec"
   },
-  "workspaces": [
-    "packages/*",
-    "plugins/*",
-    "src/setup/*"
-  ],
   "scripts": {
     "_prettier": "prettier './({src,spec,cypress-base,plugins,packages,.storybook}/**/*{.js,.jsx,.ts,.tsx,.css,.less,.scss,.sass}|package.json)'",
     "build": "cross-env NODE_OPTIONS=--max_old_space_size=8192 NODE_ENV=production BABEL_ENV=\"${BABEL_ENV:=production}\" webpack --color --mode production",
@@ -92,27 +87,27 @@
     "@rjsf/utils": "^5.24.3",
     "@rjsf/validator-ajv8": "^5.22.3",
     "@scarf/scarf": "^1.4.0",
-    "@superset-ui/chart-controls": "file:./packages/superset-ui-chart-controls",
-    "@superset-ui/core": "file:./packages/superset-ui-core",
-    "@superset-ui/legacy-plugin-chart-calendar": "file:./plugins/legacy-plugin-chart-calendar",
-    "@superset-ui/legacy-plugin-chart-chord": "file:./plugins/legacy-plugin-chart-chord",
-    "@superset-ui/legacy-plugin-chart-country-map": "file:./plugins/legacy-plugin-chart-country-map",
-    "@superset-ui/legacy-plugin-chart-horizon": "file:./plugins/legacy-plugin-chart-horizon",
-    "@superset-ui/legacy-plugin-chart-map-box": "file:./plugins/legacy-plugin-chart-map-box",
-    "@superset-ui/legacy-plugin-chart-paired-t-test": "file:./plugins/legacy-plugin-chart-paired-t-test",
-    "@superset-ui/legacy-plugin-chart-parallel-coordinates": "file:./plugins/legacy-plugin-chart-parallel-coordinates",
-    "@superset-ui/legacy-plugin-chart-partition": "file:./plugins/legacy-plugin-chart-partition",
-    "@superset-ui/legacy-plugin-chart-rose": "file:./plugins/legacy-plugin-chart-rose",
-    "@superset-ui/legacy-plugin-chart-world-map": "file:./plugins/legacy-plugin-chart-world-map",
-    "@superset-ui/legacy-preset-chart-deckgl": "file:./plugins/legacy-preset-chart-deckgl",
-    "@superset-ui/legacy-preset-chart-nvd3": "file:./plugins/legacy-preset-chart-nvd3",
-    "@superset-ui/plugin-chart-cartodiagram": "file:./plugins/plugin-chart-cartodiagram",
-    "@superset-ui/plugin-chart-echarts": "file:./plugins/plugin-chart-echarts",
-    "@superset-ui/plugin-chart-handlebars": "file:./plugins/plugin-chart-handlebars",
-    "@superset-ui/plugin-chart-pivot-table": "file:./plugins/plugin-chart-pivot-table",
-    "@superset-ui/plugin-chart-table": "file:./plugins/plugin-chart-table",
-    "@superset-ui/plugin-chart-word-cloud": "file:./plugins/plugin-chart-word-cloud",
-    "@superset-ui/switchboard": "file:./packages/superset-ui-switchboard",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-calendar": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-chord": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-country-map": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-horizon": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-map-box": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-paired-t-test": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-parallel-coordinates": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-partition": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-rose": "workspace: *",
+    "@superset-ui/legacy-plugin-chart-world-map": "workspace: *",
+    "@superset-ui/legacy-preset-chart-deckgl": "workspace: *",
+    "@superset-ui/legacy-preset-chart-nvd3": "workspace: *",
+    "@superset-ui/plugin-chart-cartodiagram": "workspace: *",
+    "@superset-ui/plugin-chart-echarts": "workspace: *",
+    "@superset-ui/plugin-chart-handlebars": "workspace: *",
+    "@superset-ui/plugin-chart-pivot-table": "workspace: *",
+    "@superset-ui/plugin-chart-table": "workspace: *",
+    "@superset-ui/plugin-chart-word-cloud": "workspace: *",
+    "@superset-ui/switchboard": "workspace: *",
     "@types/d3-format": "^3.0.1",
     "@types/d3-time-format": "^4.0.3",
     "@visx/axis": "^3.8.0",
@@ -337,6 +332,7 @@
     "less": "^4.2.0",
     "less-loader": "^12.2.0",
     "mini-css-extract-plugin": "^2.9.0",
+    "node-fetch": "^2.6.7",
     "open-cli": "^8.0.0",
     "po2json": "^0.4.5",
     "prettier": "3.3.3",
@@ -365,18 +361,24 @@
     "webpack-visualizer-plugin2": "^1.1.0"
   },
   "engines": {
-    "node": "^20.16.0",
-    "npm": "^10.8.1"
+    "node": "^20.18.3",
+    "npm": "^10.8.2"
   },
-  "overrides": {
-    "core-js": "^3.38.1",
-    "d3-color": "^3.1.0",
-    "puppeteer": "^22.4.1",
-    "underscore": "^1.13.7"
+  "pnpm": {
+    "overrides": {
+      "core-js": "^3.38.1",
+      "cheerio": "1.0.0-rc.12",
+      "d3-color": "^3.1.0",
+      "yosay>ansi-regex": "^4.1.1",
+      "puppeteer": "^22.4.1",
+      "underscore": "^1.13.7",
+      "fast-glob>micromatch": "^4.0.6"
+    }
   },
   "readme": "ERROR: No README data found!",
   "scarfSettings": {
     "allowTopLevel": true
   },
-  "_id": "superset@0.0.0-dev"
+  "_id": "superset@0.0.0-dev",
+  "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }

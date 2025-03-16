@@ -323,6 +323,33 @@ const config = {
           './node_modules/@storybook/react-dom-shim/dist/react-16',
         ),
       ),
+      '@superset-ui/core': path.resolve(path.join(APP_DIR, './packages/superset-ui-core/src')),
+      '@superset-ui/chart-controls': path.resolve(path.join(APP_DIR, './packages/superset-ui-chart-controls/src')),
+      '@superset-ui/switchboard': path.resolve(path.join(APP_DIR, './packages/superset-ui-switchboard/src')),
+      '@superset-ui/legacy-plugin-chart-calendar': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-calendar/src')),
+      '@superset-ui/legacy-plugin-chart-chord': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-chord/src')),
+      '@superset-ui/legacy-plugin-chart-country-map': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-country-map/src')),
+      '@superset-ui/legacy-plugin-chart-event-flow': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-event-flow/src')),
+      '@superset-ui/legacy-plugin-chart-heatmap': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-heatmap/src')),
+      '@superset-ui/legacy-plugin-chart-histogram': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-histogram/src')),
+      '@superset-ui/legacy-plugin-chart-horizon': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-horizon/src')),
+      '@superset-ui/legacy-plugin-chart-map-box': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-map-box/src')),
+      '@superset-ui/legacy-plugin-chart-paired-t-test': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-paired-t-test/src')),
+      '@superset-ui/legacy-plugin-chart-parallel-coordinates': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-parallel-coordinates/src')),
+      '@superset-ui/legacy-plugin-chart-partition': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-partition/src')),
+      '@superset-ui/legacy-plugin-chart-rose': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-rose/src')),
+      '@superset-ui/legacy-plugin-chart-sankey': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-sankey/src')),
+      '@superset-ui/legacy-plugin-chart-sankey-loop': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-sankey-loop/src')),
+      '@superset-ui/legacy-plugin-chart-world-map': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-world-map/src')),
+      '@superset-ui/legacy-plugin-chart-sunburst': path.resolve(path.join(APP_DIR, './plugins/legacy-plugin-chart-sunburst/src')),
+      '@superset-ui/legacy-preset-chart-nvd3': path.resolve(path.join(APP_DIR, './plugins/legacy-preset-chart-nvd3/src')),
+      '@superset-ui/legacy-preset-chart-deckgl': path.resolve(path.join(APP_DIR, './plugins/legacy-preset-chart-deckgl/src')),
+      '@superset-ui/plugin-chart-cartodiagram': path.resolve(path.join(APP_DIR, './plugins/plugin-chart-cartodiagram/src')),
+      '@superset-ui/plugin-chart-echarts': path.resolve(path.join(APP_DIR, './plugins/plugin-chart-echarts/src')),
+      '@superset-ui/plugin-chart-handlebars': path.resolve(path.join(APP_DIR, './plugins/plugin-chart-handlebars/src')),
+      '@superset-ui/plugin-chart-table': path.resolve(path.join(APP_DIR, './plugins/plugin-chart-table/src')),
+      '@superset-ui/plugin-chart-pivot-table': path.resolve(path.join(APP_DIR, './plugins/plugin-chart-pivot-table/src')),
+      '@superset-ui/plugin-chart-word-cloud': path.resolve(path.join(APP_DIR, './plugins/plugin-chart-word-cloud/src')),
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.yml'],
     fallback: {
@@ -510,15 +537,7 @@ const config = {
 };
 
 // find all the symlinked plugins and use their source code for imports
-Object.entries(packageConfig.dependencies).forEach(([pkg, relativeDir]) => {
-  const srcPath = path.join(APP_DIR, `./node_modules/${pkg}/src`);
-  const dir = relativeDir.replace('file:', '');
 
-  if (/^@superset-ui/.test(pkg) && fs.existsSync(srcPath)) {
-    console.log(`[Superset Plugin] Use symlink source for ${pkg} @ ${dir}`);
-    config.resolve.alias[pkg] = path.resolve(APP_DIR, `${dir}/src`);
-  }
-});
 console.log(''); // pure cosmetic new line
 
 if (isDevMode) {
