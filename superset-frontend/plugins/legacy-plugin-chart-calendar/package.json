@@ -30,9 +30,9 @@
   },
   "peerDependencies": {
     "@emotion/react": "^11.4.1",
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
+    "@apache-superset/core": "workspace: *",
     "react": "^18.2.0"
   },
   "publishConfig": {

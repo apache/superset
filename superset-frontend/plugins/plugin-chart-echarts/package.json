@@ -32,9 +32,9 @@
     "zod": "^4.4.3"
   },
   "peerDependencies": {
-    "@apache-superset/core": "*",
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@apache-superset/core": "workspace: *",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "dayjs": "^1.11.19",
     "echarts": "*",
     "memoize-one": "*",

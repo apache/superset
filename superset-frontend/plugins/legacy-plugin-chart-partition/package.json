@@ -28,9 +28,9 @@
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
-    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
+    "@apache-superset/core": "workspace: *",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^14.0.0",
     "react": "^18.2.0",

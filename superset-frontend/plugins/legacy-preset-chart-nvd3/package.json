@@ -39,9 +39,9 @@
     "urijs": "^1.19.11"
   },
   "peerDependencies": {
-    "@apache-superset/core": "*",
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@apache-superset/core": "workspace: *",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "dayjs": "^1.11.19",
     "react": "^18.2.0"
   }

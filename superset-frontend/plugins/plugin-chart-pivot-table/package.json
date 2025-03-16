@@ -28,9 +28,9 @@
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",
-    "@apache-superset/core": "*",
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@apache-superset/core": "workspace: *",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "lodash": "^4.18.1",
     "prop-types": "*",
     "react": "^18.2.0",

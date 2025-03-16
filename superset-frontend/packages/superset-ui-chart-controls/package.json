@@ -32,7 +32,7 @@
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",
     "@emotion/react": "^11.4.1",
-    "@superset-ui/core": "*",
+    "@superset-ui/core": "workspace: *",
     "@testing-library/dom": "^9.3.4",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^14.0.0",

@@ -35,10 +35,10 @@
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",
-    "@apache-superset/core": "*",
+    "@apache-superset/core": "workspace: *",
     "@reduxjs/toolkit": "*",
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "@types/react-redux": "*",
     "geostyler": "^18.3.1",
     "geostyler-data": "^1.0.0",
