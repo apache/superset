@@ -303,6 +303,14 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+
+ENV SUPERSET_HOME="/app/superset_home" \
+    HOME="/app/superset_home" \
+    SUPERSET_ENV="production" \
+    FLASK_APP="superset.app:create_app()" \
+    PYTHONPATH="/app/pythonpath" \
+    SUPERSET_PORT="8088"
+
 # Ensure the superset user owns the directory
 RUN mkdir -p $SUPERSET_HOME \
     && chown -R superset:superset $SUPERSET_HOME \
