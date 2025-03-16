@@ -26,10 +26,6 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 # Include translations in the final build
 ARG BUILD_TRANSLATIONS="false"
 
-ARG ORACLE_CLIENT_VERSION=19.21.0.0.0
-ARG GECKODRIVER_VERSION=v0.32.0
-ARG FIREFOX_VERSION=106.0.3
-
 ######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
