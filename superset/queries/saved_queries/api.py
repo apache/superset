@@ -1,19 +1,4 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# dodo was here
 import logging
 from datetime import datetime
 from io import BytesIO
@@ -37,7 +22,9 @@ from superset.commands.query.exceptions import (
 )
 from superset.commands.query.export import ExportSavedQueriesCommand
 from superset.commands.query.importers.dispatcher import ImportSavedQueriesCommand
+from superset.commands.tag.create import CreateTeamTagCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.team import TeamDAO
 from superset.databases.filters import DatabaseFilter
 from superset.extensions import event_logger
 from superset.models.sql_lab import SavedQuery
@@ -53,6 +40,7 @@ from superset.queries.saved_queries.schemas import (
     get_export_ids_schema,
     openapi_spec_methods_override,
 )
+from superset.tags.models import ObjectType
 from superset.utils import json
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -192,6 +180,12 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
 
     def pre_add(self, item: SavedQuery) -> None:
         item.user = g.user
+        # dodo add 35337314
+        if team := TeamDAO.get_team_by_user_id():
+            team_slug = team.slug
+            object_type = ObjectType.query
+            object_id = item.id
+            CreateTeamTagCommand(object_type, object_id, [team_slug]).run()
 
     def pre_update(self, item: SavedQuery) -> None:
         self.pre_add(item)

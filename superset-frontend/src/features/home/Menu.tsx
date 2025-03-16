@@ -17,6 +17,15 @@ import {
   MenuObjectProps,
   MenuData,
 } from 'src/types/bootstrapTypes';
+// DODO added start 44211792
+import { useSelector } from 'react-redux';
+import { getUserInfo } from 'src/DodoExtensions/onBoarding/model/selectors/getUserInfo';
+import { onboardingMenuAdminItems } from 'src/DodoExtensions/onBoarding';
+import {
+  REQUEST_PAGE_LIST_URL,
+  TEAM_PAGE_LIST_URL,
+} from 'src/DodoExtensions/onBoarding/consts';
+// DODO added stop 44211792
 import RightMenu from './RightMenu';
 
 interface MenuProps {
@@ -365,35 +374,52 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
   // Cycle through menu.menu to build out cleanedMenu and settings
   const cleanedMenu: MenuObjectProps[] = [];
   const settings: MenuObjectProps[] = [];
-  newMenuData.menu.forEach((item: any) => {
-    if (!item) {
-      return;
-    }
+  newMenuData.menu
+    // DODO added 44211792
+    .filter(
+      item =>
+        item.url !== REQUEST_PAGE_LIST_URL && item.url !== TEAM_PAGE_LIST_URL,
+    )
+    .forEach((item: any) => {
+      if (!item) {
+        return;
+      }
 
-    const children: (MenuObjectProps | string)[] = [];
-    const newItem = {
-      ...item,
-    };
+      const children: (MenuObjectProps | string)[] = [];
+      const newItem = {
+        ...item,
+      };
 
-    // Filter childs
-    if (item.childs) {
-      item.childs.forEach((child: MenuObjectChildProps | string) => {
-        if (typeof child === 'string') {
-          children.push(child);
-        } else if ((child as MenuObjectChildProps).label) {
-          children.push(child);
-        }
-      });
+      // Filter childs
+      if (item.childs) {
+        item.childs.forEach((child: MenuObjectChildProps | string) => {
+          if (typeof child === 'string') {
+            children.push(child);
+          } else if ((child as MenuObjectChildProps).label) {
+            children.push(child);
+          }
+        });
 
-      newItem.childs = children;
-    }
+        newItem.childs = children;
+      }
 
-    if (!settingsMenus.hasOwnProperty(item.name)) {
-      cleanedMenu.push(newItem);
-    } else {
-      settings.push(newItem);
-    }
-  });
+      if (!settingsMenus.hasOwnProperty(item.name)) {
+        cleanedMenu.push(newItem);
+      } else {
+        settings.push(newItem);
+      }
+    });
+  // DODO added start 44211792
+  const user = useSelector(getUserInfo);
+  if (user.roles?.Admin) {
+    cleanedMenu.push(...onboardingMenuAdminItems());
+    cleanedMenu.push({
+      label: t('Tags'),
+      name: 'tags',
+      url: '/superset/tags/',
+    });
+  }
+  // DODO added stop 44211792
 
   newMenuData.menu = cleanedMenu;
   newMenuData.settings = settings;

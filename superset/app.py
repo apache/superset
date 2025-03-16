@@ -20,8 +20,10 @@ import os
 from typing import Optional
 
 from flask import Flask
+from flask_http_middleware import MiddlewareManager
 
 from superset.initialization import SupersetAppInitializer
+from superset.middlewares.middleware_logger import LoggerMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,9 @@ def create_app(superset_config_module: Optional[str] = None) -> Flask:
             "SUPERSET_CONFIG", "superset.config"
         )
         app.config.from_object(config_module)
+
+        app.wsgi_app = MiddlewareManager(app)
+        app.wsgi_app.add_middleware(LoggerMiddleware)
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()

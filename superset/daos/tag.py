@@ -76,6 +76,36 @@ class TagDAO(BaseDAO[Tag]):
         db.session.add_all(tagged_objects)
 
     @staticmethod
+    def create_team_tagged_objects(
+        object_type: ObjectType, object_id: int, tag_names: list[str]
+    ) -> None:
+        tagged_objects = []
+
+        # striping and de-dupping
+        clean_tag_names: set[str] = {tag.strip() for tag in tag_names}
+
+        for name in clean_tag_names:
+            type_ = TagType.team
+            tag = TagDAO.get_by_name(name, type_)
+            tagged_objects.append(
+                TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+            )
+
+            # Check if the association already exists
+            existing_tagged_object = (
+                db.session.query(TaggedObject)
+                .filter_by(object_id=object_id, object_type=object_type, tag=tag)
+                .first()
+            )
+
+            if not existing_tagged_object:
+                tagged_objects.append(
+                    TaggedObject(object_id=object_id, object_type=object_type, tag=tag)
+                )
+
+        db.session.add_all(tagged_objects)
+
+    @staticmethod
     def delete_tagged_object(
         object_type: ObjectType, object_id: int, tag_name: str
     ) -> None:

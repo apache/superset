@@ -1,4 +1,4 @@
-// DOOD was here
+// DODO was here
 import { t } from '@superset-ui/core';
 import {
   ControlPanelConfig,

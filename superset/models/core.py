@@ -1147,6 +1147,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     dttm = Column(DateTime, default=datetime.utcnow)
     duration_ms = Column(Integer)
     referrer = Column(String(1024))
+    is_plugin = Column(Boolean, nullable=True)  # dodo added 44934342
 
 
 class FavStarClassName(StrEnum):

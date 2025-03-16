@@ -14,19 +14,34 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import g, redirect, Response
+import logging
+
+from flask import g, redirect, request, Response
 from flask_appbuilder.api import expose, safe
 from flask_jwt_extended.exceptions import NoAuthorizationError
+from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
 
 from superset import app, is_feature_enabled
+from superset.daos.statement import StatementDAO
+from superset.daos.team import TeamDAO
 from superset.daos.user import UserDAO
+from superset.daos.user_info import UserInfoDAO
 from superset.utils.slack import get_user_avatar, SlackClientError
 from superset.views.base_api import BaseSupersetApi
-from superset.views.users.schemas import UserResponseSchema
-from superset.views.utils import bootstrap_user_data
+from superset.views.users.schemas import UserResponseSchema, ValidateOnboardingPutSchema
+from superset.views.utils import (
+    bootstrap_user_data,
+)
 
+logger = logging.getLogger(__name__)
 user_response_schema = UserResponseSchema()
+
+
+def validate_language(lang: str) -> bool:  # DODO changed #33835937
+    languages = app.config["LANGUAGES"]
+    keys_of_languages = languages.keys()
+    return lang in keys_of_languages
 
 
 class CurrentUserRestApi(BaseSupersetApi):
@@ -97,6 +112,137 @@ class CurrentUserRestApi(BaseSupersetApi):
             return self.response_401()
         user = bootstrap_user_data(g.user, include_perms=True)
         return self.response(200, result=user)
+
+    # DODO changed #33835937
+    @expose("change/lang/<lang>", ("GET",))
+    def change_lang(self, lang: str) -> Response:
+        try:
+            if g.user is None or g.user.is_anonymous:
+                return self.response_401()
+            if not validate_language(lang):
+                self.response_400("Incorrect language")
+        except NoAuthorizationError:
+            return self.response_401()
+        UserInfoDAO.update_language(lang)
+        return redirect("/superset/welcome/")
+
+    @expose("/onboarding", ("GET",))
+    def get_onboarding(self) -> Response:
+        try:
+            user = g.user
+            if user is None or user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
+            return self.response_401()
+        user_onboarding = UserInfoDAO.get_onboarding()
+        result = {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "is_onboarding_finished": user_onboarding.get("is_onboarding_finished"),
+            "onboarding_started_time": user_onboarding.get("onboarding_started_time"),
+        }
+        return self.response(200, result=user_response_schema.dump(result))
+
+    @expose("/onboarding", ("PUT",))
+    def put_onboarding(self) -> Response:
+        try:
+            user = g.user
+            item = ValidateOnboardingPutSchema().load(request.json)
+            if user is None or user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
+            return self.response_401()
+        except ValidationError as error:
+            logger.warning("validate data failed to add new dashboard")
+            return self.response_400(message=error.messages)
+
+        dodo_role = item.get("dodo_role")
+        onboarding_started_time = item.get("onboarding_started_time")
+        update_user_onboarding = UserInfoDAO.update_onboarding(
+            dodo_role, onboarding_started_time
+        )
+        result = {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "dodo_role": update_user_onboarding.get("dodo_role"),
+            "onboarding_started_time": update_user_onboarding.get(
+                "onboarding_started_time"
+            ),
+        }
+        return self.response(200, result=user_response_schema.dump(result))
+
+    @expose("/team", ("GET",))  # текущая команда пользователя
+    def my_team(self) -> Response:
+        try:
+            user = g.user
+            if user is None or user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
+            return self.response_401()
+        except ValidationError as error:
+            logger.warning("validate data failed to add new dashboard")
+            return self.response_400(message=error.messages)
+        result = {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }
+        if team := TeamDAO.get_team_by_user_id():
+            result["team"] = team.name
+        else:
+            result["team"] = None
+        return self.response(200, result=user_response_schema.dump(result))
+
+    @expose("/statements", ("GET",))  # все заявки пользователя
+    def my_statements(self) -> Response:
+        try:
+            user = g.user
+            if user is None or user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
+            return self.response_401()
+        except ValidationError as error:
+            logger.warning("validate data failed to add new dashboard")
+            return self.response_400(message=error.messages)
+        result = {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }
+        if statements := StatementDAO.get_statements_by_user_id():
+            result["statements"] = statements
+        else:
+            result["statements"] = None
+        return self.response(200, result=user_response_schema.dump(result))
+
+    @expose("/country", ("GET",))  # страна пользователя, получаем в профиле
+    def my_country(self) -> Response:
+        try:
+            user = g.user
+            if user is None or user.is_anonymous:
+                return self.response_401()
+        except NoAuthorizationError:
+            return self.response_401()
+        except ValidationError as error:
+            logger.warning("validate data failed to add new dashboard")
+            return self.response_400(message=error.messages)
+        result = {
+            "id": user.id,
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+        }
+        if country := UserInfoDAO.get_country_by_user_id():
+            result["country_name"] = country[0].country_name
+        else:
+            result["country_name"] = None
+        return self.response(200, result=user_response_schema.dump(result))
 
 
 class UserRestApi(BaseSupersetApi):

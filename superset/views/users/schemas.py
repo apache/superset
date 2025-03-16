@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from marshmallow import Schema
-from marshmallow.fields import Boolean, Integer, String
+from marshmallow.fields import Boolean, DateTime, Integer, List, Nested, String
+
+
+class StatementSchema(Schema):
+    id = Integer()
+    finished = Boolean()
 
 
 class UserResponseSchema(Schema):
@@ -26,3 +31,14 @@ class UserResponseSchema(Schema):
     last_name = String()
     is_active = Boolean()
     is_anonymous = Boolean()
+    is_onboarding_finished = Boolean(missing=True)
+    onboarding_started_time = Boolean(missing=True)
+    dodo_role = String(missing=True)
+    team = String(missing=True)
+    statements = List(Nested(StatementSchema()), missing=True)
+    country_name = String(missing=True)
+
+
+class ValidateOnboardingPutSchema(Schema):
+    onboarding_started_time = DateTime()
+    dodo_role = String()

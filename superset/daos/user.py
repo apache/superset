@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 
 from flask_appbuilder.security.sqla.models import User
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.daos.base import BaseDAO
 from superset.extensions import db, security_manager
@@ -40,3 +41,16 @@ class UserDAO(BaseDAO[User]):
             attrs = UserAttribute(avatar_url=url, user_id=user.id)
             user.extra_attributes = [attrs]
             db.session.add(attrs)
+
+    @staticmethod
+    def update_user_roles(
+        user: User, roles: list[str]
+    ) -> User:  # DODO changed #33835937
+        user.roles = roles
+        try:
+            db.session.merge(user)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError as ex:  # pragma: no cover
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.exception(ex)
+        return user

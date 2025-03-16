@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   configureStore,
   ConfigureStoreOptions,
@@ -57,6 +40,20 @@ import { AnyDatasourcesAction } from 'src/explore/actions/datasourcesActions';
 import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
+// DODO added start 44211792
+import {
+  onboardingRequestListSlice,
+  onboardingRequestSlice,
+  onboardingStartSlice,
+  onboardingTeamListSlice,
+  onboardingTeamSearchSlice,
+} from '../DodoExtensions/onBoarding';
+import { onboardingTeamPageSlice } from '../DodoExtensions/onBoarding/model/slices/teamPage.slice';
+import { onboardingTeamCreateSlice } from '../DodoExtensions/onBoarding/model/slices/teamCreate.slice';
+import { onboardingUserSearchSlice } from '../DodoExtensions/onBoarding/model/slices/userSearch.slice';
+import { onboardingTeamAddUserSlice } from '../DodoExtensions/onBoarding/model/slices/teamAddUser.slice';
+import { onboardingTeamRemoveUserSlice } from '../DodoExtensions/onBoarding/model/slices/teamRemoveUser.slice';
+// DODO added stop 44211792
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -139,6 +136,18 @@ const reducers = {
   reports,
   saveModal,
   explore,
+  // DODO added start 44211792
+  onboardingStart: onboardingStartSlice,
+  onboardingTeamSearch: onboardingTeamSearchSlice,
+  onboardingTeamCreate: onboardingTeamCreateSlice,
+  onboardingRequestList: onboardingRequestListSlice,
+  onboardingRequest: onboardingRequestSlice,
+  onboardingTeamList: onboardingTeamListSlice,
+  onboardingTeamPage: onboardingTeamPageSlice,
+  onboardingUserSearch: onboardingUserSearchSlice,
+  onboardingTeamAddUser: onboardingTeamAddUserSlice,
+  onboardingTeamRemoveUser: onboardingTeamRemoveUserSlice,
+  // DODO added stop 44211792
 };
 
 /* In some cases the jinja template injects two seperate React apps into basic.html

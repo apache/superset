@@ -87,6 +87,16 @@ class BaseFilterRelatedUsers(BaseFilter):  # pylint: disable=too-few-public-meth
         return query
 
 
+class BaseFilterRelatedUsersFirstName(BaseFilter):  # pylint: disable=too-few-public-methods
+    name = lazy_gettext("first_name")
+    arg_name = ""
+
+    def apply(self, query: Query, value: str) -> Query:
+        user_model = security_manager.user_model
+        like_value = "%" + value + "%"
+        return query.filter(user_model.first_name.ilike(like_value))
+
+
 class BaseFilterRelatedRoles(BaseFilter):  # pylint: disable=too-few-public-methods
     """
     Filter to apply on related roles.

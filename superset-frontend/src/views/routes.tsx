@@ -1,23 +1,13 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { lazy, ComponentType, ComponentProps } from 'react';
+// DODO added 44211792
+import {
+  REQUEST_PAGE_LIST_URL,
+  REQUEST_PAGE_URL,
+  TEAM_PAGE_LIST_URL,
+  TEAM_PAGE_URL,
+} from 'src/DodoExtensions/onBoarding/consts';
 
 // not lazy loaded since this is the home page.
 import Home from 'src/pages/Home';
@@ -123,6 +113,36 @@ const RowLevelSecurityList = lazy(
     ),
 );
 
+// DODO added start 44211792
+const RequestList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "RequestList" */ 'src/DodoExtensions/onBoarding/pages/RequestList'
+    ),
+);
+
+const Request = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "Request" */ 'src/DodoExtensions/onBoarding/pages/Request'
+    ),
+);
+
+const TeamList = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "TeamList" */ 'src/DodoExtensions/onBoarding/pages/TeamList'
+    ),
+);
+
+const Team = lazy(
+  () =>
+    import(
+      /* webpackChunkName: "Team" */ 'src/DodoExtensions/onBoarding/pages/Team'
+    ),
+);
+// DODO added stop 44211792
+
 type Routes = {
   path: string;
   Component: ComponentType;
@@ -225,6 +245,24 @@ export const routes: Routes = [
     path: '/sqllab/',
     Component: SqlLab,
   },
+  // DODO added start 44211792
+  {
+    path: REQUEST_PAGE_LIST_URL,
+    Component: RequestList,
+  },
+  {
+    path: REQUEST_PAGE_URL,
+    Component: Request,
+  },
+  {
+    path: TEAM_PAGE_LIST_URL,
+    Component: TeamList,
+  },
+  {
+    path: TEAM_PAGE_URL,
+    Component: Team,
+  },
+  // DODO added stop 44211792
 ];
 
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {

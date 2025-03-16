@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 
 import Modal from 'src/components/Modal';
@@ -38,6 +21,8 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
+import { useSelector } from 'react-redux'; // DODO added 44211792
+import { getUserInfo } from 'src/DodoExtensions/onBoarding/model/selectors/getUserInfo'; // DODO added 44211792
 
 export type PropertiesModalProps = {
   slice: Slice;
@@ -240,6 +225,8 @@ function PropertiesModal({
     setTags([]);
   };
 
+  const user = useSelector(getUserInfo); // DODO added 44211792
+
   return (
     <Modal
       show={show}
@@ -385,6 +372,7 @@ function PropertiesModal({
                   onChange={handleChangeTags}
                   onClear={handleClearTags}
                   allowClear
+                  disabled={!user?.roles?.Admin} // DODO added 44211792
                 />
                 <StyledHelpBlock className="help-block">
                   {t('A list of tags that have been applied to this chart.')}

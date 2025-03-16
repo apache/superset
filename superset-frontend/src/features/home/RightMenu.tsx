@@ -32,6 +32,11 @@ import DatabaseModal from 'src/features/databases/DatabaseModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import TelemetryPixel from 'src/components/TelemetryPixel';
+// DODO added start 44211792
+import { useHasUserTeam } from 'src/DodoExtensions/onBoarding/hooks/useHasUserTeam';
+import { getIsOnboardingFinished } from 'src/DodoExtensions/onBoarding/model/selectors/getIsOnboardingFinished';
+import { setInitByUserStorageInfo } from 'src/DodoExtensions/onBoarding/utils/localStorageUtils';
+// DODO added stop 44211792
 import { Version } from 'src/DodoExtensions/components/Version'; // DODO added 45047288
 import { APP_VERSION } from 'src/constants'; // DODO added 45047288
 import LanguagePicker from './LanguagePicker';
@@ -342,6 +347,12 @@ const RightMenu = ({
 
   const theme = useTheme();
 
+  // DODO added start 44211792
+  const hasTeam = useHasUserTeam(String(user?.userId ?? ''), !isLoginPage);
+  const isOnboardingFinished = useSelector(getIsOnboardingFinished);
+  const isOnBoardingVisible = !isOnboardingFinished || !hasTeam;
+  // DODO added stop 44211792
+
   return (
     <StyledDiv align={align}>
       <Version appVersion={APP_VERSION} /> {/* DODO added 45047288 */}
@@ -501,6 +512,20 @@ const RightMenu = ({
             {!navbarRight.user_is_anonymous && [
               <Menu.Divider key="user-divider" />,
               <Menu.ItemGroup key="user-section" title={t('User')}>
+                {/* DODO added 44211792 */}
+                {isOnBoardingVisible && (
+                  <Menu.Item key="onboarding">
+                    <a
+                      href="/"
+                      onClick={() => {
+                        // e.preventDefault();
+                        setInitByUserStorageInfo();
+                      }}
+                    >
+                      {t('Onboarding')}
+                    </a>
+                  </Menu.Item>
+                )}
                 {navbarRight.user_info_url && (
                   <Menu.Item key="info">
                     <a href={navbarRight.user_info_url}>{t('Info')}</a>
