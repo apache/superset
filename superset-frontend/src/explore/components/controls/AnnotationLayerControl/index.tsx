@@ -189,6 +189,8 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
       return (
+        // TODO: Remove fa-icon
+        // eslint-disable-next-line icons/no-fa-icons-usage
         <i
           className="fa fa-refresh"
           style={{ color: theme.colors.primary.base }}

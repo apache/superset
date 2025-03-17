@@ -28,7 +28,8 @@ import {
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import AntdSelect from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';

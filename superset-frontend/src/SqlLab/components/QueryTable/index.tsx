@@ -280,6 +280,8 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
+            {/* TODO: Remove fa-icon */}
+            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
             <i className="fa fa-external-link m-r-3" />
             {t('Edit')}
           </Button>
