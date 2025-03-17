@@ -59,12 +59,6 @@ github:
   ghp_branch:  gh-pages
   ghp_path: /
 
-  notifications:
-    commits: commits@superset.apache.org
-    issues: issues@superset.apache.org
-    pull_requests: issues@superset.apache.org
-    discussions: issues@superset.apache.org
-
   protected_branches:
     master:
       required_status_checks:
