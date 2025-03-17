@@ -791,10 +791,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             )
             if params.get("upload_allowed"):
                 if not database.allow_file_upload:
-                    return self.response(
-                        400,
-                        message="File upload is disabled on this database connection",
-                    )
+                    return self.response(200, result=[])
                 if allowed_schemas := database.get_schema_access_for_file_upload():
                     # some databases might return the list of schemas in uppercase,
                     # while the list of allowed schemas is manually inputted so

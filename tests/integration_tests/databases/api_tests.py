@@ -2166,9 +2166,9 @@ class TestDatabaseApi(SupersetTestCase):
         arguments = {"upload_allowed": True}
         uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
         rv = self.client.get(uri)
-        assert rv.status_code == 400
+        assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
-        assert data["message"] == "File upload is disabled on this database connection"
+        assert data["result"] == []
 
     def test_database_tables(self):
         """
