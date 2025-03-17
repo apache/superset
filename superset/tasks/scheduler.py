@@ -16,9 +16,9 @@
 # under the License.
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
-from celery import Celery
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
@@ -77,7 +77,7 @@ def scheduler() -> None:
 
 
 @celery_app.task(name="reports.execute", bind=True)
-def execute(self: Celery.task, report_schedule_id: int) -> None:
+def execute(self: Task, report_schedule_id: int) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
 
@@ -126,7 +126,7 @@ def prune_log() -> None:
 
 @celery_app.task(name="prune_query", bind=True)
 def prune_query(
-    self: Celery.task, retention_period_days: Optional[int] = None, **kwargs
+    self: Task, retention_period_days: Optional[int] = None, **kwargs: Any
 ) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_query")
@@ -149,7 +149,7 @@ def prune_query(
 
 @celery_app.task(name="prune_logs", bind=True)
 def prune_logs(
-    self: Celery.task, retention_period_days: Optional[int] = None, **kwargs
+    self: Task, retention_period_days: Optional[int] = None, **kwargs: Any
 ) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
