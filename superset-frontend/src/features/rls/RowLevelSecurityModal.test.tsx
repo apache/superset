@@ -37,6 +37,8 @@ const getRelatedTablesEndpoint =
   'glob:*/api/v1/rowlevelsecurity/related/tables?q*';
 const postRuleEndpoint = 'glob:*/api/v1/rowlevelsecurity/*';
 const putRuleEndpoint = 'glob:*/api/v1/rowlevelsecurity/1';
+const getRelatedGroupsEndpoint =
+  'glob:*/api/v1/rowlevelsecurity/related/groups?q*';
 
 const mockGetRuleResult = {
   description_columns: {},
@@ -51,6 +53,8 @@ const mockGetRuleResult = {
     'roles.name': 'Roles Name',
     'tables.id': 'Tables Id',
     'tables.table_name': 'Tables Table Name',
+    'groups.id': 'Groups Id',
+    'groups.name': 'Groups Name',
   },
   result: {
     clause: 'gender="girl"',
@@ -71,6 +75,16 @@ const mockGetRuleResult = {
         table_name: 'birth_names',
       },
     ],
+    groups: [
+      {
+        id: 1,
+        name: 'Sales',
+      },
+      {
+        id: 2,
+        name: 'Finance',
+      },
+    ],
   },
   show_columns: [
     'name',
@@ -82,6 +96,8 @@ const mockGetRuleResult = {
     'roles.name',
     'group_key',
     'clause',
+    'groups.id',
+    'groups.name',
   ],
   show_title: 'Show Row Level Security Filter',
 };
@@ -128,11 +144,20 @@ const mockGetTablesResult = {
   ],
 };
 
+const mockGetGroupsResult = {
+  count: 2,
+  result: [
+    { value: 1, text: 'Sales' },
+    { value: 2, text: 'Finance' },
+  ],
+};
+
 fetchMock.get(getRuleEndpoint, mockGetRuleResult);
 fetchMock.get(getRelatedRolesEndpoint, mockGetRolesResult);
 fetchMock.get(getRelatedTablesEndpoint, mockGetTablesResult);
 fetchMock.post(postRuleEndpoint, {});
 fetchMock.put(putRuleEndpoint, {});
+fetchMock.get(getRelatedGroupsEndpoint, mockGetGroupsResult);
 
 global.URL.createObjectURL = jest.fn();
 
@@ -223,6 +248,11 @@ describe('Rule modal', () => {
     userEvent.clear(description);
     userEvent.type(description, 'test description');
     expect(description).toHaveValue('test description');
+
+    const groups = await screen.findByText('Sales');
+    expect(groups).toBeInTheDocument();
+    const financeGroup = await screen.findByText('Finance');
+    expect(financeGroup).toBeInTheDocument();
   });
 
   it('Does not allow to create rule without name, tables and clause', async () => {
@@ -293,5 +323,60 @@ describe('Rule modal', () => {
       },
       { timeout: 10000 },
     );
+  });
+
+  it('Renders Groups selector correctly with existing values', async () => {
+    await renderAndWait({
+      ...addNewRuleDefaultProps,
+      rule: {
+        id: 1,
+        name: 'rls 1',
+        filter_type: FilterType.Base,
+      },
+    });
+
+    expect(await screen.findByText('Excluded groups')).toBeInTheDocument();
+    const groupsSelect = await screen.findByTestId('groups-test');
+    expect(groupsSelect).toBeInTheDocument();
+    const sales = await screen.findByText('Sales');
+    expect(sales).toBeInTheDocument();
+    const finance = await screen.findByText('Finance');
+    expect(finance).toBeInTheDocument();
+  });
+
+  it('Renders correct label for Groups based on filter type', async () => {
+    // So the rule endpoint results can be changed, and we register the rest again
+    fetchMock.restore();
+    fetchMock.get(getRelatedRolesEndpoint, mockGetRolesResult);
+    fetchMock.get(getRelatedTablesEndpoint, mockGetTablesResult);
+    fetchMock.post(postRuleEndpoint, {});
+    fetchMock.put(putRuleEndpoint, {});
+    fetchMock.get(getRelatedGroupsEndpoint, mockGetGroupsResult);
+    fetchMock.get(getRuleEndpoint, {
+      ...mockGetRuleResult,
+      result: {
+        ...mockGetRuleResult.result,
+        filter_type: FilterType.Regular,
+        groups: [{ id: 2, name: 'Marketing' }],
+      },
+    });
+
+    await renderAndWait({
+      ...addNewRuleDefaultProps,
+      rule: {
+        id: 1,
+        name: 'rls 1',
+        filter_type: FilterType.Regular,
+      },
+    });
+
+    // Verify that it renders "Groups" (without "Excluded")
+    expect(await screen.findByText(/^Groups$/)).toBeInTheDocument();
+    expect(await screen.queryByText('Excluded groups')).not.toBeInTheDocument();
+
+    const updatedGroupsSelect = await screen.findByTestId('groups-test');
+    expect(updatedGroupsSelect).toBeInTheDocument();
+    const finance = await screen.findByText('Marketing');
+    expect(finance).toBeInTheDocument();
   });
 });

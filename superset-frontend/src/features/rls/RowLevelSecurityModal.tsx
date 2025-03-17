@@ -35,7 +35,13 @@ import { LabeledErrorBoundInput } from 'src/components/Form';
 import InfoTooltip from 'src/components/InfoTooltip';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { FILTER_OPTIONS } from './constants';
-import { FilterType, RLSObject, RoleObject, TableObject } from './types';
+import {
+  FilterType,
+  GroupObject,
+  RLSObject,
+  RoleObject,
+  TableObject,
+} from './types';
 
 const noMargins = css`
   margin: 0;
@@ -489,6 +495,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onGroupsChange}
                 value={(currentRule?.groups as SelectValue[]) || []}
                 options={loadGroupOptions}
+                data-test="groups-test"
               />
             </div>
           </StyledInputContainer>

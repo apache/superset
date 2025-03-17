@@ -7764,6 +7764,12 @@
               "$ref": "#/components/schemas/Tables"
             },
             "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/Groups"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -7813,6 +7819,12 @@
           "tables": {
             "items": {
               "$ref": "#/components/schemas/Tables"
+            },
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/Groups"
             },
             "type": "array"
           }
@@ -10082,6 +10094,17 @@
         "type": "object"
       },
       "Roles1": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Groups": {
         "properties": {
           "id": {
             "type": "integer"

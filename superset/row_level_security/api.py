@@ -86,6 +86,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "changed_by.last_name",
         "changed_by.id",
         "group_key",
+        "groups.id",
+        "groups.name",
     ]
     order_columns = [
         "name",
@@ -102,6 +104,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "roles",
         "group_key",
         "clause",
+        "groups",
     ]
     show_columns = [
         "name",
@@ -114,6 +117,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "roles.name",
         "group_key",
         "clause",
+        "groups.id",
+        "groups.name",
     ]
     search_columns = (
         "name",
@@ -125,6 +130,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
         "clause",
         "created_by",
         "changed_by",
+        "groups",
     )
     edit_columns = add_columns
 

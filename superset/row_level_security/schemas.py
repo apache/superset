@@ -69,7 +69,6 @@ class TablesSchema(Schema):
 class GroupsSchema(Schema):
     name = fields.String()
     id = fields.Integer()
-    label = fields.String()
 
 
 class RLSListSchema(Schema):
