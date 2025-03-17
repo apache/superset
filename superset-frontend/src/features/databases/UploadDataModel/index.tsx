@@ -183,7 +183,8 @@ export const validateUploadFileExtension = (
     return false;
   }
 
-  const fileType = extensionMatch[1];
+  const fileType = extensionMatch[1].toLowerCase();
+  const normalizedAllowedExtensions = allowedExtensions.map(ext => ext.toLowerCase());
   return allowedExtensions.includes(fileType);
 };
 
