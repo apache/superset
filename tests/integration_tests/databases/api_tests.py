@@ -2083,25 +2083,10 @@ class TestDatabaseApi(SupersetTestCase):
         )
         assert rv.status_code == 400
 
-    @pytest.mark.parametrize(
-        "all_schemas,schemas_allowed_for_csv,result",
-        [
-            (
-                ["schema_1", "schema_2", "schema_3"],
-                [],
-                ["schema_1", "schema_2", "schema_3"],
-            ),
-            (["schema_1", "schema_2", "schema_3"], ["schema_2"], ["schema_2"]),
-        ],
-    )
-    def test_database_schemas_upload_allowed_filter(
-        self,
-        all_schemas: list[str],
-        schemas_allowed_for_csv: list[str],
-        result: list[str],
-    ):
+    def test_database_schemas_upload_allowed_filter(self):
         """
         Database API: Test database schemas when filtering for upload allowed
+        and there is not schema restriction
         """
         with self.create_app().app_context():
             example_db = get_example_database()
@@ -2110,7 +2095,43 @@ class TestDatabaseApi(SupersetTestCase):
                 "metadata_params": {},
                 "engine_params": {},
                 "metadata_cache_timeout": {},
-                "schemas_allowed_for_file_upload": schemas_allowed_for_csv,
+                "schemas_allowed_for_file_upload": [],
+            }
+            self.login(ADMIN_USERNAME)
+            database = self.insert_database(
+                "database_with_upload",
+                example_db.sqlalchemy_uri_decrypted,
+                extra=json.dumps(extra),
+                allow_file_upload=True,
+            )
+            db.session.commit()
+            yield database
+
+            mock_schemas = ["schema_1", "schema_2", "schema_3"]
+            mock.patch.object(
+                database, "get_all_schema_names", return_value=mock_schemas
+            )
+            arguments = {"upload_allowed": True}
+            uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
+            rv = self.client.get(uri)
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["result"] == mock_schemas
+            db.session.delete(database)
+            db.session.commit()
+
+    def test_database_schemas_upload_allowed_filter_specific_schemas(self):
+        """
+        Database API: Test database schemas when filtering for upload allowed
+        with an schema restriction set
+        """
+        with self.create_app().app_context():
+            example_db = get_example_database()
+
+            extra = {
+                "metadata_params": {},
+                "engine_params": {},
+                "metadata_cache_timeout": {},
+                "schemas_allowed_for_file_upload": ["schema_2"],
             }
             self.login(ADMIN_USERNAME)
             database = self.insert_database(
@@ -2123,13 +2144,15 @@ class TestDatabaseApi(SupersetTestCase):
             yield database
 
             mock.patch.object(
-                database, "get_all_schema_names", return_value=all_schemas
+                database,
+                "get_all_schema_names",
+                return_value=["schema_1", "schema_2", "schema_3"],
             )
             arguments = {"upload_allowed": True}
             uri = f"api/v1/database/{database.id}/schemas/?q={prison.dumps(arguments)}"
             rv = self.client.get(uri)
             data = json.loads(rv.data.decode("utf-8"))
-            assert data["result"] == result
+            assert data["result"] == ["schema_2"]
             db.session.delete(database)
             db.session.commit()
 
