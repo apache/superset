@@ -28,8 +28,8 @@
     "prop-types": "^15.8.1"
   },
   "peerDependencies": {
-    "@superset-ui/chart-controls": "*",
-    "@superset-ui/core": "*",
+    "@superset-ui/chart-controls": "workspace: *",
+    "@superset-ui/core": "workspace: *",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "^12.1.5",
     "react": "^17.0.2",
