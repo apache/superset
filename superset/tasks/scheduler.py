@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 
 from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
@@ -126,7 +128,7 @@ def prune_log() -> None:
 
 @celery_app.task(name="prune_query", bind=True)
 def prune_query(
-    self: Task, retention_period_days: Optional[int] = None, **kwargs: Any
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
 ) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_query")
@@ -149,7 +151,7 @@ def prune_query(
 
 @celery_app.task(name="prune_logs", bind=True)
 def prune_logs(
-    self: Task, retention_period_days: Optional[int] = None, **kwargs: Any
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
 ) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
