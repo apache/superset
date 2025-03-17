@@ -184,7 +184,9 @@ export const validateUploadFileExtension = (
   }
 
   const fileType = extensionMatch[1].toLowerCase();
-  const lowerCaseAllowedExtensions = allowedExtensions.map(ext => ext.toLowerCase());
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext =>
+    ext.toLowerCase(),
+  );
   return lowerCaseAllowedExtensions.includes(fileType);
 };
 
