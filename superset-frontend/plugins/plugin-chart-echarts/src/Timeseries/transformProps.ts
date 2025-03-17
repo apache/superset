@@ -427,6 +427,7 @@ export default function transformProps(
     const idxSelectedDimension = formData.metrics.length > 1 ? 1 : (0 
       + chartProps.rawFormData.groupby.indexOf(stackdimension));
     series.map(s => {
+      if(!s.id)return;
       const columnsArr = labelMap[s.id];
       s.stack = columnsArr[idxSelectedDimension];
     });

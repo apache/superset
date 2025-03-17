@@ -54,7 +54,6 @@ const {
   zoomable,
   orientation,
   stackbydimension,
-  stackdimension,
 } = DEFAULT_FORM_DATA;
 
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
