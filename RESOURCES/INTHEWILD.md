@@ -114,6 +114,7 @@ Join our growing community!
 - [Ona](https://ona.io) [@pld]
 - [Orange](https://www.orange.com) [@icsu]
 - [Oslandia](https://oslandia.com)
+- [Oxylabs](https://oxylabs.io/) [@rytis-ulys]
 - [Peak AI](https://www.peak.ai/) [@azhar22k]
 - [PeopleDoc](https://www.people-doc.com) [@rodo]
 - [PlaidCloud](https://www.plaidcloud.com)
