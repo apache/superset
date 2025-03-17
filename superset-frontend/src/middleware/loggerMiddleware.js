@@ -78,19 +78,24 @@ const loggerMiddleware = store => next => action => {
     impression_id: impressionId,
     version: 'v2',
   };
-  if (dashboardInfo?.id) {
+  const { eventName } = action.payload;
+  let { eventData = {} } = action.payload;
+
+  if (dashboardInfo?.id && eventData.path?.includes('/dashboard/')) {
     logMetadata = {
       source: 'dashboard',
       source_id: dashboardInfo.id,
+      dashboard_id: dashboardInfo.id,
       ...logMetadata,
     };
   } else if (explore?.slice) {
     logMetadata = {
       source: 'explore',
       source_id: explore.slice ? explore.slice.slice_id : 0,
+      ...(explore.slice.slice_id && { slice_id: explore.slice.slice_id }),
       ...logMetadata,
     };
-  } else if (sqlLab) {
+  } else if (eventData.path?.includes('/sqllab/')) {
     const editor = sqlLab.queryEditors.find(
       ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
     );
@@ -102,8 +107,6 @@ const loggerMiddleware = store => next => action => {
     };
   }
 
-  const { eventName } = action.payload;
-  let { eventData = {} } = action.payload;
   eventData = {
     ...logMetadata,
     ts: new Date().getTime(),
