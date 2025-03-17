@@ -37,10 +37,12 @@ import { Switch, SwitchProps } from 'src/components/Switch';
 import Collapse from 'src/components/Collapse';
 import { AntdForm, AsyncSelect, Select, Upload } from 'src/components';
 import { Row, Col } from 'src/components/Grid';
+// eslint-disable-next-line no-restricted-imports
 import { UploadOutlined } from '@ant-design/icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   antdCollapseStyles,
@@ -177,8 +179,11 @@ export const validateUploadFileExtension = (
     return false;
   }
 
-  const fileType = extensionMatch[1];
-  return allowedExtensions.includes(fileType);
+  const fileType = extensionMatch[1].toLowerCase();
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext =>
+    ext.toLowerCase(),
+  );
+  return lowerCaseAllowedExtensions.includes(fileType);
 };
 
 interface StyledSwitchContainerProps extends SwitchProps {

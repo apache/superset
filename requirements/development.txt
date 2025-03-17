@@ -2,7 +2,7 @@
 #    uv pip compile requirements/development.in -c requirements/base.txt -o requirements/development.txt
 -e .
     # via -r requirements/development.in
-alembic==1.14.0
+alembic==1.15.1
     # via
     #   -c requirements/base.txt
     #   flask-migrate
@@ -18,6 +18,10 @@ apsw==3.46.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
+async-timeout==4.0.3
+    # via
+    #   -c requirements/base.txt
+    #   redis
 attrs==24.2.0
     # via
     #   -c requirements/base.txt
@@ -34,7 +38,7 @@ backoff==2.2.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
-bcrypt==4.2.1
+bcrypt==4.3.0
     # via
     #   -c requirements/base.txt
     #   paramiko
@@ -54,7 +58,7 @@ brotli==1.1.0
     # via
     #   -c requirements/base.txt
     #   flask-compress
-cachelib==0.9.0
+cachelib==0.13.0
     # via
     #   -c requirements/base.txt
     #   flask-caching
@@ -87,7 +91,7 @@ charset-normalizer==3.4.0
     # via
     #   -c requirements/base.txt
     #   requests
-click==8.1.7
+click==8.1.8
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -129,11 +133,11 @@ cron-descriptor==1.4.5
     # via
     #   -c requirements/base.txt
     #   apache-superset
-croniter==5.0.1
+croniter==6.0.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-cryptography==43.0.3
+cryptography==44.0.2
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -171,6 +175,13 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base.txt
     #   openpyxl
+exceptiongroup==1.2.2
+    # via
+    #   -c requirements/base.txt
+    #   cattrs
+    #   pytest
+    #   trio
+    #   trio-websocket
 filelock==3.12.2
     # via virtualenv
 flask==2.3.3
@@ -190,7 +201,7 @@ flask==2.3.3
     #   flask-sqlalchemy
     #   flask-testing
     #   flask-wtf
-flask-appbuilder==4.5.4
+flask-appbuilder==4.6.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -198,7 +209,7 @@ flask-babel==2.0.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
-flask-caching==2.3.0
+flask-caching==2.3.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -300,12 +311,13 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.0.3
+greenlet==3.1.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -330,7 +342,7 @@ holidays==0.25
     #   -c requirements/base.txt
     #   apache-superset
     #   prophet
-humanize==4.11.0
+humanize==4.12.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -342,7 +354,7 @@ idna==3.10
     #   email-validator
     #   requests
     #   trio
-importlib-metadata==8.5.0
+importlib-metadata==8.6.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -362,7 +374,7 @@ itsdangerous==2.2.0
     #   -c requirements/base.txt
     #   flask
     #   flask-wtf
-jinja2==3.1.5
+jinja2==3.1.6
     # via
     #   -c requirements/base.txt
     #   flask
@@ -396,7 +408,7 @@ limits==3.13.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
-mako==1.3.6
+mako==1.3.9
     # via
     #   -c requirements/base.txt
     #   alembic
@@ -435,13 +447,13 @@ msgpack==1.0.8
     # via
     #   -c requirements/base.txt
     #   apache-superset
-msgspec==0.18.6
+msgspec==0.19.0
     # via
     #   -c requirements/base.txt
     #   flask-session
 mysqlclient==2.2.6
     # via apache-superset
-nh3==0.2.19
+nh3==0.2.21
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -511,7 +523,7 @@ pandas-gbq==0.19.1
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
-paramiko==3.5.0
+paramiko==3.5.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -553,7 +565,7 @@ prison==0.2.1
     #   flask-appbuilder
 progress==1.6
     # via apache-superset
-prompt-toolkit==3.0.48
+prompt-toolkit==3.0.50
     # via
     #   -c requirements/base.txt
     #   click-repl
@@ -619,11 +631,11 @@ pynacl==1.5.0
     # via
     #   -c requirements/base.txt
     #   paramiko
-pyopenssl==24.2.1
+pyopenssl==25.0.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
-pyparsing==3.2.0
+pyparsing==3.2.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -670,7 +682,7 @@ python-geohash==0.8.5
     #   apache-superset
 python-ldap==3.4.4
     # via apache-superset
-pytz==2024.2
+pytz==2025.1
     # via
     #   -c requirements/base.txt
     #   croniter
@@ -738,11 +750,11 @@ shillelagh==1.2.18
     # via
     #   -c requirements/base.txt
     #   apache-superset
-simplejson==3.19.3
+simplejson==3.20.1
     # via
     #   -c requirements/base.txt
     #   apache-superset
-six==1.16.0
+six==1.17.0
     # via
     #   -c requirements/base.txt
     #   prison
@@ -750,7 +762,7 @@ six==1.16.0
     #   rfc3339-validator
     #   url-normalize
     #   wtforms-json
-slack-sdk==3.33.4
+slack-sdk==3.34.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -786,7 +798,7 @@ sqlglot==26.1.3
     #   apache-superset
 sqloxide==0.1.51
     # via apache-superset
-sqlparse==0.5.2
+sqlparse==0.5.3
     # via
     #   -c requirements/base.txt
     #   apache-superset
@@ -800,6 +812,10 @@ tabulate==0.8.10
     # via
     #   -c requirements/base.txt
     #   apache-superset
+tomli==2.2.1
+    # via
+    #   coverage
+    #   pytest
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -820,11 +836,14 @@ typing-extensions==4.12.2
     #   -c requirements/base.txt
     #   alembic
     #   apache-superset
+    #   cattrs
     #   flask-limiter
     #   limits
+    #   pyopenssl
+    #   rich
     #   selenium
     #   shillelagh
-tzdata==2024.2
+tzdata==2025.1
     # via
     #   -c requirements/base.txt
     #   celery

@@ -95,6 +95,9 @@ def base_json_conv(obj: Any) -> Any:  # noqa: C901
         return str(obj)
     if isinstance(obj, timedelta):
         return format_timedelta(obj)
+    if isinstance(obj, pd.DateOffset):
+        offset_attrs = ", ".join(f"{k}={v}" for k, v in obj.kwds.items())
+        return f"DateOffset({offset_attrs})"
     if isinstance(obj, bytes):
         try:
             return obj.decode("utf-8")
