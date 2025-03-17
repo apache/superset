@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: Remove fa-icon
+/* eslint-disable icons/no-fa-icons-usage */
 import { FC } from 'react';
 import { styled } from '@superset-ui/core';
 import SyntaxHighlighter from 'react-syntax-highlighter/dist/cjs/light';

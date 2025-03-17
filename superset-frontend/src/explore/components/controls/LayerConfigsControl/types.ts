@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { DataNode, TreeProps } from 'antd/lib/tree';
+// eslint-disable-next-line no-restricted-imports
+import { DataNode, TreeProps } from 'antd/lib/tree'; // TODO: Remove antd
 import { ControlComponentProps } from '@superset-ui/chart-controls';
 import { Style } from 'geostyler-style';
 import { CardStyleProps } from 'geostyler/dist/Component/CardStyle/CardStyle';

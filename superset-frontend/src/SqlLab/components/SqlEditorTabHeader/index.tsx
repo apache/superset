@@ -99,6 +99,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="close-tab-menu-option"
             >
               <IconContainer>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-close" />
               </IconContainer>
               {t('Close tab')}
@@ -109,6 +111,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="rename-tab-menu-option"
             >
               <IconContainer>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-i-cursor" />
               </IconContainer>
               {t('Rename tab')}
@@ -119,6 +123,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="toggle-menu-option"
             >
               <IconContainer>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-cogs" />
               </IconContainer>
               {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
@@ -129,6 +135,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="close-all-other-menu-option"
             >
               <IconContainer>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-times-circle-o" />
               </IconContainer>
               {t('Close all other tabs')}
@@ -139,6 +147,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               data-test="clone-tab-menu-option"
             >
               <IconContainer>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-files-o" />
               </IconContainer>
               {t('Duplicate tab')}

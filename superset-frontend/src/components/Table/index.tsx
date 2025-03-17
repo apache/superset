@@ -18,14 +18,17 @@
  */
 import { useState, useEffect, useRef, Key } from 'react';
 
+// eslint-disable-next-line no-restricted-imports
 import AntTable, {
   ColumnsType,
   TableProps as AntTableProps,
-} from 'antd/lib/table';
-import { PaginationProps } from 'antd/lib/pagination';
+} from 'antd/lib/table'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { PaginationProps } from 'antd/lib/pagination'; // TODO: Remove antd
 import { t, useTheme, logging, styled } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
-import { RowSelectionType } from 'antd/lib/table/interface';
+// eslint-disable-next-line no-restricted-imports
+import { RowSelectionType } from 'antd/lib/table/interface'; // TODO: Remove antd
 import InteractiveTableUtils from './utils/InteractiveTableUtils';
 import VirtualTable from './VirtualTable';
 

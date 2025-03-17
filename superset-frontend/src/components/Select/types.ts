@@ -22,12 +22,14 @@ import {
   ReactNode,
   RefObject,
 } from 'react';
+// eslint-disable-next-line no-restricted-imports
 import {
   SelectProps as AntdSelectProps,
   SelectValue as AntdSelectValue,
   LabeledValue as AntdLabeledValue,
-} from 'antd/lib/select';
-import { TagProps } from 'antd/lib/tag';
+} from 'antd/lib/select'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+import { TagProps } from 'antd/lib/tag'; // TODO: Remove antd
 
 export type RawValue = string | number;
 

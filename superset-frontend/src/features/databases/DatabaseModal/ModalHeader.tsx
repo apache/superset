@@ -18,7 +18,8 @@
  */
 
 import { getDatabaseDocumentationLinks } from 'src/views/CRUD/hooks';
-import { UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import { t } from '@superset-ui/core';
 import {
   EditHeaderTitle,

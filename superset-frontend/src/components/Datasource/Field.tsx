@@ -68,6 +68,8 @@ export default function Field<V>({
           {label || fieldKey}
           {compact && description && (
             <Tooltip id="field-descr" placement="right" title={description}>
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
               <i className="fa fa-info-circle m-l-5" />
             </Tooltip>
           )}

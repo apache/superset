@@ -22,7 +22,8 @@ import TagType from 'src/types/TagType';
 import { Tag as AntdTag } from 'antd-v5';
 import { useMemo } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
-import { CloseOutlined } from '@ant-design/icons';
+// eslint-disable-next-line no-restricted-imports
+import { CloseOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
 
 const StyledTag = styled(AntdTag)`
   ${({ theme }) => `

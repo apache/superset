@@ -1380,6 +1380,8 @@ class DatasourceEditor extends PureComponent {
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
                   >
+                    {/* TODO: Remove fa-icon */}
+                    {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                     <i className="fa fa-database" />{' '}
                     {t('Sync columns from source')}
                   </Button>

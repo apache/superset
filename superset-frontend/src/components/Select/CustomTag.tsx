@@ -17,7 +17,8 @@
  * under the License.
  */
 import { MouseEvent } from 'react';
-import { Tag as AntdTag } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { styled, useCSSTextTruncation } from '@superset-ui/core';
 import { Tooltip } from '../Tooltip';
 import { CustomCloseIcon } from '../Tags/Tag';

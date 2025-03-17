@@ -37,7 +37,8 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
-import { Tag as AntdTag } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
@@ -134,6 +135,8 @@ function TagList(props: TagListProps) {
     buttonAction: () => setShowTagModal(true),
     buttonText: (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" data-test="add-rule-empty" />{' '}
         {'Create a new Tag'}{' '}
       </>
@@ -321,6 +324,8 @@ function TagList(props: TagListProps) {
   subMenuButtons.push({
     name: (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" /> {t('Tag')}
       </>
     ),

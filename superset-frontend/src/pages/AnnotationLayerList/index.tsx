@@ -214,6 +214,8 @@ function AnnotationLayersList({
     subMenuButtons.push({
       name: (
         <>
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-plus" /> {t('Annotation layer')}
         </>
       ),
@@ -271,6 +273,8 @@ function AnnotationLayersList({
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" /> {t('Annotation layer')}
       </>
     ),

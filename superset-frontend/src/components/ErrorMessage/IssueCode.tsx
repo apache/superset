@@ -31,6 +31,8 @@ export default function IssueCode({ code, message }: IssueCodeProps) {
         target="_blank"
         aria-label="Superset docs link"
       >
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-external-link" />
       </a>
     </>

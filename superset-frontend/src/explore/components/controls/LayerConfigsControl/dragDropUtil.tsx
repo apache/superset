@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import { TreeProps } from 'antd/lib/tree';
+// eslint-disable-next-line no-restricted-imports
+import { TreeProps } from 'antd/lib/tree'; // TODO: Remove antd
 import { DropInfoType, FlatLayerDataNode } from './types';
 
 /**

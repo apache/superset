@@ -88,11 +88,15 @@ export default function URLShortLinkButton({
           <CopyToClipboard
             text={shortUrl}
             copyNode={
+              // TODO: Remove fa-icon
+              // eslint-disable-next-line icons/no-fa-icons-usage
               <i className="fa fa-clipboard" title={t('Copy to clipboard')} />
             }
           />
           &nbsp;&nbsp;
           <a href={emailLink} aria-label="Email link">
+            {/* TODO: Remove fa-icon */}
+            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
             <i className="fa fa-envelope" />
           </a>
         </div>
@@ -108,6 +112,8 @@ export default function URLShortLinkButton({
         }}
         aria-label={t('Copy URL')}
       >
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="short-link-trigger fa fa-link" />
         &nbsp;
       </span>

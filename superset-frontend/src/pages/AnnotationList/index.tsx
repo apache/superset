@@ -226,6 +226,8 @@ function AnnotationList({
   subMenuButtons.push({
     name: (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" /> {t('Annotation')}
       </>
     ),
@@ -259,6 +261,8 @@ function AnnotationList({
     },
     buttonText: (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" /> {t('Annotation')}
       </>
     ),

@@ -19,7 +19,8 @@
 import { useState } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 import Modal from 'src/components/Modal';
-import { ExclamationCircleOutlined, WarningOutlined } from '@ant-design/icons';
+// eslint-disable-next-line no-restricted-imports
+import { ExclamationCircleOutlined, WarningOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
 import Alert from 'src/components/Alert';
 import { t, useTheme } from '@superset-ui/core';
 

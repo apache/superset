@@ -417,6 +417,8 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-plus" /> {title}
         </>
       ),
@@ -441,6 +443,8 @@ function AlertList({
     buttonAction: () => handleAlertEdit(null),
     buttonText: canCreate ? (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" /> {title}{' '}
       </>
     ) : null,
