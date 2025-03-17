@@ -18,6 +18,7 @@
  */
 import Icons from 'src/components/Icons';
 import { useTheme } from '@superset-ui/core';
+
 interface IssueCodeProps {
   code: number;
   message: string;
