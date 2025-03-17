@@ -384,23 +384,20 @@ const Select = forwardRef(
     const handleFilterOption = (search: string, option: AntdLabeledValue) =>
       handleFilterOptionHelper(search, option, optionFilterProps, filterOption);
 
-    const handleOnDropdownVisibleChange = debounce(
-      (isDropdownVisible: boolean) => {
-        setIsDropdownVisible(isDropdownVisible);
+    const handleOnDropdownVisibleChange = (isDropdownVisible: boolean) => {
+      setIsDropdownVisible(isDropdownVisible);
 
-        // if no search input value, force sort options because it won't be sorted by
-        // `filterSort`.
-        if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
-          if (!isEqual(initialOptionsSorted, selectOptions)) {
-            setSelectOptions(initialOptionsSorted);
-          }
+      // if no search input value, force sort options because it won't be sorted by
+      // `filterSort`.
+      if (isDropdownVisible && !inputValue && selectOptions.length > 1) {
+        if (!isEqual(initialOptionsSorted, selectOptions)) {
+          setSelectOptions(initialOptionsSorted);
         }
-        if (onDropdownVisibleChange) {
-          onDropdownVisibleChange(isDropdownVisible);
-        }
-      },
-      FAST_DEBOUNCE,
-    );
+      }
+      if (onDropdownVisibleChange) {
+        onDropdownVisibleChange(isDropdownVisible);
+      }
+    };
 
     const dropdownRender = (
       originNode: ReactElement & { ref?: RefObject<HTMLElement> },
