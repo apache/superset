@@ -188,8 +188,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         """
         Remove `oauth2_client_info` from `encrypted_extra`.
         """
-        if "oauth2_client_info" in params.get("encrypted_extra", {}):
-            del params["encrypted_extra"]["oauth2_client_info"]
+        ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
+
+        if "oauth2_client_info" in params:
+            del params["oauth2_client_info"]
 
     @classmethod
     def get_parameters_from_uri(
