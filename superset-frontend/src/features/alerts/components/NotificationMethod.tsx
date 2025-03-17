@@ -78,7 +78,7 @@ const StyledNotificationMethod = styled.div`
         padding-top: ${theme.sizeUnit}px;
       }
       .anticon {
-        margin-left: ${theme.gridUnit}px;
+        margin-left: ${theme.sizeUnit}px;
       }
     }
 
