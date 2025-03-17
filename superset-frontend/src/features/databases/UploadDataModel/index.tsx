@@ -43,10 +43,12 @@ import {
   Select,
   Upload,
 } from 'src/components';
+// eslint-disable-next-line no-restricted-imports
 import { UploadOutlined } from '@ant-design/icons';
-import { Input, InputNumber } from 'src/components/Input';
+import { Input, InputNumber } from 'src/components/Input'; // TODO: Use src/components/Icons
 import rison from 'rison';
-import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface';
+// eslint-disable-next-line no-restricted-imports
+import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
 import {
   antdCollapseStyles,
@@ -183,8 +185,11 @@ export const validateUploadFileExtension = (
     return false;
   }
 
-  const fileType = extensionMatch[1];
-  return allowedExtensions.includes(fileType);
+  const fileType = extensionMatch[1].toLowerCase();
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext =>
+    ext.toLowerCase(),
+  );
+  return lowerCaseAllowedExtensions.includes(fileType);
 };
 
 interface StyledSwitchContainerProps extends SwitchProps {

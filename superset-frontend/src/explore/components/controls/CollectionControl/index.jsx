@@ -65,6 +65,8 @@ const defaultProps = {
 const SortableListItem = SortableElement(CustomListItem);
 const SortableList = SortableContainer(List);
 const SortableDragger = SortableHandle(() => (
+  // TODO: Remove fa-icon
+  // eslint-disable-next-line icons/no-fa-icons-usage
   <i
     role="img"
     aria-label="drag"
