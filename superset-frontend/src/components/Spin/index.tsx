@@ -17,19 +17,4 @@
  * under the License.
  */
 
-import { MouseEventHandler } from 'react';
-
-export interface TagType {
-  id?: number;
-  className?: string;
-  type?: string | number;
-  editable?: boolean;
-  onDelete?: (index: number) => void;
-  onClick?: MouseEventHandler<HTMLSpanElement>;
-  name: string;
-  index?: number | undefined;
-  toolTipTitle?: string;
-  children?: React.ReactNode;
-}
-
-export default TagType;
+export { Spin } from 'antd-v5';

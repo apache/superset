@@ -18,7 +18,8 @@
  */
 import { styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
-import { Spin, Tag, Select } from 'antd-v5';
+import { Spin } from 'src/components/Spin';
+import { Select } from 'antd-v5';
 
 export const StyledHeader = styled.span<{ headerPosition: string }>`
   ${({ theme, headerPosition }) => `
@@ -79,18 +80,6 @@ export const StyledSelect = styled(Select, {
       `
     };
  `}
-`;
-
-export const StyledTag = styled(Tag)`
-  & .antd5-tag-close-icon {
-    display: inline-flex;
-    align-items: center;
-    margin-left: ${({ theme }) => theme.sizeUnit}px;
-  }
-  & .tag-content {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 `;
 
 export const NoElement = styled.span`

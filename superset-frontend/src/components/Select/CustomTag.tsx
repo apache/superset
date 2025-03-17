@@ -17,30 +17,11 @@
  * under the License.
  */
 import { MouseEvent } from 'react';
-import { useCSSTextTruncation } from '@superset-ui/core';
-import { TagProps } from 'antd-v5';
-import { Tooltip } from '../Tooltip';
-import { CustomCloseIcon } from '../Tags/Tag';
+import { css } from '@superset-ui/core';
+import Tag from '../Tags/Tag';
 import { CustomTagProps } from './types';
 import { SELECT_ALL_VALUE } from './utils';
-import { NoElement, StyledTag } from './styles';
-
-const Tag = (props: TagProps) => {
-  const [tagRef, tagIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
-  return (
-    <Tooltip title={tagIsTruncated ? props.children : null}>
-      <StyledTag
-        closeIcon={props?.closable ? CustomCloseIcon : undefined}
-        {...props}
-        className="antd5-select-selection-item"
-      >
-        <span className="tag-content" ref={tagRef}>
-          {props.children}
-        </span>
-      </StyledTag>
-    </Tooltip>
-  );
-};
+import { NoElement } from './styles';
 
 /**
  * Custom tag renderer
@@ -63,7 +44,16 @@ export const customTagRender = (props: CustomTagProps) => {
 
   if (value !== SELECT_ALL_VALUE) {
     return (
-      <Tag onMouseDown={onPreventMouseDown} {...(props as object)}>
+      <Tag
+        onClick={onPreventMouseDown}
+        css={css`
+          display: flex;
+          align-items: center;
+        `}
+        name={label}
+        className="antd5-select-selection-item"
+        {...(props as object)}
+      >
         {label}
       </Tag>
     );
