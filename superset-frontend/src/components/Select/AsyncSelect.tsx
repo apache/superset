@@ -200,7 +200,7 @@ const AsyncSelect = forwardRef(
           sortSelectedFirst,
           sortComparator,
         ),
-      [inputValue, sortComparator, sortSelectedFirst],
+      [inputValue, sortComparator, isDropdownVisible],
     );
 
     const sortComparatorForNoSearch = useCallback(
