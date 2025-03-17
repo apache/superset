@@ -7863,6 +7863,13 @@
             },
             "minItems": 1,
             "type": "array"
+          },
+          "groups": {
+            "description": "groups_description",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -7913,6 +7920,13 @@
           },
           "tables": {
             "description": "tables_description",
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "groups": {
+            "description": "groups_description",
             "items": {
               "type": "integer"
             },

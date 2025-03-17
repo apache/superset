@@ -31,6 +31,7 @@ export type RLSObject = {
   group_key?: string;
   clause?: string;
   description?: string;
+  groups?: GroupObject[];
 };
 
 export type TableObject = {
@@ -43,6 +44,14 @@ export type TableObject = {
 };
 
 export type RoleObject = {
+  key: any;
+  id?: number;
+  label?: string;
+  value?: number | string;
+  name?: string;
+};
+
+export type GroupObject = {
   key: any;
   id?: number;
   label?: string;

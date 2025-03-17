@@ -2099,6 +2099,14 @@ RLSFilterTables = DBTable(
     Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
 )
 
+RLSFilterGroups = DBTable(
+    "rls_filter_groups",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("group_id", Integer, ForeignKey("ab_group.id")),
+    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+)
+
 
 class RowLevelSecurityFilter(Model, AuditMixinNullable):
     """
@@ -2128,3 +2136,8 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         backref="row_level_security_filters",
     )
     clause = Column(utils.MediumText(), nullable=False)
+    groups = relationship(
+        security_manager.group_model,
+        secondary=RLSFilterGroups,
+        backref="row_level_security_filters",
+    )

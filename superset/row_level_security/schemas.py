@@ -35,6 +35,7 @@ roles_description = "For regular filters, these are the roles this filter will b
 group_key_description = "Filters with the same group key will be ORed together within the group, while different filter groups will be ANDed together. Undefined group keys are treated as unique groups, i.e. are not grouped together. For example, if a table has three filters, of which two are for departments Finance and Marketing (group key = 'department'), and one refers to the region Europe (group key = 'region'), the filter clause would apply the filter (department = 'Finance' OR department = 'Marketing') AND (region = 'Europe')."  # noqa: E501
 # pylint: disable=line-too-long
 clause_description = "This is the condition that will be added to the WHERE clause. For example, to only return rows for a particular client, you might define a regular filter with the clause `client_id = 9`. To display no rows unless a user belongs to a RLS filter role, a base filter can be created with the clause `1 = 0` (always false)."  # noqa: E501
+groups_description = "For regular filters, these are the groups this filter will be applied to. For base filters, these are the groups that the filter DOES NOT apply to, e.g. Sales if sales should see all data."
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 
@@ -65,6 +66,12 @@ class TablesSchema(Schema):
     id = fields.Integer()
 
 
+class GroupsSchema(Schema):
+    name = fields.String()
+    id = fields.Integer()
+    label = fields.String()
+
+
 class RLSListSchema(Schema):
     id = fields.Integer(metadata={"description": "id_description"})
     name = fields.String(metadata={"description": "name_description"})
@@ -83,6 +90,7 @@ class RLSListSchema(Schema):
     group_key = fields.String(metadata={"description": "group_key_description"})
     description = fields.String(metadata={"description": "description_description"})
     changed_by = fields.Nested(UserSchema(exclude=["username"]))
+    groups = fields.List(fields.Nested(GroupsSchema))
 
 
 class RLSShowSchema(Schema):
@@ -99,6 +107,7 @@ class RLSShowSchema(Schema):
     clause = fields.String(metadata={"description": "clause_description"})
     group_key = fields.String(metadata={"description": "group_key_description"})
     description = fields.String(metadata={"description": "description_description"})
+    groups = fields.List(fields.Nested(GroupsSchema))
 
 
 class RLSPostSchema(Schema):
@@ -142,6 +151,12 @@ class RLSPostSchema(Schema):
     clause = fields.String(
         metadata={"description": "clause_description"}, required=True, allow_none=False
     )
+    groups = fields.List(
+        fields.Integer(),
+        metadata={"description": "groups_description"},
+        required=False,
+        allow_none=True,
+    )
 
 
 class RLSPutSchema(Schema):
@@ -183,4 +198,10 @@ class RLSPutSchema(Schema):
     )
     clause = fields.String(
         metadata={"description": "clause_description"}, required=False, allow_none=False
+    )
+    groups = fields.List(
+        fields.Integer(),
+        metadata={"description": "groups_description"},
+        required=False,
+        allow_none=True,
     )

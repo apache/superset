@@ -133,7 +133,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     add_model_schema = RLSPostSchema()
     edit_model_schema = RLSPutSchema()
 
-    allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
+    allowed_rel_fields = {"tables", "roles", "created_by", "changed_by", "groups"}
     related_field_filters = {
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }

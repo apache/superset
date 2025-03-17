@@ -179,6 +179,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     }
     const tables: TableObject[] = [];
     const roles: RoleObject[] = [];
+    const groups: GroupObject[] = [];
 
     resource.tables?.forEach(selectedTable => {
       tables.push({
@@ -198,8 +199,16 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
       });
     });
 
-    return { tables, roles };
-  }, [resource?.tables, resource?.roles]);
+    resource.groups?.forEach(selectedGroup => {
+      groups.push({
+        key: selectedGroup.id,
+        label: selectedGroup.name,
+        value: selectedGroup.id,
+      });
+    });
+
+    return { tables, roles, groups };
+  }, [resource?.tables, resource?.roles, resource?.groups]);
 
   // initialize
   useEffect(() => {
@@ -213,9 +222,10 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   useEffect(() => {
     if (resource) {
       setCurrentRule({ ...resource, id: rule?.id });
-      const selectedTableAndRoles = getSelectedData();
-      updateRuleState('tables', selectedTableAndRoles?.tables || []);
-      updateRuleState('roles', selectedTableAndRoles?.roles || []);
+      const selectedInfo = getSelectedData();
+      updateRuleState('tables', selectedInfo?.tables || []);
+      updateRuleState('roles', selectedInfo?.roles || []);
+      updateRuleState('groups', selectedInfo?.groups || []);
     }
   }, [resource]);
 
@@ -247,6 +257,10 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
     updateRuleState('roles', roles || []);
   };
 
+  const onGroupsChange = (groups: Array<SelectValue>) => {
+    updateRuleState('groups', groups || []);
+  };
+
   const hide = () => {
     clearError();
     setCurrentRule({ ...DEFAULT_RULE });
@@ -256,11 +270,13 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
   const onSave = () => {
     const tables: number[] = [];
     const roles: number[] = [];
+    const groups: number[] = [];
 
     currentRule.tables?.forEach(table => tables.push(table.key));
     currentRule.roles?.forEach(role => roles.push(role.key));
+    currentRule.groups?.forEach(group => groups.push(group.key));
 
-    const data: any = { ...currentRule, tables, roles };
+    const data: any = { ...currentRule, tables, roles, groups };
 
     if (isEditMode && currentRule.id) {
       const updateId = currentRule.id;
@@ -315,6 +331,29 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
         });
         return SupersetClient.get({
           endpoint: `/api/v1/rowlevelsecurity/related/roles?q=${query}`,
+        }).then(response => {
+          const list = response.json.result.map(
+            (item: { value: number; text: string }) => ({
+              label: item.text,
+              value: item.value,
+            }),
+          );
+          return { data: list, totalCount: response.json.count };
+        });
+      },
+    [],
+  );
+
+  const loadGroupOptions = useMemo(
+    () =>
+      (input = '', page: number, pageSize: number) => {
+        const query = rison.encode({
+          filter: input,
+          page,
+          page_size: pageSize,
+        });
+        return SupersetClient.get({
+          endpoint: `/api/v1/rowlevelsecurity/related/groups?q=${query}`,
         }).then(response => {
           const list = response.json.result.map(
             (item: { value: number; text: string }) => ({
@@ -429,6 +468,27 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
                 onChange={onRolesChange}
                 value={(currentRule?.roles as SelectValue[]) || []}
                 options={loadRoleOptions}
+              />
+            </div>
+          </StyledInputContainer>
+          <StyledInputContainer>
+            <div className="control-label">
+              {currentRule.filter_type === FilterType.Base
+                ? t('Excluded groups')
+                : t('Groups')}{' '}
+              <InfoTooltip
+                tooltip={t(
+                  'For regular filters, these are the groups this filter will be applied to. For base filters, these are the groups that the filter DOES NOT apply to, e.g. Sales if sales should see all data.',
+                )}
+              />
+            </div>
+            <div className="input-container">
+              <AsyncSelect
+                ariaLabel={t('Groups')}
+                mode="multiple"
+                onChange={onGroupsChange}
+                value={(currentRule?.groups as SelectValue[]) || []}
+                options={loadGroupOptions}
               />
             </div>
           </StyledInputContainer>

@@ -2476,10 +2476,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.connectors.sqla.models import (
             RLSFilterRoles,
             RLSFilterTables,
+            RLSFilterGroups,
             RowLevelSecurityFilter,
         )
 
         user_roles = [role.id for role in self.get_user_roles(g.user)]
+        user_groups = [group.id for group in getattr(g.user, "groups", [])]
         regular_filter_roles = (
             self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
@@ -2499,6 +2501,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
             RLSFilterTables.c.table_id == table.id
         )
+        regular_filter_groups = (
+            self.get_session.query(RLSFilterGroups.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
+            )
+            .filter(RLSFilterGroups.c.group_id.in_(user_groups))
+        )
+        base_filter_groups = (
+            self.get_session.query(RLSFilterGroups.c.rls_filter_id)
+            .join(RowLevelSecurityFilter)
+            .filter(
+                RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
+            )
+            .filter(RLSFilterGroups.c.group_id.in_(user_groups))
+        )
         query = (
             self.get_session.query(
                 RowLevelSecurityFilter.id,
@@ -2511,12 +2529,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     and_(
                         RowLevelSecurityFilter.filter_type
                         == RowLevelSecurityFilterType.REGULAR,
-                        RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                        or_(
+                            RowLevelSecurityFilter.id.in_(regular_filter_roles),
+                            RowLevelSecurityFilter.id.in_(regular_filter_groups),
+                        ),
                     ),
                     and_(
                         RowLevelSecurityFilter.filter_type
                         == RowLevelSecurityFilterType.BASE,
                         RowLevelSecurityFilter.id.notin_(base_filter_roles),
+                        RowLevelSecurityFilter.id.notin_(base_filter_groups),
                     ),
                 )
             )
