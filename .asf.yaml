@@ -99,3 +99,9 @@ github:
         required_approving_review_count: 1
 
       required_signatures: false
+
+notifications:
+  commits: commits@superset.apache.org
+  issues: issues@superset.apache.org
+  pullrequests: issues@superset.apache.org
+  discussions: issues@superset.apache.org
