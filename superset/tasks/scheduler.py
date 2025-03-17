@@ -14,11 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any
 
-from celery import Celery
+from celery import Task
 from celery.exceptions import SoftTimeLimitExceeded
 
 from superset import app, is_feature_enabled
@@ -77,7 +79,7 @@ def scheduler() -> None:
 
 
 @celery_app.task(name="reports.execute", bind=True)
-def execute(self: Celery.task, report_schedule_id: int) -> None:
+def execute(self: Task, report_schedule_id: int) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("reports.execute")
 
@@ -124,8 +126,10 @@ def prune_log() -> None:
         logger.exception("An exception occurred while pruning report schedule logs")
 
 
-@celery_app.task(name="prune_query")
-def prune_query(retention_period_days: Optional[int] = None) -> None:
+@celery_app.task(name="prune_query", bind=True)
+def prune_query(
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
+) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_query")
 
@@ -145,8 +149,10 @@ def prune_query(retention_period_days: Optional[int] = None) -> None:
         logger.exception("An error occurred while pruning queries: %s", ex)
 
 
-@celery_app.task(name="prune_logs")
-def prune_logs(retention_period_days: Optional[int] = None) -> None:
+@celery_app.task(name="prune_logs", bind=True)
+def prune_logs(
+    self: Task, retention_period_days: int | None = None, **kwargs: Any
+) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
 
