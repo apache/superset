@@ -81,7 +81,7 @@ const loggerMiddleware = store => next => action => {
   const { eventName } = action.payload;
   let { eventData = {} } = action.payload;
 
-  const path = eventData.path || location?.href;
+  const path = eventData.path || window?.location?.href;
 
   if (dashboardInfo?.id && path?.includes('/dashboard/')) {
     logMetadata = {
