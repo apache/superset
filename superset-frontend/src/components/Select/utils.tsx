@@ -124,8 +124,7 @@ export const sortSelectedFirstHelper = (
     | RawValue[]
     | AntdLabeledValue
     | AntdLabeledValue[]
-    | undefined
-    | null,
+    | undefined,
 ) => {
   if (a.value === SELECT_ALL_VALUE) return -1;
   if (b.value === SELECT_ALL_VALUE) return 1;

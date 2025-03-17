@@ -186,8 +186,12 @@ const AsyncSelect = forwardRef(
     }, [selectValue]);
 
     const sortSelectedFirst = useCallback(
-      (a: AntdLabeledValue, b: AntdLabeledValue) =>
-        sortSelectedFirstHelper(a, b, selectValueRef.current),
+      (a: AntdLabeledValue, b: AntdLabeledValue) => {
+        if (selectValueRef.current === null) {
+          return 0;
+        }
+        return sortSelectedFirstHelper(a, b, selectValueRef.current);
+      },
       [],
     );
 
