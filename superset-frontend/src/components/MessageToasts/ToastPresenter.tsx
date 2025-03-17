@@ -31,7 +31,7 @@ const StyledToastPresenter = styled.div<VisualProps>`
   right: 0px;
   margin-right: 50px;
   margin-bottom: 50px;
-  z-index: ${({ theme }) => theme.zIndex.max};
+  z-index: ${({ theme }) => theme.zIndex.max + 1};
   word-break: break-word;
 
   .toast {
