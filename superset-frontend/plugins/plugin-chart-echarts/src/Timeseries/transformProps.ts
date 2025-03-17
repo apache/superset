@@ -427,12 +427,12 @@ export default function transformProps(
       formData.metrics.length > 1
         ? 1
         : 0 + chartProps.rawFormData.groupby.indexOf(stackdimension);
-    series.map(s => {
-      if (!s.id) return;
-      const columnsArr = labelMap[s.id];
-      s.stack = columnsArr[idxSelectedDimension];
-      return s;
-    });
+    for (var s of series) {
+      if (s.id){
+        const columnsArr = labelMap[s.id];
+        (s as any).stack = columnsArr[idxSelectedDimension];
+      }
+    }
   }
 
   // axis bounds need to be parsed to replace incompatible values with undefined
