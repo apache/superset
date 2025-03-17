@@ -17,11 +17,12 @@
  * under the License.
  */
 
-import { ReactNode, CSSProperties } from 'react';
+import { ReactNode, CSSProperties, useCallback } from 'react';
 import { css, truncationCSS, useCSSTextTruncation } from '@superset-ui/core';
 import { Menu } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { MenuItemProps } from 'antd-v5';
+import { ItemType } from 'antd-v5/es/menu/interface';
 
 export type MenuItemWithTruncationProps = {
   tooltipText: ReactNode;
@@ -29,6 +30,69 @@ export type MenuItemWithTruncationProps = {
   onClick?: MenuItemProps['onClick'];
   style?: CSSProperties;
   menuKey?: string;
+};
+
+export const TruncatedMenuLabel = ({
+  tooltipText,
+  children,
+}: {
+  tooltipText: ReactNode;
+  children: ReactNode;
+}) => {
+  const [ref, isTruncated] = useCSSTextTruncation<HTMLDivElement>();
+
+  return (
+    <Tooltip title={isTruncated ? tooltipText : null}>
+      <div
+        ref={ref}
+        css={css`
+          max-width: 100%;
+          ${truncationCSS};
+        `}
+      >
+        {children}
+      </div>
+    </Tooltip>
+  );
+};
+
+export const useMenuItemWithTruncation = () => {
+  const getMenuItemWithTruncation = useCallback(
+    ({
+      tooltipText,
+      children,
+      onClick,
+      style,
+      key,
+      disabled = false,
+      danger = false,
+      ...restProps
+    }: {
+      tooltipText: ReactNode;
+      children: ReactNode;
+      onClick?: (e: any) => void;
+      style?: CSSProperties;
+      key: string;
+      disabled?: boolean;
+      danger?: boolean;
+      [key: string]: any;
+    }): ItemType => ({
+      key,
+      onClick,
+      style,
+      disabled,
+      danger,
+      label: (
+        <TruncatedMenuLabel tooltipText={tooltipText}>
+          {children}
+        </TruncatedMenuLabel>
+      ),
+      ...restProps,
+    }),
+    [],
+  );
+
+  return getMenuItemWithTruncation;
 };
 
 export const MenuItemWithTruncation = ({
