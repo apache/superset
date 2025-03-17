@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { JsonArray, t } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -53,6 +53,8 @@ const {
   yAxisBounds,
   zoomable,
   orientation,
+  stackbydimension,
+  stackdimension,
 } = DEFAULT_FORM_DATA;
 
 function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
@@ -317,6 +319,42 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'stackbydimension',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Stack by dimension'),
+              default: stackbydimension,
+              renderTrigger: true,
+              description: t('Stack in groups, where each group corresponds to a dimension'),
+            },
+          },
+        ],
+        [
+          {
+            name: 'stackdimension',
+            config: {
+              type: 'SelectControl',
+              label: t('Dimension to stack by'),
+              renderTrigger: true,
+              description: t('Stack in groups, where each group corresponds to a dimension'),
+              shouldMapStateToProps: (prevState, state, controlState, chartState) => {
+                return true;
+              },
+              mapStateToProps: (state, controlState, chartState) => {
+                const value : JsonArray = state.controls.groupby.value as JsonArray;
+                const valueAsStringArr : string[][] = value.map(v => {
+                  if(v) return [v.toString(), v.toString()];
+                  return ['', ''];
+                });
+                return {
+                  choices: valueAsStringArr
+                };
+              }
+            },
+          },
+        ],
         ...seriesOrderSection,
         ['color_scheme'],
         ['time_shift_color'],

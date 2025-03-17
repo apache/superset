@@ -191,6 +191,8 @@ export default function transformProps(
     yAxisTitleMargin,
     yAxisTitlePosition,
     zoomable,
+    stackbydimension,
+    stackdimension,
   }: EchartsTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
@@ -419,6 +421,16 @@ export default function transformProps(
         );
       }
     });
+
+  if(stackbydimension && stackdimension 
+      && chartProps.rawFormData.groupby){
+    const idxSelectedDimension = formData.metrics.length > 1 ? 1 : 0 
+      + chartProps.rawFormData.groupby.indexOf(stackdimension);
+    series.map(s => {
+      const columnsArr = labelMap[s.id];
+      s.stack = columnsArr[idxSelectedDimension];
+    });
+  }
 
   // axis bounds need to be parsed to replace incompatible values with undefined
   const [xAxisMin, xAxisMax] = (xAxisBounds || []).map(parseAxisBound);
