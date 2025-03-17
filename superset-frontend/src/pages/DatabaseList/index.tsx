@@ -551,7 +551,7 @@ function DatabaseList({
                     className="action-button"
                     onClick={handleSync}
                   >
-                    <Icons.Refresh iconSize="l" />
+                    <Icons.SyncOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}

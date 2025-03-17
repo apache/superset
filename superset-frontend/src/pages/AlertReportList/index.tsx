@@ -375,7 +375,7 @@ function AlertList({
                   label: 'execution-log-action',
                   tooltip: t('Execution log'),
                   placement: 'bottom',
-                  icon: 'Note',
+                  icon: 'FileTextOutlined',
                   onClick: handleGotoExecutionLog,
                 }
               : null,

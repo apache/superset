@@ -191,7 +191,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           } else if (

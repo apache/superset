@@ -280,9 +280,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => openQuery(q.queryId)}
           >
-            {/* TODO: Remove fa-icon */}
-            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-            <i className="fa fa-external-link m-r-3" />
+            <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
             {t('Edit')}
           </Button>
         );
@@ -347,7 +345,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.EditOutlined iconSize="xl" />
+              <Icons.EditOutlined iconSize="l" />
             </StyledTooltip>
             <StyledTooltip
               onClick={() => openQueryInNewTab(query)}
@@ -355,7 +353,7 @@ const QueryTable = ({
               placement="top"
               className="pointer"
             >
-              <Icons.PlusCircleOutlined iconSize="xl" />
+              <Icons.PlusCircleOutlined iconSize="l" />
             </StyledTooltip>
             {q.id !== latestQueryId && (
               <StyledTooltip
@@ -363,7 +361,7 @@ const QueryTable = ({
                 onClick={() => dispatch(removeQuery(query))}
                 className="pointer"
               >
-                <Icons.DeleteOutlined iconSize="xl" />
+                <Icons.DeleteOutlined iconSize="l" />
               </StyledTooltip>
             )}
           </div>

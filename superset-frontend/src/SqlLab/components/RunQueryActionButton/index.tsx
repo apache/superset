@@ -45,12 +45,12 @@ const buildText = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
 ): string | JSX.Element => {
+  const theme = useTheme();
   if (shouldShowStopButton) {
     return (
       <>
-        {/* TODO: Remove fa-icon */}
-        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-        <i className="fa fa-stop" /> {t('Stop')}
+        <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
+        {t('Stop')}
       </>
     );
   }

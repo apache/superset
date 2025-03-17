@@ -51,7 +51,7 @@ export const FilterTitle = styled.div`
   `}
 `;
 
-const StyledWarning = styled(Icons.Warning)`
+const StyledWarning = styled(Icons.ExclamationCircleOutlined)`
   color: ${({ theme }) => theme.colors.error.base};
   &.anticon {
     margin-left: auto;
