@@ -1088,7 +1088,10 @@ class BaseUploadFilePostSchemaMixin(Schema):
     def validate_file_extension(self, file: FileStorage) -> None:
         allowed_extensions = current_app.config["ALLOWED_EXTENSIONS"]
         file_suffix = Path(file.filename).suffix
-        if not file_suffix or file_suffix[1:] not in allowed_extensions:
+        if not file_suffix:
+            raise ValidationError([_("File extension is not allowed.")])
+        # Make case-insensitive comparison
+        if file_suffix[1:].lower() not in [ext.lower() for ext in allowed_extensions]:
             raise ValidationError([_("File extension is not allowed.")])
 
 
