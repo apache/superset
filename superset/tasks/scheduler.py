@@ -124,8 +124,10 @@ def prune_log() -> None:
         logger.exception("An exception occurred while pruning report schedule logs")
 
 
-@celery_app.task(name="prune_query")
-def prune_query(retention_period_days: Optional[int] = None) -> None:
+@celery_app.task(name="prune_query", bind=True)
+def prune_query(
+    self: Celery.task, retention_period_days: Optional[int] = None, **kwargs
+) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_query")
 
@@ -145,8 +147,10 @@ def prune_query(retention_period_days: Optional[int] = None) -> None:
         logger.exception("An error occurred while pruning queries: %s", ex)
 
 
-@celery_app.task(name="prune_logs")
-def prune_logs(retention_period_days: Optional[int] = None) -> None:
+@celery_app.task(name="prune_logs", bind=True)
+def prune_logs(
+    self: Celery.task, retention_period_days: Optional[int] = None, **kwargs
+) -> None:
     stats_logger: BaseStatsLogger = app.config["STATS_LOGGER"]
     stats_logger.incr("prune_logs")
 
