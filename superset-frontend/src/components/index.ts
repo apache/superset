@@ -42,7 +42,8 @@ export {
 } from 'antd-v5';
 
 // Vanilla Ant Design components from v4 that require migration
-export { Upload } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+export { Upload } from 'antd'; // TODO: Remove antd
 
 /*
  * Components that conflict with the ones in src/components.
@@ -61,5 +62,7 @@ export {
 } from 'antd';
 
 // Exported types
-export type { FormInstance } from 'antd/lib/form';
-export type { RadioChangeEvent } from 'antd/lib/radio';
+// eslint-disable-next-line no-restricted-imports
+export type { FormInstance } from 'antd/lib/form'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+export type { RadioChangeEvent } from 'antd/lib/radio'; // TODO: Remove antd

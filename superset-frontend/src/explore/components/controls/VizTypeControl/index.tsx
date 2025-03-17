@@ -55,6 +55,8 @@ function VizSupportValidation({ vizType }: { vizType: string }) {
         margin-top: ${theme.gridUnit}px;
       `}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i className="fa fa-exclamation-circle text-danger" />{' '}
       <small>{t('This visualization type is not supported.')}</small>
     </div>

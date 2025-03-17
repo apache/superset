@@ -386,7 +386,7 @@ module.exports = {
   ],
   rules: {
     'theme-colors/no-literal-colors': 'error',
-    'icons/no-fa-icons-usage': 'warn',
+    'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': ['error', true],
     camelcase: [
       'error',

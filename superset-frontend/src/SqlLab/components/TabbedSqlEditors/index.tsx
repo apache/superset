@@ -247,6 +247,8 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
               : t('New tab (Ctrl + t)')
           }
         >
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i data-test="add-tab-icon" className="fa fa-plus-circle" />
         </Tooltip>
       </StyledTab>
@@ -289,6 +291,8 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
+            {/* TODO: Remove fa-icon */}
+            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
             <i data-test="add-tab-icon" className="fa fa-plus-circle" />
           </Tooltip>
         }
