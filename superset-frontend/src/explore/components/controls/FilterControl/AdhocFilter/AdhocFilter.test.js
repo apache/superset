@@ -225,8 +225,8 @@ describe('AdhocFilter', () => {
     });
     expect(adhocFilter2.translateToSql()).toBe('SUM(value) <> 5');
   });
-  it('sets comparator to null when operator is IS_NULL', () => {
-    const adhocFilter2 = new AdhocFilter({
+  it('sets comparator to undefined when operator is IS_NULL', () => {
+    const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
       operator: 'IS NULL',
@@ -234,10 +234,10 @@ describe('AdhocFilter', () => {
       comparator: '5',
       clause: Clauses.Having,
     });
-    expect(adhocFilter2.comparator).toBe(null);
+    expect(adhocFilter.comparator).toBe(undefined);
   });
-  it('sets comparator to null when operator is IS_NOT_NULL', () => {
-    const adhocFilter2 = new AdhocFilter({
+  it('sets comparator to undefined when operator is IS_NOT_NULL', () => {
+    const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'SUM(value)',
       operator: 'IS NOT NULL',
@@ -245,38 +245,60 @@ describe('AdhocFilter', () => {
       comparator: '5',
       clause: Clauses.Having,
     });
-    expect(adhocFilter2.comparator).toBe(null);
+    expect(adhocFilter.comparator).toBe(undefined);
+  });
+  it('sets comparator to undefined when operator is IS_TRUE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: 'IS TRUE',
+      operatorId: Operators.IsTrue,
+      comparator: '5',
+      clause: Clauses.Having,
+    });
+    expect(adhocFilter.comparator).toBe(undefined);
+  });
+  it('sets comparator to undefined when operator is IS_FALSE', () => {
+    const adhocFilter = new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'col',
+      operator: 'IS FALSE',
+      operatorId: Operators.IsFalse,
+      comparator: '5',
+      clause: Clauses.Having,
+    });
+    expect(adhocFilter.comparator).toBe(undefined);
   });
   it('sets the label properly if subject is a string', () => {
-    const adhocFilter2 = new AdhocFilter({
+    const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: 'order_date',
     });
-    expect(adhocFilter2.getDefaultLabel()).toBe('order_date');
+    expect(adhocFilter.getDefaultLabel()).toBe('order_date');
   });
   it('sets the label properly if subject is an object with the column_date property', () => {
-    const adhocFilter2 = new AdhocFilter({
+    const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: {
         column_name: 'year',
       },
     });
-    expect(adhocFilter2.getDefaultLabel()).toBe('year');
+    expect(adhocFilter.getDefaultLabel()).toBe('year');
   });
   it('sets the label to empty is there is no column_name in the object', () => {
-    const adhocFilter2 = new AdhocFilter({
+    const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: {
         unknown: 'year',
       },
     });
-    expect(adhocFilter2.getDefaultLabel()).toBe('');
+    expect(adhocFilter.getDefaultLabel()).toBe('');
   });
   it('sets the label to empty is there is no subject', () => {
-    const adhocFilter2 = new AdhocFilter({
+    const adhocFilter = new AdhocFilter({
       expressionType: ExpressionTypes.Simple,
       subject: undefined,
     });
-    expect(adhocFilter2.getDefaultLabel()).toBe('');
+    expect(adhocFilter.getDefaultLabel()).toBe('');
   });
 });

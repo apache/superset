@@ -18,7 +18,7 @@
  */
 import {
   CUSTOM_OPERATORS,
-  Operators,
+  DISABLE_INPUT_OPERATORS,
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import { translateToSql } from '../utils/translateToSQL';
@@ -36,18 +36,8 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
-      if (
-        [Operators.IsTrue, Operators.IsFalse].indexOf(adhocFilter.operatorId) >=
-        0
-      ) {
-        this.comparator = adhocFilter.operatorId === Operators.IsTrue;
-      }
-      if (
-        [Operators.IsNull, Operators.IsNotNull].indexOf(
-          adhocFilter.operatorId,
-        ) >= 0
-      ) {
-        this.comparator = null;
+      if (DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId) >= 0) {
+        this.comparator = undefined;
       }
       this.clause = adhocFilter.clause || Clauses.Where;
       this.sqlExpression = null;
@@ -103,34 +93,30 @@ export default class AdhocFilter {
   }
 
   isValid() {
-    const nullCheckOperators = [Operators.IsNotNull, Operators.IsNull].map(
-      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
-    );
-    const truthCheckOperators = [Operators.IsTrue, Operators.IsFalse].map(
-      op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
-    );
     if (this.expressionType === ExpressionTypes.Simple) {
-      if (nullCheckOperators.indexOf(this.operator) >= 0) {
-        return !!(this.operator && this.subject);
+      // operators where the comparator is not used
+      if (
+        DISABLE_INPUT_OPERATORS.map(
+          op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+        ).indexOf(this.operator) >= 0
+      ) {
+        return !!this.subject;
       }
-      if (truthCheckOperators.indexOf(this.operator) >= 0) {
-        return !!(this.subject && this.comparator !== null);
-      }
+
       if (this.operator && this.subject && this.clause) {
         if (Array.isArray(this.comparator)) {
-          if (this.comparator.length > 0) {
-            // A non-empty array of values ('IN' or 'NOT IN' clauses)
-            return true;
-          }
-        } else if (this.comparator !== null) {
-          // A value has been selected or typed
-          return true;
+          // A non-empty array of values ('IN' or 'NOT IN' clauses)
+          return this.comparator.length > 0;
         }
+        // A value has been selected or typed
+        return this.comparator !== null;
       }
-    } else if (this.expressionType === ExpressionTypes.Sql) {
-      return !!(this.sqlExpression && this.clause);
     }
-    return false;
+
+    return (
+      this.expressionType === ExpressionTypes.Sql &&
+      !!(this.sqlExpression && this.clause)
+    );
   }
 
   getDefaultLabel() {
