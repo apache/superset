@@ -422,12 +422,13 @@ export default function transformProps(
       }
     });
 
-  if(stackbydimension && stackdimension 
-      && chartProps.rawFormData.groupby){
-    const idxSelectedDimension = formData.metrics.length > 1 ? 1 : (0 
-      + chartProps.rawFormData.groupby.indexOf(stackdimension));
+  if (stackbydimension && stackdimension && chartProps.rawFormData.groupby) {
+    const idxSelectedDimension =
+      formData.metrics.length > 1
+        ? 1
+        : 0 + chartProps.rawFormData.groupby.indexOf(stackdimension);
     series.map(s => {
-      if(!s.id)return;
+      if (!s.id) return;
       const columnsArr = labelMap[s.id];
       s.stack = columnsArr[idxSelectedDimension];
     });
