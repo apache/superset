@@ -55,9 +55,12 @@ export const useResultsTableView = (
     );
   }
   return (
-    <Tabs fullWidth={false} data-test="drill-by-results-tabs">
-      {chartDataResult.map((res, index) => (
-        <Tabs.TabPane tab={t('Results %s', index + 1)} key={index}>
+    <Tabs
+      defaultActiveKey="0"
+      items={chartDataResult.map((res, index) => ({
+        key: index.toString(),
+        label: t('Results %s', index + 1),
+        children: (
           <PaginationContainer>
             <SingleQueryResultPane
               colnames={res.colnames}
@@ -70,8 +73,8 @@ export const useResultsTableView = (
               canDownload={canDownload}
             />
           </PaginationContainer>
-        </Tabs.TabPane>
-      ))}
-    </Tabs>
+        ),
+      }))}
+    />
   );
 };

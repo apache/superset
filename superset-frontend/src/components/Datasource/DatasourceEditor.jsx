@@ -88,7 +88,7 @@ const FlexRowContainer = styled.div`
 
 const StyledTableTabs = styled(Tabs)`
   overflow: visible;
-  .ant-tabs-content-holder {
+  .antd5-tabs-content-holder {
     overflow: visible;
   }
 `;
