@@ -1016,7 +1016,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
           - in: query
             schema:
               type: string
-            name: table
+            name: name
             required: true
             description: Table name
           - in: query
