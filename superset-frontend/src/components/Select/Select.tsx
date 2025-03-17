@@ -278,9 +278,7 @@ const Select = forwardRef(
               SELECT_ALL_VALUE,
               ...selectAllEligible
                 .map(opt => opt.value)
-                .filter(
-                  (val): val is RawValue => val !== null && val !== undefined,
-                ),
+                .filter((val): val is RawValue => val !== undefined),
             ];
           }
           if (!hasOption(value, array)) {
@@ -701,4 +699,4 @@ const Select = forwardRef(
 );
 
 export default Select;
-export const { Option }: { Option: BaseOptionType } = AntdSelect;
+export const { Option }: { Option: React.FC<BaseOptionType> } = AntdSelect;
