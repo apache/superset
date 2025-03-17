@@ -326,7 +326,9 @@ const config: ControlPanelConfig = {
               label: t('Stack by dimension'),
               default: stackbydimension,
               renderTrigger: true,
-              description: t('Stack in groups, where each group corresponds to a dimension'),
+              description: t(
+                'Stack in groups, where each group corresponds to a dimension',
+              ),
             },
           },
         ],
@@ -336,20 +338,29 @@ const config: ControlPanelConfig = {
             config: {
               type: 'SelectControl',
               label: t('Dimension to stack by'),
-              visibility: ({ controls }) => Boolean(controls?.stackbydimension?.value),
+              visibility: ({ controls }) =>
+                Boolean(controls?.stackbydimension?.value),
               renderTrigger: true,
-              description: t('Stack in groups, where each group corresponds to a dimension'),
-              shouldMapStateToProps: (prevState, state, controlState, chartState) => true,
+              description: t(
+                'Stack in groups, where each group corresponds to a dimension',
+              ),
+              shouldMapStateToProps: (
+                prevState,
+                state,
+                controlState,
+                chartState,
+              ) => true,
               mapStateToProps: (state, controlState, chartState) => {
-                const value : JsonArray = state.controls.groupby.value as JsonArray;
-                const valueAsStringArr : string[][] = value.map(v => {
-                  if(v) return [v.toString(), v.toString()];
+                const value: JsonArray = state.controls.groupby
+                  .value as JsonArray;
+                const valueAsStringArr: string[][] = value.map(v => {
+                  if (v) return [v.toString(), v.toString()];
                   return ['', ''];
                 });
                 return {
-                  choices: valueAsStringArr
+                  choices: valueAsStringArr,
                 };
-              }
+              },
             },
           },
         ],
