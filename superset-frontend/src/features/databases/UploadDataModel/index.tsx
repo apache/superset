@@ -183,8 +183,9 @@ export const validateUploadFileExtension = (
     return false;
   }
 
-  const fileType = extensionMatch[1];
-  return allowedExtensions.includes(fileType);
+  const fileType = extensionMatch[1].toLowerCase();
+  const lowerCaseAllowedExtensions = allowedExtensions.map(ext => ext.toLowerCase());
+  return lowerCaseAllowedExtensions.includes(fileType);
 };
 
 interface StyledSwitchContainerProps extends SwitchProps {
