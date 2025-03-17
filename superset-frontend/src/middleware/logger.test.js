@@ -40,7 +40,6 @@ describe('logger middleware', () => {
       eventData: {
         key: 'value',
         start_offset: 100,
-        path: `/dashboard/${dashboardId}/`,
       },
     },
   };
@@ -82,6 +81,12 @@ describe('logger middleware', () => {
   });
 
   it('should include ts, start_offset, event_name, impression_id, source, and source_id in every event', () => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        href: `http://localhost/dashboard/${dashboardId}`,
+      },
+      writable: true,
+    });
     logger(mockStore)(next)(action);
     timeSandbox.clock.tick(2000);
 
