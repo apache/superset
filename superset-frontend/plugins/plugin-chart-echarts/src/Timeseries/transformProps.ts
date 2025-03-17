@@ -431,6 +431,7 @@ export default function transformProps(
       if (!s.id) return;
       const columnsArr = labelMap[s.id];
       s.stack = columnsArr[idxSelectedDimension];
+      return s;
     });
   }
 
