@@ -21,7 +21,7 @@ import { FunctionComponent, useState, useRef, ChangeEvent } from 'react';
 import SchemaForm, { FormProps } from '@rjsf/core';
 import { FormValidation } from '@rjsf/utils';
 import validator from '@rjsf/validator-ajv8';
-import { Row, Col } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import { Input } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import { parseDate } from 'chrono-node';

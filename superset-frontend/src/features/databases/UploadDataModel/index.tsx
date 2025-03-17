@@ -35,14 +35,8 @@ import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { Switch, SwitchProps } from 'src/components/Switch';
 import Collapse from 'src/components/Collapse';
-import {
-  AntdForm,
-  AsyncSelect,
-  Col,
-  Row,
-  Select,
-  Upload,
-} from 'src/components';
+import { AntdForm, AsyncSelect, Select, Upload } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import { UploadOutlined } from '@ant-design/icons';
 import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';

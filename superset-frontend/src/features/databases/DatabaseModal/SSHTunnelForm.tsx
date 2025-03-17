@@ -18,7 +18,8 @@
  */
 import { useState } from 'react';
 import { t, styled } from '@superset-ui/core';
-import { AntdForm, Col, Row } from 'src/components';
+import { AntdForm } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import { Form, FormLabel } from 'src/components/Form';
 import { Radio } from 'src/components/Radio';
 import { Input } from 'src/components/Input';

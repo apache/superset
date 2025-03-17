@@ -19,7 +19,7 @@
 import { useState, useEffect, useMemo, ChangeEvent } from 'react';
 
 import type { DatabaseObject } from 'src/features/databases/types';
-import { Row, Col } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import { Input } from 'src/components/Input';
 import { t, styled } from '@superset-ui/core';
 import Button from 'src/components/Button';

@@ -21,7 +21,8 @@ import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
 import Modal from 'src/components/Modal';
 import { Input } from 'src/components/Input';
 import Button from 'src/components/Button';
-import { AsyncSelect, Row, Col, AntdForm } from 'src/components';
+import { AsyncSelect, AntdForm } from 'src/components';
+import { Row, Col } from 'src/components/Grid';
 import { SelectValue } from 'antd/lib/select';
 import rison from 'rison';
 import {

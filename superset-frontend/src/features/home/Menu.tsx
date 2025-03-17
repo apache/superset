@@ -20,7 +20,7 @@ import { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
-import { Row, Col, Grid } from 'src/components';
+import Grid, { Row, Col } from 'src/components/Grid';
 import { MainNav, MenuMode } from 'src/components/Menu';
 import { Tooltip } from 'src/components/Tooltip';
 import { NavLink, useLocation } from 'react-router-dom';

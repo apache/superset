@@ -17,7 +17,9 @@
  * under the License.
  */
 import { Meta, StoryFn } from '@storybook/react';
-import { Layout, Row, Col, Card } from 'antd-v5';
+import Layout from 'src/components/Layout';
+import { Row, Col } from 'src/components/Grid';
+import Card from 'src/components/Card';
 import ErrorAlert from './ErrorAlert';
 
 const { Content } = Layout;
