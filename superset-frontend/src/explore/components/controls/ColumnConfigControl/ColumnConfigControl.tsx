@@ -150,10 +150,14 @@ export default function ColumnConfigControl<T extends ColumnConfig>({
           >
             {showAllColumns ? (
               <>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-angle-up" /> &nbsp; {t('Show less columns')}
               </>
             ) : (
               <>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-angle-down" /> &nbsp;
                 {t('Show all columns')}
               </>
