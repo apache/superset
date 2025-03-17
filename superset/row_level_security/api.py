@@ -27,6 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
+    GroupsNotFoundValidationError,
     RolesNotFoundValidationError,
 )
 from superset.commands.security.create import CreateRLSRuleCommand
@@ -220,6 +221,14 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except GroupsNotFoundValidationError as ex:
+            logger.error(
+                "Group not found while creating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
         except SQLAlchemyError as ex:
             logger.error(
                 "Error creating RLS rule %s: %s",
@@ -301,6 +310,14 @@ class RLSRestApi(BaseSupersetModelRestApi):
         except DatasourceNotFoundValidationError as ex:
             logger.error(
                 "Table not found while updating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
+        except GroupsNotFoundValidationError as ex:
+            logger.error(
+                "Group not found while creating RLS rule %s: %s",
                 self.__class__.__name__,
                 str(ex),
                 exc_info=True,

@@ -150,3 +150,10 @@ class TagNotFoundValidationError(ValidationError):
 class TagForbiddenError(ForbiddenError):
     def __init__(self, message: str) -> None:
         super().__init__(message)
+
+
+class GroupsNotFoundValidationError(ValidationError):
+    status = 422
+
+    def __init__(self) -> None:
+        super().__init__([_("Some groups do not exist")], field_name="groups")

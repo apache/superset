@@ -31,6 +31,7 @@ from flask_appbuilder.security.sqla.models import (
     assoc_permissionview_role,
     assoc_user_group,
     assoc_user_role,
+    Group,
     Permission,
     PermissionView,
     Role,
@@ -1127,6 +1128,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Find a List of models by a list of ids, if defined applies `base_filter`
         """
         query = self.get_session.query(Role).filter(Role.id.in_(role_ids))
+        return query.all()
+
+    def find_groups_by_id(self, group_ids: list[int]) -> list[Group]:
+        """
+        Find a List of models by a list of ids
+        """
+        query = self.get_session.query(Group).filter(Group.id.in_(group_ids))
         return query.all()
 
     def copy_role(
@@ -2473,22 +2481,45 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return []
 
         # pylint: disable=import-outside-toplevel
+        from flask_appbuilder.security.sqla.models import assoc_group_role
+
         from superset.connectors.sqla.models import (
+            RLSFilterGroups,
             RLSFilterRoles,
             RLSFilterTables,
-            RLSFilterGroups,
             RowLevelSecurityFilter,
         )
 
+        # Roles and Groups directly linked to the user
         user_roles = [role.id for role in self.get_user_roles(g.user)]
         user_groups = [group.id for group in getattr(g.user, "groups", [])]
+
+        # Groups linked to the user via roles that were directly linked to the user
+        groups_from_roles = (
+            self.get_session.query(assoc_group_role.c.group_id)
+            .filter(assoc_group_role.c.role_id.in_(user_roles))
+            .all()
+        )
+        groups_from_roles_ids = [group_id for (group_id,) in groups_from_roles]
+
+        # Roles linked to the user via groups that were directly linked to the user
+        roles_from_groups = (
+            self.get_session.query(assoc_group_role.c.role_id)
+            .filter(assoc_group_role.c.group_id.in_(user_groups))
+            .all()
+        )
+        roles_from_groups_ids = [role_id for (role_id,) in roles_from_groups]
+
+        all_group_ids = list(set(user_groups + groups_from_roles_ids))
+        all_role_ids = list(set(user_roles + roles_from_groups_ids))
+
         regular_filter_roles = (
             self.get_session.query(RLSFilterRoles.c.rls_filter_id)
             .join(RowLevelSecurityFilter)
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .filter(RLSFilterRoles.c.role_id.in_(all_role_ids))
         )
         base_filter_roles = (
             self.get_session.query(RLSFilterRoles.c.rls_filter_id)
@@ -2496,7 +2527,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            .filter(RLSFilterRoles.c.role_id.in_(user_roles))
+            .filter(RLSFilterRoles.c.role_id.in_(all_role_ids))
         )
         filter_tables = self.get_session.query(RLSFilterTables.c.rls_filter_id).filter(
             RLSFilterTables.c.table_id == table.id
@@ -2507,7 +2538,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.REGULAR
             )
-            .filter(RLSFilterGroups.c.group_id.in_(user_groups))
+            .filter(RLSFilterGroups.c.group_id.in_(all_group_ids))
         )
         base_filter_groups = (
             self.get_session.query(RLSFilterGroups.c.rls_filter_id)
@@ -2515,7 +2546,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(
                 RowLevelSecurityFilter.filter_type == RowLevelSecurityFilterType.BASE
             )
-            .filter(RLSFilterGroups.c.group_id.in_(user_groups))
+            .filter(RLSFilterGroups.c.group_id.in_(all_group_ids))
         )
         query = (
             self.get_session.query(

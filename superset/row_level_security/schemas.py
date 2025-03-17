@@ -153,8 +153,8 @@ class RLSPostSchema(Schema):
     groups = fields.List(
         fields.Integer(),
         metadata={"description": "groups_description"},
-        required=False,
-        allow_none=True,
+        required=True,
+        allow_none=False,
     )
 
 
@@ -202,5 +202,5 @@ class RLSPutSchema(Schema):
         fields.Integer(),
         metadata={"description": "groups_description"},
         required=False,
-        allow_none=True,
+        allow_none=False,
     )

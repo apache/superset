@@ -48,6 +48,10 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_data,  # noqa: F401
 )
 
+from tests.integration_tests.fixtures.users import (
+    create_gamma_user_group,  # noqa: F401
+)
+
 
 class TestRowLevelSecurity(SupersetTestCase):
     """
@@ -322,6 +326,7 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
             "filter_type": "Base",
             "tables": [1],
             "roles": [999999],
+            "groups": [],
         }
         rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -336,6 +341,7 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
             "filter_type": "Base",
             "tables": [999999],
             "roles": [1],
+            "groups": [],
         }
         rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -343,8 +349,29 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
         assert data["message"] == "[l'Datasource does not exist']"
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_group_failure(self):
+        self.login(ADMIN_USERNAME)
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [1],
+            "roles": [],
+            "groups": [999999],
+        }
+        rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        assert status_code == 422
+        assert data["message"] == "[l'Some groups do not exist']"
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_gamma_user_group"
+    )
     def test_post_success(self):
         table = db.session.query(SqlaTable).first()
+        user = security_manager.find_user("gamma_with_groups")
+        assert user is not None
+        user_group_id = user.groups[0].id
         self.login(ADMIN_USERNAME)
         payload = {
             "name": "rls 1",
@@ -352,6 +379,7 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
             "filter_type": "Base",
             "tables": [table.id],
             "roles": [1],
+            "groups": [user_group_id],
         }
         rv = self.client.post("/api/v1/rowlevelsecurity/", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -370,6 +398,7 @@ class TestRowLevelSecurityCreateAPI(SupersetTestCase):
         assert rls.filter_type == "Base"
         assert rls.tables[0].id == table.id
         assert rls.roles[0].id == 1
+        assert rls.groups[0].id == user_group_id
 
         db.session.delete(rls)
         db.session.commit()
@@ -384,6 +413,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "filter_type": "Base",
             "tables": [1],
             "roles": [1],
+            "groups": [],
         }
         rv = self.client.put("/api/v1/rowlevelsecurity/99999999", json=payload)
         status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
@@ -445,10 +475,39 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_group_failure(self):
+        table = db.session.query(SqlaTable).first()
+
+        rls = RowLevelSecurityFilter(
+            name="rls test invalid group",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[table],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        payload = {
+            "groups": [999999],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        assert status_code == 422
+        assert data["message"] == "[l'Some groups do not exist']"
+
+        db.session.delete(rls)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @pytest.mark.usefixtures("create_gamma_user_group")
     def test_put_success(self):
         tables = db.session.query(SqlaTable).limit(2).all()
         roles = db.session.query(security_manager.role_model).limit(2).all()
+        user = security_manager.find_user("gamma_with_groups")
+        assert user is not None
+        user_group_id = user.groups[0].id
 
         rls = RowLevelSecurityFilter(
             name="rls 1",
@@ -467,6 +526,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
             "filter_type": "Base",
             "tables": [tables[1].id],
             "roles": [roles[1].id],
+            "groups": [user_group_id],
         }
         rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
         status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
@@ -484,6 +544,7 @@ class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
         assert rls.filter_type == "Base"
         assert rls.tables[0].id == tables[1].id
         assert rls.roles[0].id == roles[1].id
+        assert rls.groups[0].id == user_group_id
 
         db.session.delete(rls)
         db.session.commit()
@@ -610,6 +671,25 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
             response = json.loads(rv.data.decode("utf-8"))
             response_roles = [result["text"] for result in response["result"]]
             assert response_roles == ["Alpha"]
+
+    @pytest.mark.usefixtures("load_birth_names_data")
+    @pytest.mark.usefixtures("create_gamma_user_group")
+    def test_rls_groups_related_api(self):
+        self.login(ADMIN_USERNAME)
+        params = prison.dumps({"page": 0, "page_size": 100})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/groups?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        user = security_manager.find_user("gamma_with_groups")
+        assert user is not None
+        user_group_id = user.groups[0].id
+
+        assert data["count"] == 1
+        assert result[0]["text"] == "group1"
+        assert result[0]["value"] == user_group_id
 
 
 RLS_ALICE_REGEX = re.compile(r"name = 'Alice'")

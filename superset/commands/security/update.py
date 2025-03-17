@@ -19,14 +19,12 @@
 import logging
 from typing import Any, Optional
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import (
-    CommandInvalidError,
     DatasourceNotFoundValidationError,
 )
 from superset.commands.security.exceptions import RLSRuleNotFoundError
-from superset.commands.utils import populate_roles
+from superset.commands.utils import populate_groups, populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
 from superset.extensions import db
@@ -61,13 +59,7 @@ class UpdateRLSRuleCommand(BaseCommand):
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
 
-        groups = (
-            db.session.query(security_manager.group_model)
-            .filter(security_manager.group_model.id.in_(self._groups))
-            .all()
-        )
-        if len(groups) != len(set(self._groups)):
-            raise CommandInvalidError("One or more groups were not found.")
+        groups = populate_groups(self._groups)
         self._properties["roles"] = roles
         self._properties["tables"] = tables
         self._properties["groups"] = groups

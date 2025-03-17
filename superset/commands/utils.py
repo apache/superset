@@ -20,11 +20,12 @@ from collections import Counter
 from typing import Any, Optional, TYPE_CHECKING
 
 from flask import g
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import Group, Role, User
 
 from superset import security_manager
 from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
+    GroupsNotFoundValidationError,
     OwnersNotFoundValidationError,
     RolesNotFoundValidationError,
     TagForbiddenError,
@@ -99,6 +100,20 @@ def populate_roles(role_ids: list[int] | None = None) -> list[Role]:
         if len(roles) != len(role_ids):
             raise RolesNotFoundValidationError()
     return roles
+
+
+def populate_groups(group_ids: list[int] | None = None) -> list[Group]:
+    """
+    Helper function for commands, will fetch all groups from groups id's
+     :raises GroupsNotFoundValidationError: If a group in the input list is not found
+    :param group_ids: A List of groups by id's
+    """
+    groups: list[Group] = []
+    if group_ids:
+        groups = security_manager.find_groups_by_id(group_ids)
+        if len(groups) != len(group_ids):
+            raise GroupsNotFoundValidationError()
+    return groups
 
 
 def get_datasource_by_id(datasource_id: int, datasource_type: str) -> BaseDatasource:
