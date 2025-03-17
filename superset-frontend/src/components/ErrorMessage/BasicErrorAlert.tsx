@@ -58,9 +58,7 @@ export default function BasicErrorAlert({
 
   return (
     <StyledContainer level={level} role="alert">
-      {level === 'error' && (
-        <Icons.ExclamationCircleFilled iconColor={iconColor} />
-      )}
+      <Icons.ExclamationCircleFilled iconColor={iconColor} />
       <StyledContent>
         <StyledTitle>{title}</StyledTitle>
         <p>{body}</p>
