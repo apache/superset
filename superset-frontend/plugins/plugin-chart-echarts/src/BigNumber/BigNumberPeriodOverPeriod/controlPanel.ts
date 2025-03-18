@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, GenericDataType } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   getStandardizedControls,
@@ -75,42 +75,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'previous_period_value_enabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Add previous period value'),
-              renderTrigger: true,
-              default: true,
-              description: t('Add previous period value'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'value_difference_enabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Add period difference'),
-              renderTrigger: true,
-              default: true,
-              description: t('Add period difference'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'percent_difference_enabled',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Add percent difference'),
-              renderTrigger: true,
-              default: true,
-              description: t('Add percent difference'),
-            },
-          },
-        ],
-        [
-          {
             name: 'comparison_color_enabled',
             config: {
               type: 'CheckboxControl',
@@ -139,6 +103,48 @@ const config: ControlPanelConfig = {
                 'Adds color to the chart symbols based on the positive or ' +
                   'negative change from the comparison value.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'column_config',
+            config: {
+              type: 'ColumnConfigControl',
+              label: t('Customize columns'),
+              description: t('Further customize how to display each column'),
+              width: 400,
+              height: 320,
+              renderTrigger: true,
+              configFormLayout: {
+                [GenericDataType.Numeric]: [
+                  {
+                    tab: t('General'),
+                    children: [
+                      ['visible'],
+                    ],
+                  },
+                ],
+              },
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return {
+                  columnsPropsObject: { 
+                    colnames: [
+                      'Previous value', 
+                      'Delta', 
+                      'Percent change'
+                    ],
+                    coltypes: [
+                      GenericDataType.Numeric,
+                      GenericDataType.Numeric,
+                      GenericDataType.Numeric,
+                    ] 
+                  },
+                };
+              },
             },
           },
         ],

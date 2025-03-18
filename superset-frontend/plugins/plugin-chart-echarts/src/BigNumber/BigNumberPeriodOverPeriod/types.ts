@@ -31,10 +31,11 @@ export interface PopKPIStylesProps {
   subheaderFontSize: keyof typeof supersetTheme.typography.sizes;
   boldText: boolean;
   comparisonColorEnabled: boolean;
-  previousPeriodValueEnabled: boolean;
-  valueDifferenceEnabled: boolean;
-  percentDifferenceEnabled: boolean;
 }
+
+export type TableColumnConfig = {
+  visible?: boolean;
+};
 
 interface PopKPICustomizeProps {
   headerText: string;
@@ -69,6 +70,7 @@ export type PopKPIProps = PopKPIStylesProps &
     startDateOffset?: string;
     shift: string;
     dashboardTimeRange?: string;
+    columnConfig?: Record<string, TableColumnConfig>;
   };
 
 export enum ColorSchemeEnum {
