@@ -1,22 +1,5 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
-
+// DODO was here
+import { dttmToMoment, MOMENT_FORMAT } from '..';
 import { SEPARATOR } from './fetchTimeRange';
 import {
   CustomRangeDecodeType,
@@ -38,17 +21,24 @@ export const ISO8601_AND_CONSTANT = RegExp(
   'i',
 );
 const DATETIME_CONSTANT = ['now', 'today'];
-const SEVEN_DAYS_AGO = new Date();
-SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+// DODO commented out 44211759
+// const SEVEN_DAYS_AGO = new Date();
+// SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
 
 const MIDNIGHT = new Date();
 MIDNIGHT.setHours(0, 0, 0, 0);
 
+// DODO added 44211759
+const TODAY = new Date();
+TODAY.setHours(0, 0, 0, 0);
+
 const defaultCustomRange: CustomRangeType = {
-  sinceDatetime: SEVEN_DAYS_AGO.setDate(
-    SEVEN_DAYS_AGO.getDate() - 7,
-  ).toString(),
-  sinceMode: 'relative',
+  // sinceDatetime: SEVEN_DAYS_AGO.setDate(
+  //   SEVEN_DAYS_AGO.getDate() - 7,
+  // ).toString(),
+  // sinceMode: 'relative',
+  sinceDatetime: TODAY.toString(), // DODO changed 44211759
+  sinceMode: 'specific', // DODO changed 44211759
   sinceGrain: 'day',
   sinceGrainValue: -7,
   untilDatetime: MIDNIGHT.toString(),
@@ -89,10 +79,15 @@ export const customTimeRangeDecode = (
 
     // relative : specific
     const sinceCapturedGroup = since.match(CUSTOM_RANGE_EXPRESSION);
+    // DODO added 44211759
+    const untilStart = dttmToMoment(until)
+      .startOf('date')
+      .format(MOMENT_FORMAT);
     if (
       sinceCapturedGroup &&
       ISO8601_AND_CONSTANT.test(until) &&
-      since.includes(until)
+      // since.includes(until)
+      since.includes(untilStart) // DODO changed 44211759
     ) {
       const [dttm, grainValue, grain] = sinceCapturedGroup.slice(1);
       const untilMode = (
@@ -104,7 +99,8 @@ export const customTimeRangeDecode = (
           sinceGrain: grain as DateTimeGrainType,
           sinceGrainValue: parseInt(grainValue, 10),
           sinceDatetime: dttm,
-          untilDatetime: dttm,
+          // untilDatetime: dttm,
+          untilDatetime: until, // DODO changed 44211759
           sinceMode: 'relative',
           untilMode,
         },

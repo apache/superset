@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   useState,
   useMemo,
@@ -31,7 +14,10 @@ import { FormLabel } from 'src/components/Form';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FilterContainer, BaseFilter, FilterHandler } from './Base';
 
-interface SelectFilterProps extends BaseFilter {
+interface SelectFilterPropsDodoExtended {
+  width?: number; // DODO added 44211759
+}
+interface SelectFilterProps extends BaseFilter, SelectFilterPropsDodoExtended {
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
@@ -47,6 +33,7 @@ function SelectFilter(
     initialValue,
     onSelect,
     selects = [],
+    width, // DODO added 44211759
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -88,7 +75,8 @@ function SelectFilter(
   );
 
   return (
-    <FilterContainer>
+    // DODO changed 44211759
+    <FilterContainer width={width}>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
