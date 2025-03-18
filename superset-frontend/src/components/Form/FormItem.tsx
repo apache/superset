@@ -22,17 +22,14 @@ import { styled } from '@superset-ui/core';
 const StyledItem = styled(Form.Item)`
   ${({ theme }) => `
     .antd5-form-item-label {
-      padding-bottom: ${theme.sizeUnit}px;
       & > label {
-        font-size: ${theme.fontSizeSM}px;
-        color: ${theme.colors.grayscale.base};
-
         &.antd5-form-item-required:not(.antd5-form-item-required-mark-optional) {
           &::before {
             display: none;
           }
           &::after {
             display: inline-block;
+            visibility: visible;
             color: ${theme.colorError};
             font-size: ${theme.fontSizeSM}px;
             content: '*';

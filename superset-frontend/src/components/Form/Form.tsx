@@ -18,19 +18,9 @@
  */
 import { Form as AntdForm } from 'antd-v5';
 import { FormProps, FormInstance, FormItemProps } from 'antd-v5/es/form';
-import { styled } from '@superset-ui/core';
-
-const StyledForm = styled(AntdForm)`
-  &.antd5-form label {
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
-  }
-  .antd5-form-item {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
-  }
-`;
 
 function Form(props: FormProps) {
-  return <StyledForm {...props} />;
+  return <AntdForm {...props} />;
 }
 
 export default Object.assign(Form, {

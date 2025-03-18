@@ -142,7 +142,6 @@ const controlsOrder: ControlKey[] = [
 
 export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
   & .antd5-form-item-label {
     padding-bottom: 0;
