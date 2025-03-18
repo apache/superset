@@ -27,6 +27,3 @@ async_timeout>=4.0.0,<5.0.0
 # Known issue with 6.7.0 breaking a unit test, probably easy to fix, but will require
 # a bit of attention to bump.
 apispec>=6.0.0,<6.7.0
-
-# CI runs out of memory while running unit tests when using 4.18.x
-jsonschema>=4.17.3, <4.18.0

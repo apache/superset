@@ -28,6 +28,7 @@ attrs==25.2.0
     #   cattrs
     #   jsonschema
     #   outcome
+    #   referencing
     #   requests-cache
     #   trio
 babel==2.17.0
@@ -382,15 +383,19 @@ jsonpath-ng==1.7.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-jsonschema==4.17.3
+jsonschema==4.23.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
-    #   jsonschema-spec
     #   openapi-schema-validator
     #   openapi-spec-validator
-jsonschema-spec==0.1.6
+jsonschema-path==0.3.4
     # via openapi-spec-validator
+jsonschema-specifications==2024.10.1
+    # via
+    #   -c requirements/base.txt
+    #   jsonschema
+    #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
 kombu==5.4.2
@@ -477,9 +482,9 @@ odfpy==1.4.1
     # via
     #   -c requirements/base.txt
     #   pandas
-openapi-schema-validator==0.4.4
+openapi-schema-validator==0.6.3
     # via openapi-spec-validator
-openapi-spec-validator==0.5.7
+openapi-spec-validator==0.7.1
     # via apache-superset
 openpyxl==3.1.5
     # via
@@ -532,7 +537,7 @@ parsedatetime==2.6
     #   -c requirements/base.txt
     #   apache-superset
 pathable==0.4.3
-    # via jsonschema-spec
+    # via jsonschema-path
 pgsanity==0.2.9
     # via
     #   -c requirements/base.txt
@@ -639,10 +644,6 @@ pyparsing==3.2.1
     #   -c requirements/base.txt
     #   apache-superset
     #   matplotlib
-pyrsistent==0.20.0
-    # via
-    #   -c requirements/base.txt
-    #   jsonschema
 pysocks==1.7.1
     # via
     #   -c requirements/base.txt
@@ -697,19 +698,25 @@ pyyaml==6.0.2
     #   -c requirements/base.txt
     #   apache-superset
     #   apispec
-    #   jsonschema-spec
+    #   jsonschema-path
     #   pre-commit
 redis==4.6.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
+referencing==0.36.2
+    # via
+    #   -c requirements/base.txt
+    #   jsonschema
+    #   jsonschema-path
+    #   jsonschema-specifications
 requests==2.32.2
     # via
     #   -c requirements/base.txt
     #   docker
     #   google-api-core
     #   google-cloud-bigquery
-    #   jsonschema-spec
+    #   jsonschema-path
     #   pydruid
     #   pyhive
     #   requests-cache
@@ -728,6 +735,11 @@ rich==13.9.4
     # via
     #   -c requirements/base.txt
     #   flask-limiter
+rpds-py==0.23.1
+    # via
+    #   -c requirements/base.txt
+    #   jsonschema
+    #   referencing
 rsa==4.9
     # via
     #   -c requirements/base.txt
@@ -839,6 +851,7 @@ typing-extensions==4.12.2
     #   flask-limiter
     #   limits
     #   pyopenssl
+    #   referencing
     #   rich
     #   selenium
     #   shillelagh
