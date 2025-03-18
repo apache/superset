@@ -68,15 +68,16 @@ else:
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
-
-DOMAIN_WHITELIST = json.loads(os.getenv("AUTH_USER_DOMAIN_WHITELIST"))
-
-
 # Azure credentials
 AZURE_ENTRA_CLIENT_ID = os.getenv("AZURE_ENTRA_CLIENT_ID")
 AZURE_ENTRA_CLIENT_SECRET = os.getenv("AZURE_ENTRA_CLIENT_SECRET")
 AZURE_ENTRA_TENANT_ID = os.getenv("AZURE_ENTRA_TENANT_ID")
 
+AUTH0_CLIENT_ID = os.getenv("AUTH0_CLIENT_ID")
+AUTH0_CLIENT_SECRET = os.getenv("AUTH0_CLIENT_SECRET")
+AUTH0_DOMAIN = os.getenv("AUTH0_DOMAIN")
+
+DOMAIN_WHITELIST = json.loads(os.getenv("AUTH_USER_DOMAIN_WHITELIST"))
 
 CORS_FRONTEND_ORIGIN = os.getenv("CORS_FRONTEND_ORIGIN")
 
@@ -238,9 +239,35 @@ AZURE_PROVIDER =     {
 if DOMAIN_WHITELIST:
     AZURE_PROVIDER['whitelist'] = DOMAIN_WHITELIST
 
+
+AUTH0_PROVIDER =     {
+        'name': 'auth0',
+        'token_key': 'access_token',
+        'icon': 'fa-star',
+        'remote_app': {
+            'client_id': AUTH0_CLIENT_ID,
+            'client_secret': AUTH0_CLIENT_SECRET,
+            'client_kwargs': {
+                'scope': 'openid profile email',
+            },
+            'access_token_url': f'{AUTH0_DOMAIN}/oauth/token',
+            'authorize_url': f'{AUTH0_DOMAIN}authorize',
+            'api_base_url': f'{AUTH0_DOMAIN},
+            'client_kwargs': {
+                'scope': 'openid profile email',
+            },
+            'jwks_uri':'https://dev-gu4zozluurb427w8.us.auth0.com/.well-known/jwks.json',
+            'userinfo_endpoint':'https://dev-gu4zozluurb427w8.us.auth0.com/userinfo'            
+        }
+    }
+
+if DOMAIN_WHITELIST:
+    AUTH0_PROVIDER['whitelist'] = DOMAIN_WHITELIST
+
 PROVIDERS = {
     'google': GOOGLE_PROVIDER,
-    'azure': AZURE_PROVIDER
+    'azure': AZURE_PROVIDER,
+    'auth0': AUTH0_PROVIDER
 }
 
 # Add configured providers
@@ -248,26 +275,6 @@ OAUTH_PROVIDERS = []
 for key in oauth2_provider_array:
     if key in PROVIDERS:
         OAUTH_PROVIDERS.append(PROVIDERS[key])
-
-DATAKIMIA_PROVIDER =     {
-    'name': 'datakimia',
-    'token_key': 'access_token',  # Name of the token key in the token response
-    'icon': 'fa-heart',  # Icon for the provider
-    'remote_app': {
-        'client_id': 'your-client-id',
-        'client_secret': 'your-client-secret',
-        'api_base_url': 'https://5771-143-208-36-166.ngrok-free.app/',
-        'client_kwargs': {
-            'scope': 'email profile'  # Adjust the scope to what you need
-        },
-        'access_token_url': 'https://5771-143-208-36-166.ngrok-free.app/token',
-        'authorize_url': 'https://5771-143-208-36-166.ngrok-free.app/authorize',
-        'redirect_uri': 'http://localhost:8088/login/datakimia',
-        'userinfo_endpoint': 'https://5771-143-208-36-166.ngrok-free.app/userinfo',
-    }
-}
-
-OAUTH_PROVIDERS.append(DATAKIMIA_PROVIDER)
 
 # Enable CORS 
 ENABLE_CORS = True
