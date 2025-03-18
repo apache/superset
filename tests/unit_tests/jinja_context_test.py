@@ -416,6 +416,19 @@ def test_where_in() -> None:
     assert where_in(["O'Malley's"]) == "('O''Malley''s')"
 
 
+def test_where_in_empty_list() -> None:
+    """
+    Test the ``where_in`` Jinja2 filter when it receives an
+    empty list.
+    """
+    where_in = WhereInMacro(mysql.dialect())
+
+    # By default, the filter should return empty parenthesis (as a string)
+    assert where_in([]) == "()"
+    # With the default_to_none parameter set to True, it should return None
+    assert where_in([], default_to_none=True) is None
+
+
 def test_dataset_macro(mocker: MockerFixture) -> None:
     """
     Test the ``dataset_macro`` macro.

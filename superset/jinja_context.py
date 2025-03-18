@@ -519,7 +519,12 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
     def __init__(self, dialect: Dialect):
         self.dialect = dialect
 
-    def __call__(self, values: list[Any], mark: Optional[str] = None) -> str:
+    def __call__(
+        self,
+        values: list[Any],
+        mark: Optional[str] = None,
+        default_to_none: bool = False,
+    ) -> str | None:
         """
         Given a list of values, build a parenthesis list suitable for an IN expression.
 
@@ -528,6 +533,10 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             >>> where_in([1, "Joe's", 3])
             (1, 'Joe''s', 3)
 
+        The `default_to_none` parameter is used to determine the return value when the
+        list of values is empty:
+            - If `default_to_none` is `False` (default), the return value is ().
+            - If `default_to_none` is `True`, the return value is `None`.
         """
         binds = [bindparam(f"value_{i}", value) for i, value in enumerate(values)]
         string_representations = [
@@ -539,9 +548,11 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             for bind in binds
         ]
         joined_values = ", ".join(string_representations)
-        result = f"({joined_values})"
+        result = (
+            f"({joined_values})" if (joined_values or not default_to_none) else None
+        )
 
-        if mark:
+        if mark and result:
             result += (
                 "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
                 "macro for security reasons\n"
