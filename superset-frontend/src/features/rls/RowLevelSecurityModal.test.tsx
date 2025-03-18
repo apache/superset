@@ -372,7 +372,7 @@ describe('Rule modal', () => {
 
     // Verify that it renders "Groups" (without "Excluded")
     expect(await screen.findByText(/^Groups$/)).toBeInTheDocument();
-    expect(await screen.queryByText('Excluded groups')).not.toBeInTheDocument();
+    expect(screen.queryByText('Excluded groups')).not.toBeInTheDocument();
 
     const updatedGroupsSelect = await screen.findByTestId('groups-test');
     expect(updatedGroupsSelect).toBeInTheDocument();

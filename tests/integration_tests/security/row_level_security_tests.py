@@ -323,7 +323,8 @@ class TestRowLevelSecurity(SupersetTestCase):
     )
     def test_rls_filter_alters_query_with_direct_group(self):
         """
-        Verify that when a user has a direct group an RLS rule linked to that group applies
+        Verify that when a user has a direct group a RLS rule
+        linked to that group applies.
         """
         g.user = self.get_user("gamma_with_groups")
         tbl = self.get_table(name="birth_names")
@@ -348,8 +349,9 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_query_with_indirect_group_via_role(self):
         """
-        Verify that if a user has no direct group membership but is indirectly linked to a group
-        via one of their roles, then an RLS rule tied to that group is applied.
+        Verify that if a user has no direct group membership
+        but it is indirectly linked to a group via one of their roles
+        then an RLS rule tied to that group is applied.
         """
         user = self.create_user_with_roles("IndirectUser", ["Gamma"])
         assert not getattr(user, "groups", [])
@@ -384,8 +386,9 @@ class TestRowLevelSecurity(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_rls_filter_alters_query_with_indirect_role_via_group(self):
         """
-        Verify that if an RLS rule is linked to a role that the user does not directly have,
-        but that role is assigned to a group the user belongs to, then the RLS rule is applied.
+        Verify that if an RLS rule is linked to a role that the user does not
+        directly have, but that role is assigned to a group the user belongs to
+        then the RLS rule is applied.
         """
         indirect_role = security_manager.add_role("IndirectRole")
         db.session.commit()

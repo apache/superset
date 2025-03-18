@@ -161,8 +161,8 @@ class SupersetTestCase(TestCase):
         filter_type: str,
         clause: str,
         group_key: str,
-        role_names: list[str] = None,
-        group_names: list[str] = None,
+        role_names: Optional[list[str]] = None,
+        group_names: Optional[list[str]] = None,
     ) -> RowLevelSecurityFilter:
         """
         Create and persist an RLS rule with the specified parameters.
