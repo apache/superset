@@ -219,36 +219,36 @@ const StyledCollapse = styled(Collapse)`
   border-top: 1px solid ${({ theme }) => theme.colorSplit};
   border-radius: 0;
 
-  .antd5-collapse-header {
+  .ant-collapse-header {
     border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
     border-top: 1px solid ${({ theme }) => theme.colorSplit};
     margin-top: -1px;
     border-radius: 0;
   }
 
-  .antd5-collapse-content {
+  .ant-collapse-content {
     border: 0;
   }
 
-  .antd5-collapse-content-box {
+  .ant-collapse-content-box {
     padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
-  &.antd5-collapse > .antd5-collapse-item {
+  &.ant-collapse > .ant-collapse-item {
     border: 0;
     border-radius: 0;
   }
 `;
 
 const StyledTabs = styled(Tabs)`
-  .antd5-tabs-nav {
+  .ant-tabs-nav {
     position: sticky;
     top: 0;
     background: ${({ theme }) => theme.colors.grayscale.light5};
     z-index: 1;
   }
 
-  .antd5-tabs-nav-list {
+  .ant-tabs-nav-list {
     padding: 0;
   }
 
