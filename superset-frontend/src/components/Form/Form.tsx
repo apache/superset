@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Form as AntdForm } from 'antd-v5';
-import { FormProps } from 'antd-v5/es/form';
+import { FormProps, FormInstance, FormItemProps } from 'antd-v5/es/form';
 import { styled } from '@superset-ui/core';
 
 const StyledForm = styled(AntdForm)`
@@ -41,6 +41,4 @@ export default Object.assign(Form, {
   Provider: AntdForm.Provider,
 });
 
-export type { FormInstance } from 'antd-v5/es/form';
-
-export type { FormProps };
+export type { FormProps, FormInstance, FormItemProps };

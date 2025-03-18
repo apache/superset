@@ -29,13 +29,13 @@ import { Select } from 'src/components';
 import { FormInstance } from 'src/components/Form/Form';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import { NativeFiltersForm } from '../types';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 
 interface ColumnSelectProps {
   allowClear?: boolean;
   filterValues?: (column: Column) => boolean;
   form: FormInstance<NativeFiltersForm>;
-  formField?: string;
+  formField?: keyof NativeFiltersFormItem;
   filterId: string;
   datasetId?: number;
   value?: string | string[];
