@@ -75,11 +75,11 @@ beforeEach(() => {
     result: [],
   });
 
-  fetchMock.get('glob:*api/v1/database/1/schemas/', {
+  fetchMock.get('glob:*api/v1/database/1/schemas/?q=(upload_allowed:!t)', {
     result: ['information_schema', 'public'],
   });
 
-  fetchMock.get('glob:*api/v1/database/2/schemas/', {
+  fetchMock.get('glob:*api/v1/database/2/schemas/?q=(upload_allowed:!t)', {
     result: ['schema1', 'schema2'],
   });
 });

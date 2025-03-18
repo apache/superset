@@ -723,18 +723,35 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         try:
-            catalog = kwargs["rison"].get("catalog")
+            params = kwargs["rison"]
+            catalog = params.get("catalog")
             schemas = database.get_all_schema_names(
                 catalog=catalog,
                 cache=database.schema_cache_enabled,
                 cache_timeout=database.schema_cache_timeout or None,
-                force=kwargs["rison"].get("force", False),
+                force=params.get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(
                 database,
                 catalog,
                 schemas,
             )
+            if params.get("upload_allowed"):
+                if not database.allow_file_upload:
+                    return self.response(200, result=[])
+                if allowed_schemas := database.get_schema_access_for_file_upload():
+                    # some databases might return the list of schemas in uppercase,
+                    # while the list of allowed schemas is manually inputted so
+                    # could be lowercase
+                    allowed_schemas = {schema.lower() for schema in allowed_schemas}
+                    return self.response(
+                        200,
+                        result=[
+                            schema
+                            for schema in schemas
+                            if schema.lower() in allowed_schemas
+                        ],
+                    )
             return self.response(200, result=list(schemas))
         except OperationalError:
             return self.response(
