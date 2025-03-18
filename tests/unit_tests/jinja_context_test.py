@@ -43,6 +43,7 @@ from superset.jinja_context import (
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
+from flask_appbuilder.security.sqla.models import Role
 
 
 def test_filter_values_adhoc_filters() -> None:
@@ -358,6 +359,7 @@ def test_user_macros(mocker: MockerFixture):
         - ``current_user_id``
         - ``current_username``
         - ``current_user_email``
+        - ``current_user_roles``
     """
     mock_g = mocker.patch("superset.utils.core.g")
     mock_cache_key_wrapper = mocker.patch(
@@ -366,11 +368,13 @@ def test_user_macros(mocker: MockerFixture):
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
+    mock_g.user.roles = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id() == 1
     assert cache.current_username() == "my_username"
     assert cache.current_user_email() == "my_email@test.com"
-    assert mock_cache_key_wrapper.call_count == 3
+    assert cache.current_user_roles() == '["my_role1", "my_role2"]'
+    assert mock_cache_key_wrapper.call_count == 4
 
 
 def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
@@ -384,10 +388,12 @@ def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     mock_g.user.id = 1
     mock_g.user.username = "my_username"
     mock_g.user.email = "my_email@test.com"
+    mock_g.user.roles = [Role(name="my_role1"), Role(name="my_role2")]
     cache = ExtraCache()
     assert cache.current_user_id(False) == 1
     assert cache.current_username(False) == "my_username"
     assert cache.current_user_email(False) == "my_email@test.com"
+    assert cache.current_user_roles(False) == '["my_role1", "my_role2"]'
     assert mock_cache_key_wrapper.call_count == 0
 
 
@@ -401,6 +407,7 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_id() == None  # noqa: E711
     assert cache.current_username() == None  # noqa: E711
     assert cache.current_user_email() == None  # noqa: E711
+    assert cache.current_user_roles() == None  # noqa: E711
 
 
 def test_where_in() -> None:
