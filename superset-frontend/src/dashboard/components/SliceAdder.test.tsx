@@ -25,7 +25,7 @@ import {
 import { DatasourceType } from '@superset-ui/core';
 import { sliceEntitiesForDashboard as mockSliceEntities } from 'spec/fixtures/mockSliceEntities';
 import { configureStore } from '@reduxjs/toolkit';
-import SliceAdder, { SliceAdderProps } from './SliceAdder';
+import SliceAdder, { SliceAdderProps, sortByComparator } from './SliceAdder';
 
 // Mock the Select component to avoid debounce issues
 jest.mock('@superset-ui/core', () => ({
@@ -61,7 +61,7 @@ const mockStore = configureStore({
   reducer: (state = { common: { locale: 'en' } }) => state,
 });
 
-const defaultProps: SliceAdderProps = {
+const defaultProps: Omit<SliceAdderProps, 'theme'> = {
   slices: mockSliceEntities.slices,
   fetchSlices: jest.fn(),
   updateSlices: jest.fn(),
@@ -193,7 +193,7 @@ describe('SliceAdder', () => {
           uuid: '9012',
         },
       ];
-      const sorted = input.sort(SliceAdder.sortByComparator('changed_on'));
+      const sorted = input.sort(sortByComparator('changed_on'));
       expect(sorted[0].changed_on).toBe(1578009600000);
       expect(sorted[2].changed_on).toBe(1577836800000);
     });
@@ -222,7 +222,7 @@ describe('SliceAdder', () => {
           uuid: '9012',
         },
       ];
-      const sorted = input.sort(SliceAdder.sortByComparator('slice_name'));
+      const sorted = input.sort(sortByComparator('slice_name'));
       expect(sorted[0].slice_name).toBe('a');
       expect(sorted[2].slice_name).toBe('c');
     });

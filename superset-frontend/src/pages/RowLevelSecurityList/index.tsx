@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled, SupersetClient } from '@superset-ui/core';
+import { t, styled, SupersetClient, useTheme, css } from '@superset-ui/core';
 import { useMemo, useState } from 'react';
 import ConfirmStatusChange from 'src/components/ConfirmStatusChange';
 import Icons from 'src/components/Icons';
@@ -55,6 +55,7 @@ function RowLevelSecurityList(props: RLSProps) {
   const { addDangerToast, addSuccessToast, user } = props;
   const [ruleModalOpen, setRuleModalOpen] = useState<boolean>(false);
   const [currentRule, setCurrentRule] = useState(null);
+  const theme = useTheme();
 
   const {
     state: {
@@ -193,7 +194,10 @@ function RowLevelSecurityList(props: RLSProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.Trash data-test="rls-list-trash-icon" />
+                        <Icons.DeleteOutlined
+                          data-test="rls-list-trash-icon"
+                          iconSize="l"
+                        />
                       </span>
                     </Tooltip>
                   )}
@@ -211,7 +215,7 @@ function RowLevelSecurityList(props: RLSProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditAlt data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -246,9 +250,16 @@ function RowLevelSecurityList(props: RLSProps) {
     buttonAction: () => handleRuleEdit(null),
     buttonText: canEdit ? (
       <>
-        {/* TODO: Remove fa-icon */}
-        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-        <i className="fa fa-plus" data-test="add-rule-empty" /> {'Rule'}{' '}
+        <Icons.PlusOutlined
+          iconColor={theme.colors.primary.light5}
+          iconSize="m"
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
+          data-test="add-rule-empty"
+        />
+        {t('Rule')}
       </>
     ) : null,
   };
@@ -314,9 +325,16 @@ function RowLevelSecurityList(props: RLSProps) {
     subMenuButtons.push({
       name: (
         <>
-          {/* TODO: Remove fa-icon */}
-          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-          <i className="fa fa-plus" data-test="add-rule" /> {t('Rule')}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: text-top;
+            `}
+            data-test="add-rule"
+          />
+          {t('Rule')}
         </>
       ),
       buttonStyle: 'primary',

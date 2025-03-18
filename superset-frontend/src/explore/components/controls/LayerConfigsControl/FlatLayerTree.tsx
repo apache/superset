@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import { PlusOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
+import Icons from 'src/components/Icons';
 import { css, styled, t } from '@superset-ui/core';
 // eslint-disable-next-line no-restricted-imports
 import { Button, Tree } from 'antd'; // TODO: Remove antd
@@ -136,7 +135,7 @@ export const FlatLayerTree = forwardRef<HTMLDivElement, FlatLayerTreeProps>(
           onClick={onAddLayer}
           size="small"
           type="dashed"
-          icon={<PlusOutlined />}
+          icon={<Icons.PlusOutlined iconSize="m" />}
         >
           {addLayerLabel}
         </Button>

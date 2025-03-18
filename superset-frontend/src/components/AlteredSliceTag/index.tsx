@@ -219,7 +219,7 @@ const AlteredSliceTag: FC<AlteredSliceTagProps> = props => {
     () => (
       <Tooltip id="difference-tooltip" title={t('Click to see difference')}>
         <Label
-          icon={<Icons.Warning iconSize="m" />}
+          icon={<Icons.ExclamationCircleOutlined iconSize="m" />}
           className="label"
           type="warning"
           onClick={() => {}}

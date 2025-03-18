@@ -20,7 +20,7 @@ import { useState } from 'react';
 import { styled, supersetTheme } from '@superset-ui/core';
 import { Input } from 'antd-v5';
 import Icons from '.';
-import IconType from './IconType';
+import IconType from './types';
 import Icon from './Icon';
 
 export default {
@@ -106,7 +106,7 @@ InteractiveIcons.argTypes = {
   iconSize: {
     defaultValue: 'xl',
     control: { type: 'inline-radio' },
-    options: ['s', 'l', 'm', 'xl', 'xxl'],
+    options: ['s', 'm', 'l', 'xl', 'xxl'],
   },
   iconColor: {
     defaultValue: null,
