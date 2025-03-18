@@ -234,6 +234,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     useState<boolean>(false);
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
+  const [activeKey, setActiveKey] = useState<string | string[]>('general');
 
   const createTypeToEndpointMap = (databaseId: number) =>
     `/api/v1/database/${databaseId}/upload/`;
@@ -539,6 +540,12 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [delimiter]);
 
+  useEffect(() => {
+    if (show) {
+      setActiveKey('general');
+    }
+  }, [show]);
+
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {
       return Promise.reject(t('Uploading a file is required'));
@@ -600,7 +607,8 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         <Collapse
           expandIconPosition="right"
           accordion
-          defaultActiveKey="general"
+          activeKey={activeKey}
+          onChange={key => setActiveKey(key)}
           css={(theme: SupersetTheme) => antdCollapseStyles(theme)}
         >
           <Collapse.Panel
