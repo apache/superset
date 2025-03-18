@@ -17,7 +17,8 @@
  * under the License.
  */
 import { t } from '@superset-ui/core';
-import { CheckCircleOutlined } from '@ant-design/icons';
+// eslint-disable-next-line no-restricted-imports
+import { CheckCircleOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
 
 const ValidatedPanelHeader = ({
   title,

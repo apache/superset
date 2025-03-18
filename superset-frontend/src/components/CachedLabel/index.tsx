@@ -49,6 +49,8 @@ const CacheLabel: FC<CacheLabelProps> = ({
         onMouseOver={() => setHovered(true)}
         onMouseOut={() => setHovered(false)}
       >
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         {t('Cached')} <i className="fa fa-refresh" />
       </Label>
     </Tooltip>

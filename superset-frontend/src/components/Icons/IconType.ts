@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// eslint-disable-next-line no-restricted-imports
 import { IconComponentProps } from '@ant-design/icons/lib/components/Icon';
 
 type AntdIconType = IconComponentProps;

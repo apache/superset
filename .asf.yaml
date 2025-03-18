@@ -48,6 +48,8 @@ github:
     projects: true
     # Enable wiki for documentation
     wiki: true
+    # Enable discussions
+    discussions: true
 
   enabled_merge_buttons:
     squash: true
