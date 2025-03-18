@@ -102,6 +102,6 @@ github:
 
 notifications:
   commits: commits@superset.apache.org
-  issues: notifications@superset.apache.org
-  pullrequests: notifications@superset.apache.org
-  discussions: notifications@superset.apache.org
+  issues: issues@superset.apache.org
+  pullrequests: issues@superset.apache.org
+  discussions: issues@superset.apache.org
