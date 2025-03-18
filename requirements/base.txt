@@ -4,8 +4,10 @@ alembic==1.15.1
     # via flask-migrate
 amqp==5.3.1
     # via kombu
-apispec==6.3.0
-    # via flask-appbuilder
+apispec==6.6.1
+    # via
+    #   -r requirements/base.in
+    #   flask-appbuilder
 apsw==3.46.0.0
     # via shillelagh
 async-timeout==4.0.3

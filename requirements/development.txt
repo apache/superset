@@ -10,7 +10,7 @@ amqp==5.3.1
     # via
     #   -c requirements/base.txt
     #   kombu
-apispec==6.3.0
+apispec==6.6.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
