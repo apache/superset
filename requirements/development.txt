@@ -427,12 +427,12 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.1
+marshmallow==3.23.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==1.4.1
+marshmallow-sqlalchemy==0.28.2
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -505,6 +505,7 @@ packaging==24.2
     #   gunicorn
     #   limits
     #   marshmallow
+    #   marshmallow-sqlalchemy
     #   matplotlib
     #   pytest
     #   shillelagh
