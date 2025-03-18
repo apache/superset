@@ -549,12 +549,10 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
         ]
         joined_values = ", ".join(string_representations)
         result = (
-            f"({joined_values})"
-            if (joined_values is not None or not default_to_none)
-            else None
+            f"({joined_values})" if (joined_values or not default_to_none) else None
         )
 
-        if mark:
+        if mark and result:
             result += (
                 "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
                 "macro for security reasons\n"
