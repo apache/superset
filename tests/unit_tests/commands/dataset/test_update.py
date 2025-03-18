@@ -83,23 +83,16 @@ def test_validate_folders(mocker: MockerFixture) -> None:
         [
             {
                 "uuid": "uuid4",
-                "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
                         "uuid": "uuid1",
-                        "type": "metric",
-                        "name": "metric1",
                     },
                     {
                         "uuid": "uuid2",
-                        "type": "column",
-                        "name": "column1",
                     },
                     {
                         "uuid": "uuid3",
-                        "type": "column",
-                        "name": "column2",
                     },
                 ],
             },
@@ -118,17 +111,14 @@ def test_validate_folders_cycle(mocker: MockerFixture) -> None:
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
                         "uuid": "uuid2",
-                        "type": "folder",
                         "name": "My other folder",
                         "children": [
                             {
                                 "uuid": "uuid1",
-                                "type": "folder",
                                 "name": "My folder",
                                 "children": [],
                             },
@@ -154,12 +144,10 @@ def test_validate_folders_inter_cycle(mocker: MockerFixture) -> None:
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
                         "uuid": "uuid2",
-                        "type": "folder",
                         "name": "My other folder",
                         "children": [],
                     },
@@ -167,12 +155,10 @@ def test_validate_folders_inter_cycle(mocker: MockerFixture) -> None:
             },
             {
                 "uuid": "uuid2",
-                "type": "folder",
                 "name": "My other folder",
                 "children": [
                     {
                         "uuid": "uuid1",
-                        "type": "folder",
                         "name": "My folder",
                         "children": [],
                     },
@@ -197,25 +183,19 @@ def test_validate_folders_duplicates(mocker: MockerFixture) -> None:
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "My folder",
                 "children": [
                     {
                         "uuid": "uuid2",
-                        "type": "metric",
-                        "name": "count",
                     },
                 ],
             },
             {
                 "uuid": "uuid2",
-                "type": "folder",
                 "name": "My other folder",
                 "children": [
                     {
                         "uuid": "uuid2",
-                        "type": "metric",
-                        "name": "count",
                     },
                 ],
             },
@@ -237,12 +217,10 @@ def test_validate_folders_duplicate_name_not_siblings(mocker: MockerFixture) -> 
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "Sales",
                 "children": [
                     {
                         "uuid": "uuid2",
-                        "type": "folder",
                         "name": "Core",
                         "children": [],
                     },
@@ -250,12 +228,10 @@ def test_validate_folders_duplicate_name_not_siblings(mocker: MockerFixture) -> 
             },
             {
                 "uuid": "uuid3",
-                "type": "folder",
                 "name": "Engineering",
                 "children": [
                     {
                         "uuid": "uuid4",
-                        "type": "folder",
                         "name": "Core",
                         "children": [],
                     },
@@ -277,12 +253,10 @@ def test_validate_folders_duplicate_name_siblings(mocker: MockerFixture) -> None
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "Sales",
                 "children": [
                     {
                         "uuid": "uuid2",
-                        "type": "folder",
                         "name": "Core",
                         "children": [],
                     },
@@ -290,12 +264,10 @@ def test_validate_folders_duplicate_name_siblings(mocker: MockerFixture) -> None
             },
             {
                 "uuid": "uuid3",
-                "type": "folder",
                 "name": "Sales",
                 "children": [
                     {
                         "uuid": "uuid4",
-                        "type": "folder",
                         "name": "Other",
                         "children": [],
                     },
@@ -319,7 +291,6 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "Metrics",
                 "children": [],
             },
@@ -330,7 +301,6 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
         [
             {
                 "uuid": "uuid1",
-                "type": "folder",
                 "name": "Columns",
                 "children": [],
             },
@@ -344,69 +314,3 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_folders(folders=folders_with_columns, metrics=[], columns=[])
     assert str(excinfo.value) == "Folder cannot have name 'Columns'"
-
-
-@with_feature_flags(DATASET_FOLDERS=True)
-def test_validate_folders_invalid_uuid(mocker: MockerFixture) -> None:
-    """
-    Test that we can detect invalid UUIDs.
-    """
-    metrics = [mocker.MagicMock(metric_name="metric1", uuid="uuid1")]
-    columns = [
-        mocker.MagicMock(column_name="column1", uuid="uuid2"),
-        mocker.MagicMock(column_name="column2", uuid="uuid3"),
-    ]
-    folders = cast(
-        list[FolderSchema],
-        [
-            {
-                "uuid": "uuid4",
-                "type": "folder",
-                "name": "My folder",
-                "children": [
-                    {
-                        "uuid": "uuid2",
-                        "type": "metric",
-                        "name": "metric1",
-                    },
-                ],
-            },
-        ],
-    )
-
-    with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=metrics, columns=columns)
-    assert str(excinfo.value) == "Invalid UUID for metric 'metric1': uuid2"
-
-
-@with_feature_flags(DATASET_FOLDERS=True)
-def test_validate_folders_mismatched_name(mocker: MockerFixture) -> None:
-    """
-    Test that we can detect mismatched names.
-    """
-    metrics = [mocker.MagicMock(metric_name="metric1", uuid="uuid1")]
-    columns = [
-        mocker.MagicMock(column_name="column1", uuid="uuid2"),
-        mocker.MagicMock(column_name="column2", uuid="uuid3"),
-    ]
-    folders = cast(
-        list[FolderSchema],
-        [
-            {
-                "uuid": "uuid4",
-                "type": "folder",
-                "name": "My folder",
-                "children": [
-                    {
-                        "uuid": "uuid1",
-                        "type": "metric",
-                        "name": "metric2",
-                    },
-                ],
-            },
-        ],
-    )
-
-    with pytest.raises(ValidationError) as excinfo:
-        validate_folders(folders=folders, metrics=metrics, columns=columns)
-    assert str(excinfo.value) == "Mismatched name 'metric2' for UUID 'uuid1'"
