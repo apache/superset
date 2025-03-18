@@ -34,6 +34,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
+    "apache-superset-primitives>=0.1.0, <0.2",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
     "click>=8.0.3",
@@ -394,3 +395,6 @@ python-geohash = "0"
 # TODO REMOVE THESE DEPS FROM CODEBASE
 paramiko = "3"  # GPL
 pyxlsb = "1"  # GPL
+
+[tool.uv.sources]
+apache-superset-primitives = { path = "./superset-primitives", editable = true }
