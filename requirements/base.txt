@@ -212,7 +212,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.23.1
+marshmallow==3.26.1
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
