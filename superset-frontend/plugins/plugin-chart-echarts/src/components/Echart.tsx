@@ -26,8 +26,11 @@ import {
   useCallback,
   Ref,
 } from 'react';
+import merge from 'lodash/merge';
 
-import { styled } from '@superset-ui/core';
+import * as echarts from 'echarts';
+
+import { styled, themeObject } from '@superset-ui/core';
 import { use, init, EChartsType } from 'echarts/core';
 import {
   SankeyChart,
@@ -95,6 +98,57 @@ use([
   LabelLayout,
 ]);
 
+const getTheme = options => {
+  const token = themeObject.theme;
+  const theme = {
+    textStyle: {
+      color: token.colorText,
+      fontFamily: token.fontFamily,
+    },
+    title: {
+      textStyle: { color: token.colorText },
+    },
+    legend: {
+      textStyle: { color: token.colorTextSecondary },
+    },
+    tooltip: {
+      backgroundColor: token.colorBgContainer,
+      borderColor: token.colorSplit,
+      textStyle: { color: token.colorText },
+    },
+    axisPointer: {
+      lineStyle: { color: token.colorPrimary },
+      label: { color: token.colorText },
+    },
+    xAxis: {
+      axisLine: { lineStyle: { color: token.colorSplit } },
+      axisLabel: { color: token.colorTextSecondary },
+      splitLine: { lineStyle: { color: token.colorSplit } },
+    },
+    yAxis: {
+      axisLine: { lineStyle: { color: token.colorSplit } },
+      axisLabel: { color: token.colorTextSecondary },
+      splitLine: { lineStyle: { color: token.colorSplit } },
+    },
+  };
+  /*
+  if (options?.xAxis) {
+    theme.xAxis = {
+      axisLine: { lineStyle: { color: token.colorSplit } },
+      axisLabel: { color: token.colorTextSecondary },
+      splitLine: { lineStyle: { color: token.colorSplit } },
+    };
+  }
+  if (options?.yAxis) {
+    theme.yAxis = {
+      axisLine: { lineStyle: { color: token.colorSplit } },
+      axisLabel: { color: token.colorTextSecondary },
+      splitLine: { lineStyle: { color: token.colorSplit } },
+    };
+} */
+  return theme;
+};
+
 function Echart(
   {
     width,
@@ -138,8 +192,12 @@ function Echart(
       chartRef.current?.getZr().off(name);
       chartRef.current?.getZr().on(name, handler);
     });
-
+    /*
+    const themedEchartOptions = merge({}, getTheme(echartOptions), echartOptions);
+    */
+    chartRef.current.setTheme(getTheme(echartOptions));
     chartRef.current.setOption(echartOptions, true);
+    chartRef.current.setTheme(getTheme(echartOptions));
   }, [echartOptions, eventHandlers, zrEventHandlers]);
 
   // highlighting
