@@ -1,4 +1,21 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 
 import {
   css,
@@ -19,12 +36,6 @@ import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
 import { WelcomeTable } from 'src/features/home/types';
 import { Dashboard, Filter, TableTab } from './types';
-
-// DODO added 44211759
-interface IExtra {
-  email: string;
-  country_name: string;
-}
 
 // Modifies the rison encoding slightly to match the backend's rison encoding/decoding. Applies globally.
 // Code pulled from rison.js (https://github.com/Nanonid/rison), rison is licensed under the MIT license.
@@ -65,12 +76,7 @@ const createFetchResourceMethod =
     resource: string,
     relation: string,
     handleError: (error: Response) => void,
-    user?: {
-      userId: string | number;
-      firstName: string;
-      lastName: string;
-      email: string; // DODO added 44211759
-    },
+    user?: { userId: string | number; firstName: string; lastName: string },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
@@ -84,13 +90,9 @@ const createFetchResourceMethod =
     });
 
     let fetchedLoggedUser = false;
-    let loggedUserLabel = `${user?.firstName} ${user?.lastName}`;
-
-    let loggedUser = user
+    const loggedUser = user
       ? {
-          // label: `${user.firstName} ${user.lastName}`,
-          // DODO changed 44211759
-          label: loggedUserLabel,
+          label: `${user.firstName} ${user.lastName}`,
           value: user.userId,
         }
       : undefined;
@@ -98,44 +100,20 @@ const createFetchResourceMethod =
     const data: { label: string; value: string | number }[] = [];
     json?.result
       ?.filter(({ text }: { text: string }) => text.trim().length > 0)
-      .forEach(
-        ({
-          text,
-          value,
-          extra, // DODO added 44211759
-        }: {
-          text: string;
-          value: string | number;
-          extra: Partial<IExtra>; // DODO added 44211759
-        }) => {
-          const { country_name, email } = extra;
-          if (
-            loggedUser &&
-            value === loggedUser.value
-            // text === loggedUser.label // DODO commented out 44211759
-          ) {
-            // DODO added start 44211759
-            if (relation === 'owners')
-              loggedUserLabel += ` (${country_name || 'no country'})`;
-            if (user?.email) loggedUserLabel += ` ${user.email}`;
-            loggedUser = {
-              ...loggedUser,
-              label: loggedUserLabel,
-            };
-            // DODO added stop 44211759
-            fetchedLoggedUser = true;
-          } else {
-            // DODO added start 44211759
-            let label = text;
-            if (relation === 'owners')
-              label += ` (${country_name || 'no country'})`;
-            if (email) label += ` ${email}`;
-            // DODO added stop 44211759
-
-            data.push({ label, value });
-          }
-        },
-      );
+      .forEach(({ text, value }: { text: string; value: string | number }) => {
+        if (
+          loggedUser &&
+          value === loggedUser.value &&
+          text === loggedUser.label
+        ) {
+          fetchedLoggedUser = true;
+        } else {
+          data.push({
+            label: text,
+            value,
+          });
+        }
+      });
 
     if (loggedUser && (!filterValue || fetchedLoggedUser)) {
       data.unshift(loggedUser);

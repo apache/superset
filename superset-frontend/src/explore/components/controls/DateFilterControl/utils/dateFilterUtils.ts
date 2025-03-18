@@ -1,4 +1,21 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   NO_TIME_RANGE,
   JsonObject,
@@ -25,30 +42,9 @@ export const guessFrame = (timeRange: string): FrameType => {
   if (timeRange === NO_TIME_RANGE) {
     return 'No filter';
   }
-  // DODO commented out 44211759
-  // if (customTimeRangeDecode(timeRange).matchedFlag) {
-  //   return 'Custom';
-  // }
-
-  // DODO added start 44211759
-  const decode = customTimeRangeDecode(timeRange);
-
-  if (decode.matchedFlag) {
-    if (
-      decode.customRange.untilMode === 'specific' &&
-      decode.customRange.untilDatetime
-    ) {
-      const until = new Date(decode.customRange.untilDatetime);
-      if (
-        until.getHours() === 23 &&
-        until.getMinutes() === 59 &&
-        until.getSeconds() === 59
-      ) {
-        return 'CustomUntilInclude';
-      }
-    }
+  if (customTimeRangeDecode(timeRange).matchedFlag) {
+    return 'Custom';
   }
-  // DODO added stop 44211759
   return 'Advanced';
 };
 

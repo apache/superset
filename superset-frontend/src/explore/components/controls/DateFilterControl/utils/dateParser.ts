@@ -1,6 +1,22 @@
-// DODO was here
-// import moment, { Moment } from 'moment';
-import { dttmToMoment } from '@superset-ui/core'; // DODO added 44211759
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import moment, { Moment } from 'moment';
 import { CustomRangeType } from 'src/explore/components/controls/DateFilterControl/types';
 import { MOMENT_FORMAT } from './constants';
 
@@ -22,16 +38,15 @@ export const ISO8601_AND_CONSTANT = RegExp(
 
 const SPECIFIC_MODE = ['specific', 'today', 'now'];
 
-// DODO commented out 44211759
-// export const dttmToMoment = (dttm: string): Moment => {
-//   if (dttm === 'now') {
-//     return moment().utc().startOf('second');
-//   }
-//   if (dttm === 'today') {
-//     return moment().utc().startOf('day');
-//   }
-//   return moment(dttm);
-// };
+export const dttmToMoment = (dttm: string): Moment => {
+  if (dttm === 'now') {
+    return moment().utc().startOf('second');
+  }
+  if (dttm === 'today') {
+    return moment().utc().startOf('day');
+  }
+  return moment(dttm);
+};
 
 export const dttmToString = (dttm: string): string =>
   dttmToMoment(dttm).format(MOMENT_FORMAT);
@@ -69,12 +84,7 @@ export const customTimeRangeEncode = (customRange: CustomRangeType): string => {
   if (sinceMode === 'relative' && SPECIFIC_MODE.includes(untilMode)) {
     const until =
       untilMode === 'specific' ? dttmToString(untilDatetime) : untilMode;
-    // DODO added 44211759
-    const untilStart = dttmToMoment(until)
-      .startOf('date')
-      .format(MOMENT_FORMAT);
-    // DODO changed 44211759
-    const since = `DATEADD(DATETIME("${untilStart}"), ${-Math.abs(
+    const since = `DATEADD(DATETIME("${until}"), ${-Math.abs(
       sinceGrainValue,
     )}, ${sinceGrain})`;
     return `${since} : ${until}`;

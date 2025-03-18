@@ -1,29 +1,36 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import { FC } from 'react';
 import {
   DataMaskState,
-  Filter, // DODO added 44211759
   FilterSet,
   isNativeFilter,
   styled,
   t,
   useTheme,
 } from '@superset-ui/core';
-import { bootstrapData } from 'src/preamble'; // DODO added 44211759
 import { Typography, AntdTooltip, AntdCollapse } from 'src/components';
 import Icons from 'src/components/Icons';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
 import { getFilterBarTestId } from 'src/dashboard/components/nativeFilters/FilterBar/utils';
-import { hasFilterTranslations } from 'src/filters/utils'; // DODO added 44211759
 import { getFilterValueForDisplay } from './utils';
-
-// DODO added start 44211759
-const locale = bootstrapData?.common?.locale || 'en';
-const localisedNameField = `name${locale === 'en' ? '' : 'Ru'}` as
-  | 'name'
-  | 'nameRu';
-// DODO added stop 44211759
 
 const FilterHeader = styled.div`
   display: flex;
@@ -83,14 +90,7 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
     </FilterHeader>
   );
 
-  const getFilterRow = (filter: Filter) => {
-    // DODO added start 44211759
-    const { id, name, nameRu, filterType, targets } = filter;
-    const column =
-      hasFilterTranslations(filterType) && locale === 'ru'
-        ? targets[0]?.column?.nameRu
-        : targets[0]?.column?.name;
-    // DODO added stop 44211759
+  const getFilterRow = ({ id, name }: { id: string; name: string }) => {
     const changedFilter =
       filterSet &&
       !areObjectsEqual(
@@ -117,15 +117,10 @@ const FiltersHeader: FC<FiltersHeaderProps> = ({ dataMask, filterSet }) => {
       >
         <StyledFilterRow data-test="filter-info">
           <Typography.Text strong delete={removedFilter} mark={changedFilter}>
-            {/* {name}:&nbsp; */}
-            {/* DODO changed 44211759 */}
-            {filter[localisedNameField] || name || nameRu}:&nbsp;
+            {name}:&nbsp;
           </Typography.Text>
           <Typography.Text delete={removedFilter} mark={changedFilter}>
-            {getFilterValueForDisplay(
-              dataMask?.[id]?.filterState?.value,
-              column, // DODO added 44211759
-            ) || (
+            {getFilterValueForDisplay(dataMask?.[id]?.filterState?.value) || (
               <Typography.Text type="secondary">{t('None')}</Typography.Text>
             )}
           </Typography.Text>
