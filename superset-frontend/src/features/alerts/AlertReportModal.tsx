@@ -519,8 +519,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const [nativeFilterOptions, setNativeFilterOptions] = useState<object[]>([]);
   const [tabNativeFilters, setTabNativeFilters] = useState<object>({});
   const [nativeFilterData, setNativeFilterData] = useState<ExtraNativeFilter[]>(
-    [],
+    [{}],
   );
+
+  console.log(nativeFilterData);
 
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
@@ -1232,9 +1234,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const onChangeDashboardFilter = (idx: number, nativeFilterId: string) => {
     // set dashboardFilter
     const anchor = currentAlert?.extra?.dashboard?.anchor;
-    if (!anchor) {
-      return;
-    }
 
     // @ts-ignore
     const inScopeFilters = tabNativeFilters[anchor];
@@ -1274,6 +1273,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         label: item[columnName],
       }));
 
+      console.log('setting filter values', nativeFilterData);
       setNativeFilterData(
         nativeFilterData.map((filter, index) =>
           index === idx
@@ -1975,6 +1975,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                     <div>
                       {fields.map(({ key, name }) => (
                         <div className="filters-container" key={key}>
+                          {console.log(name)}
                           <div className="filters-dash-container">
                             <div className="control-label">
                               <span>{t('Select Dashboard Filter')}</span>
