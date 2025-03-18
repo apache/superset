@@ -45,6 +45,10 @@ export default function RecipientIcon({ type }: { type: string }) {
       recipientIconConfig.icon = <Icons.Slack css={StyledIcon} />;
       recipientIconConfig.label = NotificationMethodOption.Slack;
       break;
+    case NotificationMethodOption.Webhook:
+      recipientIconConfig.icon = <Icons.Webhook css={StyledIcon} />;
+      recipientIconConfig.label = NotificationMethodOption.Webhook;
+      break;
     default:
       recipientIconConfig.icon = null;
       recipientIconConfig.label = '';
