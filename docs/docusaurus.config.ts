@@ -340,7 +340,6 @@ const config: Config = {
       'data-website-id': 'c6a8a8b8-3127-48f9-97a7-51e9e10d20d0',
       'data-project-name': 'Apache Superset',
       'data-project-color': '#FFFFFF',
-      'data-project-color': '#1AA1C2',
       'data-project-logo':
         'https://images.seeklogo.com/logo-png/50/2/superset-icon-logo-png_seeklogo-500354.png',
       'data-modal-override-open-id': 'ask-ai-input',
