@@ -10,7 +10,7 @@ amqp==5.3.1
     # via
     #   -c requirements/base.txt
     #   kombu
-apispec==6.8.1
+apispec==6.3.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -318,7 +318,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
