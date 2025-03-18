@@ -88,6 +88,7 @@ import { NotificationMethod } from './components/NotificationMethod';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
+import { native } from 'rimraf';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [
@@ -1107,17 +1108,16 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     }
   };
 
-  const handleAddFilterField = (formAddfunc: Function) => {
-    const filters = nativeFilterData || [];
-    filters.push({
-      nativeFilterId: null,
-      columnLabel: '',
-      columnName: '',
-      filterValues: [],
-    });
-
-    setNativeFilterData(filters);
-    formAddfunc();
+  const handleAddFilterField = () => {
+    setNativeFilterData([
+      ...nativeFilterData,
+      {
+        nativeFilterId: null,
+        columnLabel: '',
+        columnName: '',
+        filterValues: [],
+      },
+    ]);
   };
 
   const handleRemoveFilterField = (filterIdx: number) => {
@@ -1969,7 +1969,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               <AntdForm className="filters" name="form" autoComplete="off">
                 <AntdForm.List
                   name="filters"
-                  initialValue={isEditMode ? nativeFilterData : [{}]} // only show one filter field on create
+                  initialValue={nativeFilterData} // only show one filter field on create
                 >
                   {(fields, { add, remove }) => (
                     <div>
@@ -2035,7 +2035,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         <Button
                           className="filters-add-btn"
                           type="link"
-                          onClick={() => handleAddFilterField(add)}
+                          onClick={() => {
+                            handleAddFilterField();
+                            add();
+                          }}
                         >
                           + {t('Apply another dashboard filter')}
                         </Button>
