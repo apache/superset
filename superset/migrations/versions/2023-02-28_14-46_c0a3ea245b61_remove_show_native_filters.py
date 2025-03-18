@@ -54,7 +54,7 @@ def upgrade():
             if "show_native_filters" in json_metadata:
                 del json_metadata["show_native_filters"]
                 dashboard.json_metadata = json.dumps(json_metadata)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: S110
             pass
 
     session.commit()

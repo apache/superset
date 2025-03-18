@@ -12428,7 +12428,7 @@ msgstr "Truncar Eixo Y"
 #, fuzzy
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "Truncar Eixo Y. Pode ser substituído pela especificação de um limite "
 "mínimo ou máximo."

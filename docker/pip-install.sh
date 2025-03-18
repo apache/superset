@@ -47,10 +47,10 @@ fi
 # Choose whether to use pip cache
 if $USE_CACHE; then
   echo "Using pip cache..."
-  uv pip install --system "${ARGS[@]}"
+  uv pip install "${ARGS[@]}"
 else
   echo "Disabling pip cache..."
-  uv pip install --system --no-cache-dir "${ARGS[@]}"
+  uv pip install --no-cache-dir "${ARGS[@]}"
 fi
 
 # Remove build-essential if it was installed

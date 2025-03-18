@@ -187,6 +187,8 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
     const { annotationError, annotationQuery, theme } = this.props;
     if (annotationQuery[anno.name]) {
       return (
+        // TODO: Remove fa-icon
+        // eslint-disable-next-line icons/no-fa-icons-usage
         <i
           className="fa fa-refresh"
           style={{ color: theme.colors.primary.base }}
@@ -231,8 +233,8 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
           anno,
           this.props.annotationError[anno.name],
         )}
-        visible={this.state.popoverVisible[i]}
-        onVisibleChange={visible => this.handleVisibleChange(visible, i)}
+        open={this.state.popoverVisible[i]}
+        onOpenChange={visible => this.handleVisibleChange(visible, i)}
       >
         <CustomListItem selectable>
           <span>{anno.name}</span>
@@ -254,13 +256,15 @@ class AnnotationLayerControl extends PureComponent<Props, PopoverState> {
               '',
             )}
             title={t('Add annotation layer')}
-            visible={this.state.popoverVisible[addLayerPopoverKey]}
+            open={this.state.popoverVisible[addLayerPopoverKey]}
             destroyTooltipOnHide
-            onVisibleChange={visible =>
+            onOpenChange={visible =>
               this.handleVisibleChange(visible, addLayerPopoverKey)
             }
           >
             <CustomListItem selectable>
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
               <i
                 data-test="add-annotation-layer-button"
                 className="fa fa-plus"

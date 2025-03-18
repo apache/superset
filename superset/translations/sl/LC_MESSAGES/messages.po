@@ -12174,7 +12174,7 @@ msgstr "Prireži X-os"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "Prireži X-os. Če določite spodnjo ali zgornjo mejo, preprečite "
 "prirezovanje. Deluje samo za numerično X os."

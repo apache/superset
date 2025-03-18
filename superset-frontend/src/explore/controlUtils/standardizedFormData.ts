@@ -203,7 +203,7 @@ export class StandardizedFormData {
      * 7. to refresh validator message
      * */
     const latestFormData = this.getLatestFormData(targetVizType);
-    const publicFormData = {};
+    const publicFormData: Record<string, any> = {};
     publicControls.forEach(key => {
       if (key in exploreState.form_data) {
         publicFormData[key] = exploreState.form_data[key];

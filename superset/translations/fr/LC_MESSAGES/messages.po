@@ -13309,7 +13309,7 @@ msgstr "Trier les métriques"
 
 msgid ""
 "Truncate X Axis. Can be overridden by specifying a min or max bound. Only"
-" applicable for numercal X axis."
+" applicable for numerical X axis."
 msgstr ""
 "Marquer une colonne comme temporelle dans le modal «Modifier la source de"
 " données»"

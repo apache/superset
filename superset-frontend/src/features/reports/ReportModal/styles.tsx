@@ -24,7 +24,7 @@ import { Radio } from 'src/components/Radio';
 import { CronPicker } from 'src/components/CronPicker';
 
 export const StyledModal = styled(Modal)`
-  .ant-modal-body {
+  .antd5-modal-body {
     padding: 0;
   }
 `;
@@ -106,10 +106,6 @@ export const StyledMessageContentTitle = styled.div`
 export const StyledRadio = styled(Radio)`
   display: block;
   line-height: ${({ theme }) => theme.gridUnit * 8}px;
-`;
-
-export const StyledRadioGroup = styled(Radio.Group)`
-  margin-left: ${({ theme }) => theme.gridUnit * 0.5}px;
 `;
 
 export const antDErrorAlertStyles = (theme: SupersetTheme) => css`

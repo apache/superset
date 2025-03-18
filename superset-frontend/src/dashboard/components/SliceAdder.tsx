@@ -48,7 +48,7 @@ import { Dispatch } from 'redux';
 import { Slice } from 'src/dashboard/types';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
-import DragDroppable from './dnd/DragDroppable';
+import { DragDroppable } from './dnd/DragDroppable';
 
 export type SliceAdderProps = {
   fetchSlices: (

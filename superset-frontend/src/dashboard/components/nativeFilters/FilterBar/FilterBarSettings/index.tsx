@@ -19,13 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -33,12 +27,13 @@ import {
   saveCrossFiltersSetting,
 } from 'src/dashboard/actions/dashboardInfo';
 import Icons from 'src/components/Icons';
-import DropdownSelectableIcon, {
-  DropDownSelectableProps,
-} from 'src/components/DropdownSelectableIcon';
 import Checkbox from 'src/components/Checkbox';
+import { Dropdown } from 'src/components/Dropdown';
+import { Button } from 'src/components';
+import { Space } from 'src/components/Space';
 import { clearDataMaskState } from 'src/dataMask/actions';
 import { useFilters } from 'src/dashboard/components/nativeFilters/FilterBar/state';
+import { useFilterConfigModal } from 'src/dashboard/components/nativeFilters/FilterBar/FilterConfigurationLink/useFilterConfigModal';
 import { useCrossFiltersScopingModal } from '../CrossFilters/ScopingModal/useCrossFiltersScopingModal';
 import FilterConfigurationLink from '../FilterConfigurationLink';
 
@@ -83,13 +78,9 @@ const FilterBarSettings = () => {
   );
   const [selectedFilterBarOrientation, setSelectedFilterBarOrientation] =
     useState(filterBarOrientation);
-  const isCrossFiltersFeatureEnabled = isFeatureEnabled(
-    FeatureFlag.DashboardCrossFilters,
-  );
-  const shouldEnableCrossFilters =
-    isCrossFiltersEnabled && isCrossFiltersFeatureEnabled;
+
   const [crossFiltersEnabled, setCrossFiltersEnabled] = useState<boolean>(
-    shouldEnableCrossFilters,
+    isCrossFiltersEnabled,
   );
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
@@ -99,10 +90,14 @@ const FilterBarSettings = () => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const canSetHorizontalFilterBar =
-    canEdit && isFeatureEnabled(FeatureFlag.HorizontalFilterBar);
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
+
+  const { openFilterConfigModal, FilterConfigModalComponent } =
+    useFilterConfigModal({
+      createNewOnOpen: filterValues.length === 0,
+      dashboardId,
+    });
 
   const updateCrossFiltersSetting = useCallback(
     async isEnabled => {
@@ -137,7 +132,7 @@ const FilterBarSettings = () => {
     [dispatch, filterBarOrientation],
   );
 
-  const handleSelect = useCallback(
+  const handleClick = useCallback(
     (
       selection: Parameters<
         Required<Pick<MenuProps, 'onSelect'>>['onSelect']
@@ -150,9 +145,16 @@ const FilterBarSettings = () => {
         toggleFilterBarOrientation(selectedKey);
       } else if (selectedKey === CROSS_FILTERS_SCOPING_MENU_KEY) {
         openScopingModal();
+      } else if (selectedKey === ADD_EDIT_FILTERS_MENU_KEY) {
+        openFilterConfigModal();
       }
     },
-    [openScopingModal, toggleCrossFiltering, toggleFilterBarOrientation],
+    [
+      openScopingModal,
+      toggleCrossFiltering,
+      toggleFilterBarOrientation,
+      openFilterConfigModal,
+    ],
   );
 
   const crossFiltersMenuItem = useMemo(
@@ -172,23 +174,22 @@ const FilterBarSettings = () => {
   );
 
   const menuItems = useMemo(() => {
-    const items: DropDownSelectableProps['menuItems'] = [];
+    const items: MenuProps['items'] = [];
 
     if (canEdit) {
       items.push({
         key: ADD_EDIT_FILTERS_MENU_KEY,
         label: (
-          <FilterConfigurationLink
-            dashboardId={dashboardId}
-            createNewOnOpen={filterValues.length === 0}
-          >
+          <FilterConfigurationLink>
             {t('Add or edit filters')}
           </FilterConfigurationLink>
         ),
-        divider: canSetHorizontalFilterBar,
       });
+      if (canEdit) {
+        items.push({ type: 'divider' });
+      }
     }
-    if (isCrossFiltersFeatureEnabled && canEdit) {
+    if (canEdit) {
       items.push({
         key: CROSS_FILTERS_MENU_KEY,
         label: crossFiltersMenuItem,
@@ -196,33 +197,45 @@ const FilterBarSettings = () => {
       items.push({
         key: CROSS_FILTERS_SCOPING_MENU_KEY,
         label: t('Cross-filtering scoping'),
-        divider: canSetHorizontalFilterBar,
       });
+      items.push({ type: 'divider' });
     }
-    if (canSetHorizontalFilterBar) {
+    if (canEdit) {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
         children: [
           {
             key: FilterBarOrientation.Vertical,
-            label: t('Vertical (Left)'),
+            label: (
+              <Space>
+                {t('Vertical (Left)')}
+                {selectedFilterBarOrientation ===
+                  FilterBarOrientation.Vertical && <Icons.Check />}
+              </Space>
+            ),
           },
           {
             key: FilterBarOrientation.Horizontal,
-            label: t('Horizontal (Top)'),
+            label: (
+              <Space>
+                {t('Horizontal (Top)')}
+                {selectedFilterBarOrientation ===
+                  FilterBarOrientation.Horizontal && <Icons.Check />}
+              </Space>
+            ),
           },
         ],
+        ...{ 'data-test': 'dropdown-selectable-icon-submenu' },
       });
     }
     return items;
   }, [
+    selectedFilterBarOrientation,
     canEdit,
-    canSetHorizontalFilterBar,
     crossFiltersMenuItem,
     dashboardId,
     filterValues,
-    isCrossFiltersFeatureEnabled,
   ]);
 
   if (!menuItems.length) {
@@ -231,19 +244,24 @@ const FilterBarSettings = () => {
 
   return (
     <>
-      <DropdownSelectableIcon
-        onSelect={handleSelect}
-        icon={
+      <Dropdown
+        menu={{
+          onClick: handleClick,
+          items: menuItems,
+          selectedKeys: [selectedFilterBarOrientation],
+        }}
+        trigger={['click']}
+      >
+        <Button type="link">
           <Icons.Gear
             name="gear"
             iconColor={theme.colors.grayscale.base}
             data-test="filterbar-orientation-icon"
           />
-        }
-        menuItems={menuItems}
-        selectedKeys={[selectedFilterBarOrientation]}
-      />
+        </Button>
+      </Dropdown>
       {scopingModal}
+      {FilterConfigModalComponent}
     </>
   );
 };

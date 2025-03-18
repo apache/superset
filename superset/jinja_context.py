@@ -519,7 +519,12 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
     def __init__(self, dialect: Dialect):
         self.dialect = dialect
 
-    def __call__(self, values: list[Any], mark: Optional[str] = None) -> str:
+    def __call__(
+        self,
+        values: list[Any],
+        mark: Optional[str] = None,
+        default_to_none: bool = False,
+    ) -> str | None:
         """
         Given a list of values, build a parenthesis list suitable for an IN expression.
 
@@ -528,6 +533,10 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             >>> where_in([1, "Joe's", 3])
             (1, 'Joe''s', 3)
 
+        The `default_to_none` parameter is used to determine the return value when the
+        list of values is empty:
+            - If `default_to_none` is `False` (default), the return value is ().
+            - If `default_to_none` is `True`, the return value is `None`.
         """
         binds = [bindparam(f"value_{i}", value) for i, value in enumerate(values)]
         string_representations = [
@@ -539,9 +548,11 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             for bind in binds
         ]
         joined_values = ", ".join(string_representations)
-        result = f"({joined_values})"
+        result = (
+            f"({joined_values})" if (joined_values or not default_to_none) else None
+        )
 
-        if mark:
+        if mark and result:
             result += (
                 "\n-- WARNING: the `mark` parameter was removed from the `where_in` "
                 "macro for security reasons\n"
@@ -601,7 +612,12 @@ class BaseTemplateProcessor:
         kwargs.update(self._context)
 
         context = validate_template_context(self.engine, kwargs)
-        return template.render(context)
+        try:
+            return template.render(context)
+        except RecursionError as ex:
+            raise SupersetTemplateException(
+                "Infinite recursion detected in template"
+            ) from ex
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
@@ -658,9 +674,16 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
-                "metric": partial(safe_proxy, metric_macro),
                 "get_time_filter": partial(safe_proxy, extra_cache.get_time_filter),
             }
+        )
+
+        # The `metric` filter needs the full context, in order to expand other filters
+        self._context["metric"] = partial(
+            safe_proxy,
+            metric_macro,
+            self.env,
+            self._context,
         )
 
 
@@ -888,7 +911,12 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     raise SupersetTemplateException(exc_message)
 
 
-def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
+def metric_macro(
+    env: Environment,
+    context: dict[str, Any],
+    metric_key: str,
+    dataset_id: Optional[int] = None,
+) -> str:
     """
     Given a metric key, returns its syntax.
 
@@ -908,16 +936,21 @@ def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
     dataset = DatasetDAO.find_by_id(dataset_id)
     if not dataset:
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
     metrics: dict[str, str] = {
         metric.metric_name: metric.expression for metric in dataset.metrics
     }
-    dataset_name = dataset.table_name
-    if metric := metrics.get(metric_key):
-        return metric
-    raise SupersetTemplateException(
-        _(
-            "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
-            metric_name=metric_key,
-            dataset_name=dataset_name,
+    if metric_key not in metrics:
+        raise SupersetTemplateException(
+            _(
+                "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
+                metric_name=metric_key,
+                dataset_name=dataset.table_name,
+            )
         )
-    )
+
+    definition = metrics[metric_key]
+    template = env.from_string(definition)
+    definition = template.render(context)
+
+    return definition

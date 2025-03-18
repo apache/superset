@@ -23,15 +23,18 @@ import {
   ColorSchemeGroup,
   getCategoricalSchemeRegistry,
 } from '@superset-ui/core';
-import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ColorSchemeControl, { ColorSchemes } from '.';
 
 const defaultProps = () => ({
   hasCustomLabelsColor: false,
   sharedLabelsColors: [],
   label: 'Color scheme',
-  labelMargin: 0,
   name: 'color',
   value: 'supersetDefault',
   clearable: true,
@@ -56,7 +59,7 @@ test('should render', async () => {
 
 test('should display a label', async () => {
   setup();
-  expect(await screen.findByText('Color scheme')).toBeTruthy();
+  expect(await screen.findByText('Color scheme')).toBeInTheDocument();
 });
 
 test('should not display an alert icon if hasCustomLabelsColor=false', async () => {

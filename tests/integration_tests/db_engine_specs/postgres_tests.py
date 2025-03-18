@@ -176,7 +176,7 @@ class TestPostgresDbEngineSpec(TestDbEngineSpec):
             """
         )
         sql = "DROP TABLE birth_names"
-        with self.assertRaises(errors.SyntaxError):
+        with self.assertRaises(errors.SyntaxError):  # noqa: PT027
             PostgresEngineSpec.estimate_statement_cost(database, sql, cursor)
 
     def test_query_cost_formatter_example_costs(self):
@@ -396,11 +396,11 @@ psql: error: could not connect to server: Operation timed out
                     "issue_codes": [
                         {
                             "code": 1014,
-                            "message": "Issue 1014 - Either the username or the password is wrong.",
+                            "message": "Issue 1014 - Either the username or the password is wrong.",  # noqa: E501
                         },
                         {
                             "code": 1015,
-                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                            "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",  # noqa: E501
                         },
                     ],
                 },
@@ -411,7 +411,7 @@ psql: error: could not connect to server: Operation timed out
         result = PostgresEngineSpec.extract_errors(Exception(msg))
         assert result == [
             SupersetError(
-                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',
+                message='Please check your query for syntax errors at or near "from_". Then, try running your query again.',  # noqa: E501
                 error_type=SupersetErrorType.SYNTAX_ERROR,
                 level=ErrorLevel.ERROR,
                 extra={

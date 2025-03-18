@@ -30,7 +30,6 @@ import { ControlConfig } from '@superset-ui/chart-controls';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
 
-import { isArray } from 'lodash';
 import { matchSorter, rankings } from 'match-sorter';
 import Alert from 'src/components/Alert';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
@@ -100,6 +99,7 @@ const DatasourceContainer = styled.div`
       color: ${theme.colors.grayscale.light1};
     }
     .form-control.input-md {
+      display: inline-flex;
       width: calc(100% - ${theme.gridUnit * 8}px);
       height: ${theme.gridUnit * 8}px;
       margin: ${theme.gridUnit * 2}px auto;
@@ -141,7 +141,7 @@ export default function DataSourcePanel({
 
   const allowedColumns = useMemo(() => {
     const validators = Object.values(dropzones);
-    if (!isArray(_columns)) return [];
+    if (!Array.isArray(_columns)) return [];
     return _columns.filter(column =>
       validators.some(validator =>
         validator({
@@ -277,7 +277,8 @@ export default function DataSourcePanel({
   };
 
   const datasourceIsSaveable =
-    datasource.type && saveableDatasets[datasource.type];
+    datasource.type &&
+    saveableDatasets[datasource.type as keyof typeof saveableDatasets];
 
   const mainBody = useMemo(
     () => (

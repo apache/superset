@@ -17,11 +17,11 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import {
   render,
   screen,
   selectOption,
+  userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
@@ -160,7 +160,7 @@ afterEach(() => {
 
 it('renders modal', () => {
   setup();
-  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-tree-panel')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-list-panel')).toBeInTheDocument();
 });

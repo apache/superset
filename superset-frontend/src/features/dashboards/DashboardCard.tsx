@@ -26,14 +26,15 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
-import { AntdDropdown } from 'src/components';
+import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import ListViewCard from 'src/components/ListViewCard';
 import Icons from 'src/components/Icons';
-import Label from 'src/components/Label';
+import { PublishedLabel } from 'src/components/Label';
 import FacePile from 'src/components/FacePile';
 import FaveStar from 'src/components/FaveStar';
 import { Dashboard } from 'src/views/CRUD/types';
+import { Button } from 'src/components';
 
 interface DashboardCardProps {
   isChart?: boolean;
@@ -153,9 +154,7 @@ function DashboardCard({
         title={dashboard.dashboard_title}
         certifiedBy={dashboard.certified_by}
         certificationDetails={dashboard.certification_details}
-        titleRight={
-          <Label>{dashboard.published ? t('published') : t('draft')}</Label>
-        }
+        titleRight={<PublishedLabel isPublished={dashboard.published} />}
         cover={
           !isFeatureEnabled(FeatureFlag.Thumbnails) || !showThumbnails ? (
             <></>
@@ -181,9 +180,11 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <AntdDropdown overlay={menu}>
-              <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
-            </AntdDropdown>
+            <Dropdown dropdownRender={() => menu} trigger={['hover', 'click']}>
+              <Button buttonSize="xsmall" type="link">
+                <Icons.MoreVert iconColor={theme.colors.grayscale.base} />
+              </Button>
+            </Dropdown>
           </ListViewCard.Actions>
         }
       />

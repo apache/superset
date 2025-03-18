@@ -26,7 +26,7 @@ import {
   styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
-import moment from 'moment';
+import { extendedDayjs } from 'src/utils/dates';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
 import FacePile from 'src/components/FacePile';
 import { Tooltip } from 'src/components/Tooltip';
@@ -263,7 +263,10 @@ function AlertList({
           },
         }: any) =>
           lastEvalDttm
-            ? moment.utc(lastEvalDttm).local().format(DATETIME_WITH_TIME_ZONE)
+            ? extendedDayjs
+                .utc(lastEvalDttm)
+                .local()
+                .format(DATETIME_WITH_TIME_ZONE)
             : '',
         accessor: 'last_eval_dttm',
         Header: t('Last run'),
@@ -414,6 +417,8 @@ function AlertList({
     subMenuButtons.push({
       name: (
         <>
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-plus" /> {title}
         </>
       ),
@@ -438,6 +443,8 @@ function AlertList({
     buttonAction: () => handleAlertEdit(null),
     buttonText: canCreate ? (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" /> {title}{' '}
       </>
     ) : null,

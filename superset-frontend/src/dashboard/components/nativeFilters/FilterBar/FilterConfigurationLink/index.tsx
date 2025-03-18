@@ -16,66 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, FC, useCallback, useState, memo } from 'react';
+import { ReactNode, FC, memo } from 'react';
 
-import { useDispatch } from 'react-redux';
-import { setFilterConfiguration } from 'src/dashboard/actions/nativeFilters';
-import FiltersConfigModal from 'src/dashboard/components/nativeFilters/FiltersConfigModal/FiltersConfigModal';
 import { getFilterBarTestId } from '../utils';
-import { SaveFilterChangesType } from '../../FiltersConfigModal/types';
 
 export interface FCBProps {
-  createNewOnOpen?: boolean;
-  dashboardId?: number;
-  initialFilterId?: string;
   onClick?: () => void;
   children?: ReactNode;
 }
 
 export const FilterConfigurationLink: FC<FCBProps> = ({
-  createNewOnOpen,
-  dashboardId,
-  initialFilterId,
   onClick,
   children,
-}) => {
-  const dispatch = useDispatch();
-  const [isOpen, setOpen] = useState(false);
-  const close = useCallback(() => {
-    setOpen(false);
-  }, [setOpen]);
-
-  const submit = useCallback(
-    async (filterChanges: SaveFilterChangesType) => {
-      dispatch(await setFilterConfiguration(filterChanges));
-      close();
-    },
-    [dispatch, close],
-  );
-
-  const handleClick = useCallback(() => {
-    setOpen(true);
-    if (onClick) {
-      onClick();
-    }
-  }, [setOpen, onClick]);
-
-  return (
-    <>
-      {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-      <span {...getFilterBarTestId('create-filter')} onClick={handleClick}>
-        {children}
-      </span>
-      <FiltersConfigModal
-        isOpen={isOpen}
-        onSave={submit}
-        onCancel={close}
-        initialFilterId={initialFilterId}
-        createNewOnOpen={createNewOnOpen}
-        key={`filters-for-${dashboardId}`}
-      />
-    </>
-  );
-};
+}) => (
+  <div
+    {...getFilterBarTestId('create-filter')}
+    onClick={onClick}
+    role="button"
+    tabIndex={0}
+  >
+    {children}
+  </div>
+);
 
 export default memo(FilterConfigurationLink);

@@ -23,8 +23,9 @@ import Modal from 'src/components/Modal';
 import AsyncSelect from 'src/components/Select/AsyncSelect';
 import { FormLabel } from 'src/components/Form';
 import { t, styled, SupersetClient } from '@superset-ui/core';
-import { Input } from 'antd';
-import { Divider } from 'src/components';
+// eslint-disable-next-line no-restricted-imports
+import { Input } from 'antd'; // TODO: Remove antd
+import { Divider } from 'src/components/Divider';
 import Button from 'src/components/Button';
 import { Tag } from 'src/views/CRUD/types';
 import { fetchObjectsByTagIds } from 'src/features/tags/tags';
@@ -161,7 +162,7 @@ const TagModal: FC<TagModalProps> = ({
     const { result, count } = json;
 
     return {
-      data: result.map((item: { id: number }) => ({
+      data: result.map((item: Record<string, any> & { id: number }) => ({
         value: item.id,
         label: item[filterColumn],
       })),

@@ -37,7 +37,7 @@ from trino.sqlalchemy import datatype
 from trino.sqlalchemy.dialect import TrinoDialect
 
 import superset.config
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, USER_AGENT
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
     SupersetDBAPIDatabaseError,
@@ -81,7 +81,7 @@ def _assert_columns_equal(actual_cols, expected_cols) -> None:
 @pytest.mark.parametrize(
     "extra,expected",
     [
-        ({}, {"engine_params": {"connect_args": {"source": USER_AGENT}}}),
+        ({}, {"engine_params": {"connect_args": {"source": "Apache Superset"}}}),
         (
             {
                 "first": 1,
@@ -110,7 +110,7 @@ def test_get_extra_params(extra: dict[str, Any], expected: dict[str, Any]) -> No
     assert TrinoEngineSpec.get_extra_params(database) == expected
 
 
-@patch("superset.utils.core.create_ssl_cert_file")
+@patch("superset.db_engine_specs.trino.create_ssl_cert_file")
 def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> None:
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
@@ -118,6 +118,7 @@ def test_get_extra_params_with_server_cert(mock_create_ssl_cert_file: Mock) -> N
 
     database.extra = json.dumps({})
     database.server_cert = "TEST_CERT"
+    database.db_engine_spec = TrinoEngineSpec
     mock_create_ssl_cert_file.return_value = "/path/to/tls.crt"
     extra = TrinoEngineSpec.get_extra_params(database)
 
@@ -240,7 +241,7 @@ def test_auth_custom_auth_denied() -> None:
 
     superset.config.ALLOWED_EXTRA_AUTHENTICATIONS = {}
 
-    with pytest.raises(ValueError) as excinfo:
+    with pytest.raises(ValueError) as excinfo:  # noqa: PT011
         TrinoEngineSpec.update_params_from_encrypted_extra(database, {})
 
     assert str(excinfo.value) == (
@@ -291,7 +292,7 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec  # noqa: N813
 
     assert_column_spec(
         spec,
@@ -791,7 +792,7 @@ def test_where_latest_partition(
                 compile_kwargs={"literal_binds": True},
             )
         )
-        == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""
+        == f"""SELECT * FROM table \nWHERE partition_key = {expected_value}"""  # noqa: S608
     )
 
 
@@ -855,33 +856,33 @@ def test_get_oauth2_token(
         ("PT1S", "date_trunc('second', CAST(col AS TIMESTAMP))"),
         (
             "PT5S",
-            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 5)",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 5)",  # noqa: E501
         ),
         (
             "PT30S",
-            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 30)",
+            "date_trunc('second', CAST(col AS TIMESTAMP)) - interval '1' second * (second(CAST(col AS TIMESTAMP)) % 30)",  # noqa: E501
         ),
         ("PT1M", "date_trunc('minute', CAST(col AS TIMESTAMP))"),
         (
             "PT5M",
-            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 5)",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 5)",  # noqa: E501
         ),
         (
             "PT10M",
-            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 10)",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 10)",  # noqa: E501
         ),
         (
             "PT15M",
-            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 15)",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 15)",  # noqa: E501
         ),
         (
             "PT0.5H",
-            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 30)",
+            "date_trunc('minute', CAST(col AS TIMESTAMP)) - interval '1' minute * (minute(CAST(col AS TIMESTAMP)) % 30)",  # noqa: E501
         ),
         ("PT1H", "date_trunc('hour', CAST(col AS TIMESTAMP))"),
         (
             "PT6H",
-            "date_trunc('hour', CAST(col AS TIMESTAMP)) - interval '1' hour * (hour(CAST(col AS TIMESTAMP)) % 6)",
+            "date_trunc('hour', CAST(col AS TIMESTAMP)) - interval '1' hour * (hour(CAST(col AS TIMESTAMP)) % 6)",  # noqa: E501
         ),
         ("P1D", "date_trunc('day', CAST(col AS TIMESTAMP))"),
         ("P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
@@ -890,12 +891,12 @@ def test_get_oauth2_token(
         ("P1Y", "date_trunc('year', CAST(col AS TIMESTAMP))"),
         (
             "1969-12-28T00:00:00Z/P1W",
-            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) - interval '1' day",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) - interval '1' day",  # noqa: E501
         ),
         ("1969-12-29T00:00:00Z/P1W", "date_trunc('week', CAST(col AS TIMESTAMP))"),
         (
             "P1W/1970-01-03T00:00:00Z",
-            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) + interval '5' day",
+            "date_trunc('week', CAST(col AS TIMESTAMP) + interval '1' day) + interval '5' day",  # noqa: E501
         ),
         (
             "P1W/1970-01-04T00:00:00Z",
@@ -904,7 +905,7 @@ def test_get_oauth2_token(
     ],
 )
 def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
-    from superset.db_engine_specs.trino import TrinoEngineSpec as spec
+    from superset.db_engine_specs.trino import TrinoEngineSpec as spec  # noqa: N813
 
     actual = str(
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)

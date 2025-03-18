@@ -25,8 +25,12 @@ import {
 } from '@superset-ui/core';
 import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
 import { MemoryRouter, Route } from 'react-router-dom';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import ExploreViewContainer from '.';
 
 const reduxState = {
@@ -159,7 +163,7 @@ test('renders chart in standalone mode', () => {
       explore: { ...reduxState.explore, standalone: true },
     },
   });
-  expect(queryByTestId('standalone-app')).toBeTruthy();
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
 test('generates a different form_data param when one is provided and is mounting', async () => {

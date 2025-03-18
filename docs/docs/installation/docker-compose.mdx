@@ -17,7 +17,7 @@ Since `docker compose` is primarily designed to run a set of containers on **a s
 and can't support requirements for **high availability**, we do not support nor recommend
 using our `docker compose` constructs to support production-type use-cases. For single host
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
-our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
+with our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
 :::
 
@@ -43,7 +43,6 @@ Note that there are 3 major ways we support to run `docker compose`:
   `export TAG=4.0.0-dev` or `export TAG=3.0.0-dev`, with `latest-dev` being the default.
   That's because The `dev` builds happen to package the `psycopg2-binary` required to connect
   to the Postgres database launched as part of the `docker compose` builds.
-``
 
 More on these two approaches after setting up the requirements for either.
 
@@ -120,6 +119,13 @@ docker compose -f docker-compose-image-tag.yml up
 Here various release tags, github SHA, and latest `master` can be referenced by the TAG env var.
 Refer to the docker-related documentation to learn more about existing tags you can point to
 from Docker Hub.
+
+:::note
+For option #2 and #3, we recommend checking out the release tag from the better repository
+(ie: `git checkout 4.0.0`) for more guaranteed results. This ensures that the `docker-compose.*.yml`
+configurations and that the mounted `docker/` scripts are in sync with the image you are
+looking to fire up.
+:::
 
 ## `docker compose` tips & configuration
 

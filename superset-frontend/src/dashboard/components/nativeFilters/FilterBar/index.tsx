@@ -191,7 +191,7 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
-      const updates = {};
+      const updates: Record<string, DataMaskWithId> = {};
       Object.values(filters).forEach(currentFilter => {
         const previousFilter = previousFilters?.[currentFilter.id];
         if (!previousFilter) {
@@ -208,7 +208,9 @@ const FilterBar: FC<FiltersBarProps> = ({
         const dataMaskChanged = !isEqual(currentDataMask, previousDataMask);
 
         if (typeChanged || targetsChanged || dataMaskChanged) {
-          updates[currentFilter.id] = getInitialDataMask(currentFilter.id);
+          updates[currentFilter.id] = getInitialDataMask(
+            currentFilter.id,
+          ) as DataMaskWithId;
         }
       });
 

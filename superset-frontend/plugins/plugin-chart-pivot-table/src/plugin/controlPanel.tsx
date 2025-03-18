@@ -415,7 +415,12 @@ const config: ControlPanelConfig = {
                 const chartStatus = chart?.chartStatus;
                 const metricColumn = values.map(value => {
                   if (typeof value === 'string') {
-                    return { value, label: verboseMap[value] ?? value };
+                    return {
+                      value,
+                      label: Array.isArray(verboseMap)
+                        ? value
+                        : verboseMap[value],
+                    };
                   }
                   return { value: value.label, label: value.label };
                 });
@@ -437,7 +442,7 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: true,
               description: t(
-                'Renders table cells as HTML when applicable. For example, HTML &lt;a&gt; tags will be rendered as hyperlinks.',
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
             },
           },

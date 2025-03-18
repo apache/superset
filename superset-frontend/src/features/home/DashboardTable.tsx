@@ -18,7 +18,6 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
-import { filter } from 'lodash';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -61,10 +60,7 @@ function DashboardTable({
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(
-    otherTabData,
-    obj => !('viz_type' in obj),
-  );
+  const filteredOtherTabData = otherTabData.filter(obj => !('viz_type' in obj));
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -190,6 +186,8 @@ function DashboardTable({
           {
             name: (
               <>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-plus" />
                 {t('Dashboard')}
               </>

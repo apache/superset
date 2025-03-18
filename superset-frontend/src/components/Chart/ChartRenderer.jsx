@@ -24,13 +24,13 @@ import {
   logging,
   Behavior,
   t,
-  isFeatureEnabled,
-  FeatureFlag,
   getChartMetadataRegistry,
   VizType,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
-import { EmptyStateBig, EmptyStateSmall } from 'src/components/EmptyState';
+import { EmptyState } from 'src/components/EmptyState';
 import { ChartSource } from 'src/types/ChartSource';
 import ChartContextMenu from './ChartContextMenu/ChartContextMenu';
 
@@ -92,8 +92,7 @@ class ChartRenderer extends Component {
       showContextMenu:
         props.source === ChartSource.Dashboard &&
         !suppressContextMenu &&
-        (isFeatureEnabled(FeatureFlag.DrillToDetail) ||
-          isFeatureEnabled(FeatureFlag.DashboardCrossFilters)),
+        isFeatureEnabled(FeatureFlag.DrillToDetail),
       inContextMenu: false,
       legendState: undefined,
     };
@@ -308,7 +307,8 @@ class ChartRenderer extends Component {
     const noResultImage = 'chart.svg';
     if (width > BIG_NO_RESULT_MIN_WIDTH && height > BIG_NO_RESULT_MIN_HEIGHT) {
       noResultsComponent = (
-        <EmptyStateBig
+        <EmptyState
+          size="large"
           title={noResultTitle}
           description={noResultDescription}
           image={noResultImage}
@@ -316,7 +316,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyStateSmall title={noResultTitle} image={noResultImage} />
+        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
       );
     }
 

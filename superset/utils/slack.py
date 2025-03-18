@@ -17,15 +17,20 @@
 
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from flask import current_app
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 
 from superset import feature_flag_manager
 from superset.exceptions import SupersetException
+from superset.extensions import cache_manager
+from superset.reports.schemas import SlackChannelSchema
+from superset.utils import cache as cache_util
 from superset.utils.backports import StrEnum
+from superset.utils.core import recipients_string_to_list
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +48,43 @@ def get_slack_client() -> WebClient:
     token: str = current_app.config["SLACK_API_TOKEN"]
     if callable(token):
         token = token()
-    return WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+    client = WebClient(token=token, proxy=current_app.config["SLACK_PROXY"])
+
+    rate_limit_handler = RateLimitErrorRetryHandler(max_retry_count=2)
+    client.retry_handlers.append(rate_limit_handler)
+
+    return client
+
+
+@cache_util.memoized_func(
+    key="slack_conversations_list",
+    cache=cache_manager.cache,
+)
+def get_channels(limit: int, extra_params: dict[str, Any]) -> list[SlackChannelSchema]:
+    """
+    Retrieves a list of all conversations accessible by the bot
+    from the Slack API, and caches results (to avoid rate limits).
+
+    The Slack API does not provide search so to apply a search use
+    get_channels_with_search instead.
+    """
+    client = get_slack_client()
+    channel_schema = SlackChannelSchema()
+    channels: list[SlackChannelSchema] = []
+    cursor = None
+
+    while True:
+        response = client.conversations_list(
+            limit=limit, cursor=cursor, exclude_archived=True, **extra_params
+        )
+        channels.extend(
+            channel_schema.load(channel) for channel in response.data["channels"]
+        )
+        cursor = response.data.get("response_metadata", {}).get("next_cursor")
+        if not cursor:
+            break
+
+    return channels
 
 
 def get_channels_with_search(
@@ -51,55 +92,45 @@ def get_channels_with_search(
     limit: int = 999,
     types: Optional[list[SlackChannelTypes]] = None,
     exact_match: bool = False,
-) -> list[str]:
+    force: bool = False,
+) -> list[SlackChannelSchema]:
     """
     The slack api is paginated but does not include search, so we need to fetch
     all channels and filter them ourselves
     This will search by slack name or id
     """
-
+    extra_params = {}
+    extra_params["types"] = ",".join(types) if types else None
     try:
-        client = get_slack_client()
-        channels = []
-        cursor = None
-        extra_params = {}
-        extra_params["types"] = ",".join(types) if types else None
-
-        while True:
-            response = client.conversations_list(
-                limit=limit, cursor=cursor, exclude_archived=True, **extra_params
-            )
-            channels.extend(response.data["channels"])
-            cursor = response.data.get("response_metadata", {}).get("next_cursor")
-            if not cursor:
-                break
-
-        # The search string can be multiple channels separated by commas
-        if search_string:
-            search_array = [
-                search.lower()
-                for search in (search_string.split(",") if search_string else [])
-            ]
-
-            channels = [
-                channel
-                for channel in channels
-                if any(
-                    (
-                        search == channel["name"].lower()
-                        or search == channel["id"].lower()
-                        if exact_match
-                        else (
-                            search in channel["name"].lower()
-                            or search in channel["id"].lower()
-                        )
-                    )
-                    for search in search_array
-                )
-            ]
-        return channels
+        channels = get_channels(
+            limit=limit,
+            extra_params=extra_params,
+            force=force,
+            cache_timeout=86400,
+        )
     except (SlackClientError, SlackApiError) as ex:
         raise SupersetException(f"Failed to list channels: {ex}") from ex
+
+    # The search string can be multiple channels separated by commas
+    if search_string:
+        search_array = recipients_string_to_list(search_string)
+        channels = [
+            channel
+            for channel in channels
+            if any(
+                (
+                    search.lower() == channel["name"].lower()
+                    or search.lower() == channel["id"].lower()
+                    if exact_match
+                    else (
+                        search.lower() in channel["name"].lower()
+                        or search.lower() in channel["id"].lower()
+                    )
+                )
+                for search in search_array
+            )
+        ]
+    return channels
 
 
 def should_use_v2_api() -> bool:

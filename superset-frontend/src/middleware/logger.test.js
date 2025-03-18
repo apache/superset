@@ -23,11 +23,12 @@ import { LOG_EVENT } from 'src/logger/actions';
 import { LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 
 describe('logger middleware', () => {
+  const dashboardId = 123;
   const next = sinon.spy();
   const mockStore = {
     getState: () => ({
       dashboardInfo: {
-        id: 1,
+        id: dashboardId,
       },
       impressionId: 'impression_id',
     }),
@@ -39,6 +40,7 @@ describe('logger middleware', () => {
       eventData: {
         key: 'value',
         start_offset: 100,
+        path: `/dashboard/${dashboardId}/`,
       },
     },
   };
@@ -94,6 +96,7 @@ describe('logger middleware', () => {
       source: 'dashboard',
       source_id: mockStore.getState().dashboardInfo.id,
       event_type: 'timing',
+      dashboard_id: mockStore.getState().dashboardInfo.id,
     });
 
     expect(typeof events[0].ts).toBe('number');

@@ -17,8 +17,7 @@
  * under the License.
  */
 import { fireEvent, render } from 'spec/helpers/testing-library';
-
-import { AntdModal } from 'src/components';
+import Modal from 'src/components/Modal';
 import fetchMock from 'fetch-mock';
 import Tabs from 'src/dashboard/components/gridComponents/Tabs';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
@@ -179,7 +178,7 @@ test('should direct display direct-link tab', () => {
 
 test('should render Modal when clicked remove tab button', () => {
   const deleteComponent = jest.fn();
-  const modalMock = jest.spyOn(AntdModal, 'confirm');
+  const modalMock = jest.spyOn(Modal, 'confirm');
   const { container } = setup({ editMode: true, deleteComponent });
   fireEvent.click(container.querySelector('.ant-tabs-tab-remove'));
   expect(modalMock).toHaveBeenCalledTimes(1);

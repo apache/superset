@@ -305,7 +305,7 @@ class TestDbEngineSpecs(TestDbEngineSpec):
         }
         sql = table.get_query_str(query_obj)
         assert (
-            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"
+            "ORDER BY \n            case\n              when gender='boy' then 'male'\n              else 'female'\n            end\n             ASC"  # noqa: E501
             in sql
         )
 
@@ -432,8 +432,7 @@ def test_validate_parameters_missing():
         assert errors == [
             SupersetError(
                 message=(
-                    "One or more parameters are missing: "
-                    "database, host, port, username"
+                    "One or more parameters are missing: database, host, port, username"
                 ),
                 error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                 level=ErrorLevel.WARNING,

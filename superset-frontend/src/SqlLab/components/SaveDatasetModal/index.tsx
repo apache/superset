@@ -19,8 +19,8 @@
 
 import { useCallback, useState, FormEvent } from 'react';
 
-import { Radio } from 'src/components/Radio';
-import { RadioChangeEvent, AsyncSelect } from 'src/components';
+import { Radio, RadioChangeEvent } from 'src/components/Radio';
+import { AsyncSelect } from 'src/components';
 import { Input } from 'src/components/Input';
 import StyledModal from 'src/components/Modal';
 import Button from 'src/components/Button';
@@ -35,7 +35,7 @@ import {
   VizType,
 } from '@superset-ui/core';
 import { useSelector, useDispatch } from 'react-redux';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -49,8 +49,9 @@ import {
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
-import { SelectValue } from 'antd/lib/select';
-import { isEmpty, isString } from 'lodash';
+// eslint-disable-next-line no-restricted-imports
+import { SelectValue } from 'antd/lib/select'; // TODO: Remove antd
+import { isEmpty } from 'lodash';
 
 interface QueryDatabase {
   id?: number;
@@ -96,32 +97,36 @@ interface SaveDatasetModalProps {
 }
 
 const Styles = styled.div`
+  ${({ theme }) => `
   .sdm-body {
-    margin: 0 8px;
+    margin: 0 ${theme.gridUnit * 2}px;
   }
   .sdm-input {
-    margin-left: 45px;
+    margin-left: ${theme.gridUnit * 10}px;
     width: 401px;
   }
   .sdm-autocomplete {
     width: 401px;
     align-self: center;
+    margin-left: ${theme.gridUnit}px;
   }
   .sdm-radio {
-    display: block;
     height: 30px;
     margin: 10px 0px;
     line-height: 30px;
   }
+  .sdm-radio span {
+    display: inline-flex;
+    padding-right: 0px;
+  }
   .sdm-overwrite-msg {
-    margin: 7px;
+    margin: ${theme.gridUnit * 2}px;
   }
   .sdm-overwrite-container {
     flex: 1 1 auto;
     display: flex;
-  }
+  `}
 `;
-
 const updateDataset = async (
   dbId: number,
   datasetId: number,
@@ -164,7 +169,7 @@ export const SaveDatasetModal = ({
   );
 
   const getDefaultDatasetName = () =>
-    `${datasource?.name || UNTITLED} ${moment().format('L HH:mm:ss')}`;
+    `${datasource?.name || UNTITLED} ${dayjs().format('L HH:mm:ss')}`;
   const [datasetName, setDatasetName] = useState(getDefaultDatasetName());
   const [newOrOverwrite, setNewOrOverwrite] = useState(
     DatasetRadioState.SaveNew,
@@ -280,7 +285,7 @@ export const SaveDatasetModal = ({
     // Remove the special filters entry from the templateParams
     // before saving the dataset.
     let templateParams;
-    if (isString(datasource?.templateParams)) {
+    if (typeof datasource?.templateParams === 'string') {
       const p = JSON.parse(datasource.templateParams);
       /* eslint-disable-next-line no-underscore-dangle */
       if (p._filters) {

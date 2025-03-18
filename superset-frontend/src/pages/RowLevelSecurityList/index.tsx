@@ -246,6 +246,8 @@ function RowLevelSecurityList(props: RLSProps) {
     buttonAction: () => handleRuleEdit(null),
     buttonText: canEdit ? (
       <>
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i className="fa fa-plus" data-test="add-rule-empty" /> {'Rule'}{' '}
       </>
     ) : null,
@@ -312,6 +314,8 @@ function RowLevelSecurityList(props: RLSProps) {
     subMenuButtons.push({
       name: (
         <>
+          {/* TODO: Remove fa-icon */}
+          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
           <i className="fa fa-plus" data-test="add-rule" /> {t('Rule')}
         </>
       ),

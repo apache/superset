@@ -684,7 +684,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       chartUpdateStartTime: 1673046994633,
       latestQueryFormData: {
         datasource: '20__table',
-        viz_type: VizType.LegacyHeatmap,
+        viz_type: VizType.Heatmap,
         slice_id: 93,
         url_params: {},
         granularity_sqla: 'year',
@@ -733,7 +733,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           errors: [],
           form_data: {
             datasource: '20__table',
-            viz_type: VizType.LegacyHeatmap,
+            viz_type: VizType.Heatmap,
             slice_id: 93,
             url_params: {},
             granularity_sqla: 'year',
@@ -2842,7 +2842,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.LegacyHeatmap,
+        viz_type: VizType.Heatmap,
         slice_id: 93,
         url_params: {},
         granularity_sqla: 'year',
@@ -2886,7 +2886,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.LegacyLine,
+        viz_type: VizType.Line,
         slice_id: 95,
         url_params: {
           preselect_filters:
@@ -2989,7 +2989,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       chartUpdateStartTime: 1673046994566,
       latestQueryFormData: {
         datasource: '20__table',
-        viz_type: VizType.LegacyArea,
+        viz_type: VizType.Area,
         slice_id: 103,
         url_params: {
           preselect_filters:
@@ -3068,7 +3068,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           errors: [],
           form_data: {
             datasource: '20__table',
-            viz_type: VizType.LegacyArea,
+            viz_type: VizType.Area,
             slice_id: 103,
             url_params: {
               preselect_filters:
@@ -16266,7 +16266,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.LegacyArea,
+        viz_type: VizType.Area,
         slice_id: 103,
         url_params: {
           preselect_filters:
@@ -16389,7 +16389,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       chartUpdateStartTime: 1673046994648,
       latestQueryFormData: {
         datasource: '20__table',
-        viz_type: VizType.DistBar,
+        viz_type: VizType.Bar,
         slice_id: 113,
         url_params: {},
         granularity_sqla: 'year',
@@ -16536,7 +16536,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
           errors: [],
           form_data: {
             datasource: '20__table',
-            viz_type: VizType.DistBar,
+            viz_type: VizType.Bar,
             slice_id: 113,
             url_params: {},
             granularity_sqla: 'year',
@@ -17079,7 +17079,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.DistBar,
+        viz_type: VizType.Bar,
         slice_id: 113,
         url_params: {},
         granularity_sqla: 'year',
@@ -17223,7 +17223,7 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       lastRendered: 0,
       form_data: {
         datasource: '20__table',
-        viz_type: VizType.DistBar,
+        viz_type: VizType.Bar,
         slice_id: 120,
         url_params: {
           preselect_filters:

@@ -197,7 +197,7 @@ class TestSqlLabApi(SupersetTestCase):
             "Dummy Role",
             email="unauth_user1@superset.org",  # noqa: F541
         )
-        self.login(username="unauth_user1", password="password")
+        self.login(username="unauth_user1", password="password")  # noqa: S106
         rv = self.client.get("/api/v1/sqllab/")
 
         assert rv.status_code == 403
@@ -361,7 +361,7 @@ class TestSqlLabApi(SupersetTestCase):
         sql_lab_mock.return_value = resp
 
         dbobj = self.create_fake_db_for_macros()
-        json_payload = dict(database_id=dbobj.id, sql=sql)
+        json_payload = dict(database_id=dbobj.id, sql=sql)  # noqa: C408
         self.get_json_resp(
             "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
@@ -424,7 +424,7 @@ class TestSqlLabApi(SupersetTestCase):
 
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
-    @mock.patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @mock.patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)  # noqa: PT008
     @mock.patch("superset.models.core.Database.get_df")
     def test_export_results(self, get_df_mock: mock.Mock) -> None:
         self.login(ADMIN_USERNAME)

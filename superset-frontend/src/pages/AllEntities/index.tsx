@@ -19,9 +19,7 @@
 import { useEffect, useState } from 'react';
 import { styled, t, css, SupersetTheme } from '@superset-ui/core';
 import { NumberParam, useQueryParam } from 'use-query-params';
-import AllEntitiesTable, {
-  TaggedObjects,
-} from 'src/features/allEntities/AllEntitiesTable';
+import AllEntitiesTable from 'src/features/allEntities/AllEntitiesTable';
 import Button from 'src/components/Button';
 import MetadataBar, {
   MetadataType,
@@ -36,18 +34,7 @@ import withToasts, { useToasts } from 'src/components/MessageToasts/withToasts';
 import { fetchObjectsByTagIds, fetchSingleTag } from 'src/features/tags/tags';
 import Loading from 'src/components/Loading';
 import getOwnerName from 'src/utils/getOwnerName';
-
-interface TaggedObject {
-  id: number;
-  type: string;
-  name: string;
-  url: string;
-  changed_on: moment.MomentInput;
-  created_by: number | undefined;
-  creator: string;
-  owners: Owner[];
-  tags: Tag[];
-}
+import { TaggedObject, TaggedObjects } from 'src/types/TaggedObject';
 
 const additionalItemsStyles = (theme: SupersetTheme) => css`
   display: flex;
@@ -151,12 +138,12 @@ function AllEntities() {
       return;
     }
     fetchObjectsByTagIds(
-      { tagIds: [tag?.id] || '', types: null },
+      { tagIds: tag?.id !== undefined ? [tag.id] : '', types: null },
       (data: TaggedObject[]) => {
-        const objects = { dashboard: [], chart: [], query: [] };
+        const objects: TaggedObjects = { dashboard: [], chart: [], query: [] };
         data.forEach(function (object) {
           const object_type = object.type;
-          objects[object_type].push(object);
+          objects[object_type as keyof TaggedObjects].push(object);
         });
         setObjects(objects);
         setLoading(false);

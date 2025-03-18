@@ -74,7 +74,7 @@ def log(
     return decorator(decorated)
 
 
-def _make_decorator(
+def _make_decorator(  # noqa: C901
     prefix_enter_msg: str,
     suffix_enter_msg: str,
     with_arguments_msg_part,
@@ -82,7 +82,7 @@ def _make_decorator(
     suffix_out_msg: str,
     return_value_msg_part,
 ) -> Decorated:
-    def decorator(decorated: Decorated):
+    def decorator(decorated: Decorated):  # noqa: C901
         decorated_logger = _get_logger(decorated)
 
         def decorator_class(clazz: type[Any]) -> type[Any]:
@@ -96,7 +96,7 @@ def _make_decorator(
             for member_name, member in members:
                 setattr(clazz, member_name, decorator_func(member, f"{clazz.__name__}"))
 
-        def decorator_func(func: Function, prefix_name: str = "") -> Function:
+        def decorator_func(func: Function, prefix_name: str = "") -> Function:  # noqa: C901
             func_name = func.__name__
             func_signature: Signature = signature(func)
             is_fixture = hasattr(func, _FIXTURE_ATTRIBUTE)

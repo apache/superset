@@ -47,7 +47,7 @@ class Requirement:
 
     def get_version(self) -> Optional[str]:
         try:
-            version = subprocess.check_output(self.command, shell=True).decode().strip()
+            version = subprocess.check_output(self.command, shell=True).decode().strip()  # noqa: S602
             if self.version_post_process:
                 version = self.version_post_process(version)
             return version.split()[-1]
@@ -76,7 +76,7 @@ class Requirement:
     def format_result(self) -> str:
         ideal_range_str = f"{self.ideal_range[0]} - {self.ideal_range[1]}"
         supported_range_str = f"{self.supported_range[0]} - {self.supported_range[1]}"
-        return f"{self.status.split()[0]} {self.name:<25} {self.version or 'N/A':<25} {ideal_range_str:<25} {supported_range_str:<25}"
+        return f"{self.status.split()[0]} {self.name:<25} {self.version or 'N/A':<25} {ideal_range_str:<25} {supported_range_str:<25}"  # noqa: E501
 
 
 def check_memory(min_gb: int) -> str:
@@ -101,8 +101,9 @@ def get_cpu_info() -> str:
 def get_docker_platform() -> str:
     try:
         output = (
-            subprocess.check_output(
-                "docker info --format '{{.OperatingSystem}}'", shell=True
+            subprocess.check_output(  # noqa: S602
+                "docker info --format '{{.OperatingSystem}}'",  # noqa: S607
+                shell=True,  # noqa: S607
             )
             .decode()
             .strip()
@@ -117,7 +118,7 @@ def get_docker_platform() -> str:
 @click.command(
     help="""
 This script checks the local environment for various software versions and other requirements, providing feedback on whether they are ideal, supported, or unsupported.
-"""
+"""  # noqa: E501
 )
 @click.option(
     "--docker", is_flag=True, help="Check Docker and Docker Compose requirements"
@@ -128,7 +129,7 @@ This script checks the local environment for various software versions and other
     help="Check frontend requirements (npm, Node.js, memory)",
 )
 @click.option("--backend", is_flag=True, help="Check backend requirements (Python)")
-def main(docker: bool, frontend: bool, backend: bool) -> None:
+def main(docker: bool, frontend: bool, backend: bool) -> None:  # noqa: C901
     requirements = [
         Requirement(
             "python",

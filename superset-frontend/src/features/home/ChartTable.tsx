@@ -18,7 +18,6 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { t } from '@superset-ui/core';
-import { filter } from 'lodash';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -76,7 +75,7 @@ function ChartTable({
     TableTab.Other,
   );
 
-  const filteredOtherTabData = filter(otherTabData, obj => 'viz_type' in obj);
+  const filteredOtherTabData = otherTabData?.filter(obj => 'viz_type' in obj);
 
   const {
     state: { loading, resourceCollection: charts, bulkSelectEnabled },
@@ -187,6 +186,8 @@ function ChartTable({
           {
             name: (
               <>
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-plus" />
                 {t('Chart')}
               </>

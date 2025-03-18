@@ -361,7 +361,7 @@ def test_raise_for_access_query_default_schema(
     mocker.patch.object(sm, "can_access_database", return_value=False)
     mocker.patch.object(sm, "get_schema_perm", return_value="[PostgreSQL].[public]")
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
@@ -417,7 +417,7 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     get_table_access_error_object = mocker.patch.object(
         sm, "get_table_access_error_object"
     )
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()
@@ -1067,7 +1067,7 @@ def test_raise_for_access_catalog(
         return_value="[PostgreSQL].[db1]",
     )
     mocker.patch.object(sm, "is_guest_user", return_value=False)
-    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
     database = mocker.MagicMock()

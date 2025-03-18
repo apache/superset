@@ -207,8 +207,9 @@ const DescriptionToolTip = ({ description }: { description: string }) => (
         textOverflow: 'ellipsis',
         whiteSpace: 'normal',
       }}
-      getPopupContainer={trigger => trigger.parentElement as HTMLElement}
     >
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i
         className="fa fa-info-circle text-muted"
         css={(theme: SupersetTheme) => ({

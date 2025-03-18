@@ -222,7 +222,7 @@ class Superset(BaseSupersetView):
             response_type = cached.get("response_type")
             # Set form_data in Flask Global as it is used as a fallback
             # for async queries with jinja context
-            setattr(g, "form_data", form_data)
+            g.form_data = form_data
             datasource_id, datasource_type = get_datasource_info(None, None, form_data)
 
             viz_obj = get_viz(
@@ -394,7 +394,7 @@ class Superset(BaseSupersetView):
     )
     @deprecated()
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
-    def explore(
+    def explore(  # noqa: C901
         self,
         datasource_type: str | None = None,
         datasource_id: int | None = None,
@@ -441,7 +441,7 @@ class Superset(BaseSupersetView):
                 if form_data_key:
                     flash(
                         _(
-                            "Form data not found in cache, reverting to dataset metadata."
+                            "Form data not found in cache, reverting to dataset metadata."  # noqa: E501
                         )
                     )
 
@@ -473,10 +473,10 @@ class Superset(BaseSupersetView):
         if not viz_type and datasource and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
 
-        selectedColumns = []
+        selectedColumns = []  # noqa: N806
 
         if "selectedColumns" in form_data:
-            selectedColumns = form_data.pop("selectedColumns")
+            selectedColumns = form_data.pop("selectedColumns")  # noqa: N806
 
         if "viz_type" not in form_data:
             form_data["viz_type"] = app.config["DEFAULT_VIZ_TYPE"]
@@ -582,7 +582,7 @@ class Superset(BaseSupersetView):
         )
 
     @staticmethod
-    def save_or_overwrite_slice(
+    def save_or_overwrite_slice(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-locals
         slc: Slice | None,
         slice_add_perm: bool,
@@ -792,7 +792,7 @@ class Superset(BaseSupersetView):
         try:
             dashboard.raise_for_access()
         except SupersetSecurityException as ex:
-            # anonymous users should get the login screen, others should go to dashboard list
+            # anonymous users should get the login screen, others should go to dashboard list  # noqa: E501
             if g.user is None or g.user.is_anonymous:
                 redirect_url = f"{appbuilder.get_url_for_login}?next={request.url}"
                 warn_msg = "Users must be logged in to view this dashboard."

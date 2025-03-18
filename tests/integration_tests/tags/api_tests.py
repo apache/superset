@@ -100,7 +100,7 @@ class TestTagApi(SupersetTestCase):
         db.session.commit()
         return tagged_object
 
-    @pytest.fixture()
+    @pytest.fixture
     def create_tags(self):
         with self.create_app().app_context():
             # clear tags table
@@ -359,7 +359,7 @@ class TestTagApi(SupersetTestCase):
             TaggedObject.object_type == dashboard_type.name,
         )
         assert tagged_objects.count() == 2
-        uri = f'api/v1/tag/get_objects/?tags={",".join(tag_names)}'
+        uri = f"api/v1/tag/get_objects/?tags={','.join(tag_names)}"
         rv = self.client.get(uri)
         # successful request
         assert rv.status_code == 200
@@ -487,8 +487,19 @@ class TestTagApi(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag_not_found(self):
+        """
+        Tag API: Test trying to remove an unexisting tag from the list
+        of user favorites returns 404.
+        """
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/tag/123/favorites/"  # noqa: F541
+
+        # Fetch all existing tag IDs
+        existing_ids = [tag_id for (tag_id,) in db.session.query(Tag.id).all()]
+
+        # Get an ID not in use
+        non_existent_id = max(existing_ids, default=0) + 1
+
+        uri = f"api/v1/tag/{non_existent_id}/favorites/"  # noqa: F541
         rv = self.client.delete(uri, follow_redirects=True)
 
         assert rv.status_code == 404

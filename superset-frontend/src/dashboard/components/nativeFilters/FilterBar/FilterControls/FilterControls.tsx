@@ -34,8 +34,6 @@ import {
   css,
   SupersetTheme,
   t,
-  isFeatureEnabled,
-  FeatureFlag,
   isNativeFilterWithDataMask,
 } from '@superset-ui/core';
 import {
@@ -62,24 +60,18 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
 import { useChartsVerboseMaps } from '../utils';
-import { CrossFilterIndicator } from '../../selectors';
 
 type FilterControlsProps = {
   dataMaskSelected: DataMaskStateWithId;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
 };
 
-const EMPTY_ARRAY: CrossFilterIndicator[] = [];
-
 const FilterControls: FC<FilterControlsProps> = ({
   dataMaskSelected,
   onFilterSelectionChange,
 }) => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
-    ({ dashboardInfo }) =>
-      isFeatureEnabled(FeatureFlag.HorizontalFilterBar)
-        ? dashboardInfo.filterBarOrientation
-        : FilterBarOrientation.Vertical,
+    ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
 
   const { outlinedFilterId, lastUpdated } = useFilterOutlined();
@@ -94,20 +86,15 @@ const FilterControls: FC<FilterControlsProps> = ({
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
 
-  const isCrossFiltersEnabled = isFeatureEnabled(
-    FeatureFlag.DashboardCrossFilters,
-  );
   const selectedCrossFilters = useMemo(
     () =>
-      isCrossFiltersEnabled
-        ? crossFiltersSelector({
-            dataMask,
-            chartIds,
-            chartLayoutItems,
-            verboseMaps,
-          })
-        : EMPTY_ARRAY,
-    [chartIds, chartLayoutItems, dataMask, isCrossFiltersEnabled, verboseMaps],
+      crossFiltersSelector({
+        dataMask,
+        chartIds,
+        chartLayoutItems,
+        verboseMaps,
+      }),
+    [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
   const { filterControlFactory, filtersWithValues } = useFilterControlFactory(
     dataMaskSelected,

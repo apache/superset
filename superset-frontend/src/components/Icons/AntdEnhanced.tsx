@@ -18,6 +18,7 @@
  */
 
 // NOTE: Targeted import (as opposed to `import *`) is important here for proper tree-shaking
+// eslint-disable-next-line no-restricted-imports
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -27,17 +28,22 @@ import {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CaretDownOutlined,
   CalendarOutlined,
+  CaretUpOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
   CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DeleteFilled,
+  DownSquareOutlined,
   DownOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -65,8 +71,11 @@ import {
   StopOutlined,
   SyncOutlined,
   TagsOutlined,
+  UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 } from '@ant-design/icons';
 import { StyledIcon } from './Icon';
 import IconType from './IconType';
@@ -80,17 +89,22 @@ const AntdIcons = {
   BarChartOutlined,
   BellOutlined,
   BookOutlined,
+  CaretDownOutlined,
   CalendarOutlined,
+  CaretUpOutlined,
   CheckOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  ColumnWidthOutlined,
   CommentOutlined,
   ConsoleSqlOutlined,
   CopyOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DeleteFilled,
+  DownSquareOutlined,
   DownOutlined,
+  DownloadOutlined,
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
@@ -118,8 +132,11 @@ const AntdIcons = {
   StopOutlined,
   SyncOutlined,
   TagsOutlined,
+  UnlockOutlined,
   UpOutlined,
   UserOutlined,
+  VerticalLeftOutlined,
+  VerticalRightOutlined,
 };
 
 const AntdEnhancedIcons = Object.keys(AntdIcons)
@@ -127,6 +144,8 @@ const AntdEnhancedIcons = Object.keys(AntdIcons)
   .map(k => ({
     [k]: (props: IconType) => {
       const whatRole = props?.onClick ? 'button' : 'img';
+      // @ts-ignore TODO(hainenber): fix the type compatiblity between
+      // StyledIcon component prop and AntdIcon values
       return <StyledIcon component={AntdIcons[k]} role={whatRole} {...props} />;
     },
   }))

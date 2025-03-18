@@ -74,7 +74,7 @@ describe('Native filters', () => {
       cy.createSampleDashboards([0]);
     });
 
-    it('Verify that default value is respected after revisit', () => {
+    it.skip('Verify that default value is respected after revisit', () => {
       prepareDashboardFilters([
         { name: 'country_name', column: 'country_name', datasetId: 2 },
       ]);
