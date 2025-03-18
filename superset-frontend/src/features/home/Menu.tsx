@@ -1,6 +1,13 @@
 // DODO was here
 import { useState, useEffect } from 'react';
-import { styled, css, useTheme, SupersetTheme, t } from '@superset-ui/core';
+import {
+  styled,
+  css,
+  useTheme,
+  SupersetTheme,
+  t,
+  HandlerFunction, // DODO added 47383817
+} from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -28,7 +35,12 @@ import {
 // DODO added stop 44211792
 import RightMenu from './RightMenu';
 
-interface MenuProps {
+// DODO added 47383817
+interface MenuPropsDodoExtended {
+  connectionError: boolean;
+  setConnectionError: HandlerFunction;
+}
+interface MenuProps extends MenuPropsDodoExtended {
   data: MenuData;
   isFrontendRoute?: (path?: string) => boolean;
 }
@@ -189,6 +201,8 @@ export function Menu({
     environment_tag: environmentTag,
   },
   isFrontendRoute = () => false,
+  connectionError, // DODO added 47383817
+  setConnectionError, // DODO added 47383817
 }: MenuProps) {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const screens = useBreakpoint();
@@ -318,42 +332,49 @@ export function Menu({
               <span>{brand.text}</span>
             </div>
           )}
-          <DropdownMenu
-            mode={showMenu}
-            data-test="navbar-top"
-            className="main-nav"
-            selectedKeys={activeTabs}
-          >
-            {menu.map((item, index) => {
-              const props = {
-                index,
-                ...item,
-                isFrontendRoute: isFrontendRoute(item.url),
-                childs: item.childs?.map(c => {
-                  if (typeof c === 'string') {
-                    return c;
-                  }
+          {/* DODO changed 47383817 */}
+          {!connectionError && (
+            <DropdownMenu
+              mode={showMenu}
+              data-test="navbar-top"
+              className="main-nav"
+              selectedKeys={activeTabs}
+            >
+              {menu.map((item, index) => {
+                const props = {
+                  index,
+                  ...item,
+                  isFrontendRoute: isFrontendRoute(item.url),
+                  childs: item.childs?.map(c => {
+                    if (typeof c === 'string') {
+                      return c;
+                    }
 
-                  return {
-                    ...c,
-                    isFrontendRoute: isFrontendRoute(c.url),
-                  };
-                }),
-              };
+                    return {
+                      ...c,
+                      isFrontendRoute: isFrontendRoute(c.url),
+                    };
+                  }),
+                };
 
-              return renderSubMenu(props);
-            })}
-          </DropdownMenu>
+                return renderSubMenu(props);
+              })}
+            </DropdownMenu>
+          )}
         </Col>
-        <Col md={8} xs={24}>
-          <RightMenu
-            align={screens.md ? 'flex-end' : 'flex-start'}
-            settings={settings}
-            navbarRight={navbarRight}
-            isFrontendRoute={isFrontendRoute}
-            environmentTag={environmentTag}
-          />
-        </Col>
+        {/* DODO changed 47383817 */}
+        {!connectionError && (
+          <Col md={8} xs={24}>
+            <RightMenu
+              align={screens.md ? 'flex-end' : 'flex-start'}
+              settings={settings}
+              navbarRight={navbarRight}
+              isFrontendRoute={isFrontendRoute}
+              environmentTag={environmentTag}
+              setConnectionError={setConnectionError} // DODO added 47383817
+            />
+          </Col>
+        )}
       </Row>
     </StyledHeader>
   );

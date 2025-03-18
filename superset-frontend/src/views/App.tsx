@@ -1,5 +1,5 @@
 // DODO was here
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { hot } from 'react-hot-loader/root';
 import {
   BrowserRouter as Router,
@@ -22,6 +22,7 @@ import setupExtensions from 'src/setup/setupExtensions';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { OnBoardingEntryPoint } from 'src/DodoExtensions/onBoarding'; // DODO added 44211792
+import ErrorMessage from 'src/DodoExtensions/components/ErrorMessage'; // DODO added 47383817
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -52,32 +53,52 @@ const LocationPathnameLogger = () => {
   return <></>;
 };
 
+// DODO added 47383817
+const Content = () => {
+  const [connectionError, setConnectionError] = useState(false);
+  return (
+    <>
+      <Menu
+        data={bootstrapData.common.menu_data}
+        isFrontendRoute={isFrontendRoute}
+        connectionError={connectionError}
+        setConnectionError={setConnectionError}
+      />
+      {!connectionError && (
+        <>
+          <Switch>
+            {routes.map(
+              ({ path, Component, props = {}, Fallback = Loading }) => (
+                <Route path={path} key={path}>
+                  <Suspense fallback={<Fallback />}>
+                    <ErrorBoundary>
+                      <Component user={bootstrapData.user} {...props} />
+                    </ErrorBoundary>
+                  </Suspense>
+                </Route>
+              ),
+            )}
+          </Switch>
+
+          {/* DODO added 44211792 */}
+          <OnBoardingEntryPoint />
+
+          <ToastContainer />
+        </>
+      )}
+
+      {connectionError && <ErrorMessage />}
+    </>
+  );
+};
+
 const App = () => (
   <Router>
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
       <GlobalStyles />
-      <Menu
-        data={bootstrapData.common.menu_data}
-        isFrontendRoute={isFrontendRoute}
-      />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <ErrorBoundary>
-                <Component user={bootstrapData.user} {...props} />
-              </ErrorBoundary>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
-
-      {/* DODO added 44211792 */}
-      <OnBoardingEntryPoint />
-
-      <ToastContainer />
+      <Content />
     </RootContextProviders>
   </Router>
 );
