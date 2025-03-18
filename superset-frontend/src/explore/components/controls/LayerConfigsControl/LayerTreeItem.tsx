@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CloseOutlined, RightOutlined } from '@ant-design/icons';
-import { Button, Tag } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { CloseOutlined, RightOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
+// eslint-disable-next-line no-restricted-imports
+import { Button, Tag } from 'antd'; // TODO: Remove antd
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
 
