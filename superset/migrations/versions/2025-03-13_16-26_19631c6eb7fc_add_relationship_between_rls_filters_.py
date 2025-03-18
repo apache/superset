@@ -37,15 +37,28 @@ def upgrade():
         sa.Column(
             "rls_filter_id",
             sa.Integer(),
-            sa.ForeignKey("row_level_security_filters.id"),
+            sa.ForeignKey(
+                "row_level_security_filters.id",
+                name="rls_filter_groups_rls_filter_id_fkey",
+            ),
             nullable=False,
         ),
         sa.Column(
-            "group_id", sa.Integer(), sa.ForeignKey("ab_group.id"), nullable=False
+            "group_id",
+            sa.Integer(),
+            sa.ForeignKey("ab_group.id", name="rls_filter_groups_group_id_fkey"),
+            nullable=False,
         ),
-        sa.UniqueConstraint("rls_filter_id", "group_id", name="uq_rls_filter_group"),
+        sa.UniqueConstraint("group_id", "rls_filter_id", name="uq_rls_filter_group"),
     )
 
 
 def downgrade():
+    # Remove constraints explicitly to avoid issues when dropping the table
+    with op.batch_alter_table("rls_filter_groups") as batch_op:
+        batch_op.drop_constraint("uq_rls_filter_group", type_="unique")
+        batch_op.drop_constraint(
+            "rls_filter_groups_rls_filter_id_fkey", type_="foreignkey"
+        )
+        batch_op.drop_constraint("rls_filter_groups_group_id_fkey", type_="foreignkey")
     op.drop_table("rls_filter_groups")

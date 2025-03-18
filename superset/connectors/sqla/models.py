@@ -2103,8 +2103,19 @@ RLSFilterGroups = DBTable(
     "rls_filter_groups",
     metadata,
     Column("id", Integer, primary_key=True),
-    Column("group_id", Integer, ForeignKey("ab_group.id")),
-    Column("rls_filter_id", Integer, ForeignKey("row_level_security_filters.id")),
+    Column(
+        "group_id",
+        Integer,
+        ForeignKey("ab_group.id", name="rls_filter_groups_group_id_fkey"),
+    ),
+    Column(
+        "rls_filter_id",
+        Integer,
+        ForeignKey(
+            "row_level_security_filters.id", name="rls_filter_groups_rls_filter_id_fkey"
+        ),
+    ),
+    UniqueConstraint("group_id", "rls_filter_id", name="uq_rls_filter_group"),
 )
 
 
