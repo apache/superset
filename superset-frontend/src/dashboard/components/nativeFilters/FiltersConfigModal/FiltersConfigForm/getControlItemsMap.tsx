@@ -1,4 +1,21 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 import {
   CustomControlItem,
   InfoTooltipWithTrigger,
@@ -70,37 +87,13 @@ export default function getControlItemsMap({
   controlItems
     .filter(
       (mainControlItem: CustomControlItem) =>
-        mainControlItem?.name === 'groupby' ||
-        mainControlItem?.name === 'groupbyRu' || // DODO added 44211759
-        mainControlItem?.name === 'groupbyid', // DODO added 44211759
+        mainControlItem?.name === 'groupby',
     )
     .forEach(mainControlItem => {
-      const isGroupby = mainControlItem?.name === 'groupby'; // DODO added 44211759
-      const isGroupbyRu = mainControlItem?.name === 'groupbyRu'; // DODO added 44211759
       const initialValue =
         filterToEdit?.controlValues?.[mainControlItem.name] ??
         mainControlItem?.config?.default;
-      // const initColumn = filterToEdit?.targets[0]?.column?.name;
-
-      // DODO added start 44211759
-      let initColumn: string | undefined;
-      let formField: string;
-      let label: string;
-
-      if (isGroupbyRu) {
-        initColumn = filterToEdit?.targets[0]?.column?.nameRu;
-        formField = 'columnRu';
-        label = `${t('Column')} RU`;
-      } else if (isGroupby) {
-        initColumn = filterToEdit?.targets[0]?.column?.name;
-        formField = 'column';
-        label = `${t('Column')} EN`;
-      } else {
-        initColumn = filterToEdit?.targets[0]?.column?.id;
-        formField = 'columnId';
-        label = t('ColumnId');
-      }
-      // DODO added stop 44211759
+      const initColumn = filterToEdit?.targets[0]?.column?.name;
 
       const element = (
         <>
@@ -115,14 +108,11 @@ export default function getControlItemsMap({
           <StyledFormItem
             expanded={expanded}
             // don't show the column select unless we have a dataset
-            // name={['filters', filterId, 'column']}
-            name={['filters', filterId, formField]} // DODO changed 44211759
+            name={['filters', filterId, 'column']}
             initialValue={initColumn}
             label={
               <StyledLabel>
-                {/* {mainControlItem.config?.label || t('Column')} */}
-                {/* DODO changed 44211759 */}
-                {mainControlItem.config?.label || label}
+                {mainControlItem.config?.label || t('Column')}
               </StyledLabel>
             }
             rules={[
@@ -138,7 +128,6 @@ export default function getControlItemsMap({
               form={form}
               filterId={filterId}
               datasetId={datasetId}
-              formField={formField} // DODO added 44211759
               filterValues={column =>
                 doesColumnMatchFilterType(formFilter?.filterType || '', column)
               }

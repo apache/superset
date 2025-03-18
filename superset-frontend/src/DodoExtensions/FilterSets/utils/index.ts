@@ -18,7 +18,6 @@ export const APPLY_FILTERS_HINT = t('Please apply filter changes');
 
 export const getFilterValueForDisplay = (
   value?: string[] | null | string | number | object,
-  column?: string, // DODO added 44211759
 ): string => {
   if (value === null || value === undefined) {
     return '';
@@ -27,10 +26,6 @@ export const getFilterValueForDisplay = (
     return `${value}`;
   }
   if (Array.isArray(value)) {
-    // DODO added 44211759
-    if (typeof value[0] === 'object' && column && column in value[0]) {
-      return value.map(val => val[column]).join(', ');
-    }
     return value.join(', ');
   }
   if (typeof value === 'object') {

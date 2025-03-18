@@ -135,7 +135,6 @@ interface DatasetListProps {
     userId: string | number;
     firstName: string;
     lastName: string;
-    email: string;
   };
 }
 

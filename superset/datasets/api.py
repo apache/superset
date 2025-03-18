@@ -273,10 +273,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     allowed_rel_fields = {"database", "owners", "created_by", "changed_by"}
     allowed_distinct_fields = {"catalog", "schema"}
 
-    extra_fields_rel_fields: dict[str, list[str]] = {
-        "owners": ["email", "user_info.country_name", "active"]
-    }
-
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
     }

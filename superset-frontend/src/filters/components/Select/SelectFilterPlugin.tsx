@@ -1,4 +1,21 @@
-// DODO was here
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 /* eslint-disable no-param-reassign */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -17,7 +34,7 @@ import { LabeledValue as AntdLabeledValue } from 'antd/lib/select';
 import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
-import { FilterPlugins, SLOW_DEBOUNCE } from 'src/constants';
+import { SLOW_DEBOUNCE } from 'src/constants';
 import { hasOption, propertyComparator } from 'src/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterSelectProps, SelectValue } from './types';
@@ -89,21 +106,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     searchAllOptions,
   } = formData;
   const groupby = useMemo(
-    // () => ensureIsArray(formData.groupby).map(getColumnLabel),
-    // DODO changed 44211759
-    () => ensureIsArray(formData.groupby?.[0]).map(getColumnLabel),
+    () => ensureIsArray(formData.groupby).map(getColumnLabel),
     [formData.groupby],
   );
-
-  // DODO added 44211759
-  const groupbyid = useMemo(
-    () => ensureIsArray(formData.groupby?.[1]).map(getColumnLabel),
-    [formData.groupby],
-  );
-
-  const isSelectById = formData.vizType === FilterPlugins.SelectById; // DODO added 44211759
   const [col] = groupby;
-  const [colid] = groupbyid; // DODO added 44211759
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
@@ -119,57 +125,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     [data, col],
   );
 
-  // DODO added 44211759
-  const OptionsKeyByValue = useMemo(() => {
-    const map = new Map();
-
-    // make list of value for one label in case same label with different id column
-    if (isSelectById) {
-      data.forEach(row => {
-        const value = row[colid];
-        const label = row[col];
-
-        if (!map.has(label)) {
-          map.set(label, []);
-        }
-
-        map.get(label).push(value);
-      });
-    }
-
-    return map;
-  }, [data, isSelectById, col, colid]);
-
   const updateDataMask = useCallback(
     (values: SelectValue) => {
       const emptyFilter =
         enableEmptyFilter && !inverseSelection && !values?.length;
 
       const suffix = inverseSelection && values?.length ? t(' (excluded)') : '';
-
-      // DODO added start 44211759
-      let valuesToFilter:
-        | null
-        | undefined
-        | (string | number | boolean | null)[] = [];
-      if (isSelectById && values && values?.length > 0) {
-        values.forEach(value => {
-          if (OptionsKeyByValue.has(value)) {
-            valuesToFilter?.push(...OptionsKeyByValue.get(value));
-          }
-        });
-      } else {
-        valuesToFilter = values;
-      }
-      // DODO added stop 44211759
-
       dispatchDataMask({
         type: 'filterState',
         extraFormData: getSelectExtraFormData(
-          // col,
-          colid ?? col, // DODO changed 44211759
-          // values,
-          valuesToFilter, // DODO changed 44211759
+          col,
+          values,
           emptyFilter,
           inverseSelection,
         ),
