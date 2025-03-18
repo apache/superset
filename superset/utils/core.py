@@ -1682,18 +1682,26 @@ def normalize_dttm_col(
                     utc=False,
                     unit=unit,
                     origin="unix",
-                    errors="raise",
+                    errors="coerce",
                     exact=False,
                 )
             else:
                 # Column has already been formatted as a timestamp.
-                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
+                try:
+                    df[_col.col_label] = dttm_series.apply(
+                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                    )
+                except ValueError:
+                    logger.warning(
+                        "Unable to convert column %s to datetime, ignoring",
+                        _col.col_label,
+                    )
         else:
             df[_col.col_label] = pd.to_datetime(
                 df[_col.col_label],
                 utc=False,
                 format=_col.timestamp_format,
-                errors="raise",
+                errors="coerce",
                 exact=False,
             )
         if _col.offset:
