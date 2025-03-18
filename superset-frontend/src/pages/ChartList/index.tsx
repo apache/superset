@@ -132,6 +132,7 @@ interface ChartListProps {
     userId: string | number;
     firstName: string;
     lastName: string;
+    email: string;
   };
 }
 
@@ -282,7 +283,7 @@ function ChartList(props: ChartListProps) {
         dashboard_title: string;
         id: number;
       }) => ({
-        label: dashboardTitle,
+        label: `[${id}] ${dashboardTitle}`, // DODO changed 44211759
         value: id,
       }),
     );
@@ -637,6 +638,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
+        width: 300, // DODO added 44211759
       },
       ...(userId ? [favoritesFilter] : []),
       {

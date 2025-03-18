@@ -173,6 +173,27 @@ const v1ChartDataRequest = async (
     ownState,
   });
 
+  // DODO added start 44211759
+  // Maybe this piece of code is no more necessary?
+  const timeGrainSqla = payload?.form_data?.time_grain_sqla;
+  payload.queries?.forEach(query => {
+    const timeFilter = query?.filters
+      ?.reverse()
+      .find(filter => filter.op === 'TEMPORAL_RANGE');
+    if (query.time_range === undefined && timeFilter) {
+      // set time range to enforce jinja work
+      query.time_range = timeFilter.val;
+    }
+    if (query.extras?.time_grain_sqla === undefined && timeGrainSqla) {
+      // to enforce jinja work
+      query.extras = {
+        ...(query?.extras ?? {}),
+        ...{ time_grain_sqla: timeGrainSqla },
+      };
+    }
+  });
+  // DODO added stop 44211759
+
   // The dashboard id is added to query params for tracking purposes
   const { slice_id: sliceId } = formData;
   const { dashboard_id: dashboardId } = requestParams;
