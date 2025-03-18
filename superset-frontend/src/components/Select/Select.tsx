@@ -158,12 +158,8 @@ const Select = forwardRef(
     const { Option } = AntdSelect;
 
     const sortSelectedFirst = useCallback(
-      (a: AntdLabeledValue, b: AntdLabeledValue) => {
-        if (selectValue === null) {
-          return 0;
-        }
-        return sortSelectedFirstHelper(a, b, selectValue);
-      },
+      (a: AntdLabeledValue, b: AntdLabeledValue) =>
+        sortSelectedFirstHelper(a, b, selectValue),
       [selectValue],
     );
 
