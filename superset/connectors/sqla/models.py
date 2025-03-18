@@ -2107,6 +2107,7 @@ RLSFilterGroups = DBTable(
         "group_id",
         Integer,
         ForeignKey("ab_group.id", name="rls_filter_groups_group_id_fkey"),
+        nullable=False,
     ),
     Column(
         "rls_filter_id",
