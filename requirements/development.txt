@@ -358,7 +358,10 @@ importlib-metadata==8.6.1
     #   -c requirements/base.txt
     #   apache-superset
 importlib-resources==6.5.2
-    # via prophet
+    # via
+    #   -c requirements/base.txt
+    #   limits
+    #   prophet
 iniconfig==2.0.0
     # via pytest
 isodate==0.7.2
@@ -400,7 +403,7 @@ korean-lunar-calendar==0.3.1
     #   holidays
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
-limits==4.2
+limits==3.13.0
     # via
     #   -c requirements/base.txt
     #   flask-limiter
