@@ -109,14 +109,14 @@ export const EncryptedField = ({
           >
             {!fileToUpload && (
               <Button onClick={() => selectedFileInputRef.current?.click()}>
-                <Icons.Link iconSize="m" />
+                <Icons.LinkOutlined iconSize="m" />
                 {t('Upload credentials')}
               </Button>
             )}
             {fileToUpload && (
               <div className="credentials-uploaded">
                 <Button block disabled>
-                  <Icons.Link iconSize="m" />
+                  <Icons.LinkOutlined iconSize="m" />
                   {t('Credentials uploaded')}
                 </Button>
                 <Icons.DeleteFilled

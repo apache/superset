@@ -214,12 +214,12 @@ def test_get_dataset_access_denied_with_form_data_key(
     assert data["message"] == message
 
 
-@patch("superset.security.SupersetSecurityManager.can_access_datasource")
+@patch("superset.security.SupersetSecurityManager.raise_for_access")
 def test_get_dataset_access_denied(
-    mock_can_access_datasource, test_client, login_as_admin, dataset
+    mock_raise_for_access, test_client, login_as_admin, dataset
 ):
     message = "Dataset access denied"
-    mock_can_access_datasource.side_effect = DatasetAccessDeniedError(
+    mock_raise_for_access.side_effect = DatasetAccessDeniedError(
         message=message, datasource_id=dataset.id, datasource_type=dataset.type
     )
     resp = test_client.get(

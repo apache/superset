@@ -82,6 +82,7 @@ import {
 import { useSelector } from 'react-redux';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import Icons from 'src/components/Icons';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
@@ -467,9 +468,13 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
 
   return (
     <StyledNotificationAddButton className={status} onClick={checkStatus}>
-      {/* TODO: Remove fa-icon */}
-      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-      <i className="fa fa-plus" />{' '}
+      <Icons.PlusOutlined
+        iconSize="m"
+        css={theme => ({
+          margin: `auto ${theme.gridUnit * 2}px auto 0`,
+          verticalAlign: 'middle',
+        })}
+      />
       {status === 'active'
         ? t('Add another notification method')
         : t('Add delivery method')}

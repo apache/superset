@@ -43,9 +43,8 @@ import {
   Select,
   Upload,
 } from 'src/components';
-// eslint-disable-next-line no-restricted-imports
-import { UploadOutlined } from '@ant-design/icons';
-import { Input, InputNumber } from 'src/components/Input'; // TODO: Use src/components/Icons
+import Icons from 'src/components/Icons';
+import { Input, InputNumber } from 'src/components/Input';
 import rison from 'rison';
 // eslint-disable-next-line no-restricted-imports
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
@@ -363,7 +362,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           return Promise.resolve({ data: [], totalCount: 0 });
         }
         return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/`,
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
         }).then(response => {
           const list = response.json.result.map((item: string) => ({
             value: item,
@@ -635,7 +634,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   >
                     <Button
                       aria-label={t('Select')}
-                      icon={<UploadOutlined />}
+                      icon={<Icons.UploadOutlined />}
                       loading={fileLoading}
                     >
                       {t('Select')}
