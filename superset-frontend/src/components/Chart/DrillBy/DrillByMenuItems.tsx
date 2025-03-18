@@ -292,7 +292,7 @@ export const DrillByMenuItems = ({
             <Input
               ref={ref}
               prefix={
-                <Icons.Search
+                <Icons.SearchOutlined
                   iconSize="l"
                   iconColor={theme.colors.grayscale.light1}
                 />

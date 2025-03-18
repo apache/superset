@@ -53,7 +53,7 @@ const AddFilter = styled.div`
   `}
 `;
 
-const DeleteFilter = styled(Icons.Trash)`
+const DeleteFilter = styled(Icons.DeleteOutlined)`
   ${({ theme }) => `
     cursor: pointer;
     margin-left: ${theme.gridUnit * 2}px;
@@ -171,7 +171,7 @@ const List = ({
       ))}
       {availableFilters.length > rows.length && (
         <AddFilter role="button" onClick={onAdd}>
-          <Icons.PlusSmall />
+          <Icons.PlusOutlined iconSize="xs" />
           {t('Add filter')}
         </AddFilter>
       )}

@@ -53,15 +53,15 @@ export default function AlertStatusIcon({
 }) {
   const theme = useTheme();
   const lastStateConfig = {
-    icon: Icons.Check,
+    icon: Icons.CheckOutlined,
     label: '',
     status: '',
   };
   switch (state) {
     case AlertState.Success:
       lastStateConfig.icon = isReportEnabled
-        ? Icons.Check
-        : Icons.AlertSolidSmall;
+        ? Icons.CheckOutlined
+        : Icons.WarningOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report sent')
         : t('Alert triggered, notification sent');
@@ -75,24 +75,24 @@ export default function AlertStatusIcon({
       lastStateConfig.status = AlertState.Working;
       break;
     case AlertState.Error:
-      lastStateConfig.icon = Icons.XSmall;
+      lastStateConfig.icon = Icons.CloseOutlined;
       lastStateConfig.label = isReportEnabled
         ? t('Report failed')
         : t('Alert failed');
       lastStateConfig.status = AlertState.Error;
       break;
     case AlertState.Noop:
-      lastStateConfig.icon = Icons.Check;
+      lastStateConfig.icon = Icons.CheckOutlined;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
       break;
     case AlertState.Grace:
-      lastStateConfig.icon = Icons.AlertSolidSmall;
+      lastStateConfig.icon = Icons.WarningOutlined;
       lastStateConfig.label = t('Alert Triggered, In Grace Period');
       lastStateConfig.status = AlertState.Grace;
       break;
     default:
-      lastStateConfig.icon = Icons.Check;
+      lastStateConfig.icon = Icons.CheckOutlined;
       lastStateConfig.label = t('Nothing triggered');
       lastStateConfig.status = AlertState.Noop;
   }
@@ -100,6 +100,7 @@ export default function AlertStatusIcon({
   return (
     <Tooltip title={lastStateConfig.label} placement="bottomLeft">
       <Icon
+        iconSize="m"
         iconColor={getStatusColor(
           lastStateConfig.status,
           isReportEnabled,

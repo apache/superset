@@ -273,10 +273,10 @@ export default function HeaderReportDropDown({
         className="action-button action-schedule-report"
         onClick={() => showReportModal()}
       >
-        <Icons.Calendar />
+        <Icons.CalendarOutlined />
       </span>
     ) : (
-      menu(<Icons.Calendar />)
+      menu(<Icons.CalendarOutlined />)
     );
   return <>{canAddReports() && (useTextMenu ? textMenu() : iconMenu())}</>;
 }

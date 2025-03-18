@@ -72,7 +72,7 @@ export default function ActionsBar({ actions }: ActionsBarProps) {
                 data-test={action.label}
                 onClick={action.onClick}
               >
-                <ActionIcon />
+                <ActionIcon iconSize="l" />
               </ActionWrapper>
             </Tooltip>
           );

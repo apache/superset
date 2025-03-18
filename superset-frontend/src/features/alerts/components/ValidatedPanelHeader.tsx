@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { CheckCircleOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
+import { t, useTheme } from '@superset-ui/core';
+import Icons from 'src/components/Icons';
 
 const ValidatedPanelHeader = ({
   title,
@@ -31,8 +30,13 @@ const ValidatedPanelHeader = ({
   validateCheckStatus: boolean;
   testId?: string;
 }): JSX.Element => {
-  const checkmark = <CheckCircleOutlined />;
-
+  const theme = useTheme();
+  const checkmark = (
+    <Icons.CheckCircleOutlined
+      iconSize="m"
+      iconColor={theme.colors.success.base}
+    />
+  );
   return (
     <div className="collapse-panel-header">
       <div className="collapse-panel-title" data-test={testId}>

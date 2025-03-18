@@ -68,7 +68,7 @@ describe('Divider', () => {
     expect(screen.getByTestId('hover-menu')).toBeInTheDocument();
     expect(screen.getByRole('button').firstChild).toHaveAttribute(
       'aria-label',
-      'trash',
+      'delete',
     );
   });
 

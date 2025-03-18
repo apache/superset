@@ -88,7 +88,6 @@ const StyledNotificationMethod = styled.div`
       align-items: center;
       font-size: ${theme.typography.sizes.s}px;
       cursor: pointer;
-      margin-top: ${theme.gridUnit}px;
 
       .icon {
         width: ${theme.gridUnit * 3}px;
@@ -470,7 +469,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 className="delete-button"
                 onClick={() => onRemove(index)}
               >
-                <Icons.Trash iconColor={theme.colors.grayscale.base} />
+                <Icons.DeleteOutlined iconSize="l" />
               </span>
             ) : null}
           </div>
@@ -618,7 +617,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   onClick={() => setCcVisible(true)}
                   style={{ display: ccVisible ? 'none' : 'inline-flex' }}
                 >
-                  <Icons.Email className="icon" />
+                  <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add CC Recipients')}
                 </span>
                 <span
@@ -628,7 +627,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   onClick={() => setBccVisible(true)}
                   style={{ display: bccVisible ? 'none' : 'inline-flex' }}
                 >
-                  <Icons.Email className="icon" />
+                  <Icons.MailOutlined iconSize="xs" className="icon" />
                   {t('Add BCC Recipients')}
                 </span>
               </div>

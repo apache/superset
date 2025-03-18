@@ -88,7 +88,7 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
             'Filter only displays values relevant to selections made in other filters.',
           )}
         >
-          <Icons.Info
+          <Icons.InfoCircleOutlined
             iconSize="m"
             iconColor={theme.colors.grayscale.light1}
             css={css`

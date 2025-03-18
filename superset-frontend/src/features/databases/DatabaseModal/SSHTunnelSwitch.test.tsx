@@ -148,9 +148,7 @@ test('Displays tooltip text on hover over the InfoTooltip', async () => {
     />,
   );
 
-  const infoTooltipTrigger = screen.getByRole('img', {
-    name: 'info-solid_small',
-  });
+  const infoTooltipTrigger = screen.getByTestId('info-tooltip-icon');
   expect(infoTooltipTrigger).toBeInTheDocument();
 
   userEvent.hover(infoTooltipTrigger);

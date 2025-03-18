@@ -122,7 +122,7 @@ const StyledEditableTabs = styled(StyledTabs)`
   `}
 `;
 
-const StyledCancelXIcon = styled(Icons.CancelX)`
+const StyledCloseOutlined = styled(Icons.CloseOutlined)`
   color: ${({ theme }) => theme.colors.grayscale.base};
 `;
 export const EditableTabs = Object.assign(StyledEditableTabs, {
@@ -136,7 +136,7 @@ EditableTabs.defaultProps = {
 };
 
 EditableTabs.TabPane.defaultProps = {
-  closeIcon: <StyledCancelXIcon role="button" tabIndex={0} />,
+  closeIcon: <StyledCloseOutlined iconSize="s" role="button" tabIndex={0} />,
 };
 
 export const StyledLineEditableTabs = styled(EditableTabs)`

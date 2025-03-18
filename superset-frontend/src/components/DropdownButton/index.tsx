@@ -21,6 +21,7 @@ import { type ComponentProps } from 'react';
 import { Dropdown } from 'antd-v5';
 import { Tooltip, TooltipPlacement } from 'src/components/Tooltip';
 import { kebabCase } from 'lodash';
+import { css, useTheme } from '@superset-ui/core';
 
 export type DropdownButtonProps = ComponentProps<typeof Dropdown.Button> & {
   tooltip?: string;
@@ -34,8 +35,43 @@ export const DropdownButton = ({
   children,
   ...rest
 }: DropdownButtonProps) => {
+  const theme = useTheme();
+  const { type: buttonType } = rest;
+  // divider implementation for default (non-primary) buttons
+  const defaultBtnCss = css`
+    ${(!buttonType || buttonType === 'default') &&
+    `.antd5-dropdown-trigger {
+      position: relative;
+      &:before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        background-color: ${theme.colors.grayscale.light2};
+      }
+      .anticon {
+        vertical-align: middle;
+      }
+    }`}
+  `;
   const button = (
-    <Dropdown.Button dropdownRender={dropdownRender} {...rest}>
+    <Dropdown.Button
+      dropdownRender={dropdownRender}
+      {...rest}
+      css={[
+        defaultBtnCss,
+        css`
+          .antd5-btn {
+            height: 30px;
+            box-shadow: none;
+            font-size: ${theme.typography.sizes.s}px;
+            font-weight: ${theme.typography.weights.bold};
+          }
+        `,
+      ]}
+    >
       {children}
     </Dropdown.Button>
   );

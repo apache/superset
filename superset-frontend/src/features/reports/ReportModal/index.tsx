@@ -225,7 +225,7 @@ function ReportModal({
 
   const wrappedTitle = (
     <StyledIconWrapper>
-      <Icons.Calendar />
+      <Icons.CalendarOutlined />
       <span className="text">
         {isEditMode ? t('Edit email report') : t('Schedule a new email report')}
       </span>

@@ -25,9 +25,10 @@ import {
   FC,
 } from 'react';
 
-import { t, styled } from '@superset-ui/core';
+import { t, styled, useTheme } from '@superset-ui/core';
 import { Input } from 'src/components/Input';
 import { Tooltip } from 'src/components/Tooltip';
+import Icons from 'src/components/Icons';
 
 const TitleLabel = styled.span`
   display: inline-block;
@@ -54,6 +55,7 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
   isEditDisabled,
   onChange,
 }) => {
+  const theme = useTheme();
   const [isHovered, setIsHovered] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -120,11 +122,11 @@ const AdhocMetricEditPopoverTitle: FC<AdhocMetricEditPopoverTitleProps> = ({
       >
         <TitleLabel>{title?.label || defaultLabel}</TitleLabel>
         &nbsp;
-        {/* TODO: Remove fa-icon */}
-        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-        <i
-          className="fa fa-pencil"
-          style={{ color: isHovered ? 'black' : 'grey' }}
+        <Icons.EditOutlined
+          iconColor={
+            isHovered ? theme.colors.primary.base : theme.colors.grayscale.base
+          }
+          iconSize="m"
         />
       </span>
     </Tooltip>

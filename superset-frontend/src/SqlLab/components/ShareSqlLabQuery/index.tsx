@@ -17,11 +17,11 @@
  * under the License.
  */
 import {
-  styled,
   t,
   useTheme,
   getClientErrorObject,
   SupersetClient,
+  css,
 } from '@superset-ui/core';
 import Button from 'src/components/Button';
 import Icons from 'src/components/Icons';
@@ -35,16 +35,6 @@ interface ShareSqlLabQueryProps {
   queryEditorId: string;
   addDangerToast: (msg: string) => void;
 }
-
-const StyledIcon = styled(Icons.Link)`
-  &:first-of-type {
-    margin: 0;
-    display: flex;
-    svg {
-      margin: 0;
-    }
-  }
-`;
 
 const ShareSqlLabQuery = ({
   queryEditorId,
@@ -85,8 +75,19 @@ const ShareSqlLabQuery = ({
   const buildButton = () => {
     const tooltip = t('Copy query link to your clipboard');
     return (
-      <Button buttonSize="small" tooltip={tooltip}>
-        <StyledIcon iconColor={theme.colors.primary.base} iconSize="xl" />
+      <Button
+        buttonSize="small"
+        tooltip={tooltip}
+        css={css`
+          span > :first-of-type {
+            margin-right: 0;
+          }
+        `}
+      >
+        <Icons.LinkOutlined
+          iconColor={theme.colors.primary.base}
+          iconSize="m"
+        />
         {t('Copy link')}
       </Button>
     );

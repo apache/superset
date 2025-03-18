@@ -152,6 +152,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
 
@@ -427,13 +430,14 @@ export default class CRUDCollection extends PureComponent<
           data-test="crud-delete-option"
           className="text-primary"
         >
-          <Icons.Trash
+          <Icons.DeleteOutlined
             aria-label="Delete item"
             className="pointer"
             data-test="crud-delete-icon"
             role="button"
             tabIndex={0}
             onClick={this.deleteItem.bind(this, record.id)}
+            iconSize="l"
           />
         </td>,
       );
@@ -486,12 +490,10 @@ export default class CRUDCollection extends PureComponent<
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i
+                <Icons.PlusOutlined
+                  iconSize="m"
                   data-test="crud-add-table-item"
-                  className="fa fa-plus"
-                />{' '}
+                />
                 {t('Add item')}
               </Button>
             </StyledButtonWrapper>

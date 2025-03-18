@@ -220,9 +220,8 @@ describe('PropertiesModal', () => {
       await screen.findByTestId('dashboard-edit-properties-form'),
     ).toBeInTheDocument();
 
-    expect(
-      screen.getByRole('dialog', { name: 'Dashboard properties' }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard properties')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', { name: 'Basic information' }),

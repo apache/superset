@@ -78,7 +78,7 @@ function HeaderWithRadioGroup(props: HeaderWithRadioGroupProps) {
           iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={css`
-            margin-top: 3px; // we need exactly 3px to align the icon
+            margin-top: ${theme.gridUnit * 0.75}px;
             margin-right: ${theme.gridUnit}px;
           `}
           onClick={() => setPopoverVisible(true)}

@@ -288,7 +288,7 @@ const Row = props => {
             <DeleteComponentButton onDelete={handleDeleteComponent} />
             <IconButton
               onClick={handleChangeFocus}
-              icon={<Icons.Cog iconSize="xl" />}
+              icon={<Icons.SettingOutlined iconSize="xl" />}
             />
           </HoverMenu>
         )}

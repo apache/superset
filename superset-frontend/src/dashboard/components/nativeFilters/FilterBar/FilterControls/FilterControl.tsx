@@ -34,7 +34,7 @@ import { FilterControlProps } from './types';
 import { FilterCardPlacement } from '../../FilterCard/types';
 import { useIsFilterInScope } from '../../state';
 
-const StyledIcon = styled.div`
+const FilterStyledIcon = styled.div`
   position: absolute;
   right: 0;
 `;
@@ -264,7 +264,7 @@ const FilterControl = ({
         {filter.description?.trim() && (
           <DescriptionToolTip description={filter.description} />
         )}
-        <StyledIcon data-test="filter-icon">{icon}</StyledIcon>
+        <FilterStyledIcon data-test="filter-icon">{icon}</FilterStyledIcon>
       </FilterControlTitleBox>
     ),
     [

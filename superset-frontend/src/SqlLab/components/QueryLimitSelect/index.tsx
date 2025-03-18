@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useDispatch } from 'react-redux';
-import { useTheme, t } from '@superset-ui/core';
+import { t } from '@superset-ui/core';
 import { Dropdown } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';
 import Icons from 'src/components/Icons';
@@ -64,7 +64,6 @@ const QueryLimitSelect = ({
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const theme = useTheme();
   const dispatch = useDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
@@ -82,7 +81,7 @@ const QueryLimitSelect = ({
         <span className="limitDropdown">
           {convertToNumWithSpaces(queryLimit)}
         </span>
-        <Icons.TriangleDown iconColor={theme.colors.grayscale.base} />
+        <Icons.CaretDownOutlined iconSize="m" />
       </Button>
     </Dropdown>
   );

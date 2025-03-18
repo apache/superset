@@ -47,7 +47,7 @@ const buildTreeLeafTitle = (
       <>
         {title}&nbsp;
         <Tooltip title={tooltipTitle}>
-          <Icons.Info iconSize="m" />
+          <Icons.InfoCircleOutlined iconSize="m" />
         </Tooltip>
       </>
     );

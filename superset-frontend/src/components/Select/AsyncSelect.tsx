@@ -88,7 +88,8 @@ import { customTagRender } from './CustomTag';
 
 const Error = ({ error }: { error: string }) => (
   <StyledError>
-    <Icons.ErrorSolid /> <StyledErrorMessage>{error}</StyledErrorMessage>
+    <Icons.ExclamationCircleOutlined />{' '}
+    <StyledErrorMessage>{error}</StyledErrorMessage>
   </StyledError>
 );
 

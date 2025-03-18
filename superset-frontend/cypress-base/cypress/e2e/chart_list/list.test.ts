@@ -35,12 +35,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.get('[aria-label="more"]').eq(1).click();
   cy.getBySel('chart-list-edit-option').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').eq(1).click();
+  cy.get('[aria-label="more"]').eq(1).click();
 }
 
 function confirmDelete() {
@@ -263,7 +263,7 @@ describe('Charts list', () => {
       // deletes in list-view
       setGridMode('list');
       cy.getBySel('table-row').eq(1).contains('2 - Sample chart');
-      cy.getBySel('trash').eq(1).click();
+      cy.getBySel('delete').eq(1).click();
       confirmDelete();
       cy.wait('@delete');
       cy.getBySel('table-row').eq(1).should('not.contain', '2 - Sample chart');

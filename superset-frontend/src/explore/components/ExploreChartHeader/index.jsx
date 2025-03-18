@@ -21,7 +21,7 @@ import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import PropTypes from 'prop-types';
 import { Tooltip } from 'src/components/Tooltip';
-import { css, logging, SupersetClient, t } from '@superset-ui/core';
+import { css, logging, SupersetClient, t, useTheme } from '@superset-ui/core';
 import { chartPropShape } from 'src/dashboard/util/propShapes';
 import AlteredSliceTag from 'src/components/AlteredSliceTag';
 import Button from 'src/components/Button';
@@ -86,6 +86,7 @@ export const ExploreChartHeader = ({
   saveDisabled,
   metadata,
 }) => {
+  const theme = useTheme();
   const dispatch = useDispatch();
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
@@ -241,7 +242,10 @@ export const ExploreChartHeader = ({
                 data-test="query-save-button"
                 css={saveButtonStyles}
               >
-                <Icons.SaveOutlined iconSize="l" />
+                <Icons.SaveOutlined
+                  iconSize="l"
+                  iconColor={theme.colors.primary.dark2}
+                />
                 {t('Save')}
               </Button>
             </div>

@@ -146,7 +146,10 @@ const ConditionalFormattingControl = ({
         {conditionalFormattingConfigs.map((config, index) => (
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
-              <Icons.XSmall iconColor={theme.colors.grayscale.light1} />
+              <Icons.CloseOutlined
+                iconSize="m"
+                iconColor={theme.colors.grayscale.light1}
+              />
             </CloseButton>
             <FormattingPopover
               title={t('Edit formatter')}
@@ -161,7 +164,13 @@ const ConditionalFormattingControl = ({
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRight iconColor={theme.colors.grayscale.light1} />
+                  <Icons.RightOutlined
+                    iconSize="m"
+                    css={css`
+                      margin-top: ${theme.gridUnit}px;
+                    `}
+                    iconColor={theme.colors.grayscale.light1}
+                  />
                 </CaretContainer>
               </OptionControlContainer>
             </FormattingPopover>
@@ -175,7 +184,14 @@ const ConditionalFormattingControl = ({
           extraColorChoices={extraColorChoices}
         >
           <AddControlLabel>
-            <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.grayscale.light1}
+              css={theme => ({
+                margin: `auto ${theme.gridUnit}px auto 0`,
+                verticalAlign: 'baseline',
+              })}
+            />
             {t('Add new color formatter')}
           </AddControlLabel>
         </FormattingPopover>

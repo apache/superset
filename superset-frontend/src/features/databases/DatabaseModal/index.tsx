@@ -21,6 +21,8 @@ import {
   styled,
   SupersetTheme,
   getExtensionsRegistry,
+  css,
+  useTheme,
 } from '@superset-ui/core';
 
 import {
@@ -49,6 +51,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import ValidatedInput from 'src/components/Form/LabeledErrorBoundInput';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
 import ErrorAlert from 'src/components/ImportModal/ErrorAlert';
+import Icons from 'src/components/Icons';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -561,6 +564,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
+  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -1831,7 +1835,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>{isEditMode ? t('Edit database') : t('Connect a database')}</h4>
+        <h4>
+          {isEditMode ? (
+            <Icons.EditOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
+          ) : (
+            <Icons.InsertRowAboveOutlined
+              iconSize="l"
+              css={css`
+                margin: auto ${theme.gridUnit * 2}px auto 0;
+              `}
+            />
+          )}
+          {isEditMode ? t('Edit database') : t('Connect a database')}
+        </h4>
       }
       footer={modalFooter}
       maskClosable={false}
@@ -1992,7 +2013,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       width="500px"
       centered
       show={show}
-      title={<h4>{t('Connect a database')}</h4>}
+      title={
+        <h4>
+          <Icons.InsertRowAboveOutlined
+            iconSize="l"
+            css={css`
+              margin: auto ${theme.gridUnit * 2}px auto 0;
+            `}
+          />
+          {t('Connect a database')}
+        </h4>
+      }
       footer={renderModalFooter()}
       maskClosable={false}
     >

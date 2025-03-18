@@ -36,7 +36,7 @@ describe('SaveDatasetActionButton', () => {
     );
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    const caretBtn = screen.getByRole('button', { name: /down/i });
 
     expect(
       await screen.findByRole('button', { name: /save/i }),
@@ -53,9 +53,9 @@ describe('SaveDatasetActionButton', () => {
       />,
     );
 
-    const caretBtn = screen.getByRole('button', { name: /caret-down/i });
+    const caretBtn = screen.getByRole('button', { name: /down/i });
     expect(
-      await screen.findByRole('button', { name: /caret-down/i }),
+      await screen.findByRole('button', { name: /down/i }),
     ).toBeInTheDocument();
     userEvent.click(caretBtn);
 

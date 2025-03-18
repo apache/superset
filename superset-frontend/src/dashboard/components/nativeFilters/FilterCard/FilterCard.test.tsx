@@ -230,7 +230,7 @@ const renderContent = (filter = baseFilter, initialState = baseInitialState) =>
 test('filter card title, type, scope, dependencies', () => {
   renderContent();
   expect(screen.getByText('Native filter 1')).toBeVisible();
-  expect(screen.getByLabelText('filter-small')).toBeVisible();
+  expect(screen.getByLabelText('filter')).toBeVisible();
 
   expect(screen.getByText('Filter type')).toBeVisible();
   expect(screen.getByText('Select filter')).toBeVisible();

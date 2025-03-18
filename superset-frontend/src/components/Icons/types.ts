@@ -16,13 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import { IconComponentProps } from '@ant-design/icons/lib/components/Icon';
+import Icon, {
+  IconComponentProps,
+} from '@ant-design/icons/lib/components/Icon';
+import { ComponentType, SVGProps } from 'react';
 
-type AntdIconType = IconComponentProps;
-type IconType = AntdIconType & {
+export type AntdIconProps = IconComponentProps;
+export type IconType = AntdIconProps & {
   iconColor?: string;
   iconSize?: 'xs' | 's' | 'm' | 'l' | 'xl' | 'xxl';
+  fileName?: string;
+  customIcons?: boolean;
 };
+
+export type CustomIconType = ComponentType<SVGProps<SVGSVGElement>>;
+export type AntdIconType = typeof Icon;
+
+export interface BaseIconProps {
+  component: CustomIconType | AntdIconType;
+}
 
 export default IconType;
