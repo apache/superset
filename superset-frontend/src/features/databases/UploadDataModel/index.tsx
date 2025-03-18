@@ -540,6 +540,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     }
   }, [delimiter]);
 
+  // Reset active panel to 'general' when modal is shown
   useEffect(() => {
     if (show) {
       setActiveKey('general');
