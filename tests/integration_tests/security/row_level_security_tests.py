@@ -189,6 +189,7 @@ class TestRowLevelSecurity(SupersetTestCase):
                 "roles": [security_manager.find_role("Alpha").id],
                 "group_key": "group_key_1",
                 "clause": "client_id=1",
+                "groups": [],
             },
         )
         assert rv.status_code == 201
@@ -215,6 +216,7 @@ class TestRowLevelSecurity(SupersetTestCase):
                 "roles": [security_manager.find_role("Alpha").id],
                 "group_key": "group_key_1",
                 "clause": "client_id=1",
+                "groups": [],
             },
         )
         assert rv.status_code == 422
@@ -232,6 +234,7 @@ class TestRowLevelSecurity(SupersetTestCase):
                 "roles": [security_manager.find_role("Alpha").id],
                 "group_key": "group_key_1",
                 "clause": "client_id=1",
+                "groups": [],
             },
         )
         assert rv.status_code == 400
@@ -314,6 +317,141 @@ class TestRowLevelSecurity(SupersetTestCase):
             "name like 'Q%'-name",
             "gender = 'boy'-gender",
         ]
+
+    @pytest.mark.usefixtures(
+        "load_birth_names_dashboard_with_slices", "create_gamma_user_group"
+    )
+    def test_rls_filter_alters_query_with_direct_group(self):
+        """
+        Verify that when a user has a direct group an RLS rule linked to that group applies
+        """
+        g.user = self.get_user("gamma_with_groups")
+        tbl = self.get_table(name="birth_names")
+        direct_group = g.user.groups[0]
+
+        new_rls = self.create_rls_rule(
+            rule_name="rls_direct_group",
+            table_names=["birth_names"],
+            filter_type="Regular",
+            clause="name like 'Direct%'",
+            group_key="name",
+            role_names=None,
+            group_names=[direct_group.name],
+        )
+
+        sql = tbl.get_query_str(self.query_obj)
+        assert "name like 'Direct%'" in sql
+
+        db.session.delete(new_rls)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_alters_query_with_indirect_group_via_role(self):
+        """
+        Verify that if a user has no direct group membership but is indirectly linked to a group
+        via one of their roles, then an RLS rule tied to that group is applied.
+        """
+        user = self.create_user_with_roles("IndirectUser", ["Gamma"])
+        assert not getattr(user, "groups", [])
+        # The group has only roles, no direct users
+        indirect_group = security_manager.add_group("IndirectGroup", "", "")
+        gamma_role = security_manager.find_role("Gamma")
+        # Now the user will be part of the group because the role is linked to the group
+        indirect_group.roles.append(gamma_role)
+        db.session.commit()
+
+        # Create an RLS rule linked to the the group of roles
+        new_rls = self.create_rls_rule(
+            rule_name="rls_indirect_group",
+            table_names=["birth_names"],
+            filter_type="Regular",
+            clause="name like 'Indirect%'",
+            group_key="name",
+            role_names=None,
+            group_names=[indirect_group.name],
+        )
+
+        g.user = user
+        tbl = self.get_table(name="birth_names")
+        sql = tbl.get_query_str(self.query_obj)
+        assert "name like 'Indirect%'" in sql
+
+        db.session.delete(new_rls)
+        db.session.delete(indirect_group)
+        db.session.delete(user)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_alters_query_with_indirect_role_via_group(self):
+        """
+        Verify that if an RLS rule is linked to a role that the user does not directly have,
+        but that role is assigned to a group the user belongs to, then the RLS rule is applied.
+        """
+        indirect_role = security_manager.add_role("IndirectRole")
+        db.session.commit()
+
+        group = security_manager.add_group("IndirectRoleGroup", "", "")
+        group.roles.append(indirect_role)
+        db.session.commit()
+        user = self.create_user_with_roles("IndirectRoleUser", ["Gamma"])
+        # Now the user will have the role because it is part of the group
+        user.groups.append(group)
+        db.session.commit()
+
+        # Create an RLS rule linked to the role "IndirectRole"
+        new_rls = self.create_rls_rule(
+            rule_name="rls_indirect_role",
+            table_names=["birth_names"],
+            filter_type="Regular",
+            clause="name like 'IndirectRole%'",
+            group_key="name",
+            role_names=[indirect_role.name],
+            group_names=None,
+        )
+
+        g.user = user
+        tbl = self.get_table(name="birth_names")
+        sql = tbl.get_query_str(self.query_obj)
+        assert "name like 'IndirectRole%'" in sql
+
+        db.session.delete(new_rls)
+        db.session.delete(group)
+        db.session.delete(indirect_role)
+        db.session.delete(user)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_rls_filter_excludes_non_applicable_group_rules(self):
+        """
+        Verify that an RLS rule linked to a group that the user is not associated with
+        (neither directly nor indirectly) does not alter the query.
+        """
+        user = self.create_user_with_roles("NoGroupUser", ["Gamma"])
+        assert not getattr(user, "groups", [])
+        g.user = user
+        tbl = self.get_table(name="birth_names")
+
+        # RLS linked to a new group that is not linked to the user.
+        non_applicable_group = security_manager.add_group("NonApplicableGroup", "", "")
+        db.session.commit()
+
+        new_rls = self.create_rls_rule(
+            rule_name="rls_non_applicable",
+            table_names=["birth_names"],
+            filter_type="Regular",
+            clause="name like 'NonApplicable%'",
+            group_key="name",
+            role_names=None,
+            group_names=[non_applicable_group.name],
+        )
+
+        sql = tbl.get_query_str(self.query_obj)
+        assert "name like 'NonApplicable%'" not in sql
+
+        db.session.delete(new_rls)
+        db.session.delete(non_applicable_group)
+        db.session.delete(user)
+        db.session.commit()
 
 
 class TestRowLevelSecurityCreateAPI(SupersetTestCase):

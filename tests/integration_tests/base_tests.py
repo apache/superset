@@ -38,7 +38,11 @@ from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.connectors.sqla.models import (
+    BaseDatasource,
+    RowLevelSecurityFilter,
+    SqlaTable,
+)
 from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
@@ -149,6 +153,44 @@ class SupersetTestCase(TestCase):
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
+
+    @staticmethod
+    def create_rls_rule(
+        rule_name: str,
+        table_names: list[str],
+        filter_type: str,
+        clause: str,
+        group_key: str,
+        role_names: list[str] = None,
+        group_names: list[str] = None,
+    ) -> RowLevelSecurityFilter:
+        """
+        Create and persist an RLS rule with the specified parameters.
+        """
+        rule = RowLevelSecurityFilter()
+        rule.name = rule_name
+        rule.tables.extend(
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name.in_(table_names))
+            .all()
+        )
+        rule.filter_type = filter_type
+        rule.clause = clause
+        rule.group_key = group_key
+
+        if role_names:
+            for role_name in role_names:
+                role = security_manager.find_role(role_name)
+                if role:
+                    rule.roles.append(role)
+        if group_names:
+            for group_name in group_names:
+                group = security_manager.find_group(group_name)
+                if group:
+                    rule.groups.append(group)
+        db.session.add(rule)
+        db.session.commit()
+        return rule
 
     @contextmanager
     def temporary_user(
