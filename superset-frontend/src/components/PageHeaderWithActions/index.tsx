@@ -93,7 +93,7 @@ const buttonsStyles = (theme: SupersetTheme) => css`
   align-items: center;
   padding-left: ${theme.gridUnit * 2}px;
 
-  & .fave-unfave-icon {
+  & .anticon-star {
     padding: 0 ${theme.gridUnit}px;
 
     &:first-of-type {

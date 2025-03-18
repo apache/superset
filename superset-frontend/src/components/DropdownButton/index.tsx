@@ -51,6 +51,9 @@ export const DropdownButton = ({
         height: 100%;
         background-color: ${theme.colors.grayscale.light2};
       }
+      .anticon {
+        vertical-align: middle;
+      }
     }`}
   `;
   const button = (

@@ -33,7 +33,7 @@ const ValidatedPanelHeader = ({
   const theme = useTheme();
   const checkmark = (
     <Icons.CheckCircleOutlined
-      iconSize="l"
+      iconSize="m"
       iconColor={theme.colors.success.base}
     />
   );

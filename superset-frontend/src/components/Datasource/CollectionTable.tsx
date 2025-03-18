@@ -437,6 +437,7 @@ export default class CRUDCollection extends PureComponent<
             role="button"
             tabIndex={0}
             onClick={this.deleteItem.bind(this, record.id)}
+            iconSize="l"
           />
         </td>,
       );

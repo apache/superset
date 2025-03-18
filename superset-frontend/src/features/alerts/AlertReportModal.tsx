@@ -412,7 +412,7 @@ const NotificationMethodAdd: FunctionComponent<NotificationMethodAddProps> = ({
         iconSize="m"
         css={theme => ({
           margin: `auto ${theme.gridUnit * 2}px auto 0`,
-          verticalAlign: 'baseline',
+          verticalAlign: 'middle',
         })}
       />
       {status === 'active'

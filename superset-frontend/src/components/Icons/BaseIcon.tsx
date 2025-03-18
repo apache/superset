@@ -65,6 +65,7 @@ export const BaseIconComponent: React.FC<
           display: inline-flex;
           align-items: center;
           line-height: 0;
+          vertical-align: middle;
         `,
         iconCss,
       ]}

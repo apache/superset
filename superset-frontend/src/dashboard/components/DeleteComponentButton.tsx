@@ -28,10 +28,7 @@ type DeleteComponentButtonProps = {
 const DeleteComponentButton: FC<DeleteComponentButtonProps> = ({
   onDelete,
 }) => (
-  <IconButton
-    onClick={onDelete}
-    icon={<Icons.DeleteOutlined iconSize="xl" />}
-  />
+  <IconButton onClick={onDelete} icon={<Icons.DeleteOutlined iconSize="l" />} />
 );
 
 export default DeleteComponentButton;

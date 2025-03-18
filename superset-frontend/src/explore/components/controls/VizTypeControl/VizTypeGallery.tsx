@@ -793,7 +793,14 @@ export default function VizTypeGallery(props: VizTypeGalleryProps) {
             </SectionTitle>
             <TagsWrapper>
               {selectedVizMetadata?.tags.map(tag => (
-                <Label key={tag}>{tag}</Label>
+                <Label
+                  key={tag}
+                  css={({ gridUnit }) => css`
+                    margin-bottom: ${gridUnit * 2}px;
+                  `}
+                >
+                  {tag}
+                </Label>
               ))}
             </TagsWrapper>
             <Description>

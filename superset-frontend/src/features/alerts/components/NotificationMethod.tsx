@@ -88,7 +88,6 @@ const StyledNotificationMethod = styled.div`
       align-items: center;
       font-size: ${theme.typography.sizes.s}px;
       cursor: pointer;
-      margin-top: ${theme.gridUnit}px;
 
       .icon {
         width: ${theme.gridUnit * 3}px;
@@ -470,7 +469,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                 className="delete-button"
                 onClick={() => onRemove(index)}
               >
-                <Icons.DeleteOutlined />
+                <Icons.DeleteOutlined iconSize="l" />
               </span>
             ) : null}
           </div>

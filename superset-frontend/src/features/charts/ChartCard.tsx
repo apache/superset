@@ -81,7 +81,7 @@ export default function ChartCard({
             <Icons.EditOutlined
               iconSize="l"
               css={css`
-                vertical-align: baseline;
+                vertical-align: text-top;
               `}
             />{' '}
             {t('Edit')}
@@ -98,7 +98,7 @@ export default function ChartCard({
             <Icons.UploadOutlined
               iconSize="l"
               css={css`
-                vertical-align: baseline;
+                vertical-align: text-top;
               `}
             />{' '}
             {t('Export')}
@@ -137,7 +137,7 @@ export default function ChartCard({
                 <Icons.DeleteOutlined
                   iconSize="l"
                   css={css`
-                    vertical-align: baseline;
+                    vertical-align: text-top;
                   `}
                 />{' '}
                 {t('Delete')}

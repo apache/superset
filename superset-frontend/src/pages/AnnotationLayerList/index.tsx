@@ -220,7 +220,7 @@ function AnnotationLayersList({
             iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              text-align: text-top;
+              vertical-align: text-top;
             `}
           />
           {t('Annotation layer')}

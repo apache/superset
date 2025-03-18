@@ -60,7 +60,7 @@ const StyledSectionContainer = styled.div`
       display: flex;
       font-size: ${theme.typography.sizes.s}px;
       color: ${theme.colors.grayscale.base};
-      aling-items: center;
+      align-items: center;
     }
 
     .info-solid-small {
