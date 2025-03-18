@@ -1574,31 +1574,24 @@ class TestDatasetApi(SupersetTestCase):
         dataset_data = {
             "folders": [
                 {
-                    "type": "folder",
                     "uuid": "b49ac3dd-c79b-42a4-9082-39ee74f3b369",
                     "name": "My metrics",
                     "children": [
                         {
-                            "type": "metric",
                             "uuid": dataset.metrics[0].uuid,
-                            "name": dataset.metrics[0].metric_name,
                         },
                     ],
                 },
                 {
-                    "type": "folder",
                     "uuid": "f5db85fa-75d6-45e5-bdce-c6194db80642",
                     "name": "My columns",
                     "children": [
                         {
-                            "type": "folder",
                             "uuid": "b5330233-e323-4157-b767-98b16f00ca93",
                             "name": "Dimensions",
                             "children": [
                                 {
-                                    "type": "column",
                                     "uuid": dataset.columns[1].uuid,
-                                    "name": dataset.columns[1].column_name,
                                 },
                             ],
                         },
@@ -1615,30 +1608,23 @@ class TestDatasetApi(SupersetTestCase):
         assert model.folders == [
             {
                 "uuid": "b49ac3dd-c79b-42a4-9082-39ee74f3b369",
-                "type": "folder",
                 "name": "My metrics",
                 "children": [
                     {
                         "uuid": str(dataset.metrics[0].uuid),
-                        "type": "metric",
-                        "name": "count",
                     }
                 ],
             },
             {
                 "uuid": "f5db85fa-75d6-45e5-bdce-c6194db80642",
-                "type": "folder",
                 "name": "My columns",
                 "children": [
                     {
                         "uuid": "b5330233-e323-4157-b767-98b16f00ca93",
-                        "type": "folder",
                         "name": "Dimensions",
                         "children": [
                             {
                                 "uuid": str(dataset.columns[1].uuid),
-                                "type": "column",
-                                "name": "name",
                             }
                         ],
                     }
