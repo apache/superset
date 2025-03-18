@@ -43,6 +43,7 @@ class ExtensionsRestApi(BaseSupersetApi):
     @expose("/", methods=("GET",))
     @permission_name("read")
     def get(self, **kwargs: Any) -> Response:
+        # TODO: Move code to command
         result = []
         extensions = ExtensionDAO.find_all()
         for extension in extensions:
@@ -72,10 +73,10 @@ class ExtensionsRestApi(BaseSupersetApi):
     @expose("/<name>/<file>", methods=("GET",))
     @permission_name("read")
     def content(self, name: str, file: str) -> Response:
-        """Get possible values for a datasource column.
+        """Get a chunk file of an extension.
         ---
         get:
-          summary: Get possible values for a datasource column
+          summary: Get a chunk file of an extension.
           parameters:
           - in: path
             schema:
@@ -106,7 +107,7 @@ class ExtensionsRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
-
+        # TODO: Move code to command
         extension = ExtensionDAO.get_by_name(name)
         if not extension:
             return self.response_404()
@@ -168,6 +169,7 @@ class ExtensionsRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        # TODO: Move code to command with @transaction
         upload = request.files.get("bundle")
         if not upload or not is_zipfile(upload):
             return self.response_400(message="Missing extensions bundle")
@@ -203,8 +205,5 @@ class ExtensionsRestApi(BaseSupersetApi):
             enabled=True,
         )
         db.session.commit()
-
-        print(manifest)
-        print(bundle)
 
         return self.response(200, message="OK")
