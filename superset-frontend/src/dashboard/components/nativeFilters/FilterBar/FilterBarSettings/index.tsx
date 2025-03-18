@@ -19,13 +19,7 @@
 
 import { useCallback, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  FeatureFlag,
-  isFeatureEnabled,
-  styled,
-  t,
-  useTheme,
-} from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import { MenuProps } from 'src/components/Menu';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
@@ -96,8 +90,6 @@ const FilterBarSettings = () => {
   const dashboardId = useSelector<RootState, number>(
     ({ dashboardInfo }) => dashboardInfo.id,
   );
-  const canSetHorizontalFilterBar =
-    canEdit && isFeatureEnabled(FeatureFlag.HorizontalFilterBar);
 
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal();
 
@@ -193,7 +185,7 @@ const FilterBarSettings = () => {
           </FilterConfigurationLink>
         ),
       });
-      if (canSetHorizontalFilterBar) {
+      if (canEdit) {
         items.push({ type: 'divider' });
       }
     }
@@ -206,11 +198,9 @@ const FilterBarSettings = () => {
         key: CROSS_FILTERS_SCOPING_MENU_KEY,
         label: t('Cross-filtering scoping'),
       });
-      if (canSetHorizontalFilterBar) {
-        items.push({ type: 'divider' });
-      }
+      items.push({ type: 'divider' });
     }
-    if (canSetHorizontalFilterBar) {
+    if (canEdit) {
       items.push({
         key: 'placement',
         label: t('Orientation of filter bar'),
@@ -243,7 +233,6 @@ const FilterBarSettings = () => {
   }, [
     selectedFilterBarOrientation,
     canEdit,
-    canSetHorizontalFilterBar,
     crossFiltersMenuItem,
     dashboardId,
     filterValues,

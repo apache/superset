@@ -400,6 +400,8 @@ export default class CRUDCollection extends PureComponent<
             role="button"
             aria-label="Toggle expand"
             tabIndex={0}
+            // TODO: Remove fa-icon
+            // eslint-disable-next-line icons/no-fa-icons-usage
             className={`fa fa-caret-${
               isExpanded ? 'down' : 'right'
             } text-primary pointer`}
@@ -484,7 +486,12 @@ export default class CRUDCollection extends PureComponent<
                 onClick={this.onAddItem}
                 data-test="add-item-button"
               >
-                <i data-test="crud-add-table-item" className="fa fa-plus" />{' '}
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
+                <i
+                  data-test="crud-add-table-item"
+                  className="fa fa-plus"
+                />{' '}
                 {t('Add item')}
               </Button>
             </StyledButtonWrapper>

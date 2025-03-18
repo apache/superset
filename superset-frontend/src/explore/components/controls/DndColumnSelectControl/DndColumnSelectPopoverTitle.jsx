@@ -92,6 +92,8 @@ export const DndColumnSelectPopoverTitle = ({
       >
         {title || defaultLabel}
         &nbsp;
+        {/* TODO: Remove fa-icon */}
+        {/* eslint-disable-next-line icons/no-fa-icons-usage */}
         <i
           className="fa fa-pencil"
           style={{ color: isHovered ? 'black' : 'grey' }}

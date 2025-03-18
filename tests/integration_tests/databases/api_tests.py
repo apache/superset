@@ -80,6 +80,9 @@ from tests.integration_tests.fixtures.unicode_dashboard import (
     load_unicode_dashboard_with_position,  # noqa: F401
     load_unicode_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.users import (
+    create_gamma_user_group_with_all_database,  # noqa: F401
+)
 from tests.integration_tests.test_app import app
 
 
@@ -260,6 +263,18 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
         assert response["count"] == 0
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_all_database")
+    def test_get_items_gamma_group(self):
+        """
+        Database API: Test get items gamma with group
+        """
+        self.login("gamma_with_groups", "password1")
+        uri = "api/v1/database/"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] > 0
 
     def test_create_database(self):
         """
@@ -1087,6 +1102,11 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 201
         assert "sqlalchemy_form" in response["result"]["configuration_method"]
+
+        # Cleanup
+        model = db.session.query(Database).get(response.get("id"))
+        db.session.delete(model)
+        db.session.commit()
 
     def test_create_database_server_cert_validate(self):
         """
@@ -2360,6 +2380,17 @@ class TestDatabaseApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "related_objects")
         assert rv.status_code == 404
 
+    @pytest.mark.usefixtures("create_gamma_user_group_with_all_database")
+    def test_get_database_related_objects_gamma_group(self):
+        """
+        Database API: Test related objects with gamma group with role all database
+        """
+        database = get_example_database()
+        self.login("gamma_with_groups", "password1")
+        uri = f"api/v1/database/{database.id}/related_objects/"
+        rv = self.get_assert_metric(uri, "related_objects")
+        assert rv.status_code == 200
+
     def test_export_database(self):
         """
         Database API: Test export database
@@ -3126,6 +3157,59 @@ class TestDatabaseApi(SupersetTestCase):
                 }
             ]
         }
+
+    @mock.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    def test_import_database_row_expansion_enabled(self, mock_add_permissions):
+        """
+        Database API: Test import database with row expansion enabled.
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/database/import/"
+
+        db_config = {
+            "database_name": "DB with expand rows enabled",
+            "allow_csv_upload": True,
+            "allow_ctas": True,
+            "allow_cvas": True,
+            "allow_dml": True,
+            "allow_run_async": False,
+            "cache_timeout": None,
+            "expose_in_sqllab": True,
+            "extra": {
+                "schema_options": {"expand_rows": True},
+            },
+            "sqlalchemy_uri": "postgresql://user:pass@host1",
+            "uuid": "b8a1ccd3-779d-4ab7-8ad8-9ab119d7ff90",
+            "version": "1.0.0",
+        }
+
+        buf = BytesIO()
+        with ZipFile(buf, "w") as bundle:
+            with bundle.open("database_export/metadata.yaml", "w") as fp:
+                fp.write(yaml.safe_dump(database_metadata_config).encode())
+            with bundle.open(
+                "database_export/databases/DB_with_expand_rows_enabled.yaml", "w"
+            ) as fp:
+                fp.write(yaml.safe_dump(db_config).encode())
+        buf.seek(0)
+
+        form_data = {
+            "formData": (buf, "database_export.zip"),
+            "passwords": json.dumps(
+                {"databases/DB_with_expand_rows_enabled.yaml": "SECRET"}
+            ),
+        }
+        rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
+        response = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 200
+        assert response == {"message": "OK"}
+
+        database = db.session.query(Database).filter_by(uuid=db_config["uuid"]).one()
+        assert database.extra == json.dumps({"schema_options": {"expand_rows": True}})
+
+        db.session.delete(database)
+        db.session.commit()
 
     @mock.patch(
         "superset.db_engine_specs.base.BaseEngineSpec.get_function_names",

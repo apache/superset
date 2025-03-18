@@ -259,6 +259,8 @@ const SavedQueries = ({
           {
             name: (
               <Link to="/sqllab?new=true">
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-plus" />
                 {t('SQL Query')}
               </Link>

@@ -131,6 +131,9 @@ const StyledSubMenu = styled(AntdMenu.SubMenu)`
       }
     }
   }
+  .antd5-dropdown-menu-submenu-title {
+    align-items: center;
+  }
   .antd5-menu-submenu-title {
     display: flex;
     flex-direction: row-reverse;

@@ -24,6 +24,7 @@ data they would see on Explore.
 In order to do that, we reproduce the post-processing in Python for these chart types.
 """
 
+import logging
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -42,6 +43,9 @@ from superset.utils.core import (
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
     from superset.models.sql_lab import Query
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
@@ -182,11 +186,20 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         for level in range(df.index.nlevels):
             subgroups = {group[:level] for group in groups}
             for subgroup in subgroups:
-                slice_ = df.index.get_loc(subgroup)
+                try:
+                    slice_ = df.index.get_loc(subgroup)
+                except Exception:  # pylint: disable=broad-except
+                    logger.exception(
+                        "Error getting location for subgroup %s from %s",
+                        subgroup,
+                        groups,
+                    )
+                    raise
+
                 subtotal = pivot_v2_aggfunc_map[aggfunc](
                     df.iloc[slice_, :].apply(pd.to_numeric, errors="coerce"), axis=0
                 )
-                depth = df.index.nlevels - len(subgroup) - 1
+                depth = groups.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert row after subgroup
@@ -340,6 +353,9 @@ def apply_client_processing(  # noqa: C901
         query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
 
+        # Check if the DataFrame has a default RangeIndex, which should not be shown
+        show_default_index = not isinstance(processed_df.index, pd.RangeIndex)
+
         # Flatten hierarchical columns/index since they are represented as
         # `Tuple[str]`. Otherwise encoding to JSON later will fail because
         # maps cannot have tuples as their keys in JSON.
@@ -364,7 +380,7 @@ def apply_client_processing(  # noqa: C901
             query["data"] = processed_df.to_dict()
         elif query["result_format"] == ChartDataResultFormat.CSV:
             buf = StringIO()
-            processed_df.to_csv(buf)
+            processed_df.to_csv(buf, index=show_default_index)
             buf.seek(0)
             query["data"] = buf.getvalue()
 

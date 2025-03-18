@@ -42,6 +42,8 @@ export const RunQueryButton = ({
 }: RunQueryButtonProps) =>
   loading ? (
     <Button onClick={onStop} buttonStyle="danger" disabled={!canStopQuery}>
+      {/* TODO: Remove fa-icon */}
+      {/* eslint-disable-next-line icons/no-fa-icons-usage */}
       <i className="fa fa-stop" /> {t('Stop')}
     </Button>
   ) : (

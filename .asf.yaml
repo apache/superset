@@ -48,6 +48,8 @@ github:
     projects: true
     # Enable wiki for documentation
     wiki: true
+    # Enable discussions
+    discussions: true
 
   enabled_merge_buttons:
     squash: true
@@ -56,6 +58,12 @@ github:
 
   ghp_branch:  gh-pages
   ghp_path: /
+
+  notifications:
+    commits: commits@superset.apache.org
+    issues: issues@superset.apache.org
+    pullrequests: issues@superset.apache.org
+    discussions: issues@superset.apache.org
 
   protected_branches:
     master:

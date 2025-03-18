@@ -362,6 +362,8 @@ const ResultSet = ({
                   }
                 }}
               >
+                {/* TODO: Remove fa-icon */}
+                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                 <i className="fa fa-file-text-o" /> {t('Download to CSV')}
               </Button>
             )}
@@ -376,6 +378,8 @@ const ResultSet = ({
                     buttonStyle="secondary"
                     data-test="copy-to-clipboard-button"
                   >
+                    {/* TODO: Remove fa-icon */}
+                    {/* eslint-disable-next-line icons/no-fa-icons-usage */}
                     <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
                   </Button>
                 }
