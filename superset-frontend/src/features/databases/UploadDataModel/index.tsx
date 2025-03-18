@@ -35,14 +35,7 @@ import Modal from 'src/components/Modal';
 import Button from 'src/components/Button';
 import { Switch, SwitchProps } from 'src/components/Switch';
 import Collapse from 'src/components/Collapse';
-import {
-  AntdForm,
-  AsyncSelect,
-  Col,
-  Row,
-  Select,
-  Upload,
-} from 'src/components';
+import { AsyncSelect, Col, Row, Select, Upload } from 'src/components';
 // eslint-disable-next-line no-restricted-imports
 import { UploadOutlined } from '@ant-design/icons';
 import { Input, InputNumber } from 'src/components/Input'; // TODO: Use src/components/Icons
@@ -50,6 +43,7 @@ import rison from 'rison';
 // eslint-disable-next-line no-restricted-imports
 import { UploadChangeParam, UploadFile } from 'antd/lib/upload/interface'; // TODO: Remove antd
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { Form } from 'src/components/Form';
 import {
   antdCollapseStyles,
   antDModalNoPaddingStyles,
@@ -219,7 +213,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   allowedExtensions,
   type = 'csv',
 }) => {
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
@@ -590,7 +584,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       show={show}
       title={<UploadTitle />}
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -1035,7 +1029,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
               </Collapse.Panel>
             )}
         </Collapse>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 };

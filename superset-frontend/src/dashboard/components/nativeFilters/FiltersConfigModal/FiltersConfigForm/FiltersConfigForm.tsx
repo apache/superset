@@ -57,7 +57,8 @@ import { PluginFilterSelectCustomizeProps } from 'src/filters/components/Select/
 import { useSelector } from 'react-redux';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { Input, TextArea } from 'src/components/Input';
-import { Select, FormInstance } from 'src/components';
+import { Select } from 'src/components';
+import { FormInstance } from 'src/components/Form/Form';
 import Collapse from 'src/components/Collapse';
 import BasicErrorAlert from 'src/components/ErrorMessage/BasicErrorAlert';
 import ErrorMessageWithStackTrace from 'src/components/ErrorMessage/ErrorMessageWithStackTrace';
@@ -143,11 +144,16 @@ export const StyledFormItem = styled(FormItem)<{ expanded: boolean }>`
   width: ${({ expanded }) => (expanded ? '49%' : `${FORM_ITEM_WIDTH}px`)};
   margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
 
-  & .ant-form-item-label {
+  & .antd5-form-item-row {
+    display: flex;
+    flex-direction: column;
+  }
+
+  & .antd5-form-item-label {
     padding-bottom: 0;
   }
 
-  & .ant-form-item-control-input {
+  & .antd5-form-item-control-input {
     min-height: ${({ theme }) => theme.sizeUnit * 10}px;
   }
 `;
@@ -157,15 +163,15 @@ export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
   padding-bottom: 0;
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
 
-  & .ant-form-item-label {
+  & .antd5-form-item-label {
     padding-bottom: 0;
   }
 
-  .ant-form-item-control-input-content > div > div {
+  .antd5-form-item-control-input-content > div > div {
     height: auto;
   }
 
-  & .ant-form-item-control-input {
+  & .antd5-form-item-control-input {
     min-height: ${({ theme }) => theme.sizeUnit * 10}px;
   }
 `;
@@ -173,23 +179,23 @@ export const StyledRowFormItem = styled(FormItem)<{ expanded: boolean }>`
 export const StyledRowSubFormItem = styled(FormItem)<{ expanded: boolean }>`
   min-width: ${({ expanded }) => (expanded ? '50%' : `${FORM_ITEM_WIDTH}px`)};
 
-  & .ant-form-item-label {
+  & .antd5-form-item-label {
     padding-bottom: 0;
   }
 
-  .ant-form-item {
+  .antd5-form-item {
     margin-bottom: 0;
   }
 
-  .ant-form-item-control-input-content > div > div {
+  .antd5-form-item-control-input-content > div > div {
     height: auto;
   }
 
-  .ant-form-item-extra {
+  .antd5-form-item-extra {
     display: none;
   }
 
-  & .ant-form-item-control-input {
+  & .antd5-form-item-control-input {
     height: auto;
   }
 `;
@@ -219,40 +225,40 @@ const StyledCollapse = styled(Collapse)`
   border-top: 1px solid ${({ theme }) => theme.colorSplit};
   border-radius: 0;
 
-  .ant-collapse-header {
+  .antd5-collapse-header {
     border-bottom: 1px solid ${({ theme }) => theme.colorSplit};
     border-top: 1px solid ${({ theme }) => theme.colorSplit};
     margin-top: -1px;
     border-radius: 0;
   }
 
-  .ant-collapse-content {
+  .antd5-collapse-content {
     border: 0;
   }
 
-  .ant-collapse-content-box {
+  .antd5-collapse-content-box {
     padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
   }
 
-  &.ant-collapse > .ant-collapse-item {
+  &.antd5-collapse > .antd5-collapse-item {
     border: 0;
     border-radius: 0;
   }
 `;
 
 const StyledTabs = styled(Tabs)`
-  .ant-tabs-nav {
+  .antd5-tabs-nav {
     position: sticky;
     top: 0;
     background: ${({ theme }) => theme.colors.grayscale.light5};
     z-index: 1;
   }
 
-  .ant-tabs-nav-list {
+  .antd5-tabs-nav-list {
     padding: 0;
   }
 
-  .ant-form-item-label {
+  .ant-5-form-item-label {
     padding-bottom: 0;
   }
 `;

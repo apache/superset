@@ -29,7 +29,7 @@ import {
   useTheme,
 } from '@superset-ui/core';
 import { useDispatch } from 'react-redux';
-import { AntdForm } from 'src/components';
+import Form from 'src/components/Form/Form';
 import Icons from 'src/components/Icons';
 import ErrorBoundary from 'src/components/ErrorBoundary';
 import { StyledModal } from 'src/components/Modal';
@@ -101,7 +101,7 @@ export const StyledModalBody = styled.div<{ expanded: boolean }>`
   }
 `;
 
-export const StyledForm = styled(AntdForm)`
+export const StyledForm = styled(Form)`
   width: 100%;
 `;
 
@@ -156,7 +156,7 @@ function FiltersConfigModal({
   const dispatch = useDispatch();
   const theme = useTheme();
 
-  const [form] = AntdForm.useForm<NativeFiltersForm>();
+  const [form] = Form.useForm<NativeFiltersForm>();
 
   const configFormRef = useRef<any>();
 

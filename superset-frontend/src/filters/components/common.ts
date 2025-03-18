@@ -28,7 +28,7 @@ export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
 `;
 
 export const StyledFormItem = styled(FormItem)`
-  &.ant-row.ant-form-item {
+  &.antd5-row.antd5-form-item-row {
     margin: 0;
   }
 `;

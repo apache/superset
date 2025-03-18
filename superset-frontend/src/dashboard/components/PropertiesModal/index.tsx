@@ -19,10 +19,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
+import { Form, FormItem } from 'src/components/Form';
 import jsonStringify from 'json-stringify-pretty-compact';
 import Button from 'src/components/Button';
-import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
+import { AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
   ensureIsArray,
@@ -110,7 +110,7 @@ const PropertiesModal = ({
   show = false,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
-  const [form] = AntdForm.useForm();
+  const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [colorScheme, setCurrentColorScheme] = useState(currentColorScheme);
@@ -630,7 +630,7 @@ const PropertiesModal = ({
       }
       responsive
     >
-      <AntdForm
+      <Form
         form={form}
         onFinish={onFinish}
         data-test="dashboard-edit-properties-form"
@@ -770,7 +770,7 @@ const PropertiesModal = ({
             )}
           </Col>
         </Row>
-      </AntdForm>
+      </Form>
     </Modal>
   );
 };
