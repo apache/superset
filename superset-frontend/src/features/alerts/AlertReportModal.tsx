@@ -88,7 +88,6 @@ import { NotificationMethod } from './components/NotificationMethod';
 import ValidatedPanelHeader from './components/ValidatedPanelHeader';
 import StyledPanel from './components/StyledPanel';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
-import { native } from 'rimraf';
 
 const TIMEOUT_MIN = 1;
 const TEXT_BASED_VISUALIZATION_TYPES = [

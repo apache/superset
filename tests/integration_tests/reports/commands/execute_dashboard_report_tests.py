@@ -50,7 +50,13 @@ def test_report_for_dashboard_with_tabs(
 
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
-        extra={"dashboard": {"active_tabs": ["TAB-L1B", "TAB-L2BB"]}},
+        extra={
+            "dashboard": {
+                "active_tabs": ["TAB-L1B", "TAB-L2BB"],
+                "dataMask": None,
+                "urlParams": [["native_filters", "()"]],
+            }
+        },
         name="test report tabbed dashboard",
     ) as report_schedule:
         dashboard: Dashboard = report_schedule.dashboard
@@ -90,7 +96,13 @@ def test_report_with_header_data(
 
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
-        extra={"dashboard": {"active_tabs": ["TAB-L1B", "TAB-L2BB"]}},
+        extra={
+            "dashboard": {
+                "active_tabs": ["TAB-L1B", "TAB-L2BB"],
+                "dataMask": None,
+                "urlParams": [["native_filters", "()"]],
+            }
+        },
         name="test report tabbed dashboard",
     ) as report_schedule:
         dashboard: Dashboard = report_schedule.dashboard
