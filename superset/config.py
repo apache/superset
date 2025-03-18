@@ -495,7 +495,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "ALERT_REPORTS": False,
     "ALERT_REPORT_TABS": False,
     "ALERT_REPORT_SLACK_V2": False,
-    "DASHBOARD_RBAC": False,
+    "DASHBOARD_RBAC": True,
     "ENABLE_ADVANCED_DATA_TYPES": False,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
