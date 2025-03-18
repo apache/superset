@@ -1,5 +1,6 @@
 // DODO was here
 import { ChangeEvent, useMemo, useState, useCallback, useEffect } from 'react';
+import { useSelector } from 'react-redux'; // DODO added 44211792
 
 import Modal from 'src/components/Modal';
 import { Input, TextArea } from 'src/components/Input';
@@ -21,7 +22,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { loadTags } from 'src/components/Tags/utils';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import TagType from 'src/types/TagType';
-import { useSelector } from 'react-redux'; // DODO added 44211792
+import getOwnerName from 'src/utils/getOwnerName'; // DODO added 44211759
 import { getUserInfo } from 'src/DodoExtensions/onBoarding/model/selectors/getUserInfo'; // DODO added 44211792
 
 export type PropertiesModalProps = {
@@ -33,6 +34,13 @@ export type PropertiesModalProps = {
   existingOwners?: SelectValue;
   addSuccessToast: (msg: string) => void;
 };
+
+// DODO added 44211759
+interface IExtra {
+  active: boolean;
+  email: string;
+  country_name: string;
+}
 
 const FormItem = AntdForm.Item;
 
@@ -91,7 +99,7 @@ function PropertiesModal({
         setSelectedOwners(
           chart?.owners?.map((owner: any) => ({
             value: owner.id,
-            label: `${owner.first_name} ${owner.last_name}`,
+            label: getOwnerName(owner), // DODO changed 44211759
           })),
         );
       } catch (response) {
@@ -114,11 +122,25 @@ function PropertiesModal({
           endpoint: `/api/v1/chart/related/owners?q=${query}`,
         }).then(response => ({
           data: response.json.result
-            .filter((item: { extra: { active: boolean } }) => item.extra.active)
-            .map((item: { value: number; text: string }) => ({
-              value: item.value,
-              label: item.text,
-            })),
+            .filter((item: { extra: Partial<IExtra> }) => item.extra.active)
+            .map(
+              (item: {
+                value: number;
+                text: string;
+                extra: Partial<IExtra>; // DODO added 44211759
+              }) => {
+                // DODO added start 44211759
+                const { country_name, email } = item.extra;
+                let label = item.text;
+                label += ` (${country_name || 'no country'})`;
+                if (email) label += ` ${email}`;
+                // DODO added stop 44211759
+                return {
+                  value: item.value,
+                  label,
+                };
+              },
+            ),
           totalCount: response.json.count,
         }));
       },

@@ -1,6 +1,6 @@
 // DODO was here
 import { useSelector } from 'react-redux';
-import { t, customTimeRangeDecode } from '@superset-ui/core';
+import { t, customTimeRangeDecode, dttmToMoment } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
 // @ts-ignore
@@ -19,7 +19,7 @@ import {
   MOMENT_FORMAT,
   MIDNIGHT,
   customTimeRangeEncode,
-  dttmToMoment,
+  // dttmToMoment,
   LOCALE_MAPPING,
 } from 'src/explore/components/controls/DateFilterControl/utils';
 import {
@@ -27,6 +27,7 @@ import {
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
 import { ExplorePageState } from 'src/explore/types';
+import { MOMENT_FORMAT_UI_DODO } from 'src/explore/constants'; // DODO added 44211759
 
 // DODO added start 44611022
 const isStandalone = process.env.type === undefined;
@@ -56,7 +57,29 @@ const retranslateConstantsComposed = (
 // DODO added stop 44611022
 
 export function CustomFrame(props: FrameComponentProps) {
+  const { withTime = true, untilInclude = false } = props; // DODO added 44211759
   const { customRange, matchedFlag } = customTimeRangeDecode(props.value);
+
+  // DODO added 44211759
+  if (customRange.untilMode === 'specific' && customRange.untilDatetime) {
+    if (untilInclude) {
+      customRange.untilDatetime = dttmToMoment(customRange.untilDatetime)
+        .endOf('date')
+        .format(MOMENT_FORMAT);
+    } else if (!untilInclude) {
+      customRange.untilDatetime = dttmToMoment(customRange.untilDatetime)
+        .startOf('date')
+        .format(MOMENT_FORMAT);
+    }
+
+    props.onChange(
+      customTimeRangeEncode({
+        ...customRange,
+        untilDatetime: customRange.untilDatetime,
+      }),
+    );
+  }
+
   if (!matchedFlag) {
     props.onChange(customTimeRangeEncode(customRange));
   }
@@ -150,7 +173,9 @@ export function CustomFrame(props: FrameComponentProps) {
           {sinceMode === 'specific' && (
             <Row>
               <DatePicker
-                showTime
+                // showTime
+                showTime={withTime} // DODO changed 44211759
+                format={withTime ? MOMENT_FORMAT_UI_DODO : 'DD-MM-YYYY'} // DODO added 44211759
                 defaultValue={dttmToMoment(sinceDatetime)}
                 onChange={(datetime: Moment) =>
                   onChange('sinceDatetime', datetime.format(MOMENT_FORMAT))
@@ -193,11 +218,25 @@ export function CustomFrame(props: FrameComponentProps) {
         </Col>
         <Col span={12}>
           <div className="control-label">
-            {t('END (EXCLUSIVE)')}{' '}
-            <InfoTooltipWithTrigger
-              tooltip={t('End date excluded from time range')}
-              placement="right"
-            />
+            {/* DODO changed start 44211759 */}
+            {untilInclude ? (
+              <>
+                {t('END (INCLUSIVE)')}{' '}
+                <InfoTooltipWithTrigger
+                  tooltip={t('End date included to time range')}
+                  placement="right"
+                />
+              </>
+            ) : (
+              <>
+                {t('END (EXCLUSIVE)')}{' '}
+                <InfoTooltipWithTrigger
+                  tooltip={t('End date excluded from time range')}
+                  placement="right"
+                />
+              </>
+            )}
+            {/* DODO changed stop 44211759 */}
           </div>
           <Select
             ariaLabel={t('END (EXCLUSIVE)')}
@@ -208,11 +247,22 @@ export function CustomFrame(props: FrameComponentProps) {
           {untilMode === 'specific' && (
             <Row>
               <DatePicker
-                showTime
+                // showTime
+                showTime={withTime} // DODO changed 44211759
+                format={withTime ? MOMENT_FORMAT_UI_DODO : 'DD-MM-YYYY'} // DODO added 44211759
                 defaultValue={dttmToMoment(untilDatetime)}
-                onChange={(datetime: Moment) =>
-                  onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
-                }
+                // onChange={(datetime: Moment) =>
+                //   onChange('untilDatetime', datetime.format(MOMENT_FORMAT))
+                // }
+                // DODO changed 44211759
+                onChange={(datetime: Moment) => {
+                  onChange(
+                    'untilDatetime',
+                    untilInclude
+                      ? datetime.endOf('date').format(MOMENT_FORMAT)
+                      : datetime.format(MOMENT_FORMAT),
+                  );
+                }}
                 allowClear={false}
                 locale={datePickerLocale}
               />

@@ -38,6 +38,7 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import Icons from 'src/components/Icons';
 import CurrencyControl from 'src/explore/components/controls/CurrencyControl';
 import NumberFormatControl from 'src/DodoExtensions/explore/components/controls/NumberFormatControl'; // DODO added 44211769
+import getOwnerName from 'src/utils/getOwnerName'; // DODO added 44211759
 import CollectionTable from './CollectionTable';
 import Fieldset from './Fieldset';
 import Field from './Field';
@@ -549,10 +550,18 @@ function OwnersSelector({ datasource, onChange }) {
     }).then(response => ({
       data: response.json.result
         .filter(item => item.extra.active)
-        .map(item => ({
-          value: item.value,
-          label: item.text,
-        })),
+        .map(item => {
+          // DODO added start 44211759
+          const { country_name: countryName, email } = item.extra;
+          let label = item.text;
+          label += ` (${countryName || 'no country'})`;
+          if (email) label += ` ${email}`;
+          // DODO added stop 44211759
+          return {
+            value: item.value,
+            label,
+          };
+        }),
       totalCount: response.json.count,
     }));
   }, []);
@@ -579,7 +588,7 @@ class DatasourceEditor extends PureComponent {
         ...props.datasource,
         owners: props.datasource.owners.map(owner => ({
           value: owner.value || owner.id,
-          label: owner.label || `${owner.first_name} ${owner.last_name}`,
+          label: owner.label || getOwnerName(owner), // DODO changed 44211759
         })),
         metrics: props.datasource.metrics?.map(metric => {
           const {

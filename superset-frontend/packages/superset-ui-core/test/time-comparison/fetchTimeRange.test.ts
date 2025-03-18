@@ -1,24 +1,8 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
+// DODO changed 44211759
 
 import fetchMock from 'fetch-mock';
-import { fetchTimeRange } from '@superset-ui/core';
+import { fetchTimeRange, TimeRangeEndType } from '@superset-ui/core';
 import {
   buildTimeRangeString,
   formatTimeRange,
@@ -38,21 +22,28 @@ test('generates proper time range string', () => {
 });
 
 test('generates a readable time range', () => {
-  expect(formatTimeRange('Last 7 days')).toBe('Last 7 days');
-  expect(formatTimeRange('No filter')).toBe('No filter');
-  expect(formatTimeRange('Yesterday : Tomorrow')).toBe(
-    'Yesterday ≤ col < Tomorrow',
+  expect(formatTimeRange('Last 7 days', TimeRangeEndType.Excluded)).toBe(
+    'Last 7 days',
   );
-  expect(formatTimeRange('2010-07-30T00:00:00 : 2020-07-30T00:00:00')).toBe(
-    '2010-07-30 ≤ col < 2020-07-30',
+  expect(formatTimeRange('No filter', TimeRangeEndType.Excluded)).toBe(
+    'No filter',
   );
-  expect(formatTimeRange('2010-07-30T01:00:00 : ')).toBe(
-    '2010-07-30T01:00:00 ≤ col < ∞',
-  );
-  expect(formatTimeRange(' : 2020-07-30T00:00:00')).toBe(
-    '-∞ ≤ col < 2020-07-30',
-  );
-  expect(formatTimeRange('')).toBe('');
+  expect(
+    formatTimeRange('Yesterday : Tomorrow', TimeRangeEndType.Excluded),
+  ).toBe('Yesterday ≤ col < Tomorrow');
+  expect(
+    formatTimeRange(
+      '2010-07-30T00:00:00 : 2020-07-30T00:00:00',
+      TimeRangeEndType.Excluded,
+    ),
+  ).toBe('2010-07-30 ≤ col < 2020-07-30');
+  expect(
+    formatTimeRange('2010-07-30T01:00:00 : ', TimeRangeEndType.Excluded),
+  ).toBe('2010-07-30T01:00:00 ≤ col < ∞');
+  expect(
+    formatTimeRange(' : 2020-07-30T00:00:00', TimeRangeEndType.Excluded),
+  ).toBe('-∞ ≤ col < 2020-07-30');
+  expect(formatTimeRange('', TimeRangeEndType.Excluded)).toBe('');
 });
 
 test('returns a formatted time range from response', async () => {
@@ -66,7 +57,11 @@ test('returns a formatted time range from response', async () => {
     ],
   });
 
-  const timeRange = await fetchTimeRange('Last day', 'temporal_col');
+  const timeRange = await fetchTimeRange(
+    'Last day',
+    TimeRangeEndType.Excluded,
+    'temporal_col',
+  );
   expect(timeRange).toEqual({
     value: '2021-04-13 ≤ temporal_col < 2021-04-14',
   });
@@ -77,7 +72,7 @@ test('returns a formatted time range from empty response', async () => {
     result: [],
   });
 
-  const timeRange = await fetchTimeRange('Last day');
+  const timeRange = await fetchTimeRange('Last day', TimeRangeEndType.Excluded);
   expect(timeRange).toEqual({
     value: '-∞ ≤ col < ∞',
   });
@@ -87,7 +82,7 @@ test('returns a formatted error message from response', async () => {
   fetchMock.getOnce("glob:*/api/v1/time_range/?q='Last+day'", {
     throws: new Response(JSON.stringify({ message: 'Network error' })),
   });
-  let timeRange = await fetchTimeRange('Last day');
+  let timeRange = await fetchTimeRange('Last day', TimeRangeEndType.Excluded);
   expect(timeRange).toEqual({
     error: 'Network error',
   });
@@ -99,7 +94,7 @@ test('returns a formatted error message from response', async () => {
     },
     { overwriteRoutes: true },
   );
-  timeRange = await fetchTimeRange('Last day');
+  timeRange = await fetchTimeRange('Last day', TimeRangeEndType.Excluded);
   expect(timeRange).toEqual({
     error: 'Internal Server Error',
   });
@@ -113,7 +108,7 @@ test('returns a formatted error message from response', async () => {
     },
     { overwriteRoutes: true },
   );
-  timeRange = await fetchTimeRange('Last day');
+  timeRange = await fetchTimeRange('Last day', TimeRangeEndType.Excluded);
   expect(timeRange).toEqual({
     error: 'Network error',
   });
@@ -140,9 +135,12 @@ test('fetchTimeRange with shift', async () => {
     },
   );
 
-  const timeRange = await fetchTimeRange('Last day', 'temporal_col', [
-    'last month',
-  ]);
+  const timeRange = await fetchTimeRange(
+    'Last day',
+    TimeRangeEndType.Excluded,
+    'temporal_col',
+    ['last month'],
+  );
 
   expect(timeRange).toEqual({
     value: [

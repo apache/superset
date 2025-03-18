@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   DataMask,
   DataMaskStateWithId,
@@ -30,8 +13,12 @@ import {
   NO_TIME_RANGE,
   QueryFormColumn,
 } from '@superset-ui/core';
+import { bootstrapData } from 'src/preamble'; // DODO added 44211759
 import { TIME_FILTER_MAP } from 'src/explore/constants';
-import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
+import {
+  getChartIdsInFilterScope,
+  getNativeFilterColumn, // DODO added 44211759
+} from 'src/dashboard/util/activeDashboardFilters';
 import {
   ChartConfiguration,
   DashboardLayout,
@@ -45,6 +32,8 @@ export enum IndicatorStatus {
   Incompatible = 'INCOMPATIBLE',
   CrossFilterApplied = 'CROSS_FILTER_APPLIED',
 }
+
+const locale = bootstrapData?.common?.locale || 'en'; // DODO added 44211759
 
 const TIME_GRANULARITY_FIELDS = new Set(Object.values(TIME_FILTER_MAP));
 
@@ -367,12 +356,17 @@ export const selectNativeIndicatorsForChart = (
           nativeFilter.chartsInScope?.includes(chartId),
       )
       .map(nativeFilter => {
-        const column = nativeFilter.targets?.[0]?.column?.name;
+        // const column = nativeFilter.targets?.[0]?.column?.name;
+        const column = getNativeFilterColumn(nativeFilter); // DODO changed 44211759
         const filterState = dataMask[nativeFilter.id]?.filterState;
         const label = extractLabel(filterState);
         return {
           column,
-          name: nativeFilter.name,
+          // DODO changed 44211759
+          name:
+            nativeFilter[locale === 'ru' ? 'nameRu' : 'name'] ||
+            nativeFilter.name ||
+            nativeFilter.nameRu,
           path: [nativeFilter.id],
           status: getStatus({
             label,

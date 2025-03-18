@@ -102,8 +102,13 @@ const FilterValue: FC<FilterControlProps> = ({
   const {
     datasetId,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target;
-  const { name: groupby } = column;
+  }: Partial<{
+    datasetId: number;
+    column: { name?: string; id?: string; nameRu?: string };
+  }> = // DODO changed 44211759
+    target;
+  // const { name: groupby } = column;
+  const { name: groupby, id: groupbyid, nameRu: groupbyRu } = column; // DODO changed 44211759
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -134,6 +139,8 @@ const FilterValue: FC<FilterControlProps> = ({
       datasetId,
       dependencies,
       groupby,
+      groupbyid, // DODO added 44211759
+      groupbyRu, // DODO added 44211759
       adhoc_filters,
       time_range,
       dashboardId,

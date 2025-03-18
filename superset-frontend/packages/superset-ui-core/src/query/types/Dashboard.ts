@@ -2,7 +2,11 @@
 
 import { AdhocFilter, DataMask } from '@superset-ui/core';
 
-export interface NativeFilterColumn {
+interface NativeFilterColumnDodoExtended {
+  id?: string; // DODO added 44211759
+  nameRu?: string; // DODO added 44211759
+}
+export interface NativeFilterColumn extends NativeFilterColumnDodoExtended {
   name: string;
   displayName?: string;
 }
@@ -54,6 +58,10 @@ export type FilterSets = {
 };
 // DODO added stop 44211751
 
+type FilterDodoExtended = {
+  nameRu?: string; // DODO added 44211759
+  selectTopValue?: number; // DODO added 44211759
+};
 export type Filter = {
   cascadeParentIds: string[];
   defaultDataMask: DataMask;
@@ -78,7 +86,7 @@ export type Filter = {
   chartsInScope?: number[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
-};
+} & FilterDodoExtended;
 
 export type AppliedFilter = {
   values: {
