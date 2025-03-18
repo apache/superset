@@ -190,7 +190,7 @@ function ChartTable({
               <>
                 <Icons.PlusOutlined
                   iconColor={theme.colors.primary.dark1}
-                  iconSize="xs"
+                  iconSize="m"
                   data-test="add-annotation-layer-button"
                 />
                 {t('Chart')}

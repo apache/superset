@@ -17,7 +17,13 @@
  * under the License.
  */
 import { useMemo, useState } from 'react';
-import { isFeatureEnabled, FeatureFlag, t, useTheme } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  t,
+  useTheme,
+  css,
+} from '@superset-ui/core';
 import {
   Actions,
   createErrorHandler,
@@ -37,7 +43,8 @@ import Icons from 'src/components/Icons';
 import { Tooltip } from 'src/components/Tooltip';
 import { Link } from 'react-router-dom';
 import { deleteTags } from 'src/features/tags/tags';
-import { Tag as AntdTag } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Tag as AntdTag } from 'antd'; // TODO: Remove antd
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
 import FaveStar from 'src/components/FaveStar';
@@ -137,10 +144,11 @@ function TagList(props: TagListProps) {
       <>
         <Icons.PlusOutlined
           iconSize="m"
-          css={theme => ({
-            margin: `auto ${theme.gridUnit * 2}px auto 0`,
-            verticalAlign: 'baseline',
-          })}
+          iconColor={theme.colors.primary.light5}
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
           data-test="add-rule-empty"
         />
         Create a new Tag
@@ -223,7 +231,10 @@ function TagList(props: TagListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.DeleteOutlined data-test="dashboard-list-trash-icon" />
+                        <Icons.DeleteOutlined
+                          data-test="dashboard-list-trash-icon"
+                          iconSize="l"
+                        />
                       </span>
                     </Tooltip>
                   )}
@@ -241,7 +252,7 @@ function TagList(props: TagListProps) {
                     className="action-button"
                     onClick={handleEdit}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -330,7 +341,10 @@ function TagList(props: TagListProps) {
     name: (
       <>
         <Icons.PlusOutlined
-          iconSize="s"
+          css={css`
+            vertical-align: text-top;
+          `}
+          iconSize="m"
           iconColor={theme.colors.primary.light5}
         />{' '}
         {t('Tag')}

@@ -201,6 +201,7 @@ function SavedQueryList({
       <Link
         to="/sqllab?new=true"
         css={css`
+          display: flex;
           &:hover {
             color: currentColor;
             text-decoration: none;
@@ -209,7 +210,7 @@ function SavedQueryList({
       >
         <Icons.PlusOutlined
           iconColor={theme.colors.primary.light5}
-          iconSize="s"
+          iconSize="m"
           css={css`
             margin: auto ${theme.gridUnit * 2}px auto 0;
           `}

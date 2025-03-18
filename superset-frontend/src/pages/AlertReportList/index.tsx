@@ -375,7 +375,7 @@ function AlertList({
                   label: 'execution-log-action',
                   tooltip: t('Execution log'),
                   placement: 'bottom',
-                  icon: 'Note',
+                  icon: 'FileTextOutlined',
                   onClick: handleGotoExecutionLog,
                 }
               : null,
@@ -423,9 +423,10 @@ function AlertList({
         <>
           <Icons.PlusOutlined
             iconColor={theme.colors.primary.light5}
-            iconSize="s"
+            iconSize="m"
             css={css`
               margin: auto ${theme.gridUnit * 2}px auto 0;
+              vertical-align: text-top;
             `}
           />
           {title}
@@ -454,11 +455,11 @@ function AlertList({
       <>
         <Icons.PlusOutlined
           iconColor={theme.colors.primary.light5}
-          iconSize="s"
-          css={theme => ({
-            margin: `auto ${theme.gridUnit * 2}px auto 0`,
-            verticalAlign: 'baseline',
-          })}
+          iconSize="m"
+          css={css`
+            margin: auto ${theme.gridUnit * 2}px auto 0;
+            vertical-align: text-top;
+          `}
           data-test="add-annotation-layer-button"
         />
         {title}{' '}

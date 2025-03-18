@@ -267,7 +267,12 @@ const FilterBarSettings = () => {
         }}
         trigger={['click']}
       >
-        <Button type="link">
+        <Button
+          type="link"
+          css={css`
+            padding: 0;
+          `}
+        >
           <Icons.SettingOutlined
             iconSize="xl"
             name="gear"

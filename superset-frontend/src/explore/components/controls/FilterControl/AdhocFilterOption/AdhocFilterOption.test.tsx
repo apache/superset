@@ -79,15 +79,13 @@ test('should render the remove button', async () => {
 
 test('should render the right caret', async () => {
   render(setup(mockedProps), { useDnd: true, useRedux: true });
-  expect(
-    await screen.findByRole('img', { name: 'caret-right' }),
-  ).toBeInTheDocument();
+  expect(await screen.findByRole('img', { name: 'right' })).toBeInTheDocument();
 });
 
 test('should render the Popover on clicking the right caret', async () => {
   render(setup(mockedProps), { useDnd: true, useRedux: true });
   const rightCaret = await screen.findByRole('img', {
-    name: 'caret-right',
+    name: 'right',
   });
   userEvent.click(rightCaret);
   expect(screen.getByRole('tooltip')).toBeInTheDocument();

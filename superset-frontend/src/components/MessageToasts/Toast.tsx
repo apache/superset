@@ -86,7 +86,7 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
 
   let className = 'toast--success';
   let icon = (
-    <Icons.CircleCheckSolid css={theme => notificationStyledIcon(theme)} />
+    <Icons.CheckCircleFilled css={theme => notificationStyledIcon(theme)} />
   );
 
   if (toast.toastType === ToastType.Warning) {

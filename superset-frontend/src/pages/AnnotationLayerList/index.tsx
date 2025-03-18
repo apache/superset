@@ -19,7 +19,7 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient, useTheme } from '@superset-ui/core';
+import { t, SupersetClient, useTheme, css } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -218,7 +218,10 @@ function AnnotationLayersList({
         <>
           <Icons.PlusOutlined
             iconColor={theme.colors.primary.light5}
-            iconSize="s"
+            iconSize="m"
+            css={css`
+              text-align: text-top;
+            `}
           />
           {t('Annotation layer')}
         </>
@@ -277,7 +280,10 @@ function AnnotationLayersList({
     buttonAction: () => handleAnnotationLayerEdit(null),
     buttonText: (
       <>
-        <Icons.PlusOutlined iconSize="m" />
+        <Icons.PlusOutlined
+          iconSize="m"
+          iconColor={theme.colors.primary.light5}
+        />
         {t('Annotation layer')}
       </>
     ),

@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// TODO: Remove fa-icon
+/* eslint-disable icons/no-fa-icons-usage */
 import { Fragment, useState, useEffect, FC, PureComponent } from 'react';
 
 import rison from 'rison';
@@ -109,6 +111,7 @@ const StyledSubMenu = styled(SubMenu)`
     [data-icon='caret-down'] {
       color: ${theme.colors.grayscale.base};
       font-size: ${theme.typography.sizes.xxs}px;
+      margin-left: ${theme.gridUnit}px;
     }
     &.antd5-menu-submenu-active {
       .antd5-menu-title-content {

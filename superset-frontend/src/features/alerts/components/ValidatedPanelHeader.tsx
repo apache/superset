@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
 const ValidatedPanelHeader = ({
@@ -30,8 +30,13 @@ const ValidatedPanelHeader = ({
   validateCheckStatus: boolean;
   testId?: string;
 }): JSX.Element => {
-  const checkmark = <Icons.CheckCircleOutlined />;
-
+  const theme = useTheme();
+  const checkmark = (
+    <Icons.CheckCircleOutlined
+      iconSize="l"
+      iconColor={theme.colors.success.base}
+    />
+  );
   return (
     <div className="collapse-panel-header">
       <div className="collapse-panel-title" data-test={testId}>

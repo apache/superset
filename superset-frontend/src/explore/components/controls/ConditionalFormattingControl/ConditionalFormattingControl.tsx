@@ -147,7 +147,7 @@ const ConditionalFormattingControl = ({
           <FormatterContainer key={index}>
             <CloseButton onClick={() => onDelete(index)}>
               <Icons.CloseOutlined
-                iconSize="xs"
+                iconSize="m"
                 iconColor={theme.colors.grayscale.light1}
               />
             </CloseButton>
@@ -164,8 +164,8 @@ const ConditionalFormattingControl = ({
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
                 <CaretContainer>
-                  <Icons.CaretRightOutlined
-                    iconSize="l"
+                  <Icons.RightOutlined
+                    iconSize="m"
                     css={css`
                       margin-top: ${theme.gridUnit}px;
                     `}
@@ -185,10 +185,10 @@ const ConditionalFormattingControl = ({
         >
           <AddControlLabel>
             <Icons.PlusOutlined
-              iconSize="xs"
+              iconSize="m"
               iconColor={theme.colors.grayscale.light1}
               css={theme => ({
-                margin: `auto ${theme.gridUnit * 2}px auto 0`,
+                margin: `auto ${theme.gridUnit}px auto 0`,
                 verticalAlign: 'baseline',
               })}
             />

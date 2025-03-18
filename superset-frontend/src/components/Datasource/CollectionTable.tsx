@@ -403,6 +403,8 @@ export default class CRUDCollection extends PureComponent<
             role="button"
             aria-label="Toggle expand"
             tabIndex={0}
+            // TODO: Remove fa-icon
+            // eslint-disable-next-line icons/no-fa-icons-usage
             className={`fa fa-caret-${
               isExpanded ? 'down' : 'right'
             } text-primary pointer`}

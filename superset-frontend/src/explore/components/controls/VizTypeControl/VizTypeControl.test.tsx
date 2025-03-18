@@ -122,9 +122,9 @@ describe('VizTypeControl', () => {
     await waitForRenderWrapper(props);
     expect(screen.getByLabelText('table')).toBeVisible();
     expect(screen.getByLabelText('big-number-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('pie-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('bar-chart-tile')).toBeVisible();
-    expect(screen.getByLabelText('area-chart-tile')).toBeVisible();
+    expect(screen.getByLabelText('pie-chart')).toBeVisible();
+    expect(screen.getByLabelText('bar-chart')).toBeVisible();
+    expect(screen.getByLabelText('area-chart')).toBeVisible();
     expect(screen.queryByLabelText('monitor')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('check-square')).not.toBeInTheDocument();
 

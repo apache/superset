@@ -45,6 +45,21 @@ export default function Timer({
   const [clockStr, setClockStr] = useState('00:00:00.00');
   const timer = useRef<ReturnType<typeof setInterval>>();
 
+  const getIconColor = (status: Type) => {
+    const { colors } = theme;
+
+    const colorMap: Record<Type, string> = {
+      success: colors.success.dark2,
+      warning: colors.warning.dark2,
+      danger: colors.error.dark2,
+      info: colors.info.dark2,
+      default: colors.grayscale.dark1,
+      primary: colors.primary.dark2,
+      secondary: colors.secondary.dark2,
+    };
+
+    return colorMap[status] || colors.grayscale.dark1;
+  };
   useEffect(() => {
     const stopTimer = () => {
       if (timer.current) {
@@ -73,7 +88,7 @@ export default function Timer({
     <TimerLabel
       icon={
         <Icons.ClockCircleOutlined
-          iconColor={theme.colors.success.dark2}
+          iconColor={getIconColor(status)}
           iconSize="m"
         />
       }

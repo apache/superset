@@ -17,7 +17,8 @@
  * under the License.
  */
 import Icons from 'src/components/Icons';
-import { Button, Tag } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+import { Button, Tag } from 'antd'; // TODO: Remove antd
 import { FC } from 'react';
 import { LayerTreeItemProps } from './types';
 
@@ -39,7 +40,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
     <Tag className={className}>
       <Button
         className="layer-tree-item-close"
-        icon={<Icons.CloseOutlined />}
+        icon={<Icons.CloseOutlined iconSize="m" />}
         onClick={onCloseTag}
         size="small"
       />

@@ -276,8 +276,9 @@ const SavedQueries = ({
                 <Icons.PlusOutlined
                   css={css`
                     margin: auto ${theme.gridUnit * 2}px auto 0;
+                    vertical-align: text-top;
                   `}
-                  iconSize="xs"
+                  iconSize="m"
                   iconColor={theme.colors.primary.dark1}
                 />
                 {t('SQL Query')}

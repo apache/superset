@@ -163,10 +163,7 @@ export const DataTablesPane = ({
         aria-label={t('Collapse data panel')}
       />
     ) : (
-      <Icons.CaretDownOutlined
-        iconSize="l"
-        aria-label={t('Expand data panel')}
-      />
+      <Icons.DownOutlined iconSize="l" aria-label={t('Expand data panel')} />
     );
     return (
       <TableControlsWrapper>

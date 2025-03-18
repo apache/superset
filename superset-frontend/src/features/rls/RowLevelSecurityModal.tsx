@@ -342,7 +342,7 @@ function RowLevelSecurityModal(props: RowLevelSecurityModalProps) {
             />
           ) : (
             <Icons.PlusOutlined
-              iconSize="xl"
+              iconSize="l"
               css={css`
                 margin: auto ${theme.gridUnit * 2}px auto 0;
               `}

@@ -371,7 +371,11 @@ const ResultSet = ({
                   }
                 }}
               >
-                <Icons.DownloadOutlined iconSize="m" /> {t('Download to CSV')}
+                <Icons.DownloadOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark2}
+                />{' '}
+                {t('Download to CSV')}
               </Button>
             )}
 

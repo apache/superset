@@ -25,6 +25,7 @@ import {
   SupersetClient,
   t,
   useTheme,
+  css,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback } from 'react';
 import rison from 'rison';
@@ -486,7 +487,7 @@ function ChartList(props: ChartListProps) {
                         className="action-button"
                         onClick={confirmDelete}
                       >
-                        <Icons.DeleteOutlined />
+                        <Icons.DeleteOutlined iconSize="l" />
                       </span>
                     </Tooltip>
                   )}
@@ -504,7 +505,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.UploadOutlined />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -520,7 +521,7 @@ function ChartList(props: ChartListProps) {
                     className="action-button"
                     onClick={openEditModal}
                   >
-                    <Icons.EditOutlined data-test="edit-alt" />
+                    <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -763,7 +764,10 @@ function ChartList(props: ChartListProps) {
         <>
           <Icons.PlusOutlined
             iconColor={theme.colors.primary.light5}
-            iconSize="xs"
+            iconSize="m"
+            css={css`
+              vertical-align: text-top;
+            `}
           />
           <span>{t('Chart')}</span>
         </>

@@ -383,7 +383,7 @@ export const OptionControlLabel = ({
         onClick={onRemove}
       >
         <Icons.CloseOutlined
-          iconSize="xs"
+          iconSize="m"
           iconColor={theme.colors.grayscale.light1}
           css={css`
             vertical-align: sub;
@@ -410,8 +410,8 @@ export const OptionControlLabel = ({
       )}
       {withCaret && (
         <CaretContainer>
-          <Icons.CaretRightOutlined
-            iconSize="l"
+          <Icons.RightOutlined
+            iconSize="m"
             css={css`
               margin-top: ${theme.gridUnit}px;
             `}

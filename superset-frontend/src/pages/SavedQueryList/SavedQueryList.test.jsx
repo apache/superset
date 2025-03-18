@@ -196,7 +196,10 @@ describe('SavedQueryList', () => {
     await waitFor(() => {
       const calls = fetchMock.calls(/saved_query\/\?q/);
       const lastCall = calls[calls.length - 1][0];
-      expect(lastCall).toContain('order_column:label');
+      const url = new URL(lastCall);
+      const params = new URLSearchParams(url.search);
+      const qParam = params.get('q');
+      expect(qParam).toContain('order_column:label');
     });
   });
 

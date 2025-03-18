@@ -238,15 +238,17 @@ const AnnotationLayerModal: FunctionComponent<AnnotationLayerModalProps> = ({
         <h4 data-test="annotation-layer-modal-title">
           {isEditMode ? (
             <Icons.EditOutlined
+              iconSize="l"
               css={css`
                 margin: auto ${theme.gridUnit * 2}px auto 0;
               `}
             />
           ) : (
             <Icons.PlusOutlined
-              iconSize="l"
+              iconSize="m"
               css={css`
                 margin: auto ${theme.gridUnit * 2}px auto 0;
+                vertical-align: text-top;
               `}
             />
           )}

@@ -86,7 +86,7 @@ const ShareSqlLabQuery = ({
       >
         <Icons.LinkOutlined
           iconColor={theme.colors.primary.base}
-          iconSize="xl"
+          iconSize="m"
         />
         {t('Copy link')}
       </Button>

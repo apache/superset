@@ -63,6 +63,7 @@ export default function LanguagePicker(props: LanguagePickerProps) {
         [data-icon='caret-down'] {
           color: ${theme.colors.grayscale.base};
           font-size: ${theme.typography.sizes.xxs}px;
+          margin-left: ${theme.gridUnit}px;
         }
       `}
       aria-label="Languages"
