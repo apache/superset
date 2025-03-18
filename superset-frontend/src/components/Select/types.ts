@@ -34,6 +34,8 @@ export type LabeledValue = { label?: ReactNode; value?: V };
 
 export type AntdProps = AntdSelectProps<AntdSelectValue>;
 
+export type { RefSelectProps };
+
 export type AntdExposedProps = Pick<
   AntdProps,
   | 'allowClear'
