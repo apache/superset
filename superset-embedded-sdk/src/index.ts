@@ -65,7 +65,7 @@ export type EmbedDashboardParams = {
   /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
   iframeSandboxExtras?: string[]
   /** force a specific refererPolicy to be used in the iframe request **/
-  referrerPolicy?: ReferrerPolicy | null
+  referrerPolicy?: ReferrerPolicy
 }
 
 export type Size = {
@@ -91,7 +91,7 @@ export async function embedDashboard({
   debug = false,
   iframeTitle = "Embedded Dashboard",
   iframeSandboxExtras = [],
-  referrerPolicy = null
+  referrerPolicy,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
