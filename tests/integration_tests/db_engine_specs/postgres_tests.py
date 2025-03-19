@@ -25,6 +25,7 @@ from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.models.sql_lab import Query
+from superset.utils.core import backend
 from superset.utils.database import get_example_database
 from tests.integration_tests.db_engine_specs.base_tests import TestDbEngineSpec
 from tests.integration_tests.fixtures.certificates import ssl_certificate
@@ -525,13 +526,12 @@ def test_get_catalog_names(app_context: AppContext) -> None:
     """
     Test the ``get_catalog_names`` method.
     """
-    database = get_example_database()
-
-    if database.backend != "postgresql":
+    if backend() != "postgresql":
         return
 
-    with database.get_inspector_with_context() as inspector:
-        assert PostgresEngineSpec.get_catalog_names(database, inspector) == [
+    database = get_example_database()
+    with database.get_inspector() as inspector:
+        assert PostgresEngineSpec.get_catalog_names(database, inspector) == {
             "postgres",
             "superset",
-        ]
+        }

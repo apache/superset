@@ -25,7 +25,7 @@ import click
 
 REPO = "apache/superset"
 CACHE_REPO = f"{REPO}-cache"
-BASE_PY_IMAGE = "3.9-slim-bookworm"
+BASE_PY_IMAGE = "3.10-slim-bookworm"
 
 
 def run_cmd(command: str, raise_on_failure: bool = True) -> str:
@@ -82,7 +82,7 @@ def is_latest_release(release: str) -> bool:
     return "SKIP_TAG::false" in output
 
 
-def make_docker_tag(l: list[str]) -> str:
+def make_docker_tag(l: list[str]) -> str:  # noqa: E741
     return f"{REPO}:" + "-".join([o for o in l if o])
 
 
@@ -140,7 +140,7 @@ def get_docker_command(
     build_context_ref: str,
     force_latest: bool = False,
 ) -> str:
-    tag = ""
+    tag = ""  # noqa: F841
     build_target = ""
     py_ver = BASE_PY_IMAGE
     docker_context = "."
@@ -149,9 +149,9 @@ def get_docker_command(
         build_target = "dev"
     elif build_preset == "lean":
         build_target = "lean"
-    elif build_preset == "py310":
+    elif build_preset == "py311":
         build_target = "lean"
-        py_ver = "3.10-slim-bookworm"
+        py_ver = "3.11-slim-bookworm"
     elif build_preset == "websocket":
         build_target = ""
         docker_context = "superset-websocket"
@@ -217,7 +217,7 @@ def get_docker_command(
 @click.command()
 @click.argument(
     "build_preset",
-    type=click.Choice(["lean", "dev", "dockerize", "websocket", "py310", "ci"]),
+    type=click.Choice(["lean", "dev", "dockerize", "websocket", "py311", "ci"]),
 )
 @click.argument("build_context", type=click.Choice(["push", "pull_request", "release"]))
 @click.option(
@@ -284,7 +284,7 @@ def main(
         script = script + docker_build_command
         if verbose:
             run_cmd("cat Dockerfile")
-        stdout = run_cmd(script)
+        stdout = run_cmd(script)  # noqa: F841
     else:
         print("Dry Run - Docker Build Command:")
         print(docker_build_command)

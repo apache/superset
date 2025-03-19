@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { ReactNode, useMemo } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { css, styled, t, useTheme } from '@superset-ui/core';
 import {
   ChartConfiguration,
@@ -140,6 +140,7 @@ export const ChartsScopingListPanel = ({
         </Button>
       </AddButtonContainer>
       <FilterTitle
+        role="button"
         onClick={() => setCurrentChartId(undefined)}
         className={activeChartId === undefined ? 'active' : ''}
       >

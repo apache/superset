@@ -158,3 +158,11 @@ export const TIME_FILTER_MAP = {
 export const POPOVER_INITIAL_HEIGHT = 240;
 export const POPOVER_INITIAL_WIDTH = 320;
 export const UNSAVED_CHART_ID = 0;
+
+export const QUERY_MODE_REQUISITES = new Set([
+  'all_columns',
+  'groupby',
+  'metrics',
+  'percent_metrics',
+  'order_by_cols',
+]);

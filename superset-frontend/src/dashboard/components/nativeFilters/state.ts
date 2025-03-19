@@ -84,7 +84,7 @@ function useSelectChartTabParents() {
       layoutItem => layoutItem.meta?.chartId === chartId,
     );
     return chartLayoutItem?.parents.filter(
-      (parent: string) => dashboardLayout[parent].type === TAB_TYPE,
+      (parent: string) => dashboardLayout[parent]?.type === TAB_TYPE,
     );
   };
 }

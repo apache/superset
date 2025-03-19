@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import Collapse from 'src/components/Collapse';
 import { styled, t, useTheme, css } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';

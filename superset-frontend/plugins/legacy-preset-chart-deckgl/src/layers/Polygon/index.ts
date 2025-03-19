@@ -32,13 +32,7 @@ const metadata = new ChartMetadata({
   thumbnail,
   exampleGallery: [{ url: example }],
   useLegacyApi: true,
-  tags: [
-    t('deckGL'),
-    t('3D'),
-    t('Multi-Dimensions'),
-    t('Geo'),
-    t('Experimental'),
-  ],
+  tags: [t('deckGL'), t('3D'), t('Multi-Dimensions'), t('Geo')],
 });
 
 export default class PolygonChartPlugin extends ChartPlugin {

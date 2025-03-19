@@ -18,7 +18,7 @@
 import re
 from datetime import datetime, timedelta
 from functools import partial
-from typing import Any, Dict, SupportsInt
+from typing import Any, Dict, SupportsInt  # noqa: F401
 
 from superset.jinja_context import PrestoTemplateProcessor
 

@@ -62,11 +62,11 @@ export default class EchartsRadarChartPlugin extends EchartsChartPlugin<
         tags: [
           t('Business'),
           t('Comparison'),
-          t('Coordinates'),
           t('Multi-Variables'),
           t('Report'),
           t('Web'),
           t('ECharts'),
+          t('Featured'),
         ],
         thumbnail,
       },

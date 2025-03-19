@@ -15,26 +15,27 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
-import json
 from unittest.mock import patch
 
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 import prison
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import db, security_manager
 from superset.extensions import appbuilder
 from superset.models.dashboard import Dashboard
-from superset.views.base_api import BaseSupersetModelRestApi, requires_json
+from superset.views.base_api import BaseSupersetModelRestApi, requires_json  # noqa: F401
+from superset.utils import json
 
-from .base_tests import SupersetTestCase
-from .conftest import with_config
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_config
+from tests.integration_tests.constants import ADMIN_USERNAME
 
 
 class Model1Api(BaseSupersetModelRestApi):
@@ -65,7 +66,7 @@ class TestOpenApiSpec(SupersetTestCase):
         """
         from openapi_spec_validator import validate_spec
 
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/_openapi"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -83,7 +84,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         not render all columns by default but just the model's pk
         """
         # Check get list response
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/model1api/"
         rv = self.client.get(uri)
         self.assertEqual(rv.status_code, 200)
@@ -108,7 +109,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         We want to make sure that not declared edit_columns will
         not render all columns by default but just the model's pk
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/_openapi"
         rv = self.client.get(uri)
         # dashboard model accepts all fields are null
@@ -140,7 +141,7 @@ class TestBaseModelRestApi(SupersetTestCase):
             "json_metadata": '{"b": "B"}',
             "published": True,
         }
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/model1api/"
         rv = self.client.post(uri, json=dashboard_data)
         response = json.loads(rv.data.decode("utf-8"))
@@ -163,7 +164,7 @@ class TestBaseModelRestApi(SupersetTestCase):
 
         We want to make sure that non-JSON request are refused
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/report/"  # endpoint decorated with @requires_json
         rv = self.client.post(
             uri, data="a: value\nb: 1\n", content_type="application/yaml"
@@ -180,7 +181,7 @@ class TestBaseModelRestApi(SupersetTestCase):
         """
         dashboard = db.session.query(Dashboard).first()
         dashboard_data = {"dashboard_title": "CHANGED", "slug": "CHANGED"}
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/model1api/{dashboard.id}"
         rv = self.client.put(uri, json=dashboard_data)
         response = json.loads(rv.data.decode("utf-8"))
@@ -205,7 +206,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get related owners
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/{self.resource_name}/related/owners"
         rv = self.client.get(uri)
         assert rv.status_code == 200
@@ -223,7 +224,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get related owners with extra related query filters
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
 
         def _base_filter(query):
             return query.filter_by(username="alpha")
@@ -243,7 +244,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get related owners with pagination
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         page_size = 1
         argument = {"page_size": page_size}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
@@ -267,7 +268,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get related owners with pagination returns 422
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         argument = {"page": 1, "page_size": 1, "include_ids": [2]}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
         rv = self.client.get(uri)
@@ -277,7 +278,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get filter related owners
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma"}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
@@ -316,7 +317,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get base filter related owners
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/{self.resource_name}/related/owners"
         gamma_user = (
             db.session.query(security_manager.user_model)
@@ -343,7 +344,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get base filter related owners using security manager
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/{self.resource_name}/related/owners"
         gamma_user = (
             db.session.query(security_manager.user_model)
@@ -364,7 +365,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get filter related owners
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma_sqllab", "include_ids": [2]}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
@@ -391,7 +392,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get filter related owners
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma_sqllab", "include_ids": [2, 4]}
         uri = f"api/v1/{self.resource_name}/related/owners?q={prison.dumps(argument)}"
 
@@ -418,7 +419,7 @@ class ApiOwnersTestCaseMixin:
         """
         API: Test get related fail
         """
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         uri = f"api/v1/{self.resource_name}/related/owner"
 
         rv = self.client.get(uri)

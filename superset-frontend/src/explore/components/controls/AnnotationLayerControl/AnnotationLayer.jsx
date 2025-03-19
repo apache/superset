@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import rison from 'rison';
 import PropTypes from 'prop-types';
 import { CompactPicker } from 'react-color';
@@ -131,7 +131,7 @@ const NotFoundContent = () => (
   </NotFoundContentWrapper>
 );
 
-class AnnotationLayer extends React.PureComponent {
+class AnnotationLayer extends PureComponent {
   constructor(props) {
     super(props);
     const {

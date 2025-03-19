@@ -219,7 +219,7 @@ function Sankey(element, props) {
     .attr('width', sankey.nodeWidth())
     .style('fill', d => {
       const name = d.name || 'N/A';
-      d.color = colorFn(name, sliceId);
+      d.color = colorFn(name, sliceId, colorScheme);
 
       return d.color;
     })

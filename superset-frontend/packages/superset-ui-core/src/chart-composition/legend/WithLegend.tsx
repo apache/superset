@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { CSSProperties, ReactNode, PureComponent } from 'react';
+import { CSSProperties, ReactNode, PureComponent } from 'react';
 import { ParentSize } from '@vx/responsive';
 
 const defaultProps = {

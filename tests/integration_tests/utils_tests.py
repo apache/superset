@@ -18,47 +18,42 @@
 import uuid
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-import json
 import os
 import re
 from typing import Any, Optional
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch  # noqa: F401
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from tests.integration_tests.fixtures.birth_names_dashboard import (
-    load_birth_names_dashboard_with_slices,
-    load_birth_names_data,
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 
 import numpy as np
 import pandas as pd
 import pytest
-from flask import Flask, g
+from flask import Flask, g  # noqa: F401
 import marshmallow
-from sqlalchemy.exc import ArgumentError
+from sqlalchemy.exc import ArgumentError  # noqa: F401
 
-import tests.integration_tests.test_app
+import tests.integration_tests.test_app  # noqa: F401
 from superset import app, db, security_manager
 from superset.constants import NO_TIME_RANGE
-from superset.exceptions import CertificateException, SupersetException
+from superset.exceptions import CertificateException, SupersetException  # noqa: F401
 from superset.models.core import Database, Log
-from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
+from superset.models.dashboard import Dashboard  # noqa: F401
+from superset.models.slice import Slice  # noqa: F401
 from superset.utils.core import (
-    base_json_conv,
     cast_to_num,
     convert_legacy_filters_into_adhoc,
     create_ssl_cert_file,
     DTTM_ALIAS,
     extract_dataframe_dtypes,
-    format_timedelta,
     GenericDataType,
     get_form_data_token,
     as_list,
     get_email_address_list,
     get_stacktrace,
-    json_int_dttm_ser,
-    json_iso_dttm_ser,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -66,19 +61,20 @@ from superset.utils.core import (
     parse_ssl_cert,
     parse_js_uri_path_item,
     split,
-    validate_json,
     zlib_compress,
     zlib_decompress,
     DateColumn,
 )
+from superset.utils import json
 from superset.utils.database import get_or_create_db
 from superset.utils import schema
 from superset.utils.hashing import md5_sha_from_str
-from superset.views.utils import build_extra_filters, get_form_data
+from superset.views.utils import build_extra_filters, get_form_data  # noqa: F401
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 from .fixtures.certificates import ssl_certificate
@@ -88,48 +84,49 @@ class TestUtils(SupersetTestCase):
     def test_json_int_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         ts = 1577836800000.0
-        assert json_int_dttm_ser(dttm) == ts
-        assert json_int_dttm_ser(date(2020, 1, 1)) == ts
-        assert json_int_dttm_ser(datetime(1970, 1, 1)) == 0
-        assert json_int_dttm_ser(date(1970, 1, 1)) == 0
-        assert json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
-        assert json_int_dttm_ser(np.int64(1)) == 1
+        assert json.json_int_dttm_ser(dttm) == ts
+        assert json.json_int_dttm_ser(date(2020, 1, 1)) == ts
+        assert json.json_int_dttm_ser(datetime(1970, 1, 1)) == 0
+        assert json.json_int_dttm_ser(date(1970, 1, 1)) == 0
+        assert json.json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
+        assert json.json_int_dttm_ser(np.int64(1)) == 1
 
         with self.assertRaises(TypeError):
-            json_int_dttm_ser(np.datetime64())
+            json.json_int_dttm_ser(np.datetime64())
 
     def test_json_iso_dttm_ser(self):
         dttm = datetime(2020, 1, 1)
         dt = date(2020, 1, 1)
         t = time()
-        assert json_iso_dttm_ser(dttm) == dttm.isoformat()
-        assert json_iso_dttm_ser(dt) == dt.isoformat()
-        assert json_iso_dttm_ser(t) == t.isoformat()
-        assert json_iso_dttm_ser(np.int64(1)) == 1
+        assert json.json_iso_dttm_ser(dttm) == dttm.isoformat()
+        assert json.json_iso_dttm_ser(dt) == dt.isoformat()
+        assert json.json_iso_dttm_ser(t) == t.isoformat()
+        assert json.json_iso_dttm_ser(np.int64(1)) == 1
 
         assert (
-            json_iso_dttm_ser(np.datetime64(), pessimistic=True)
+            json.json_iso_dttm_ser(np.datetime64(), pessimistic=True)
             == "Unserializable [<class 'numpy.datetime64'>]"
         )
 
         with self.assertRaises(TypeError):
-            json_iso_dttm_ser(np.datetime64())
+            json.json_iso_dttm_ser(np.datetime64())
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(np.bool_(1)), bool)
-        assert isinstance(base_json_conv(np.int64(1)), int)
-        assert isinstance(base_json_conv(np.array([1, 2, 3])), list)
-        assert base_json_conv(np.array(None)) is None
-        assert isinstance(base_json_conv({1}), list)
-        assert isinstance(base_json_conv(Decimal("1.0")), float)
-        assert isinstance(base_json_conv(uuid.uuid4()), str)
-        assert isinstance(base_json_conv(time()), str)
-        assert isinstance(base_json_conv(timedelta(0)), str)
-        assert isinstance(base_json_conv(b""), str)
-        assert base_json_conv(bytes("", encoding="utf-16")) == "[bytes]"
+        assert isinstance(json.base_json_conv(np.bool_(1)), bool)
+        assert isinstance(json.base_json_conv(np.int64(1)), int)
+        assert isinstance(json.base_json_conv(np.array([1, 2, 3])), list)
+        assert json.base_json_conv(np.array(None)) is None
+        assert isinstance(json.base_json_conv({1}), list)
+        assert isinstance(json.base_json_conv(Decimal("1.0")), float)
+        assert isinstance(json.base_json_conv(uuid.uuid4()), str)
+        assert isinstance(json.base_json_conv(time()), str)
+        assert isinstance(json.base_json_conv(timedelta(0)), str)
+        assert isinstance(json.base_json_conv(b""), str)
+        assert isinstance(json.base_json_conv(b"\xff\xfe"), str)
+        assert json.base_json_conv(b"\xff") == "[bytes]"
 
         with pytest.raises(TypeError):
-            base_json_conv(np.datetime64())
+            json.base_json_conv(np.datetime64())
 
     def test_zlib_compression(self):
         json_str = '{"test": 1}'
@@ -570,24 +567,26 @@ class TestUtils(SupersetTestCase):
         )
 
     def test_format_timedelta(self):
-        self.assertEqual(format_timedelta(timedelta(0)), "0:00:00")
-        self.assertEqual(format_timedelta(timedelta(days=1)), "1 day, 0:00:00")
-        self.assertEqual(format_timedelta(timedelta(minutes=-6)), "-0:06:00")
+        self.assertEqual(json.format_timedelta(timedelta(0)), "0:00:00")
+        self.assertEqual(json.format_timedelta(timedelta(days=1)), "1 day, 0:00:00")
+        self.assertEqual(json.format_timedelta(timedelta(minutes=-6)), "-0:06:00")
         self.assertEqual(
-            format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
+            json.format_timedelta(timedelta(0) - timedelta(days=1, hours=5, minutes=6)),
             "-1 day, 5:06:00",
         )
         self.assertEqual(
-            format_timedelta(timedelta(0) - timedelta(days=16, hours=4, minutes=3)),
+            json.format_timedelta(
+                timedelta(0) - timedelta(days=16, hours=4, minutes=3)
+            ),
             "-16 days, 4:03:00",
         )
 
     def test_validate_json(self):
         valid = '{"a": 5, "b": [1, 5, ["g", "h"]]}'
-        self.assertIsNone(validate_json(valid))
+        self.assertIsNone(json.validate_json(valid))
         invalid = '{"a": 5, "b": [1, 5, ["g", "h]]}'
-        with self.assertRaises(SupersetException):
-            validate_json(invalid)
+        with self.assertRaises(json.JSONDecodeError):
+            json.validate_json(invalid)
 
     def test_convert_legacy_filters_into_adhoc_where(self):
         form_data = {"where": "a = 1"}
@@ -684,20 +683,19 @@ class TestUtils(SupersetTestCase):
         self.assertIsNotNone(parse_js_uri_path_item("item"))
 
     def test_get_stacktrace(self):
-        with app.app_context():
-            app.config["SHOW_STACKTRACE"] = True
-            try:
-                raise Exception("NONONO!")
-            except Exception:
-                stacktrace = get_stacktrace()
-                self.assertIn("NONONO", stacktrace)
+        app.config["SHOW_STACKTRACE"] = True
+        try:
+            raise Exception("NONONO!")
+        except Exception:
+            stacktrace = get_stacktrace()
+            self.assertIn("NONONO", stacktrace)
 
-            app.config["SHOW_STACKTRACE"] = False
-            try:
-                raise Exception("NONONO!")
-            except Exception:
-                stacktrace = get_stacktrace()
-                assert stacktrace is None
+        app.config["SHOW_STACKTRACE"] = False
+        try:
+            raise Exception("NONONO!")
+        except Exception:
+            stacktrace = get_stacktrace()
+            assert stacktrace is None
 
     def test_split(self):
         self.assertEqual(list(split("a b")), ["a", "b"])
@@ -838,9 +836,8 @@ class TestUtils(SupersetTestCase):
         )
 
     def test_get_form_data_default(self) -> None:
-        with app.test_request_context():
-            form_data, slc = get_form_data()
-            self.assertEqual(slc, None)
+        form_data, slc = get_form_data()
+        self.assertEqual(slc, None)
 
     def test_get_form_data_request_args(self) -> None:
         with app.test_request_context(
@@ -897,12 +894,12 @@ class TestUtils(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_log_this(self) -> None:
         # TODO: Add additional scenarios.
-        self.login(username="admin")
+        self.login(ADMIN_USERNAME)
         slc = self.get_slice("Top 10 Girl Name Share")
         dashboard_id = 1
 
         assert slc.viz is not None
-        resp = self.get_json_resp(
+        resp = self.get_json_resp(  # noqa: F841
             f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/"
             + f'?form_data={{"slice_id": {slc.id}}}&dashboard_id={dashboard_id}',
             {"form_data": json.dumps(slc.viz.form_data)},

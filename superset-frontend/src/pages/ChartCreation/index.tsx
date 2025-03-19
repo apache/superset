@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode } from 'react';
+import { PureComponent, ReactNode } from 'react';
 import rison from 'rison';
 import querystring from 'query-string';
 import {
@@ -89,6 +89,7 @@ const StyledContainer = styled.div`
       display: flex;
       flex-direction: row;
       align-items: center;
+      margin-bottom: ${theme.gridUnit * 5}px;
 
       & > div {
         min-width: 200px;
@@ -144,6 +145,7 @@ const StyledContainer = styled.div`
 
       .ant-steps-item-description {
         margin-top: ${theme.gridUnit}px;
+        padding-bottom: ${theme.gridUnit}px;
       }
     }
 
@@ -183,7 +185,7 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
-export class ChartCreation extends React.PureComponent<
+export class ChartCreation extends PureComponent<
   ChartCreationProps,
   ChartCreationState
 > {

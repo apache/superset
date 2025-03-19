@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-FROM python:3.9-buster
+FROM python:3.10-slim-bookworm
 
 RUN useradd --user-group --create-home --no-log-init --shell /bin/bash superset
 
@@ -34,8 +34,11 @@ RUN apt-get install -y build-essential libssl-dev \
 
 # Install nodejs for custom build
 # https://nodejs.org/en/download/package-manager/
-RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - \
-    && apt-get install -y nodejs
+RUN set -eux; \
+    curl -sL https://deb.nodesource.com/setup_18.x | bash -; \
+    apt-get install -y nodejs; \
+    node --version;
+RUN if ! which npm; then apt-get install -y npm; fi
 
 RUN mkdir -p /home/superset
 RUN chown superset /home/superset

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { omit } from 'lodash';
 import { Input } from 'src/components/Input';
 import { FormItem } from 'src/components/Form';
@@ -25,15 +25,14 @@ import Button from 'src/components/Button';
 import { AntdForm, AsyncSelect, Col, Row } from 'src/components';
 import rison from 'rison';
 import {
-  CategoricalColorNamespace,
   ensureIsArray,
   isFeatureEnabled,
   FeatureFlag,
   getCategoricalSchemeRegistry,
-  getSharedLabelColor,
   styled,
   SupersetClient,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 
 import Modal from 'src/components/Modal';
@@ -41,16 +40,13 @@ import { JsonEditor } from 'src/components/AsyncAceEditor';
 
 import ColorSchemeControlWrapper from 'src/dashboard/components/ColorSchemeControlWrapper';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import TagType from 'src/types/TagType';
-import {
-  addTag,
-  deleteTaggedObjects,
-  fetchTags,
-  OBJECT_TYPES,
-} from 'src/features/tags/tags';
+import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import { loadTags } from 'src/components/Tags/utils';
+import { applyColors, getColorNamespace } from 'src/utils/colorScheme';
+import getOwnerName from 'src/utils/getOwnerName';
+import Owner from 'src/types/Owner';
 
 const StyledFormItem = styled(FormItem)`
   margin-bottom: 0;
@@ -115,10 +111,9 @@ const PropertiesModal = ({
   const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 
   const tagsAsSelectValues = useMemo(() => {
-    const selectTags = tags.map(tag => ({
-      value: tag.name,
+    const selectTags = tags.map((tag: { id: number; name: string }) => ({
+      value: tag.id,
       label: tag.name,
-      key: tag.name,
     }));
     return selectTags;
   }, [tags.length]);
@@ -257,17 +252,10 @@ const PropertiesModal = ({
   };
 
   const handleOwnersSelectValue = () => {
-    const parsedOwners = (owners || []).map(
-      (owner: {
-        id: number;
-        first_name?: string;
-        last_name?: string;
-        full_name?: string;
-      }) => ({
-        value: owner.id,
-        label: owner.full_name || `${owner.first_name} ${owner.last_name}`,
-      }),
-    );
+    const parsedOwners = (owners || []).map((owner: Owner) => ({
+      value: owner.id,
+      label: getOwnerName(owner),
+    }));
     return parsedOwners;
   };
 
@@ -309,46 +297,10 @@ const PropertiesModal = ({
     setColorScheme(colorScheme);
   };
 
-  const updateTags = (oldTags: TagType[], newTags: TagType[]) => {
-    // update the tags for this object
-    // add tags that are in new tags, but not in old tags
-    // eslint-disable-next-line array-callback-return
-    newTags.map((tag: TagType) => {
-      if (!oldTags.some(t => t.name === tag.name)) {
-        addTag(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-            includeTypes: false,
-          },
-          tag.name,
-          () => {},
-          () => {},
-        );
-      }
-    });
-    // delete tags that are in old tags, but not in new tags
-    // eslint-disable-next-line array-callback-return
-    oldTags.map((tag: TagType) => {
-      if (!newTags.some(t => t.name === tag.name)) {
-        deleteTaggedObjects(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-          },
-          tag,
-          () => {},
-          () => {},
-        );
-      }
-    });
-  };
-
   const onFinish = () => {
     const { title, slug, certifiedBy, certificationDetails } =
       form.getFieldsValue();
     let currentColorScheme = colorScheme;
-    let colorNamespace = '';
     let currentJsonMetadata = jsonMetadata;
 
     // validate currentJsonMetadata
@@ -366,11 +318,13 @@ const PropertiesModal = ({
       return;
     }
 
+    const copyMetadata = { ...metadata };
+    const colorNamespace = getColorNamespace(metadata?.color_namespace);
+
     // color scheme in json metadata has precedence over selection
     currentColorScheme = metadata?.color_scheme || colorScheme;
-    colorNamespace = metadata?.color_namespace;
 
-    // filter shared_label_color from user input
+    // remove information from user facing input
     if (metadata?.shared_label_colors) {
       delete metadata.shared_label_colors;
     }
@@ -378,22 +332,8 @@ const PropertiesModal = ({
       delete metadata.color_scheme_domain;
     }
 
-    const sharedLabelColor = getSharedLabelColor();
-    const categoricalNamespace =
-      CategoricalColorNamespace.getNamespace(colorNamespace);
-    categoricalNamespace.resetColors();
-    if (currentColorScheme) {
-      sharedLabelColor.updateColorMap(colorNamespace, currentColorScheme);
-      metadata.shared_label_colors = Object.fromEntries(
-        sharedLabelColor.getColorMap(),
-      );
-      metadata.color_scheme_domain =
-        categoricalSchemeRegistry.get(colorScheme)?.colors || [];
-    } else {
-      sharedLabelColor.reset();
-      metadata.shared_label_colors = {};
-      metadata.color_scheme_domain = [];
-    }
+    // only apply colors, the user has not saved yet
+    applyColors(copyMetadata, true);
 
     currentJsonMetadata = jsonStringify(metadata);
 
@@ -401,30 +341,15 @@ const PropertiesModal = ({
       updateMetadata: false,
     });
 
-    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
-      // update tags
-      try {
-        fetchTags(
-          {
-            objectType: OBJECT_TYPES.DASHBOARD,
-            objectId: dashboardId,
-            includeTypes: false,
-          },
-          (currentTags: TagType[]) => updateTags(currentTags, tags),
-          error => {
-            handleErrorResponse(error);
-          },
-        );
-      } catch (error) {
-        handleErrorResponse(error);
-      }
-    }
-
     const moreOnSubmitProps: { roles?: Roles } = {};
-    const morePutProps: { roles?: number[] } = {};
+    const morePutProps: { roles?: number[]; tags?: (number | undefined)[] } =
+      {};
     if (isFeatureEnabled(FeatureFlag.DashboardRbac)) {
       moreOnSubmitProps.roles = roles;
       morePutProps.roles = (roles || []).map(r => r.id);
+    }
+    if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
+      morePutProps.tags = tags.map(tag => tag.id);
     }
     const onSubmitProps = {
       id: dashboardId,
@@ -466,7 +391,7 @@ const PropertiesModal = ({
 
   const getRowsWithoutRoles = () => {
     const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelColors = !!Object.keys(
+    const hasCustomLabelsColor = !!Object.keys(
       jsonMetadataObj?.label_colors || {},
     ).length;
 
@@ -496,7 +421,7 @@ const PropertiesModal = ({
         <Col xs={24} md={12}>
           <h3 style={{ marginTop: '1em' }}>{t('Colors')}</h3>
           <ColorSchemeControlWrapper
-            hasCustomLabelColors={hasCustomLabelColors}
+            hasCustomLabelsColor={hasCustomLabelsColor}
             onChange={onColorSchemeChange}
             colorScheme={colorScheme}
             labelMargin={4}
@@ -508,7 +433,7 @@ const PropertiesModal = ({
 
   const getRowsWithRoles = () => {
     const jsonMetadataObj = getJsonMetadata();
-    const hasCustomLabelColors = !!Object.keys(
+    const hasCustomLabelsColor = !!Object.keys(
       jsonMetadataObj?.label_colors || {},
     ).length;
 
@@ -565,7 +490,7 @@ const PropertiesModal = ({
         <Row>
           <Col xs={24} md={12}>
             <ColorSchemeControlWrapper
-              hasCustomLabelColors={hasCustomLabelColors}
+              hasCustomLabelsColor={hasCustomLabelsColor}
               onChange={onColorSchemeChange}
               colorScheme={colorScheme}
               labelMargin={4}
@@ -621,12 +546,12 @@ const PropertiesModal = ({
     }
   }, [dashboardId]);
 
-  const handleChangeTags = (values: { label: string; value: number }[]) => {
-    // triggered whenever a new tag is selected or a tag was deselected
-    // on new tag selected, add the tag
-
-    const uniqueTags = [...new Set(values.map(v => v.label))];
-    setTags([...uniqueTags.map(t => ({ name: t }))]);
+  const handleChangeTags = (tags: { label: string; value: number }[]) => {
+    const parsedTags: TagType[] = ensureIsArray(tags).map(r => ({
+      id: r.value,
+      name: r.label,
+    }));
+    setTags(parsedTags);
   };
 
   return (

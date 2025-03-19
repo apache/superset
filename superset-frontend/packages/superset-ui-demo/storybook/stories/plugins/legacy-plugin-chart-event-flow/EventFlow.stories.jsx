@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import sampleEvents from '@data-ui/event-flow/build/sampleEvents';
 import EventFlowChartPlugin from '@superset-ui/legacy-plugin-chart-event-flow';

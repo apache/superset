@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { ClassNames } from '@emotion/react';
 import { styled, useTheme, t } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
@@ -80,7 +80,7 @@ const NowrapDiv = styled.div`
 `;
 
 const ColumnElement = ({ column }: ColumnElementProps) => {
-  let columnName: React.ReactNode = column.name;
+  let columnName: ReactNode = column.name;
   let icons;
   if (column.keys && column.keys.length > 0) {
     columnName = <strong>{column.name}</strong>;

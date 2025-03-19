@@ -40,15 +40,18 @@ from superset.commands.report.update import UpdateReportScheduleCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
+from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportSchedule
 from superset.reports.schemas import (
     get_delete_ids_schema,
+    get_slack_channels_schema,
     openapi_spec_methods_override,
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
 )
+from superset.utils.slack import get_channels_with_search
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -71,7 +74,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.RELATED,
-        "bulk_delete",  # not using RouteMethod since locally defined
+        "bulk_delete",
+        "slack_channels",  # not using RouteMethod since locally defined
     }
     class_permission_name = "ReportSchedule"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -119,6 +123,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
+        "email_subject",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -223,6 +228,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database": [["id", DatabaseFilter, lambda: []]],
         "owners": [["id", BaseFilterRelatedUsers, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
     }
     text_field_rel_fields = {
         "dashboard": "dashboard_title",
@@ -234,6 +240,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "chart": "slice_name",
         "database": "database_name",
         "created_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
         "owners": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
 
@@ -511,4 +518,69 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         except ReportScheduleForbiddenError:
             return self.response_403()
         except ReportScheduleDeleteFailedError as ex:
+            return self.response_422(message=str(ex))
+
+    @expose("/slack_channels/", methods=("GET",))
+    @protect()
+    @rison(get_slack_channels_schema)
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self,
+        *args,
+        **kwargs: f"{self.__class__.__name__}.slack_channels",
+        log_to_statsd=False,
+    )
+    def slack_channels(self, **kwargs: Any) -> Response:
+        """Get slack channels.
+        ---
+        get:
+          summary: Get slack channels
+          description: Get slack channels
+          parameters:
+            - in: query
+              name: q
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/get_slack_channels_schema'
+          responses:
+            200:
+              description: Slack channels
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            params = kwargs.get("rison", {})
+            search_string = params.get("search_string")
+            types = params.get("types", [])
+            exact_match = params.get("exact_match", False)
+            channels = get_channels_with_search(
+                search_string=search_string, types=types, exact_match=exact_match
+            )
+            return self.response(200, result=channels)
+        except SupersetException as ex:
+            logger.error("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))

@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from typing import Any
 
 from superset.migrations.shared.migrate_viz import MigrateViz
+from superset.utils import json
 
 TIMESERIES_SOURCE_FORM_DATA: dict[str, Any] = {
     "bottom_margin": 20,

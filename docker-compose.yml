@@ -14,7 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-x-superset-image: &superset-image apachesuperset.docker.scarf.sh/apache/superset:${TAG:-latest-dev}
+
+# -----------------------------------------------------------------------
+# We don't support docker-compose for production environments.
+# If you choose to use this type of deployment make sure to
+# create you own docker environment file (docker/.env) with your own
+# unique random secure passwords and SECRET_KEY.
+# -----------------------------------------------------------------------
 x-superset-user: &superset-user root
 x-superset-depends-on: &superset-depends-on
   - db
@@ -27,7 +33,12 @@ x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
   - ./tests:/app/tests
 
-version: "3.7"
+x-common-build: &common-build
+  context: .
+  target: dev
+  cache_from:
+    - apache/superset-cache:3.10-slim-bookworm
+
 services:
   nginx:
     image: nginx:latest
@@ -49,7 +60,11 @@ services:
       - redis:/data
 
   db:
-    env_file: docker/.env
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     image: postgres:15
     container_name: superset_db
     restart: unless-stopped
@@ -60,8 +75,13 @@ services:
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
 
   superset:
-    env_file: docker/.env
-    image: *superset-image
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    build:
+      <<: *common-build
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
@@ -73,12 +93,11 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
 
   superset-websocket:
     container_name: superset_websocket
     build: ./superset-websocket
-    image: superset-websocket
     ports:
       - 8080:8080
     extra_hosts:
@@ -99,6 +118,10 @@ services:
       - ./superset-websocket:/home/superset-websocket
       - /home/superset-websocket/node_modules
       - /home/superset-websocket/dist
+
+      # Mounting a config file that contains a dummy secret required to boot up.
+      # do not use this docker-compose in production
+      - ./docker/superset-websocket/config.json:/home/superset-websocket/config.json
     environment:
       - PORT=8080
       - REDIS_HOST=redis
@@ -106,33 +129,51 @@ services:
       - REDIS_SSL=false
 
   superset-init:
-    image: *superset-image
+    build:
+      <<: *common-build
     container_name: superset_init
     command: ["/app/docker/docker-init.sh"]
-    env_file: docker/.env
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     depends_on: *superset-depends-on
     user: *superset-user
     volumes: *superset-volumes
     environment:
-      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG:-}"
     healthcheck:
       disable: true
 
   superset-node:
-    image: node:16
+    image: node:18
+    environment:
+      # set this to false if you have perf issues running the npm i; npm run dev in-docker
+      # if you do so, you have to run this manually on the host, which should perform better!
+      SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
     container_name: superset_node
     command: ["/app/docker/docker-frontend.sh"]
-    env_file: docker/.env
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     depends_on: *superset-depends-on
-    environment:
-      SCARF_ANALYTICS: "${SCARF_ANALYTICS}"
     volumes: *superset-volumes
 
   superset-worker:
-    image: *superset-image
+    build:
+      <<: *common-build
     container_name: superset_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: docker/.env
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    environment:
+      CELERYD_CONCURRENCY: 2
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -146,10 +187,15 @@ services:
     # mem_reservation: 128M
 
   superset-worker-beat:
-    image: *superset-image
+    build:
+      <<: *common-build
     container_name: superset_worker_beat
     command: ["/app/docker/docker-bootstrap.sh", "beat"]
-    env_file: docker/.env
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
     restart: unless-stopped
     depends_on: *superset-depends-on
     user: *superset-user
@@ -158,16 +204,24 @@ services:
       disable: true
 
   superset-tests-worker:
-    image: *superset-image
+    build:
+      <<: *common-build
     container_name: superset_tests_worker
     command: ["/app/docker/docker-bootstrap.sh", "worker"]
-    env_file: docker/.env
+    env_file:
+      - path: docker/.env # default
+        required: true
+      - path: docker/.env-local # optional override
+        required: false
+    profiles:
+      - optional
     environment:
       DATABASE_HOST: localhost
       DATABASE_DB: test
       REDIS_CELERY_DB: 2
       REDIS_RESULTS_DB: 3
       REDIS_HOST: localhost
+      CELERYD_CONCURRENCY: 8
     network_mode: host
     depends_on: *superset-depends-on
     user: *superset-user

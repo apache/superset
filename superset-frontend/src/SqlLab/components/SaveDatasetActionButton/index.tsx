@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { FC } from 'react';
 import { t, useTheme, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
@@ -35,7 +35,7 @@ const SaveDatasetActionButton = ({
   const theme = useTheme();
 
   const StyledDropdownButton = styled(
-    DropdownButton as React.FC<DropdownButtonProps>,
+    DropdownButton as FC<DropdownButtonProps>,
   )`
     &.ant-dropdown-button button.ant-btn.ant-btn-default {
       &:first-of-type {

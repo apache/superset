@@ -21,18 +21,19 @@ Revises: a32e0c4d8646
 Create Date: 2024-01-10 09:20:32.233912
 
 """
+
 # revision identifiers, used by Alembic.
 revision = "214f580d09c9"
 down_revision = "a32e0c4d8646"
 
-from alembic import op
-from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from alembic import op  # noqa: E402
+from sqlalchemy import Column, ForeignKey, Integer, String, Table, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import relationship  # noqa: E402
 
-from superset import db
-from superset.migrations.shared.native_filters import migrate_dashboard
-from superset.migrations.shared.utils import paginated_update
+from superset import db  # noqa: E402
+from superset.migrations.shared.native_filters import migrate_dashboard  # noqa: E402
+from superset.migrations.shared.utils import paginated_update  # noqa: E402
 
 Base = declarative_base()
 

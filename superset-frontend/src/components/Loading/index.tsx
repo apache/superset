@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { styled } from '@superset-ui/core';
 import cls from 'classnames';
 import Loader from 'src/assets/images/loading.gif';

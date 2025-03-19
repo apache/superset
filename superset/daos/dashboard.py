@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from typing import Any
@@ -38,6 +37,7 @@ from superset.models.core import FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard, id_or_slug_filter
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
+from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 
@@ -79,6 +79,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
     def get_datasets_for_dashboard(id_or_slug: str) -> list[Any]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
         return dashboard.datasets_trimmed_for_slices()
+
+    @staticmethod
+    def get_tabs_for_dashboard(id_or_slug: str) -> dict[str, Any]:
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        return dashboard.tabs
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> list[Slice]:
@@ -174,8 +179,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         dashboard: Dashboard,
         data: dict[Any, Any],
         old_to_new_slice_ids: dict[int, int] | None = None,
-        commit: bool = False,
-    ) -> Dashboard:
+    ) -> None:
         new_filter_scopes = {}
         md = dashboard.params_dict
 
@@ -260,10 +264,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
         md["cross_filters_enabled"] = data.get("cross_filters_enabled", True)
         dashboard.json_metadata = json.dumps(md)
 
-        if commit:
-            db.session.commit()
-        return dashboard
-
     @staticmethod
     def favorited_ids(dashboards: list[Dashboard]) -> list[FavStar]:
         ids = [dash.id for dash in dashboards]
@@ -316,7 +316,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
         dash.params = original_dash.params
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
         db.session.add(dash)
-        db.session.commit()
         return dash
 
     @staticmethod
@@ -331,7 +330,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     dttm=datetime.now(),
                 )
             )
-            db.session.commit()
 
     @staticmethod
     def remove_favorite(dashboard: Dashboard) -> None:
@@ -346,7 +344,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
         )
         if fav:
             db.session.delete(fav)
-            db.session.commit()
 
 
 class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
@@ -364,7 +361,6 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         )
         embedded.allow_domain_list = ",".join(allowed_domains)
         dashboard.embedded = [embedded]
-        db.session.commit()
         return embedded
 
     @classmethod
@@ -372,7 +368,6 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         cls,
         item: EmbeddedDashboardDAO | None = None,
         attributes: dict[str, Any] | None = None,
-        commit: bool = True,
     ) -> Any:
         """
         Use EmbeddedDashboardDAO.upsert() instead.

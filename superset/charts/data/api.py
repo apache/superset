@@ -17,11 +17,9 @@
 from __future__ import annotations
 
 import contextlib
-import json
 import logging
 from typing import Any, TYPE_CHECKING
 
-import simplejson
 from flask import current_app, g, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
@@ -47,11 +45,11 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
 from superset.models.sql_lab import Query
+from superset.utils import json
 from superset.utils.core import (
     create_zip,
     DatasourceType,
     get_user_id,
-    json_int_dttm_ser,
 )
 from superset.utils.decorators import logs_context
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
@@ -130,7 +128,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             json_body = json.loads(chart.query_context)
-        except (TypeError, json.decoder.JSONDecodeError):
+        except (TypeError, json.JSONDecodeError):
             json_body = None
 
         if json_body is None:
@@ -172,7 +170,7 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             form_data = json.loads(chart.params)
-        except (TypeError, json.decoder.JSONDecodeError):
+        except (TypeError, json.JSONDecodeError):
             form_data = {}
 
         return self._get_data_response(
@@ -396,9 +394,9 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         if result_format == ChartDataResultFormat.JSON:
-            response_data = simplejson.dumps(
+            response_data = json.dumps(
                 {"result": result["queries"]},
-                default=json_int_dttm_ser,
+                default=json.json_int_dttm_ser,
                 ignore_nan=True,
             )
             resp = make_response(response_data, 200)
@@ -431,6 +429,7 @@ class ChartDataRestApi(ChartRestApi):
         self, form_data: dict[str, Any]
     ) -> dict[str, Any]:
         return {
+            "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
             "dataset_id": form_data.get("datasource", {}).get("id")
             if isinstance(form_data.get("datasource"), dict)
             and form_data.get("datasource", {}).get("type")
@@ -443,9 +442,15 @@ class ChartDataRestApi(ChartRestApi):
     def _create_query_context_from_form(
         self, form_data: dict[str, Any]
     ) -> QueryContext:
+        """
+        Create the query context from the form data.
+
+        :param form_data: The chart form data
+        :returns: The query context
+        :raises ValidationError: If the request is incorrect
+        """
+
         try:
             return ChartDataQueryContextSchema().load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
-        except ValidationError as error:
-            raise error

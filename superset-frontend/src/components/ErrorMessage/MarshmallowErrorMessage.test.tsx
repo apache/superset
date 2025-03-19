@@ -17,11 +17,14 @@
  * under the License.
  */
 
-import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/extend-expect';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
-import { ErrorLevel, ErrorTypeEnum } from 'src/components/ErrorMessage/types';
+import {
+  ErrorLevel,
+  ErrorTypeEnum,
+  ThemeProvider,
+  supersetTheme,
+} from '@superset-ui/core';
 import MarshmallowErrorMessage from './MarshmallowErrorMessage';
 
 describe('MarshmallowErrorMessage', () => {

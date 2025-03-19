@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactElement } from 'react';
+import { ReactElement } from 'react';
 import { shallow as enzymeShallow, mount as enzymeMount } from 'enzyme';
 import {
   EmotionCacheProvider,

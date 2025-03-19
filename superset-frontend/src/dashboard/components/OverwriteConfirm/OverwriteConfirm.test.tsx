@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { overwriteConfirmMetadata } from 'spec/fixtures/mockDashboardState';

@@ -54,7 +54,13 @@ export interface HeaderDropdownProps {
   updateCss: () => void;
   userCanEdit: boolean;
   userCanSave: boolean;
+  userCanShare: boolean;
+  userCanCurate: boolean;
+  isDropdownVisible: boolean;
+  manageEmbedded: () => void;
+  dataMask: any;
   lastModifiedTime: number;
+  logEvent: () => void;
 }
 
 export interface HeaderProps {

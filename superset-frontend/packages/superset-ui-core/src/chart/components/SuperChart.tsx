@@ -17,7 +17,14 @@
  * under the License.
  */
 
-import React, { ReactNode, RefObject } from 'react';
+import {
+  ReactNode,
+  RefObject,
+  ComponentType,
+  PureComponent,
+  Fragment,
+} from 'react';
+
 import ErrorBoundary, {
   ErrorBoundaryProps,
   FallbackProps,
@@ -58,7 +65,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
     /** enable "No Results" message if empty result set */
     enableNoResults?: boolean;
     /** Component to render when there are unexpected errors */
-    FallbackComponent?: React.ComponentType<FallbackPropsWithDimension>;
+    FallbackComponent?: ComponentType<FallbackPropsWithDimension>;
     /** Event listener for unexpected errors from chart */
     onErrorBoundary?: ErrorBoundaryProps['onError'];
     /** Prop for form plugins using superchart */
@@ -80,7 +87,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
      * when using dynamic width or height
      * because it will clash with auto-sizing.
      */
-    Wrapper?: React.ComponentType<WrapperProps>;
+    Wrapper?: ComponentType<WrapperProps>;
     /**
      * Component to display when query returns no results.
      * If not defined, NoResultsComponent is used
@@ -94,7 +101,7 @@ export type Props = Omit<SuperChartCoreProps, 'chartProps'> &
 
 type PropsWithDefault = Props & Readonly<typeof defaultProps>;
 
-class SuperChart extends React.PureComponent<Props, {}> {
+class SuperChart extends PureComponent<Props, {}> {
   /**
    * SuperChart's core
    */
@@ -131,7 +138,7 @@ class SuperChart extends React.PureComponent<Props, {}> {
         heightInfo.isDynamic &&
         widthInfo.multiplier === 1 &&
         heightInfo.multiplier === 1
-          ? React.Fragment
+          ? Fragment
           : ({ children }: { children: ReactNode }) => (
               <div style={style}>{children}</div>
             );

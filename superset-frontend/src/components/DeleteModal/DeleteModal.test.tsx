@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DeleteModal from '.';
@@ -78,12 +77,12 @@ test('Calling "onConfirm" only after typing "delete" in the input', () => {
   expect(props.onConfirm).toBeCalledTimes(0);
 
   // do not execute "onConfirm" if you have not typed "delete"
-  userEvent.click(screen.getByText('delete'));
+  userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toBeCalledTimes(0);
 
   // execute "onConfirm" if you have typed "delete"
   userEvent.type(screen.getByTestId('delete-modal-input'), 'delete');
-  userEvent.click(screen.getByText('delete'));
+  userEvent.click(screen.getByText('Delete'));
   expect(props.onConfirm).toBeCalledTimes(1);
 
   // confirm input has been cleared

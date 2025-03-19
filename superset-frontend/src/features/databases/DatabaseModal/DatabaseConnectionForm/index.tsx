@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { FormEvent } from 'react';
+import { FormEvent } from 'react';
 import {
   SupersetTheme,
   JsonObject,
@@ -27,10 +27,13 @@ import { Form } from 'src/components/Form';
 import {
   accessTokenField,
   databaseField,
+  defaultCatalogField,
+  defaultSchemaField,
   displayField,
   forceSSLField,
   hostField,
   httpPath,
+  httpPathField,
   passwordField,
   portField,
   queryField,
@@ -47,10 +50,13 @@ export const FormFieldOrder = [
   'host',
   'port',
   'database',
+  'default_catalog',
+  'default_schema',
   'username',
   'password',
   'access_token',
   'http_path',
+  'http_path_field',
   'database_name',
   'credentials_info',
   'service_account_info',
@@ -71,8 +77,11 @@ const SSHTunnelSwitchComponent =
 const FORM_FIELD_MAP = {
   host: hostField,
   http_path: httpPath,
+  http_path_field: httpPathField,
   port: portField,
   database: databaseField,
+  default_catalog: defaultCatalogField,
+  default_schema: defaultSchemaField,
   username: usernameField,
   password: passwordField,
   access_token: accessTokenField,
@@ -169,6 +178,8 @@ const DatabaseConnectionForm = ({
               db,
               key: field,
               field,
+              default_value: parameters.properties[field]?.default,
+              description: parameters.properties[field]?.description,
               isEditMode,
               sslForced,
               editNewDb,

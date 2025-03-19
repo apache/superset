@@ -120,10 +120,16 @@ function Rose(element, props) {
           .map(v => ({
             key: v.name,
             value: v.value,
-            color: colorFn(v.name, sliceId),
+            color: colorFn(v.name, sliceId, colorScheme),
             highlight: v.id === d.arcId,
           }))
-      : [{ key: d.name, value: d.val, color: colorFn(d.name, sliceId) }];
+      : [
+          {
+            key: d.name,
+            value: d.val,
+            color: colorFn(d.name, sliceId, colorScheme),
+          },
+        ];
 
     return {
       key: 'Date',
@@ -132,7 +138,7 @@ function Rose(element, props) {
     };
   }
 
-  legend.width(width).color(d => colorFn(d.key, sliceId));
+  legend.width(width).color(d => colorFn(d.key, sliceId, colorScheme));
   legendWrap.datum(legendData(datum)).call(legend);
 
   tooltip.headerFormatter(timeFormat).valueFormatter(format);
@@ -379,7 +385,7 @@ function Rose(element, props) {
   const arcs = ae
     .append('path')
     .attr('class', 'arc')
-    .attr('fill', d => colorFn(d.name, sliceId))
+    .attr('fill', d => colorFn(d.name, sliceId, colorScheme))
     .attr('d', arc);
 
   function mousemove() {

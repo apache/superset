@@ -17,12 +17,14 @@
 import logging
 from datetime import datetime, timedelta
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from superset import db
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import ReportSchedulePruneLogError
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.reports.models import ReportSchedule
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +34,7 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
     Prunes logs from all report schedules
     """
 
-    def __init__(self, worker_context: bool = True):
-        self._worker_context = worker_context
-
+    @transaction()
     def run(self) -> None:
         self.validate()
         prune_errors = []
@@ -46,7 +46,8 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
                 )
                 try:
                     row_count = ReportScheduleDAO.bulk_delete_logs(
-                        report_schedule, from_date, commit=False
+                        report_schedule,
+                        from_date,
                     )
                     db.session.commit()
                     logger.info(
@@ -54,7 +55,7 @@ class AsyncPruneReportScheduleLogCommand(BaseCommand):
                         str(row_count),
                         str(report_schedule.id),
                     )
-                except DAODeleteFailedError as ex:
+                except SQLAlchemyError as ex:
                     prune_errors.append(str(ex))
         if prune_errors:
             raise ReportSchedulePruneLogError(";".join(prune_errors))

@@ -19,7 +19,6 @@
 import pandas as pd
 import pytest
 from flask_babel import lazy_gettext as _
-from numpy import True_
 from sqlalchemy.orm.session import Session
 
 from superset.charts.post_processing import apply_post_process, pivot_df, table
@@ -1391,7 +1390,7 @@ def test_apply_post_process_without_result_format():
     with pytest.raises(Exception) as ex:
         apply_post_process(result, form_data)
 
-    assert ex.match("Result format foo not supported") == True
+    assert ex.match("Result format foo not supported") is True  # noqa: E712
 
 
 def test_apply_post_process_json_format():

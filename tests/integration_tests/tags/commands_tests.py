@@ -14,44 +14,46 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import itertools
-from unittest.mock import MagicMock, patch
+import itertools  # noqa: F401
+from unittest.mock import MagicMock, patch  # noqa: F401
 
 import pytest
-import yaml
-from werkzeug.utils import secure_filename
+import yaml  # noqa: F401
+from werkzeug.utils import secure_filename  # noqa: F401
 
-from superset import db, security_manager
-from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset import db, security_manager  # noqa: F401
+from superset.commands.dashboard.exceptions import DashboardNotFoundError  # noqa: F401
 from superset.commands.dashboard.export import (
-    append_charts,
-    ExportDashboardsCommand,
-    get_default_position,
+    append_charts,  # noqa: F401
+    ExportDashboardsCommand,  # noqa: F401
+    get_default_position,  # noqa: F401
 )
-from superset.commands.dashboard.importers import v0, v1
-from superset.commands.exceptions import CommandInvalidError
-from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.commands.dashboard.importers import v0, v1  # noqa: F401
+from superset.commands.exceptions import CommandInvalidError  # noqa: F401
+from superset.commands.importers.exceptions import IncorrectVersionError  # noqa: F401
 from superset.commands.tag.create import CreateCustomTagCommand
 from superset.commands.tag.delete import DeleteTaggedObjectCommand, DeleteTagsCommand
-from superset.connectors.sqla.models import SqlaTable
-from superset.models.core import Database
+from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+from superset.models.core import Database  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset.models.slice import Slice
+from superset.models.slice import Slice  # noqa: F401
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.importexport import (
-    chart_config,
-    dashboard_config,
-    dashboard_export,
-    dashboard_metadata_config,
-    database_config,
-    dataset_config,
-    dataset_metadata_config,
+    chart_config,  # noqa: F401
+    dashboard_config,  # noqa: F401
+    dashboard_export,  # noqa: F401
+    dashboard_metadata_config,  # noqa: F401
+    database_config,  # noqa: F401
+    dataset_config,  # noqa: F401
+    dataset_metadata_config,  # noqa: F401
 )
-from tests.integration_tests.fixtures.tags import with_tagging_system_feature
+from tests.integration_tests.fixtures.tags import (
+    with_tagging_system_feature,  # noqa: F401
+)
 from tests.integration_tests.fixtures.world_bank_dashboard import (
-    load_world_bank_dashboard_with_slices,
-    load_world_bank_data,
+    load_world_bank_dashboard_with_slices,  # noqa: F401
+    load_world_bank_data,  # noqa: F401
 )
 
 

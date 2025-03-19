@@ -21,8 +21,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.permalink.base import BaseDashboardPermalinkCommand
-from superset.commands.key_value.get import GetKeyValueCommand
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.key_value import KeyValueDAO
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.key_value.exceptions import (
@@ -43,12 +43,7 @@ class GetDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
         self.validate()
         try:
             key = decode_permalink_id(self.key, salt=self.salt)
-            command = GetKeyValueCommand(
-                resource=self.resource,
-                key=key,
-                codec=self.codec,
-            )
-            value: Optional[DashboardPermalinkValue] = command.run()
+            value = KeyValueDAO.get_value(self.resource, key, self.codec)
             if value:
                 DashboardDAO.get_by_id_or_slug(value["dashboardId"])
                 return value

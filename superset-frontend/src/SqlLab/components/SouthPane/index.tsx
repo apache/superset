@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { createRef, useMemo } from 'react';
+import { createRef, useMemo } from 'react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import Tabs from 'src/components/Tabs';
 import { styled, t } from '@superset-ui/core';
 
@@ -139,7 +139,7 @@ const SouthPane = ({
         activeKey={activeSouthPaneTab}
         className="SouthPaneTabs"
         onChange={switchTab}
-        id={shortid.generate()}
+        id={nanoid(11)}
         fullWidth={false}
         animated={false}
       >

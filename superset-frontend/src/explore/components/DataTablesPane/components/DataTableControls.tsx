@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { zip } from 'lodash';
 import { css, GenericDataType, styled } from '@superset-ui/core';
 import {
@@ -49,6 +49,7 @@ export const TableControls = ({
   columnTypes,
   rowcount,
   isLoading,
+  canDownload,
 }: TableControlsProps) => {
   const originalTimeColumns = getTimeColumns(datasourceId);
   const formattedTimeColumns = zip<string, GenericDataType>(
@@ -68,7 +69,7 @@ export const TableControls = ({
   );
   return (
     <TableControlsWrapper>
-      <FilterInput onChangeHandler={onInputChange} />
+      <FilterInput onChangeHandler={onInputChange} shouldFocus />
       <div
         css={css`
           display: flex;
@@ -76,7 +77,9 @@ export const TableControls = ({
         `}
       >
         <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        {canDownload && (
+          <CopyToClipboardButton data={formattedData} columns={columnNames} />
+        )}
       </div>
     </TableControlsWrapper>
   );

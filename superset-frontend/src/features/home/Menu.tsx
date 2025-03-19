@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { styled, css, useTheme, SupersetTheme } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { Global } from '@emotion/react';
@@ -67,6 +67,12 @@ const StyledHeader = styled.header`
         img {
           height: 100%;
           object-fit: contain;
+        }
+        &:focus {
+          border-color: transparent;
+        }
+        &:focus-visible {
+          border-color: ${theme.colors.primary.dark1};
         }
       }
       .navbar-brand-text {
@@ -310,7 +316,7 @@ export function Menu({
                 <img src={brand.icon} alt={brand.alt} />
               </GenericLink>
             ) : (
-              <a className="navbar-brand" href={brand.path}>
+              <a className="navbar-brand" href={brand.path} tabIndex={-1}>
                 <img src={brand.icon} alt={brand.alt} />
               </a>
             )}

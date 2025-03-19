@@ -18,8 +18,8 @@
  */
 import { renderHook } from '@testing-library/react-hooks';
 import { NO_TIME_RANGE } from '@superset-ui/core';
+import * as uiCore from '@superset-ui/core';
 import { Operators } from 'src/explore/constants';
-import * as FetchTimeRangeModule from 'src/explore/components/controls/DateFilterControl';
 import { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
@@ -65,7 +65,7 @@ test('should get "No filter" label', () => {
 
 test('should get actualTimeRange and title', async () => {
   jest
-    .spyOn(FetchTimeRangeModule, 'fetchTimeRange')
+    .spyOn(uiCore, 'fetchTimeRange')
     .mockResolvedValue({ value: 'MOCK TIME' });
 
   const adhocFilter = new AdhocFilter({
@@ -85,7 +85,7 @@ test('should get actualTimeRange and title', async () => {
 
 test('should get actualTimeRange and title when gets an error', async () => {
   jest
-    .spyOn(FetchTimeRangeModule, 'fetchTimeRange')
+    .spyOn(uiCore, 'fetchTimeRange')
     .mockResolvedValue({ error: 'MOCK ERROR' });
 
   const adhocFilter = new AdhocFilter({

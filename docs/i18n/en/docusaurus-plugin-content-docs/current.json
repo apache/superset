@@ -1,0 +1,42 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.CustomSidebar.category.Installation": {
+    "message": "Installation",
+    "description": "The label for category Installation in sidebar CustomSidebar"
+  },
+  "sidebar.CustomSidebar.category.Configuration": {
+    "message": "Configuration",
+    "description": "The label for category Configuration in sidebar CustomSidebar"
+  },
+  "sidebar.CustomSidebar.category.Using Superset": {
+    "message": "Using Superset",
+    "description": "The label for category Using Superset in sidebar CustomSidebar"
+  },
+  "sidebar.CustomSidebar.category.Contributing": {
+    "message": "Contributing",
+    "description": "The label for category Contributing in sidebar CustomSidebar"
+  },
+  "sidebar.CustomSidebar.category.Security": {
+    "message": "Security",
+    "description": "The label for category Security in sidebar CustomSidebar"
+  },
+  "sidebar.CustomSidebar.doc.Introduction": {
+    "message": "Introduction",
+    "description": "The label for the doc item Introduction in sidebar CustomSidebar, linking to the doc intro"
+  },
+  "sidebar.CustomSidebar.doc.Quickstart": {
+    "message": "Quickstart",
+    "description": "The label for the doc item Quickstart in sidebar CustomSidebar, linking to the doc quickstart"
+  },
+  "sidebar.CustomSidebar.doc.FAQ": {
+    "message": "FAQ",
+    "description": "The label for the doc item FAQ in sidebar CustomSidebar, linking to the doc faq"
+  },
+  "sidebar.CustomSidebar.doc.API": {
+    "message": "API",
+    "description": "The label for the doc item API in sidebar CustomSidebar, linking to the doc api"
+  }
+}

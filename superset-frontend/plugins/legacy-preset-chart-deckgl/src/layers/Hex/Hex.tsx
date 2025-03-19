@@ -17,7 +17,6 @@
  * under the License.
  */
 import { HexagonLayer, Color } from 'deck.gl/typed';
-import React from 'react';
 import {
   t,
   CategoricalColorNamespace,

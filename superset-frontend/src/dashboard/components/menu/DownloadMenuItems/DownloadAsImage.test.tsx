@@ -16,20 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import { SyntheticEvent } from 'react';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { Menu } from 'src/components/Menu';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import DownloadAsImage from './DownloadAsImage';
+
+const mockAddDangerToast = jest.fn();
 
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
   default: jest.fn(() => (_e: SyntheticEvent) => {}),
 }));
 
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  useToasts: () => ({
+    addDangerToast: mockAddDangerToast,
+  }),
+}));
+
 const createProps = () => ({
-  addDangerToast: jest.fn(),
   text: 'Download as Image',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
@@ -40,21 +47,29 @@ const renderComponent = () => {
     <Menu>
       <DownloadAsImage {...createProps()} />
     </Menu>,
+    {
+      useRedux: true,
+    },
   );
 };
 
 test('Should call download image on click', async () => {
-  const props = createProps();
   renderComponent();
   await waitFor(() => {
     expect(downloadAsImage).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(mockAddDangerToast).toBeCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Download as Image' }));
 
   await waitFor(() => {
     expect(downloadAsImage).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(mockAddDangerToast).toBeCalledTimes(0);
   });
+});
+
+test('Component is rendered with role="button"', async () => {
+  renderComponent();
+  const button = screen.getByRole('button', { name: 'Download as Image' });
+  expect(button).toBeInTheDocument();
 });

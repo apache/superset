@@ -17,6 +17,9 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+[![Version](https://img.shields.io/npm/v/%40superset-ui%2Fembedded-sdk?style=flat)](https://www.npmjs.com/package/@superset-ui/embedded-sdk)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fembedded-sdk?style=flat)](https://libraries.io/npm/@superset-ui%2Fembedded-sdk)
+
 # Superset Embedded SDK
 
 The Embedded SDK allows you to embed dashboards from Superset into your own app,
@@ -40,12 +43,19 @@ embedDashboard({
   supersetDomain: "https://superset.example.com",
   mountPoint: document.getElementById("my-superset-container"), // any html element that can contain an iframe
   fetchGuestToken: () => fetchGuestTokenFromBackend(),
-  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional)
+  dashboardUiConfig: { // dashboard UI config: hideTitle, hideTab, hideChartControls, filters.visible, filters.expanded (optional), urlParams (optional)
       hideTitle: true,
       filters: {
           expanded: true,
+      },
+      urlParams: {
+          foo: 'value1',
+          bar: 'value2',
+          // ...
       }
   },
+    // optional additional iframe sandbox attributes
+  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
 });
 ```
 
@@ -77,8 +87,8 @@ Guest tokens can have Row Level Security rules which filter data for the user ca
 The agent making the `POST` request must be authenticated with the `can_grant_guest_token` permission.
 
 Within your app, using the Guest Token will then allow authentication to your Superset instance via creating an Anonymous user object.  This guest anonymous user will default to the public role as per this setting `GUEST_ROLE_NAME = "Public"`.
-+
-+The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
+
+The user parameters in the example below are optional and are provided as a means of passing user attributes that may be accessed in jinja templates inside your charts.
 
 Example `POST /security/guest_token` payload:
 
@@ -97,4 +107,13 @@ Example `POST /security/guest_token` payload:
     { "clause": "publisher = 'Nintendo'" }
   ]
 }
+```
+### Sandbox iframe
+
+The Embedded SDK creates an iframe with [sandbox](https://developer.mozilla.org/es/docs/Web/HTML/Element/iframe#sandbox) mode by default
+which applies certain restrictions to the iframe's content.
+To pass additional sandbox attributes you can use `iframeSandboxExtras`:
+```js
+  // optional additional iframe sandbox attributes
+  iframeSandboxExtras: ['allow-top-navigation', 'allow-popups-to-escape-sandbox']
 ```

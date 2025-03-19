@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-env browser */
-import React from 'react';
+import { createRef, PureComponent } from 'react';
 import { Radio } from 'src/components/Radio';
 import { RadioChangeEvent } from 'src/components';
 import { Input } from 'src/components/Input';
@@ -66,7 +66,7 @@ const defaultProps = {
   shouldPersistRefreshFrequency: false,
 };
 
-class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
+class SaveModal extends PureComponent<SaveModalProps, SaveModalState> {
   static defaultProps = defaultProps;
 
   modal: ModalTriggerRef | null;
@@ -90,7 +90,7 @@ class SaveModal extends React.PureComponent<SaveModalProps, SaveModalState> {
     this.saveDashboard = this.saveDashboard.bind(this);
     this.toggleDuplicateSlices = this.toggleDuplicateSlices.bind(this);
     this.onSave = this.props.onSave.bind(this);
-    this.modal = React.createRef() as ModalTriggerRef;
+    this.modal = createRef() as ModalTriggerRef;
   }
 
   toggleDuplicateSlices(): void {

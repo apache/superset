@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css } from '@superset-ui/core';
 import { useResizeDetector } from 'react-resize-detector';
 import MetadataBar, { MetadataBarProps, MetadataType } from '.';

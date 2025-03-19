@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React from 'react';
+import { FC, memo } from 'react';
 import {
   DataMaskStateWithId,
   FeatureFlag,
@@ -96,7 +96,7 @@ const FiltersLinkContainer = styled.div<{ hasFilters: boolean }>`
   `}
 `;
 
-const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
+const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   actions,
   canEdit,
   dashboardId,
@@ -165,4 +165,4 @@ const HorizontalFilterBar: React.FC<HorizontalBarProps> = ({
     </HorizontalBar>
   );
 };
-export default React.memo(HorizontalFilterBar);
+export default memo(HorizontalFilterBar);

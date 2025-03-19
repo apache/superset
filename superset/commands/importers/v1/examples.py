@@ -43,10 +43,10 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.models.dashboard import dashboard_slices
 from superset.utils.core import get_example_default_schema
 from superset.utils.database import get_example_database
+from superset.utils.decorators import transaction
 
 
 class ImportExamplesCommand(ImportModelsCommand):
-
     """Import examples"""
 
     dao = BaseDAO
@@ -63,19 +63,17 @@ class ImportExamplesCommand(ImportModelsCommand):
         super().__init__(contents, *args, **kwargs)
         self.force_data = kwargs.get("force_data", False)
 
+    @transaction()
     def run(self) -> None:
         self.validate()
 
-        # rollback to prevent partial imports
         try:
             self._import(
                 self._configs,
                 self.overwrite,
                 self.force_data,
             )
-            db.session.commit()
         except Exception as ex:
-            db.session.rollback()
             raise self.import_error() from ex
 
     @classmethod

@@ -17,12 +17,10 @@
  * under the License.
  */
 import rison from 'rison';
+import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
 import {
   ClientErrorObject,
   getClientErrorObject,
-} from 'src/utils/getClientErrorObject';
-import { createApi, BaseQueryFn } from '@reduxjs/toolkit/query/react';
-import {
   SupersetClient,
   ParseMethod,
   SupersetClientResponse,
@@ -74,6 +72,7 @@ export const supersetClientQuery: BaseQueryFn<
 export const api = createApi({
   reducerPath: 'queryApi',
   tagTypes: [
+    'Catalogs',
     'Schemas',
     'Tables',
     'DatabaseFunctions',

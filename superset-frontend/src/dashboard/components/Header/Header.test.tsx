@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry } from '@superset-ui/core';
 import setupExtensions from 'src/setup/setupExtensions';
+import getOwnerName from 'src/utils/getOwnerName';
 import { HeaderProps } from './types';
 import Header from '.';
 
@@ -44,6 +44,19 @@ const createProps = () => ({
         ],
       },
     },
+    changed_on_delta_humanized: '7 minutes ago',
+    changed_by: {
+      id: 3,
+      first_name: 'John',
+      last_name: 'Doe',
+    },
+    created_on_delta_humanized: '10 days ago',
+    created_by: {
+      id: 2,
+      first_name: 'Kay',
+      last_name: 'Mon',
+    },
+    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
@@ -185,6 +198,17 @@ test('should publish', () => {
   expect(mockedProps.savePublished).toHaveBeenCalledTimes(0);
   userEvent.click(draft);
   expect(mockedProps.savePublished).toHaveBeenCalledTimes(1);
+});
+
+test('should render metadata', () => {
+  const mockedProps = createProps();
+  setup(mockedProps);
+  expect(
+    screen.getByText(getOwnerName(mockedProps.dashboardInfo.created_by)),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).toBeInTheDocument();
 });
 
 test('should render the "Undo" action as disabled', () => {
@@ -347,5 +371,50 @@ test('should render an extension component if one is supplied', () => {
   setup(mockedProps);
   expect(
     screen.getByText('dashboard.nav.right extension component'),
+  ).toBeInTheDocument();
+});
+
+test('should NOT render MetadataBar when in edit mode', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: true,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should NOT render MetadataBar when embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: undefined,
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.queryByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
+  ).not.toBeInTheDocument();
+});
+
+test('should render MetadataBar when not in edit mode and not embedded', () => {
+  const mockedProps = {
+    ...createProps(),
+    editMode: false,
+    dashboardInfo: {
+      ...createProps().dashboardInfo,
+      userId: '123',
+    },
+  };
+  setup(mockedProps);
+  expect(
+    screen.getByText(mockedProps.dashboardInfo.changed_on_delta_humanized),
   ).toBeInTheDocument();
 });

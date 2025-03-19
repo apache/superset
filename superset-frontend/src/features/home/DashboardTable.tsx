@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SupersetClient, t } from '@superset-ui/core';
 import { filter } from 'lodash';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';

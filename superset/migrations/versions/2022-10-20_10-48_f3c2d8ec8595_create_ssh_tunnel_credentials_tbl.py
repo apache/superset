@@ -26,14 +26,14 @@ Create Date: 2022-10-20 10:48:08.722861
 revision = "f3c2d8ec8595"
 down_revision = "4ce1d9b25135"
 
-from uuid import uuid4
+from uuid import uuid4  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy_utils import UUIDType
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy_utils import UUIDType  # noqa: E402
 
-from superset import app
-from superset.extensions import encrypted_field_factory
+from superset import app  # noqa: E402
+from superset.extensions import encrypted_field_factory  # noqa: E402
 
 app_config = app.config
 

@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Color, GridLayer } from 'deck.gl/typed';
-import React from 'react';
 import {
   t,
   CategoricalColorNamespace,

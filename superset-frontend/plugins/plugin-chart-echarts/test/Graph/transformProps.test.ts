@@ -74,6 +74,9 @@ describe('EchartsGraph transformProps', () => {
                   col: 'source_column',
                   category: undefined,
                   id: '0',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'source_value_1',
                   select: {
@@ -81,17 +84,16 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 50,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 6,
                 },
                 {
                   col: 'target_column',
                   category: undefined,
                   id: '1',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'target_value_1',
                   select: {
@@ -99,17 +101,16 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 50,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 6,
                 },
                 {
                   col: 'source_column',
                   category: undefined,
                   id: '2',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'source_value_2',
                   select: {
@@ -117,17 +118,16 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 10,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 5,
                 },
                 {
                   col: 'target_column',
                   category: undefined,
                   id: '3',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   label: { show: true },
                   name: 'target_value_2',
                   select: {
@@ -135,11 +135,7 @@ describe('EchartsGraph transformProps', () => {
                     label: { fontWeight: 'bolder' },
                   },
                   symbolSize: 10,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   value: 5,
                 },
               ],
@@ -148,7 +144,7 @@ describe('EchartsGraph transformProps', () => {
               links: [
                 {
                   emphasis: { lineStyle: { width: 12 } },
-                  lineStyle: { width: 6 },
+                  lineStyle: { width: 6, color: '#1f77b4' },
                   select: {
                     lineStyle: { opacity: 1, width: 9.600000000000001 },
                   },
@@ -158,7 +154,7 @@ describe('EchartsGraph transformProps', () => {
                 },
                 {
                   emphasis: { lineStyle: { width: 5 } },
-                  lineStyle: { width: 1.5 },
+                  lineStyle: { width: 1.5, color: '#1f77b4' },
                   select: { lineStyle: { opacity: 1, width: 5 } },
                   source: '2',
                   target: '3',
@@ -233,32 +229,30 @@ describe('EchartsGraph transformProps', () => {
               data: [
                 {
                   id: '0',
+                  itemStyle: {
+                    color: '#1f77b4',
+                  },
                   col: 'source_column',
                   name: 'source_value',
                   value: 11,
                   symbolSize: 10,
                   category: 'category_value_1',
                   select: DEFAULT_GRAPH_SERIES_OPTION.select,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   label: { show: true },
                 },
                 {
                   id: '1',
+                  itemStyle: {
+                    color: '#ff7f0e',
+                  },
                   col: 'target_column',
                   name: 'target_value',
                   value: 11,
                   symbolSize: 10,
                   category: 'category_value_2',
                   select: DEFAULT_GRAPH_SERIES_OPTION.select,
-                  tooltip: {
-                    appendToBody: true,
-                    formatter: '{b}: {c}',
-                    position: expect.anything(),
-                  },
+                  tooltip: expect.anything(),
                   label: { show: true },
                 },
               ],

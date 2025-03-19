@@ -24,9 +24,9 @@ from superset.commands.exceptions import DatasourceNotFoundValidationError
 from superset.commands.security.exceptions import RLSRuleNotFoundError
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
-from superset.daos.exceptions import DAOUpdateFailedError
 from superset.daos.security import RLSDAO
 from superset.extensions import db
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +39,11 @@ class UpdateRLSRuleCommand(BaseCommand):
         self._roles = self._properties.get("roles", [])
         self._model: Optional[RowLevelSecurityFilter] = None
 
+    @transaction()
     def run(self) -> Any:
         self.validate()
         assert self._model
-
-        try:
-            rule = RLSDAO.update(self._model, self._properties)
-        except DAOUpdateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ex
-
-        return rule
+        return RLSDAO.update(self._model, self._properties)
 
     def validate(self) -> None:
         self._model = RLSDAO.find_by_id(int(self._model_id))

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Row, Col } from 'src/components';
 import Button from 'src/components/Button';
 import Tabs from 'src/components/Tabs';

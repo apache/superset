@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { SupersetTheme, t } from '@superset-ui/core';
 import { AntdSwitch } from 'src/components';
 import InfoTooltip from 'src/components/InfoTooltip';
@@ -116,6 +115,69 @@ export const databaseField = ({
     helpText={t('Copy the name of the database you are trying to connect to.')}
   />
 );
+export const defaultCatalogField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="default_catalog"
+    name="default_catalog"
+    required={required}
+    value={db?.parameters?.default_catalog}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.default_catalog}
+    placeholder={t('e.g. hive_metastore')}
+    label={t('Default Catalog')}
+    onChange={changeMethods.onParametersChange}
+    helpText={t('The default catalog that should be used for the connection.')}
+  />
+);
+export const defaultSchemaField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="default_schema"
+    name="default_schema"
+    required={required}
+    value={db?.parameters?.default_schema}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.default_schema}
+    placeholder={t('e.g. default')}
+    label={t('Default Schema')}
+    onChange={changeMethods.onParametersChange}
+    helpText={t('The default schema that should be used for the connection.')}
+  />
+);
+export const httpPathField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+}: FieldPropTypes) => {
+  console.error(db);
+  return (
+    <ValidatedInput
+      id="http_path_field"
+      name="http_path_field"
+      required={required}
+      value={db?.parameters?.http_path_field}
+      validationMethods={{ onBlur: getValidation }}
+      errorMessage={validationErrors?.http_path}
+      placeholder={t('e.g. sql/protocolv1/o/12345')}
+      label="HTTP Path"
+      onChange={changeMethods.onParametersChange}
+      helpText={t('Copy the name of the HTTP Path of your cluster.')}
+    />
+  );
+};
 export const usernameField = ({
   required,
   changeMethods,
@@ -163,6 +225,8 @@ export const accessTokenField = ({
   validationErrors,
   db,
   isEditMode,
+  default_value,
+  description,
 }: FieldPropTypes) => (
   <ValidatedInput
     id="access_token"
@@ -172,7 +236,13 @@ export const accessTokenField = ({
     value={db?.parameters?.access_token}
     validationMethods={{ onBlur: getValidation }}
     errorMessage={validationErrors?.access_token}
-    placeholder={t('e.g. ********')}
+    placeholder={t('Paste your access token here')}
+    get_url={
+      typeof default_value === 'string' && default_value.includes('https://')
+        ? default_value
+        : null
+    }
+    description={description}
     label={t('Access token')}
     onChange={changeMethods.onParametersChange}
   />

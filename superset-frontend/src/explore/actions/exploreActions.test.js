@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* eslint-disable no-unused-expressions */
 import { defaultState } from 'src/explore/store';
 import exploreReducer from 'src/explore/reducers/exploreReducer';
 import * as actions from 'src/explore/actions/exploreActions';
@@ -215,6 +214,25 @@ describe('reducers', () => {
     expect(newState.form_data.metrics).toStrictEqual(updatedMetrics);
     expect(newState.form_data.column_config).toStrictEqual(
       expectedColumnConfig,
+    );
+  });
+
+  test('setStashFormData works as expected with fieldNames', () => {
+    const newState = exploreReducer(
+      defaultState,
+      actions.setStashFormData(true, ['y_axis_format']),
+    );
+    expect(newState.hiddenFormData).toEqual({
+      y_axis_format: defaultState.form_data.y_axis_format,
+    });
+    expect(newState.form_data.y_axis_format).toBeFalsy();
+    const updatedState = exploreReducer(
+      newState,
+      actions.setStashFormData(false, ['y_axis_format']),
+    );
+    expect(updatedState.hiddenFormData.y_axis_format).toBeFalsy();
+    expect(updatedState.form_data.y_axis_format).toEqual(
+      defaultState.form_data.y_axis_format,
     );
   });
 });

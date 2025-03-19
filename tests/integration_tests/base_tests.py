@@ -16,23 +16,25 @@
 # under the License.
 # isort:skip_file
 """Unit tests for Superset"""
+
 from datetime import datetime
 import imp
-import json
 from contextlib import contextmanager
 from typing import Any, Union, Optional
 from unittest.mock import Mock, patch, MagicMock
 
 import pandas as pd
-from flask import Response
+import prison
+from flask import Response, g
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_testing import TestCase
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.ext.declarative import DeclarativeMeta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session  # noqa: F401
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.mysql import dialect
 
+from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.test_app import app, login
 from superset.sql_parse import CtasMethod
 from superset import db, security_manager
@@ -41,11 +43,13 @@ from superset.models import core as models
 from superset.models.slice import Slice
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.utils.core import get_example_default_schema
+from superset.utils.core import get_example_default_schema, shortid
+from superset.utils import json
 from superset.utils.database import get_example_database
 from superset.views.base_api import BaseSupersetModelRestApi
 
 FAKE_DB_NAME = "fake_db_100"
+DEFAULT_PASSWORD = "general"
 test_client = app.test_client()
 
 
@@ -106,6 +110,9 @@ class SupersetTestCase(TestCase):
 
     maxDiff = -1
 
+    def tearDown(self):
+        self.logout()
+
     def create_app(self):
         return app
 
@@ -129,7 +136,7 @@ class SupersetTestCase(TestCase):
                 username,
                 f"{username}@superset.com",
                 security_manager.find_role("Gamma"),  # it needs a role
-                password="general",
+                password=DEFAULT_PASSWORD,
             )
             db.session.commit()
             user_to_create = security_manager.find_user(username)
@@ -142,6 +149,75 @@ class SupersetTestCase(TestCase):
             user_to_create.roles.append(security_manager.find_role(chosen_user_role))
         db.session.commit()
         return user_to_create
+
+    @contextmanager
+    def temporary_user(
+        self,
+        clone_user=None,
+        username=None,
+        extra_roles=None,
+        extra_pvms=None,
+        login=False,
+    ):
+        """
+        Create a temporary user for testing and delete it after the test
+
+        with self.temporary_user(login=True, extra_roles=[Role(...)]) as user:
+            user.do_something()
+
+        # user is automatically logged out and deleted after the test
+        """
+        username = username or f"temp_user_{shortid()}"
+        temp_user = ab_models.User(
+            username=username, email=f"{username}@temp.com", active=True
+        )
+        if clone_user:
+            temp_user.roles = clone_user.roles
+            temp_user.first_name = clone_user.first_name
+            temp_user.last_name = clone_user.last_name
+            temp_user.password = clone_user.password
+        else:
+            temp_user.first_name = temp_user.last_name = username
+
+        if clone_user:
+            temp_user.roles = clone_user.roles
+
+        if extra_roles:
+            temp_user.roles.extend(extra_roles)
+
+        pvms = []
+        temp_role = None
+        if extra_pvms:
+            temp_role = ab_models.Role(name=f"tmp_role_{shortid()}")
+            for pvm in extra_pvms:
+                if isinstance(pvm, (tuple, list)):
+                    pvms.append(security_manager.find_permission_view_menu(*pvm))
+                else:
+                    pvms.append(pvm)
+            temp_role.permissions = pvms
+            temp_user.roles.append(temp_role)
+            db.session.add(temp_role)
+            db.session.commit()
+
+        # Add the temp user to the session and commit to apply changes for the test
+        db.session.add(temp_user)
+        db.session.commit()
+        previous_g_user = g.user if hasattr(g, "user") else None
+        try:
+            if login:
+                self.login(username=temp_user.username)
+            else:
+                g.user = temp_user
+            yield temp_user
+        finally:
+            # Revert changes after the test
+            if temp_role:
+                db.session.delete(temp_role)
+            if login:
+                self.logout()
+            db.session.delete(temp_user)
+            db.session.commit()
+            g.user = previous_g_user
 
     @staticmethod
     def create_user(
@@ -196,7 +272,7 @@ class SupersetTestCase(TestCase):
         db.session.commit()
         return obj
 
-    def login(self, username="admin", password="general"):
+    def login(self, username, password=DEFAULT_PASSWORD):
         return login(self.client, username, password)
 
     def get_slice(self, slice_name: str) -> Slice:
@@ -245,8 +321,13 @@ class SupersetTestCase(TestCase):
         datasource.query = Mock(return_value=results)
         datasource.database = Mock()
         datasource.database.db_engine_spec = Mock()
+        datasource.database.perm = "mock_database_perm"
+        datasource.schema_perm = "mock_schema_perm"
+        datasource.perm = "mock_datasource_perm"
+        datasource.__class__ = SqlaTable
         datasource.database.db_engine_spec.mutate_expression_label = lambda x: x
         datasource.owners = MagicMock()
+        datasource.id = 99999
         return datasource
 
     def get_resp(
@@ -311,7 +392,7 @@ class SupersetTestCase(TestCase):
     ):
         if username:
             self.logout()
-            self.login(username=username)
+            self.login(username)
         dbid = SupersetTestCase.get_database_by_name(database_name).id
         json_payload = {
             "database_id": dbid,
@@ -332,12 +413,13 @@ class SupersetTestCase(TestCase):
         resp = self.get_json_resp(
             "/api/v1/sqllab/execute/", raise_on_error=False, json_=json_payload
         )
+        if username:
+            self.logout()
         if raise_on_error and "error" in resp:
             raise Exception("run_sql failed")
         return resp
 
     def create_fake_db(self):
-        self.login(username="admin")
         database_name = FAKE_DB_NAME
         db_id = 100
         extra = """{
@@ -363,7 +445,6 @@ class SupersetTestCase(TestCase):
             db.session.delete(database)
 
     def create_fake_db_for_macros(self):
-        self.login(username="admin")
         database_name = "db_for_macros_testing"
         db_id = 200
         database = self.get_or_create(
@@ -509,6 +590,20 @@ class SupersetTestCase(TestCase):
         db.session.add(dashboard)
         db.session.commit()
         return dashboard
+
+    def get_list(
+        self,
+        asset_type: str,
+        filter: dict[str, Any] = {},
+        username: str = ADMIN_USERNAME,
+    ) -> Response:
+        """
+        Get list of assets, by default using admin account. Can be filtered.
+        """
+        self.login(username)
+        uri = f"api/v1/{asset_type}/?q={prison.dumps(filter)}"
+        response = self.get_assert_metric(uri, "get_list")
+        return response
 
 
 @contextmanager

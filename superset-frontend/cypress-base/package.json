@@ -16,7 +16,7 @@
     ]
   },
   "dependencies": {
-    "@applitools/eyes-cypress": "^3.29.1",
+    "@applitools/eyes-cypress": "^3.41.0",
     "@cypress/code-coverage": "^3.10.4",
     "@superset-ui/core": "^2.1.0",
     "brace": "^0.11.1",
@@ -25,7 +25,7 @@
     "querystringify": "^2.2.0",
     "react-dom": "^16.13.0",
     "rison": "^0.1.1",
-    "shortid": "^2.2.15"
+    "nanoid": "^5.0.7"
   },
   "devDependencies": {
     "@types/querystringify": "^2.0.0",

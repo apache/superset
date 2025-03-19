@@ -16,9 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@superset-ui/core';
+import { t, customTimeRangeDecode } from '@superset-ui/core';
 import { Moment } from 'moment';
 import { isInteger } from 'lodash';
 // @ts-ignore
@@ -36,7 +35,6 @@ import {
   UNTIL_MODE_OPTIONS,
   MOMENT_FORMAT,
   MIDNIGHT,
-  customTimeRangeDecode,
   customTimeRangeEncode,
   dttmToMoment,
   LOCALE_MAPPING,

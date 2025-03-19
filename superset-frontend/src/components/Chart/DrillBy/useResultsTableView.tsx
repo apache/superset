@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { css, styled, isDefined, QueryData, t } from '@superset-ui/core';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import Tabs from 'src/components/Tabs';
@@ -34,6 +33,7 @@ const PaginationContainer = styled.div`
 export const useResultsTableView = (
   chartDataResult: QueryData[] | undefined,
   datasourceId: string,
+  canDownload: boolean,
 ) => {
   if (!isDefined(chartDataResult)) {
     return <div />;
@@ -49,6 +49,7 @@ export const useResultsTableView = (
           dataSize={DATA_SIZE}
           datasourceId={datasourceId}
           isVisible
+          canDownload={canDownload}
         />
       </PaginationContainer>
     );
@@ -66,6 +67,7 @@ export const useResultsTableView = (
               dataSize={DATA_SIZE}
               datasourceId={datasourceId}
               isVisible
+              canDownload={canDownload}
             />
           </PaginationContainer>
         </Tabs.TabPane>

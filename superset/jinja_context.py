@@ -15,14 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 """Defines the templating context for SQL Lab"""
-import json
+
 import re
 from datetime import datetime
 from functools import lru_cache, partial
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict, Union
 
 import dateutil
-from flask import current_app, g, has_request_context, request
+from flask import current_app, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment
 from jinja2.sandbox import SandboxedEnvironment
@@ -34,9 +34,13 @@ from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.constants import LRU_CACHE_MAX_SIZE
 from superset.exceptions import SupersetTemplateException
 from superset.extensions import feature_flag_manager
+from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import (
     convert_legacy_filters_into_adhoc,
-    get_user,
+    get_user_email,
+    get_user_id,
+    get_username,
     merge_extra_filters,
 )
 
@@ -82,12 +86,14 @@ class ExtraCache:
     # Regular expression for detecting the presence of templated methods which could
     # be added to the cache key.
     regex = re.compile(
-        r"\{\{.*("
-        r"current_user_id\(.*\)|"
-        r"current_username\(.*\)|"
-        r"cache_key_wrapper\(.*\)|"
-        r"url_param\(.*\)"
-        r").*\}\}"
+        r"(\{\{|\{%)[^{}]*?("
+        r"current_user_id\([^()]*\)|"
+        r"current_username\([^()]*\)|"
+        r"current_user_email\([^()]*\)|"
+        r"cache_key_wrapper\([^()]*\)|"
+        r"url_param\([^()]*\)"
+        r")"
+        r"[^{}]*?(\}\}|\%\})"
     )
 
     def __init__(
@@ -110,10 +116,10 @@ class ExtraCache:
         :returns: The user ID
         """
 
-        if user := get_user():
+        if user_id := get_user_id():
             if add_to_cache_keys:
-                self.cache_key_wrapper(user.id)
-            return user.id
+                self.cache_key_wrapper(user_id)
+            return user_id
         return None
 
     def current_username(self, add_to_cache_keys: bool = True) -> Optional[str]:
@@ -124,10 +130,24 @@ class ExtraCache:
         :returns: The username
         """
 
-        if g.user and hasattr(g.user, "username"):
+        if username := get_username():
             if add_to_cache_keys:
-                self.cache_key_wrapper(g.user.username)
-            return g.user.username
+                self.cache_key_wrapper(username)
+            return username
+        return None
+
+    def current_user_email(self, add_to_cache_keys: bool = True) -> Optional[str]:
+        """
+        Return the email address of the user who is currently logged in.
+
+        :param add_to_cache_keys: Whether the value should be included in the cache key
+        :returns: The user email address
+        """
+
+        if email_address := get_user_email():
+            if add_to_cache_keys:
+                self.cache_key_wrapper(email_address)
+            return email_address
         return None
 
     def cache_key_wrapper(self, key: Any) -> Any:
@@ -530,10 +550,14 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "url_param": partial(safe_proxy, extra_cache.url_param),
                 "current_user_id": partial(safe_proxy, extra_cache.current_user_id),
                 "current_username": partial(safe_proxy, extra_cache.current_username),
+                "current_user_email": partial(
+                    safe_proxy, extra_cache.current_user_email
+                ),
                 "cache_key_wrapper": partial(safe_proxy, extra_cache.cache_key_wrapper),
                 "filter_values": partial(safe_proxy, extra_cache.filter_values),
                 "get_filters": partial(safe_proxy, extra_cache.get_filters),
                 "dataset": partial(safe_proxy, dataset_macro_with_context),
+                "metric": partial(safe_proxy, metric_macro),
             }
         )
 
@@ -543,7 +567,7 @@ class NoOpTemplateProcessor(BaseTemplateProcessor):
         """
         Makes processing a template a noop
         """
-        return sql
+        return str(sql)
 
 
 class PrestoTemplateProcessor(JinjaTemplateProcessor):
@@ -597,7 +621,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
 
         table_name, schema = self._schema_table(table_name, self._schema)
         return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
-            table_name, schema, self._database
+            database=self._database, table=Table(table_name, schema)
         )[1]
 
     def latest_sub_partition(self, table_name: str, **kwargs: Any) -> Any:
@@ -609,7 +633,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         return cast(
             PrestoEngineSpec, self._database.db_engine_spec
         ).latest_sub_partition(
-            table_name=table_name, schema=schema, database=self._database, **kwargs
+            database=self._database, table=Table(table_name, schema), **kwargs
         )
 
     latest_partition = first_latest_partition
@@ -617,6 +641,19 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
 
 class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = "hive"
+
+
+class SparkTemplateProcessor(HiveTemplateProcessor):
+    engine = "spark"
+
+    def process_template(self, sql: str, **kwargs: Any) -> str:
+        template = self.env.from_string(sql)
+        kwargs.update(self._context)
+
+        # Backwards compatibility if migrating from Hive.
+        context = validate_template_context(self.engine, kwargs)
+        context["hive"] = context["spark"]
+        return template.render(context)
 
 
 class TrinoTemplateProcessor(PrestoTemplateProcessor):
@@ -635,6 +672,7 @@ class TrinoTemplateProcessor(PrestoTemplateProcessor):
 DEFAULT_PROCESSORS = {
     "presto": PrestoTemplateProcessor,
     "hive": HiveTemplateProcessor,
+    "spark": SparkTemplateProcessor,
     "trino": TrinoTemplateProcessor,
 }
 
@@ -702,3 +740,72 @@ def dataset_macro(
     sqla_query = dataset.get_query_str_extended(query_obj, mutate=False)
     sql = sqla_query.sql
     return f"(\n{sql}\n) AS dataset_{dataset_id}"
+
+
+def get_dataset_id_from_context(metric_key: str) -> int:
+    """
+    Retrives the Dataset ID from the request context.
+
+    :param metric_key: the metric key.
+    :returns: the dataset ID.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.chart import ChartDAO
+    from superset.views.utils import get_form_data
+
+    exc_message = _(
+        "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro.",
+        name=metric_key,
+    )
+
+    form_data, chart = get_form_data()
+    if not (form_data or chart):
+        raise SupersetTemplateException(exc_message)
+
+    if chart and chart.datasource_id:
+        return chart.datasource_id
+    if dataset_id := form_data.get("url_params", {}).get("datasource_id"):
+        return dataset_id
+    if chart_id := (
+        form_data.get("slice_id") or form_data.get("url_params", {}).get("slice_id")
+    ):
+        chart_data = ChartDAO.find_by_id(chart_id)
+        if not chart_data:
+            raise SupersetTemplateException(exc_message)
+        return chart_data.datasource_id
+    raise SupersetTemplateException(exc_message)
+
+
+def metric_macro(metric_key: str, dataset_id: Optional[int] = None) -> str:
+    """
+    Given a metric key, returns its syntax.
+
+    The ``dataset_id`` is optional and if not specified, will be retrieved
+    from the request context (if available).
+
+    :param metric_key: the metric key.
+    :param dataset_id: the ID for the dataset the metric is associated with.
+    :returns: the macro SQL syntax.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.dataset import DatasetDAO
+
+    if not dataset_id:
+        dataset_id = get_dataset_id_from_context(metric_key)
+
+    dataset = DatasetDAO.find_by_id(dataset_id)
+    if not dataset:
+        raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+    metrics: dict[str, str] = {
+        metric.metric_name: metric.expression for metric in dataset.metrics
+    }
+    dataset_name = dataset.table_name
+    if metric := metrics.get(metric_key):
+        return metric
+    raise SupersetTemplateException(
+        _(
+            "Metric ``%(metric_name)s`` not found in %(dataset_name)s.",
+            metric_name=metric_key,
+            dataset_name=dataset_name,
+        )
+    )

@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import CalendarChartPlugin from '@superset-ui/legacy-plugin-chart-calendar';
 import data from './data';

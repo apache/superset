@@ -28,7 +28,7 @@ const metadata = new ChartMetadata({
   name: t('Pie Chart (legacy)'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('Legacy'), t('nvd3'), t('Deprecated')],
+  tags: [t('Legacy'), t('nvd3')],
 });
 
 /**

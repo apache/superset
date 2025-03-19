@@ -26,17 +26,17 @@ Create Date: 2021-02-18 09:13:00.028317
 revision = "c501b7c653a3"
 down_revision = "070c043f2fdb"
 
-import logging
-from importlib import import_module
-from uuid import uuid4
+import logging  # noqa: E402
+from importlib import import_module  # noqa: E402
+from uuid import uuid4  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.engine.reflection import Inspector
-from sqlalchemy.orm import load_only
-from sqlalchemy_utils import UUIDType
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.engine.reflection import Inspector  # noqa: E402
+from sqlalchemy.orm import load_only  # noqa: E402
+from sqlalchemy_utils import UUIDType  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
 
 add_uuid_column_to_import_mixin = import_module(
     "superset.migrations.versions."

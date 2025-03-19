@@ -16,20 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { SyntheticEvent } from 'react';
+import { SyntheticEvent } from 'react';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { Menu } from 'src/components/Menu';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import DownloadAsPdf from './DownloadAsPdf';
 
+const mockAddDangerToast = jest.fn();
+
 jest.mock('src/utils/downloadAsPdf', () => ({
   __esModule: true,
   default: jest.fn(() => (_e: SyntheticEvent) => {}),
 }));
 
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  useToasts: () => ({
+    addDangerToast: mockAddDangerToast,
+  }),
+}));
+
 const createProps = () => ({
-  addDangerToast: jest.fn(),
   text: 'Export as PDF',
   dashboardTitle: 'Test Dashboard',
   logEvent: jest.fn(),
@@ -40,21 +47,27 @@ const renderComponent = () => {
     <Menu>
       <DownloadAsPdf {...createProps()} />
     </Menu>,
+    { useRedux: true },
   );
 };
 
 test('Should call download pdf on click', async () => {
-  const props = createProps();
   renderComponent();
   await waitFor(() => {
-    expect(downloadAsPdf).toBeCalledTimes(0);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(downloadAsPdf).toHaveBeenCalledTimes(0);
+    expect(mockAddDangerToast).toHaveBeenCalledTimes(0);
   });
 
   userEvent.click(screen.getByRole('button', { name: 'Export as PDF' }));
 
   await waitFor(() => {
-    expect(downloadAsPdf).toBeCalledTimes(1);
-    expect(props.addDangerToast).toBeCalledTimes(0);
+    expect(downloadAsPdf).toHaveBeenCalledTimes(1);
+    expect(mockAddDangerToast).toHaveBeenCalledTimes(0);
   });
+});
+
+test('Component is rendered with role="button"', async () => {
+  renderComponent();
+  const button = screen.getByRole('button', { name: 'Export as PDF' });
+  expect(button).toBeInTheDocument();
 });

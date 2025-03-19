@@ -26,8 +26,8 @@ Create Date: 2022-05-18 16:07:47.648514
 revision = "e786798587de"
 down_revision = "6f139c533bea"
 
-from alembic import op
-from sqlalchemy import (
+from alembic import op  # noqa: E402
+from sqlalchemy import (  # noqa: E402
     Column,
     ForeignKey,
     Integer,
@@ -36,8 +36,8 @@ from sqlalchemy import (
     Table,
     UniqueConstraint,
 )
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, Session
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
+from sqlalchemy.orm import relationship, Session  # noqa: E402
 
 Base = declarative_base()
 

@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { OptionName } from 'echarts/types/src/util/types';
+import type { OptionName } from 'echarts/types/src/util/types';
+import type { TreeSeriesNodeItemOption } from 'echarts/types/src/chart/tree/TreeSeries';
 import { ChartDataResponseResult, QueryFormData } from '@superset-ui/core';
-import { TreeSeriesNodeItemOption } from 'echarts/types/src/chart/tree/TreeSeries';
 import { BaseChartProps, BaseTransformedProps } from '../types';
 
 export type EchartsTreeFormData = QueryFormData & {

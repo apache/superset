@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Optional
 
 from superset import security_manager
@@ -24,10 +25,10 @@ from superset.commands.report.exceptions import (
     ReportScheduleForbiddenError,
     ReportScheduleNotFoundError,
 )
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +38,11 @@ class DeleteReportScheduleCommand(BaseCommand):
         self._model_ids = model_ids
         self._models: Optional[list[ReportSchedule]] = None
 
+    @transaction(on_error=partial(on_error, reraise=ReportScheduleDeleteFailedError))
     def run(self) -> None:
         self.validate()
         assert self._models
-
-        try:
-            ReportScheduleDAO.delete(self._models)
-        except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
-            raise ReportScheduleDeleteFailedError() from ex
+        ReportScheduleDAO.delete(self._models)
 
     def validate(self) -> None:
         # Validate/populate model exists

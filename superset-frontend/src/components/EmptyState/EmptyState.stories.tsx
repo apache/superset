@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import EmptyImage from 'src/assets/images/empty.svg';
 import ChartImage from 'src/assets/images/chart.svg';
 import FilterImage from 'src/assets/images/filter.svg';

@@ -1,0 +1,68 @@
+name: Bump Python Package
+
+on:
+  # Can be triggered manually
+  workflow_dispatch:
+    inputs:
+      package:
+        required: false
+        description: The python package to bump (all if empty)
+      group:
+        required: false
+        description: The optional dependency group to bump (as defined in pyproject.toml)
+      limit:
+        required: true
+        description: Max number of PRs to open (0 for no limit)
+        default: 5
+
+jobs:
+  bump-python-package:
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      checks: write
+    steps:
+
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          ref: master
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Set up Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install pip-compile-multi
+        run: pip install pip-compile-multi
+
+      - name: supersetbot bump-python -p "${{ github.event.inputs.package }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+
+          PACKAGE_OPT=""
+          if [ -n "${{ github.event.inputs.package }}" ]; then
+            PACKAGE_OPT="-p ${{ github.event.inputs.package }}"
+          fi
+
+          GROUP_OPT=""
+          if [ -n "${{ github.event.inputs.group }}" ]; then
+            GROUP_OPT="-g ${{ github.event.inputs.group }}"
+          fi
+
+          supersetbot bump-python \
+            --verbose \
+            --use-current-repo \
+            --include-subpackages \
+            --limit ${{ github.event.inputs.limit }} \
+            $PACKAGE_OPT \
+            $GROUP_OPT

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { styled } from '@superset-ui/core';
 import TagType from 'src/types/TagType';
 import Tag from './Tag';

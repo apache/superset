@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { ReactNode } from 'react';
 import { Store } from 'redux';
 import { render } from 'spec/helpers/testing-library';
 import {
@@ -36,7 +36,7 @@ import { dashboardWithFilter } from 'spec/fixtures/mockDashboardLayout';
 jest.mock(
   'src/dashboard/components/FiltersBadge/DetailsPanel',
   () =>
-    ({ children }: { children: React.ReactNode }) => (
+    ({ children }: { children: ReactNode }) => (
       <div data-test="mock-details-panel">{children}</div>
     ),
 );

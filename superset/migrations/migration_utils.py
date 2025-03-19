@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from alembic.operations import BatchOperations, Operations
+from alembic.operations import Operations
 
 naming_convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",

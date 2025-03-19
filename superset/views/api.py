@@ -18,7 +18,6 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-import simplejson as json
 from flask import request
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison
@@ -33,14 +32,24 @@ from superset.commands.chart.exceptions import (
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
-from superset.utils import core as utils
+from superset.utils import json
 from superset.utils.date_parser import get_since_until
-from superset.views.base import api, BaseSupersetView, handle_api_exception
+from superset.views.base import api, BaseSupersetView
+from superset.views.error_handling import handle_api_exception
 
 if TYPE_CHECKING:
     from superset.common.query_context_factory import QueryContextFactory
 
-get_time_range_schema = {"type": "string"}
+get_time_range_schema = {
+    "type": ["string", "array"],
+    "items": {
+        "type": "object",
+        "properties": {
+            "timeRange": {"type": "string"},
+            "shift": {"type": "string"},
+        },
+    },
+}
 
 
 class Api(BaseSupersetView):
@@ -64,9 +73,7 @@ class Api(BaseSupersetView):
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
-        return json.dumps(
-            payload_json, default=utils.json_int_dttm_ser, ignore_nan=True
-        )
+        return json.dumps(payload_json, default=json.json_int_dttm_ser, ignore_nan=True)
 
     @event_logger.log_this
     @api
@@ -95,15 +102,26 @@ class Api(BaseSupersetView):
     @expose("/v1/time_range/", methods=("GET",))
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human-readable string or datetime expression."""
-        time_range = kwargs["rison"]
+        time_ranges = kwargs["rison"]
         try:
-            since, until = get_since_until(time_range)
-            result = {
-                "since": since.isoformat() if since else "",
-                "until": until.isoformat() if until else "",
-                "timeRange": time_range,
-            }
-            return self.json_response({"result": result})
+            if isinstance(time_ranges, str):
+                time_ranges = [{"timeRange": time_ranges}]
+
+            rv = []
+            for time_range in time_ranges:
+                since, until = get_since_until(
+                    time_range=time_range["timeRange"],
+                    time_shift=time_range.get("shift"),
+                )
+                rv.append(
+                    {
+                        "since": since.isoformat() if since else "",
+                        "until": until.isoformat() if until else "",
+                        "timeRange": time_range["timeRange"],
+                        "shift": time_range.get("shift"),
+                    }
+                )
+            return self.json_response({"result": rv})
         except (ValueError, TimeRangeParseFailError, TimeRangeAmbiguousError) as error:
             error_msg = {"message": _("Unexpected time range: %(error)s", error=error)}
             return self.json_response(error_msg, 400)

@@ -16,22 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import {
-  getSharedLabelColor,
+  getLabelsColorMap,
   isDefined,
   JsonObject,
   makeApi,
-  SharedLabelColorSource,
+  LabelsColorMapSource,
   t,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
-import { getClientErrorObject } from 'src/utils/getClientErrorObject';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
@@ -84,8 +84,8 @@ const getDashboardContextFormData = () => {
   if (dashboardContext) {
     const sliceId = getUrlParam(URL_PARAMS.sliceId) || 0;
     const {
-      labelColors,
-      sharedLabelColors,
+      labelsColor,
+      labelsColorMap,
       colorScheme,
       chartConfiguration,
       nativeFilters,
@@ -100,8 +100,8 @@ const getDashboardContextFormData = () => {
       chartConfiguration,
       colorScheme,
       dataMask,
-      labelColors,
-      sharedLabelColors,
+      labelsColor,
+      labelsColorMap,
       sliceId,
       allSliceIds: [sliceId],
       extraControls: {},
@@ -151,7 +151,7 @@ export default function ExplorePage() {
           isExploreInitialized.current = true;
         });
     }
-    getSharedLabelColor().source = SharedLabelColorSource.Explore;
+    getLabelsColorMap().source = LabelsColorMapSource.Explore;
   }, [dispatch, location]);
 
   if (!isLoaded) {

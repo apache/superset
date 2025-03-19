@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { mount } from 'enzyme';
-import { ThemeProvider, supersetTheme } from '@superset-ui/core';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import Toast from 'src/components/MessageToasts/Toast';
-import { act } from 'react-dom/test-utils';
 import mockMessageToasts from './mockMessageToasts';
 
 const props = {
@@ -28,35 +25,22 @@ const props = {
   onCloseToast() {},
 };
 
-const setup = overrideProps =>
-  mount(<Toast {...props} {...overrideProps} />, {
-    wrappingComponent: ThemeProvider,
-    wrappingComponentProps: { theme: supersetTheme },
-  });
+const setup = overrideProps => render(<Toast {...props} {...overrideProps} />);
 
-describe('Toast', () => {
-  it('should render', () => {
-    const wrapper = setup();
-    expect(wrapper.find('[data-test="toast-container"]')).toExist();
-  });
+test('should render', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('toast-container')).toBeInTheDocument();
+});
 
-  it('should render toastText within the div', () => {
-    const wrapper = setup();
-    const container = wrapper.find('[data-test="toast-container"]');
-    expect(container.hostNodes().childAt(1).text()).toBe(props.toast.text);
-  });
+test('should render toastText within the div', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('toast-container')).toHaveTextContent(props.toast.text);
+});
 
-  it('should call onCloseToast upon toast dismissal', async () =>
-    act(
-      () =>
-        new Promise(done => {
-          const onCloseToast = id => {
-            expect(id).toBe(props.toast.id);
-            done();
-          };
-
-          const wrapper = setup({ onCloseToast });
-          wrapper.find('[data-test="close-button"]').props().onClick();
-        }),
-    ));
+test('should call onCloseToast upon toast dismissal', async () => {
+  const onCloseToast = jest.fn();
+  const { getByTestId } = setup({ onCloseToast });
+  fireEvent.click(getByTestId('close-button'));
+  await waitFor(() => expect(onCloseToast).toHaveBeenCalledTimes(1));
+  expect(onCloseToast).toHaveBeenCalledWith(props.toast.id);
 });

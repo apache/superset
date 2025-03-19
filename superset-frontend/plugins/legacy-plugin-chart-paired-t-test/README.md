@@ -19,8 +19,8 @@ under the License.
 
 ## @superset-ui/legacy-plugin-chart-paired-t-test
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-paired-t-test.svg?style=flat-square)](hhttps://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-paired-t-test)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-legacy-plugin-chart-paired-t-test&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=packages/superset-ui-legacy-plugin-chart-paired-t-test)
+[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-plugin-chart-paired-t-test.svg?style=flat)](hhttps://www.npmjs.com/package/@superset-ui/legacy-plugin-chart-paired-t-test)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Flegacy-plugin-chart-paired-t-test?style=flat)](https://libraries.io/npm/@superset-ui%2Flegacy-plugin-chart-paired-t-test)
 
 This plugin provides Paired T Test for Superset.
 

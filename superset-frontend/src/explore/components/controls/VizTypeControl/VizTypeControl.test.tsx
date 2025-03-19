@@ -25,7 +25,6 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { DynamicPluginProvider } from 'src/components/DynamicPlugins';
 import { testWithId } from 'src/utils/testUtils';

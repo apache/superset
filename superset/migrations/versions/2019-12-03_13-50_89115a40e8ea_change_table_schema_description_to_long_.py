@@ -26,10 +26,10 @@ Create Date: 2019-12-03 13:50:24.746867
 revision = "89115a40e8ea"
 down_revision = "5afa9079866a"
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.dialects import mysql
-from sqlalchemy.dialects.mysql.base import MySQLDialect
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.dialects import mysql  # noqa: E402
+from sqlalchemy.dialects.mysql.base import MySQLDialect  # noqa: E402
 
 
 def upgrade():

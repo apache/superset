@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, ReactNode, useLayoutEffect } from 'react';
+import { useState, ReactNode, useLayoutEffect, RefObject } from 'react';
+
 import {
   css,
   styled,
@@ -46,7 +47,7 @@ export interface MetricOptionProps {
   showFormula?: boolean;
   showType?: boolean;
   url?: string;
-  labelRef?: React.RefObject<any>;
+  labelRef?: RefObject<any>;
   shouldShowTooltip?: boolean;
 }
 
@@ -80,7 +81,8 @@ export function MetricOption({
     </span>
   );
 
-  const warningMarkdown = metric.warning_markdown || metric.warning_text;
+  const warningMarkdown =
+    metric.warning_markdown || metric.warning_text || metric.error_text;
 
   const [tooltipText, setTooltipText] = useState<ReactNode>(metric.metric_name);
 
@@ -115,6 +117,10 @@ export function MetricOption({
           tooltip={<SafeMarkdown source={warningMarkdown} />}
           label={`warn-${metric.metric_name}`}
           iconsStyle={{ marginLeft: 0 }}
+          {...(metric.error_text && {
+            className: 'text-danger',
+            icon: 'exclamation-circle',
+          })}
         />
       )}
     </FlexRowContainer>

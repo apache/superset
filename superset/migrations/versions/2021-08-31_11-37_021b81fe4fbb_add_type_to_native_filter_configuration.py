@@ -26,14 +26,14 @@ Create Date: 2021-08-31 11:37:40.604081
 revision = "021b81fe4fbb"
 down_revision = "07071313dd52"
 
-import json
-import logging
+import logging  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -63,7 +63,7 @@ def upgrade():
             continue
         try:
             json_meta = json.loads(dashboard.json_metadata)
-        except:
+        except:  # noqa: E722
             logger.exception("[AddTypeToNativeFilter] Error loading json_metadata")
             continue
 
@@ -103,7 +103,7 @@ def downgrade():
             continue
         try:
             json_meta = json.loads(dashboard.json_metadata)
-        except:
+        except:  # noqa: E722
             logger.exception("[RemoveTypeToNativeFilter] Error loading json_metadata")
             continue
 

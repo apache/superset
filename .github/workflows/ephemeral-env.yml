@@ -6,7 +6,7 @@ on:
 
 jobs:
   config:
-    runs-on: "ubuntu-latest"
+    runs-on: "ubuntu-22.04"
     if: github.event.issue.pull_request
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
@@ -26,7 +26,7 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets
     name: Evaluate ephemeral env comment trigger (/testenv)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       pull-requests: write
     outputs:
@@ -88,7 +88,7 @@ jobs:
       cancel-in-progress: true
     needs: ephemeral-env-comment
     name: ephemeral-docker-build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Get Info from comment
         uses: actions/github-script@v7
@@ -153,7 +153,7 @@ jobs:
     needs: [ephemeral-env-comment, ephemeral-docker-build]
     if: needs.ephemeral-env-comment.outputs.slash-command == 'up'
     name: Spin up an ephemeral environment
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       contents: read
       pull-requests: write

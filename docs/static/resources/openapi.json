@@ -3052,6 +3052,12 @@
             },
             "type": "array"
           },
+          "column_names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "currency_formats": {
             "type": "object"
           },
@@ -3611,6 +3617,9 @@
             "type": "string"
           },
           "disable_data_preview": {
+            "type": "boolean"
+          },
+          "disable_drill_to_detail": {
             "type": "boolean"
           },
           "explore_database_id": {

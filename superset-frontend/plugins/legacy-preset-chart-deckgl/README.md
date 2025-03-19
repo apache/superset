@@ -19,8 +19,8 @@ under the License.
 
 ## @superset-ui/legacy-preset-chart-deckgl
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-deckgl.svg?style=flat-square)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-deckgl.svg?style=flat-square)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui-plugins.svg?path=packages%2Fsuperset-ui-legacy-preset-chart-deckgl&style=flat-square)](https://david-dm.org/apache-superset/superset-ui-plugins?path=packages/superset-ui-legacy-preset-chart-deckgl)
+[![Version](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-deckgl.svg?style=flat)](https://img.shields.io/npm/v/@superset-ui/legacy-preset-chart-deckgl.svg?style=flat-square)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Flegacy-preset-chart-deckgl?style=flat)](https://libraries.io/npm/@superset-ui%2Flegacy-preset-chart-deckgl)
 
 This plugin provides `deck.gl` for Superset.
 

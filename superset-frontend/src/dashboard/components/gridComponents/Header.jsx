@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import cx from 'classnames';
 import { css, styled } from '@superset-ui/core';
@@ -114,7 +114,7 @@ const HeaderStyles = styled.div`
   `}
 `;
 
-class Header extends React.PureComponent {
+class Header extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {

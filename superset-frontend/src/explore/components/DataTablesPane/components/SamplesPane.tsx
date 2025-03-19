@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ensureIsArray, GenericDataType, styled, t } from '@superset-ui/core';
 import Loading from 'src/components/Loading';
 import { EmptyStateMedium } from 'src/components/EmptyState';
@@ -42,6 +42,7 @@ export const SamplesPane = ({
   actions,
   dataSize = 50,
   isVisible,
+  canDownload,
 }: SamplesPaneProps) => {
   const [filterText, setFilterText] = useState('');
   const [data, setData] = useState<Record<string, any>[][]>([]);
@@ -114,6 +115,7 @@ export const SamplesPane = ({
           datasourceId={datasourceId}
           onInputChange={input => setFilterText(input)}
           isLoading={isLoading}
+          canDownload={canDownload}
         />
         <Error>{responseError}</Error>
       </>
@@ -135,6 +137,7 @@ export const SamplesPane = ({
         datasourceId={datasourceId}
         onInputChange={input => setFilterText(input)}
         isLoading={isLoading}
+        canDownload={canDownload}
       />
       <TableView
         columns={columns}

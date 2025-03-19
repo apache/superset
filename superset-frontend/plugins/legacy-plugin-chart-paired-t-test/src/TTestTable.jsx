@@ -18,7 +18,7 @@
  */
 /* eslint-disable react/no-array-index-key, react/jsx-no-bind */
 import dist from 'distributions';
-import React from 'react';
+import { Component } from 'react';
 import { Table, Tr, Td, Thead, Th } from 'reactable';
 import PropTypes from 'prop-types';
 
@@ -49,7 +49,7 @@ const defaultProps = {
   pValPrec: 6,
 };
 
-class TTestTable extends React.Component {
+class TTestTable extends Component {
   constructor(props) {
     super(props);
     this.state = {

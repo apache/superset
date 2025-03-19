@@ -18,7 +18,7 @@
  */
 
 import { css, SupersetTheme } from '@superset-ui/core';
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Tooltip } from 'src/components/Tooltip';
 
 type ColorSchemeLabelProps = {
@@ -31,17 +31,17 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
   const { id, label, colors } = props;
   const [showTooltip, setShowTooltip] = useState<boolean>(false);
   const labelNameRef = useRef<HTMLElement>(null);
-  const labelColorsRef = useRef<HTMLElement>(null);
+  const labelsColorRef = useRef<HTMLElement>(null);
   const handleShowTooltip = () => {
     const labelNameElement = labelNameRef.current;
-    const labelColorsElement = labelColorsRef.current;
+    const labelsColorElement = labelsColorRef.current;
     if (
       labelNameElement &&
-      labelColorsElement &&
+      labelsColorElement &&
       (labelNameElement.scrollWidth > labelNameElement.offsetWidth ||
         labelNameElement.scrollHeight > labelNameElement.offsetHeight ||
-        labelColorsElement.scrollWidth > labelColorsElement.offsetWidth ||
-        labelColorsElement.scrollHeight > labelColorsElement.offsetHeight)
+        labelsColorElement.scrollWidth > labelsColorElement.offsetWidth ||
+        labelsColorElement.scrollHeight > labelsColorElement.offsetHeight)
     ) {
       setShowTooltip(true);
     }
@@ -109,7 +109,7 @@ export default function ColorSchemeLabel(props: ColorSchemeLabelProps) {
           {label}
         </span>
         <span
-          ref={labelColorsRef}
+          ref={labelsColorRef}
           css={(theme: SupersetTheme) => css`
             flex: 100%;
             text-overflow: ellipsis;

@@ -19,7 +19,6 @@
 
 // These are control configurations that are shared ONLY within the DeckGL viz plugin repo.
 
-import React from 'react';
 import {
   FeatureFlag,
   isFeatureEnabled,

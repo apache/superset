@@ -17,7 +17,8 @@
  * under the License.
  */
 
-import React, { forwardRef, ReactNode, RefObject } from 'react';
+import { forwardRef, MouseEvent, ReactNode, RefObject } from 'react';
+
 import { css, styled, useTheme, t } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 
@@ -25,7 +26,7 @@ export type DateLabelProps = {
   label: ReactNode;
   isActive?: boolean;
   isPlaceholder?: boolean;
-  onClick?: (event: React.MouseEvent) => void;
+  onClick?: (event: MouseEvent) => void;
 };
 
 // This is the color that antd components (such as Select or Input) use on hover

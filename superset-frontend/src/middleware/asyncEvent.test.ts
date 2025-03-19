@@ -20,7 +20,6 @@ import fetchMock from 'fetch-mock';
 import WS from 'jest-websocket-mock';
 import sinon from 'sinon';
 import * as uiCore from '@superset-ui/core';
-import { parseErrorJson } from 'src/utils/getClientErrorObject';
 import * as asyncEvent from 'src/middleware/asyncEvent';
 
 describe('asyncEvent middleware', () => {
@@ -129,7 +128,7 @@ describe('asyncEvent middleware', () => {
         status: 200,
         body: { result: [asyncErrorEvent] },
       });
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
+      const errorResponse = await uiCore.parseErrorJson(asyncErrorEvent);
       await expect(
         asyncEvent.waitForAsyncData(asyncPendingEvent),
       ).rejects.toEqual(errorResponse);
@@ -204,7 +203,7 @@ describe('asyncEvent middleware', () => {
 
       wsServer.send(JSON.stringify(asyncErrorEvent));
 
-      const errorResponse = await parseErrorJson(asyncErrorEvent);
+      const errorResponse = await uiCore.parseErrorJson(asyncErrorEvent);
 
       await expect(promise).rejects.toEqual(errorResponse);
 

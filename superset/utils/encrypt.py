@@ -24,6 +24,7 @@ from sqlalchemy import text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType
 
+ENC_ADAPTER_TAG_ATTR_NAME = "__created_by_enc_field_adapter__"
 logger = logging.getLogger(__name__)
 
 
@@ -70,11 +71,17 @@ class EncryptedFieldFactory:
         self, *args: list[Any], **kwargs: Optional[dict[str, Any]]
     ) -> TypeDecorator:
         if self._concrete_type_adapter:
-            return self._concrete_type_adapter.create(self._config, *args, **kwargs)
+            adapter = self._concrete_type_adapter.create(self._config, *args, **kwargs)
+            setattr(adapter, ENC_ADAPTER_TAG_ATTR_NAME, True)
+            return adapter
 
         raise Exception(  # pylint: disable=broad-exception-raised
             "App not initialized yet. Please call init_app first"
         )
+
+    @staticmethod
+    def created_by_enc_field_factory(field: TypeDecorator) -> bool:
+        return getattr(field, ENC_ADAPTER_TAG_ATTR_NAME, False)
 
 
 class SecretsMigrator:

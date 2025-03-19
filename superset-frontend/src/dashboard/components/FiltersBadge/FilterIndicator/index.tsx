@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import React, { FC } from 'react';
+import { forwardRef } from 'react';
 import { css } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { getFilterValueForDisplay } from 'src/dashboard/components/nativeFilters/utils';
@@ -33,38 +33,39 @@ export interface IndicatorProps {
   onClick?: (path: string[]) => void;
 }
 
-const FilterIndicator: FC<IndicatorProps> = ({
-  indicator: { column, name, value, path = [] },
-  onClick,
-}) => {
-  const resultValue = getFilterValueForDisplay(value);
-  return (
-    <FilterItem
-      onClick={
-        onClick ? () => onClick([...path, `LABEL-${column}`]) : undefined
-      }
-    >
-      {onClick && (
-        <i>
-          <Icons.SearchOutlined
-            iconSize="m"
-            css={css`
-              span {
-                vertical-align: 0;
-              }
-            `}
-          />
-        </i>
-      )}
-      <div>
-        <FilterName>
-          {name}
-          {resultValue ? ': ' : ''}
-        </FilterName>
-        <FilterValue>{resultValue}</FilterValue>
-      </div>
-    </FilterItem>
-  );
-};
+const FilterIndicator = forwardRef<HTMLButtonElement, IndicatorProps>(
+  ({ indicator: { column, name, value, path = [] }, onClick }, ref) => {
+    const resultValue = getFilterValueForDisplay(value);
+    return (
+      <FilterItem
+        ref={ref}
+        onClick={
+          onClick ? () => onClick([...path, `LABEL-${column}`]) : undefined
+        }
+        tabIndex={-1}
+      >
+        {onClick && (
+          <i>
+            <Icons.SearchOutlined
+              iconSize="m"
+              css={css`
+                span {
+                  vertical-align: 0;
+                }
+              `}
+            />
+          </i>
+        )}
+        <div>
+          <FilterName>
+            {name}
+            {resultValue ? ': ' : ''}
+          </FilterName>
+          <FilterValue>{resultValue}</FilterValue>
+        </div>
+      </FilterItem>
+    );
+  },
+);
 
 export default FilterIndicator;

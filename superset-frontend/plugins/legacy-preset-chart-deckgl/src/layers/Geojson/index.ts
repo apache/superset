@@ -32,7 +32,7 @@ const metadata = new ChartMetadata({
   name: t('deck.gl Geojson'),
   thumbnail,
   useLegacyApi: true,
-  tags: [t('deckGL'), t('2D'), t('Aesthetic')],
+  tags: [t('deckGL'), t('2D')],
 });
 
 export default class GeojsonChartPlugin extends ChartPlugin {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import { List } from 'src/components';
 import { connect } from 'react-redux';
@@ -58,7 +58,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-class AnnotationLayerControl extends React.PureComponent {
+class AnnotationLayerControl extends PureComponent {
   constructor(props) {
     super(props);
     this.state = {

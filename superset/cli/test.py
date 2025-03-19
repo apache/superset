@@ -22,12 +22,14 @@ from flask.cli import with_appcontext
 
 import superset.utils.database as database_utils
 from superset import app, security_manager
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
 
 @click.command()
 @with_appcontext
+@transaction()
 def load_test_users() -> None:
     """
     Loads admin, alpha, and gamma user for testing purposes
@@ -35,15 +37,7 @@ def load_test_users() -> None:
     Syncs permissions for those users/roles
     """
     print(Fore.GREEN + "Loading a set of users for unit tests")
-    load_test_users_run()
 
-
-def load_test_users_run() -> None:
-    """
-    Loads admin, alpha, and gamma user for testing purposes
-
-    Syncs permissions for those users/roles
-    """
     if app.config["TESTING"]:
         sm = security_manager
 
@@ -84,4 +78,3 @@ def load_test_users_run() -> None:
                     sm.find_role(role),
                     password="general",
                 )
-        sm.get_session.commit()

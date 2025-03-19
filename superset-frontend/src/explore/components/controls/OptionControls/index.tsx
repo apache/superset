@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useRef } from 'react';
+import { useRef, ReactNode } from 'react';
+
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd';
 import { styled, t, useTheme, keyframes, css } from '@superset-ui/core';
 import { InfoTooltipWithTrigger } from '@superset-ui/chart-controls';
@@ -252,7 +253,7 @@ export const OptionControlLabel = ({
   multi = true,
   ...props
 }: {
-  label: string | React.ReactNode;
+  label: string | ReactNode;
   savedMetric?: savedMetricType;
   adhocMetric?: AdhocMetric;
   onRemove: () => void;

@@ -28,13 +28,20 @@ export { default as EchartsMixedTimeseriesChartPlugin } from './MixedTimeseries'
 export { default as EchartsPieChartPlugin } from './Pie';
 export { default as EchartsGraphChartPlugin } from './Graph';
 export { default as EchartsGaugeChartPlugin } from './Gauge';
+export { default as EchartsHistogramChartPlugin } from './Histogram';
 export { default as EchartsRadarChartPlugin } from './Radar';
 export { default as EchartsFunnelChartPlugin } from './Funnel';
 export { default as EchartsTreeChartPlugin } from './Tree';
+export { default as EchartsHeatmapChartPlugin } from './Heatmap';
 export { default as EchartsTreemapChartPlugin } from './Treemap';
-export { BigNumberChartPlugin, BigNumberTotalChartPlugin } from './BigNumber';
+export {
+  BigNumberChartPlugin,
+  BigNumberTotalChartPlugin,
+  BigNumberPeriodOverPeriodChartPlugin,
+} from './BigNumber';
 export { default as EchartsSunburstChartPlugin } from './Sunburst';
 export { default as EchartsBubbleChartPlugin } from './Bubble';
+export { default as EchartsSankeyChartPlugin } from './Sankey';
 export { default as EchartsWaterfallChartPlugin } from './Waterfall';
 
 export { default as BoxPlotTransformProps } from './BoxPlot/transformProps';
@@ -47,9 +54,12 @@ export { default as RadarTransformProps } from './Radar/transformProps';
 export { default as TimeseriesTransformProps } from './Timeseries/transformProps';
 export { default as TreeTransformProps } from './Tree/transformProps';
 export { default as TreemapTransformProps } from './Treemap/transformProps';
+export { default as HeatmapTransformProps } from './Heatmap/transformProps';
 export { default as SunburstTransformProps } from './Sunburst/transformProps';
 export { default as BubbleTransformProps } from './Bubble/transformProps';
 export { default as WaterfallTransformProps } from './Waterfall/transformProps';
+export { default as HistogramTransformProps } from './Histogram/transformProps';
+export { default as SankeyTransformProps } from './Sankey/transformProps';
 
 export { DEFAULT_FORM_DATA as TimeseriesDefaultFormData } from './Timeseries/constants';
 

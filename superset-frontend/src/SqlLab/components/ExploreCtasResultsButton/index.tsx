@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { t, JsonObject } from '@superset-ui/core';
 import {

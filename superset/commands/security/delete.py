@@ -16,15 +16,16 @@
 # under the License.
 
 import logging
+from functools import partial
 
 from superset.commands.base import BaseCommand
 from superset.commands.security.exceptions import (
     RLSRuleNotFoundError,
     RuleDeleteFailedError,
 )
-from superset.daos.exceptions import DAODeleteFailedError
 from superset.daos.security import RLSDAO
 from superset.reports.models import ReportSchedule
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +35,10 @@ class DeleteRLSRuleCommand(BaseCommand):
         self._model_ids = model_ids
         self._models: list[ReportSchedule] = []
 
+    @transaction(on_error=partial(on_error, reraise=RuleDeleteFailedError))
     def run(self) -> None:
         self.validate()
-        try:
-            RLSDAO.delete(self._models)
-        except DAODeleteFailedError as ex:
-            logger.exception(ex.exception)
-            raise RuleDeleteFailedError() from ex
+        RLSDAO.delete(self._models)
 
     def validate(self) -> None:
         # Validate/populate model exists

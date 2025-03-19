@@ -16,19 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { act } from 'react-dom/test-utils';
 import thunk from 'redux-thunk';
 import configureStore from 'redux-mock-store';
-import { styledMount as mount } from 'spec/helpers/theming';
-import { ReactWrapper } from 'enzyme';
+import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import waitForComponentToPaint from 'spec/helpers/waitForComponentToPaint';
-import { Upload } from 'src/components';
-import Button from 'src/components/Button';
 import { ImportResourceName } from 'src/views/CRUD/types';
-import ImportModelsModal from 'src/components/ImportModal';
-import Modal from 'src/components/Modal';
+import ImportModelsModal, {
+  ImportModelsModalProps,
+} from 'src/components/ImportModal';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -49,148 +44,98 @@ const requiredProps = {
   onHide: () => {},
 };
 
-describe('ImportModelsModal', () => {
-  let wrapper: ReactWrapper;
+afterEach(() => {
+  jest.clearAllMocks();
+});
 
-  beforeEach(() => {
-    wrapper = mount(<ImportModelsModal {...requiredProps} />, {
-      context: { store },
-    });
-  });
+const setup = (overrides: Partial<ImportModelsModalProps> = {}) =>
+  render(<ImportModelsModal {...requiredProps} {...overrides} />, { store });
 
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
+test('renders', () => {
+  const { container } = setup();
+  expect(container).toBeInTheDocument();
+});
 
-  it('renders', () => {
-    expect(wrapper.find(ImportModelsModal)).toExist();
-  });
+test('renders a Modal', () => {
+  const { getByTestId } = setup();
+  expect(getByTestId('model-modal')).toBeInTheDocument();
+});
 
-  it('renders a Modal', () => {
-    expect(wrapper.find(Modal)).toExist();
-  });
+test('renders "Import database" header', () => {
+  const { getByText } = setup();
+  expect(getByText('Import database')).toBeInTheDocument();
+});
 
-  it('renders "Import database" header', () => {
-    expect(wrapper.find('h4').text()).toEqual('Import database');
-  });
+test('renders a file input field', () => {
+  setup();
+  expect(document.querySelector('input[type="file"]')).toBeInTheDocument();
+});
 
-  it('renders a file input field', () => {
-    expect(wrapper.find('input[type="file"]')).toExist();
-  });
+test('should render the close, file, import and cancel buttons', () => {
+  setup();
+  expect(document.querySelectorAll('button')).toHaveLength(4);
+});
 
-  it('should render the close, file, import and cancel buttons', () => {
-    expect(wrapper.find('button')).toHaveLength(4);
-  });
+test('should render the import button initially disabled', () => {
+  const { getByRole } = setup();
+  expect(getByRole('button', { name: 'Import' })).toBeDisabled();
+});
 
-  it('should render the import button initially disabled', () => {
-    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(true);
-  });
-
-  it('should render the import button enabled when a file is selected', () => {
-    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
-    act(() => {
-      const handler = wrapper.find(Upload).prop('onChange');
-      if (handler) {
-        handler({
-          fileList: [],
-          file: {
-            name: 'model_export.zip',
-            originFileObj: file,
-            uid: '-1',
-            size: 0,
-            type: 'zip',
-          },
-        });
-      }
-    });
-    wrapper.update();
-    expect(wrapper.find(Button).at(2).prop('disabled')).toBe(false);
-  });
-
-  it('should POST with request header `Accept: application/json`', async () => {
-    const file = new File([new ArrayBuffer(1)], 'model_export.zip');
-    act(() => {
-      const handler = wrapper.find(Upload).prop('onChange');
-      if (handler) {
-        handler({
-          fileList: [],
-          file: {
-            name: 'model_export.zip',
-            originFileObj: file,
-            uid: '-1',
-            size: 0,
-            type: 'zip',
-          },
-        });
-      }
-    });
-    wrapper.update();
-
-    wrapper.find(Button).at(2).simulate('click');
-    await waitForComponentToPaint(wrapper);
-    expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
-      Accept: 'application/json',
-      'X-CSRFToken': '1234',
-    });
-  });
-
-  it('should render password fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        passwordFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
+test('should render the import button enabled when a file is selected', async () => {
+  const file = new File([new ArrayBuffer(1)], 'model_export.zip');
+  const { getByTestId, getByRole } = setup();
+  await waitFor(() =>
+    fireEvent.change(getByTestId('model-file-input'), {
+      target: {
+        files: [file],
       },
-    );
-    expect(wrapperWithPasswords.find('input[type="password"]')).toExist();
-  });
+    }),
+  );
+  expect(getByRole('button', { name: 'Import' })).toBeEnabled();
+});
 
-  it('should render ssh_tunnel password fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        sshTunnelPasswordFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
+test('should POST with request header `Accept: application/json`', async () => {
+  const file = new File([new ArrayBuffer(1)], 'model_export.zip');
+  const { getByTestId, getByRole } = setup();
+  await waitFor(() =>
+    fireEvent.change(getByTestId('model-file-input'), {
+      target: {
+        files: [file],
       },
-    );
-    expect(
-      wrapperWithPasswords.find('[data-test="ssh_tunnel_password"]'),
-    ).toExist();
+    }),
+  );
+  fireEvent.click(getByRole('button', { name: 'Import' }));
+  await waitFor(() =>
+    expect(fetchMock.calls(DATABASE_IMPORT_URL)).toHaveLength(1),
+  );
+  expect(fetchMock.calls(DATABASE_IMPORT_URL)[0][1]?.headers).toStrictEqual({
+    Accept: 'application/json',
+    'X-CSRFToken': '1234',
   });
+});
 
-  it('should render ssh_tunnel private_key fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        sshTunnelPrivateKeyFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
-      },
-    );
-    expect(
-      wrapperWithPasswords.find('[data-test="ssh_tunnel_private_key"]'),
-    ).toExist();
-  });
+test('should render password fields when needed for import', () => {
+  setup({ passwordFields: ['databases/examples.yaml'] });
+  expect(document.querySelector('input[type="password"]')).toBeInTheDocument();
+});
 
-  it('should render ssh_tunnel private_key_password fields when needed for import', () => {
-    const wrapperWithPasswords = mount(
-      <ImportModelsModal
-        {...requiredProps}
-        sshTunnelPrivateKeyPasswordFields={['databases/examples.yaml']}
-      />,
-      {
-        context: { store },
-      },
-    );
-    expect(
-      wrapperWithPasswords.find(
-        '[data-test="ssh_tunnel_private_key_password"]',
-      ),
-    ).toExist();
+test('should render ssh_tunnel password fields when needed for import', () => {
+  const { getByTestId } = setup({
+    sshTunnelPasswordFields: ['databases/examples.yaml'],
   });
+  expect(getByTestId('ssh_tunnel_password')).toBeInTheDocument();
+});
+
+test('should render ssh_tunnel private_key fields when needed for import', () => {
+  const { getByTestId } = setup({
+    sshTunnelPrivateKeyFields: ['databases/examples.yaml'],
+  });
+  expect(getByTestId('ssh_tunnel_private_key')).toBeInTheDocument();
+});
+
+test('should render ssh_tunnel private_key_password fields when needed for import', () => {
+  const { getByTestId } = setup({
+    sshTunnelPrivateKeyPasswordFields: ['databases/examples.yaml'],
+  });
+  expect(getByTestId('ssh_tunnel_private_key_password')).toBeInTheDocument();
 });

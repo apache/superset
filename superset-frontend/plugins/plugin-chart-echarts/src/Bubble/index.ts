@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Behavior, ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
+import { ChartMetadata, ChartPlugin, t } from '@superset-ui/core';
 import thumbnail from './images/thumbnail.png';
 import transformProps from './transformProps';
 import buildQuery from './buildQuery';
@@ -25,6 +25,7 @@ import example1 from './images/example1.png';
 import example2 from './images/example2.png';
 import { EchartsBubbleChartProps, EchartsBubbleFormData } from './types';
 
+// TODO: Implement cross filtering
 export default class EchartsBubbleChartPlugin extends ChartPlugin<
   EchartsBubbleFormData,
   EchartsBubbleChartProps
@@ -35,7 +36,6 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsBubble'),
       metadata: new ChartMetadata({
-        behaviors: [Behavior.InteractiveChart],
         category: t('Correlation'),
         credits: ['https://echarts.apache.org'],
         description: t(
@@ -45,12 +45,12 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
         name: t('Bubble Chart'),
         tags: [
           t('Multi-Dimensions'),
-          t('Aesthetic'),
           t('Comparison'),
           t('Scatter'),
           t('Time'),
           t('Trend'),
           t('ECharts'),
+          t('Featured'),
         ],
         thumbnail,
       }),

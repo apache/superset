@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useRef, useEffect, useState } from 'react';
+// eslint-disable-next-line no-restricted-syntax -- whole React import is required for `ControlPopover.test.tsx` Jest test passing.
+import React, { FC, useCallback, useRef, useEffect, useState } from 'react';
 
 import Popover, {
   PopoverProps as BasePopoverProps,
@@ -41,7 +42,7 @@ export type PopoverProps = BasePopoverProps & {
   getVisibilityRatio?: typeof getElementYVisibilityRatioOnContainer;
 };
 
-const ControlPopover: React.FC<PopoverProps> = ({
+const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementYVisibilityRatioOnContainer,
   visible: visibleProp,

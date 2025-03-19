@@ -26,16 +26,16 @@ Create Date: 2023-05-11 12:41:38.095717
 revision = "4ea966691069"
 down_revision = "7e67aecbf3f1"
 
-import copy
-import json
-import logging
+import copy  # noqa: E402
+import logging  # noqa: E402
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.ext.declarative import declarative_base
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from superset import db
-from superset.migrations.shared.utils import paginated_update
+from superset import db  # noqa: E402
+from superset.migrations.shared.utils import paginated_update  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 logger = logging.getLogger(__name__)
@@ -81,18 +81,18 @@ def upgrade():
                     "excluded"
                 ] = excluded
                 if scope.get("rootPath") == ["ROOT_ID"] and excluded == [chart_id]:
-                    new_chart_configuration[chart_id]["crossFilters"][
-                        "scope"
-                    ] = "global"
+                    new_chart_configuration[chart_id]["crossFilters"]["scope"] = (
+                        "global"
+                    )
 
             json_metadata["chart_configuration"] = new_chart_configuration
 
             if needs_upgrade:
                 dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to run up migration")
-            raise e
+            raise
 
     session.commit()
     session.close()
@@ -127,9 +127,9 @@ def downgrade():
 
             dashboard.json_metadata = json.dumps(json_metadata)
 
-        except Exception as e:
+        except Exception:
             logger.exception("Failed to run down migration")
-            raise e
+            raise
 
     session.commit()
     session.close()

@@ -1,0 +1,630 @@
+---
+title: Development How-tos
+hide_title: true
+sidebar_position: 4
+version: 1
+---
+# Development How-tos
+
+## Contributing to Documentation
+
+The latest documentation and tutorial are available at https://superset.apache.org/.
+
+The documentation site is built using [Docusaurus 2](https://docusaurus.io/), a modern
+static website generator, the source for which resides in `./docs`.
+
+### Local Development
+
+To set up a local development environment with hot reloading for the documentation site:
+
+```shell
+cd docs
+yarn install  # Installs NPM dependencies
+yarn start  # Starts development server at http://localhost:3000
+```
+
+### Build
+
+To create and serve a production build of the documentation site:
+
+```shell
+yarn build
+yarn serve
+```
+
+### Deployment
+
+Commits to `master` trigger a rebuild and redeploy of the documentation site. Submit pull requests that modify the documentation with the `docs:` prefix.
+
+## Creating Visualization Plugins
+
+Visualizations in Superset are implemented in JavaScript or TypeScript. Superset
+comes preinstalled with several visualizations types (hereafter "viz plugins") that
+can be found under the `superset-frontend/plugins` directory. Viz plugins are added to
+the application in the `superset-frontend/src/visualizations/presets/MainPreset.js`.
+The Superset project is always happy to review proposals for new high quality viz
+plugins. However, for highly custom viz types it is recommended to maintain a fork
+of Superset, and add the custom built viz plugins by hand.
+
+**Note:** Additional community-generated resources about creating and deploying custom visualization plugins can be found on the [Superset Wiki](https://github.com/apache/superset/wiki/Community-Resource-Library#creating-custom-data-visualizations)
+
+### Prerequisites
+
+In order to create a new viz plugin, you need the following:
+
+- Run MacOS or Linux (Windows is not officially supported, but may work)
+- Node.js 16
+- npm 7 or 8
+
+A general familiarity with [React](https://reactjs.org/) and the npm/Node system is
+also recommended.
+
+### Creating a simple Hello World viz plugin
+
+To get started, you need the Superset Yeoman Generator. It is recommended to use the
+version of the template that ships with the version of Superset you are using. This
+can be installed by doing the following:
+
+```bash
+npm i -g yo
+cd superset-frontend/packages/generator-superset
+npm i
+npm link
+```
+
+After this you can proceed to create your viz plugin. Create a new directory for your
+viz plugin with the prefix `superset-plugin-chart` and run the Yeoman generator:
+
+```bash
+mkdir /tmp/superset-plugin-chart-hello-world
+cd /tmp/superset-plugin-chart-hello-world
+```
+
+Initialize the viz plugin:
+
+```bash
+yo @superset-ui/superset
+```
+
+After that the generator will ask a few questions (the defaults should be fine):
+
+```bash
+$ yo @superset-ui/superset
+     _-----_     ╭──────────────────────────╮
+    |       |    │      Welcome to the      │
+    |--(o)--|    │    generator-superset    │
+   `---------´   │        generator!        │
+    ( _´U`_ )    ╰──────────────────────────╯
+    /___A___\   /
+     |  ~  |
+   __'.___.'__
+ ´   `  |° ´ Y `
+? Package name: superset-plugin-chart-hello-world
+? Description: Hello World
+? What type of chart would you like? Time-series chart
+   create package.json
+   create .gitignore
+   create babel.config.js
+   create jest.config.js
+   create README.md
+   create tsconfig.json
+   create src/index.ts
+   create src/plugin/buildQuery.ts
+   create src/plugin/controlPanel.ts
+   create src/plugin/index.ts
+   create src/plugin/transformProps.ts
+   create src/types.ts
+   create src/SupersetPluginChartHelloWorld.tsx
+   create test/index.test.ts
+   create test/__mocks__/mockExportString.js
+   create test/plugin/buildQuery.test.ts
+   create test/plugin/transformProps.test.ts
+   create types/external.d.ts
+   create src/images/thumbnail.png
+```
+
+To build the viz plugin, run the following commands:
+
+```bash
+npm i --force
+npm run build
+```
+
+Alternatively, to run the viz plugin in development mode (=rebuilding whenever changes
+are made), start the dev server with the following command:
+
+```bash
+npm run dev
+```
+
+To add the package to Superset, go to the `superset-frontend` subdirectory in your
+Superset source folder run
+
+```bash
+npm i -S /tmp/superset-plugin-chart-hello-world
+```
+
+If you publish your package to npm, you can naturally install directly from there, too.
+After this edit the `superset-frontend/src/visualizations/presets/MainPreset.js`
+and make the following changes:
+
+```js
+import { SupersetPluginChartHelloWorld } from 'superset-plugin-chart-hello-world';
+```
+
+to import the viz plugin and later add the following to the array that's passed to the
+`plugins` property:
+
+```js
+new SupersetPluginChartHelloWorld().configure({ key: 'ext-hello-world' }),
+```
+
+After that the viz plugin should show up when you run Superset, e.g. the development
+server:
+
+```bash
+npm run dev-server
+```
+
+## Testing
+
+### Python Testing
+
+All python tests are carried out in [tox](https://tox.readthedocs.io/en/latest/index.html)
+a standardized testing framework.
+All python tests can be run with any of the tox [environments](https://tox.readthedocs.io/en/latest/example/basic.html#a-simple-tox-ini-default-environments), via,
+
+```bash
+tox -e <environment>
+```
+
+For example,
+
+```bash
+tox -e py38
+```
+
+Alternatively, you can run all tests in a single file via,
+
+```bash
+tox -e <environment> -- tests/test_file.py
+```
+
+or for a specific test via,
+
+```bash
+tox -e <environment> -- tests/test_file.py::TestClassName::test_method_name
+```
+
+Note that the test environment uses a temporary directory for defining the
+SQLite databases which will be cleared each time before the group of test
+commands are invoked.
+
+There is also a utility script included in the Superset codebase to run python integration tests. The [readme can be
+found here](https://github.com/apache/superset/tree/master/scripts/tests)
+
+To run all integration tests for example, run this script from the root directory:
+
+```bash
+scripts/tests/run.sh
+```
+
+You can run unit tests found in './tests/unit_tests' for example with pytest. It is a simple way to run an isolated test that doesn't need any database setup
+
+```bash
+pytest ./link_to_test.py
+```
+
+#### Testing with local Presto connections
+
+If you happen to change db engine spec for Presto/Trino, you can run a local Presto cluster with Docker:
+
+```bash
+docker run -p 15433:15433 starburstdata/presto:350-e.6
+```
+
+Then update `SUPERSET__SQLALCHEMY_EXAMPLES_URI` to point to local Presto cluster:
+
+```bash
+export SUPERSET__SQLALCHEMY_EXAMPLES_URI=presto://localhost:15433/memory/default
+```
+
+### Frontend Testing
+
+We use [Jest](https://jestjs.io/) and [Enzyme](https://airbnb.io/enzyme/) to test TypeScript/JavaScript. Tests can be run with:
+
+```bash
+cd superset-frontend
+npm run test
+```
+
+To run a single test file:
+
+```bash
+npm run test -- path/to/file.js
+```
+
+### e2e Integration Testing
+
+We use [Cypress](https://www.cypress.io/) for end-to-end integration
+tests. One easy option to get started quickly is to leverage `tox` to
+run the whole suite in an isolated environment.
+
+```bash
+tox -e cypress
+```
+
+Alternatively, you can go lower level and set things up in your
+development environment by following these steps:
+
+First set up a python/flask backend:
+
+```bash
+export SUPERSET_CONFIG=tests.integration_tests.superset_test_config
+export SUPERSET_TESTENV=true
+export CYPRESS_BASE_URL="http://localhost:8081"
+superset db upgrade
+superset load_test_users
+superset init
+superset load-examples --load-test-data
+superset run --port 8081
+```
+
+In another terminal, prepare the frontend and run Cypress tests:
+
+```bash
+cd superset-frontend
+npm run build-instrumented
+
+cd cypress-base
+npm install
+
+# run tests via headless Chrome browser (requires Chrome 64+)
+npm run cypress-run-chrome
+
+# run tests from a specific file
+npm run cypress-run-chrome -- --spec cypress/e2e/explore/link.test.ts
+
+# run specific file with video capture
+npm run cypress-run-chrome -- --spec cypress/e2e/dashboard/index.test.js --config video=true
+
+# to open the cypress ui
+npm run cypress-debug
+
+# to point cypress to a url other than the default (http://localhost:8088) set the environment variable before running the script
+# e.g., CYPRESS_BASE_URL="http://localhost:9000"
+CYPRESS_BASE_URL=<your url> npm run cypress open
+```
+
+See [`superset-frontend/cypress_build.sh`](https://github.com/apache/superset/blob/master/superset-frontend/cypress_build.sh).
+
+As an alternative you can use docker compose environment for testing:
+
+Make sure you have added below line to your /etc/hosts file:
+`127.0.0.1 db`
+
+If you already have launched Docker environment please use the following command to assure a fresh database instance:
+`docker compose down -v`
+
+Launch environment:
+
+`CYPRESS_CONFIG=true docker compose up`
+
+It will serve backend and frontend on port 8088.
+
+Run Cypress tests:
+
+```bash
+cd cypress-base
+npm install
+npm run cypress open
+```
+
+### Debugging Server App
+
+Follow these instructions to debug the Flask app running inside a docker container.
+
+First add the following to the ./docker-compose.yaml file
+
+```diff
+superset:
+    env_file: docker/.env
+    image: *superset-image
+    container_name: superset_app
+    command: ["/app/docker/docker-bootstrap.sh", "app"]
+    restart: unless-stopped
++   cap_add:
++     - SYS_PTRACE
+    ports:
+      - 8088:8088
++     - 5678:5678
+    user: "root"
+    depends_on: *superset-depends-on
+    volumes: *superset-volumes
+    environment:
+      CYPRESS_CONFIG: "${CYPRESS_CONFIG}"
+```
+
+Start Superset as usual
+
+```bash
+docker compose up
+```
+
+Install the required libraries and packages to the docker container
+
+Enter the superset_app container
+
+```bash
+docker exec -it superset_app /bin/bash
+root@39ce8cf9d6ab:/app#
+```
+
+Run the following commands inside the container
+
+```bash
+apt update
+apt install -y gdb
+apt install -y net-tools
+pip install debugpy
+```
+
+Find the PID for the Flask process. Make sure to use the first PID. The Flask app will re-spawn a sub-process every time you change any of the python code. So it's important to use the first PID.
+
+```bash
+ps -ef
+
+UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  0 14:09 ?        00:00:00 bash /app/docker/docker-bootstrap.sh app
+root         6     1  4 14:09 ?        00:00:04 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+root        10     6  7 14:09 ?        00:00:07 /usr/local/bin/python /usr/bin/flask run -p 8088 --with-threads --reload --debugger --host=0.0.0.0
+```
+
+Inject debugpy into the running Flask process. In this case PID 6.
+
+```bash
+python3 -m debugpy --listen 0.0.0.0:5678 --pid 6
+```
+
+Verify that debugpy is listening on port 5678
+
+```bash
+netstat -tunap
+
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:5678            0.0.0.0:*               LISTEN      462/python
+tcp        0      0 0.0.0.0:8088            0.0.0.0:*               LISTEN      6/python
+```
+
+You are now ready to attach a debugger to the process. Using VSCode you can configure a launch configuration file .vscode/launch.json like so.
+
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Attach to Superset App in Docker Container",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "127.0.0.1",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/app"
+                }
+            ]
+        },
+    ]
+}
+```
+
+VSCode will not stop on breakpoints right away. We've attached to PID 6 however it does not yet know of any sub-processes. In order to "wakeup" the debugger you need to modify a python file. This will trigger Flask to reload the code and create a new sub-process. This new sub-process will be detected by VSCode and breakpoints will be activated.
+
+### Debugging Server App in Kubernetes Environment
+
+To debug Flask running in POD inside a kubernetes cluster, you'll need to make sure the pod runs as root and is granted the `SYS_TRACE` capability. These settings should not be used in production environments.
+
+```yaml
+  securityContext:
+    capabilities:
+      add: ["SYS_PTRACE"]
+```
+
+See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
+
+Once the pod is running as root and has the `SYS_PTRACE` capability it will be able to debug the Flask app.
+
+You can follow the same instructions as in the docker-compose. Enter the pod and install the required library and packages; gdb, netstat and debugpy.
+
+Often in a Kubernetes environment nodes are not addressable from outside the cluster. VSCode will thus be unable to remotely connect to port 5678 on a Kubernetes node. In order to do this you need to create a tunnel that port forwards 5678 to your local machine.
+
+```bash
+kubectl port-forward  pod/superset-<some random id> 5678:5678
+```
+
+You can now launch your VSCode debugger with the same config as above. VSCode will connect to to 127.0.0.1:5678 which is forwarded by kubectl to your remote kubernetes POD.
+
+### Storybook
+
+Superset includes a [Storybook](https://storybook.js.org/) to preview the layout/styling of various Superset components, and variations thereof. To open and view the Storybook:
+
+```bash
+cd superset-frontend
+npm run storybook
+```
+
+When contributing new React components to Superset, please try to add a Story alongside the component's `jsx/tsx` file.
+
+## Contributing Translations
+
+We use [Flask-Babel](https://python-babel.github.io/flask-babel/) to translate Superset.
+In Python files, we use the following
+[translation functions](https://python-babel.github.io/flask-babel/#using-translations)
+from `Flask-Babel`:
+
+- `gettext` and `lazy_gettext` (usually aliased to `_`): for translating singular
+  strings.
+- `ngettext`: for translating strings that might become plural.
+
+```python
+from flask_babel import lazy_gettext as _
+```
+
+then wrap the translatable strings with it, e.g. `_('Translate me')`.
+During extraction, string literals passed to `_` will be added to the
+generated `.po` file for each language for later translation.
+
+At runtime, the `_` function will return the translation of the given
+string for the current language, or the given string itself
+if no translation is available.
+
+In TypeScript/JavaScript, the technique is similar:
+we import `t` (simple translation), `tn` (translation containing a number).
+
+```javascript
+import { t, tn } from "@superset-ui/translation";
+```
+
+### Enabling language selection
+
+Add the `LANGUAGES` variable to your `superset_config.py`. Having more than one
+option inside will add a language selection dropdown to the UI on the right side
+of the navigation bar.
+
+```python
+LANGUAGES = {
+    'en': {'flag': 'us', 'name': 'English'},
+    'fr': {'flag': 'fr', 'name': 'French'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
+}
+```
+
+### Creating a new language dictionary
+
+First check if the language code for your target language already exists. Check if the
+[two letter ISO 639-1 code](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes)
+for your target language already exists in the `superset/translations` directory:
+
+```bash
+ls superset/translations | grep -E "^[a-z]{2}\/"
+```
+
+If your language already has a preexisting translation, skip to the next section
+
+The following languages are already supported by Flask AppBuilder, and will make it
+easier to translate the application to your target language:
+[Flask AppBuilder i18n documentation](https://flask-appbuilder.readthedocs.io/en/latest/i18n.html)
+
+To create a dictionary for a new language, first make sure the necessary dependencies are installed:
+
+```bash
+pip install -r superset/translations/requirements.txt
+```
+
+Then run the following, where `LANGUAGE_CODE` is replaced with the language code for your target
+language:
+
+```bash
+pybabel init -i superset/translations/messages.pot -d superset/translations -l LANGUAGE_CODE
+```
+
+For instance, to add a translation for Finnish (language code `fi`), run the following:
+
+```bash
+pybabel init -i superset/translations/messages.pot -d superset/translations -l fi
+```
+
+### Extracting new strings for translation
+
+Periodically, when working on translations, we need to extract the strings from both the
+backend and the frontend to compile a list of all strings to be translated. It doesn't
+happen automatically and is a required step to gather the strings and get them into the
+`.po` files where they can be translated, so that they can then be compiled.
+
+This script does just that:
+
+```bash
+./scripts/translations/babel_update.sh
+```
+
+### Updating language files
+
+Run the following command to update the language files with the new extracted strings.
+
+```bash
+ pybabel update -i superset/translations/messages.pot -d superset/translations --ignore-obsolete
+```
+
+You can then translate the strings gathered in files located under
+`superset/translation`, where there's one folder per language. You can use [Poedit](https://poedit.net/features)
+to translate the `po` file more conveniently.
+Here is [a tutorial](https://web.archive.org/web/20220517065036/https://wiki.lxde.org/en/Translate_*.po_files_with_Poedit).
+
+To perform the translation on MacOS, you can install `poedit` via Homebrew:
+
+```bash
+brew install poedit
+```
+
+After this, just start the `poedit` application and open the `messages.po` file. In the
+case of the Finnish translation, this would be `superset/translations/fi/LC_MESSAGES/messages.po`.
+
+### Applying translations
+
+To make the translations available on the frontend, we need to convert the PO file into
+a collection of JSON files. To convert all PO files to formatted JSON files you can use
+the `build-translation` script
+
+```bash
+# Install dependencies if you haven't already
+cd superset-frontend/ && npm ci
+# Compile translations for the frontend
+npm run build-translation
+```
+
+Finally, for the translations to take effect we need to compile translation catalogs into
+binary MO files for the backend using `pybabel`.
+
+```bash
+# inside the project root
+pybabel compile -d superset/translations
+```
+
+## Linting
+
+### Python
+
+We use [Pylint](https://pylint.org/) for linting which can be invoked via:
+
+```bash
+# for python
+tox -e pylint
+```
+
+In terms of best practices please avoid blanket disabling of Pylint messages globally (via `.pylintrc`) or top-level within the file header, albeit there being a few exceptions. Disabling should occur inline as it prevents masking issues and provides context as to why said message is disabled.
+
+Additionally, the Python code is auto-formatted using [Black](https://github.com/python/black) which
+is configured as a pre-commit hook. There are also numerous [editor integrations](https://black.readthedocs.io/en/stable/integrations/editors.html)
+
+### TypeScript
+
+```bash
+cd superset-frontend
+npm ci
+# run eslint checks
+npm run eslint -- .
+# run tsc (typescript) checks
+npm run type
+```
+
+If using the eslint extension with vscode, put the following in your workspace `settings.json` file:
+
+```json
+"eslint.workingDirectories": [
+  "superset-frontend"
+]
+```

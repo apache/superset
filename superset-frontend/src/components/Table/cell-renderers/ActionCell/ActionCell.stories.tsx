@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
-import { ComponentStory, ComponentMeta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react';
 import ActionCell from './index';
 import { exampleMenuOptions, exampleRow } from './fixtures';
 
 export default {
   title: 'Design System/Components/Table/Cell Renderers/ActionCell',
   component: ActionCell,
-} as ComponentMeta<typeof ActionCell>;
+} as Meta<typeof ActionCell>;
 
-export const Basic: ComponentStory<typeof ActionCell> = args => (
+export const Basic: StoryFn<typeof ActionCell> = args => (
   <ActionCell {...args} />
 );
 

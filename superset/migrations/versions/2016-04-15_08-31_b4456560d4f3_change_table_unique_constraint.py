@@ -21,6 +21,7 @@ Revises: bb51420eaf83
 Create Date: 2016-04-15 08:31:26.249591
 
 """
+
 from alembic import op
 
 # revision identifiers, used by Alembic.

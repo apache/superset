@@ -38,6 +38,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   verboseMap: Record<string, string>;
   label: string;
   description: string;
+  extraColorChoices?: { label: string; value: string }[];
 };
 
 export type FormattingPopoverProps = PopoverProps & {
@@ -46,4 +47,5 @@ export type FormattingPopoverProps = PopoverProps & {
   config?: ConditionalFormattingConfig;
   title: string;
   children: ReactNode;
+  extraColorChoices?: { label: string; value: string }[];
 };

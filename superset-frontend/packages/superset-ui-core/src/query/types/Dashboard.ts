@@ -80,6 +80,24 @@ export type Filter = {
   description: string;
 };
 
+export type AppliedFilter = {
+  values: {
+    filters: Record<string, any>[];
+  } | null;
+};
+
+export type AppliedCrossFilterType = {
+  filterType: undefined;
+  targets: number[];
+  scope: number[];
+} & AppliedFilter;
+
+export type AppliedNativeFilterType = {
+  filterType: 'filter_select';
+  scope: number[];
+  targets: Partial<NativeFilterTarget>[];
+} & AppliedFilter;
+
 export type FilterWithDataMask = Filter & { dataMask: DataMaskWithId };
 
 export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
@@ -88,6 +106,24 @@ export type Divider = Partial<Omit<Filter, 'id' | 'type'>> & {
   description: string;
   type: typeof NativeFilterType.Divider;
 };
+
+export function isAppliedCrossFilterType(
+  filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
+): filterElement is AppliedCrossFilterType {
+  return (
+    filterElement.filterType === undefined &&
+    filterElement.hasOwnProperty('values')
+  );
+}
+
+export function isAppliedNativeFilterType(
+  filterElement: AppliedCrossFilterType | AppliedNativeFilterType | Filter,
+): filterElement is AppliedNativeFilterType {
+  return (
+    filterElement.filterType === 'filter_select' &&
+    filterElement.hasOwnProperty('values')
+  );
+}
 
 export function isNativeFilter(
   filterElement: Filter | Divider,

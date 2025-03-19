@@ -1,0 +1,31 @@
+name: 'Change Detector'
+description: 'Detects file changes for pull request and push events'
+inputs:
+  token:
+    description: 'GitHub token for authentication'
+    required: true
+outputs:
+  python:
+    description: 'Whether Python-related files were changed'
+    value: ${{ steps.change-detector.outputs.python }}
+  frontend:
+    description: 'Whether frontend-related files were changed'
+    value: ${{ steps.change-detector.outputs.frontend }}
+  docker:
+    description: 'Whether docker-related files were changed'
+    value: ${{ steps.change-detector.outputs.docker }}
+  docs:
+    description: 'Whether docs-related files were changed'
+    value: ${{ steps.change-detector.outputs.docs }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Detect file changes
+      id: change-detector
+      run: |
+        python --version
+        python scripts/change_detector.py
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
+        GITHUB_OUTPUT: ${{ github.output }}

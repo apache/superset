@@ -16,7 +16,6 @@
     specific language governing permissions and limitations
     under the License.
 -->
-
 # CODE OF CONDUCT
 
 *The following is copied for your convenience from <https://www.apache.org/foundation/policies/conduct.html>. If there's a discrepancy between the two, let us know or submit a PR to fix it.*
@@ -95,9 +94,9 @@ This statement thanks the following, on which it draws for content and inspirati
 
 * [CouchDB Project Code of conduct](http://couchdb.apache.org/conduct.html)
 * [Fedora Project Code of Conduct](http://fedoraproject.org/code-of-conduct)
-* [Speak Up! Code of Conduct](http://speakup.io/coc.html)
+* [Speak Up! Code of Conduct](http://web.archive.org/web/20141109123859/http://speakup.io/coc.html)
 * [Django Code of Conduct](https://www.djangoproject.com/conduct/)
-* [Debian Code of Conduct](http://www.debian.org/vote/2014/vote_002)
+* [Debian Code of Conduct](https://www.debian.org/vote/2014/vote_002)
 * [Twitter Open Source Code of Conduct](https://github.com/twitter/code-of-conduct/blob/master/code-of-conduct.md)
 * [Mozilla Code of Conduct/Draft](https://wiki.mozilla.org/Code_of_Conduct/Draft#Conflicts_of_Interest)
 * [Python Diversity Appendix](https://www.python.org/community/diversity/)

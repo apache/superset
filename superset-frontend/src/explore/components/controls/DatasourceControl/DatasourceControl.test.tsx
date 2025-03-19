@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { Route } from 'react-router-dom';
 import fetchMock from 'fetch-mock';
 import userEvent from '@testing-library/user-event';

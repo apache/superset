@@ -52,7 +52,7 @@ const config = {
         toExtensions: ['exe', 'zip'],
         redirects: [
           {
-            to: '/docs/installation/installing-superset-using-docker-compose',
+            to: '/docs/installation/docker-compose',
             from: '/installation.html',
           },
           {
@@ -60,11 +60,11 @@ const config = {
             from: '/tutorials.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/admintutorial.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/usertutorial.html',
           },
           {
@@ -72,7 +72,7 @@ const config = {
             from: '/security.html',
           },
           {
-            to: '/docs/installation/sql-templating',
+            to: '/docs/configuration/sql-templating',
             from: '/sqllab.html',
           },
           {
@@ -80,31 +80,31 @@ const config = {
             from: '/gallery.html',
           },
           {
-            to: '/docs/databases/druid',
+            to: '/docs/configuration/databases',
             from: '/druid.html',
           },
           {
-            to: '/docs/miscellaneous/country-map-tools',
+            to: '/docs/configuration/country-map-tools',
             from: '/misc.html',
           },
           {
-            to: '/docs/miscellaneous/country-map-tools',
+            to: '/docs/configuration/country-map-tools',
             from: '/visualization.html',
           },
           {
-            to: '/docs/frequently-asked-questions',
+            to: '/docs/faq',
             from: '/videos.html',
           },
           {
-            to: '/docs/frequently-asked-questions',
+            to: '/docs/faq',
             from: '/faq.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/tutorial.html',
           },
           {
-            to: '/docs/creating-charts-dashboards/creating-your-first-dashboard',
+            to: '/docs/using-superset/creating-your-first-dashboard',
             from: '/docs/creating-charts-dashboards/first-dashboard',
           },
           {
@@ -112,20 +112,84 @@ const config = {
             from: '/docs/rest-api',
           },
           {
-            to: '/docs/installation/alerts-reports',
-            from: '/docs/installation/email-reports',
+            to: '/docs/configuration/alerts-reports',
+            from: '/docs/installation/alerts-reports',
+          },
+          {
+            to: '/docs/contributing/development',
+            from: '/docs/contributing/hooks-and-linting',
           },
           {
             to: '/docs/intro',
             from: '/docs/roadmap',
           },
           {
-            to: '/docs/contributing/contributing-page',
+            to: '/docs/contributing/',
             from: '/docs/contributing/contribution-guidelines',
           },
           {
-            to: '/docs/databases/yugabytedb',
+            to: '/docs/contributing/',
+            from: '/docs/contributing/contribution-page',
+          },
+          {
+            to: '/docs/configuration/databases',
             from: '/docs/databases/yugabyte/',
+          },
+          {
+            to: '/docs/faq',
+            from: '/docs/frequently-asked-questions',
+          },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/running-on-kubernetes/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/testing-locally/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/creating-your-first-dashboard/',
+          },
+          {
+            to: '/docs/using-superset/creating-your-first-dashboard',
+            from: '/docs/creating-charts-dashboards/exploring-data/',
+          },
+          {
+            to: '/docs/installation/docker-compose',
+            from: '/docs/installation/installing-superset-using-docker-compose/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/creating-viz-plugins/',
+          },
+          {
+            to: '/docs/installation/kubernetes',
+            from: '/docs/installation/',
+          },
+          {
+            to: '/docs/installation/pypi',
+            from: '/docs/installation/installing-superset-from-pypi/',
+          },
+          {
+            to: '/docs/configuration/configuring-superset',
+            from: '/docs/installation/configuring-superset/',
+          },
+          {
+            to: '/docs/configuration/cache',
+            from: '/docs/installation/cache/',
+          },
+          {
+            to: '/docs/configuration/async-queries-celery',
+            from: '/docs/installation/async-queries-celery/',
+          },
+          {
+            to: '/docs/configuration/event-logging',
+            from: '/docs/installation/event-logging/',
+          },
+          {
+            to: '/docs/contributing/howtos',
+            from: '/docs/contributing/translations/',
           },
         ],
       },
@@ -139,7 +203,7 @@ const config = {
       ({
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: 'https://github.com/apache/superset/tree/master/docs',
+          editUrl: 'https://github.com/apache/superset/edit/master/docs',
         },
         blog: {
           showReadingTime: true,
@@ -149,14 +213,6 @@ const config = {
         },
         theme: {
           customCss: require.resolve('./src/styles/custom.css'),
-        },
-        googleAnalytics: {
-          trackingID: 'G-133LHD3B3N',
-          anonymizeIP: true,
-        },
-        gtag: {
-          trackingID: 'G-133LHD3B3N',
-          anonymizeIP: true,
         },
       }),
     ],
@@ -171,7 +227,7 @@ const config = {
       },
       algolia: {
         appId: 'WR5FASX5ED',
-        apiKey: '299e4601d2fc5d0031bf9a0223c7f0c5',
+        apiKey: 'd0d22810f2e9b614ffac3a73b26891fe',
         indexName: 'superset-apache',
       },
       navbar: {
@@ -183,6 +239,7 @@ const config = {
         items: [
           {
             label: 'Documentation',
+            to: '/docs/intro',
             items: [
               {
                 label: 'Getting Started',
@@ -190,12 +247,13 @@ const config = {
               },
               {
                 label: 'FAQ',
-                to: '/docs/frequently-asked-questions',
+                to: '/docs/faq',
               },
             ],
           },
           {
             label: 'Community',
+            to: '/community',
             items: [
               {
                 label: 'Resources',
@@ -250,7 +308,8 @@ const config = {
               <a href="https://www.apache.org/foundation/sponsorship.html" target="_blank" rel="noreferrer">Donate</a>&nbsp;|&nbsp;
               <a href="https://www.apache.org/foundation/thanks.html" target="_blank" rel="noreferrer">Thanks</a>&nbsp;|&nbsp;
               <a href="https://apache.org/events/current-event" target="_blank" rel="noreferrer">Events</a>&nbsp;|&nbsp;
-              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>
+              <a href="https://apache.org/licenses/" target="_blank" rel="noreferrer">License</a>&nbsp;|&nbsp;
+              <a href="https://privacy.apache.org/policies/privacy-policy-public.html" target="_blank" rel="noreferrer">Privacy</a>
             </small>
           </p>
           <!-- telemetry/analytics pixel: -->
@@ -261,13 +320,18 @@ const config = {
         theme: lightCodeTheme,
         darkTheme: darkCodeTheme,
       },
+      docs: {
+        sidebar: {
+          hideable: true,
+        }
+      },
     }),
   scripts: [
     '/script/matomo.js',
-    {
-      src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
-      async: true,
-    },
+    // {
+    //   src: 'https://www.bugherd.com/sidebarv2.js?apikey=enilpiu7bgexxsnoqfjtxa',
+    //   async: true,
+    // },
   ],
 };
 

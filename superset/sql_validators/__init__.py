@@ -17,7 +17,7 @@
 from typing import Optional
 
 from . import base, postgres, presto_db
-from .base import SQLValidationAnnotation
+from .base import SQLValidationAnnotation  # noqa: F401
 
 
 def get_validator_by_name(name: str) -> Optional[type[base.BaseSQLValidator]]:

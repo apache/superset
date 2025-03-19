@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import Echart from '../components/Echart';
 import { allEventHandlers } from '../utils/eventHandlers';
 import { BoxPlotChartTransformedProps } from './types';

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { useState } from 'react';
 import styled from '@emotion/styled';
 import { List } from 'antd';
 import Layout from '@theme/Layout';
@@ -179,7 +179,19 @@ const StyledLink = styled('a')`
   }
 `;
 
+const FinePrint = styled('div')`
+  font-size: 14px;
+  color: var(--ifm-secondary-text);
+`
+
 const Community = () => {
+
+  const [showCalendar, setShowCalendar] = useState(false); // State to control calendar visibility
+
+  const toggleCalendar = () => {
+    setShowCalendar(!showCalendar); // Toggle calendar visibility
+  };
+
   return (
     <Layout
       title="Community"
@@ -238,22 +250,22 @@ const Community = () => {
                   <img src="/img/calendar-icon.svg" alt="calendar-icon" />
                   Subscribe to the Superset Community Calendar
                 </StyledLink>
+                <br />
+                <StyledLink onClick={toggleCalendar}>
+                <img src="/img/calendar-icon.svg" alt="calendar-icon" />
+                  {showCalendar ? 'Hide Calendar' : 'Display Calendar*'}
+                </StyledLink>
+                {!showCalendar  && <FinePrint><sup>*</sup>Clicking on this link will load and send data from and to Google.</FinePrint>}
               </>
             }
           />
-          <StyledCalendarIframe
-            src="https://calendar.google.com/calendar/embed?src=superset.committers%40gmail.com&ctz=America%2FLos_Angeles"
-            frameBorder="0"
-            scrolling="no"
-          />
-        </BlurredSection>
-        <BlurredSection>
-          <SectionHeader level="h2" title="Newsletter Archive" />
-          <StyledNewsletterIframe
-            src="https://preset.io/embed/newsletter/"
-            frameBorder="0"
-            scrolling="no"
-          />
+          {showCalendar && (
+            <StyledCalendarIframe
+              src="https://calendar.google.com/calendar/embed?src=superset.committers%40gmail.com&ctz=America%2FLos_Angeles"
+              frameBorder="0"
+              scrolling="no"
+            />
+          )}
         </BlurredSection>
       </main>
     </Layout>

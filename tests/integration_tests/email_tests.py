@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """Unit tests for email service in Superset"""
+
 import logging
 import ssl
 import tempfile
@@ -84,6 +85,36 @@ class TestEmailSmtp(SupersetTestCase):
         assert msg["Subject"] == "subject"
         assert msg["From"] == app.config["SMTP_MAIL_FROM"]
         assert msg["foo"] == "bar"
+        assert len(msg.get_payload()) == 2
+        mimeapp = MIMEApplication("attachment")
+        assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()
+        app.config["EMAIL_HEADER_MUTATOR"] = base_email_mutator
+
+    @mock.patch("superset.utils.core.send_mime_email")
+    def test_send_smtp_with_email_mutator_changing_recipients(self, mock_send_mime):
+        attachment = tempfile.NamedTemporaryFile()
+        attachment.write(b"attachment")
+        attachment.seek(0)
+
+        # putting this into a variable so that we can reset after the test
+        base_email_mutator = app.config["EMAIL_HEADER_MUTATOR"]
+
+        def mutator(msg, **kwargs):
+            msg.replace_header("To", "mutated")
+            return msg
+
+        app.config["EMAIL_HEADER_MUTATOR"] = mutator
+        utils.send_email_smtp(
+            "to", "subject", "content", app.config, files=[attachment.name]
+        )
+        assert mock_send_mime.called
+        call_args = mock_send_mime.call_args[0]
+        logger.debug(call_args)
+        assert call_args[0] == app.config["SMTP_MAIL_FROM"]
+        assert call_args[1] == ["mutated"]
+        msg = call_args[2]
+        assert msg["Subject"] == "subject"
+        assert msg["From"] == app.config["SMTP_MAIL_FROM"]
         assert len(msg.get_payload()) == 2
         mimeapp = MIMEApplication("attachment")
         assert msg.get_payload()[-1].get_payload() == mimeapp.get_payload()

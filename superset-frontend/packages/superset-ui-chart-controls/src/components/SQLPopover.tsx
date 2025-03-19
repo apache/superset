@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { Popover } from 'antd';
 import type { PopoverProps } from 'antd/lib/popover';
 import AceEditor from 'react-ace';

@@ -23,7 +23,6 @@ Create Date: 2018-08-01 11:47:02.233971
 """
 
 # revision identifiers, used by Alembic.
-import json
 import re
 
 import sqlalchemy as sa
@@ -31,6 +30,7 @@ from alembic import op
 from sqlalchemy.ext.declarative import declarative_base
 
 from superset import db
+from superset.utils import json
 
 revision = "7fcdcde0761c"
 down_revision = "c18bd4186f15"

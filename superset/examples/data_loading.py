@@ -14,7 +14,6 @@
 #  KIND, either express or implied.  See the License for the
 #  specific language governing permissions and limitations
 #  under the License.
-# pylint: disable=unused-import
 from .bart_lines import load_bart_lines
 from .big_data import load_big_data
 from .birth_names import load_birth_names
@@ -33,3 +32,24 @@ from .supported_charts_dashboard import load_supported_charts_dashboard
 from .tabbed_dashboard import load_tabbed_dashboard
 from .utils import load_examples_from_configs
 from .world_bank import load_world_bank_health_n_pop
+
+__all__ = [
+    "load_bart_lines",
+    "load_big_data",
+    "load_birth_names",
+    "load_country_map_data",
+    "load_css_templates",
+    "load_deck_dash",
+    "load_energy",
+    "load_flights",
+    "load_long_lat_data",
+    "load_misc_dashboard",
+    "load_multiformat_time_series",
+    "load_paris_iris_geojson",
+    "load_random_time_series_data",
+    "load_sf_population_polygons",
+    "load_supported_charts_dashboard",
+    "load_tabbed_dashboard",
+    "load_examples_from_configs",
+    "load_world_bank_health_n_pop",
+]

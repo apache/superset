@@ -71,6 +71,7 @@ export interface Metric {
   verbose_name?: string;
   warning_markdown?: Maybe<string>;
   warning_text?: Maybe<string>;
+  error_text?: string;
 }
 
 export function isSavedMetric(metric: any): metric is SavedMetric {

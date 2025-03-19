@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@superset-ui/core';
+import { Filter, useTheme } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 
 import { getChartIdsInFilterScope } from 'src/dashboard/util/activeDashboardFilters';
 import { DashboardState, RootState } from 'src/dashboard/types';
+import { getRelatedCharts } from './getRelatedCharts';
 
 const selectFocusedFilterScope = (
   dashboardState: DashboardState,
@@ -41,12 +42,22 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
   const dashboardState = useSelector(
     (state: RootState) => state.dashboardState,
   );
+
   const dashboardFilters = useSelector(
     (state: RootState) => state.dashboardFilters,
   );
   const focusedFilterScope = selectFocusedFilterScope(
     dashboardState,
     dashboardFilters,
+  );
+
+  const slices =
+    useSelector((state: RootState) => state.sliceEntities.slices) || {};
+
+  const relatedCharts = getRelatedCharts(
+    nativeFilters.filters as Record<string, Filter>,
+    null,
+    slices,
   );
 
   const highlightedFilterId =
@@ -69,11 +80,7 @@ const useFilterFocusHighlightStyles = (chartId: number) => {
   };
 
   if (highlightedFilterId) {
-    if (
-      nativeFilters.filters[highlightedFilterId]?.chartsInScope?.includes(
-        chartId,
-      )
-    ) {
+    if (relatedCharts[highlightedFilterId]?.includes(chartId)) {
       return focusedChartStyles;
     }
   } else if (

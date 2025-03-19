@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useMemo, useCallback, RefObject, createRef } from 'react';
+import { Fragment, useMemo, useCallback, RefObject, createRef } from 'react';
 import moment from 'moment';
 import { useDispatch } from 'react-redux';
 import ReactDiffViewer from 'react-diff-viewer-continued';
@@ -165,7 +165,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
           <StyledEditor>
             {overwriteConfirmMetadata.overwriteConfirmItems.map(
               ({ keyPath, oldValue, newValue }, index) => (
-                <React.Fragment key={keyPath}>
+                <Fragment key={keyPath}>
                   <div ref={anchors[index]} />
                   <StackableHeader
                     top={index * STICKY_HEADER_HEIGHT - STICKY_HEADER_TOP}
@@ -184,7 +184,7 @@ const OverrideConfirmModal = ({ overwriteConfirmMetadata }: Props) => {
                     )}
                     rightTitle="new value"
                   />
-                </React.Fragment>
+                </Fragment>
               ),
             )}
             <StyledBottom ref={bottomRef} inView={hasReviewed}>

@@ -172,13 +172,16 @@ def test_dashboard_digest(
         user = User(id=1, username="1")
     func = CUSTOM_DASHBOARD_FUNC if use_custom_digest else None
 
-    with patch.dict(
-        app.config,
-        {
-            "THUMBNAIL_EXECUTE_AS": execute_as,
-            "THUMBNAIL_DASHBOARD_DIGEST_FUNC": func,
-        },
-    ), override_user(user):
+    with (
+        patch.dict(
+            app.config,
+            {
+                "THUMBNAIL_EXECUTE_AS": execute_as,
+                "THUMBNAIL_DASHBOARD_DIGEST_FUNC": func,
+            },
+        ),
+        override_user(user),
+    ):
         cm = (
             pytest.raises(type(expected_result))
             if isinstance(expected_result, Exception)
@@ -242,13 +245,16 @@ def test_chart_digest(
         user = User(id=1, username="1")
     func = CUSTOM_CHART_FUNC if use_custom_digest else None
 
-    with patch.dict(
-        app.config,
-        {
-            "THUMBNAIL_EXECUTE_AS": execute_as,
-            "THUMBNAIL_CHART_DIGEST_FUNC": func,
-        },
-    ), override_user(user):
+    with (
+        patch.dict(
+            app.config,
+            {
+                "THUMBNAIL_EXECUTE_AS": execute_as,
+                "THUMBNAIL_CHART_DIGEST_FUNC": func,
+            },
+        ),
+        override_user(user),
+    ):
         cm = (
             pytest.raises(type(expected_result))
             if isinstance(expected_result, Exception)

@@ -21,12 +21,13 @@ Revises: b4456560d4f3
 Create Date: 2016-04-15 17:58:33.842012
 
 """
+
 # revision identifiers, used by Alembic.
 revision = "4fa88fe24e94"
 down_revision = "b4456560d4f3"
 
-import sqlalchemy as sa
-from alembic import op
+import sqlalchemy as sa  # noqa: E402
+from alembic import op  # noqa: E402
 
 
 def upgrade():

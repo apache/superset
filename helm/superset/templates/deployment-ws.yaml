@@ -35,8 +35,7 @@ spec:
   replicas: {{ .Values.supersetWebsockets.replicaCount }}
   selector:
     matchLabels:
-      app: "{{ template "superset.name" . }}-ws"
-      release: {{ .Release.Name }}
+    {{- include "supersetWebsockets.selectorLabels" . | nindent 6 }}
   {{- if .Values.supersetWebsockets.strategy }}
   strategy: {{- toYaml .Values.supersetWebsockets.strategy | nindent 4 }}
   {{- end }}
@@ -128,6 +127,9 @@ spec:
         {{- with .Values.supersetWebsockets.affinity }}
           {{- toYaml . | nindent 8 }}
         {{- end }}
+      {{- end }}
+      {{- if .Values.supersetWebsockets.priorityClassName }}
+      priorityClassName: {{ .Values.supersetWebsockets.priorityClassName }}
       {{- end }}
       {{- if or .Values.topologySpreadConstraints .Values.supersetWebsockets.topologySpreadConstraints }}
       topologySpreadConstraints:

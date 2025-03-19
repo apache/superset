@@ -29,9 +29,10 @@ from tests.integration_tests.test_app import app
     ],
     ids=["Without trailing slash", "With trailing slash"],
 )
+@mock.patch("superset.tasks.cache.fetch_csrf_token")
 @mock.patch("superset.tasks.cache.request.Request")
 @mock.patch("superset.tasks.cache.request.urlopen")
-def test_fetch_url(mock_urlopen, mock_request_cls, base_url):
+def test_fetch_url(mock_urlopen, mock_request_cls, mock_fetch_csrf_token, base_url):
     from superset.tasks.cache import fetch_url
 
     mock_request = mock.MagicMock()
@@ -40,18 +41,22 @@ def test_fetch_url(mock_urlopen, mock_request_cls, base_url):
     mock_urlopen.return_value = mock.MagicMock()
     mock_urlopen.return_value.code = 200
 
+    initial_headers = {"Cookie": "cookie", "key": "value"}
+    csrf_headers = initial_headers | {"X-CSRF-Token": "csrf_token"}
+    mock_fetch_csrf_token.return_value = csrf_headers
+
     app.config["WEBDRIVER_BASEURL"] = base_url
-    headers = {"key": "value"}
     data = "data"
     data_encoded = b"data"
 
-    result = fetch_url(data, headers)
+    result = fetch_url(data, initial_headers)
 
     assert data == result["success"]
+    mock_fetch_csrf_token.assert_called_once_with(initial_headers)
     mock_request_cls.assert_called_once_with(
-        "http://base-url/superset/warm_up_cache/",
+        "http://base-url/api/v1/chart/warm_up_cache",
         data=data_encoded,
-        headers=headers,
+        headers=csrf_headers,
         method="PUT",
     )
     # assert the same Request object is used

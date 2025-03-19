@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import { styledMount as mount } from 'spec/helpers/theming';
 import ColumnElement from 'src/SqlLab/components/ColumnElement';
 import { mockedActions, table } from 'src/SqlLab/fixtures';
@@ -27,7 +27,7 @@ describe('ColumnElement', () => {
     column: table.columns[0],
   };
   it('is valid with props', () => {
-    expect(React.isValidElement(<ColumnElement {...mockedProps} />)).toBe(true);
+    expect(isValidElement(<ColumnElement {...mockedProps} />)).toBe(true);
   });
   it('renders a proper primary key', () => {
     const wrapper = mount(<ColumnElement column={table.columns[0]} />);

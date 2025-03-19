@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, DEFAULT_D3_FORMAT } from '@superset-ui/core';
+import {
+  t,
+  DEFAULT_D3_FORMAT,
+  DEFAULT_D3_TIME_FORMAT,
+} from '@superset-ui/core';
 
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
@@ -184,6 +188,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
     },
   },
   d3_format: DEFAULT_D3_FORMAT,
+  d3_time_format: DEFAULT_D3_TIME_FORMAT,
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {

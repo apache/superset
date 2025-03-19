@@ -26,13 +26,12 @@ Create Date: 2021-08-03 15:36:35.925420
 revision = "143b6f2815da"
 down_revision = "e323605f370a"
 
-import json
+from alembic import op  # noqa: E402
+from sqlalchemy import and_, Column, Integer, String, Text  # noqa: E402
+from sqlalchemy.ext.declarative import declarative_base  # noqa: E402
 
-from alembic import op
-from sqlalchemy import and_, Column, Integer, String, Text
-from sqlalchemy.ext.declarative import declarative_base
-
-from superset import db
+from superset import db  # noqa: E402
+from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
@@ -93,9 +92,9 @@ def upgrade():
                 ]
                 changed_slices += 1
                 slice.params = json.dumps(params, sort_keys=True)
-        except Exception as e:
+        except Exception:
             print(f"Parsing json_metadata for slice {slice.id} failed.")
-            raise e
+            raise
 
     session.commit()
     session.close()

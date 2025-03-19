@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 import decimal
-import json
 import logging
 import os
 import random
@@ -29,12 +28,14 @@ from uuid import uuid4
 import sqlalchemy.sql.sqltypes
 import sqlalchemy_utils
 from flask_appbuilder import Model
-from sqlalchemy import Column, inspect, MetaData, Table
+from sqlalchemy import Column, inspect, MetaData, Table as DBTable
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql import func
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import db
+from superset.sql_parse import Table
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -182,9 +183,9 @@ def add_data(
     from superset.utils.database import get_example_database
 
     database = get_example_database()
-    table_exists = database.has_table_by_name(table_name)
+    table_exists = database.has_table(Table(table_name))
 
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         if columns is None:
             if not table_exists:
                 raise Exception(  # pylint: disable=broad-exception-raised
@@ -198,7 +199,7 @@ def add_data(
         # create table if needed
         column_objects = get_column_objects(columns)
         metadata = MetaData()
-        table = Table(table_name, metadata, *column_objects)
+        table = DBTable(table_name, metadata, *column_objects)
         metadata.create_all(engine)
 
         if not append:

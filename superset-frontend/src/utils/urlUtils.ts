@@ -123,7 +123,7 @@ function getChartUrlParams(excludedUrlParams?: string[]): UrlParamEntries {
   return getUrlParamEntries(urlParams);
 }
 
-function getDashboardUrlParams(): UrlParamEntries {
+export function getDashboardUrlParams(): UrlParamEntries {
   const urlParams = getUrlParams(RESERVED_DASHBOARD_URL_PARAMS);
   const filterBoxFilters = getActiveFilters();
   if (!isEmpty(filterBoxFilters))
@@ -205,4 +205,17 @@ export function parseUrl(url: string) {
     return `//${url}`;
   }
   return url;
+}
+
+export function toQueryString(params: Record<string, any>): string {
+  const queryParts: string[] = [];
+  Object.keys(params).forEach(key => {
+    const value = params[key];
+    if (value !== null && value !== undefined) {
+      queryParts.push(
+        `${encodeURIComponent(key)}=${encodeURIComponent(value)}`,
+      );
+    }
+  });
+  return queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
 }

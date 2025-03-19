@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import * as reactRedux from 'react-redux';
 import { Filter, NativeFilterType } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';

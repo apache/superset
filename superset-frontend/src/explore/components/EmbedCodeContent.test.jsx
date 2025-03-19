@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { isValidElement } from 'react';
 import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import EmbedCodeContent from 'src/explore/components/EmbedCodeContent';
@@ -26,7 +26,7 @@ fetchMock.post('glob:*/api/v1/explore/permalink', { url });
 
 describe('EmbedCodeButton', () => {
   it('renders', () => {
-    expect(React.isValidElement(<EmbedCodeContent />)).toBe(true);
+    expect(isValidElement(<EmbedCodeContent />)).toBe(true);
   });
 
   it('returns correct embed code', async () => {

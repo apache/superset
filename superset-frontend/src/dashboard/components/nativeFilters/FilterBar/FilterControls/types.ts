@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { RefObject } from 'react';
+import { RefObject, ReactElement } from 'react';
+
 import { DataMask, DataMaskStateWithId, Filter } from '@superset-ui/core';
 import { FilterBarOrientation } from 'src/dashboard/types';
 
@@ -35,7 +36,7 @@ export interface FilterControlProps extends BaseFilterProps {
   filter: Filter & {
     dataMask?: DataMask;
   };
-  icon?: React.ReactElement;
+  icon?: ReactElement;
   focusedFilterId?: string;
   onFilterSelectionChange: (filter: Filter, dataMask: DataMask) => void;
   inView?: boolean;

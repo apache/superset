@@ -71,6 +71,7 @@ it('should cancel previous timeout when value changes', async () => {
 
 test('should cancel the timeout when unmounting', async () => {
   jest.useFakeTimers();
+  jest.spyOn(global, 'clearTimeout');
   const { result, unmount } = renderHook(() => useDebounceValue('hello', 1000));
 
   expect(result.current).toBe('hello');

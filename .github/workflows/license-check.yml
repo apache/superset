@@ -12,7 +12,7 @@ concurrency:
 jobs:
   license_check:
     name: License Check
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v4

@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import * as React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, act } from 'spec/helpers/testing-library';
 import * as featureFlags from '@superset-ui/core';
@@ -138,8 +137,7 @@ describe('Header Report Dropdown', () => {
   });
 
   afterAll(() => {
-    // @ts-ignore
-    isFeatureEnabledMock.restore();
+    isFeatureEnabledMock.mockRestore();
   });
 
   it('renders correctly', () => {

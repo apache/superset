@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 import os
 import time
@@ -23,31 +22,68 @@ from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
 from alembic import op
-from sqlalchemy import engine_from_config, inspect
+from sqlalchemy import inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 from sqlalchemy.dialects.postgresql.base import PGDialect
-from sqlalchemy.engine import reflection
 from sqlalchemy.exc import NoSuchTableError
 from sqlalchemy.orm import Query, Session
+
+from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_BATCH_SIZE = int(os.environ.get("BATCH_SIZE", 1000))
 
 
-def table_has_column(table: str, column: str) -> bool:
+def get_table_column(
+    table_name: str,
+    column_name: str,
+) -> Optional[list[dict[str, Any]]]:
     """
-    Checks if a column exists in a given table.
+    Get the specified column.
 
-    :param table: A table name
-    :param column: A column name
-    :returns: True iff the column exists in the table
+    :param table_name: The Table name
+    :param column_name: The column name
+    :returns: The column
     """
 
     insp = inspect(op.get_context().bind)
 
     try:
-        return any(col["name"] == column for col in insp.get_columns(table))
+        for column in insp.get_columns(table_name):
+            if column["name"] == column_name:
+                return column
+    except NoSuchTableError:
+        pass
+
+    return None
+
+
+def table_has_column(table_name: str, column_name: str) -> bool:
+    """
+    Checks if a column exists in a given table.
+
+    :param table_name: A table name
+    :param column_name: A column name
+    :returns: True iff the column exists in the table
+    """
+
+    return bool(get_table_column(table_name, column_name))
+
+
+def table_has_index(table: str, index: str) -> bool:
+    """
+    Checks if an index exists in a given table.
+
+    :param table: A table name
+    :param index: A index name
+    :returns: True if the index exists in the table
+    """
+
+    insp = inspect(op.get_context().bind)
+
+    try:
+        return any(ind["name"] == index for ind in insp.get_indexes(table))
     except NoSuchTableError:
         return False
 
@@ -106,7 +142,7 @@ def paginated_update(
     result = session.execute(query)
 
     if print_page_progress is None or print_page_progress is True:
-        print_page_progress = lambda processed, total: print(
+        print_page_progress = lambda processed, total: print(  # noqa: E731
             f"    {processed}/{total}", end="\r"
         )
 
@@ -129,6 +165,20 @@ def paginated_update(
 def try_load_json(data: Optional[str]) -> dict[str, Any]:
     try:
         return data and json.loads(data) or {}
-    except json.decoder.JSONDecodeError:
+    except json.JSONDecodeError:
         print(f"Failed to parse: {data}")
         return {}
+
+
+def has_table(table_name: str) -> bool:
+    """
+    Check if a table exists in the database.
+
+    :param table_name: The table name
+    :returns: True if the table exists
+    """
+
+    insp = inspect(op.get_context().bind)
+    table_exists = insp.has_table(table_name)
+
+    return table_exists

@@ -1,0 +1,502 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+[build-system]
+requires = ["setuptools>=40.9.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apache-superset"
+description = "A modern, enterprise-ready business intelligence web application"
+readme = "README.md"
+dynamic = ["version", "scripts", "entry-points"]
+requires-python = "~=3.9"
+license = { file="LICENSE.txt" }
+authors = [
+    { name = "Apache Software Foundation", email = "dev@superset.apache.org" },
+]
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "backoff>=1.8.0",
+    "celery>=5.3.6, <6.0.0",
+    "click>=8.0.3",
+    "click-option-group",
+    "colorama",
+    "croniter>=0.3.28",
+    "cron-descriptor",
+    "cryptography>=42.0.4, <43.0.0",
+    "deprecation>=2.1.0, <2.2.0",
+    "flask>=2.2.5, <3.0.0",
+    "flask-appbuilder>=4.5.0, <5.0.0",
+    "flask-caching>=2.1.0, <3",
+    "flask-compress>=1.13, <2.0",
+    "flask-talisman>=1.0.0, <2.0",
+    "flask-login>=0.6.0, < 1.0",
+    "flask-migrate>=3.1.0, <4.0",
+    "flask-session>=0.4.0, <1.0",
+    "flask-wtf>=1.1.0, <2.0",
+    "func_timeout",
+    "geopy",
+    "gunicorn>=22.0.0; sys_platform != 'win32'",
+    "hashids>=1.3.1, <2",
+    "holidays>=0.25, <0.26",
+    "humanize",
+    "importlib_metadata",
+    "isodate",
+    "jsonpath-ng>=1.6.1, <2",
+    "Mako>=1.2.2",
+    "markdown>=3.0",
+    "msgpack>=1.0.0, <1.1",
+    "nh3>=0.2.11, <0.3",
+    "numpy==1.23.5",
+    "packaging",
+    "pandas[performance]>=2.0.3, <2.1",
+    "parsedatetime",
+    "paramiko>=3.4.0",
+    "pgsanity",
+    "polyline>=2.0.0, <3.0",
+    "pyparsing>=3.0.6, <4",
+    "python-dateutil",
+    "python-dotenv",
+    "python-geohash",
+    "pyarrow>=14.0.1, <15",
+    "pyyaml>=6.0.0, <7.0.0",
+    "PyJWT>=2.4.0, <3.0",
+    "redis>=4.6.0, <5.0",
+    "selenium>=3.141.0, <4.10.0",
+    "shillelagh[gsheetsapi]>=1.2.18, <2.0",
+    "shortid",
+    "sshtunnel>=0.4.0, <0.5",
+    "simplejson>=3.15.0",
+    "slack_sdk>=3.19.0, <4",
+    "sqlalchemy>=1.4, <2",
+    "sqlalchemy-utils>=0.38.3, <0.39",
+    "sqlglot>=25.24.0,<26",
+    "sqlparse>=0.5.0",
+    "tabulate>=0.8.9, <0.9",
+    "typing-extensions>=4, <5",
+    "waitress; sys_platform == 'win32'",
+    "wtforms>=2.3.3, <4",
+    "wtforms-json",
+    "xlsxwriter>=3.0.7, <3.1",
+]
+
+[project.optional-dependencies]
+
+athena = ["pyathena[pandas]>=2, <3"]
+aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
+bigquery = [
+    "pandas-gbq>=0.19.1",
+    "sqlalchemy-bigquery>=1.6.1",
+    "google-cloud-bigquery>=3.10.0",
+]
+clickhouse = ["clickhouse-connect>=0.5.14, <1.0"]
+cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
+cors = ["flask-cors>=2.0.0"]
+crate = ["crate[sqlalchemy]>=0.26.0, <0.27"]
+databend = ["databend-sqlalchemy>=0.3.2, <1.0"]
+databricks = [
+    "databricks-sql-connector>=2.0.2, <3",
+    "sqlalchemy-databricks>=0.2.0",
+]
+db2 = ["ibm-db-sa>0.3.8, <=0.4.0"]
+dremio = ["sqlalchemy-dremio>=1.1.5, <1.3"]
+drill = ["sqlalchemy-drill>=1.1.4, <2"]
+druid = ["pydruid>=0.6.5,<0.7"]
+duckdb = ["duckdb-engine>=0.9.5, <0.10"]
+dynamodb = ["pydynamodb>=0.4.2"]
+solr = ["sqlalchemy-solr >= 0.2.0"]
+elasticsearch = ["elasticsearch-dbapi>=0.2.9, <0.3.0"]
+exasol = ["sqlalchemy-exasol >= 2.4.0, <3.0"]
+excel = ["xlrd>=1.2.0, <1.3"]
+firebird = ["sqlalchemy-firebird>=0.7.0, <0.8"]
+firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
+gevent = ["gevent>=23.9.1"]
+gsheets = ["shillelagh[gsheetsapi]>=1.2.18, <2"]
+hana = ["hdbcli==2.4.162", "sqlalchemy_hana==0.4.0"]
+hive = [
+    "boto3",
+    "pyhive[hive]>=0.6.5;python_version<'3.11'",
+    "pyhive[hive_pure_sasl]>=0.7.0",
+    "tableschema",
+    "thrift>=0.14.1, <1.0.0",
+    "thrift_sasl>=0.4.3, < 1.0.0",
+]
+impala = ["impyla>0.16.2, <0.17"]
+kusto = ["sqlalchemy-kusto>=2.0.0, <3"]
+kylin = ["kylinpy>=2.8.1, <2.9"]
+mssql = ["pymssql>=2.2.8, <3"]
+mysql = ["mysqlclient>=2.1.0, <3"]
+ocient = [
+    "sqlalchemy-ocient>=1.0.0",
+    "pyocient>=1.0.15, <2",
+    "shapely",
+    "geojson",
+]
+oracle = ["cx-Oracle>8.0.0, <8.1"]
+pinot = ["pinotdb>=5.0.0, <6.0.0"]
+playwright = ["playwright>=1.37.0, <2"]
+postgres = ["psycopg2-binary==2.9.6"]
+presto = ["pyhive[presto]>=0.6.5"]
+trino = ["boto3", "trino>=0.328.0"]
+prophet = ["prophet>=1.1.5, <2"]
+redshift = ["sqlalchemy-redshift>=0.8.1, <0.9"]
+rockset = ["rockset-sqlalchemy>=0.0.1, <1"]
+shillelagh = ["shillelagh[all]>=1.2.18, <2"]
+snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
+spark = [
+    "pyhive[hive]>=0.6.5;python_version<'3.11'",
+    "pyhive[hive_pure_sasl]>=0.7",
+    "tableschema",
+    "thrift>=0.14.1, <1",
+]
+teradata = ["teradatasql>=16.20.0.23"]
+thumbnails = ["Pillow>=10.0.1, <11"]
+vertica = ["sqlalchemy-vertica-python>=0.5.9, < 0.6"]
+netezza = ["nzalchemy>=11.0.2"]
+starrocks = ["starrocks>=1.0.0"]
+doris = ["pydoris>=1.0.0, <2.0.0"]
+oceanbase = ["oceanbase_py>=0.0.1"]
+development = [
+    "docker",
+    "flask-testing",
+    "freezegun",
+    "greenlet>=2.0.2",
+    "grpcio>=1.55.3",
+    "openapi-spec-validator",
+    "parameterized",
+    "pip-compile-multi",
+    "pre-commit",
+    "progress>=1.5,<2",
+    "pyfakefs",
+    "pyinstrument>=4.0.2,<5",
+    "pylint",
+    "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
+    "pytest-cov",
+    "pytest-mock",
+    "python-ldap>=3.4.4",
+    "ruff",
+    "sqloxide",
+    "statsd",
+    "tox",
+]
+
+[project.urls]
+homepage = "https://superset.apache.org/"
+documentation = "https://superset.apache.org/docs/intro"
+
+
+[tool.isort]
+combine_as_imports = true
+include_trailing_comma = true
+line_length = 88
+known_first_party = "superset"
+known_third_party = "alembic, apispec, backoff, celery, click, colorama, cron_descriptor, croniter, cryptography, dateutil, deprecation, flask, flask_appbuilder, flask_babel, flask_caching, flask_compress, flask_jwt_extended, flask_login, flask_migrate, flask_sqlalchemy, flask_talisman, flask_testing, flask_wtf, freezegun, geohash, geopy, holidays, humanize, isodate, jinja2, jwt, markdown, markupsafe, marshmallow, msgpack, nh3, numpy, pandas, parameterized, parsedatetime, pgsanity, pkg_resources, polyline, prison, progress, pyarrow, sqlalchemy_bigquery, pyhive, pyparsing, pytest, pytest_mock, pytz, redis, requests, selenium, setuptools, shillelagh, simplejson, slack, sqlalchemy, sqlalchemy_utils, sqlparse, typing_extensions, urllib3, werkzeug, wtforms, wtforms_json, yaml"
+multi_line_output = 3
+order_by_type = false
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+warn_unused_ignores = true
+
+[[tool.mypy.overrides]]
+module = "superset.migrations.versions.*"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+check_untyped_defs = false
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disable_error_code = "annotation-unchecked"
+
+[tool.tox]
+legacy_tox_ini = """
+# Remember to start celery workers to run celery tests, e.g.
+# celery --app=superset.tasks.celery_app:app worker -Ofair -c 2
+[testenv]
+basepython = python3.10
+ignore_basepython_conflict = true
+commands =
+    superset db upgrade
+    superset init
+    superset load-test-users
+    # use -s to be able to use break pointers.
+    # no args or tests/* can be passed as an argument to run all tests
+    pytest -s {posargs}
+deps =
+    -rrequirements/development.txt
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+    mysql: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
+    postgres: SUPERSET__SQLALCHEMY_DATABASE_URI = postgresql+psycopg2://superset:superset@localhost/test
+    sqlite: SUPERSET__SQLALCHEMY_DATABASE_URI = sqlite:////{envtmpdir}/superset.db
+    sqlite: SUPERSET__SQLALCHEMY_EXAMPLES_URI = sqlite:////{envtmpdir}/examples.db
+    mysql-presto: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
+    # docker run -p 8080:8080 --name presto starburstdata/presto
+    mysql-presto: SUPERSET__SQLALCHEMY_EXAMPLES_URI = presto://localhost:8080/memory/default
+    # based on https://github.com/big-data-europe/docker-hadoop
+    # clone the repo & run docker compose up -d to test locally
+    mysql-hive: SUPERSET__SQLALCHEMY_DATABASE_URI = mysql://mysqluser:mysqluserpassword@localhost/superset?charset=utf8
+    mysql-hive: SUPERSET__SQLALCHEMY_EXAMPLES_URI = hive://localhost:10000/default
+    # make sure that directory is accessible by docker
+    hive: UPLOAD_FOLDER = /tmp/.superset/app/static/uploads/
+usedevelop = true
+allowlist_externals =
+    npm
+    pkill
+
+[testenv:cypress]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-dashboard]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh dashboard
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-explore]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh explore
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-sqllab]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh sqllab
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:cypress-sqllab-backend-persist]
+setenv =
+    PYTHONPATH = {toxinidir}
+    SUPERSET_TESTENV = true
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config
+    SUPERSET_HOME = {envtmpdir}
+commands =
+    npm install -g npm@'>=6.5.0'
+    pip install -e {toxinidir}/
+    {toxinidir}/superset-frontend/cypress_build.sh sqllab
+commands_post =
+    pkill -if "python {envbindir}/flask"
+
+[testenv:eslint]
+changedir = {toxinidir}/superset-frontend
+commands =
+    npm run lint
+deps =
+
+[testenv:fossa]
+commands =
+    {toxinidir}/scripts/fossa.sh
+deps =
+passenv = *
+
+[testenv:javascript]
+commands =
+    npm install -g npm@'>=6.5.0'
+    {toxinidir}/superset-frontend/js_build.sh
+deps =
+
+[testenv:license-check]
+commands =
+    {toxinidir}/scripts/check_license.sh
+passenv = *
+whitelist_externals =
+    {toxinidir}/scripts/check_license.sh
+deps =
+
+[testenv:pre-commit]
+commands =
+    pre-commit run --all-files
+deps =
+    -rrequirements/development.txt
+skip_install = true
+
+[testenv:pylint]
+commands =
+    pylint superset
+deps =
+    -rrequirements/development.txt
+
+[testenv:thumbnails]
+setenv =
+    SUPERSET_CONFIG = tests.integration_tests.superset_test_config_thumbnails
+deps =
+    -rrequirements/development.txt
+
+[tox]
+envlist =
+    cypress-dashboard
+    cypress-explore
+    cypress-sqllab
+    cypress-sqllab-backend-persist
+    eslint
+    fossa
+    javascript
+    license-check
+    pre-commit
+    pylint
+skipsdist = true
+"""
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.8
+target-version = "py310"
+
+[tool.ruff.lint]
+# Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
+# Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
+# McCabe complexity (`C901`) by default.
+select = [
+    "B904",
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "TRY201",
+]
+ignore = []
+
+extend-select = ["I"]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+combine-as-imports = true
+force-sort-within-sections = false
+known-first-party = []
+known-third-party = []
+lines-after-imports = -1
+order-by-type = false
+section-order = [
+    "future",
+    "standard-library",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"

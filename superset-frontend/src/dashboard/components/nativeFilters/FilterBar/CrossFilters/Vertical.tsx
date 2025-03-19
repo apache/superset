@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { DashboardLayout, RootState } from 'src/dashboard/types';

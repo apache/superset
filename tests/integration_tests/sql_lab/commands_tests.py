@@ -31,7 +31,7 @@ from superset.exceptions import (
     SupersetSecurityException,
     SupersetTimeoutException,
 )
-from superset.models.core import Database
+from superset.models.core import Database  # noqa: F401
 from superset.models.sql_lab import Query
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.schemas import EstimateQueryCostSchema

@@ -21,7 +21,7 @@
 // ***********************************************
 
 import rison from 'rison';
-import shortid from 'shortid';
+import { nanoid } from 'nanoid';
 import { interceptChart } from 'cypress/utils';
 import { HEALTH_POP_FORM_DATA_DEFAULTS } from './visualizations/shared.helper';
 
@@ -71,7 +71,7 @@ describe('Test explore links', () => {
       metrics: ['sum__SP_POP_TOTL'],
       groupby: ['country_name'],
     };
-    const newChartName = `Test chart [${shortid.generate()}]`;
+    const newChartName = `Test chart [${nanoid()}]`;
 
     cy.visitChartByParams(formData);
     cy.verifySliceSuccess({ waitAlias: '@tableChartData' });
@@ -109,8 +109,8 @@ describe('Test explore links', () => {
 
   it('Test chart save as and add to new dashboard', () => {
     const chartName = 'Growth Rate';
-    const newChartName = `${chartName} [${shortid.generate()}]`;
-    const dashboardTitle = `Test dashboard [${shortid.generate()}]`;
+    const newChartName = `${chartName} [${nanoid()}]`;
+    const dashboardTitle = `Test dashboard [${nanoid()}]`;
 
     cy.visitChartByName(chartName);
     cy.verifySliceSuccess({ waitAlias: '@chartData' });

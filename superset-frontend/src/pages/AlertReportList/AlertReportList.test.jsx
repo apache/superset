@@ -17,7 +17,6 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import React from 'react';
 import configureStore from 'redux-mock-store';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';

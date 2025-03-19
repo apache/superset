@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import React from 'react';
 import { SuperChart } from '@superset-ui/core';
 import HorizonChartPlugin from '@superset-ui/legacy-plugin-chart-horizon';
 import data from './data';

@@ -17,11 +17,10 @@
  * under the License.
  */
 
-import React from 'react';
 import { FeatureFlag } from '@superset-ui/core';
 import userEvent from '@testing-library/user-event';
 import { act, render, screen, within } from 'spec/helpers/testing-library';
-import AddSliceCard from '.';
+import AddSliceCard from './AddSliceCard';
 
 jest.mock('src/components/DynamicPlugins', () => ({
   usePluginContext: () => ({
@@ -34,12 +33,12 @@ const mockedProps = {
   sliceName: '-',
 };
 
-declare const global: {
+declare const globalThis: {
   featureFlags: Record<string, boolean>;
 };
 
 test('do not render thumbnail if feature flag is not set', async () => {
-  global.featureFlags = {
+  globalThis.featureFlags = {
     [FeatureFlag.Thumbnails]: false,
   };
 
@@ -51,7 +50,7 @@ test('do not render thumbnail if feature flag is not set', async () => {
 });
 
 test('render thumbnail if feature flag is set', async () => {
-  global.featureFlags = {
+  globalThis.featureFlags = {
     [FeatureFlag.Thumbnails]: true,
   };
 
@@ -64,7 +63,7 @@ test('render thumbnail if feature flag is set', async () => {
 
 test('does not render the tooltip with anchors', async () => {
   const mock = jest
-    .spyOn(React, 'useState')
+    .spyOn(global.React, 'useState')
     .mockImplementation(() => [true, jest.fn()]);
   render(
     <AddSliceCard

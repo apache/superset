@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 from importlib import import_module
+
+from superset.utils import json
 
 better_filters = import_module(
     "superset.migrations.versions." "2018-12-11_22-03_fb13d49b72f9_better_filters",

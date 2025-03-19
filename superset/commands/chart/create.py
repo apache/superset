@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from datetime import datetime
+from functools import partial
 from typing import Any, Optional
 
 from flask import g
@@ -33,7 +34,7 @@ from superset.commands.chart.exceptions import (
 from superset.commands.utils import get_datasource_by_id
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
-from superset.daos.exceptions import DAOCreateFailedError
+from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +43,12 @@ class CreateChartCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
+    @transaction(on_error=partial(on_error, reraise=ChartCreateFailedError))
     def run(self) -> Model:
         self.validate()
-        try:
-            self._properties["last_saved_at"] = datetime.now()
-            self._properties["last_saved_by"] = g.user
-            return ChartDAO.create(attributes=self._properties)
-        except DAOCreateFailedError as ex:
-            logger.exception(ex.exception)
-            raise ChartCreateFailedError() from ex
+        self._properties["last_saved_at"] = datetime.now()
+        self._properties["last_saved_by"] = g.user
+        return ChartDAO.create(attributes=self._properties)
 
     def validate(self) -> None:
         exceptions = []

@@ -31,3 +31,9 @@ export interface RgbaColor {
   b: number;
   a: number;
 }
+
+export enum ColorSchemeGroup {
+  Custom = 'custom',
+  Featured = 'featured',
+  Other = 'other',
+}

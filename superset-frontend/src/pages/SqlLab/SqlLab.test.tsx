@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import React from 'react';
+import { isValidElement } from 'react';
 import { omit } from 'lodash';
 import {
   render,
@@ -71,7 +71,7 @@ jest.mock('src/SqlLab/components/App', () => () => (
 ));
 
 test('is valid', () => {
-  expect(React.isValidElement(<SqlLab />)).toBe(true);
+  expect(isValidElement(<SqlLab />)).toBe(true);
 });
 
 test('fetches initial data and renders', async () => {

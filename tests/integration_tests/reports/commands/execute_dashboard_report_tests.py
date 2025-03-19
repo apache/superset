@@ -24,7 +24,9 @@ from superset.commands.dashboard.permalink.create import CreateDashboardPermalin
 from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSourceFormat
-from tests.integration_tests.fixtures.tabbed_dashboard import tabbed_dashboard
+from tests.integration_tests.fixtures.tabbed_dashboard import (
+    tabbed_dashboard,  # noqa: F401
+)
 from tests.integration_tests.reports.utils import create_dashboard_report
 
 
@@ -39,7 +41,7 @@ def test_report_for_dashboard_with_tabs(
     create_dashboard_permalink_mock: MagicMock,
     dashboard_screenshot_mock: MagicMock,
     send_email_smtp_mock: MagicMock,
-    tabbed_dashboard: Dashboard,
+    tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
     create_dashboard_permalink_mock.return_value = "permalink"
     dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
@@ -77,7 +79,7 @@ def test_report_with_header_data(
     create_dashboard_permalink_mock: MagicMock,
     dashboard_screenshot_mock: MagicMock,
     send_email_smtp_mock: MagicMock,
-    tabbed_dashboard: Dashboard,
+    tabbed_dashboard: Dashboard,  # noqa: F811
 ) -> None:
     create_dashboard_permalink_mock.return_value = "permalink"
     dashboard_screenshot_mock.get_screenshot.return_value = b"test-image"
@@ -106,4 +108,4 @@ def test_report_with_header_data(
         assert header_data.get("notification_format") == report_schedule.report_format
         assert header_data.get("notification_source") == ReportSourceFormat.DASHBOARD
         assert header_data.get("notification_type") == report_schedule.type
-        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 6
+        assert len(send_email_smtp_mock.call_args.kwargs["header_data"]) == 7

@@ -17,7 +17,6 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
-import json
 import logging
 from datetime import datetime
 from pprint import pformat
@@ -36,17 +35,17 @@ from superset.exceptions import (
 )
 from superset.sql_parse import sanitize_clause
 from superset.superset_typing import Column, Metric, OrderBy
-from superset.utils import pandas_postprocessing
+from superset.utils import json, pandas_postprocessing
 from superset.utils.core import (
     DTTM_ALIAS,
     find_duplicates,
     get_column_names,
     get_metric_names,
     is_adhoc_metric,
-    json_int_dttm_ser,
     QueryObjectFilterClause,
 )
 from superset.utils.hashing import md5_sha_from_dict
+from superset.utils.json import json_int_dttm_ser
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -108,7 +107,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     time_range: str | None
     to_dttm: datetime | None
 
-    def __init__(  # pylint: disable=too-many-locals
+    def __init__(  # pylint: disable=too-many-locals, too-many-arguments
         self,
         *,
         annotation_layers: list[dict[str, Any]] | None = None,
@@ -190,7 +189,8 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return isinstance(metric, str) or is_adhoc_metric(metric)
 
         self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"] for x in metrics  # type: ignore
+            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
+            for x in metrics
         ]
 
     def _set_post_processing(
@@ -276,7 +276,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return None
         except QueryObjectValidationError as ex:
             if raise_exceptions:
-                raise ex
+                raise
             return ex
 
     def _validate_no_have_duplicate_labels(self) -> None:

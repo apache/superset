@@ -64,6 +64,7 @@ def get_log_connection_action(
 
 
 class TestConnectionDatabaseCommand(BaseCommand):
+    __test__ = False
     _model: Optional[Database] = None
     _context: dict[str, Any]
     _uri: str
@@ -138,9 +139,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 with closing(engine.raw_connection()) as conn:
                     return engine.dialect.do_ping(conn)
 
-            with database.get_sqla_engine_with_context(
-                override_ssh_tunnel=ssh_tunnel
-            ) as engine:
+            with database.get_sqla_engine(override_ssh_tunnel=ssh_tunnel) as engine:
                 try:
                     alive = func_timeout(
                         app.config["TEST_DATABASE_CONNECTION_TIMEOUT"].total_seconds(),
@@ -214,7 +213,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # bubble up the exception to return a 408
-            raise ex
+            raise
         except SSHTunnelingNotEnabledError as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
@@ -223,7 +222,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=database.db_engine_spec.__name__,
             )
             # bubble up the exception to return a 400
-            raise ex
+            raise
         except Exception as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(

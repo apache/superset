@@ -40,6 +40,17 @@ def left_join_df(
     return df
 
 
+def full_outer_join_df(
+    left_df: pd.DataFrame,
+    right_df: pd.DataFrame,
+    lsuffix: str = "",
+    rsuffix: str = "",
+) -> pd.DataFrame:
+    df = left_df.join(right_df, lsuffix=lsuffix, rsuffix=rsuffix, how="outer")
+    df.reset_index(inplace=True)
+    return df
+
+
 def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
     """Converting metrics to numeric when pandas.read_sql cannot"""
     for col, dtype in df.dtypes.items():

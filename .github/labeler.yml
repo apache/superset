@@ -72,6 +72,11 @@
   - any-glob-to-any-file:
     - 'superset/translations/zh/**'
 
+"i18n:traditional-chinese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/zh_TW/**'
+
 "i18n:dutch":
 - changed-files:
   - any-glob-to-any-file:

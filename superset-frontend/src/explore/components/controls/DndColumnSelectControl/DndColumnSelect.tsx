@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   AdhocColumn,
   tn,
@@ -37,6 +37,7 @@ import { DndControlProps } from './types';
 export type DndColumnSelectProps = DndControlProps<QueryFormColumn> & {
   options: ColumnMeta[];
   isTemporal?: boolean;
+  disabledTabs?: Set<string>;
 };
 
 function DndColumnSelect(props: DndColumnSelectProps) {
@@ -50,6 +51,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     name,
     label,
     isTemporal,
+    disabledTabs,
   } = props;
   const [newColumnPopoverVisible, setNewColumnPopoverVisible] = useState(false);
 
@@ -107,6 +109,8 @@ function DndColumnSelect(props: DndColumnSelectProps) {
           isAdhocColumn(column) && column.datasourceWarning
             ? t('This column might be incompatible with current dataset')
             : undefined;
+        const withCaret = isAdhocColumn(column) || !column.error_text;
+
         return (
           <ColumnSelectPopoverTrigger
             key={idx}
@@ -121,6 +125,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
             }}
             editedColumn={column}
             isTemporal={isTemporal}
+            disabledTabs={disabledTabs}
           >
             <OptionWrapper
               key={idx}
@@ -131,7 +136,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
               canDelete={canDelete}
               column={column}
               datasourceWarningMessage={datasourceWarningMessage}
-              withCaret
+              withCaret={withCaret}
             />
           </ColumnSelectPopoverTrigger>
         );
@@ -204,6 +209,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         closePopover={closePopover}
         visible={newColumnPopoverVisible}
         isTemporal={isTemporal}
+        disabledTabs={disabledTabs}
       >
         <div />
       </ColumnSelectPopoverTrigger>

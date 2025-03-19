@@ -30,12 +30,14 @@ under the License.
 
 <picture width="500">
   <source
+    width="600"
     media="(prefers-color-scheme: dark)"
-    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache-dark.png"
+    src="https://superset.apache.org/img/superset-logo-horiz-dark.svg"
     alt="Superset logo (dark)"
   />
   <img
-    src="https://github.com/apache/superset/raw/master/superset-frontend/src/assets/branding/superset-logo-horiz-apache.png"
+    width="600"
+    src="https://superset.apache.org/img/superset-logo-horiz-apache.svg"
     alt="Superset logo (light)"
   />
 </picture>
@@ -45,11 +47,11 @@ A modern, enterprise-ready business intelligence web application.
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
 [**Installation and Configuration**](#installation-and-configuration) |
-[**Release Notes**](RELEASING/README.md#release-notes-for-recent-releases) |
+[**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
 [**Get Involved**](#get-involved) |
 [**Contributor Guide**](#contributor-guide) |
 [**Resources**](#resources) |
-[**Organizations Using Superset**](RESOURCES/INTHEWILD.md)
+[**Organizations Using Superset**](https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md)
 
 ## Why Superset?
 
@@ -70,76 +72,77 @@ Superset provides:
 ## Screenshots & Gifs
 
 **Video Overview**
-
-https://user-images.githubusercontent.com/64562059/234390129-321d4f35-cb4b-45e8-89d9-20ae292f34fc.mp4
+<!-- File hosted here https://github.com/apache/superset-site/raw/lfs/superset-video-4k.mp4 -->
+[superset-video-4k.webm](https://github.com/apache/superset/assets/812905/da036bc2-150c-4ee7-80f9-75e63210ff76)
 
 <br/>
 
 **Large Gallery of Visualizations**
 
-<kbd><img title="Gallery" src="superset-frontend/src/assets/images/screenshots/gallery.jpg"/></kbd><br/>
+<kbd><img title="Gallery" src="https://superset.apache.org/img/screenshots/gallery.jpg"/></kbd><br/>
 
 **Craft Beautiful, Dynamic Dashboards**
 
-<kbd><img title="View Dashboards" src="superset-frontend/src/assets/images/screenshots/slack_dash.jpg"/></kbd><br/>
+<kbd><img title="View Dashboards" src="https://superset.apache.org/img/screenshots/slack_dash.jpg"/></kbd><br/>
 
 **No-Code Chart Builder**
 
-<kbd><img title="Slice & dice your data" src="superset-frontend/src/assets/images/screenshots/explore.jpg"/></kbd><br/>
+<kbd><img title="Slice & dice your data" src="https://superset.apache.org/img/screenshots/explore.jpg"/></kbd><br/>
 
 **Powerful SQL Editor**
 
-<kbd><img title="SQL Lab" src="superset-frontend/src/assets/images/screenshots/sql_lab.jpg"/></kbd><br/>
+<kbd><img title="SQL Lab" src="https://superset.apache.org/img/screenshots/sql_lab.jpg"/></kbd><br/>
 
 ## Supported Databases
 
-Superset can query data from any SQL-speaking datastore or data engine (Presto, Trino, Athena, [and more](https://superset.apache.org/docs/databases/installing-database-drivers/)) that has a Python DB-API driver and a SQLAlchemy dialect.
+Superset can query data from any SQL-speaking datastore or data engine (Presto, Trino, Athena, [and more](https://superset.apache.org/docs/configuration/databases)) that has a Python DB-API driver and a SQLAlchemy dialect.
 
 Here are some of the major database solutions that are supported:
 
 <p align="center">
-  <img src="superset-frontend/src/assets/images/redshift.png" alt="redshift" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/google-biquery.png" alt="google-biquery" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/snowflake.png" alt="snowflake" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/trino.png" alt="trino" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/presto.png" alt="presto" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/databricks.png" alt="databricks" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/druid.png" alt="druid" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/firebolt.png" alt="firebolt" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/timescale.png" alt="timescale" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/rockset.png" alt="rockset" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/postgresql.png" alt="postgresql" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/mysql.png" alt="mysql" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/mssql-server.png" alt="mssql-server" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/db2.png" alt="db2" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/sqlite.png" alt="sqlite" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/sybase.png" alt="sybase" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/mariadb.png" alt="mariadb" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/vertica.png" alt="vertica" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/oracle.png" alt="oracle" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/firebird.png" alt="firebird" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/greenplum.png" alt="greenplum" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/clickhouse.png" alt="clickhouse" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/exasol.png" alt="exasol" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/monet-db.png" alt="monet-db" border="0" width="200" height="80" />
-  <img src="superset-frontend/src/assets/images/apache-kylin.png" alt="apache-kylin" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/hologres.png" alt="hologres" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/netezza.png" alt="netezza" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/pinot.png" alt="pinot" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/teradata.png" alt="teradata" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/yugabyte.png" alt="yugabyte" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/databend.png" alt="databend" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/starrocks.png" alt="starrocks" border="0" width="200" height="80"/>
-  <img src="superset-frontend/src/assets/images/doris.png" alt="doris" border="0" width="200" height="80"/>
+  <img src="https://superset.apache.org/img/databases/redshift.png" alt="redshift" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/google-biquery.png" alt="google-biquery" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/snowflake.png" alt="snowflake" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/trino.png" alt="trino" border="0" width="150" />
+  <img src="https://superset.apache.org/img/databases/presto.png" alt="presto" border="0" width="200"/>
+  <img src="https://superset.apache.org/img/databases/databricks.png" alt="databricks" border="0" width="160" />
+  <img src="https://superset.apache.org/img/databases/druid.png" alt="druid" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/firebolt.png" alt="firebolt" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/timescale.png" alt="timescale" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/rockset.png" alt="rockset" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/postgresql.png" alt="postgresql" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mysql.png" alt="mysql" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mssql-server.png" alt="mssql-server" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/ibm-db2.svg" alt="db2" border="0" width="220" />
+  <img src="https://superset.apache.org/img/databases/sqlite.png" alt="sqlite" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/sybase.png" alt="sybase" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/mariadb.png" alt="mariadb" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/vertica.png" alt="vertica" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/oracle.png" alt="oracle" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/firebird.png" alt="firebird" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/greenplum.png" alt="greenplum" border="0" width="200"  />
+  <img src="https://superset.apache.org/img/databases/clickhouse.png" alt="clickhouse" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/exasol.png" alt="exasol" border="0" width="160" />
+  <img src="https://superset.apache.org/img/databases/monet-db.png" alt="monet-db" border="0" width="200"  />
+  <img src="https://superset.apache.org/img/databases/apache-kylin.png" alt="apache-kylin" border="0" width="80"/>
+  <img src="https://superset.apache.org/img/databases/hologres.png" alt="hologres" border="0" width="80"/>
+  <img src="https://superset.apache.org/img/databases/netezza.png" alt="netezza" border="0" width="80"/>
+  <img src="https://superset.apache.org/img/databases/pinot.png" alt="pinot" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/teradata.png" alt="teradata" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/yugabyte.png" alt="yugabyte" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/databend.png" alt="databend" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/starrocks.png" alt="starrocks" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/doris.png" alt="doris" border="0" width="200" />
+  <img src="https://superset.apache.org/img/databases/oceanbase.svg" alt="oceanbase" border="0" width="220" />
 </p>
 
-**A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/databases/installing-database-drivers).
+**A more comprehensive list of supported databases** along with the configuration instructions can be found [here](https://superset.apache.org/docs/configuration/databases).
 
 Want to add support for your datastore or data engine? Read more [here](https://superset.apache.org/docs/frequently-asked-questions#does-superset-work-with-insert-database-engine-here) about the technical requirements.
 
 ## Installation and Configuration
 
-[Extended documentation for Superset](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose)
+[Extended documentation for Superset](https://superset.apache.org/docs/installation/docker-compose)
 
 ## Get Involved
 
@@ -159,26 +162,22 @@ how to set up a development environment.
 
 ## Resources
 
-- [Superset "In the Wild"](RESOURCES/INTHEWILD.md) - open a PR to add your org to the list!
-- [Feature Flags](RESOURCES/FEATURE_FLAGS.md) - the status of Superset's Feature Flags.
-- [Standard Roles](RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
+- [Superset "In the Wild"](https://github.com/apache/superset/blob/master/RESOURCES/INTHEWILD.md) - open a PR to add your org to the list!
+- [Feature Flags](https://github.com/apache/superset/blob/master/RESOURCES/FEATURE_FLAGS.md) - the status of Superset's Feature Flags.
+- [Standard Roles](https://github.com/apache/superset/blob/master/RESOURCES/STANDARD_ROLES.md) - How RBAC permissions map to roles.
 - [Superset Wiki](https://github.com/apache/superset/wiki) - Tons of additional community resources: best practices, community content and other information.
 - [Superset SIPs](https://github.com/orgs/apache/projects/170) - The status of Superset's SIPs (Superset Improvement Proposals) for both consensus and implementation status.
 
-Superset 2.0!
-- [Superset 2.0 Meetup](https://preset.io/events/superset-2-0-meetup/)
-- [Superset 2.0 Release Notes](https://github.com/apache/superset/tree/master/RELEASING/release-notes-2-0)
-
 Understanding the Superset Points of View
+
 - [The Case for Dataset-Centric Visualization](https://preset.io/blog/dataset-centric-visualization/)
 - [Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 
-
 - Getting Started with Superset
-  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/installing-superset-using-docker-compose#installing-superset-locally-using-docker-compose)
-  - [Installing Database Drivers](https://superset.apache.org/docs/databases/docker-add-drivers/)
+  - [Superset in 2 Minutes using Docker Compose](https://superset.apache.org/docs/installation/docker-compose#installing-superset-locally-using-docker-compose)
+  - [Installing Database Drivers](https://superset.apache.org/docs/configuration/databases#installing-database-drivers)
   - [Building New Database Connectors](https://preset.io/blog/building-database-connector/)
-  - [Create Your First Dashboard](https://superset.apache.org/docs/creating-charts-dashboards/first-dashboard)
+  - [Create Your First Dashboard](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard/)
   - [Comprehensive Tutorial for Contributing Code to Apache Superset
   ](https://preset.io/blog/tutorial-contributing-code-to-apache-superset/)
 - [Resources to master Superset by Preset](https://preset.io/resources/)
@@ -191,8 +190,8 @@ Understanding the Superset Points of View
   - [Mixed Time Series Charts](https://preset.io/events/mixed-time-series-visualization-in-superset-workshop/)
   - [How the Bing Team Customized Superset for the Internal Self-Serve Data & Analytics Platform](https://preset.io/events/how-the-bing-team-heavily-customized-superset-for-their-internal-data/)
   - [Live Demo: Visualizing MongoDB and Pinot Data using Trino](https://preset.io/events/2021-04-13-visualizing-mongodb-and-pinot-data-using-trino/)
-	- [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
-	- [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
+  - [Introduction to the Superset API](https://preset.io/events/introduction-to-the-superset-api/)
+  - [Building a Database Connector for Superset](https://preset.io/events/2021-02-16-building-a-database-connector-for-superset/)
 
 - Visualizations
   - [Creating Viz Plugins](https://superset.apache.org/docs/contributing/creating-viz-plugins/)
@@ -200,6 +199,17 @@ Understanding the Superset Points of View
   - [Why Apache Superset is Betting on Apache ECharts](https://preset.io/blog/2021-4-1-why-echarts/)
 
 - [Superset API](https://superset.apache.org/docs/rest-api)
+
+## Repo Activity
+
+<a href="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats?repo_id=39464018" target="_blank" align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=dark" width="655" height="auto" />
+    <img alt="Performance Stats of apache/superset - Last 28 days" src="https://next.ossinsight.io/widgets/official/compose-last-28-days-stats/thumbnail.png?repo_id=39464018&image_size=auto&color_scheme=light" width="655" height="auto" />
+  </picture>
+</a>
+
+<!-- Made with [OSS Insight](https://ossinsight.io/) -->
 
 <!-- telemetry/analytics pixel: -->
 <img referrerpolicy="no-referrer-when-downgrade" src="https://static.scarf.sh/a.png?x-pxid=bc1c90cd-bc04-4e11-8c7b-289fb2839492" />

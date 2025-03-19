@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
@@ -172,4 +171,13 @@ it('Uses callbacks on click', () => {
     userEvent.click(within(chart4Container).getByLabelText('trash'));
   }
   expect(DEFAULT_PROPS.removeCustomScope).toHaveBeenCalledWith(4);
+});
+
+it('Renders charts scoping list panel with FilterTitle rendered with role="button"', () => {
+  setup();
+  expect(screen.getByText('All charts/global scoping')).toBeVisible();
+  expect(screen.getByText('All charts/global scoping')).toHaveAttribute(
+    'role',
+    'button',
+  );
 });

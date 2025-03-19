@@ -137,6 +137,6 @@ when available.
 **Changelog**
 
 To see the complete changelog in this release, head to
-[CHANGELOG.MD](https://github.com/apache/superset/blob/1.5/CHANGELOG/1.5.0.md).
+[CHANGELOG.MD](https://github.com/apache/superset/blob/master/CHANGELOG/1.5.0.md).
 As mentioned earlier, this release has a MASSIVE amount of bug fixes. The full
 changelog lists all of them!

@@ -14,10 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 # pylint: disable=too-many-lines
-
-import json
 import textwrap
 
 from sqlalchemy import inspect
@@ -26,6 +23,8 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.sql_parse import Table
+from superset.utils import json
 from superset.utils.core import DatasourceType
 
 from ..utils.database import get_example_database
@@ -439,11 +438,11 @@ def load_supported_charts_dashboard() -> None:
     """Loading a dashboard featuring supported charts"""
 
     database = get_example_database()
-    with database.get_sqla_engine_with_context() as engine:
+    with database.get_sqla_engine() as engine:
         schema = inspect(engine).default_schema_name
 
         tbl_name = "birth_names"
-        table_exists = database.has_table_by_name(tbl_name, schema=schema)
+        table_exists = database.has_table(Table(tbl_name, schema))
 
     if table_exists:
         table = get_table_connector_registry()
@@ -1273,4 +1272,3 @@ def load_supported_charts_dashboard() -> None:
     dash.dashboard_title = "Supported Charts Dashboard"
     dash.position_json = json.dumps(pos, indent=2)
     dash.slug = DASH_SLUG
-    db.session.commit()

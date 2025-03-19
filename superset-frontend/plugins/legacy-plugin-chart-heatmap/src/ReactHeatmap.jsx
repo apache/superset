@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
 import { reactify, css, styled } from '@superset-ui/core';
 import { Global } from '@emotion/react';
 import Component from './Heatmap';

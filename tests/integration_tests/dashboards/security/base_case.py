@@ -16,8 +16,7 @@
 # under the License.
 from typing import Optional
 
-import pytest
-from flask import escape, Response
+from flask import Response
 
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.dashboards.base_case import DashboardTestCase
@@ -26,6 +25,7 @@ from tests.integration_tests.dashboards.base_case import DashboardTestCase
 class BaseTestDashboardSecurity(DashboardTestCase):
     def tearDown(self) -> None:
         self.clean_created_objects()
+        super().tearDown()
 
     def assert_dashboard_api_response(
         self, response: Response, dashboard_to_access: Dashboard

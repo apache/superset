@@ -15,15 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 from unittest import mock
-from unittest.mock import patch
 
 import pytest
 
 from superset import security_manager
-from superset.commands.database.ssh_tunnel.create import CreateSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.delete import DeleteSSHTunnelCommand
 from superset.commands.database.ssh_tunnel.exceptions import (
-    SSHTunnelInvalidError,
     SSHTunnelNotFoundError,
 )
 from superset.commands.database.ssh_tunnel.update import UpdateSSHTunnelCommand

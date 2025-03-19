@@ -50,6 +50,7 @@ export interface QueryEditor {
   dbId?: number;
   name: string;
   title?: string; // keep it optional for backward compatibility
+  catalog?: string | null;
   schema?: string;
   autorun: boolean;
   sql: string;
@@ -81,6 +82,7 @@ export type UnsavedQueryEditor = Partial<QueryEditor>;
 export interface Table {
   id: string;
   dbId: number;
+  catalog: string | null;
   schema: string;
   name: string;
   queryEditorId: QueryEditor['id'];
@@ -107,6 +109,8 @@ export type SqlLabRootState = {
     unsavedQueryEditor: UnsavedQueryEditor;
     queryCostEstimates?: Record<string, QueryCostEstimate>;
     editorTabLastUpdatedAt: number;
+    lastUpdatedActiveTab: string;
+    destroyedQueryEditors: Record<string, number>;
   };
   localStorageUsageInKilobytes: number;
   messageToasts: toastState[];

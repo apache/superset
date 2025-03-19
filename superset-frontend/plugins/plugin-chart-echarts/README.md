@@ -19,8 +19,8 @@ under the License.
 
 ## @superset-ui/plugin-chart-echarts
 
-[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-echarts.svg?style=flat-square)](https://www.npmjs.com/package/@superset-ui/plugin-chart-echarts)
-[![David (path)](https://img.shields.io/david/apache-superset/superset-ui.svg?path=packages%2Fsuperset-ui-plugin-chart-echarts&style=flat-square)](https://david-dm.org/apache-superset/superset-ui?path=packages/superset-ui-plugin-chart-echarts)
+[![Version](https://img.shields.io/npm/v/@superset-ui/plugin-chart-echarts.svg?style=flat)](https://www.npmjs.com/package/@superset-ui/plugin-chart-echarts)
+[![Libraries.io](https://img.shields.io/librariesio/release/npm/%40superset-ui%2Fplugin-chart-echarts?style=flat)](https://libraries.io/npm/@superset-ui%2Fplugin-chart-echarts)
 
 This plugin provides Echarts viz plugins for Superset:
 

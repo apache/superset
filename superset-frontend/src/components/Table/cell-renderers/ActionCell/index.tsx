@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { styled } from '@superset-ui/core';
 import { Dropdown, IconOrientation } from 'src/components/Dropdown';
 import { Menu } from 'src/components/Menu';

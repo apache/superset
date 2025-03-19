@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { memo } from 'react';
 import { useTheme } from '@superset-ui/core';
 import Popover from 'src/components/Popover';
 import { ColumnTypeLabel } from '@superset-ui/chart-controls';
@@ -26,7 +26,7 @@ import ColumnConfigPopover, {
 
 export type ColumnConfigItemProps = ColumnConfigPopoverProps;
 
-export default React.memo(function ColumnConfigItem({
+export default memo(function ColumnConfigItem({
   column,
   onChange,
   configFormLayout,

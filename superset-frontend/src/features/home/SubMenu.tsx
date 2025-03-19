@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
+
 import { Link, useHistory } from 'react-router-dom';
 import { styled, SupersetTheme, css, t } from '@superset-ui/core';
 import cx from 'classnames';
@@ -162,10 +163,14 @@ const StyledHeader = styled.div`
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
+  cursor: not-allowed;
 
-  .ant-menu-item-active {
+  &:hover {
     color: ${theme.colors.grayscale.light1};
-    cursor: default;
+  }
+
+  .ant-menu-item-selected {
+    background-color: ${theme.colors.grayscale.light1};
   }
 `;
 
@@ -207,7 +212,7 @@ export interface SubMenuProps {
 
 const { SubMenu } = DropdownMenu;
 
-const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
+const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
 
@@ -297,7 +302,11 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                 {link.childs?.map(item => {
                   if (typeof item === 'object') {
                     return item.disable ? (
-                      <DropdownMenu.Item key={item.label} css={styledDisabled}>
+                      <DropdownMenu.Item
+                        key={item.label}
+                        css={styledDisabled}
+                        disabled
+                      >
                         <Tooltip
                           placement="top"
                           title={t(
@@ -309,7 +318,9 @@ const SubMenuComponent: React.FunctionComponent<SubMenuProps> = props => {
                       </DropdownMenu.Item>
                     ) : (
                       <DropdownMenu.Item key={item.label}>
-                        <a href={item.url}>{item.label}</a>
+                        <a href={item.url} onClick={item.onClick}>
+                          {item.label}
+                        </a>
                       </DropdownMenu.Item>
                     );
                   }

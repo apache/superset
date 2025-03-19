@@ -35,9 +35,13 @@ export function formatSelectOptions<T extends Formattable>(
  *   >> formatSelectOptionsForRange(1, 5)
  *   >> [[1,'1'], [2,'2'], [3,'3'], [4,'4'], [5,'5']]
  */
-export function formatSelectOptionsForRange(start: number, end: number) {
+export function formatSelectOptionsForRange(
+  start: number,
+  end: number,
+  step = 1,
+): Formatted[] {
   const options: Formatted[] = [];
-  for (let i = start; i <= end; i += 1) {
+  for (let i = start; i <= end; i += step) {
     options.push([i, i.toString()]);
   }
   return options;

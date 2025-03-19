@@ -17,7 +17,7 @@
 import logging
 from typing import Any
 
-from flask import request, Response
+from flask import current_app, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import safe
 from flask_appbuilder.security.decorators import permission_name, protect
@@ -27,6 +27,7 @@ from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
+from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import event_logger
 from superset.security.guest_token import GuestTokenResourceType
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
@@ -54,8 +55,10 @@ class ResourceSchema(PermissiveSchema):
     id = fields.String(required=True)
 
     @post_load
-    def convert_enum_to_value(
-        self, data: dict[str, Any], **kwargs: Any  # pylint: disable=unused-argument
+    def convert_enum_to_value(  # pylint: disable=unused-argument
+        self,
+        data: dict[str, Any],
+        **kwargs: Any,
     ) -> dict[str, Any]:
         # we don't care about the enum, we want the value inside
         data["type"] = data["type"].value
@@ -146,8 +149,19 @@ class SecurityRestApi(BaseSupersetApi):
         try:
             body = guest_token_create_schema.load(request.json)
             self.appbuilder.sm.validate_guest_token_resources(body["resources"])
-
-            # todo validate stuff:
+            guest_token_validator_hook = current_app.config.get(
+                "GUEST_TOKEN_VALIDATOR_HOOK"
+            )
+            # Run validator to ensure the token parameters are OK.
+            if guest_token_validator_hook is not None:
+                if callable(guest_token_validator_hook):
+                    if not guest_token_validator_hook(body):
+                        raise ValidationError(message="Guest token validation failed")
+                else:
+                    raise SupersetGenericErrorException(
+                        message="Guest token validator hook not callable"
+                    )
+            # TODO: Add generic validation:
             # make sure username doesn't reference an existing user
             # check rls rules for validity?
             token = self.appbuilder.sm.create_guest_access_token(

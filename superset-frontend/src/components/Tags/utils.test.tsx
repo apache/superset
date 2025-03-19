@@ -21,15 +21,15 @@ import { tagToSelectOption } from 'src/components/Tags/utils';
 describe('tagToSelectOption', () => {
   test('converts a Tag object with table_name to a SelectTagsValue', () => {
     const tag = {
-      id: '1',
+      id: 1,
       name: 'TagName',
       table_name: 'Table1',
     };
 
     const expectedSelectTagsValue = {
-      value: 'TagName',
+      value: 1,
       label: 'TagName',
-      key: '1',
+      key: 1,
     };
 
     expect(tagToSelectOption(tag)).toEqual(expectedSelectTagsValue);
