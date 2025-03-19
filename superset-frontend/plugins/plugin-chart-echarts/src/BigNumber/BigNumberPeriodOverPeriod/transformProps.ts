@@ -89,9 +89,6 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
-    previousPeriodValueEnabled,
-    valueDifferenceEnabled,
-    percentDifferenceEnabled,
     columnConfig
   } = formData;
   const { data: dataA = [] } = queriesData[0];
