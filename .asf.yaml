@@ -17,6 +17,12 @@
 
 # https://cwiki.apache.org/confluence/display/INFRA/.asf.yaml+features+for+git+repositories
 ---
+notifications:
+  commits: commits@superset.apache.org
+  issues: notifications@superset.apache.org
+  pullrequests: notifications@superset.apache.org
+  discussions: notifications@superset.apache.org
+
 github:
   del_branch_on_merge: true
   description: "Apache Superset is a Data Visualization and Data Exploration Platform"
@@ -58,12 +64,6 @@ github:
 
   ghp_branch:  gh-pages
   ghp_path: /
-
-  notifications:
-    commits: commits@superset.apache.org
-    issues: issues@superset.apache.org
-    pull_requests: issues@superset.apache.org
-    discussions: issues@superset.apache.org
 
   protected_branches:
     master:

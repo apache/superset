@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import { CloseOutlined, RightOutlined } from '@ant-design/icons'; // TODO: Use src/components/Icons
+import Icons from 'src/components/Icons';
 // eslint-disable-next-line no-restricted-imports
 import { Button, Tag } from 'antd'; // TODO: Remove antd
 import { FC } from 'react';
@@ -41,7 +40,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
     <Tag className={className}>
       <Button
         className="layer-tree-item-close"
-        icon={<CloseOutlined />}
+        icon={<Icons.CloseOutlined iconSize="m" />}
         onClick={onCloseTag}
         size="small"
       />
@@ -63,7 +62,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
       </span>
       <Button
         className="layer-tree-item-edit"
-        icon={<RightOutlined />}
+        icon={<Icons.RightOutlined />}
         onClick={onEditTag}
         size="small"
       />

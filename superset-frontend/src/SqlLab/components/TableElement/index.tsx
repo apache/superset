@@ -45,6 +45,7 @@ import ModalTrigger from 'src/components/ModalTrigger';
 import Loading from 'src/components/Loading';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { ActionType } from 'src/types/Action';
+import Icons from 'src/components/Icons';
 import ColumnElement, { ColumnKeyTypeType } from '../ColumnElement';
 import ShowSQL from '../ShowSQL';
 
@@ -202,7 +203,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             text={partitionQuery}
             shouldShowText={false}
             tooltipText={tt}
-            copyNode={<i className="fa fa-clipboard" />}
+            copyNode={<Icons.CopyOutlined iconSize="s" />}
           />
         );
       }
@@ -259,9 +260,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           ))}
           triggerNode={
             <IconTooltip
-              className="fa fa-key pull-left m-l-2"
+              className="pull-left m-l-2"
               tooltip={t('View keys & indexes (%s)', tableData.indexes.length)}
-            />
+            >
+              <Icons.KeyOutlined iconSize="s" />
+            </IconTooltip>
           }
         />
       );
@@ -279,10 +282,15 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
         `}
       >
         <IconTooltip
-          className="fa fa-refresh pull-left m-l-2 pointer"
+          className="pull-left m-l-2 pointer"
           onClick={refreshTableMetadata}
           tooltip={t('Refresh table schema')}
-        />
+        >
+          <Icons.SyncOutlined
+            iconSize="m"
+            iconColor={theme.colors.primary.dark2}
+          />
+        </IconTooltip>
         {keyLink}
         <IconTooltip
           className={
@@ -303,7 +311,11 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
                 aria-label="Copy"
                 tooltip={t('Copy SELECT statement to the clipboard')}
               >
-                <i aria-hidden className="fa fa-clipboard pull-left m-l-2" />
+                <Icons.CopyOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark2}
+                  aria-hidden
+                />
               </IconTooltip>
             }
             text={tableData.selectStar}
@@ -318,10 +330,16 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
           />
         )}
         <IconTooltip
-          className="fa fa-times table-remove pull-left m-l-2 pointer"
+          className=" table-remove pull-left m-l-2 pointer"
           onClick={removeTable}
           tooltip={t('Remove table preview')}
-        />
+        >
+          <Icons.CloseOutlined
+            iconSize="m"
+            iconColor={theme.colors.primary.dark2}
+            aria-hidden
+          />
+        </IconTooltip>
       </ButtonGroup>
     );
   };

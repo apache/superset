@@ -18,12 +18,10 @@
  */
 
 import {
-  css,
   logging,
   styled,
   SupersetClient,
   SupersetClientResponse,
-  SupersetTheme,
   getClientErrorObject,
   t,
   lruCache,
@@ -385,11 +383,6 @@ export const CardStyles = styled.div`
     /* Height is calculated based on 300px width, to keep the same aspect ratio as the 800*450 thumbnails */
     height: 168px;
   }
-`;
-
-export const StyledIcon = (theme: SupersetTheme) => css`
-  margin: auto ${theme.gridUnit * 2}px auto 0;
-  color: ${theme.colors.grayscale.base};
 `;
 
 export /* eslint-disable no-underscore-dangle */

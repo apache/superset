@@ -19,7 +19,7 @@
 import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 
 import { Link, useHistory } from 'react-router-dom';
-import { styled, SupersetTheme, css, t } from '@superset-ui/core';
+import { styled, SupersetTheme, css, t, useTheme } from '@superset-ui/core';
 import cx from 'classnames';
 import { Tooltip } from 'src/components/Tooltip';
 import { debounce } from 'lodash';
@@ -154,6 +154,7 @@ const { SubMenu } = MainNav;
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   const [showMenu, setMenu] = useState<MenuMode>('horizontal');
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
+  const theme = useTheme();
 
   let hasHistory = true;
   // If no parent <Router> component exists, useHistory throws an error
@@ -232,9 +233,16 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
           <Menu mode="horizontal" triggerSubMenuAction="click" disabledOverflow>
             {props.dropDownLinks?.map((link, i) => (
               <SubMenu
+                css={css`
+                  [data-icon='caret-down'] {
+                    color: ${theme.colors.grayscale.base};
+                    font-size: ${theme.typography.sizes.xxs}px;
+                    margin-left: ${theme.gridUnit}px;
+                  }
+                `}
                 key={i}
                 title={link.label}
-                icon={<Icons.TriangleDown />}
+                icon={<Icons.CaretDownOutlined />}
                 popupOffset={[10, 20]}
                 className="dropdown-menu-links"
               >
