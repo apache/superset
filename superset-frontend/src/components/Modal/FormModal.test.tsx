@@ -24,7 +24,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import FormModal, { FormModalProps } from 'src/components/FormModal';
+import FormModal, { FormModalProps } from 'src/components/Modal/FormModal';
 import { FormItem } from 'src/components/Form';
 import { Input } from 'src/components/Input';
 
