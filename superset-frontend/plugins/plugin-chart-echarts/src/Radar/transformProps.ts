@@ -252,7 +252,6 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: theme.colors.grayscale.light5,
         },
       },
       data: transformedData,
