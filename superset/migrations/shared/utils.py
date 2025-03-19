@@ -351,7 +351,9 @@ def drop_columns(table_name: str, *columns: str) -> None:
             batch_op.drop_column(col)
 
 
-def create_index(table_name: str, index_name: str, *columns: str) -> None:
+def create_index(
+    table_name: str, index_name: str, columns: list[str], *, unique: bool = False
+) -> None:
     """
     Creates an index on specified columns of an existing database table.
 
@@ -360,7 +362,8 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
 
     :param table_name: The name of the table on which the index will be created.
     :param index_name: The name of the index to be created.
-    :param columns: A list column names where the index will be created
+    :param columns: A list of column names for which the index will be created
+    :param unique: If True, create a unique index.
     """  # noqa: E501
 
     if table_has_index(table=table_name, index=index_name):
@@ -373,7 +376,12 @@ def create_index(table_name: str, index_name: str, *columns: str) -> None:
         f"Creating index {GREEN}{index_name}{RESET} on table {GREEN}{table_name}{RESET}"
     )
 
-    op.create_index(table_name=table_name, index_name=index_name, columns=columns)
+    op.create_index(
+        table_name=table_name,
+        index_name=index_name,
+        unique=unique,
+        columns=columns,
+    )
 
 
 def drop_index(table_name: str, index_name: str) -> None:
