@@ -193,12 +193,16 @@ def has_table(table_name: str) -> bool:
     return table_exists
 
 
-def drop_fks_for_table(table_name: str) -> None:
+def drop_fks_for_table(
+    table_name: str, foreign_key_names: list[str] | None = None
+) -> None:
     """
-    Drop all foreign key constraints for a table if it exist and the database
-    is not sqlite.
+    Drop specific or all foreign key constraints for a table
+    if they exist and the database is not sqlite.
 
-    :param table_name: The table name to drop foreign key constraints for
+    :param table_name: The table name to drop foreign key constraints from
+    :param foreign_key_names: Optional list of specific foreign key names to drop.
+    If None is provided, all will be dropped.
     """
     connection = op.get_bind()
     inspector = Inspector.from_engine(connection)
@@ -207,12 +211,19 @@ def drop_fks_for_table(table_name: str) -> None:
         return  # sqlite doesn't like constraints
 
     if has_table(table_name):
-        foreign_keys = inspector.get_foreign_keys(table_name)
-        for fk in foreign_keys:
+        existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
+
+        # What to delete based on whether the list was passed
+        if foreign_key_names is not None:
+            foreign_key_names = list(set(foreign_key_names) & existing_fks)
+        else:
+            foreign_key_names = list(existing_fks)
+
+        for fk_name in foreign_key_names:
             logger.info(
-                f"Dropping foreign key {GREEN}{fk['name']}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
+                f"Dropping foreign key {GREEN}{fk_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
-            op.drop_constraint(fk["name"], table_name, type_="foreignkey")
+            op.drop_constraint(fk_name, table_name, type_="foreignkey")
 
 
 def create_table(table_name: str, *columns: SchemaItem) -> None:
@@ -398,3 +409,57 @@ def drop_index(table_name: str, index_name: str) -> None:
     )
 
     op.drop_index(table_name=table_name, index_name=index_name)
+
+
+def create_fks_for_table(
+    foreign_key_name: str,
+    table_name: str,
+    referenced_table: str,
+    local_cols: list[str],
+    remote_cols: list[str],
+    ondelete: Optional[str] = None,
+) -> None:
+    """
+    Create a foreign key constraint for a table, ensuring compatibility with sqlite.
+
+    :param foreign_key_name: Foreign key constraint name.
+    :param table_name: The name of the table where the foreign key will be created.
+    :param referenced_table: The table the FK references.
+    :param local_cols: Column names in the current table.
+    :param remote_cols: Column names in the referenced table.
+    :param ondelete: (Optional) The ON DELETE action (e.g., "CASCADE", "SET NULL").
+    """
+    connection = op.get_bind()
+
+    if not has_table(table_name):
+        logger.warning(
+            f"Table {LRED}{table_name}{RESET} does not exist. Skipping foreign key creation."  # noqa: E501
+        )
+        return
+
+    if isinstance(connection.dialect, SQLiteDialect):
+        # SQLite requires batch mode since ALTER TABLE is limited
+        with op.batch_alter_table(table_name) as batch_op:
+            logger.info(
+                f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET} (SQLite mode)..."  # noqa: E501
+            )
+            batch_op.create_foreign_key(
+                foreign_key_name,
+                referenced_table,
+                local_cols,
+                remote_cols,
+                ondelete=ondelete,
+            )
+    else:
+        # Standard FK creation for other databases
+        logger.info(
+            f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET}..."  # noqa: E501
+        )
+        op.create_foreign_key(
+            foreign_key_name,
+            table_name,
+            referenced_table,
+            local_cols,
+            remote_cols,
+            ondelete=ondelete,
+        )
