@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled, css } from '@superset-ui/core';
 import { debounce } from 'lodash';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { Row, Col, Grid } from 'src/components';
@@ -120,13 +120,23 @@ const StyledHeader = styled.header`
 const { SubMenu } = MainNav;
 
 const StyledSubMenu = styled(SubMenu)`
-  &.antd5-menu-submenu-active {
+  ${({ theme }) => css`
+    [data-icon="caret-down"] {
+      color: ${theme.colors.grayscale.base};
+      font-size: ${theme.fontSizeXS}px;
+      margin-left: ${theme.sizeUnit}px;
+    }
+    &.antd5-menu-submenu {
+        padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+        display: flex;
+        align-items: center;
+        height: 100%;  &.antd5-menu-submenu-active {
     .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colorPrimary};
+      color: ${theme.colorPrimary};
     }
   }
+  `}
 `;
-
 const { useBreakpoint } = Grid;
 
 export function Menu({
@@ -212,7 +222,13 @@ export function Menu({
       <StyledSubMenu
         key={index}
         title={label}
-        icon={showMenu === 'inline' ? <></> : <Icons.TriangleDown />}
+        icon={
+          showMenu === 'inline' ? (
+            <></>
+          ) : (
+            <Icons.CaretDownOutlined iconSize="xs" />
+          )
+        }
       >
         {childs?.map((child: MenuObjectChildProps | string, index1: number) => {
           if (typeof child === 'string' && child === '-' && label !== 'Data') {

@@ -19,6 +19,7 @@
 import { useMemo, useState, useCallback, ReactElement } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import {
+  css,
   QueryState,
   styled,
   SupersetClient,
@@ -158,14 +159,23 @@ function QueryList({ addDangerToast }: QueryListProps) {
             label: '',
           };
           if (status === QueryState.Success) {
-            statusConfig.name = <Icons.Check iconColor={theme.colorSuccess} />;
+            statusConfig.name = (
+              <Icons.CheckOutlined
+                iconSize="m"
+                iconColor={theme.colorSuccess}
+                css={css`
+                  vertical-align: -webkit-baseline-middle;
+                `}
+              />
+            );
             statusConfig.label = t('Success');
           } else if (
             status === QueryState.Failed ||
             status === QueryState.Stopped
           ) {
             statusConfig.name = (
-              <Icons.XSmall
+              <Icons.CloseOutlined
+                iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
                     ? theme.colorError
@@ -181,16 +191,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {
             statusConfig.name = (
-              <Icons.Offline iconColor={theme.colors.grayscale.light1} />
+              <Icons.CircleSolid iconColor={theme.colors.grayscale.light1} />
             );
             statusConfig.label = t('Offline');
           } else if (
             status === QueryState.Scheduled ||
             status === QueryState.Pending
           ) {
-            statusConfig.name = (
-              <Icons.Queued iconColor={theme.colors.grayscale.base} />
-            );
+            statusConfig.name = <Icons.Queued />;
             statusConfig.label = t('Scheduled');
           }
           return (
@@ -350,7 +358,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
             <Link to={`/sqllab?queryId=${id}`}>
-              <Icons.Full iconColor={theme.colors.grayscale.base} />
+              <Icons.Full iconSize="l" />
             </Link>
           </Tooltip>
         ),

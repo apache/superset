@@ -21,6 +21,7 @@
 import { PureComponent } from 'react';
 import PropTypes from 'prop-types';
 import {
+  css,
   DatasourceType,
   SupersetClient,
   styled,
@@ -115,7 +116,7 @@ const Styles = styled.div`
   span[aria-label='dataset-physical'] {
     color: ${({ theme }) => theme.colors.grayscale.base};
   }
-  span[aria-label='more-vert'] {
+  span[aria-label='more'] {
     color: ${({ theme }) => theme.colorPrimary};
   }
 `;
@@ -135,7 +136,7 @@ export const datasourceIconLookup = {
   [DatasourceType.Query]: (
     <Icons.ConsoleSqlOutlined className="datasource-svg" />
   ),
-  [DatasourceType.Table]: <Icons.DatasetPhysical className="datasource-svg" />,
+  [DatasourceType.Table]: <Icons.TableOutlined className="datasource-svg" />,
 };
 
 // Render title for datasource with tooltip only if text is longer than VISIBLE_TITLE_LENGTH
@@ -399,7 +400,12 @@ class DatasourceControl extends PureComponent {
           {renderDatasourceTitle(titleText, tooltip)}
           {healthCheckMessage && (
             <Tooltip title={healthCheckMessage}>
-              <Icons.AlertSolid iconColor={theme.colorWarning} />
+              <Icons.WarningOutlined
+                css={css`
+                  margin-left: ${theme.sizeUnit * 2}px;
+                `}
+                iconColor={theme.colorWarning}
+              />
             </Tooltip>
           )}
           {extra?.warning_markdown && (
@@ -414,7 +420,9 @@ class DatasourceControl extends PureComponent {
             trigger={['click']}
             data-test="datasource-menu"
           >
-            <Icons.MoreVert
+            <Icons.MoreOutlined
+              IconSize="xl"
+              iconColor={theme.colors.primary.base}
               className="datasource-modal-trigger"
               data-test="datasource-menu-trigger"
             />

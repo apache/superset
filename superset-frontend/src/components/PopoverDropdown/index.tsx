@@ -110,9 +110,12 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     >
       <div role="button" css={{ display: 'flex', alignItems: 'center' }}>
         {selected && renderButton(selected)}
-        <Icons.CaretDown
-          iconColor={theme.colors.grayscale.base}
-          css={{ marginTop: theme.sizeUnit * 0.5 }}
+        <Icons.DownOutlined
+          iconSize="s"
+          css={{
+            marginTop: theme.sizeUnit * 0.5,
+            marginLeft: theme.sizeUnit * 0.5,
+          }}
         />
       </div>
     </Dropdown>

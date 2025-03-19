@@ -20,6 +20,8 @@ import {
   getExtensionsRegistry,
   styled,
   SupersetClient,
+  useTheme,
+  css,
   t,
 } from '@superset-ui/core';
 import { FunctionComponent, useState, useMemo, useCallback, Key } from 'react';
@@ -82,26 +84,27 @@ const FlexRowContainer = styled.div`
 `;
 
 const Actions = styled.div`
-  color: ${({ theme }) => theme.colors.grayscale.base};
+  ${({ theme }) => css`
+    color: ${theme.colors.grayscale.base};
 
-  .disabled {
-    svg,
-    i {
-      &:hover {
-        path {
-          fill: ${({ theme }) => theme.colorText};
+    .disabled {
+      svg,
+      i {
+        &:hover {
+          path {
+            fill: ${theme.colorText};
+          }
         }
       }
+      color: ${theme.colors.grayscale.light1};
+      .antd5-menu-item:hover {
+        cursor: default;
+      }
+      &::after {
+        color: ${theme.colors.grayscale.light1};
+      }
     }
-    color: ${({ theme }) => theme.colorText};
-    .ant-menu-item:hover {
-      color: ${({ theme }) => theme.colorText};
-      cursor: default;
-    }
-    &::after {
-      color: ${({ theme }) => theme.colorText};
-    }
-  }
+  `}
 `;
 
 type Dataset = {
@@ -141,6 +144,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   user,
 }) => {
   const history = useHistory();
+  const theme = useTheme();
   const {
     state: {
       loading,
@@ -422,7 +426,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDelete}
                   >
-                    <Icons.Trash />
+                    <Icons.DeleteOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -438,7 +442,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleExport}
                   >
-                    <Icons.Share />
+                    <Icons.UploadOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -460,7 +464,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className={allowEdit ? 'action-button' : 'disabled'}
                     onClick={allowEdit ? handleEdit : undefined}
                   >
-                    <Icons.EditAlt />
+                    <Icons.EditOutlined iconSize="l" />
                   </span>
                 </Tooltip>
               )}
@@ -476,7 +480,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     className="action-button"
                     onClick={handleDuplicate}
                   >
-                    <Icons.Copy />
+                    <Icons.CopyOutlined />
                   </span>
                 </Tooltip>
               )}
@@ -625,9 +629,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     buttonArr.push({
       name: (
         <>
-          {/* TODO: Remove fa-icon */}
-          {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-          <i className="fa fa-plus" /> {t('Dataset')}{' '}
+          <Icons.PlusOutlined
+            iconColor={theme.colors.primary.light5}
+            iconSize="m"
+            css={css`
+              vertical-align: text-top;
+            `}
+          />
+          {t('Dataset')}
         </>
       ),
       onClick: () => {
@@ -643,7 +652,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           title={t('Import datasets')}
           placement="bottomRight"
         >
-          <Icons.Import data-test="import-button" />
+          <Icons.DownloadOutlined
+            iconColor={theme.colors.primary.dark1}
+            data-test="import-button"
+          />
         </Tooltip>
       ),
       buttonStyle: 'link',

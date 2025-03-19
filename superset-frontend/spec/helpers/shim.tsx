@@ -111,13 +111,22 @@ jest.mock('src/components/Icons/Icon', () => ({
     />
   ),
   StyledIcon: ({
+    component: Component,
     role,
     'aria-label': ariaLabel,
     ...rest
   }: {
+    component: React.ComponentType<any>;
     role: string;
     'aria-label': AriaAttributes['aria-label'];
-  }) => <span role={role ?? 'img'} aria-label={ariaLabel} {...rest} />,
+  }) => (
+    <Component
+      role={role ?? 'img'}
+      alt={ariaLabel}
+      aria-label={ariaLabel}
+      {...rest}
+    />
+  ),
 }));
 
 process.env.WEBPACK_MODE = 'test';

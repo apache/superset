@@ -29,8 +29,8 @@ import { <%= packageLabel %>Props, <%= packageLabel %>StylesProps } from './type
 
 const Styles = styled.div<<%= packageLabel %>StylesProps>`
   background-color: ${({ theme }) => theme.colors.primary.light2};
-  padding: ${({ theme }) => theme.gridUnit * 4}px;
-  border-radius: ${({ theme }) => theme.gridUnit * 2}px;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+  border-radius: ${({ theme }) => theme.sizeUnit * 2}px;
   height: ${({ height }) => height}px;
   width: ${({ width }) => width}px;
 `;

@@ -132,10 +132,12 @@ export const infoTooltip = (theme: SupersetTheme) => css`
   svg {
     margin-bottom: ${theme.sizeUnit * 0.25}px;
   }
+  display: flex;
 `;
 
 export const toggleStyle = (theme: SupersetTheme) => css`
   padding-left: ${theme.sizeUnit * 2}px;
+  padding-right: ${theme.sizeUnit * 2}px;
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`
