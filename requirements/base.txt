@@ -194,7 +194,7 @@ jsonschema==4.23.0
     # via flask-appbuilder
 jsonschema-specifications==2024.10.1
     # via jsonschema
-kombu==5.4.2
+kombu==5.5.0
     # via celery
 korean-lunar-calendar==0.3.1
     # via holidays
