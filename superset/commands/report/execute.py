@@ -260,12 +260,10 @@ class BaseReportState:
             return [
                 self._get_tab_url(
                     {
-                        "anchor": anchor,
                         "urlParams": [
                             ["native_filters", native_filter_params]  # type: ignore
                         ],
-                        "dataMask": None,
-                        "activeTabs": None,
+                        **dashboard_state,
                     },
                     user_friendly=user_friendly,
                 )
