@@ -22,9 +22,7 @@ Create Date: 2025-03-19 17:46:25.702610
 
 """
 
-from alembic import op
-
-from superset.migrations.shared.utils import drop_fks_for_table_by_names
+from superset.migrations.shared.utils import create_fks_for_table, drop_fks_for_table
 
 # revision identifiers, used by Alembic.
 revision = "32bf93dfe2a4"
@@ -32,15 +30,14 @@ down_revision = "94e7a3499973"
 
 
 def upgrade():
-    drop_fks_for_table_by_names(
+    drop_fks_for_table(
         "ab_permission_view_role",
         [
             "ab_permission_view_role_permission_view_id_fkey",
             "ab_permission_view_role_role_id_fkey",
         ],
     )
-
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_permission_view_role_role_id_fkey",
         "ab_permission_view_role",
         "ab_role",
@@ -48,7 +45,7 @@ def upgrade():
         ["id"],
         ondelete="CASCADE",
     )
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_permission_view_role_permission_view_id_fkey",
         "ab_permission_view_role",
         "ab_permission_view",
@@ -57,12 +54,11 @@ def upgrade():
         ondelete="CASCADE",
     )
 
-    drop_fks_for_table_by_names(
+    drop_fks_for_table(
         "ab_user_role",
         ["ab_user_role_user_id_fkey", "ab_user_role_role_id_fkey"],
     )
-
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_user_role_user_id_fkey",
         "ab_user_role",
         "ab_user",
@@ -70,7 +66,7 @@ def upgrade():
         ["id"],
         ondelete="CASCADE",
     )
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_user_role_role_id_fkey",
         "ab_user_role",
         "ab_role",
@@ -81,22 +77,21 @@ def upgrade():
 
 
 def downgrade():
-    drop_fks_for_table_by_names(
+    drop_fks_for_table(
         "ab_permission_view_role",
         [
             "ab_permission_view_role_permission_view_id_fkey",
             "ab_permission_view_role_role_id_fkey",
         ],
     )
-
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_permission_view_role_permission_view_id_fkey",
         "ab_permission_view_role",
         "ab_permission_view",
         ["permission_view_id"],
         ["id"],
     )
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_permission_view_role_role_id_fkey",
         "ab_permission_view_role",
         "ab_role",
@@ -104,14 +99,13 @@ def downgrade():
         ["id"],
     )
 
-    drop_fks_for_table_by_names(
+    drop_fks_for_table(
         "ab_user_role",
         ["ab_user_role_user_id_fkey", "ab_user_role_role_id_fkey"],
     )
-
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_user_role_user_id_fkey", "ab_user_role", "ab_user", ["user_id"], ["id"]
     )
-    op.create_foreign_key(
+    create_fks_for_table(
         "ab_user_role_role_id_fkey", "ab_user_role", "ab_role", ["role_id"], ["id"]
     )
