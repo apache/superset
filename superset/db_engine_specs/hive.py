@@ -66,7 +66,6 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
     :returns: The S3 location of the table
     """
 
-    # pylint: disable=import-outside-toplevel
     import boto3  # pylint: disable=all
     from boto3.s3.transfer import TransferConfig  # pylint: disable=all
 

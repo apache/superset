@@ -85,8 +85,11 @@ services:
     container_name: superset_app
     command: ["/app/docker/docker-bootstrap.sh", "app"]
     restart: unless-stopped
+    cap_add:
+      - SYS_PTRACE
     ports:
       - 8088:8088
+      - 5678:5678
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user

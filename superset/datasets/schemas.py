@@ -62,6 +62,8 @@ class DatasetColumnsPutSchema(Schema):
         validate=Length(1, 255),
     )
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_ru = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_en = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     description = fields.String(allow_none=True)
     # dodo added 44728914
     description_ru = fields.String(allow_none=True)
@@ -94,6 +96,8 @@ class DatasetMetricsPutSchema(Schema):
     d3format = fields.String(allow_none=True, validate=Length(1, 128))
     currency = fields.String(allow_none=True, required=False, validate=Length(1, 128))
     verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_ru = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    verbose_name_en = fields.String(allow_none=True, metadata={Length: (1, 1024)})
     warning_text = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 

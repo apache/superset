@@ -29,6 +29,10 @@ from superset import is_feature_enabled, security_manager
 from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
+from superset.charts.data.utils import (
+    revert_translate,
+    translate_chart_to_russian,
+)
 from superset.charts.post_processing import apply_post_process
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.create_async_job_command import (
@@ -41,6 +45,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import Language
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import event_logger
@@ -257,9 +262,19 @@ class ChartDataRestApi(ChartRestApi):
             return self._run_async(json_body, command)
 
         form_data = json_body.get("form_data")
-        return self._get_data_response(
-            command, form_data=form_data, datasource=query_context.datasource
-        )
+        language = json_body.get("language")
+        if language == Language.RU:
+            translate_chart_to_russian(query_context)
+            response = self._get_data_response(
+                command, form_data=form_data, datasource=query_context.datasource
+            )
+            revert_translate(query_context)
+        else:
+            response = self._get_data_response(
+                command, form_data=form_data, datasource=query_context.datasource
+            )
+
+        return response
 
     @expose("/data/<cache_key>", methods=("GET",))
     @protect()

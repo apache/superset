@@ -65,7 +65,7 @@ from superset.superset_typing import (
     VizData,
     VizPayload,
 )
-from superset.utils import core as utils, csv, json
+from superset.utils import core as utils, csv, excel, json
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import (
     apply_max_row_limit,
@@ -674,10 +674,19 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         return content
 
     @deprecated(deprecated_in="3.0")
-    def get_csv(self) -> str | None:
-        df = self.get_df_payload()["df"]  # leverage caching logic
-        include_index = not isinstance(df.index, pd.RangeIndex)
-        return csv.df_to_escaped_csv(df, index=include_index, **config["CSV_EXPORT"])
+    def get_csv(self, column_names: dict[str, str] | None = None) -> Optional[str]:
+        df = self.get_df_payload()["df"]
+        if column_names:
+            df.rename(columns=lambda col: column_names.get(col, col), inplace=True)
+
+        return csv.df_to_escaped_csv(df, **config["CSV_EXPORT"])
+
+    def get_xlsx(self, column_names: dict[str, str] | None = None) -> Optional[bytes]:
+        df = self.get_df_payload()["df"]
+        if column_names:
+            df.rename(columns=lambda col: column_names.get(col, col), inplace=True)
+
+        return excel.df_to_excel(df, **config["EXCEL_EXPORT"])
 
     @deprecated(deprecated_in="3.0")
     def get_data(self, df: pd.DataFrame) -> VizData:

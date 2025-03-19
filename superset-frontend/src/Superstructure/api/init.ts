@@ -42,7 +42,7 @@ async function getDashboardsResult(
       'created_on_delta_humanized',
       'changed_on_delta_humanized',
       'dashboard_title',
-      'dashboard_title_RU',
+      'dashboard_title_ru',
       'id',
       'certification_details',
       'certified_by',

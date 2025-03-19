@@ -45,7 +45,7 @@ from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.tag.create import CreateTeamTagCommand
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.constants import Language, MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.daos.team import TeamDAO
 from superset.dashboards.filters import (
@@ -78,6 +78,10 @@ from superset.dashboards.schemas import (
     screenshot_query_schema,
     TabsPayloadSchema,
     thumbnail_query_schema,
+)
+from superset.dashboards.utils import (
+    translate_charts_to_russian,
+    translate_dashboards_to_russian,
 )
 from superset.extensions import event_logger
 from superset.models.dashboard import Dashboard
@@ -197,6 +201,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "created_by.id",
         "created_by.last_name",
         "dashboard_title",
+        "dashboard_title_ru",  # dodo added 44120742
         "owners.id",
         "owners.first_name",
         "owners.last_name",
@@ -408,11 +413,16 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        language = request.args.get("language")  # dodo added 44120742
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
                 self.dashboard_dataset_schema.dump(dataset) for dataset in datasets
             ]
+            # dodo added 44120742
+            if language == Language.RU:
+                translate_dashboards_to_russian(result)
+
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             return self.response_400(
@@ -522,9 +532,15 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
+        language = request.args.get("language")  # dodo added 44120742
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
             result = [self.chart_entity_response_schema.dump(chart) for chart in charts]
+
+            # dodo added 44120742
+            if language == Language.RU:
+                translate_charts_to_russian(result)
+
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()

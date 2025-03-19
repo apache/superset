@@ -23,6 +23,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
+from superset.constants import Language
 from superset.daos.chart import ChartDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.models.slice import Slice
@@ -53,6 +54,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_type: ChartDataResultType | None = None,
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
+        language: Language | None = None,
         custom_cache_timeout: int | None = None,
     ) -> QueryContext:
         datasource_model_instance = None
@@ -65,6 +67,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
 
         result_type = result_type or ChartDataResultType.FULL
         result_format = result_format or ChartDataResultFormat.JSON
+        language = language or Language.EN
         queries_ = [
             self._process_query_object(
                 datasource_model_instance,
@@ -89,6 +92,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_type=result_type,
             result_format=result_format,
             force=force,
+            language=language,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )

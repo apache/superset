@@ -23,9 +23,11 @@ from typing import Any, TYPE_CHECKING
 from flask_babel import gettext as _
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from marshmallow.validate import Length, Range
+from marshmallow_enum import EnumField
 
 from superset import app
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.constants import Language
 from superset.db_engine_specs.base import builtin_time_grains
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
@@ -1358,6 +1360,7 @@ class ChartDataQueryContextSchema(Schema):
         required=False,
         allow_none=True,
     )
+    language = EnumField(Language, by_value=True)
 
     force = fields.Boolean(
         metadata={

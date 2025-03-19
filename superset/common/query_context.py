@@ -27,6 +27,7 @@ from superset.common.query_context_processor import (
     QueryContextProcessor,
 )
 from superset.common.query_object import QueryObject
+from superset.constants import Language
 from superset.models.slice import Slice
 from superset.utils.core import GenericDataType
 
@@ -55,7 +56,7 @@ class QueryContext:
     result_format: ChartDataResultFormat
     force: bool
     custom_cache_timeout: int | None
-
+    language: Language
     cache_values: dict[str, Any]
 
     _processor: QueryContextProcessor
@@ -73,6 +74,7 @@ class QueryContext:
         result_format: ChartDataResultFormat,
         force: bool = False,
         custom_cache_timeout: int | None = None,
+        language: Language,
         cache_values: dict[str, Any],
     ) -> None:
         self.datasource = datasource
@@ -83,6 +85,7 @@ class QueryContext:
         self.form_data = form_data
         self.force = force
         self.custom_cache_timeout = custom_cache_timeout
+        self.language = language
         self.cache_values = cache_values
         self._processor = QueryContextProcessor(self)
 

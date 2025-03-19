@@ -22,3 +22,4 @@ werkzeug>=3.0.1
 numexpr>=2.9.0
 prometheus_client>=0.21.1
 flask-http-middleware>=0.4.4
+marshmallow-enum>=1.5.1

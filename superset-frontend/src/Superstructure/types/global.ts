@@ -112,7 +112,7 @@ export interface Dashboard {
   certification_details: null | string;
   certified_by: null | string;
   dashboard_title: string;
-  dashboard_title_RU?: string;
+  dashboard_title_ru?: string;
   id: number;
 }
 
@@ -120,7 +120,7 @@ export interface DashboardFiltered {
   created_on_delta_humanized: string;
   changed_on_delta_humanized: string;
   dashboard_title: string;
-  dashboard_title_RU?: string;
+  dashboard_title_ru?: string;
   id: number;
   certification_details: string;
   certified_by: string;

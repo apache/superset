@@ -22,7 +22,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import TimeGrain
+from superset.constants import Language, TimeGrain
 
 query_context_processor = QueryContextProcessor(
     QueryContext(
@@ -32,6 +32,7 @@ query_context_processor = QueryContextProcessor(
         form_data={},
         slice_=None,
         result_format=ChartDataResultFormat.CSV,
+        language=Language.EN,
         cache_values={},
     )
 )

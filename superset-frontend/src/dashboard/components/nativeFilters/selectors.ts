@@ -146,13 +146,17 @@ const getRejectedColumns = (chart: any): Set<string> =>
     ),
   );
 
+type IndicatorDodoExtended = {
+  nameRU?: string; // DODO added 44120742
+};
+
 export type Indicator = {
   column?: QueryFormColumn;
   name: string;
   value?: any;
   status?: IndicatorStatus;
   path?: string[];
-};
+} & IndicatorDodoExtended;
 
 export type CrossFilterIndicator = Indicator & { emitterId: number };
 
@@ -176,6 +180,11 @@ export const getCrossFilterIndicator = (
     name:
       dashboardLayoutItem?.meta?.sliceNameOverride ||
       dashboardLayoutItem?.meta?.sliceName ||
+      '',
+    // DODO added 44120742
+    nameRU:
+      dashboardLayoutItem?.meta?.sliceNameOverrideRU ||
+      dashboardLayoutItem?.meta?.sliceNameRU ||
       '',
     path: [
       ...(dashboardLayoutItem?.parents ?? []),

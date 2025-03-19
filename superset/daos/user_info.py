@@ -170,6 +170,7 @@ class UserInfoDAO(BaseDAO[UserInfo]):
                 .one_or_none()
             )
             user_info.language = lang
+            db.session.commit()  # pylint: disable=consider-using-transaction
         except AttributeError:
             UserInfoDAO.create_userinfo(lang)
 

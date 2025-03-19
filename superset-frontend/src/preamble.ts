@@ -24,7 +24,6 @@ if (process.env.WEBPACK_MODE === 'development') {
   setHotLoaderConfig({ logLevel: 'debug', trackTailUpdates: false });
 }
 
-// eslint-disable-next-line import/no-mutable-exports
 // const bootstrapData = getBootstrapData(); // DODO commented out 44611022
 
 // DODO added start 44611022

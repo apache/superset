@@ -174,6 +174,7 @@ export const hydrateDashboard =
       type: DASHBOARD_HEADER_TYPE,
       meta: {
         text: dashboard.dashboard_title,
+        textRU: dashboard.dashboard_title_ru, // DODO added 44120742
       },
     };
 

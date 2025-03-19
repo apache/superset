@@ -243,3 +243,9 @@ class CacheRegion(StrEnum):
     DEFAULT = "default"
     DATA = "data"
     THUMBNAIL = "thumbnail"
+
+
+# dodo added 44120742
+class Language(StrEnum):
+    RU = "ru"
+    EN = "en"

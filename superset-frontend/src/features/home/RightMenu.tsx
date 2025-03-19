@@ -492,16 +492,18 @@ const RightMenu = ({
             icon={<Icons.TriangleDown iconSize="xl" />}
           >
             {settings?.map?.((section, index) => [
-              <Menu.ItemGroup key={`${section.label}`} title={section.label}>
+              // DODO changed 44120742
+              <Menu.ItemGroup key={`${section.label}`} title={t(section.label)}>
                 {section?.childs?.map?.(child => {
                   if (typeof child !== 'string') {
                     const menuItemDisplay = RightMenuItemIconExtension ? (
                       <StyledMenuItemWithIcon>
-                        {child.label}
+                        {/* DODO changed 44120742 */}
+                        {t(child.label)}
                         <RightMenuItemIconExtension menuChild={child} />
                       </StyledMenuItemWithIcon>
                     ) : (
-                      child.label
+                      t(child.label) // DODO changed 44120742
                     );
                     return (
                       <Menu.Item key={`${child.label}`}>

@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 /* eslint-disable camelcase */
 import {
   Dispatch,
@@ -65,7 +48,17 @@ const StyledSelect = styled(Select)`
   }
 `;
 
-export interface ColumnSelectPopoverProps {
+interface ColumnSelectPopoverPropsDodoExtended {
+  // DODO added start 44120742
+  setLabelEN: (title: string) => void;
+  setLabelRU: (title: string) => void;
+  labelEN: string;
+  labelRU: string;
+  // DODO added stop 44120742
+}
+
+export interface ColumnSelectPopoverProps
+  extends ColumnSelectPopoverPropsDodoExtended {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta | AdhocColumn;
   onChange: (column: ColumnMeta | AdhocColumn) => void;
@@ -106,11 +99,18 @@ const ColumnSelectPopover = ({
   setDatasetModal,
   setLabel,
   disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
+  // DODO added start 44120742
+  labelEN,
+  labelRU,
+  setLabelEN,
+  setLabelRU, // DODO added stop 44120742
 }: ColumnSelectPopoverProps) => {
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
   const [initialLabel] = useState(label);
+  const [initialLabelEN] = useState(labelEN); // DODO added 44120742
+  const [initialLabelRU] = useState(labelRU); // DODO added 44120742
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
 
@@ -150,11 +150,17 @@ const ColumnSelectPopover = ({
 
   const onSqlExpressionChange = useCallback(
     sqlExpression => {
-      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+      setAdhocColumn({
+        label,
+        sqlExpression,
+        expressionType: 'SQL',
+        labelEN, // DODO added 44120742
+        labelRU, // DODO added 44120742
+      });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
     },
-    [label],
+    [label, labelEN, labelRU],
   );
 
   const onCalculatedColumnChange = useCallback(
@@ -162,14 +168,35 @@ const ColumnSelectPopover = ({
       const selectedColumn = calculatedColumns.find(
         col => col.column_name === selectedColumnName,
       );
+      // DODO added 44120742
+      const alteredSelectedColumn = selectedColumn
+        ? {
+            ...selectedColumn,
+            verbose_name_en: selectedColumn?.verbose_name,
+          }
+        : undefined;
       setSelectedCalculatedColumn(selectedColumn);
       setSelectedSimpleColumn(undefined);
       setAdhocColumn(undefined);
       setLabel(
-        selectedColumn?.verbose_name || selectedColumn?.column_name || '',
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
       );
+      // DODO added start 44120742
+      setLabelEN(
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      setLabelRU(
+        alteredSelectedColumn?.verbose_name_ru ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      // DODO added stop 44120742
     },
-    [calculatedColumns, setLabel],
+    [calculatedColumns, setLabel, setLabelEN, setLabelRU], // DODO changed 44120742
   );
 
   const onSimpleColumnChange = useCallback(
@@ -177,14 +204,35 @@ const ColumnSelectPopover = ({
       const selectedColumn = simpleColumns.find(
         col => col.column_name === selectedColumnName,
       );
+      // DODO added 44120742
+      const alteredSelectedColumn = selectedColumn
+        ? {
+            ...selectedColumn,
+            verbose_name_en: selectedColumn?.verbose_name,
+          }
+        : undefined;
       setSelectedCalculatedColumn(undefined);
       setSelectedSimpleColumn(selectedColumn);
       setAdhocColumn(undefined);
       setLabel(
-        selectedColumn?.verbose_name || selectedColumn?.column_name || '',
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
       );
+      // DODO added start 44120742
+      setLabelEN(
+        alteredSelectedColumn?.verbose_name ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      setLabelRU(
+        alteredSelectedColumn?.verbose_name_ru ||
+          alteredSelectedColumn?.column_name ||
+          '',
+      );
+      // DODO added stop 44120742
     },
-    [setLabel, simpleColumns],
+    [setLabel, setLabelEN, setLabelRU, simpleColumns], // DODO changed 44120742
   );
 
   const defaultActiveTabKey = initialAdhocColumn
@@ -211,7 +259,13 @@ const ColumnSelectPopover = ({
         selectedSimpleColumn?.column_name ||
         selectedCalculatedColumn?.expression ||
         '';
-      setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
+      setAdhocColumn({
+        label,
+        sqlExpression,
+        expressionType: 'SQL',
+        labelEN, // DODO added 44120742
+        labelRU, // DODO added 44120742
+      });
     }
   }, [
     adhocColumn,
@@ -227,6 +281,11 @@ const ColumnSelectPopover = ({
   const onSave = useCallback(() => {
     if (adhocColumn && adhocColumn.label !== label) {
       adhocColumn.label = label;
+      adhocColumn.labelEN = label; // DODO added 44120742
+    }
+    // DODO added 44120742
+    if (adhocColumn && adhocColumn.labelRU !== labelRU) {
+      adhocColumn.labelRU = labelRU;
     }
     const selectedColumn =
       adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
@@ -238,6 +297,7 @@ const ColumnSelectPopover = ({
   }, [
     adhocColumn,
     label,
+    labelRU, // DODO added 44120742
     onChange,
     onClose,
     selectedCalculatedColumn,
@@ -282,6 +342,8 @@ const ColumnSelectPopover = ({
     adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
   const hasUnsavedChanges =
     initialLabel !== label ||
+    initialLabelRU !== labelRU || // DODO added 44120742
+    initialLabelEN !== labelEN || // DODO added 44120742
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name ||

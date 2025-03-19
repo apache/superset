@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import { PureComponent, ReactNode } from 'react';
 import { Metric, t } from '@superset-ui/core';
 import AdhocMetricEditPopoverTitle from 'src/explore/components/controls/MetricControl/AdhocMetricEditPopoverTitle';
@@ -50,8 +33,14 @@ export type AdhocMetricPopoverTriggerProps = {
 export type AdhocMetricPopoverTriggerState = {
   adhocMetric: AdhocMetric;
   popoverVisible: boolean;
-  title: { label: string; hasCustomLabel: boolean };
+  title: {
+    label: string;
+    labelRU: string; // DODO added 44120742
+    labelEN: string; // DODO added 44120742
+    hasCustomLabel: boolean;
+  };
   currentLabel: string;
+  currentLabelRU: string; // DODO added 44120742
   labelModified: boolean;
   isTitleEditDisabled: boolean;
   showSaveDatasetModal: boolean;
@@ -64,7 +53,9 @@ class AdhocMetricPopoverTrigger extends PureComponent<
   constructor(props: AdhocMetricPopoverTriggerProps) {
     super(props);
     this.onPopoverResize = this.onPopoverResize.bind(this);
-    this.onLabelChange = this.onLabelChange.bind(this);
+    // this.onLabelChange = this.onLabelChange.bind(this);
+    this.onLabelENChange = this.onLabelENChange.bind(this); // DODO added 44120742
+    this.onLabelRUChange = this.onLabelRUChange.bind(this); // DODO added 44120742
     this.closePopover = this.closePopover.bind(this);
     this.togglePopover = this.togglePopover.bind(this);
     this.getCurrentTab = this.getCurrentTab.bind(this);
@@ -77,9 +68,12 @@ class AdhocMetricPopoverTrigger extends PureComponent<
       popoverVisible: false,
       title: {
         label: props.adhocMetric.label,
+        labelEN: props.adhocMetric.labelEN, // DODO added 44120742
+        labelRU: props.adhocMetric.labelRU, // DODO added 44120742
         hasCustomLabel: props.adhocMetric.hasCustomLabel,
       },
       currentLabel: '',
+      currentLabelRU: '', // DODO added 44120742
       labelModified: false,
       isTitleEditDisabled: false,
       showSaveDatasetModal: false,
@@ -95,6 +89,8 @@ class AdhocMetricPopoverTrigger extends PureComponent<
         adhocMetric: nextProps.adhocMetric,
         title: {
           label: nextProps.adhocMetric.label,
+          labelEN: nextProps.adhocMetric.labelEN, // DODO added 44120742
+          labelRU: nextProps.adhocMetric.labelRU, // DODO added 44120742
           hasCustomLabel: nextProps.adhocMetric.hasCustomLabel,
         },
         currentLabel: '',
@@ -106,19 +102,48 @@ class AdhocMetricPopoverTrigger extends PureComponent<
     };
   }
 
-  onLabelChange(e: any) {
+  onLabelENChange(e: any) {
     const { verbose_name, metric_name } = this.props.savedMetric;
     const defaultMetricLabel = this.props.adhocMetric?.getDefaultLabel();
     const label = e.target.value;
+    // DODO added 44120742
+    const finalLabelEN =
+      label ||
+      this.state.currentLabel ||
+      verbose_name ||
+      metric_name ||
+      defaultMetricLabel;
+    const finalLabelRU = this.state.title.labelRU;
+
     this.setState(state => ({
       title: {
-        label:
-          label ||
-          state.currentLabel ||
-          verbose_name ||
-          metric_name ||
-          defaultMetricLabel,
+        label: finalLabelEN, // DODO changed 44120742
+        labelEN: finalLabelEN, // DODO added 44120742
+        labelRU: finalLabelRU, // DODO added 44120742
         hasCustomLabel: !!label,
+      },
+      labelModified: true,
+    }));
+  }
+
+  // DODO added 44120742
+  onLabelRUChange(e: any) {
+    const { verbose_name, metric_name } = this.props.savedMetric;
+    const defaultMetricLabel = this.props.adhocMetric?.getDefaultLabelRU();
+    const label = e.target.value;
+    const finalLabelEN = this.state.title.labelEN;
+    const finalLabelRU =
+      label ||
+      this.state.currentLabelRU ||
+      verbose_name ||
+      metric_name ||
+      defaultMetricLabel;
+    this.setState(() => ({
+      title: {
+        hasCustomLabel: !!label,
+        label: finalLabelEN,
+        labelEN: finalLabelEN,
+        labelRU: finalLabelRU,
       },
       labelModified: true,
     }));
@@ -154,19 +179,25 @@ class AdhocMetricPopoverTrigger extends PureComponent<
   getCurrentLabel({
     savedMetricLabel,
     adhocMetricLabel,
+    adhocMetricLabelRU, // DODO added 44120742
   }: {
     savedMetricLabel: string;
     adhocMetricLabel: string;
+    adhocMetricLabelRU: string; // DODO added 44120742
   }) {
     const currentLabel = savedMetricLabel || adhocMetricLabel;
+    const currentLabelRU = savedMetricLabel || adhocMetricLabelRU; // DODO added 44120742
     this.setState({
       currentLabel,
+      currentLabelRU, // DODO added 44120742
       labelModified: true,
     });
     if (savedMetricLabel || !this.state.title.hasCustomLabel) {
       this.setState({
         title: {
           label: currentLabel,
+          labelEN: currentLabel, // DODO added 44120742
+          labelRU: currentLabelRU, // DODO added 44120742
           hasCustomLabel: false,
         },
       });
@@ -187,14 +218,21 @@ class AdhocMetricPopoverTrigger extends PureComponent<
       isControlledComponent,
     } = this.props;
     const { verbose_name, metric_name } = savedMetric;
-    const { hasCustomLabel, label } = adhocMetric;
+    // const { hasCustomLabel, label } = adhocMetric;
+    const { hasCustomLabel, label, labelRU } = adhocMetric; // DODO changed 44120742
     const adhocMetricLabel = hasCustomLabel
       ? label
       : adhocMetric.getDefaultLabel();
+    // DODO added 44120742
+    const adhocMetricLabelRU = hasCustomLabel
+      ? labelRU
+      : adhocMetric.getDefaultLabelRU();
     const title = this.state.labelModified
       ? this.state.title
       : {
           label: verbose_name || metric_name || adhocMetricLabel,
+          labelEN: verbose_name || metric_name || adhocMetricLabel, // DODO added 44120742
+          labelRU: verbose_name || metric_name || adhocMetricLabelRU, // DODO added 44120742
           hasCustomLabel,
         };
 
@@ -227,7 +265,8 @@ class AdhocMetricPopoverTrigger extends PureComponent<
           isNewMetric={this.props.isNew}
           isLabelModified={
             this.state.labelModified &&
-            adhocMetricLabel !== this.state.title.label
+            (adhocMetricLabel !== this.state.title.label ||
+              adhocMetricLabelRU !== this.state.title.labelRU) // DODO added 44120742
           }
         />
       </ExplorePopoverContent>
@@ -236,7 +275,9 @@ class AdhocMetricPopoverTrigger extends PureComponent<
     const popoverTitle = (
       <AdhocMetricEditPopoverTitle
         title={title}
-        onChange={this.onLabelChange}
+        // onChange={this.onLabelChange}
+        onChangeEN={this.onLabelENChange} // DODO added 44120742
+        onChangeRU={this.onLabelRUChange} // DODO added 44120742
         isEditDisabled={this.state.isTitleEditDisabled}
       />
     );

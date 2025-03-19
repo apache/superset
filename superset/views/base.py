@@ -32,7 +32,6 @@ from flask import (
     get_flashed_messages,
     redirect,
     Response,
-    session,
 )
 from flask_appbuilder import BaseView, expose, Model, ModelView
 from flask_appbuilder.actions import action
@@ -46,7 +45,7 @@ from flask_appbuilder.security.decorators import (
 )
 from flask_appbuilder.security.sqla.models import User
 from flask_appbuilder.widgets import ListWidget
-from flask_babel import get_locale, gettext as __
+from flask_babel import gettext as __
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_wtf.form import FlaskForm
 from sqlalchemy.orm import Query
@@ -64,7 +63,6 @@ from superset import (
 from superset.connectors.sqla import models
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
-from superset.extensions import cache_manager
 from superset.models.helpers import ImportExportMixin
 from superset.reports.models import ReportRecipientType
 from superset.superset_typing import FlaskResponse
@@ -73,7 +71,7 @@ from superset.utils import core as utils, json
 from superset.utils.filters import get_dataset_access_filters
 from superset.views.error_handling import json_error_response
 
-from .utils import bootstrap_user_data
+from .utils import bootstrap_user_data, get_language
 
 FRONTEND_CONF_KEYS = (
     "SUPERSET_WEBSERVER_TIMEOUT",
@@ -292,12 +290,13 @@ def menu_data(user: User) -> dict[str, Any]:
             ),
             "user_logout_url": appbuilder.get_url_for_logout,
             "user_login_url": appbuilder.get_url_for_login,
-            "locale": session.get("locale", "en"),
+            "locale": get_language(),  # DODO changed #33835937
         },
     }
 
 
-@cache_manager.cache.memoize(timeout=60)
+# DODO changed #33835937
+# @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: Locale | None
 ) -> dict[str, Any]:
@@ -328,7 +327,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     available_specs = get_available_engine_specs()
     frontend_config["HAS_GSHEETS_INSTALLED"] = bool(available_specs[GSheetsEngineSpec])
 
-    language = locale.language if locale else "en"
+    language = get_language()  # DODO changed #33835937
 
     bootstrap_data = {
         "conf": frontend_config,
@@ -347,9 +346,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     return bootstrap_data
 
 
-def common_bootstrap_payload() -> dict[str, Any]:
+def common_bootstrap_payload() -> dict[str, Any]:  # DODO changed #33835937
     return {
-        **cached_common_bootstrap_data(utils.get_user_id(), get_locale()),
+        **cached_common_bootstrap_data(utils.get_user_id(), None),
         "flash_messages": get_flashed_messages(with_categories=True),
     }
 

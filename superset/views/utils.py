@@ -45,9 +45,10 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import Query
+from superset.models.user_info import UserInfo
 from superset.superset_typing import FormData
 from superset.utils import json
-from superset.utils.core import DatasourceType
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.decorators import stats_timing
 from superset.viz import BaseViz
 
@@ -57,6 +58,35 @@ stats_logger = app.config["STATS_LOGGER"]
 REJECTED_FORM_DATA_KEYS: list[str] = []
 if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
     REJECTED_FORM_DATA_KEYS = ["js_tooltip", "js_onclick_href", "js_data_mutator"]
+
+
+def get_language() -> str:  # DODO changed #33835937
+    user_id = get_user_id()
+    if not user_id:
+        logger.info("User ID is not available. Defaulting to 'ru'.")
+        return "ru"
+
+    try:
+        user_info = (
+            db.session.query(UserInfo).filter(UserInfo.user_id == user_id).one_or_none()
+        )
+
+        if not user_info:
+            logger.info(
+                "User ID = %s does not have a language set in the database. Defaulting to 'ru'.",
+                user_id,
+            )
+            return "ru"
+
+        return user_info.language
+
+    except Exception as ex:  # pylint: disable=broad-exception-caught
+        logger.exception(
+            "An unexpected error occurred while retrieving language for user ID = %s: %s",
+            user_id,
+            ex,
+        )
+        return "ru"
 
 
 def sanitize_datasource_data(datasource_data: dict[str, Any]) -> dict[str, Any]:
