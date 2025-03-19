@@ -83,7 +83,7 @@ const PopoverMenuStyles = styled.div`
       )};
     font-size: ${theme.typography.sizes.m}px;
     cursor: default;
-    z-index: 100000;
+    z-index: 3000;
 
     &,
     .menu-item {
@@ -156,18 +156,15 @@ export default class WithPopoverMenu extends PureComponent<
     if (!this.props.editMode) {
       return;
     }
+    const {
+      onChangeFocus,
+      shouldFocus: shouldFocusFunc,
+      disableClick,
+    } = this.props;
 
-    // Allow the event to propagate to the Markdown component
-    const { shouldFocus } = this.props;
-    const shouldFocusComponent = shouldFocus(event, this.container);
+    const shouldFocus = shouldFocusFunc(event, this.container);
 
-    if (shouldFocusComponent) {
-      event.stopPropagation();
-    }
-
-    const { onChangeFocus, disableClick } = this.props;
-
-    if (!disableClick && shouldFocusComponent && !this.state.isFocused) {
+    if (!disableClick && shouldFocus && !this.state.isFocused) {
       // if not focused, set focus and add a window event listener to capture outside clicks
       // this enables us to not set a click listener for ever item on a dashboard
       document.addEventListener('click', this.handleClick);
@@ -176,7 +173,7 @@ export default class WithPopoverMenu extends PureComponent<
       if (onChangeFocus) {
         onChangeFocus(true);
       }
-    } else if (!shouldFocusComponent && this.state.isFocused) {
+    } else if (!shouldFocus && this.state.isFocused) {
       document.removeEventListener('click', this.handleClick);
       document.removeEventListener('drag', this.handleClick);
       this.setState(() => ({ isFocused: false }));

@@ -226,7 +226,6 @@ class Markdown extends PureComponent {
       ...this.state,
       editorMode: mode,
     };
-
     if (mode === 'preview') {
       this.updateMarkdownContent();
       nextState.hasError = false;
@@ -278,10 +277,7 @@ class Markdown extends PureComponent {
         width="100%"
         height="100%"
         showGutter={false}
-        editorProps={{
-          $blockScrolling: true,
-          role: 'textbox',
-        }}
+        editorProps={{ $blockScrolling: true }}
         value={
           // this allows "select all => delete" to give an empty editor
           typeof this.state.markdownSource === 'string'
@@ -299,15 +295,17 @@ class Markdown extends PureComponent {
     const { hasError } = this.state;
 
     return (
-      <SafeMarkdown
-        source={
-          hasError
-            ? MARKDOWN_ERROR_MESSAGE
-            : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
-        }
-        htmlSanitization={this.props.htmlSanitization}
-        htmlSchemaOverrides={this.props.htmlSchemaOverrides}
-      />
+      <div style={{ pointerEvents: 'none' }}>
+        <SafeMarkdown
+          source={
+            hasError
+              ? MARKDOWN_ERROR_MESSAGE
+              : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
+          }
+          htmlSanitization={this.props.htmlSanitization}
+          htmlSchemaOverrides={this.props.htmlSchemaOverrides}
+        />
+      </div>
     );
   }
 
@@ -386,11 +384,6 @@ class Markdown extends PureComponent {
                   ref={dragSourceRef}
                   className="dashboard-component dashboard-component-chart-holder"
                   data-test="dashboard-component-chart-holder"
-                  onClick={() => {
-                    if (editMode) {
-                      this.handleChangeFocus(true);
-                    }
-                  }}
                 >
                   {editMode && (
                     <HoverMenu position="top">
