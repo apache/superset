@@ -221,6 +221,10 @@ s3transfer==0.10.1
     # via boto3
 sqlalchemy-bigquery==1.11.0
     # via apache-superset
+sqlglot==26.11.1
+    # via
+    #   -c requirements/base.txt
+    #   apache-superset
 sqloxide==0.1.43
     # via apache-superset
 statsd==4.0.1
