@@ -786,6 +786,8 @@ def test_get_label_map(app_context, virtual_dataset_comma_in_column_value):
         "count, col2, row1": ["count", "col2, row1"],
         "count, col2, row2": ["count", "col2, row2"],
         "count, col2, row3": ["count", "col2, row3"],
+        "col2": ["col2"],
+        "count": ["count"],
     }
 
 
