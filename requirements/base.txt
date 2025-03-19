@@ -215,7 +215,7 @@ marshmallow==3.26.1
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==0.30.0
+marshmallow-sqlalchemy==1.0.0
     # via flask-appbuilder
 mdurl==0.1.2
     # via markdown-it-py
@@ -250,7 +250,6 @@ packaging==24.2
     #   gunicorn
     #   limits
     #   marshmallow
-    #   marshmallow-sqlalchemy
     #   shillelagh
 pandas==2.0.3
     # via apache-superset (pyproject.toml)
