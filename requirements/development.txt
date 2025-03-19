@@ -434,7 +434,7 @@ marshmallow==3.26.1
     #   -c requirements/base.txt
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==1.4.1
+marshmallow-sqlalchemy==1.4.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
