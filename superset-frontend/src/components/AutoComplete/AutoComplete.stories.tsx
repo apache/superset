@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState } from 'react';
-import { Meta, StoryFn } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import AutoComplete, {
   AntAutoCompleteProps,
 } from 'src/components/AutoComplete';
@@ -143,7 +143,7 @@ export default {
       },
     },
   },
-} as Meta;
+} as Meta<typeof AutoComplete>;
 
 const getRandomInt = (max: number, min = 0) =>
   Math.floor(Math.random() * (max - min + 1)) + min;
@@ -180,27 +180,29 @@ const AutoCompleteWithOptions = (args: AntAutoCompleteProps) => {
 
   return <AutoComplete {...args} options={options} onSearch={handleSearch} />;
 };
+type Story = StoryObj<typeof AutoComplete>;
 
-export const AutoCompleteStory: StoryFn<AntAutoCompleteProps> = args => (
-  <div style={{ margin: '20px' }}>
-    <AutoCompleteWithOptions {...args} />
-  </div>
-);
-
-AutoCompleteStory.args = {
-  style: { width: 300 },
-  placeholder: 'Type to search...',
-  disabled: false,
-  allowClear: false,
-  autoFocus: false,
-  backfill: false,
-  defaultActiveFirstOption: true,
-  defaultOpen: false,
-  defaultValue: '',
-  filterOption: true,
-  notFoundContent: 'No results found',
-  open: false,
-  size: 'middle',
-  variant: 'outlined',
-  virtual: true,
+export const AutoCompleteStory: Story = {
+  args: {
+    style: { width: 300 },
+    placeholder: 'Type to search...',
+    disabled: false,
+    allowClear: true,
+    autoFocus: false,
+    backfill: false,
+    defaultActiveFirstOption: true,
+    defaultOpen: false,
+    defaultValue: '',
+    filterOption: true,
+    notFoundContent: 'No results found',
+    open: false,
+    size: 'middle',
+    variant: 'outlined',
+    virtual: true,
+  },
+  render: (args: AntAutoCompleteProps) => (
+    <div style={{ margin: '20px' }}>
+      <AutoCompleteWithOptions {...args} />
+    </div>
+  ),
 };

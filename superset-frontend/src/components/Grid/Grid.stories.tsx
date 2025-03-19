@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Meta } from '@storybook/react';
+import { Meta, StoryObj } from '@storybook/react';
 import Slider from 'src/components/Slider/index';
 import { useState } from 'react';
 import { Row, Col } from './index';
@@ -31,7 +31,6 @@ export default {
       control: 'select',
       options: ['top', 'middle', 'bottom', 'stretch'],
       description: 'Vertical alignment',
-      defaultValue: 'top',
     },
     justify: {
       control: 'select',
@@ -44,17 +43,14 @@ export default {
         'space-evenly',
       ],
       description: 'Horizontal arrangement',
-      defaultValue: 'start',
     },
     gutter: {
       control: 'object',
       description: 'Spacing between grids',
-      defaultValue: 0,
     },
     wrap: {
       control: 'boolean',
       description: 'Auto wrap line',
-      defaultValue: true,
     },
     // Col properties
     flex: {
@@ -64,22 +60,18 @@ export default {
     offset: {
       control: 'number',
       description: 'The number of cells to offset Col from the left',
-      defaultValue: 0,
     },
     order: {
       control: 'number',
       description: 'Raster order',
-      defaultValue: 0,
     },
     pull: {
       control: 'number',
       description: 'The number of cells that raster is moved to the left',
-      defaultValue: 0,
     },
     push: {
       control: 'number',
       description: 'The number of cells that raster is moved to the right',
-      defaultValue: 0,
     },
     span: {
       control: 'number',
@@ -118,50 +110,60 @@ export default {
       },
     },
   },
-} as Meta;
+} as Meta<typeof Row>;
 
-export const GridStory = () => {
-  const [gutter, setGutter] = useState(24);
-  const [vgutter, setVgutter] = useState(24);
-  const [colCount, setColCount] = useState(4);
+type Story = StoryObj<typeof Row>;
 
-  const cols = Array.from({ length: colCount }, (_, i) => (
-    <Col
-      key={i}
-      span={24 / colCount}
-      style={{ background: '#ddd', padding: '8px', textAlign: 'center' }}
-    >
-      Column {i + 1}
-    </Col>
-  ));
+export const GridStory: Story = {
+  render: () => {
+    const [gutter, setGutter] = useState(24);
+    const [vgutter, setVgutter] = useState(24);
+    const [colCount, setColCount] = useState(4);
 
-  return (
-    <div style={{ padding: '20px' }}>
-      <div style={{ marginBottom: '16px' }}>
-        <span>Horizontal Gutter: </span>
-        <Slider min={8} max={48} step={8} value={gutter} onChange={setGutter} />
+    const cols = Array.from({ length: colCount }, (_, i) => (
+      <Col
+        key={i}
+        span={24 / colCount}
+        style={{ background: '#ddd', padding: '8px', textAlign: 'center' }}
+      >
+        Column {i + 1}
+      </Col>
+    ));
+
+    return (
+      <div style={{ padding: '20px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <span>Horizontal Gutter: </span>
+          <Slider
+            min={8}
+            max={48}
+            step={8}
+            value={gutter}
+            onChange={setGutter}
+          />
+        </div>
+        <div style={{ marginBottom: '16px' }}>
+          <span>Vertical Gutter: </span>
+          <Slider
+            min={8}
+            max={48}
+            step={8}
+            value={vgutter}
+            onChange={setVgutter}
+          />
+        </div>
+        <div style={{ marginBottom: '16px' }}>
+          <span>Column Count: </span>
+          <Slider
+            min={2}
+            max={12}
+            step={1}
+            value={colCount}
+            onChange={setColCount}
+          />
+        </div>
+        <Row gutter={[gutter, vgutter]}>{cols}</Row>
       </div>
-      <div style={{ marginBottom: '16px' }}>
-        <span>Vertical Gutter: </span>
-        <Slider
-          min={8}
-          max={48}
-          step={8}
-          value={vgutter}
-          onChange={setVgutter}
-        />
-      </div>
-      <div style={{ marginBottom: '16px' }}>
-        <span>Column Count: </span>
-        <Slider
-          min={2}
-          max={12}
-          step={1}
-          value={colCount}
-          onChange={setColCount}
-        />
-      </div>
-      <Row gutter={[gutter, vgutter]}>{cols}</Row>
-    </div>
-  );
+    );
+  },
 };

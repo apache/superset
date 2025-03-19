@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import Tree from './index';
 
 const treeData = [
@@ -39,7 +40,7 @@ describe('Tree Component', () => {
   });
 
   test('expands and collapses nodes on click', () => {
-    render(<Tree treeData={treeData} defaultExpandAll={false} />);
+    render(<Tree treeData={treeData} defaultExpandAll />);
 
     const parentNode = screen.getByText('Parent 1');
     expect(screen.queryByText('Child 1')).not.toBeInTheDocument();
