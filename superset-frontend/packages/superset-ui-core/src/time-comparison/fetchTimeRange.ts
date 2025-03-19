@@ -6,9 +6,6 @@ import {
   SupersetClient,
   getClientErrorObject,
   ensureIsArray,
-  dttmToMoment, // DODO added 44211759
-  MOMENT_FORMAT_UI_DODO, // DODO added 44211759
-  TimeRangeEndType, // DODO added 44211759
 } from '@superset-ui/core';
 
 const isStandalone = process.env.type === undefined; // DODO added 44611022
@@ -23,21 +20,14 @@ const formatDateEndpoint = (dttm: string, isStart?: boolean): string =>
 
 export const formatTimeRange = (
   timeRange: string,
-  timeRangeEndType: TimeRangeEndType, // DODO added 44211759
   columnPlaceholder = 'col',
 ) => {
   const splitDateRange = timeRange.split(SEPARATOR);
   if (splitDateRange.length === 1) return timeRange;
-  // DODO added 44211759
-  const endInclusion =
-    timeRangeEndType === TimeRangeEndType.Included ? '≤' : '<';
   return `${formatDateEndpoint(
     splitDateRange[0],
     true,
-    // DODO changed 44211759
-  )} ≤ ${columnPlaceholder} ${endInclusion} ${formatDateEndpoint(
-    splitDateRange[1],
-  )}`;
+  )} ≤ ${columnPlaceholder} < ${formatDateEndpoint(splitDateRange[1])}`;
 };
 
 export const formatTimeRangeComparison = (
@@ -58,7 +48,6 @@ export const formatTimeRangeComparison = (
 
 export const fetchTimeRange = async (
   timeRange: string,
-  timeRangeEndType: TimeRangeEndType, // DODO added 44211759
   columnPlaceholder = 'col',
   shifts?: string[],
 ) => {
@@ -84,31 +73,16 @@ export const fetchTimeRange = async (
           url: endpoint,
         });
     if (isEmpty(shifts)) {
-      // DODO added start 44211759
-      const since = dttmToMoment(
-        (isStandalone ? response?.json : response)?.result?.[0].since || '',
-      ).format(MOMENT_FORMAT_UI_DODO);
-      const until = dttmToMoment(
-        (isStandalone ? response?.json : response)?.result?.[0].until || '',
-      ).format(MOMENT_FORMAT_UI_DODO);
-      // DODO added stop 44211759
-      // const timeRangeString = buildTimeRangeString(
-      //   response?.json?.result[0]?.since || '',
-      //   response?.json?.result[0]?.until || '',
-      // );
-      // DODO changed 44211759
-      const timeRangeString = buildTimeRangeString(since, until);
+      const timeRangeString = buildTimeRangeString(
+        (isStandalone ? response?.json : response)?.result?.since || '', // DODO changed 44611022
+        (isStandalone ? response?.json : response)?.result?.until || '', // DODO changed 44611022
+      );
       return {
-        value: formatTimeRange(
-          timeRangeString,
-          timeRangeEndType, // DODO added 44211759
-          columnPlaceholder,
-        ),
+        value: formatTimeRange(timeRangeString, columnPlaceholder),
       };
     }
-    // DODO changed 44611022
-    const timeRanges = (isStandalone ? response?.json : response)?.result.map(
-      (result: any) => buildTimeRangeString(result.since, result.until),
+    const timeRanges = response?.json?.result.map((result: any) =>
+      buildTimeRangeString(result.since, result.until),
     );
     return {
       value: timeRanges

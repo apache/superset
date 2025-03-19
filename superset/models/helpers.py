@@ -1290,7 +1290,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         end_dttm: Optional[sa.DateTime],
         time_grain: Optional[str] = None,
         label: Optional[str] = "__time",
-        time_range_end_type: Optional[str] = None,
         template_processor: Optional[BaseTemplateProcessor] = None,
     ) -> ColumnElement:
         col = (
@@ -1314,20 +1313,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             )
         if end_dttm:
-            if time_range_end_type == "included":
-                l.append(
-                    col
-                    <= self.db_engine_spec.get_text_clause(
-                        self.dttm_sql_literal(end_dttm, time_col)
-                    )
+            l.append(
+                col
+                < self.db_engine_spec.get_text_clause(
+                    self.dttm_sql_literal(end_dttm, time_col)
                 )
-            else:
-                l.append(
-                    col
-                    < self.db_engine_spec.get_text_clause(
-                        self.dttm_sql_literal(end_dttm, time_col)
-                    )
-                )
+            )
         return and_(*l)
 
     def values_for_column(  # pylint: disable=too-many-locals
@@ -1457,7 +1448,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         timeseries_limit: Optional[int] = None,
         timeseries_limit_metric: Optional[Metric] = None,
         time_shift: Optional[str] = None,
-        time_range_end_type: Optional[str] = None,
     ) -> SqlaQuery:
         """Querying any sqla table from this common interface"""
         if granularity not in self.dttm_cols and granularity is not None:
@@ -1710,7 +1700,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         start_dttm=from_dttm,
                         end_dttm=to_dttm,
                         template_processor=template_processor,
-                        time_range_end_type=time_range_end_type,
                     )
                 )
 
@@ -1719,7 +1708,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 start_dttm=from_dttm,
                 end_dttm=to_dttm,
                 template_processor=template_processor,
-                time_range_end_type=time_range_end_type,
             )
             time_filters.append(time_filter_column)
 
@@ -1920,7 +1908,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 time_grain=flt_grain,
                                 label=sqla_col.key,
                                 template_processor=template_processor,
-                                time_range_end_type=time_range_end_type,
                             )
                         )
                     else:
@@ -2028,7 +2015,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             start_dttm=inner_from_dttm or from_dttm,
                             end_dttm=inner_to_dttm or to_dttm,
                             template_processor=template_processor,
-                            time_range_end_type=time_range_end_type,
                         )
                     ]
                 subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
