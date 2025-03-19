@@ -35,11 +35,20 @@ export default function transformProps(chartProps) {
     subdomainGranularity,
     xAxisTimeFormat,
     yAxisFormat,
+    colorRangeEnd,
+    colorRangeStart,
   } = formData;
 
   const { verboseMap } = datasource;
   const timeFormatter = ts => getFormattedUTCTime(ts, xAxisTimeFormat);
   const valueFormatter = getNumberFormatter(yAxisFormat);
+
+  // Get the color range if both are specified
+  const useCustomColorRange =
+    colorRangeEnd !== undefined &&
+    colorRangeEnd !== '' &&
+    colorRangeStart !== undefined &&
+    colorRangeStart !== '';
 
   return {
     height,
@@ -57,5 +66,8 @@ export default function transformProps(chartProps) {
     timeFormatter,
     valueFormatter,
     verboseMap,
+    colorRangeEnd,
+    colorRangeStart,
+    useCustomColorRange,
   };
 }
