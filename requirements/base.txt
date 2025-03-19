@@ -158,7 +158,6 @@ greenlet==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
-    #   sqlalchemy
 gunicorn==23.0.0
     # via apache-superset (pyproject.toml)
 h11==0.14.0
@@ -216,7 +215,7 @@ marshmallow==3.26.1
     # via
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==1.4.1
+marshmallow-sqlalchemy==0.30.0
     # via flask-appbuilder
 mdurl==0.1.2
     # via markdown-it-py
@@ -251,6 +250,7 @@ packaging==24.2
     #   gunicorn
     #   limits
     #   marshmallow
+    #   marshmallow-sqlalchemy
     #   shillelagh
 pandas==2.0.3
     # via apache-superset (pyproject.toml)

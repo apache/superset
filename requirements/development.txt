@@ -318,7 +318,6 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
-    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -435,7 +434,7 @@ marshmallow==3.26.1
     #   -c requirements/base.txt
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==1.4.1
+marshmallow-sqlalchemy==0.30.0
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -508,6 +507,7 @@ packaging==24.2
     #   gunicorn
     #   limits
     #   marshmallow
+    #   marshmallow-sqlalchemy
     #   matplotlib
     #   pytest
     #   shillelagh
