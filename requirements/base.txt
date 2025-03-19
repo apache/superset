@@ -216,7 +216,9 @@ marshmallow==3.26.1
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
 marshmallow-sqlalchemy==1.3.0
-    # via flask-appbuilder
+    # via
+    #   -r requirements/base.in
+    #   flask-appbuilder
 mdurl==0.1.2
     # via markdown-it-py
 msgpack==1.0.8
