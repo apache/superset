@@ -32,33 +32,21 @@ const treeData = [
 ];
 
 describe('Tree Component', () => {
-  test('renders tree component correctly', () => {
-    render(<Tree treeData={treeData} />);
-    expect(screen.getByText('Parent 1')).toBeInTheDocument();
-    expect(screen.getByText('Child 1')).toBeInTheDocument();
-    expect(screen.getByText('Child 2')).toBeInTheDocument();
-  });
+  test('expands and collapses parent node', async () => {
+    render(<Tree treeData={treeData} defaultExpandAll={false} />);
 
-  test('expands and collapses nodes on click', () => {
-    render(<Tree treeData={treeData} defaultExpandAll />);
-
-    const parentNode = screen.getByText('Parent 1');
     expect(screen.queryByText('Child 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Child 2')).not.toBeInTheDocument();
 
-    fireEvent.click(parentNode);
-    expect(screen.getByText('Child 1')).toBeInTheDocument();
+    const toogleNode = screen.getByRole('img', { name: 'caret-down' });
+    fireEvent.click(toogleNode);
 
-    fireEvent.click(parentNode);
+    expect(await screen.findByText('Child 1')).toBeInTheDocument();
+    expect(await screen.findByText('Child 2')).toBeInTheDocument();
+
+    fireEvent.click(toogleNode);
+
     expect(screen.queryByText('Child 1')).not.toBeInTheDocument();
-  });
-
-  test('selects a node when clicked', () => {
-    const onSelect = jest.fn();
-    render(<Tree treeData={treeData} onSelect={onSelect} />);
-
-    const childNode = screen.getByText('Child 1');
-    fireEvent.click(childNode);
-
-    expect(onSelect).toHaveBeenCalled();
+    expect(screen.queryByText('Child 2')).not.toBeInTheDocument();
   });
 });

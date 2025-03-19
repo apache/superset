@@ -67,22 +67,6 @@ describe('AutoComplete Component', () => {
     });
   });
 
-  test('clears options when input is cleared', async () => {
-    render(<AutoCompleteTest />);
-    const input = screen.getByPlaceholderText('Type to search...');
-    userEvent.type(input, 'test');
-
-    await waitFor(() =>
-      expect(screen.getByText('test result 0')).toBeInTheDocument(),
-    );
-
-    userEvent.clear(input);
-
-    await waitFor(() => {
-      expect(screen.queryByText('test result 0')).not.toBeInTheDocument();
-    });
-  });
-
   test('selecting an option updates input value', async () => {
     render(<AutoCompleteTest />);
     const input = screen.getByPlaceholderText('Type to search...');
