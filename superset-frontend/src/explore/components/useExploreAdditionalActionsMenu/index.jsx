@@ -47,7 +47,7 @@ import {
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import DashboardsSubMenu from './DashboardsSubMenu';
-import ExportSliceToGoogleSheet from "../../../dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet";
+import ExportSliceToGoogleSheet from '../../../dashboard/components/SliceHeaderControls/ExportSliceToGoogleSheet';
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',

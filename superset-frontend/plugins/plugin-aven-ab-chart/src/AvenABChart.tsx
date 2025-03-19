@@ -25,7 +25,7 @@
  *  * FormData (your controls!) provided as props by transformProps.ts
  */
 
-import React, { createRef, useMemo } from 'react';
+import { createRef, useMemo } from 'react';
 import { formatNumber, styled, t } from '@superset-ui/core';
 import cdf from '@stdlib/stats-base-dists-normal-cdf';
 import { AvenABChartProps, AvenABChartStylesProps } from './types';
@@ -239,9 +239,7 @@ function getIntervalBar(
   const den = end - start;
   return (
     <div style={{ display: 'inline-flex', fontFamily: 'monospace' }}>
-      <span>
-        {(100 * colorStart).toFixed(1).padStart(4, '0')} &ensp;
-      </span>
+      <span>{(100 * colorStart).toFixed(1).padStart(4, '0')} &ensp;</span>
       <div
         style={{
           width: '100px',

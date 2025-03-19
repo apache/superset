@@ -53,7 +53,7 @@ const DownloadMenuItems = (props: DownloadMenuItemProps) => {
         dashboardId={dashboardId}
         logEvent={logEvent}
         {...rest}
-        />
+      />
       {isWebDriverScreenshotEnabled ? (
         <>
           <DownloadScreenshot
