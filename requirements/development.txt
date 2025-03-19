@@ -22,7 +22,7 @@ async-timeout==4.0.3
     # via
     #   -c requirements/base.txt
     #   redis
-attrs==25.2.0
+attrs==25.3.0
     # via
     #   -c requirements/base.txt
     #   cattrs
@@ -224,7 +224,7 @@ flask-jwt-extended==4.7.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
-flask-limiter==3.11.0
+flask-limiter==3.12
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -318,6 +318,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -359,10 +360,7 @@ importlib-metadata==8.6.1
     #   -c requirements/base.txt
     #   apache-superset
 importlib-resources==6.5.2
-    # via
-    #   -c requirements/base.txt
-    #   limits
-    #   prophet
+    # via prophet
 iniconfig==2.0.0
     # via pytest
 isodate==0.7.2
@@ -408,7 +406,7 @@ korean-lunar-calendar==0.3.1
     #   holidays
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
-limits==3.13.0
+limits==4.4.1
     # via
     #   -c requirements/base.txt
     #   flask-limiter
@@ -437,7 +435,7 @@ marshmallow==3.26.1
     #   -c requirements/base.txt
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
-marshmallow-sqlalchemy==0.28.2
+marshmallow-sqlalchemy==1.4.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
@@ -510,7 +508,6 @@ packaging==24.2
     #   gunicorn
     #   limits
     #   marshmallow
-    #   marshmallow-sqlalchemy
     #   matplotlib
     #   pytest
     #   shillelagh
@@ -848,7 +845,6 @@ typing-extensions==4.12.2
     #   alembic
     #   apache-superset
     #   cattrs
-    #   flask-limiter
     #   limits
     #   pyopenssl
     #   referencing
