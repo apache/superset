@@ -26,9 +26,7 @@ import {
   useCallback,
   Ref,
 } from 'react';
-import merge from 'lodash/merge';
-
-import * as echarts from 'echarts';
+import { merge } from 'lodash';
 
 import { styled, themeObject } from '@superset-ui/core';
 import { use, init, EChartsType } from 'echarts/core';
@@ -98,7 +96,7 @@ use([
   LabelLayout,
 ]);
 
-const getTheme = options => {
+const getTheme = (options: any) => {
   const token = themeObject.theme;
   const theme = {
     textStyle: {
@@ -120,18 +118,7 @@ const getTheme = options => {
       lineStyle: { color: token.colorPrimary },
       label: { color: token.colorText },
     },
-    xAxis: {
-      axisLine: { lineStyle: { color: token.colorSplit } },
-      axisLabel: { color: token.colorTextSecondary },
-      splitLine: { lineStyle: { color: token.colorSplit } },
-    },
-    yAxis: {
-      axisLine: { lineStyle: { color: token.colorSplit } },
-      axisLabel: { color: token.colorTextSecondary },
-      splitLine: { lineStyle: { color: token.colorSplit } },
-    },
-  };
-  /*
+  } as any;
   if (options?.xAxis) {
     theme.xAxis = {
       axisLine: { lineStyle: { color: token.colorSplit } },
@@ -145,7 +132,7 @@ const getTheme = options => {
       axisLabel: { color: token.colorTextSecondary },
       splitLine: { lineStyle: { color: token.colorSplit } },
     };
-} */
+  }
   return theme;
 };
 
@@ -192,12 +179,12 @@ function Echart(
       chartRef.current?.getZr().off(name);
       chartRef.current?.getZr().on(name, handler);
     });
-    /*
-    const themedEchartOptions = merge({}, getTheme(echartOptions), echartOptions);
-    */
-    chartRef.current.setTheme(getTheme(echartOptions));
-    chartRef.current.setOption(echartOptions, true);
-    chartRef.current.setTheme(getTheme(echartOptions));
+    const themedEchartOptions = merge(
+      {},
+      getTheme(echartOptions),
+      echartOptions,
+    );
+    chartRef.current.setOption(themedEchartOptions, true);
   }, [echartOptions, eventHandlers, zrEventHandlers]);
 
   // highlighting

@@ -45,7 +45,6 @@ import {
   GAP_WIDTH,
   LABEL_FONTSIZE,
   extractTreePathInfo,
-  BORDER_COLOR,
 } from './constants';
 import { OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -124,6 +123,7 @@ export default function transformProps(
   const { columnFormats = {}, currencyFormats = {} } = datasource;
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
+  const BORDER_COLOR = theme.colorBgBase;
 
   const {
     colorScheme,
