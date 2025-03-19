@@ -194,14 +194,14 @@ def has_table(table_name: str) -> bool:
 
 
 def drop_fks_for_table(
-    table_name: str, constraint_names: Optional[list[str]] = None
+    table_name: str, foreign_key_names: list[str] | None = None
 ) -> None:
     """
     Drop specific or all foreign key constraints for a table
     if they exist and the database is not sqlite.
 
     :param table_name: The table name to drop foreign key constraints from
-    :param constraint_names: Optional list of specific foreign key names to drop.
+    :param foreign_key_names: Optional list of specific foreign key names to drop.
     If None is provided, all will be dropped.
     """
     connection = op.get_bind()
@@ -214,12 +214,12 @@ def drop_fks_for_table(
         existing_fks = {fk["name"] for fk in inspector.get_foreign_keys(table_name)}
 
         # What to delete based on whether the list was passed
-        if constraint_names is not None:
-            constraint_names = list(set(constraint_names) & existing_fks)
+        if foreign_key_names is not None:
+            foreign_key_names = list(set(foreign_key_names) & existing_fks)
         else:
-            constraint_names = list(existing_fks)
+            foreign_key_names = list(existing_fks)
 
-        for fk_name in constraint_names:
+        for fk_name in foreign_key_names:
             logger.info(
                 f"Dropping foreign key {GREEN}{fk_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
             )
@@ -420,7 +420,7 @@ def drop_index(table_name: str, index_name: str) -> None:
 
 
 def create_fks_for_table(
-    constraint_name: str,
+    foreign_key_name: str,
     table_name: str,
     referenced_table: str,
     local_cols: list[str],
@@ -430,7 +430,7 @@ def create_fks_for_table(
     """
     Create a foreign key constraint for a table, ensuring compatibility with sqlite.
 
-    :param constraint_name: Foreign key constraint name.
+    :param foreign_key_name: Foreign key constraint name.
     :param table_name: The name of the table where the foreign key will be created.
     :param referenced_table: The table the FK references.
     :param local_cols: Column names in the current table.
@@ -449,10 +449,10 @@ def create_fks_for_table(
         # SQLite requires batch mode since ALTER TABLE is limited
         with op.batch_alter_table(table_name) as batch_op:
             logger.info(
-                f"Creating foreign key {GREEN}{constraint_name}{RESET} on table {GREEN}{table_name}{RESET} (SQLite mode)..."  # noqa: E501
+                f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET} (SQLite mode)..."  # noqa: E501
             )
             batch_op.create_foreign_key(
-                constraint_name,
+                foreign_key_name,
                 referenced_table,
                 local_cols,
                 remote_cols,
@@ -461,10 +461,10 @@ def create_fks_for_table(
     else:
         # Standard FK creation for other databases
         logger.info(
-            f"Creating foreign key {GREEN}{constraint_name}{RESET} on table {GREEN}{table_name}{RESET}..."  # noqa: E501
+            f"Creating foreign key {GREEN}{foreign_key_name}{RESET} on table {GREEN}{table_name}{RESET}..."  # noqa: E501
         )
         op.create_foreign_key(
-            constraint_name,
+            foreign_key_name,
             table_name,
             referenced_table,
             local_cols,
