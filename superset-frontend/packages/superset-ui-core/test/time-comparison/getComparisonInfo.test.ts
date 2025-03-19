@@ -63,9 +63,11 @@ const form_data = {
   header_font_size: 60,
   subheader_font_size: 26,
   comparison_color_enabled: true,
-  previous_period_value_enabled: true,
-  value_difference_enabled: true,
-  percent_difference_enabled: true,
+  column_config: {
+    name: {
+      visible: true,
+    },
+  },
   extra_form_data: {},
   force: false,
   result_format: 'json',
@@ -183,16 +185,16 @@ describe('getComparisonInfo', () => {
     const resultFormData = getComparisonInfo(
       {
         ...form_data,
-        previous_period_value_enabled: false,
-        value_difference_enabled: false,
-        percent_difference_enabled: false,
+        column_config: {
+          name: {
+            visible: false,
+          },
+        },
       },
       ComparisonTimeRangeType.Year,
       {},
     );
 
-    expect(resultFormData.previous_period_value_enabled).toEqual(false);
-    expect(resultFormData.value_difference_enabled).toEqual(false);
-    expect(resultFormData.percent_difference_enabled).toEqual(false);
+    expect(resultFormData.column_config.name.visible).toEqual(false);
   });
 });
