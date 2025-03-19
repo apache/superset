@@ -18,7 +18,7 @@
  */
 import Modal, { ModalProps } from 'src/components/Modal';
 import Button from 'src/components/Button';
-import { Form, FormItem } from 'src/components/Form';
+import { Form } from 'src/components/Form';
 import { useState, useCallback } from 'react';
 import { t } from '@superset-ui/core';
 
@@ -38,7 +38,7 @@ function FormModal({
   initialValues = {},
   formSubmitHandler,
   bodyStyle = {},
-  requiredFields,
+  requiredFields = [],
 }: FormModalProps) {
   const [form] = Form.useForm();
   const [isSaving, setIsSaving] = useState(false);
@@ -46,6 +46,7 @@ function FormModal({
     form.resetFields();
     setIsSaving(false);
   }, [form]);
+  const [submitDisabled, setSubmitDisabled] = useState(true);
 
   const handleClose = useCallback(() => {
     resetForm();
@@ -72,6 +73,15 @@ function FormModal({
     [formSubmitHandler, handleSave],
   );
 
+  const onFormChange = () => {
+    const hasErrors = form.getFieldsError().some(({ errors }) => errors.length);
+
+    const values = form.getFieldsValue();
+    const hasEmptyRequired = requiredFields.some(field => !values[field]);
+
+    setSubmitDisabled(hasErrors || hasEmptyRequired);
+  };
+
   return (
     <Modal
       show={show}
@@ -87,31 +97,15 @@ function FormModal({
           >
             {t('Cancel')}
           </Button>
-          <FormItem key="submit" shouldUpdate>
-            {() => {
-              const hasRequiredFieldsFilled =
-                requiredFields?.length === 0 ||
-                form.isFieldsTouched(requiredFields, true);
-              const hasValidationErrors =
-                form.getFieldsError().filter(({ errors }) => errors.length)
-                  .length > 0;
-
-              const saveButtonDisabled =
-                !hasRequiredFieldsFilled || hasValidationErrors;
-
-              return (
-                <Button
-                  buttonStyle="primary"
-                  htmlType="submit"
-                  onClick={() => form.submit()}
-                  data-test="form-modal-save-button"
-                  disabled={isSaving || saveButtonDisabled}
-                >
-                  {isSaving ? t('Saving...') : t('Save')}
-                </Button>
-              );
-            }}
-          </FormItem>
+          <Button
+            buttonStyle="primary"
+            htmlType="submit"
+            onClick={() => form.submit()}
+            data-test="form-modal-save-button"
+            disabled={isSaving || submitDisabled}
+          >
+            {isSaving ? t('Saving...') : t('Save')}
+          </Button>
         </>
       }
     >
@@ -120,6 +114,8 @@ function FormModal({
         layout="vertical"
         onFinish={handleFormSubmit}
         initialValues={initialValues}
+        onValuesChange={onFormChange}
+        onFieldsChange={onFormChange}
       >
         {children}
       </Form>
