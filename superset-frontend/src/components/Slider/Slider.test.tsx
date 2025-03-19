@@ -16,23 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-<<<<<<<< HEAD:superset-frontend/plugins/plugin-aven-ab-chart/test/index.test.ts
-
-import { AvenABChartPlugin } from '../src';
-
-/**
- * The example tests in this file act as a starting point, and
- * we encourage you to build more. These tests check that the
- * plugin loads properly, and focus on `transformProps`
- * to ake sure that data, controls, and props are all
- * treated correctly (e.g. formData from plugin controls
- * properly transform the data and/or any resulting props).
- */
-describe('plugin-aven-ab-chart', () => {
-  it('exists', () => {
-    expect(AvenABChartPlugin).toBeDefined();
-  });
-========
 import { render, screen } from 'spec/helpers/testing-library';
 import Slider from '.';
 
@@ -53,5 +36,4 @@ test('should render with default value on tooltip', () => {
   expect(
     screen.getAllByText(`${mockedProps.defaultValue}`)[0],
   ).toBeInTheDocument();
->>>>>>>> 4.1.1:superset-frontend/src/components/Slider/Slider.test.tsx
 });

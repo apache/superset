@@ -277,7 +277,6 @@ export class HeaderActionsDropdown extends PureComponent {
             imageMenuItemTitle={t('Download as Image')}
             dashboardId={dashboardId}
             dashboardTitle={dashboardTitle}
-            dashboardId={dashboardId}
           />
         </Menu.SubMenu>
         {userCanShare && (

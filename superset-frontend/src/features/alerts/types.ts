@@ -62,12 +62,6 @@ export type SlackChannel = {
   is_private: boolean;
 };
 
-export type NotificationSetting = {
-  method?: NotificationMethodOption;
-  recipients: string;
-  options: NotificationMethodOption[];
-};
-
 export type Recipient = {
   recipient_config_json: {
     target: string;

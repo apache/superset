@@ -911,10 +911,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateAlertState('custom_width', value);
   };
 
-  const onCustomWidthChange = (value: number | null | undefined) => {
-    updateAlertState('custom_width', value);
-  };
-
   const onTimeoutVerifyChange = (
     event: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
   ) => {

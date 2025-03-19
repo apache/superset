@@ -91,7 +91,7 @@ const SparklineCell = ({
   yAxisBounds = [undefined, undefined],
   showYAxis = false,
   entries = [],
-  renderTooltip = undefined,
+  renderTooltip = () => null,
 }: Props) => {
   const theme = useTheme();
   const xyTheme = buildChartTheme({
