@@ -318,6 +318,7 @@ greenlet==3.1.1
     #   apache-superset
     #   gevent
     #   shillelagh
+    #   sqlalchemy
 grpcio==1.68.0
     # via
     #   apache-superset
@@ -398,7 +399,7 @@ jsonschema-specifications==2024.10.1
     #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.4.2
+kombu==5.5.0
     # via
     #   -c requirements/base.txt
     #   celery
