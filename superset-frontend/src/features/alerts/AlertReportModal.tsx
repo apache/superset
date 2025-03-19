@@ -39,7 +39,6 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import Button from 'src/components/Button';
-import Icons from 'src/components/Icons';
 
 import { InputNumber } from 'src/components/Input';
 import { Switch } from 'src/components/Switch';
