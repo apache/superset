@@ -33,12 +33,9 @@ const PublishedLabel: React.FC<PublishedLabelProps> = ({
   const theme = useTheme();
   const label = isPublished ? t('Published') : t('Draft');
   const icon = isPublished ? (
-    <Icons.CheckCircleOutlined
-      iconSize="s"
-      iconColor={theme.colors.primary.dark2}
-    />
+    <Icons.CheckCircleOutlined iconSize="s" iconColor={theme.colorSuccess} />
   ) : (
-    <Icons.MinusCircleOutlined iconSize="s" />
+    <Icons.MinusCircleOutlined iconSize="s" iconColor={theme.colorPrimary} />
   );
   const labelType = isPublished ? 'success' : 'primary';
 
