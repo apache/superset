@@ -14,7 +14,7 @@ apispec==6.6.1
     # via
     #   -c requirements/base.txt
     #   flask-appbuilder
-apsw==3.46.0.0
+apsw==3.49.1.0
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -22,7 +22,7 @@ async-timeout==4.0.3
     # via
     #   -c requirements/base.txt
     #   redis
-attrs==25.2.0
+attrs==25.3.0
     # via
     #   -c requirements/base.txt
     #   cattrs
@@ -64,7 +64,7 @@ cachelib==0.13.0
     #   -c requirements/base.txt
     #   flask-caching
     #   flask-session
-cachetools==5.5.0
+cachetools==5.5.2
     # via
     #   -c requirements/base.txt
     #   google-auth
@@ -76,7 +76,7 @@ celery==5.4.0
     # via
     #   -c requirements/base.txt
     #   apache-superset
-certifi==2024.8.30
+certifi==2025.1.31
     # via
     #   -c requirements/base.txt
     #   requests
@@ -88,7 +88,7 @@ cffi==1.17.1
     #   pynacl
 cfgv==3.4.0
     # via pre-commit
-charset-normalizer==3.4.0
+charset-normalizer==3.4.1
     # via
     #   -c requirements/base.txt
     #   requests
@@ -280,7 +280,7 @@ google-api-core==2.23.0
     #   google-cloud-core
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-auth==2.36.0
+google-auth==2.38.0
     # via
     #   -c requirements/base.txt
     #   google-api-core
@@ -547,7 +547,7 @@ pillow==10.3.0
     # via
     #   apache-superset
     #   matplotlib
-platformdirs==3.9.1
+platformdirs==4.3.6
     # via
     #   -c requirements/base.txt
     #   requests-cache
@@ -711,7 +711,7 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
-requests==2.32.2
+requests==2.32.3
     # via
     #   -c requirements/base.txt
     #   docker
@@ -724,7 +724,7 @@ requests==2.32.2
     #   requests-oauthlib
     #   shillelagh
     #   trino
-requests-cache==1.2.0
+requests-cache==1.2.1
     # via
     #   -c requirements/base.txt
     #   shillelagh
@@ -758,7 +758,7 @@ setuptools==75.6.0
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
-shillelagh==1.2.18
+shillelagh==1.3.5
     # via
     #   -c requirements/base.txt
     #   apache-superset
