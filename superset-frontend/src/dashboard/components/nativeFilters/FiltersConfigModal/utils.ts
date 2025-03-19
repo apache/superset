@@ -1,21 +1,4 @@
-/**
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- */
+// DODO was here
 import {
   Divider,
   Filter,
@@ -124,7 +107,22 @@ export const createHandleSave =
         }
         if (formInputs.dataset && formInputs.column) {
           target.column = { name: formInputs.column };
+          // DODO added start 44211759
+          if (formInputs.columnId) {
+            target.column.id = formInputs.columnId;
+          }
+          if (formInputs.columnRu) {
+            target.column.nameRu = formInputs.columnRu;
+          }
+          // DODO added stop 44211759
         }
+
+        // DODO added 44211759
+        const selectTopValue =
+          formInputs.columnId && formInputs.selectTopValue
+            ? Number(formInputs.selectTopValue)
+            : undefined;
+
         return {
           id,
           adhoc_filters: formInputs.adhoc_filters,
@@ -135,6 +133,7 @@ export const createHandleSave =
             rf => rf,
           ),
           name: formInputs.name,
+          nameRu: formInputs.nameRu, // DODO added 44211759
           filterType: formInputs.filterType,
           // for now there will only ever be one target
           targets: [target],
@@ -144,6 +143,7 @@ export const createHandleSave =
           sortMetric: formInputs.sortMetric,
           type: formInputs.type,
           description: (formInputs.description || '').trim(),
+          selectTopValue, // DODO added 44211759
         };
       });
 

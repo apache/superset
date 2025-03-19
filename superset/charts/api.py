@@ -269,6 +269,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"owners", "created_by", "changed_by"}
 
+    extra_fields_rel_fields: dict[str, list[str]] = {
+        "owners": ["email", "user_info.country_name", "active"]
+    }
+
     @expose("/", methods=("POST",))
     @protect()
     @safe

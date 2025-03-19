@@ -190,6 +190,7 @@ EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS = {
     "time_grain": "time_grain",
     "time_range": "time_range",
     "time_grain_sqla": "time_grain_sqla",
+    "time_range_end_type": "time_range_end_type",
 }
 
 EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS = {

@@ -73,6 +73,7 @@ interface DashboardListProps {
     userId: string | number;
     firstName: string;
     lastName: string;
+    email: string;
   };
 }
 

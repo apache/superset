@@ -285,6 +285,10 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     }
     allowed_rel_fields = {"owners", "roles", "created_by", "changed_by"}
 
+    extra_fields_rel_fields: dict[str, list[str]] = {
+        "owners": ["email", "user_info.country_name", "active"]
+    }
+
     openapi_spec_tag = "Dashboards"
     """ Override the name set for this collection of endpoints """
     openapi_spec_component_schemas = (
