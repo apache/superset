@@ -120,9 +120,7 @@ const config: ControlPanelConfig = {
                 [GenericDataType.Numeric]: [
                   {
                     tab: t('General'),
-                    children: [
-                      ['visible'],
-                    ],
+                    children: [['visible']],
                   },
                 ],
               },
@@ -131,17 +129,13 @@ const config: ControlPanelConfig = {
               },
               mapStateToProps(explore, _, chart) {
                 return {
-                  columnsPropsObject: { 
-                    colnames: [
-                      'Previous value', 
-                      'Delta', 
-                      'Percent change'
-                    ],
+                  columnsPropsObject: {
+                    colnames: ['Previous value', 'Delta', 'Percent change'],
                     coltypes: [
                       GenericDataType.Numeric,
                       GenericDataType.Numeric,
                       GenericDataType.Numeric,
-                    ] 
+                    ],
                   },
                 };
               },

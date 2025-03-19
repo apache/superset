@@ -89,7 +89,7 @@ export default function transformProps(chartProps: ChartProps) {
     comparisonColorScheme,
     comparisonColorEnabled,
     percentDifferenceFormat,
-    columnConfig
+    columnConfig,
   } = formData;
   const { data: dataA = [] } = queriesData[0];
   const data = dataA;
@@ -194,6 +194,6 @@ export default function transformProps(chartProps: ChartProps) {
     startDateOffset,
     shift: timeComparison,
     dashboardTimeRange: formData?.extraFormData?.time_range,
-    columnConfig: columnConfig,
+    columnConfig,
   };
 }
