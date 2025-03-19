@@ -406,3 +406,33 @@ def drop_index(table_name: str, index_name: str) -> None:
     )
 
     op.drop_index(table_name=table_name, index_name=index_name)
+
+
+def drop_fks_for_table_by_names(table_name: str, constraint_names: list[str]) -> None:
+    """
+    Drop specific foreign key constraints for a table if they exist
+    and the database is not sqlite.
+
+    :param table_name: The table name to drop foreign key constraints from
+    :param constraint_names: List of foreign key constraint names to drop
+    """
+    connection = op.get_bind()
+    inspector = Inspector.from_engine(connection)
+
+    if isinstance(connection.dialect, SQLiteDialect):
+        return
+
+    if has_table(table_name):
+        existing_fks = inspector.get_foreign_keys(table_name)
+        existing_fk_names = {fk["name"] for fk in existing_fks}
+
+        for fk_name in constraint_names:
+            if fk_name in existing_fk_names:
+                logger.info(
+                    f"Dropping foreign key {GREEN}{fk_name}{RESET} from table {GREEN}{table_name}{RESET}..."  # noqa: E501
+                )
+                op.drop_constraint(fk_name, table_name, type_="foreignkey")
+            else:
+                logger.info(
+                    f"Foreign key {YELLOW}{fk_name}{RESET} not found in table {YELLOW}{table_name}{RESET}. Skipping..."  # noqa: E501
+                )
