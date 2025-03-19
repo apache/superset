@@ -251,13 +251,13 @@ AUTH0_PROVIDER =     {
                 'scope': 'openid profile email',
             },
             'access_token_url': f'{AUTH0_DOMAIN}/oauth/token',
-            'authorize_url': f'{AUTH0_DOMAIN}authorize',
-            'api_base_url': f'{AUTH0_DOMAIN},
+            'authorize_url': f'{AUTH0_DOMAIN}/authorize',
+            'api_base_url': f'{AUTH0_DOMAIN}',
             'client_kwargs': {
                 'scope': 'openid profile email',
             },
-            'jwks_uri':'https://dev-gu4zozluurb427w8.us.auth0.com/.well-known/jwks.json',
-            'userinfo_endpoint':'https://dev-gu4zozluurb427w8.us.auth0.com/userinfo'            
+            'jwks_uri':f'{AUTH0_DOMAIN}/.well-known/jwks.json',
+            'userinfo_endpoint':'{AUTH0_DOMAIN}/userinfo'            
         }
     }
 
