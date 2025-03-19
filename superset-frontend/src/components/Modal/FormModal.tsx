@@ -117,7 +117,7 @@ function FormModal({
         onValuesChange={onFormChange}
         onFieldsChange={onFormChange}
       >
-        {children}
+        {typeof children === 'function' ? children(form) : children}
       </Form>
     </Modal>
   );
