@@ -44,7 +44,7 @@ describe('FormModal Component', () => {
     </>
   );
 
-  const defaultProps: FormModalProps = {
+  const mockedProps: FormModalProps = {
     show: true,
     onHide: jest.fn(),
     title: 'Test Form Modal',
@@ -55,7 +55,7 @@ describe('FormModal Component', () => {
     children,
   };
 
-  const renderComponent = () => render(<FormModal {...defaultProps} />);
+  const renderComponent = () => render(<FormModal {...mockedProps} />);
 
   it('should render the modal with two input fields', () => {
     renderComponent();
@@ -105,11 +105,11 @@ describe('FormModal Component', () => {
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => {
-      expect(defaultProps.formSubmitHandler).toHaveBeenCalledWith({
+      expect(mockedProps.formSubmitHandler).toHaveBeenCalledWith({
         name: 'Jane Doe',
         email: 'test@example.com',
       });
-      expect(defaultProps.onSave).toHaveBeenCalled();
+      expect(mockedProps.onSave).toHaveBeenCalled();
     });
   });
 });

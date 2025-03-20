@@ -23,10 +23,10 @@ import { useState, useCallback } from 'react';
 import { t } from '@superset-ui/core';
 
 export interface FormModalProps extends ModalProps {
-  initialValues?: Object;
+  initialValues: Object;
   formSubmitHandler: (values: Object) => Promise<void>;
   onSave: () => void;
-  requiredFields?: string[];
+  requiredFields: string[];
 }
 
 function FormModal({
