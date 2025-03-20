@@ -316,7 +316,7 @@ class ChartRenderer extends Component {
       );
     } else {
       noResultsComponent = (
-        <EmptyState size="small" title={noResultTitle} image={noResultImage} />
+        <EmptyState title={noResultTitle} image={noResultImage} size="small" />
       );
     }
 

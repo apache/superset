@@ -88,7 +88,7 @@ const FlexRowContainer = styled.div`
   }
 
   svg {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 

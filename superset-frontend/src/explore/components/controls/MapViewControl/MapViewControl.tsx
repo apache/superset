@@ -34,12 +34,12 @@ export const StyledExtentButton = styled(Button)`
     line-height: 1.5715;
     border-radius: ${theme.borderRadius}px;
     background-color: ${theme.colors.primary.light4};
-    color: ${theme.colors.primary.dark1};
-    font-size: ${theme.typography.sizes.s}px;
-    font-weight: ${theme.typography.weights.bold};
+    color: ${theme.colorPrimaryText};
+    font-size: ${theme.fontSizeSM}px;
+    font-weight: ${theme.fontWeightStrong};
     text-transform: uppercase;
-    min-width: ${theme.gridUnit * 36};
-    min-height: ${theme.gridUnit * 8};
+    min-width: ${theme.sizeUnit * 36};
+    min-height: ${theme.sizeUnit * 8};
     box-shadow: none;
     border-width: 0px;
     border-style: none;
@@ -49,10 +49,10 @@ export const StyledExtentButton = styled(Button)`
     &:hover {
       background-color: ${mix(
         0.1,
-        theme.colors.primary.base,
+        theme.colorPrimary,
         theme.colors.primary.light4,
       )};
-      color: ${theme.colors.primary.dark1};
+      color: ${theme.colorPrimaryText};
     }
   `}
 `;

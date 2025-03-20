@@ -19,7 +19,7 @@
 import { styled, css } from '@superset-ui/core';
 import { ReactElement } from 'react';
 import { Menu as AntdMenu } from 'antd-v5';
-import { MenuProps as AntdMenuProps } from 'antd-v5/es/menu';
+import { MenuProps as AntdMenuProps } from 'antd-v5/lib/menu';
 
 export type MenuProps = AntdMenuProps;
 
@@ -51,7 +51,7 @@ const StyledMenuItem = styled(AntdMenu.Item)`
       justify-content: space-between;
     }
     a {
-      transition: background-color ${({ theme }) => theme.transitionTiming}s;
+      transition: background-color ${({ theme }) => theme.motionDurationMid}s;
       &:after {
         content: '';
         position: absolute;
@@ -61,8 +61,8 @@ const StyledMenuItem = styled(AntdMenu.Item)`
         height: 3px;
         opacity: 0;
         transform: translateX(-50%);
-        transition: all ${({ theme }) => theme.transitionTiming}s;
-        background-color: ${({ theme }) => theme.colors.primary.base};
+        transition: all ${({ theme }) => theme.motionDurationMid}s;
+        background-color: ${({ theme }) => theme.colorPrimary};
       }
       &:focus {
         @media (max-width: 767px) {
@@ -92,7 +92,7 @@ const StyledNav = styled(AntdMenu)`
       align-items: center;
       margin: 0;
       border-bottom: 2px solid transparent;
-      padding: ${theme.gridUnit * 2}px ${theme.gridUnit * 4}px;
+      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
       &:hover {
         background-color: ${theme.colors.primary.light5};
         border-bottom: 2px solid transparent;
@@ -104,7 +104,7 @@ const StyledNav = styled(AntdMenu)`
     }
     &.antd5-menu-horizontal > .antd5-menu-item-selected {
       box-sizing: border-box;
-      border-bottom: 2px solid ${theme.colors.primary.base};
+      border-bottom: 2px solid ${theme.colorPrimary};
     }
   `}
 `;

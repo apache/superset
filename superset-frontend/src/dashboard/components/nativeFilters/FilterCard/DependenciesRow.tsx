@@ -92,7 +92,7 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
             iconSize="m"
             iconColor={theme.colors.grayscale.light1}
             css={css`
-              margin-left: ${theme.gridUnit}px;
+              margin-left: ${theme.sizeUnit}px;
             `}
           />
         </TooltipWithTruncation>

@@ -30,7 +30,7 @@ import { TableControls } from './DataTableControls';
 import { SamplesPaneProps } from '../types';
 
 const Error = styled.pre`
-  margin-top: ${({ theme }) => `${theme.gridUnit * 4}px`};
+  margin-top: ${({ theme }) => `${theme.sizeUnit * 4}px`};
 `;
 
 const cache = new WeakSet();

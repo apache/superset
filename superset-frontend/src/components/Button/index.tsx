@@ -24,12 +24,16 @@ import {
   MouseEventHandler,
 } from 'react';
 
-import { mix } from 'polished';
 import cx from 'classnames';
 import { Button as AntdButton } from 'antd-v5';
 import { useTheme } from '@superset-ui/core';
 import { Tooltip, TooltipProps } from 'src/components/Tooltip';
-import { ButtonProps as AntdButtonProps } from 'antd-v5/lib/button';
+import {
+  ButtonProps as AntdButtonProps,
+  ButtonType,
+  ButtonVariantType,
+  ButtonColorType,
+} from 'antd-v5/lib/button';
 
 export type OnClickHandler = MouseEventHandler<HTMLElement>;
 
@@ -37,10 +41,7 @@ export type ButtonStyle =
   | 'primary'
   | 'secondary'
   | 'tertiary'
-  | 'success'
-  | 'warning'
   | 'danger'
-  | 'default'
   | 'link'
   | 'dashed';
 
@@ -55,25 +56,6 @@ export type ButtonProps = Omit<AntdButtonProps, 'css'> &
     cta?: boolean;
     showMarginRight?: boolean;
   };
-
-const decideType = (buttonStyle: ButtonStyle) => {
-  const typeMap: Record<
-    ButtonStyle,
-    'primary' | 'default' | 'dashed' | 'link'
-  > = {
-    primary: 'primary',
-    danger: 'primary',
-    warning: 'primary',
-    success: 'primary',
-    secondary: 'default',
-    default: 'default',
-    tertiary: 'default',
-    dashed: 'dashed',
-    link: 'link',
-  };
-
-  return typeMap[buttonStyle];
-};
 
 export default function Button(props: ButtonProps) {
   const {
@@ -91,8 +73,7 @@ export default function Button(props: ButtonProps) {
   } = props;
 
   const theme = useTheme();
-  const { colors, transitionTiming, borderRadius, typography } = theme;
-  const { primary, grayscale, success, warning } = colors;
+  const { fontSizeSM, fontWeightStrong } = theme;
 
   let height = 32;
   let padding = 18;
@@ -103,48 +84,30 @@ export default function Button(props: ButtonProps) {
     height = 30;
     padding = 10;
   }
+  if (buttonStyle === 'link') {
+    padding = 4;
+  }
 
-  let backgroundColor;
-  let backgroundColorHover;
-  let backgroundColorActive;
-  let backgroundColorDisabled = grayscale.light2;
-  let color;
-  let colorHover;
-  let borderWidth = 0;
-  let borderStyle = 'none';
-  let borderColor;
-  let borderColorHover;
-  let borderColorDisabled = 'transparent';
+  let antdType: ButtonType = 'default';
+  let variant: ButtonVariantType = 'solid';
+  let color: ButtonColorType = 'primary';
 
-  if (buttonStyle === 'tertiary' || buttonStyle === 'dashed') {
-    backgroundColor = grayscale.light5;
-    backgroundColorHover = grayscale.light5;
-    backgroundColorActive = grayscale.light5;
-    backgroundColorDisabled = grayscale.light5;
-    borderWidth = 1;
-    borderStyle = buttonStyle === 'dashed' ? 'dashed' : 'solid';
-    borderColor = primary.dark1;
-    borderColorHover = primary.light1;
-    borderColorDisabled = grayscale.light2;
+  if (!buttonStyle || buttonStyle === 'primary') {
+    variant = 'solid';
+  } else if (buttonStyle === 'secondary') {
+    variant = 'filled';
+    color = 'primary';
+  } else if (buttonStyle === 'tertiary') {
+    variant = 'outlined';
+    color = 'default';
+  } else if (buttonStyle === 'dashed') {
+    color = 'primary';
+    variant = 'dashed';
   } else if (buttonStyle === 'danger') {
-    colorHover = color;
-  } else if (buttonStyle === 'warning') {
-    backgroundColor = warning.base;
-    backgroundColorHover = mix(0.1, grayscale.dark2, warning.base);
-    backgroundColorActive = mix(0.2, grayscale.dark2, warning.base);
-    color = grayscale.light5;
-    colorHover = color;
-  } else if (buttonStyle === 'success') {
-    backgroundColor = success.base;
-    backgroundColorHover = mix(0.1, grayscale.light5, success.base);
-    backgroundColorActive = mix(0.2, grayscale.dark2, success.base);
-    color = grayscale.light5;
-    colorHover = color;
+    color = 'danger';
   } else if (buttonStyle === 'link') {
-    backgroundColor = 'transparent';
-    backgroundColorHover = 'transparent';
-    backgroundColorActive = 'transparent';
-    color = primary.dark1;
+    variant = 'link';
+    antdType = 'default';
   }
 
   const element = children as ReactElement;
@@ -156,16 +119,18 @@ export default function Button(props: ButtonProps) {
     renderedChildren = Children.toArray(children);
   }
   const firstChildMargin =
-    showMarginRight && renderedChildren.length > 1 ? theme.gridUnit * 2 : 0;
+    showMarginRight && renderedChildren.length > 1 ? theme.sizeUnit * 2 : 0;
 
-  const effectiveButtonStyle: ButtonStyle = buttonStyle ?? 'default';
+  const effectiveButtonStyle: ButtonStyle = buttonStyle ?? 'primary';
 
   const button = (
     <AntdButton
       href={disabled ? undefined : href}
       disabled={disabled}
-      type={decideType(effectiveButtonStyle)}
+      type={antdType}
+      variant={variant}
       danger={effectiveButtonStyle === 'danger'}
+      color={color}
       className={cx(
         className,
         'superset-button',
@@ -179,51 +144,15 @@ export default function Button(props: ButtonProps) {
         alignItems: 'center',
         justifyContent: 'center',
         lineHeight: 1.5715,
-        fontSize: typography.sizes.s,
-        fontWeight: typography.weights.bold,
+        fontSize: fontSizeSM,
+        fontWeight: fontWeightStrong,
         height,
         padding: `0px ${padding}px`,
-        transition: `all ${transitionTiming}s`,
-        minWidth: cta ? theme.gridUnit * 36 : undefined,
-        minHeight: cta ? theme.gridUnit * 8 : undefined,
-        boxShadow: 'none',
-        borderWidth,
-        borderStyle,
-        borderColor,
-        borderRadius,
-        color,
-        background: backgroundColor,
-        ...(colorHover || backgroundColorHover || borderColorHover
-          ? {
-              [`&.superset-button.superset-button-${buttonStyle}:hover`]: {
-                ...(colorHover && { color: colorHover }),
-                ...(backgroundColorHover && {
-                  background: backgroundColorHover,
-                }),
-                ...(borderColorHover && { borderColor: borderColorHover }),
-              },
-            }
-          : {}),
-        '&:active': {
-          color,
-          backgroundColor: backgroundColorActive,
-        },
-        '&:focus': {
-          color,
-          backgroundColor,
-          borderColor,
-        },
-        '&[disabled], &[disabled]:hover': {
-          color: grayscale.base,
-          backgroundColor:
-            buttonStyle === 'link' ? 'transparent' : backgroundColorDisabled,
-          borderColor:
-            buttonStyle === 'link' ? 'transparent' : borderColorDisabled,
-          pointerEvents: 'none',
-        },
+        minWidth: cta ? theme.sizeUnit * 36 : undefined,
+        minHeight: cta ? theme.sizeUnit * 8 : undefined,
         marginLeft: 0,
         '& + .superset-button': {
-          marginLeft: theme.gridUnit * 2,
+          marginLeft: theme.sizeUnit * 2,
         },
         '& > span > :first-of-type': {
           marginRight: firstChildMargin,
@@ -245,7 +174,7 @@ export default function Button(props: ButtonProps) {
             css={{
               cursor: 'not-allowed',
               '& > .superset-button': {
-                marginLeft: theme.gridUnit * 2,
+                marginLeft: theme.sizeUnit * 2,
               },
             }}
           >

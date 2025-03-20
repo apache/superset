@@ -254,7 +254,7 @@ function PropertiesModal({
         <span>
           <Icons.EditOutlined
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
             `}
             data-test="edit-alt"
           />

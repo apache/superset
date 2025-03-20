@@ -33,8 +33,8 @@ interface MarshmallowErrorExtra {
 }
 
 const StyledUl = styled.ul`
-  padding-left: ${({ theme }) => theme.gridUnit * 5}px;
-  padding-top: ${({ theme }) => theme.gridUnit * 4}px;
+  padding-left: ${({ theme }) => theme.sizeUnit * 5}px;
+  padding-top: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const collapseStyle = (theme: SupersetTheme) => css`
@@ -42,7 +42,7 @@ const collapseStyle = (theme: SupersetTheme) => css`
     left: 0px !important;
   }
   .ant-collapse-header {
-    padding-left: ${theme.gridUnit * 4}px !important;
+    padding-left: ${theme.sizeUnit * 4}px !important;
   }
   .ant-collapse-content-box {
     padding: 0px !important;

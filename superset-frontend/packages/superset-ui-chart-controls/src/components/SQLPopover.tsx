@@ -26,10 +26,10 @@ import { css, styled, useTheme, t } from '@superset-ui/core';
 const StyledCalculatorIcon = styled(CalculatorOutlined)`
   ${({ theme }) => css`
     color: ${theme.colors.grayscale.base};
-    font-size: ${theme.typography.sizes.s}px;
+    font-size: ${theme.fontSizeSM}px;
     & svg {
-      margin-left: ${theme.gridUnit}px;
-      margin-right: ${theme.gridUnit}px;
+      margin-left: ${theme.sizeUnit}px;
+      margin-right: ${theme.sizeUnit}px;
     }
   `}
 `;
@@ -66,8 +66,8 @@ export const SQLPopover = (props: PopoverProps & { sqlExpression: string }) => {
           wrapEnabled
           style={{
             border: `1px solid ${theme.colors.grayscale.light2}`,
-            background: theme.colors.secondary.light5,
-            maxWidth: theme.gridUnit * 100,
+            background: theme.colorPrimaryBg,
+            maxWidth: theme.sizeUnit * 100,
           }}
         />
       }

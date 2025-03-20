@@ -28,7 +28,7 @@ import {
   fetchTimeRange,
 } from '@superset-ui/core';
 import { DatePicker } from 'src/components/DatePicker';
-import { RangePickerProps } from 'antd-v5/es/date-picker';
+import { RangePickerProps } from 'antd-v5/lib/date-picker';
 import { useSelector } from 'react-redux';
 
 import ControlHeader from 'src/explore/components/ControlHeader';

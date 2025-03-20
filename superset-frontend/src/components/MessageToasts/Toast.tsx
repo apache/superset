@@ -30,7 +30,7 @@ const ToastContainer = styled.div`
     align-items: center;
 
     span {
-      padding: 0 ${theme.gridUnit * 2}px;
+      padding: 0 ${theme.sizeUnit * 2}px;
     }
 
     .toast__close,
@@ -41,8 +41,8 @@ const ToastContainer = styled.div`
 `;
 
 const notificationStyledIcon = (theme: SupersetTheme) => css`
-  min-width: ${theme.gridUnit * 5}px;
-  color: ${theme.colors.grayscale.base};
+  min-width: ${theme.sizeUnit * 5}px;
+  color: ${theme.colorIcon};
   margin-right: 0;
 `;
 

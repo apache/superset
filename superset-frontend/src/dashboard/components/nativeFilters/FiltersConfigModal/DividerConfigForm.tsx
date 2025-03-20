@@ -30,7 +30,7 @@ interface Props {
 }
 const Container = styled.div`
   ${({ theme }) => `
-    padding: ${theme.gridUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px;
   `}
 `;
 

@@ -252,7 +252,6 @@ export default function transformProps(
         label: {
           show: true,
           fontWeight: 'bold',
-          backgroundColor: theme.colors.grayscale.light5,
         },
       },
       data: transformedData,
@@ -276,6 +275,23 @@ export default function transformProps(
     radar: {
       shape: isCircle ? 'circle' : 'polygon',
       indicator,
+      splitLine: {
+        show: true,
+        lineStyle: {
+          color: theme.colorSplit,
+        },
+      },
+      splitArea: {
+        show: true,
+        areaStyle: {
+          color: [theme.colorBgLayout, theme.colorBgContainer],
+        },
+      },
+      axisLine: {
+        lineStyle: {
+          color: theme.colorSplit,
+        },
+      },
     },
   };
 

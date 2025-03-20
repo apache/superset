@@ -39,10 +39,10 @@ type InputValue = number | null;
 type RangeValue = [InputValue, InputValue];
 
 const StyledDivider = styled.span`
-  margin: 0 ${({ theme }) => theme.gridUnit * 3}px;
-  color: ${({ theme }) => theme.colors.grayscale.light1};
-  font-weight: ${({ theme }) => theme.typography.weights.bold};
-  font-size: ${({ theme }) => theme.typography.sizes.m}px;
+  margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
+  color: ${({ theme }) => theme.colorSplit};
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  font-size: ${({ theme }) => theme.fontSize}px;
   align-content: center;
 `;
 

@@ -49,7 +49,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         height: 100%;
         width: ${BUILDER_PANE_WIDTH}px;
         box-shadow: -4px 0 4px 0 ${rgba(theme.colors.grayscale.dark2, 0.1)};
-        background-color: ${theme.colors.grayscale.light5};
+        background-color: ${theme.colorBgBase};
       `}
     >
       <Tabs
@@ -57,7 +57,7 @@ const BuilderComponentPane = ({ topOffset = 0 }) => (
         id="tabs"
         css={(theme: SupersetTheme) => css`
           line-height: inherit;
-          margin-top: ${theme.gridUnit * 2}px;
+          margin-top: ${theme.sizeUnit * 2}px;
           height: 100%;
 
           & .ant-tabs-content-holder {

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import Layout from 'antd-v5/lib/layout';
+import Layout from 'antd-v5';
 import type { LayoutProps, SiderProps } from 'antd-v5/lib/layout';
 
 export type { LayoutProps, SiderProps };

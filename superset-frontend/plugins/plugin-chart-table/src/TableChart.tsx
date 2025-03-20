@@ -555,9 +555,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             <div
               css={css`
                 max-width: 242px;
-                padding: 0 ${theme.gridUnit * 2}px;
-                color: ${theme.colors.grayscale.base};
-                font-size: ${theme.typography.sizes.s}px;
+                padding: 0 ${theme.sizeUnit * 2}px;
+                color: ${theme.colorText};
+                font-size: ${theme.fontSizeSM}px;
               `}
             >
               {t(
@@ -568,7 +568,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               <Menu.Item key={column.key}>
                 <span
                   css={css`
-                    color: ${theme.colors.grayscale.dark2};
+                    color: ${theme.colorText};
                   `}
                 >
                   {column.label}
@@ -576,7 +576,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 <span
                   css={css`
                     float: right;
-                    font-size: ${theme.typography.sizes.s}px;
+                    font-size: ${theme.fontSizeSM}px;
                   `}
                 >
                   {selectedComparisonColumns.includes(column.key) && (
@@ -625,7 +625,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             css={css`
               float: right;
               & svg {
-                color: ${theme.colors.grayscale.base} !important;
+                color: ${theme.colorText} !important;
               }
             `}
           >
@@ -656,7 +656,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       <tr
         css={css`
           th {
-            border-right: 2px solid ${theme.colors.grayscale.light2};
+            border-right: 1px solid ${theme.colorSplit};
           }
           th:first-child {
             border-left: none;
@@ -789,6 +789,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
           }
 
           const StyledCell = styled.td`
+            color: ${theme.colorText};
+            background-color: ${theme.colorBgBase};
             text-align: ${sharedStyle.textAlign};
             white-space: ${value instanceof Date ? 'nowrap' : undefined};
             position: relative;
@@ -823,9 +825,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             color: ${basicColorFormatters &&
             basicColorFormatters[row.index][originKey]?.arrowColor ===
               ColorSchemeEnum.Green
-              ? theme.colors.success.base
-              : theme.colors.error.base};
-            margin-right: ${theme.gridUnit}px;
+              ? theme.colorSuccess
+              : theme.colorError};
+            margin-right: ${theme.sizeUnit}px;
           `;
 
           if (
@@ -835,9 +837,9 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             arrowStyles = css`
               color: ${basicColorColumnFormatters[row.index][column.key]
                 ?.arrowColor === ColorSchemeEnum.Green
-                ? theme.colors.success.base
-                : theme.colors.error.base};
-              margin-right: ${theme.gridUnit}px;
+                ? theme.colorSuccess
+                : theme.colorError};
+              margin-right: ${theme.sizeUnit}px;
             `;
           }
 
@@ -981,8 +983,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   display: flex;
                   align-items: center;
                   & svg {
-                    margin-left: ${theme.gridUnit}px;
-                    color: ${theme.colors.grayscale.dark1} !important;
+                    margin-left: ${theme.sizeUnit}px;
+                    color: ${theme.colorText} !important;
                   }
                 `}
               >

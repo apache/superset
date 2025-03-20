@@ -89,8 +89,8 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 
 const RefreshContainer = styled.div`
   width: 100%;
-  padding: 0 ${({ theme }) => theme.gridUnit * 4}px
-    ${({ theme }) => theme.gridUnit * 3}px;
+  padding: 0 ${({ theme }) => theme.sizeUnit * 4}px
+    ${({ theme }) => theme.sizeUnit * 3}px;
   background-color: ${({ theme }) => theme.colors.grayscale.light5};
 `;
 
@@ -100,7 +100,7 @@ const StyledHeaderWithIcon = styled.div`
   justify-content: space-between;
   align-items: center;
   > *:first-child {
-    margin-right: ${({ theme }) => theme.gridUnit}px;
+    margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
 
@@ -425,7 +425,7 @@ function AlertList({
             iconColor={theme.colors.primary.light5}
             iconSize="m"
             css={css`
-              margin: auto ${theme.gridUnit * 2}px auto 0;
+              margin: auto ${theme.sizeUnit * 2}px auto 0;
               vertical-align: text-top;
             `}
           />
@@ -457,7 +457,7 @@ function AlertList({
           iconColor={theme.colors.primary.light5}
           iconSize="m"
           css={css`
-            margin: auto ${theme.gridUnit * 2}px auto 0;
+            margin: auto ${theme.sizeUnit * 2}px auto 0;
             vertical-align: text-top;
           `}
           data-test="add-annotation-layer-button"

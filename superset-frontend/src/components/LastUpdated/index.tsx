@@ -52,10 +52,10 @@ const TextStyles = styled.span`
 const RefreshIcon = styled(Icons.SyncOutlined)`
   ${({ theme }) => `
   width: auto;
-  height: ${theme.gridUnit * 5}px;
+  height: ${theme.sizeUnit * 5}px;
   position: relative;
-  top: ${theme.gridUnit}px;
-  left: ${theme.gridUnit}px;
+  top: ${theme.sizeUnit}px;
+  left: ${theme.sizeUnit}px;
   cursor: pointer;
 `};
 `;

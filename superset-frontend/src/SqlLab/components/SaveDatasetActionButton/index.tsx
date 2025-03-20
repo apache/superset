@@ -41,10 +41,7 @@ const SaveDatasetActionButton = ({
       onClick={() => setShowSave(true)}
       dropdownRender={() => overlayMenu}
       icon={
-        <Icons.DownOutlined
-          iconSize="xs"
-          iconColor={theme.colors.primary.dark2}
-        />
+        <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
       }
       trigger={['click']}
     >

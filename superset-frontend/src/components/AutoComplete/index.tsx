@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AutoComplete, {
-  AutoCompleteProps as AntAutoCompleteProps,
-} from 'antd-v5/lib/auto-complete';
+
+import AutoComplete from 'antd-v5';
+import { AutoCompleteProps as AntAutoCompleteProps } from 'antd-v5/lib/auto-complete';
 
 export type { AntAutoCompleteProps };
 

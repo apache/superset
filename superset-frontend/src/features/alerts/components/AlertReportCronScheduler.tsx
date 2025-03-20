@@ -104,7 +104,7 @@ export const AlertReportCronScheduler: FC<AlertReportCronSchedulerProps> = ({
           <Input
             type="text"
             name="crontab"
-            style={error ? { borderColor: theme.colors.error.base } : {}}
+            style={error ? { borderColor: theme.colorError } : {}}
             placeholder={t('CRON expression')}
             value={value}
             onBlur={handleBlur}

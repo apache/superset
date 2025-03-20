@@ -29,7 +29,7 @@ const StyledTooltip = (props: any) => {
         <Tooltip
           overlayClassName={css`
             .antd5-tooltip-inner {
-              max-width: ${theme.gridUnit * 125}px;
+              max-width: ${theme.sizeUnit * 125}px;
               word-wrap: break-word;
               text-align: center;
 
@@ -37,8 +37,8 @@ const StyledTooltip = (props: any) => {
                 background: transparent;
                 border: none;
                 text-align: left;
-                color: ${theme.colors.grayscale.light5};
-                font-size: ${theme.typography.sizes.xs}px;
+                color: ${theme.colorBgLayout};
+                font-size: ${theme.fontSizeXS}px;
               }
             }
           `}
@@ -50,7 +50,7 @@ const StyledTooltip = (props: any) => {
 };
 
 const Hr = styled.hr`
-  margin-top: ${({ theme }) => theme.gridUnit * 1.5}px;
+  margin-top: ${({ theme }) => theme.sizeUnit * 1.5}px;
 `;
 
 const iconMap = {

@@ -67,7 +67,7 @@ const TopAlignedListView = styled(ListView)<ListViewProps<QueryObject>>`
 
 SyntaxHighlighter.registerLanguage('sql', sql);
 const StyledSyntaxHighlighter = styled(SyntaxHighlighter)`
-  height: ${({ theme }) => theme.gridUnit * 26}px;
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
   overflow: hidden !important; /* needed to override inline styles */
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -81,7 +81,7 @@ interface QueryListProps {
 const StyledTableLabel = styled.div`
   .count {
     margin-left: 5px;
-    color: ${({ theme }) => theme.colors.primary.base};
+    color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
     cursor: pointer;
   }
@@ -93,7 +93,7 @@ const StyledPopoverItem = styled.div`
 
 const TimerLabel = styled(Label)`
   text-align: left;
-  font-family: ${({ theme }) => theme.typography.families.monospace};
+  font-family: ${({ theme }) => theme.fontFamilyCode};
 `;
 
 function QueryList({ addDangerToast }: QueryListProps) {
@@ -162,7 +162,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.name = (
               <Icons.CheckOutlined
                 iconSize="m"
-                iconColor={theme.colors.success.base}
+                iconColor={theme.colorSuccess}
                 css={css`
                   vertical-align: -webkit-baseline-middle;
                 `}
@@ -178,7 +178,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
                 iconSize="xs"
                 iconColor={
                   status === QueryState.Failed
-                    ? theme.colors.error.base
+                    ? theme.colorError
                     : theme.colors.grayscale.base
                 }
               />
@@ -186,7 +186,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
             statusConfig.label = t('Failed');
           } else if (status === QueryState.Running) {
             statusConfig.name = (
-              <Icons.Running iconColor={theme.colors.primary.base} />
+              <Icons.Running iconColor={theme.colorPrimary} />
             );
             statusConfig.label = t('Running');
           } else if (status === QueryState.TimedOut) {

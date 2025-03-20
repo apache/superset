@@ -79,12 +79,12 @@ const defaultProps = {
 };
 
 const TabTitleContainer = styled.div`
-  ${({ isHighlighted, theme: { gridUnit, colors } }) => `
-    padding: ${gridUnit}px ${gridUnit * 2}px;
-    margin: ${-gridUnit}px ${gridUnit * -2}px;
+  ${({ isHighlighted, theme: { sizeUnit, colors } }) => `
+    padding: ${sizeUnit}px ${sizeUnit * 2}px;
+    margin: ${-sizeUnit}px ${sizeUnit * -2}px;
     transition: box-shadow 0.2s ease-in-out;
     ${
-      isHighlighted && `box-shadow: 0 0 ${gridUnit}px ${colors.primary.light1};`
+      isHighlighted && `box-shadow: 0 0 ${sizeUnit}px ${colors.primary.light1};`
     }
   `}
 `;

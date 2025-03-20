@@ -25,7 +25,7 @@ import { CardSortSelectOption, SortColumn } from './types';
 
 const SortContainer = styled.div`
   display: inline-flex;
-  font-size: ${({ theme }) => theme.typography.sizes.s}px;
+  font-size: ${({ theme }) => theme.fontSizeSM}px;
   align-items: center;
   text-align: left;
   width: ${SELECT_WIDTH}px;

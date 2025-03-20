@@ -18,7 +18,7 @@
  */
 
 import { Empty as AntdEmpty } from 'antd-v5';
-import { EmptyProps } from 'antd-v5/es/empty';
+import { EmptyProps } from 'antd-v5/lib/empty';
 
 export const Empty = Object.assign(
   (props: EmptyProps) => <AntdEmpty {...props} />,
