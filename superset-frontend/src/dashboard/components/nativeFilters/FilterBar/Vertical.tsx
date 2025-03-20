@@ -30,7 +30,7 @@ import {
   FC,
 } from 'react';
 import cx from 'classnames';
-import { styled, t } from '@superset-ui/core';
+import { styled, t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Loading from 'src/components/Loading';
 import { EmptyState } from 'src/components/EmptyState';
@@ -98,17 +98,6 @@ const CollapsedBar = styled.div<{ offset: number }>`
   `}
 `;
 
-const StyledCollapseIcon = styled(Icons.Collapse)`
-  ${({ theme }) => `
-    color: ${theme.colorPrimary};
-    margin-bottom: ${theme.sizeUnit * 3}px;
-  `}
-`;
-
-const StyledFilterIcon = styled(Icons.Filter)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 const FilterBarEmptyStateContainer = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 8}px;
 `;
@@ -133,6 +122,7 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
   toggleFiltersBar,
   width,
 }) => {
+  const theme = useTheme();
   const [isScrolling, setIsScrolling] = useState(false);
   const timeout = useRef<any>();
 
@@ -206,11 +196,17 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
           role="button"
           offset={offset}
         >
-          <StyledCollapseIcon
-            {...getFilterBarTestId('expand-button')}
+          <Icons.VerticalAlignTopOutlined
             iconSize="l"
+            css={{
+              transform: 'rotate(90deg)',
+              marginBottom: `${theme.sizeUnit * 3}px`,
+            }}
+            className="collapse-icon"
+            iconColor={theme.colors.primary.base}
+            {...getFilterBarTestId('expand-button')}
           />
-          <StyledFilterIcon
+          <Icons.FilterOutlined
             {...getFilterBarTestId('filter-icon')}
             iconSize="l"
           />

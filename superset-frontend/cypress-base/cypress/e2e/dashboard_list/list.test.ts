@@ -32,12 +32,12 @@ function orderAlphabetical() {
 }
 
 function openProperties() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="more"]').first().click();
   cy.getBySel('dashboard-card-option-edit-button').click();
 }
 
 function openMenu() {
-  cy.get('[aria-label="more-vert"]').first().click();
+  cy.get('[aria-label="more"]').first().click();
 }
 
 function confirmDelete(bulk = false) {
@@ -158,17 +158,14 @@ describe('Dashboards list', () => {
       cy.getBySel('styled-card').first().contains('1 - Sample dashboard');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-unselected']")
+        .find("[aria-label='unstarred']")
         .click();
       cy.wait('@select');
-      cy.getBySel('styled-card')
-        .first()
-        .find("[aria-label='favorite-selected']")
-        .click();
+      cy.getBySel('styled-card').first().find("[aria-label='starred']").click();
       cy.wait('@unselect');
       cy.getBySel('styled-card')
         .first()
-        .find("[aria-label='favorite-selected']")
+        .find("[aria-label='starred']")
         .should('not.exist');
     });
 

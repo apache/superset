@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import { DropdownButton } from 'src/components/DropdownButton';
 import Button from 'src/components/Button';
@@ -26,34 +26,28 @@ interface SaveDatasetActionButtonProps {
   overlayMenu: JSX.Element | null;
 }
 
-const StyledDropdownButton = styled(DropdownButton)`
-  button {
-    font-size: ${({ theme }) => theme.fontSizeSM}px;
-    font-weight: ${({ theme }) => theme.fontWeightStrong};
-  }
-`;
-
 const SaveDatasetActionButton = ({
   setShowSave,
   overlayMenu,
-}: SaveDatasetActionButtonProps) =>
-  !overlayMenu ? (
-    <Button
-      onClick={() => setShowSave(true)}
-      buttonStyle="secondary"
-      buttonSize="small"
-    >
+}: SaveDatasetActionButtonProps) => {
+  const theme = useTheme();
+
+  return !overlayMenu ? (
+    <Button onClick={() => setShowSave(true)} buttonStyle="primary">
       {t('Save')}
     </Button>
   ) : (
-    <StyledDropdownButton
+    <DropdownButton
       onClick={() => setShowSave(true)}
       dropdownRender={() => overlayMenu}
-      icon={<Icons.CaretDown name="caret-down" />}
+      icon={
+        <Icons.DownOutlined iconSize="xs" iconColor={theme.colorPrimaryText} />
+      }
       trigger={['click']}
     >
       {t('Save')}
-    </StyledDropdownButton>
+    </DropdownButton>
   );
+};
 
 export default SaveDatasetActionButton;

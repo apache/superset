@@ -81,7 +81,9 @@ const loggerMiddleware = store => next => action => {
   const { eventName } = action.payload;
   let { eventData = {} } = action.payload;
 
-  if (dashboardInfo?.id && eventData.path?.includes('/dashboard/')) {
+  const path = eventData.path || window?.location?.href;
+
+  if (dashboardInfo?.id && path?.includes('/dashboard/')) {
     logMetadata = {
       source: 'dashboard',
       source_id: dashboardInfo.id,
@@ -95,7 +97,7 @@ const loggerMiddleware = store => next => action => {
       ...(explore.slice.slice_id && { slice_id: explore.slice.slice_id }),
       ...logMetadata,
     };
-  } else if (eventData.path?.includes('/sqllab/')) {
+  } else if (path?.includes('/sqllab/')) {
     const editor = sqlLab.queryEditors.find(
       ({ id }) => id === sqlLab.tabHistory.slice(-1)[0],
     );

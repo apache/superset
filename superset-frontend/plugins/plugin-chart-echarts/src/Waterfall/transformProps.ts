@@ -355,7 +355,13 @@ export default function transformProps(
       disabled: true,
     },
   };
-
+  const labelProps = {
+    show: showValue,
+    formatter: seriesformatter,
+    color: theme.colorText,
+    borderColor: theme.colorBgBase,
+    borderWidth: 1,
+  };
   const barSeries: BarSeriesOption[] = [
     {
       ...seriesProps,
@@ -366,9 +372,8 @@ export default function transformProps(
       ...seriesProps,
       name: LEGEND.INCREASE,
       label: {
-        show: showValue,
+        ...labelProps,
         position: 'top',
-        formatter: seriesformatter,
       },
       itemStyle: {
         color: rgbToHex(increaseColor.r, increaseColor.g, increaseColor.b),
@@ -379,9 +384,8 @@ export default function transformProps(
       ...seriesProps,
       name: LEGEND.DECREASE,
       label: {
-        show: showValue,
+        ...labelProps,
         position: 'bottom',
-        formatter: seriesformatter,
       },
       itemStyle: {
         color: rgbToHex(decreaseColor.r, decreaseColor.g, decreaseColor.b),
@@ -392,9 +396,8 @@ export default function transformProps(
       ...seriesProps,
       name: LEGEND.TOTAL,
       label: {
-        show: showValue,
+        ...labelProps,
         position: 'top',
-        formatter: seriesformatter,
       },
       itemStyle: {
         color: rgbToHex(totalColor.r, totalColor.g, totalColor.b),

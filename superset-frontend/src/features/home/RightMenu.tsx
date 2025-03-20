@@ -71,9 +71,6 @@ const versionInfoStyles = (theme: SupersetTheme) => css`
   font-size: ${theme.fontSizeXS}px;
   white-space: nowrap;
 `;
-const StyledI = styled.div`
-  color: ${({ theme }) => theme.colorPrimaryText};
-`;
 
 const styledDisabled = (theme: SupersetTheme) => css`
   color: ${theme.colors.grayscale.light1};
@@ -114,11 +111,18 @@ const styledChildMenu = (theme: SupersetTheme) => css`
 const { SubMenu } = Menu;
 
 const StyledSubMenu = styled(SubMenu)`
-  &.antd5-menu-submenu-active {
-    .antd5-menu-title-content {
-      color: ${({ theme }) => theme.colorPrimary};
+  ${({ theme }) => css`
+    [data-icon='caret-down'] {
+      color: ${theme.colorIcon};
+      font-size: ${theme.fontSizeXS}px;
+      margin-left: ${theme.sizeUnit}px;
     }
-  }
+    &.antd5-menu-submenu-active {
+      .antd5-menu-title-content {
+        color: ${theme.colors.primary.base};
+      }
+    }
+  `}
 `;
 
 const RightMenu = ({
@@ -406,6 +410,10 @@ const RightMenu = ({
         </Label>
       )}
       <Menu
+        css={css`
+          display: flex;
+          flex-direction: row;
+        `}
         selectable={false}
         mode="horizontal"
         onClick={handleMenuSelection}
@@ -418,9 +426,12 @@ const RightMenu = ({
             key="sub1"
             data-test="new-dropdown"
             title={
-              <StyledI data-test="new-dropdown-icon" className="fa fa-plus" />
+              <Icons.PlusOutlined
+                iconColor={theme.colors.primary.dark1}
+                data-test="new-dropdown-icon"
+              />
             }
-            icon={<Icons.TriangleDown />}
+            icon={<Icons.CaretDownOutlined iconSize="xs" />}
           >
             {dropdownItems?.map?.(menu => {
               const canShowChild = menu.childs?.some(
@@ -492,7 +503,7 @@ const RightMenu = ({
         <StyledSubMenu
           key="sub3_settings"
           title={t('Settings')}
-          icon={<Icons.TriangleDown iconSize="xl" />}
+          icon={<Icons.CaretDownOutlined iconSize="xs" />}
         >
           {settings?.map?.((section, index) => [
             <Menu.ItemGroup key={`${section.label}`} title={section.label}>

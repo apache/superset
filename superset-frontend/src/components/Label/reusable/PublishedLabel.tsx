@@ -18,7 +18,7 @@
  */
 import Icons from 'src/components/Icons';
 import Label from 'src/components/Label';
-import { t } from '@superset-ui/core';
+import { t, useTheme } from '@superset-ui/core';
 
 // Define props for the PublishedLabel component
 interface PublishedLabelProps {
@@ -30,11 +30,12 @@ const PublishedLabel: React.FC<PublishedLabelProps> = ({
   isPublished,
   onClick,
 }) => {
+  const theme = useTheme();
   const label = isPublished ? t('Published') : t('Draft');
   const icon = isPublished ? (
-    <Icons.CircleCheck iconSize="s" />
+    <Icons.CheckCircleOutlined iconSize="s" iconColor={theme.colorSuccess} />
   ) : (
-    <Icons.Minus iconSize="s" />
+    <Icons.MinusCircleOutlined iconSize="s" iconColor={theme.colorPrimary} />
   );
   const labelType = isPublished ? 'success' : 'primary';
 

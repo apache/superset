@@ -65,17 +65,17 @@ const MENUS = [
   {
     key: 'refresh-table',
     label: t('Refresh table schema'),
-    icon: <i aria-hidden className="fa fa-refresh" />,
+    icon: <Icons.SyncOutlined iconSize="s" aria-hidden />,
   },
   {
     key: 'copy-select-statement',
     label: t('Copy SELECT statement'),
-    icon: <i aria-hidden className="fa fa-clipboard m-l-2" />,
+    icon: <Icons.CopyOutlined iconSize="s" aria-hidden />,
   },
   {
     key: 'show-create-view-statement',
     label: t('Show CREATE VIEW statement'),
-    icon: <i aria-hidden className="fa fa-eye" />,
+    icon: <Icons.EyeOutlined iconSize="s" aria-hidden />,
   },
 ];
 const TAB_HEADER_HEIGHT = 80;
@@ -104,7 +104,7 @@ const renderWell = (partitions: TableMetaData['partitions']) => {
         text={partitionQuery}
         shouldShowText={false}
         tooltipText={tt}
-        copyNode={<i className="fa fa-clipboard" />}
+        copyNode={<Icons.CopyOutlined iconSize="s" />}
       />
     );
   }
@@ -306,7 +306,7 @@ const TablePreview: FC<Props> = ({ dbId, catalog, schema, tableName }) => {
         )}
       </div>
       <Title>
-        <Icons.Table iconSize="l" />
+        <Icons.InsertRowAboveOutlined iconSize="l" />
         {tableName}
         <Dropdown
           dropdownRender={() => (
