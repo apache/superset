@@ -21,11 +21,12 @@ from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
-from superset import app
-from superset.common.chart_data import ChartDataResultType
+from superset import app, feature_flag_manager
+from superset.common.chart_data import ChartDataResultType, ChartDataResultLocation
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import BaseDatasource
 from superset.exceptions import QueryObjectValidationError
+from superset.utils.aws import generate_presigned_url
 from superset.utils.core import (
     extract_column_dtype,
     extract_dataframe_dtypes,
@@ -101,6 +102,15 @@ def _get_full(
     datasource = _get_datasource(query_context, query_obj)
     result_type = query_obj.result_type or query_context.result_type
     payload = query_context.get_df_payload(query_obj, force_cached=force_cached)
+    presigned_output_location = None
+
+    if datasource.database.db_engine_spec.supports_remote_download(query_context.result_location):
+        # Generate presigned URL for output CSV
+        presigned_output_location = generate_presigned_url(payload["output_location"])
+        return {
+            "output_location": presigned_output_location,
+        }
+    
     df = payload["df"]
     status = payload["status"]
     if status != QueryStatus.FAILED:
@@ -109,6 +119,7 @@ def _get_full(
         payload["coltypes"] = extract_dataframe_dtypes(df, datasource)
         payload["data"] = query_context.get_data(df, payload["coltypes"])
         payload["result_format"] = query_context.result_format
+        payload["output_location"] = presigned_output_location
     del payload["df"]
 
     applied_time_columns, rejected_time_columns = get_time_filter_status(
