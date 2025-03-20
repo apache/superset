@@ -28,7 +28,7 @@ const StyledTabs = styled(Tabs)`
   padding-left: ${theme.sizeUnit * 4}px;
   padding-right: ${theme.sizeUnit * 4}px;
 
-  .ant-tabs-nav::before {
+  .antd5-tabs-nav::before {
     width: ${theme.sizeUnit * 50}px;
   }
   `}
@@ -63,7 +63,6 @@ const EditPage = ({ id }: EditPageProps) => {
     </TabStyles>
   );
 
-  // Create items array for antd v5 Tabs
   const items = [
     {
       key: '1',

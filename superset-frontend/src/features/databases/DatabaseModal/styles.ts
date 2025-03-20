@@ -108,13 +108,13 @@ export const antdCollapseStyles = (theme: SupersetTheme) => css`
 `;
 
 export const antDTabsStyles = css`
-  .ant-tabs-top {
+  .antd5-tabs-top {
     margin-top: 0;
   }
-  .ant-tabs-top > .ant-tabs-nav {
+  .antd5-tabs-top > .ant-tabs-nav {
     margin-bottom: 0;
   }
-  .ant-tabs-tab {
+  .antd5-tabs-tab {
     margin-right: 0;
   }
 `;

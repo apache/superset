@@ -26,15 +26,15 @@ const Wrapper = styled.div`
   flex-direction: column;
   height: 100%;
 
-  .ant-tabs {
+  .antd5-tabs {
     height: 100%;
   }
 
-  .ant-tabs-content {
+  .antd5-tabs-content {
     height: 100%;
   }
 
-  .ant-tabs-tabpane {
+  .antd5-tabs-tabpane {
     display: flex;
     flex-direction: column;
   }
@@ -71,28 +71,15 @@ export const ResultsPaneOnDashboard = ({
     return <Wrapper>{resultsPanes[0]}</Wrapper>;
   }
 
-  const panes = resultsPanes.map((pane, idx) => {
-    if (idx === 0) {
-      return (
-        <Tabs.TabPane tab={t('Results')} key={ResultTypes.Results}>
-          {pane}
-        </Tabs.TabPane>
-      );
-    }
-
-    return (
-      <Tabs.TabPane
-        tab={t('Results %s', idx + 1)}
-        key={`${ResultTypes.Results} ${idx + 1}`}
-      >
-        {pane}
-      </Tabs.TabPane>
-    );
-  });
+  const items = resultsPanes.map((pane, idx) => ({
+    key: idx === 0 ? ResultTypes.Results : `${ResultTypes.Results} ${idx + 1}`,
+    label: idx === 0 ? t('Results') : t('Results %s', idx + 1),
+    children: pane,
+  }));
 
   return (
     <Wrapper>
-      <Tabs fullWidth={false}>{panes}</Tabs>
+      <Tabs fullWidth={false} items={items} />
     </Wrapper>
   );
 };

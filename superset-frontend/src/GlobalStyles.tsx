@@ -66,15 +66,15 @@ export const GlobalStyles = () => (
         & .btn-group > .btn {
           padding: 5px 10px 6px;
         }
-        && .ant-tabs {
+        && .antd5-tabs {
           margin-top: ${theme.sizeUnit * -3}px;
         }
-        & .ant-tabs-nav {
+        & .antd5-tabs-nav {
           margin-left: ${theme.sizeUnit * -4}px;
           margin-right: ${theme.sizeUnit * -4}px;
           margin-bottom: ${theme.sizeUnit * 2}px;
         }
-        && .ant-tabs-tab {
+        && .antd5-tabs-tab {
           flex: 1;
           margin-right: 0;
         }

@@ -72,19 +72,17 @@ export default function ColumnConfigPopover({
     ];
 
   if (isTabLayoutItem(layout[0])) {
-    return (
-      <Tabs centered>
-        {layout.map((item, i) =>
-          isTabLayoutItem(item) ? (
-            <Tabs.TabPane tab={item.tab} key={i}>
-              <ControlForm onChange={onChange} value={column.config}>
-                {item.children.map((row, i) => renderRow(row, i))}
-              </ControlForm>
-            </Tabs.TabPane>
-          ) : null,
-        )}
-      </Tabs>
-    );
+    const items = layout.filter(isTabLayoutItem).map((item, i) => ({
+      key: i.toString(),
+      label: item.tab,
+      children: (
+        <ControlForm onChange={onChange} value={column.config}>
+          {item.children.map((row, i) => renderRow(row, i))}
+        </ControlForm>
+      ),
+    }));
+
+    return <Tabs centered items={items} />;
   }
   return (
     <ControlForm onChange={onChange} value={column.config}>

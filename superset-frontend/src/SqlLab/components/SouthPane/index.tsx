@@ -83,7 +83,6 @@ const SouthPane = ({
     }),
     shallowEqual,
   );
-  console.log('SouthPane -> tables', tables);
   const activeSouthPaneTab =
     useSelector<SqlLabRootState, string>(
       state => state.sqlLab.activeSouthPaneTab as string,

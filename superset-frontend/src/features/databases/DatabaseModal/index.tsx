@@ -116,12 +116,12 @@ const engineSpecificAlertMapping = {
 };
 
 const TabsStyled = styled(Tabs)`
-  .ant-tabs-content {
+  .antd5-tabs-content {
     display: flex;
     width: 100%;
     overflow: inherit;
 
-    & > .ant-tabs-tabpane {
+    & > .antd5-tabs-tabpane {
       position: relative;
     }
   }
