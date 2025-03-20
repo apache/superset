@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Row, Col } from 'antd-v5';
-import useBreakpoint from 'antd-v5/es/grid/hooks/useBreakpoint';
+import { Row, Col, Grid as AntdGrid } from 'antd-v5';
 import type { ColProps, ColSize } from 'antd-v5/es/col';
 import type { RowProps } from 'antd-v5/es/row';
 
 export type { ColProps, ColSize, RowProps };
 
 export { Row, Col };
-
-const Grid = { useBreakpoint };
-export default Grid;
+export default AntdGrid;
