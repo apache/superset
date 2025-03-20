@@ -1,3 +1,0 @@
-This package will contain the following:
-- bundler
-- test host
