@@ -511,29 +511,29 @@ describe('Drill by modal', () => {
 
     it('Line chart', () => {
       testEchart('echarts_timeseries_line', 'Line Chart', [
-        [70, 93],
-        [70, 93],
+        [85, 93],
+        [85, 93],
       ]);
     });
 
     it('Area Chart', () => {
       testEchart('echarts_area', 'Area Chart', [
-        [70, 93],
-        [70, 93],
+        [85, 93],
+        [85, 93],
       ]);
     });
 
     it('Scatter Chart', () => {
       testEchart('echarts_timeseries_scatter', 'Scatter Chart', [
-        [70, 93],
-        [70, 93],
+        [85, 93],
+        [85, 93],
       ]);
     });
 
     it('Bar Chart', () => {
       testEchart('echarts_timeseries_bar', 'Bar Chart', [
-        [70, 94],
-        [362, 68],
+        [85, 94],
+        [490, 68],
       ]);
     });
 
@@ -566,22 +566,22 @@ describe('Drill by modal', () => {
 
     it('Generic Chart', () => {
       testEchart('echarts_timeseries', 'Generic Chart', [
-        [70, 93],
-        [70, 93],
+        [85, 93],
+        [85, 93],
       ]);
     });
 
     it('Smooth Line Chart', () => {
       testEchart('echarts_timeseries_smooth', 'Smooth Line Chart', [
-        [70, 93],
-        [70, 93],
+        [85, 93],
+        [85, 93],
       ]);
     });
 
     it('Step Line Chart', () => {
       testEchart('echarts_timeseries_step', 'Step Line Chart', [
-        [70, 93],
-        [70, 93],
+        [85, 93],
+        [85, 93],
       ]);
     });
 
@@ -617,8 +617,8 @@ describe('Drill by modal', () => {
       cy.get('[data-test-viz-type="mixed_timeseries"] canvas').then($canvas => {
         // click 'boy'
         cy.wrap($canvas).scrollIntoView();
-        cy.wrap($canvas).trigger('mouseover', 70, 93);
-        cy.wrap($canvas).rightclick(70, 93);
+        cy.wrap($canvas).trigger('mouseover', 85, 93);
+        cy.wrap($canvas).rightclick(85, 93);
 
         drillBy('name').then(intercepted => {
           const { queries } = intercepted.request.body;
@@ -651,8 +651,8 @@ describe('Drill by modal', () => {
         cy.get(`[data-test="drill-by-chart"] canvas`).then($canvas => {
           // click second query
           cy.wrap($canvas).scrollIntoView();
-          cy.wrap($canvas).trigger('mouseover', 246, 114);
-          cy.wrap($canvas).rightclick(246, 114);
+          cy.wrap($canvas).trigger('mouseover', 261, 114);
+          cy.wrap($canvas).rightclick(261, 114);
 
           drillBy('ds').then(intercepted => {
             const { queries } = intercepted.request.body;
