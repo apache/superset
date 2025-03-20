@@ -87,16 +87,20 @@ const renderMenu = ({
   );
 
 const expectDrillByDisabled = async (tooltipContent: string) => {
-  const drillByMenuItem = screen.getByRole('menuitem', {
-    name: 'Drill by',
-  });
+  const drillByMenuItem = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill by'));
 
+  expect(drillByMenuItem).toBeDefined();
   expect(drillByMenuItem).toBeVisible();
   expect(drillByMenuItem).toHaveAttribute('aria-disabled', 'true');
-  const tooltipTrigger = within(drillByMenuItem).getByTestId('tooltip-trigger');
-  userEvent.hover(tooltipTrigger as HTMLElement);
-  const tooltip = await screen.findByRole('tooltip', { name: tooltipContent });
 
+  const tooltipTrigger = within(drillByMenuItem!).getByTestId(
+    'tooltip-trigger',
+  );
+  userEvent.hover(tooltipTrigger as HTMLElement);
+
+  const tooltip = await screen.findByRole('tooltip', { name: tooltipContent });
   expect(tooltip).toBeInTheDocument();
 };
 

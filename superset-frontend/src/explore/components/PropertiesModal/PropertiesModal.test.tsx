@@ -159,13 +159,11 @@ test('Should render when show:true', async () => {
   const props = createProps();
   renderModal(props);
 
-  // Wait for modal to be fully rendered and animated
   await waitFor(
     () => {
-      const modal = screen.getByRole('dialog', {
-        name: 'Edit Chart Properties',
-      });
+      const modal = screen.getByRole('dialog');
       expect(modal).toBeInTheDocument();
+      expect(modal).toHaveTextContent('Edit Chart Properties');
       expect(modal).not.toHaveClass('ant-zoom-appear');
     },
     { timeout: 3000 },
