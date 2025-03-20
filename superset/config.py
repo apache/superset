@@ -1624,7 +1624,7 @@ TALISMAN_CONFIG = {
             "data:",
             "https://apachesuperset.gateway.scarf.sh",
             "https://static.scarf.sh/",
-            # "https://avatars.slack-edge.com", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
+            # "https://cdn.brandfolder.io", # Uncomment when SLACK_ENABLE_AVATARS is True  # noqa: E501
             "ows.terrestris.de",
         ],
         "worker-src": ["'self'", "blob:"],
@@ -1655,7 +1655,7 @@ TALISMAN_DEV_CONFIG = {
             "data:",
             "https://apachesuperset.gateway.scarf.sh",
             "https://static.scarf.sh/",
-            "https://avatars.slack-edge.com",
+            "https://cdn.brandfolder.io",
             "ows.terrestris.de",
         ],
         "worker-src": ["'self'", "blob:"],
