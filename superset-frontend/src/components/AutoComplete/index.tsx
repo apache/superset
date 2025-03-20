@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import AutoComplete from 'antd-v5';
+import { AutoComplete } from 'antd-v5';
 import { AutoCompleteProps as AntAutoCompleteProps } from 'antd-v5/es/auto-complete';
 
 export type { AntAutoCompleteProps };
