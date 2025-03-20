@@ -874,7 +874,6 @@ const SqlEditor: FC<Props> = ({
               >
                 <Button
                   buttonSize="xsmall"
-                  type="link"
                   showMarginRight={false}
                   buttonStyle="link"
                 >

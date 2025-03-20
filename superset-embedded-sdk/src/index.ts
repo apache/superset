@@ -64,6 +64,8 @@ export type EmbedDashboardParams = {
   iframeTitle?: string
   /** additional iframe sandbox attributes ex (allow-top-navigation, allow-popups-to-escape-sandbox) **/
   iframeSandboxExtras?: string[]
+  /** force a specific refererPolicy to be used in the iframe request **/
+  referrerPolicy?: ReferrerPolicy
 }
 
 export type Size = {
@@ -88,7 +90,8 @@ export async function embedDashboard({
   dashboardUiConfig,
   debug = false,
   iframeTitle = "Embedded Dashboard",
-  iframeSandboxExtras = []
+  iframeSandboxExtras = [],
+  referrerPolicy,
 }: EmbedDashboardParams): Promise<EmbeddedDashboard> {
   function log(...info: unknown[]) {
     if (debug) {
@@ -142,6 +145,10 @@ export async function embedDashboard({
       iframeSandboxExtras.forEach((key: string) => {
         iframe.sandbox.add(key);
       });
+      // force a specific refererPolicy to be used in the iframe request
+      if(referrerPolicy) {
+        iframe.referrerPolicy = referrerPolicy;
+      }
 
       // add the event listener before setting src, to be 100% sure that we capture the load event
       iframe.addEventListener('load', () => {

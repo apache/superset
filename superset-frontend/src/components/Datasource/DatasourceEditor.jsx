@@ -715,7 +715,11 @@ class DatasourceEditor extends PureComponent {
         newCols,
         this.props.addSuccessToast,
       );
-      this.setColumns({ databaseColumns: columnChanges.finalColumns });
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
@@ -1388,7 +1392,6 @@ class DatasourceEditor extends PureComponent {
                 <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
-                    buttonStyle="tertiary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"
                     disabled={this.state.isEditMode}

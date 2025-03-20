@@ -268,7 +268,7 @@ const FilterBarSettings = () => {
         trigger={['click']}
       >
         <Button
-          type="link"
+          buttonStyle="link"
           css={css`
             padding: 0;
           `}

@@ -28,8 +28,10 @@ import {
 } from 'react';
 import { merge } from 'lodash';
 
+import { useSelector } from 'react-redux';
+
 import { styled, themeObject } from '@superset-ui/core';
-import { use, init, EChartsType } from 'echarts/core';
+import { use, init, EChartsType, registerLocale } from 'echarts/core';
 import {
   SankeyChart,
   PieChart,
@@ -61,6 +63,15 @@ import {
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
 import { EchartsHandler, EchartsProps, EchartsStylesProps } from '../types';
+import { DEFAULT_LOCALE } from '../constants';
+
+// Define this interface here to avoid creating a dependency back to superset-frontend,
+// TODO: to move the type to @superset-ui/core
+interface ExplorePageState {
+  common: {
+    locale: string;
+  };
+}
 
 const Styles = styled.div<EchartsStylesProps>`
   height: ${({ height }) => height};
@@ -164,28 +175,57 @@ function Echart(
     getEchartInstance: () => chartRef.current,
   }));
 
+  const locale = useSelector(
+    (state: ExplorePageState) => state?.common?.locale ?? DEFAULT_LOCALE,
+  ).toUpperCase();
+
+  const handleSizeChange = useCallback(
+    ({ width, height }: { width: number; height: number }) => {
+      if (chartRef.current) {
+        chartRef.current.resize({ width, height });
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (!divRef.current) return;
-    if (!chartRef.current) {
-      chartRef.current = init(divRef.current);
-    }
+    const loadLocaleAndInitChart = async () => {
+      if (!divRef.current) return;
 
-    Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
-      chartRef.current?.off(name);
-      chartRef.current?.on(name, handler);
-    });
+      const lang = await import(`echarts/lib/i18n/lang${locale}`).catch(e => {
+        console.error(`Locale ${locale} not supported in ECharts`, e);
+      });
+      if (lang?.default) {
+        registerLocale(locale, lang.default);
+      }
 
-    Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
-      chartRef.current?.getZr().off(name);
-      chartRef.current?.getZr().on(name, handler);
-    });
-    const themedEchartOptions = merge(
-      {},
-      getTheme(echartOptions),
-      echartOptions,
-    );
-    chartRef.current.setOption(themedEchartOptions, true);
-  }, [echartOptions, eventHandlers, zrEventHandlers]);
+      if (!chartRef.current) {
+        chartRef.current = init(divRef.current, null, { locale });
+      }
+
+      Object.entries(eventHandlers || {}).forEach(([name, handler]) => {
+        chartRef.current?.off(name);
+        chartRef.current?.on(name, handler);
+      });
+
+      Object.entries(zrEventHandlers || {}).forEach(([name, handler]) => {
+        chartRef.current?.getZr().off(name);
+        chartRef.current?.getZr().on(name, handler);
+      });
+
+      const themedEchartOptions = merge(
+        {},
+        getTheme(echartOptions),
+        echartOptions,
+      );
+      chartRef.current.setOption(themedEchartOptions, true);
+
+      // did mount
+      handleSizeChange({ width, height });
+    };
+
+    loadLocaleAndInitChart();
+  }, [echartOptions, eventHandlers, zrEventHandlers, locale]);
 
   // highlighting
   useEffect(() => {
@@ -203,22 +243,7 @@ function Echart(
       });
     }
     previousSelection.current = currentSelection;
-  }, [currentSelection]);
-
-  const handleSizeChange = useCallback(
-    ({ width, height }: { width: number; height: number }) => {
-      if (chartRef.current) {
-        chartRef.current.resize({ width, height });
-      }
-    },
-    [],
-  );
-
-  // did mount
-  useEffect(() => {
-    handleSizeChange({ width, height });
-    return () => chartRef.current?.dispose();
-  }, []);
+  }, [currentSelection, chartRef.current]);
 
   useLayoutEffect(() => {
     handleSizeChange({ width, height });
