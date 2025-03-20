@@ -51,28 +51,20 @@ export const LayoutStory: Story = {
     hasSider: true,
   },
   render: args => {
-    const theme: 'light' | 'dark' = 'dark';
-    const collapsible = true;
-    const collapsedWidth = 80;
-    const width = 200;
-    const reverseArrow = false;
-    const breakpoint: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' = 'md';
-    const headerVisible = true;
-    const footerVisible = true;
-    const [collapsed, setCollapsed] = useState(false); // Solo questa rimane con useState
+    const [collapsed, setCollapsed] = useState(false);
 
     return (
       <Layout style={{ minHeight: '100vh' }}>
         {args.hasSider && (
           <Sider
-            collapsible={collapsible}
+            collapsible
             collapsed={collapsed}
             onCollapse={setCollapsed}
-            theme={theme}
-            width={width}
-            collapsedWidth={collapsedWidth}
-            reverseArrow={reverseArrow}
-            breakpoint={breakpoint}
+            theme="dark"
+            width="200"
+            collapsedWidth="80"
+            reverseArrow={false}
+            breakpoint="md"
           >
             <div
               className="logo"
@@ -93,17 +85,15 @@ export const LayoutStory: Story = {
           </Sider>
         )}
         <Layout>
-          {headerVisible && (
-            <Header
-              style={{
-                background: '#fff',
-                padding: '0 16px',
-                textAlign: 'center',
-              }}
-            >
-              Header
-            </Header>
-          )}
+          <Header
+            style={{
+              background: '#fff',
+              padding: '0 16px',
+              textAlign: 'center',
+            }}
+          >
+            Header
+          </Header>
           <Content
             style={{
               margin: '16px',
@@ -114,11 +104,9 @@ export const LayoutStory: Story = {
           >
             Content Area
           </Content>
-          {footerVisible && (
-            <Footer style={{ textAlign: 'center' }}>
-              Ant Design Layout Footer
-            </Footer>
-          )}
+          <Footer style={{ textAlign: 'center' }}>
+            Ant Design Layout Footer
+          </Footer>
         </Layout>
       </Layout>
     );
