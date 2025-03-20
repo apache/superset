@@ -137,6 +137,9 @@ const StyledButtonWrapper = styled.span`
   ${({ theme }) => `
     margin-top: ${theme.gridUnit * 3}px;
     margin-left: ${theme.gridUnit * 3}px;
+    button>span>:first-of-type {
+      margin-right: 0;
+    }
   `}
 `;
 
@@ -712,7 +715,11 @@ class DatasourceEditor extends PureComponent {
         newCols,
         this.props.addSuccessToast,
       );
-      this.setColumns({ databaseColumns: columnChanges.finalColumns });
+      this.setColumns({
+        databaseColumns: columnChanges.finalColumns.filter(
+          col => !col.expression, // remove calculated columns
+        ),
+      });
       this.props.addSuccessToast(t('Metadata has been synced'));
       this.setState({ metadataLoading: false });
     } catch (error) {
@@ -964,16 +971,26 @@ class DatasourceEditor extends PureComponent {
     );
   }
 
-  renderSourceFieldset(theme) {
+  renderSourceFieldset() {
     const { datasource } = this.state;
     return (
       <div>
         <EditLockContainer>
           <span role="button" tabIndex={0} onClick={this.onChangeEditMode}>
             {this.state.isEditMode ? (
-              <Icons.LockUnlocked iconColor={theme.colors.grayscale.base} />
+              <Icons.UnlockOutlined
+                iconSize="xl"
+                css={theme => css`
+                  margin: auto ${theme.gridUnit}px auto 0;
+                `}
+              />
             ) : (
-              <Icons.LockLocked iconColor={theme.colors.grayscale.base} />
+              <Icons.LockOutlined
+                iconSize="xl"
+                css={theme => ({
+                  margin: `auto ${theme.gridUnit}px auto 0`,
+                })}
+              />
             )}
           </span>
           {!this.state.isEditMode && (
@@ -1380,9 +1397,7 @@ class DatasourceEditor extends PureComponent {
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
                   >
-                    {/* TODO: Remove fa-icon */}
-                    {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                    <i className="fa fa-database" />{' '}
+                    <Icons.DatabaseOutlined iconSize="m" />
                     {t('Sync columns from source')}
                   </Button>
                 </StyledButtonWrapper>

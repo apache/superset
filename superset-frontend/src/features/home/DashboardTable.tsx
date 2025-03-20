@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { SupersetClient, t, useTheme } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -40,6 +40,7 @@ import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import DashboardCard from 'src/features/dashboards/DashboardCard';
+import Icons from 'src/components/Icons';
 import EmptyState from './EmptyState';
 import SubMenu from './SubMenu';
 import { WelcomeTable } from './types';
@@ -54,6 +55,7 @@ function DashboardTable({
   otherTabFilters,
   otherTabTitle,
 }: DashboardTableProps) {
+  const theme = useTheme();
   const history = useHistory();
   const defaultTab = getItem(
     LocalStorageKeys.HomepageDashboardFilter,
@@ -186,9 +188,10 @@ function DashboardTable({
           {
             name: (
               <>
-                {/* TODO: Remove fa-icon */}
-                {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-                <i className="fa fa-plus" />
+                <Icons.PlusOutlined
+                  iconColor={theme.colors.primary.dark1}
+                  iconSize="m"
+                />
                 {t('Dashboard')}
               </>
             ),

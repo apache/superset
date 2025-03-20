@@ -635,10 +635,13 @@ function ExploreViewContainer(props) {
               className="action-button"
               onClick={toggleCollapse}
             >
-              <Icons.Expand
+              <Icons.VerticalAlignTopOutlined
+                iconSize="xl"
+                css={css`
+                  transform: rotate(-90deg);
+                `}
                 className="collapse-icon"
                 iconColor={theme.colors.primary.base}
-                iconSize="l"
               />
             </span>
           </div>
@@ -661,10 +664,13 @@ function ExploreViewContainer(props) {
           >
             <span role="button" tabIndex={0} className="action-button">
               <Tooltip title={t('Open Datasource tab')}>
-                <Icons.Collapse
+                <Icons.VerticalAlignTopOutlined
+                  iconSize="xl"
+                  css={css`
+                    transform: rotate(90deg);
+                  `}
                   className="collapse-icon"
                   iconColor={theme.colors.primary.base}
-                  iconSize="l"
                 />
               </Tooltip>
             </span>
