@@ -111,7 +111,7 @@ export default function transformProps(
     timestamp = sortedData[0][0];
 
     const metricValues: number[] = sortedData
-      .map(d => d[1])
+      .map(([, metricValue]) => metricValue)
       .filter((value): value is number => value !== null);
 
     if (metricValues.length > 0) {
