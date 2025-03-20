@@ -199,7 +199,10 @@ export default function transformProps(
       symbol,
       roam,
       symbolSize,
-      lineStyle: DEFAULT_TREE_SERIES_OPTION.lineStyle,
+      lineStyle: {
+        color: theme.colorText,
+        width: 1.5,
+      },
       select: DEFAULT_TREE_SERIES_OPTION.select,
       leaves: { label: { position: childLabelPosition } },
     },

@@ -163,6 +163,11 @@ export default function transformProps(
   const metricLabel = getMetricLabel(metric);
   const groupbyLabels = groupby.map(getColumnLabel);
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
+  const labelProps = {
+    color: theme.colorText,
+    borderColor: theme.colorBgBase,
+    borderWidth: 1,
+  };
   const traverse = (treeNodes: TreeNode[], path: string[]) =>
     treeNodes.map(treeNode => {
       const { name: nodeName, value, groupBy } = treeNode;
@@ -201,9 +206,12 @@ export default function transformProps(
             ...item,
             itemStyle: {
               colorAlpha: OpacityEnum.SemiTransparent,
+              color: theme.colorText,
+              borderColor: theme.colorBgBase,
+              borderWidth: 2,
             },
             label: {
-              color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
+              ...labelProps,
             },
           };
         }
@@ -256,18 +264,20 @@ export default function transformProps(
       },
       emphasis: {
         label: {
+          ...labelProps,
           show: true,
         },
       },
       levels,
       label: {
+        ...labelProps,
         show: showLabels,
         position: labelPosition,
         formatter,
-        color: theme.colors.grayscale.dark2,
         fontSize: LABEL_FONTSIZE,
       },
       upperLabel: {
+        ...labelProps,
         show: showUpperLabels,
         formatter,
         textBorderColor: 'transparent',
@@ -290,7 +300,6 @@ export default function transformProps(
     },
     series,
   };
-
   return {
     formData,
     width,

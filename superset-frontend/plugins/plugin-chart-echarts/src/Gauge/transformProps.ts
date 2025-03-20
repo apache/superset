@@ -183,6 +183,7 @@ export default function transformProps(
             `${index * titleOffsetFromTitle + OFFSETS.titleFromCenter}%`,
           ],
           fontSize,
+          color: theme.colorTextSecondary,
         },
         detail: {
           offsetCenter: [
