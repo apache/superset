@@ -20,6 +20,7 @@ from typing import Any, Optional
 from unittest.mock import Mock
 
 import pytest
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import (
     Boolean,
     Date,
@@ -225,3 +226,26 @@ def test_connect_make_label_compatible(column_name: str, expected_result: str) -
 
     label = spec.make_label_compatible(column_name)
     assert label == expected_result
+
+
+@pytest.mark.parametrize(
+    "schema, expected_result",
+    [
+        (None, "clickhousedb+connect://localhost:443/__default__"),
+        (
+            "new_schema",
+            "clickhousedb+connect://localhost:443/new_schema",
+        ),
+    ],
+)
+def test_adjust_engine_params_fully_qualified(
+    schema: str, expected_result: str
+) -> None:
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec as spec,  # noqa: N813
+    )
+
+    url = make_url("clickhousedb+connect://localhost:443/__default__")
+
+    uri = spec.adjust_engine_params(url, {}, None, schema)[0]
+    assert str(uri) == expected_result
