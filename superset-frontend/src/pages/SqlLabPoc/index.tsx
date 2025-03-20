@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import { CSSObject } from '@emotion/react';
-import { css, styled, SupersetClient } from '@superset-ui/core';
+import { css, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
+import useExtensions, { ResolvedModule } from 'src/hooks/useExtensions';
 
 const PlaceholderStyles: CSSObject = css`
   flex: 1;
@@ -87,81 +87,20 @@ const RightPanel = () => (
   </div>
 );
 
-interface Extension {
-  scope: string;
-  exposedModules: string[];
-  remoteEntry: string;
-}
-
-const loadExtension = async ({
-  scope,
-  exposedModules,
-  remoteEntry,
-}: Extension) => {
-  await new Promise<void>((resolve, reject) => {
-    const element = document.createElement('script');
-    element.src = remoteEntry;
-    element.type = 'text/javascript';
-    element.async = true;
-    element.onload = () => {
-      resolve();
-    };
-    element.onerror = () => {
-      reject(new Error(`Failed to load ${remoteEntry}`));
-    };
-    document.head.appendChild(element);
-  });
-
-  // @ts-ignore
-  await __webpack_init_sharing__('default');
-  const container = (window as any)[scope];
-
-  // @ts-ignore
-  await container.init(__webpack_share_scopes__.default);
-
-  return exposedModules.map(async module => {
-    const factory = await container.get(module);
-    const Module = factory();
-    return Module;
-  });
-};
-
 const SqlLabPoc = () => {
-  const [extensions, setExtensions] = useState<React.ReactElement[]>([]);
-
-  useEffect(() => {
-    const fetchExtensions = async () => {
-      try {
-        const response = await SupersetClient.get({
-          endpoint: '/api/v1/extensions/',
-        });
-        const extensions: Extension[] = response.json.result;
-        const loadedExtensionsArray = await Promise.all(
-          extensions.map(async extension => {
-            const Modules = await loadExtension(extension);
-            const resolvedModules = await Promise.all(
-              Modules.map(Module => Module),
-            );
-            return resolvedModules.map(resolvedModule => {
-              const ExtensionComponent = resolvedModule.default;
-              return <ExtensionComponent />;
-            });
-          }),
-        );
-
-        setExtensions(loadedExtensionsArray.flat());
-      } catch (error) {
-        console.error('Failed to load extensions:', error);
-      }
-    };
-
-    fetchExtensions();
-  }, []);
+  const extensions = useExtensions();
+  const elements = extensions.map(
+    (extension: ResolvedModule, index: number) => {
+      const Module = extension.default;
+      // TODO: Get key from metadata
+      return <Module key={`extension${index}`} />;
+    },
+  );
 
   return (
     <MainPanel>
       <Toolbar />
-      <LeftPanel extensions={extensions} />
+      <LeftPanel extensions={elements} />
       <CenterPanel>
         <CenterTopPanel />
         <CenterBottomPanel />
