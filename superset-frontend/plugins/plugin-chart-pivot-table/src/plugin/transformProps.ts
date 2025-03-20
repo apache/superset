@@ -100,7 +100,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
     conditionalFormatting,
     timeGrainSqla,
     currencyFormat,
-    columnConfig, // DODO added 45525377
+    columnConfig = {}, // DODO added 45525377
   } = formData;
   const { selectedFilters } = filterState;
   const granularity = extractTimegrain(rawFormData);
