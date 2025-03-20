@@ -1276,7 +1276,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         label: item[columnName],
       }));
 
-      console.log('setting filter values', nativeFilterData);
       setNativeFilterData(
         nativeFilterData.map((filter, index) =>
           index === idx
@@ -1491,8 +1490,11 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   useEffect(() => {
     if (resource) {
       // Add native filter settings
-      // @ts-ignore
-      setNativeFilterData(resource.extra?.dashboard.nativeFilters);
+
+      if (resource.extra?.dashboard?.nativeFilters) {
+        // @ts-ignore
+        setNativeFilterData(resource.extra?.dashboard?.nativeFilters);
+      }
 
       // Add notification settings
       const settings = (resource.recipients || []).map(setting => {
