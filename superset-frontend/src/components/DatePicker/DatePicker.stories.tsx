@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatePickerProps } from 'antd-v5';
-import { RangePickerProps } from 'antd-v5/lib/date-picker';
+import { RangePickerProps } from 'antd-v5/es/date-picker';
 import { DatePicker, RangePicker } from '.';
 
 export default {

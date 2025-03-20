@@ -24,7 +24,7 @@
  */
 
 import { Space as AntdSpace } from 'antd-v5';
-import type { SpaceProps } from 'antd-v5/lib/space';
+import type { SpaceProps } from 'antd-v5/es/space';
 
 export function Space(props: SpaceProps) {
   return <AntdSpace {...props} />;

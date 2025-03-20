@@ -17,8 +17,8 @@
  * under the License.
  */
 
-import { InputProps, TextAreaProps } from 'antd-v5/lib/input';
-import { InputNumberProps } from 'antd-v5/lib/input-number';
+import { InputProps, TextAreaProps } from 'antd-v5/es/input';
+import { InputNumberProps } from 'antd-v5/es/input-number';
 import { Input, InputNumber } from '.';
 
 export default {

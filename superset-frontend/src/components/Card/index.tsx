@@ -18,7 +18,7 @@
  */
 import { SupersetTheme } from '@superset-ui/core';
 import { Card as AntdCard } from 'antd-v5';
-import { CardProps as AntdCardProps } from 'antd-v5/lib/card';
+import { CardProps as AntdCardProps } from 'antd-v5/es/card';
 
 export interface CardProps extends AntdCardProps {
   padded?: boolean;

@@ -21,7 +21,7 @@ import type {
   RadioChangeEvent,
   RadioProps,
   RadioGroupProps,
-} from 'antd-v5/lib/radio';
+} from 'antd-v5/es/radio';
 
 import { Space, SpaceProps } from 'src/components/Space';
 

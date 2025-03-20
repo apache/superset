@@ -17,8 +17,8 @@
  * under the License.
  */
 import Tree from 'antd-v5';
-import type { TreeProps, DataNode as TreeDataNode } from 'antd-v5/lib/tree';
-import DirectoryTree from 'antd-v5/lib/tree/DirectoryTree';
+import type { TreeProps, DataNode as TreeDataNode } from 'antd-v5/es/tree';
+import DirectoryTree from 'antd-v5/es/tree/DirectoryTree';
 
 export type { TreeProps };
 export { TreeDataNode, DirectoryTree };

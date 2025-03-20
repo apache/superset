@@ -18,7 +18,7 @@
  */
 
 import { Divider as AntdDivider } from 'antd-v5';
-import type { DividerProps } from 'antd-v5/lib/divider';
+import type { DividerProps } from 'antd-v5/es/divider';
 
 export function Divider(props: DividerProps) {
   return <AntdDivider {...props} />;

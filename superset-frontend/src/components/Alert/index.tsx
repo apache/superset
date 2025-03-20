@@ -18,7 +18,7 @@
  */
 import { PropsWithChildren } from 'react';
 import { Alert as AntdAlert } from 'antd-v5';
-import { AlertProps as AntdAlertProps } from 'antd-v5/lib/alert';
+import { AlertProps as AntdAlertProps } from 'antd-v5/es/alert';
 
 export type AlertProps = PropsWithChildren<
   Omit<AntdAlertProps, 'children'> & { roomBelow?: boolean }
