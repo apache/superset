@@ -16,24 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// TODO: Check if this interface is needed
-export interface LocalizedString {
-  /**
-   * The localized value of the string.
-   */
-  value: string;
 
-  /**
-   * The original (non localized value of the string)
-   */
-  original: string;
-}
-
-export interface ICommand {
+export interface Command {
   command: string;
-  title: string | LocalizedString;
-  // TODO: Given that we don't have the command pallete, we might not need the category
-  category?: string | LocalizedString;
+  title: string;
 }
 
 export interface Menu {
@@ -54,10 +40,9 @@ export interface View {
   name: string;
 }
 
-// TODO: Check if we will use the I prefix
 // Inpired by https://github.com/microsoft/vscode/blob/3e141e276d4ac2ddb19916b66e7c8815af1b2a1f/src/vs/platform/extensions/common/extensions.ts#L187
 export interface Contributions {
-  commands?: ICommand[];
+  commands?: Command[];
   menus?: { [context: string]: Menu[] };
 
   // TODO: VSCode supports multiple view containers locations. We could restrict only to the activity bar.
@@ -66,3 +51,47 @@ export interface Contributions {
   // TODO: Location might be a view container (left side bar), editors, panels, right side bar
   views?: { [location: string]: View[] };
 }
+
+/*
+  We only allow to contribute viewContainers to the activity bar in SQL Lab.
+
+  The built-in SQL Lab view containers are:
+    "sqllab.activityBar",
+    "sqllab.panels",
+    "sqllab.rightSideBar",
+
+    // TODO Need to think how to contribute an editor and the interfaces to exchange messages with the host
+
+  "contributes": {
+    "viewsContainers": {
+      "sqllab.activityBar": [
+        // custom view container
+        {
+          "id": "myCustomContainer",
+          "title": "My Custom Container",
+          "icon": "resources/custom-container.svg"
+        },
+      ],
+    },
+    "views": {
+      "myCustomContainer": [
+        {
+          "id": "myView",
+          "name": "My View"
+        },
+      ],
+      "sqllab.panels": [
+        {
+          "id": "myView",
+          "name": "My View"
+        },
+      ],
+      "sqllab.rightSideBar": [
+       {
+          "id": "myView",
+          "name": "My View"
+        },
+      ]
+    }
+  }
+*/
