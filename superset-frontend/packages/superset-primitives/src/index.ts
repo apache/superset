@@ -17,5 +17,5 @@
  * under the License.
  */
 export * from './components/Avatar';
-export * from './extensions/contributions';
+export * from './extensions/contributions/types';
 export * from './extensions/core';
