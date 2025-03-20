@@ -17,6 +17,7 @@
 # pylint: disable=invalid-name, unused-argument
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 import pytest
@@ -38,6 +39,7 @@ from superset.jinja_context import (
     metric_macro,
     safe_proxy,
     TimeFilter,
+    to_datetime,
     WhereInMacro,
 )
 from superset.models.core import Database
@@ -427,6 +429,54 @@ def test_where_in_empty_list() -> None:
     assert where_in([]) == "()"
     # With the default_to_none parameter set to True, it should return None
     assert where_in([], default_to_none=True) is None
+
+
+def test_to_datetime() -> None:
+    """
+    Test the ``to_datetime`` Jinja2 filter.
+    """
+
+    result = to_datetime("2025-03-20 15:55:00")
+    assert result == datetime(2025, 3, 20, 15, 55)
+
+    assert to_datetime(None) is None
+
+
+def test_to_datetime_custom_format() -> None:
+    """
+    Test the ``to_datetime`` Jinja2 filter when specifying a format.
+    """
+    result = to_datetime("2025-03-20", format="%Y-%m-%d")
+    assert result == datetime(2025, 3, 20)
+
+
+def test_to_datetime_including_quotes() -> None:
+    """
+    Test the ``to_datetime`` Jinja2 when a string wrapped
+    in quotes is used.
+
+    This might happen when passing a value from a temporal macro.
+    """
+    result = to_datetime("'2025-03-20'", format="%Y-%m-%d")
+    assert result == datetime(2025, 3, 20)
+
+
+def test_to_datetime_raises() -> None:
+    """
+    Test the ``to_datetime`` Jinja2 raises with an incorrect
+    format.
+    """
+    with pytest.raises(
+        ValueError,
+        match="time data '2025-03-20' does not match format '%Y-%m-%d %H:%M:%S'",
+    ):
+        to_datetime("2025-03-20")
+
+    with pytest.raises(
+        ValueError,
+        match="unconverted data remains:  15:55:00",
+    ):
+        to_datetime("2025-03-20 15:55:00", format="%Y-%m-%d")
 
 
 def test_dataset_macro(mocker: MockerFixture) -> None:

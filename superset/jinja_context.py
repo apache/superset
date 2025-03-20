@@ -561,6 +561,24 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
         return result
 
 
+def to_datetime(
+    value: str | None, format: str = "%Y-%m-%d %H:%M:%S"
+) -> datetime | None:
+    """
+    Parses a string into a datetime object.
+
+    :param value: the string to parse.
+    :param format: the format to parse the string with.
+    :returns: the parsed datetime object.
+    """
+    if not value:
+        return None
+
+    # This value might come from a macro that could be including wrapping quotes
+    value = value.strip("'\"")
+    return datetime.strptime(value, format)
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
@@ -596,6 +614,7 @@ class BaseTemplateProcessor:
 
         # custom filters
         self.env.filters["where_in"] = WhereInMacro(database.get_dialect())
+        self.env.filters["to_datetime"] = to_datetime
 
     def set_context(self, **kwargs: Any) -> None:
         self._context.update(kwargs)
