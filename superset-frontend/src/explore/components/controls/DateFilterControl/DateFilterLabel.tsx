@@ -319,7 +319,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         )}
         {!validTimeRange && (
           <IconWrapper className="warning">
-            <Icons.ErrorSolidSmall iconColor={theme.colorError} />
+            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
@@ -351,7 +351,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   const title = (
     <IconWrapper>
-      <Icons.EditAlt iconColor={theme.colors.grayscale.base} />
+      <Icons.EditOutlined />
       <span className="text">{t('Edit time range')}</span>
     </IconWrapper>
   );

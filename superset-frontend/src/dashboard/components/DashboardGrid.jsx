@@ -17,10 +17,12 @@
  * under the License.
  */
 import { PureComponent, Fragment } from 'react';
+import { withTheme } from '@emotion/react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { addAlpha, css, styled, t } from '@superset-ui/core';
 import { EmptyState } from 'src/components/EmptyState';
+import Icons from 'src/components/Icons';
 import { componentShape } from '../util/propShapes';
 import DashboardComponent from '../containers/DashboardComponent';
 import { Droppable } from './dnd/DragDroppable';
@@ -116,7 +118,7 @@ class DashboardGrid extends PureComponent {
     this.state = {
       isResizing: false,
     };
-
+    this.theme = this;
     this.handleResizeStart = this.handleResizeStart.bind(this);
     this.handleResizeStop = this.handleResizeStop.bind(this);
     this.handleTopDropTargetDrop = this.handleTopDropTargetDrop.bind(this);
@@ -186,6 +188,7 @@ class DashboardGrid extends PureComponent {
       canEdit,
       setEditMode,
       dashboardId,
+      theme,
     } = this.props;
     const columnPlusGutterWidth =
       (width + GRID_GUTTER_SIZE) / GRID_COLUMN_COUNT;
@@ -206,9 +209,10 @@ class DashboardGrid extends PureComponent {
         size="large"
         buttonText={
           <>
-            {/* TODO: Remove fa-icon */}
-            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.light5}
+            />
             {t('Create a new chart')}
           </>
         }
@@ -232,9 +236,10 @@ class DashboardGrid extends PureComponent {
         )}
         buttonText={
           <>
-            {/* TODO: Remove fa-icon */}
-            {/* eslint-disable-next-line icons/no-fa-icons-usage */}
-            <i className="fa fa-plus" />
+            <Icons.PlusOutlined
+              iconSize="m"
+              iconColor={theme.colors.primary.light5}
+            />
             {t('Create a new chart')}
           </>
         }
@@ -355,4 +360,4 @@ class DashboardGrid extends PureComponent {
 DashboardGrid.propTypes = propTypes;
 DashboardGrid.defaultProps = defaultProps;
 
-export default DashboardGrid;
+export default withTheme(DashboardGrid);

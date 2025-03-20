@@ -43,7 +43,7 @@ test('should render', () => {
 test('should render warning icon', () => {
   render(<BasicErrorAlert {...mockedProps} />);
   expect(
-    screen.getByRole('img', { name: 'warning-solid' }),
+    screen.getByRole('img', { name: 'exclamation-circle' }),
   ).toBeInTheDocument();
 });
 
@@ -53,7 +53,9 @@ test('should render error icon', () => {
     level: 'error' as ErrorLevel,
   };
   render(<BasicErrorAlert {...errorProps} />);
-  expect(screen.getByRole('img', { name: 'error-solid' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('img', { name: 'exclamation-circle' }),
+  ).toBeInTheDocument();
 });
 
 test('should render the error title', () => {

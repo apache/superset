@@ -874,10 +874,11 @@ const SqlEditor: FC<Props> = ({
               >
                 <Button
                   buttonSize="xsmall"
-                  buttonStyle="link"
+                  type="link"
                   showMarginRight={false}
+                  buttonStyle="link"
                 >
-                  <Icons.MoreHoriz iconColor={theme.colorIcon} />
+                  <Icons.EllipsisOutlined />
                 </Button>
               </Dropdown>
             </div>

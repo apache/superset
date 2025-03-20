@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t, styled } from '@superset-ui/core';
 import Icons from 'src/components/Icons';
 import Alert from 'src/components/Alert';
 import Table, { ColumnsType, TableSize } from 'src/components/Table';
@@ -60,7 +60,7 @@ const StyledHeader = styled.div<StyledHeaderProps>`
     ${theme.sizeUnit * MARGIN_MULTIPLIER}px
     ${theme.sizeUnit * (MARGIN_MULTIPLIER + 3)}px;
   font-size: ${theme.sizeUnit * 6}px;
-  font-weight: ${theme.fontWeightMedium};
+  font-weight: ${theme.fontWeightStrong};
   padding-bottom: ${theme.sizeUnit * MARGIN_MULTIPLIER}px;
 
   white-space: nowrap;
@@ -68,11 +68,10 @@ const StyledHeader = styled.div<StyledHeaderProps>`
   text-overflow: ellipsis;
 
   .anticon:first-of-type {
-    margin-right: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 1)}px;
+    margin-right: ${theme.sizeUnit * 2}px;
+    vertical-align: text-top;
   }
 
-  .anticon:nth-of-type(2) {
-    margin-left: ${theme.sizeUnit * (MARGIN_MULTIPLIER + 1)}px;
   `}
 `;
 
@@ -152,7 +151,7 @@ const TableScrollContainer = styled.div`
 
 const StyledAlert = styled(Alert)`
   ${({ theme }) => `
-  border: 1px solid ${theme.colorInfo};
+  border: 1px solid ${theme.colors.info.base};
   padding: ${theme.sizeUnit * 4}px;
   margin: ${theme.sizeUnit * 6}px ${theme.sizeUnit * 6}px
     ${theme.sizeUnit * 8}px;
@@ -160,10 +159,9 @@ const StyledAlert = styled(Alert)`
     position: absolute;
     top: ${theme.sizeUnit * 4}px;
     right: ${theme.sizeUnit * 4}px;
-    font-weight: ${theme.fontWeightNormal};
 
     &:hover {
-      color: ${theme.colorPrimaryHover};
+      color: ${theme.colorPrimary};
       text-decoration: underline;
     }
   }
@@ -257,7 +255,6 @@ const DatasetPanel = ({
   hasError,
   datasets,
 }: IDatasetPanelProps) => {
-  const theme = useTheme();
   const hasColumns = Boolean(columnList?.length > 0);
   const datasetNames = datasets?.map(dataset => dataset.table_name);
   const tableWithDataset = datasets?.find(
@@ -333,9 +330,7 @@ const DatasetPanel = ({
             }
             title={tableName || ''}
           >
-            {tableName && (
-              <Icons.Table iconColor={theme.colors.grayscale.base} />
-            )}
+            <Icons.InsertRowAboveOutlined />
             {tableName}
           </StyledHeader>
         </>

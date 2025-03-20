@@ -357,7 +357,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
           return Promise.resolve({ data: [], totalCount: 0 });
         }
         return SupersetClient.get({
-          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/`,
+          endpoint: `/api/v1/database/${currentDatabaseId}/schemas/?q=(upload_allowed:!t)`,
         }).then(response => {
           const list = response.json.result.map((item: string) => ({
             value: item,
@@ -629,7 +629,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   >
                     <Button
                       aria-label={t('Select')}
-                      icon={<UploadOutlined />}
+                      icon={<Icons.UploadOutlined />}
                       loading={fileLoading}
                     >
                       {t('Select')}
