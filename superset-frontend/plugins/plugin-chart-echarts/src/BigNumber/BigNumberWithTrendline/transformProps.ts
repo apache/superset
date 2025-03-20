@@ -120,7 +120,6 @@ export default function transformProps(
         (sum, value) => sum + value,
         0,
       );
-      const mid = Math.floor(sortedValues.length / 2);
 
       switch (aggregation) {
         case 'SUM':
@@ -130,32 +129,33 @@ export default function transformProps(
           bigNumber = totalSum / metricValues.length;
           break;
         case 'MIN':
-          bigNumber =
-            metricValues.length > 0 ? Math.min(...metricValues) : null;
+          bigNumber = Math.min(...metricValues);
           break;
         case 'MAX':
-          bigNumber =
-            metricValues.length > 0 ? Math.max(...metricValues) : null;
+          bigNumber = Math.max(...metricValues);
           break;
-        case 'MEDIAN':
+        case 'MEDIAN': {
+          const mid = Math.floor(sortedValues.length / 2);
           bigNumber =
             sortedValues.length % 2 === 0
               ? ((sortedValues[mid - 1] ?? 0) + (sortedValues[mid] ?? 0)) / 2
               : (sortedValues[mid] ?? 0);
           break;
+        }
         case 'LAST_VALUE':
         default:
-          bigNumber = sortedData.length > 0 ? (sortedData[0][1] ?? null) : null;
+          bigNumber = sortedData[0][1];
 
-          if (bigNumber === null) {
-            bigNumberFallback = sortedData.find(d => d[1] !== null) ?? null;
-            bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
-            timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
-          }
           break;
       }
     } else {
       bigNumber = null;
+    }
+
+    if (bigNumber === null) {
+      bigNumberFallback = sortedData.find(d => d[1] !== null) ?? null;
+      bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
+      timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
     }
 
     if (compareLag > 0) {

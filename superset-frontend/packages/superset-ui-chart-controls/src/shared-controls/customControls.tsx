@@ -78,7 +78,7 @@ export const aggregationControl = {
     renderTrigger: true,
     provideFormDataToProps: true,
     mapStateToProps: ({ form_data }: ControlPanelState) => ({
-      value: form_data.aggregation,
+      value: form_data.aggregation || 'LAST_VALUE',
     }),
   },
 };
