@@ -193,7 +193,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             except Exception as ex:  # pylint: disable=broad-except
                 logger.debug("Query %d: %s", query_id, ex)
                 stats_logger.incr("error_sqllab_unhandled")
-                query = get_query(query_id)
+                query = get_query(query_id=query_id)
                 return handle_query_error(ex, query)
 
 
@@ -423,7 +423,7 @@ def execute_sql_statements(  # noqa: C901
         # only asynchronous queries
         stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
 
-    query = get_query(query_id)
+    query = get_query(query_id=query_id)
     payload: dict[str, Any] = {"query_id": query_id}
     database = query.database
     db_engine_spec = database.db_engine_spec
