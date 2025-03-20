@@ -1190,7 +1190,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       if (!hasConnectedDb || editNewDb) {
         return (
           <>
-            <StyledFooterButton key="back" onClick={handleBackButtonOnConnect}>
+            <StyledFooterButton
+              key="back"
+              onClick={handleBackButtonOnConnect}
+              buttonStyle="secondary"
+            >
               {t('Back')}
             </StyledFooterButton>
             <StyledFooterButton
@@ -1248,7 +1252,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const renderEditModalFooter = (db: Partial<DatabaseObject> | null) => (
     <>
-      <StyledFooterButton key="close" onClick={onClose}>
+      <StyledFooterButton key="close" onClick={onClose} buttonStyle="secondary">
         {t('Close')}
       </StyledFooterButton>
       <StyledFooterButton
@@ -1659,7 +1663,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL('/dataset/add/');
         }}
       >
-        {t('CREATE DATASET')}
+        {t('Create dataset')}
       </Button>
       <Button
         buttonStyle="secondary"
@@ -1669,7 +1673,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           redirectURL(`/sqllab?db=true`);
         }}
       >
-        {t('QUERY DATA IN SQL LAB')}
+        {t('Query data in SQL Lab')}
       </Button>
     </StyledBtns>
   );

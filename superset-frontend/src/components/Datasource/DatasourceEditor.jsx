@@ -1392,7 +1392,6 @@ class DatasourceEditor extends PureComponent {
                 <StyledButtonWrapper>
                   <Button
                     buttonSize="small"
-                    buttonStyle="tertiary"
                     onClick={this.syncMetadata}
                     className="sync-from-source"
                     disabled={this.state.isEditMode}
