@@ -23,7 +23,7 @@ import {
   waitFor,
   cleanup,
 } from 'spec/helpers/testing-library';
-import { FormInstance } from 'src/components/Form/Form';
+import { FormInstance } from 'src/components/Form';
 import { createMockModal } from './utils';
 
 describe('FilterScope TreeInitialization', () => {

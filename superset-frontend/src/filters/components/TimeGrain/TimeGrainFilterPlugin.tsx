@@ -25,7 +25,7 @@ import {
 } from '@superset-ui/core';
 import { useEffect, useMemo, useState } from 'react';
 import { Select } from 'src/components';
-import { FormItemProps } from 'src/components/Form/Form';
+import { FormItemProps } from 'src/components/Form';
 import { FilterPluginStyle, StyledFormItem, StatusMessage } from '../common';
 import { PluginFilterTimeGrainProps } from './types';
 

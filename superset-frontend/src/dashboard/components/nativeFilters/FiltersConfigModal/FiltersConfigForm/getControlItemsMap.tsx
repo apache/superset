@@ -22,7 +22,6 @@ import {
 } from '@superset-ui/chart-controls';
 import { ReactNode } from 'react';
 import { AntdCheckbox } from 'src/components';
-import { FormInstance } from 'src/components/Form/Form';
 import {
   Filter,
   getChartControlPanelRegistry,
@@ -30,7 +29,7 @@ import {
   t,
 } from '@superset-ui/core';
 import { Tooltip } from 'src/components/Tooltip';
-import { FormItem } from 'src/components/Form';
+import { FormItem, FormInstance } from 'src/components/Form';
 import {
   doesColumnMatchFilterType,
   getControlItems,

@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { PluginFilterStylesProps } from './types';
-import FormItem from '../../components/Form/FormItem';
+import { FormItem } from '../../components/Form';
 
 export const RESPONSIVE_WIDTH = 0;
 
