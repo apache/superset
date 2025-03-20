@@ -66,6 +66,7 @@ export const aggregationControl = {
   config: {
     type: 'SelectControl',
     label: t('Aggregation Method'),
+    default: 'LAST_VALUE',
     choices: [
       ['LAST_VALUE', t('Last Value')],
       ['SUM', t('Total(Sum)')],
