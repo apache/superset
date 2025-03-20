@@ -122,7 +122,7 @@ function createAxisTitleControl(axis: 'x' | 'y'): ControlSetRow[] {
           clearable: true,
           label: t('AXIS TITLE MARGIN'),
           renderTrigger: true,
-          default: sections.TITLE_MARGIN_OPTIONS[0],
+          default: sections.TITLE_MARGIN_OPTIONS[1],
           choices: formatSelectOptions(sections.TITLE_MARGIN_OPTIONS),
           description: t('Changing this control takes effect instantly'),
           visibility: ({ controls }: ControlPanelsContainerProps) =>
