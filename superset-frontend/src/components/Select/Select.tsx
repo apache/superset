@@ -19,44 +19,49 @@
 import {
   forwardRef,
   FocusEvent,
-  ReactElement,
   RefObject,
   useEffect,
   useMemo,
   useState,
   useCallback,
   ClipboardEvent,
+  Ref,
+  ReactElement,
 } from 'react';
 
 import {
   ensureIsArray,
+  FAST_DEBOUNCE,
   formatNumber,
   NumberFormats,
   t,
   usePrevious,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import AntdSelect, { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import { Select as AntdSelect } from 'antd-v5';
+import {
+  LabeledValue as AntdLabeledValue,
+  RefSelectProps,
+  BaseOptionType,
+} from 'antd-v5/es/select';
 import { debounce, isEqual, uniq } from 'lodash';
-import { FAST_DEBOUNCE } from 'src/constants';
 import {
   getValue,
   hasOption,
   isLabeledValue,
-  renderSelectOptions,
-  sortSelectedFirstHelper,
-  sortComparatorWithSearchHelper,
-  handleFilterOptionHelper,
-  dropDownRenderHelper,
-  getSuffixIcon,
   SELECT_ALL_VALUE,
   selectAllOption,
   mapValues,
   mapOptions,
   hasCustomLabels,
+  isEqual as utilsIsEqual,
+  handleFilterOptionHelper,
+  renderSelectOptions,
+  dropDownRenderHelper,
+  sortSelectedFirstHelper,
   getOption,
   isObject,
-  isEqual as utilsIsEqual,
+  getSuffixIcon,
+  sortComparatorWithSearchHelper,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -67,10 +72,10 @@ import {
   StyledStopOutlined,
 } from './styles';
 import {
+  DEFAULT_SORT_COMPARATOR,
   EMPTY_OPTIONS,
   MAX_TAG_COUNT,
   TOKEN_SEPARATORS,
-  DEFAULT_SORT_COMPARATOR,
 } from './constants';
 import { customTagRender } from './CustomTag';
 
@@ -123,7 +128,7 @@ const Select = forwardRef(
       maxTagCount: propsMaxTagCount,
       ...props
     }: SelectProps,
-    ref: RefObject<HTMLInputElement>,
+    ref: Ref<RefSelectProps>,
   ) => {
     const isSingleMode = mode === 'single';
     const shouldShowSearch = allowNewOptions ? true : showSearch;
@@ -157,6 +162,7 @@ const Select = forwardRef(
         sortSelectedFirstHelper(a, b, selectValue),
       [selectValue],
     );
+
     const sortComparatorWithSearch = useCallback(
       (a: AntdLabeledValue, b: AntdLabeledValue) =>
         sortComparatorWithSearchHelper(
@@ -166,7 +172,7 @@ const Select = forwardRef(
           sortSelectedFirst,
           sortComparator,
         ),
-      [inputValue, sortComparator, sortSelectedFirst],
+      [inputValue, sortComparator, isDropdownVisible],
     );
 
     const initialOptions = useMemo(
@@ -174,8 +180,13 @@ const Select = forwardRef(
       [options],
     );
     const initialOptionsSorted = useMemo(
-      () => initialOptions.slice().sort(sortSelectedFirst),
-      [initialOptions, sortSelectedFirst],
+      () =>
+        [...initialOptions].sort((a, b) => {
+          if (a.value === SELECT_ALL_VALUE) return -1;
+          if (b.value === SELECT_ALL_VALUE) return 1;
+          return 0;
+        }),
+      [initialOptions],
     );
 
     const [selectOptions, setSelectOptions] =
@@ -187,7 +198,7 @@ const Select = forwardRef(
       let groupedOptions: SelectOptionsType;
       if (selectOptions.some(opt => opt.options)) {
         groupedOptions = selectOptions.reduce(
-          (acc, group) => [...acc, ...group.options],
+          (acc, group) => [...acc, ...(group.options as SelectOptionsType)],
           [] as SelectOptionsType,
         );
       }
@@ -265,8 +276,10 @@ const Select = forwardRef(
             }
             return [
               SELECT_ALL_VALUE,
-              ...selectAllEligible.map(opt => opt.value),
-            ] as AntdLabeledValue[];
+              ...selectAllEligible
+                .map(opt => opt.value)
+                .filter((val): val is RawValue => val !== undefined),
+            ];
           }
           if (!hasOption(value, array)) {
             const result = [...array, selectedItem];
@@ -298,8 +311,14 @@ const Select = forwardRef(
             )
             .map(option =>
               labelInValue
-                ? { label: option.label, value: option.value }
+                ? {
+                    label: option.label,
+                    value: option.value,
+                  }
                 : option.value,
+            )
+            .filter(
+              (val): val is RawValue => val !== null && val !== undefined,
             ),
         );
       }
@@ -434,7 +453,11 @@ const Select = forwardRef(
           labelInValue ? option : option.value,
         );
         optionsToSelect.push(labelInValue ? selectAllOption : SELECT_ALL_VALUE);
-        setSelectValue(optionsToSelect);
+        setSelectValue(
+          optionsToSelect.filter(
+            (val): val is RawValue => val !== null && val !== undefined,
+          ),
+        );
         fireOnChange();
       }
     }, [
@@ -447,7 +470,6 @@ const Select = forwardRef(
 
     const selectAllLabel = useMemo(
       () => () =>
-        // TODO: localize
         `${SELECT_ALL_VALUE} (${formatNumber(
           NumberFormats.INTEGER,
           selectAllEligible.length,
@@ -636,9 +658,9 @@ const Select = forwardRef(
           onClear={handleClear}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
-          showArrow
           tokenSeparators={tokenSeparators}
           value={selectValue}
+          virtual={false}
           suffixIcon={getSuffixIcon(
             isLoading,
             shouldShowSearch,
@@ -677,3 +699,4 @@ const Select = forwardRef(
 );
 
 export default Select;
+export const { Option }: { Option: React.FC<BaseOptionType> } = AntdSelect;

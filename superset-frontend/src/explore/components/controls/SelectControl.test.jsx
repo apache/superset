@@ -141,7 +141,9 @@ describe('SelectControl', () => {
       expect(
         container.querySelector('[role="option"]'),
       ).not.toBeInTheDocument();
-      expect(within(selectorWrapper).getByText('No Data')).toBeInTheDocument();
+      expect(
+        within(selectorWrapper).getByText('No data', { selector: 'div' }),
+      ).toBeInTheDocument();
     });
 
     it('renders with tokenSeparators', () => {
@@ -163,8 +165,11 @@ describe('SelectControl', () => {
         },
       });
       fireEvent(selectorInput, paste);
-      const yearOption = screen.getByLabelText('1 year ago');
-      expect(yearOption).toBeInTheDocument();
+      const yearOption = screen
+        .getByText('1 year ago', {
+          selector: '.ant-select-item-option-content',
+        })
+        .closest('[role="option"]');
       expect(yearOption).toHaveAttribute('aria-selected', 'true');
       const weekOption = screen.getByText(/1 week ago/, {
         selector: 'div',

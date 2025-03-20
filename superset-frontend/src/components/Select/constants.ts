@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-// eslint-disable-next-line no-restricted-imports
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import { LabeledValue as AntdLabeledValue } from 'antd-v5/es/select';
 import { rankedSearchCompare } from 'src/utils/rankedSearchCompare';
 
 export const MAX_TAG_COUNT = 4;

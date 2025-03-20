@@ -17,19 +17,10 @@
  * under the License.
  */
 
-import { MouseEventHandler } from 'react';
+import { render } from 'spec/helpers/testing-library';
+import { Spin } from '.';
 
-export interface TagType {
-  id?: number;
-  className?: string;
-  type?: string | number;
-  editable?: boolean;
-  onDelete?: (index: number) => void;
-  onClick?: MouseEventHandler<HTMLSpanElement>;
-  name: string;
-  index?: number | undefined;
-  toolTipTitle?: string;
-  children?: React.ReactNode;
-}
-
-export default TagType;
+test('renders spin with default props', () => {
+  render(<Spin />);
+  expect(document.querySelector('.ant-spin')).toBeInTheDocument();
+});

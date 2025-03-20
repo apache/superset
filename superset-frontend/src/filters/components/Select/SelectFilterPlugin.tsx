@@ -30,8 +30,7 @@ import {
   t,
   tn,
 } from '@superset-ui/core';
-// eslint-disable-next-line no-restricted-imports
-import { LabeledValue as AntdLabeledValue } from 'antd/lib/select'; // TODO: Remove antd
+import { LabeledValue as AntdLabeledValue } from 'antd-v5/lib/select';
 import { debounce } from 'lodash';
 import { useImmerReducer } from 'use-immer';
 import { Select } from 'src/components';
