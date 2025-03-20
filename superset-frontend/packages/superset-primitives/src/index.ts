@@ -16,4 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export * from './Avatar';
+export * from './components/Avatar';
+export * from './extensions/contributions';
+export * from './extensions/core';

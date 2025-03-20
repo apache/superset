@@ -17,7 +17,7 @@
  * under the License.
  */
 // TODO: Check if this interface is needed
-export interface ILocalizedString {
+export interface LocalizedString {
   /**
    * The localized value of the string.
    */
@@ -31,12 +31,12 @@ export interface ILocalizedString {
 
 export interface ICommand {
   command: string;
-  title: string | ILocalizedString;
+  title: string | LocalizedString;
   // TODO: Given that we don't have the command pallete, we might not need the category
-  category?: string | ILocalizedString;
+  category?: string | LocalizedString;
 }
 
-export interface IMenu {
+export interface Menu {
   command: string;
   alt?: string;
   // TODO: Discuss the when property in the context of the security manager
@@ -44,25 +44,25 @@ export interface IMenu {
   group?: string;
 }
 
-export interface IViewContainer {
+export interface ViewContainer {
   id: string;
   title: string;
 }
 
-export interface IView {
+export interface View {
   id: string;
   name: string;
 }
 
 // TODO: Check if we will use the I prefix
 // Inpired by https://github.com/microsoft/vscode/blob/3e141e276d4ac2ddb19916b66e7c8815af1b2a1f/src/vs/platform/extensions/common/extensions.ts#L187
-export interface IExtensionContributions {
+export interface Contributions {
   commands?: ICommand[];
-  menus?: { [context: string]: IMenu[] };
+  menus?: { [context: string]: Menu[] };
 
   // TODO: VSCode supports multiple view containers locations. We could restrict only to the activity bar.
-  viewsContainers?: { [location: string]: IViewContainer[] };
+  viewsContainers?: { [location: string]: ViewContainer[] };
 
   // TODO: Location might be a view container (left side bar), editors, panels, right side bar
-  views?: { [location: string]: IView[] };
+  views?: { [location: string]: View[] };
 }
