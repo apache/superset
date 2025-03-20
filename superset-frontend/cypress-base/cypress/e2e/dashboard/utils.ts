@@ -489,7 +489,7 @@ export function inputNativeFilterDefaultValue(
 ) {
   if (!multiple) {
     cy.contains('Filter has default value').click();
-    cy.contains('Default value is required').should('be.visible');
+    cy.contains('Please choose a valid value').should('be.visible');
     cy.get(nativeFilters.modal.container).within(() => {
       cy.get(
         nativeFilters.filterConfigurationSections.filterPlaceholder,

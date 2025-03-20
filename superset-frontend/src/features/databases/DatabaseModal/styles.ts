@@ -131,10 +131,12 @@ export const infoTooltip = (theme: SupersetTheme) => css`
   svg {
     margin-bottom: ${theme.gridUnit * 0.25}px;
   }
+  display: flex;
 `;
 
 export const toggleStyle = (theme: SupersetTheme) => css`
   padding-left: ${theme.gridUnit * 2}px;
+  padding-right: ${theme.gridUnit * 2}px;
 `;
 
 export const formScrollableStyles = (theme: SupersetTheme) => css`
@@ -433,7 +435,7 @@ export const CredentialInfoForm = styled.div`
   }
 
   .input-container {
-    margin: ${({ theme }) => theme.gridUnit * 7}px 0;
+    margin: ${({ theme }) => theme.gridUnit * 4}px 0;
     display: flex;
     flex-direction: column;
 }
@@ -452,15 +454,26 @@ export const CredentialInfoForm = styled.div`
   }
 
   .input-container {
+    width: 100%;
+
+    button {
+      width: fit-content;
+    }
+
+    .credentials-uploaded {
+      display: flex;
+      align-items: center;
+      gap: ${({ theme }) => theme.gridUnit * 3}px;
+      width: fit-content;
+    }
+
+    .credentials-uploaded-btn, .credentials-uploaded-remove {
+      flex: 0 0 auto;
+    }
+
+    /* hide native file upload input element */
     .input-upload {
       display: none !important;
-    }
-    .input-upload-current {
-      display: flex;
-      justify-content: space-between;
-    }
-    .input-upload-btn {
-      width: ${({ theme }) => theme.gridUnit * 32}px
     }
   }`;
 

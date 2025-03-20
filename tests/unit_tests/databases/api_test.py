@@ -41,7 +41,9 @@ from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.sql_parse import Table
+from superset.superset_typing import OAuth2State
 from superset.utils import json
+from superset.utils.oauth2 import encode_oauth2_state
 from tests.unit_tests.fixtures.common import (
     create_columnar_file,
     create_csv_file,
@@ -281,6 +283,21 @@ def test_database_connection(
             "parameters_schema": {
                 "properties": {
                     "catalog": {"type": "object"},
+                    "oauth2_client_info": {
+                        "default": {
+                            "authorization_request_uri": "https://accounts.google.com/o/oauth2/v2/auth",
+                            "scope": (
+                                "https://www.googleapis.com/auth/drive.readonly "
+                                "https://www.googleapis.com/auth/spreadsheets "
+                                "https://spreadsheets.google.com/feeds"
+                            ),
+                            "token_request_uri": "https://oauth2.googleapis.com/token",
+                        },
+                        "description": "OAuth2 client information",
+                        "nullable": True,
+                        "type": "string",
+                        "x-encrypted-extra": True,
+                    },
                     "service_account_info": {
                         "description": "Contents of GSheets JSON credentials.",
                         "type": "string",
@@ -737,6 +754,7 @@ def test_oauth2_happy_path(
     Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
     db.session.add(
         Database(
+            id=1,
             database_name="my_db",
             sqlalchemy_uri="sqlite://",
             uuid=UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"),
@@ -756,13 +774,12 @@ def test_oauth2_happy_path(
         "refresh_token": "ZZZ",
     }
 
-    state = {
+    state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
-        "tab_id": 42,
+        "tab_id": "42",
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
     }
-    decode_oauth2_state = mocker.patch("superset.databases.api.decode_oauth2_state")
-    decode_oauth2_state.return_value = state
 
     mocker.patch("superset.databases.api.render_template", return_value="OK")
 
@@ -770,13 +787,80 @@ def test_oauth2_happy_path(
         response = client.get(
             "/api/v1/database/oauth2/",
             query_string={
-                "state": "some%2Estate",
+                "state": encode_oauth2_state(state),
                 "code": "XXX",
             },
         )
 
     assert response.status_code == 200
-    decode_oauth2_state.assert_called_with("some%2Estate")
+    get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
+
+    token = db.session.query(DatabaseUserOAuth2Tokens).one()
+    assert token.user_id == 1
+    assert token.database_id == 1
+    assert token.access_token == "YYY"  # noqa: S105
+    assert token.access_token_expiration == datetime(2024, 1, 1, 1, 0)
+    assert token.refresh_token == "ZZZ"  # noqa: S105
+
+
+def test_oauth2_permissions(
+    mocker: MockerFixture,
+    session: Session,
+    client: Any,
+) -> None:
+    """
+    Test the OAuth2 endpoint works for users without DB permissions.
+
+    Anyone should be able to authenticate with OAuth2, even if they don't have
+    permissions to read the database (which is needed to get the OAuth2 config).
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    DatabaseRestApi.datamodel.session = session
+
+    # create table for databases
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    db.session.add(
+        Database(
+            database_name="my_db",
+            sqlalchemy_uri="sqlite://",
+            uuid=UUID("7c1b7880-a59d-47cd-8bf1-f1eb8d2863cb"),
+        )
+    )
+    db.session.commit()
+
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "get_oauth2_config",
+        return_value={"id": "one", "secret": "two"},
+    )
+    get_oauth2_token = mocker.patch.object(SqliteEngineSpec, "get_oauth2_token")
+    get_oauth2_token.return_value = {
+        "access_token": "YYY",
+        "expires_in": 3600,
+        "refresh_token": "ZZZ",
+    }
+
+    state: OAuth2State = {
+        "user_id": 1,
+        "database_id": 1,
+        "tab_id": "42",
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+    }
+
+    mocker.patch("superset.databases.api.render_template", return_value="OK")
+
+    with freeze_time("2024-01-01T00:00:00Z"):
+        response = client.get(
+            "/api/v1/database/oauth2/",
+            query_string={
+                "state": encode_oauth2_state(state),
+                "code": "XXX",
+            },
+        )
+
+    assert response.status_code == 200
     get_oauth2_token.assert_called_with({"id": "one", "secret": "two"}, "XXX")
 
     token = db.session.query(DatabaseUserOAuth2Tokens).one()
@@ -831,13 +915,12 @@ def test_oauth2_multiple_tokens(
         },
     ]
 
-    state = {
+    state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
-        "tab_id": 42,
+        "tab_id": "42",
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
     }
-    decode_oauth2_state = mocker.patch("superset.databases.api.decode_oauth2_state")
-    decode_oauth2_state.return_value = state
 
     mocker.patch("superset.databases.api.render_template", return_value="OK")
 
@@ -845,7 +928,7 @@ def test_oauth2_multiple_tokens(
         response = client.get(
             "/api/v1/database/oauth2/",
             query_string={
-                "state": "some%2Estate",
+                "state": encode_oauth2_state(state),
                 "code": "XXX",
             },
         )
@@ -854,7 +937,7 @@ def test_oauth2_multiple_tokens(
         response = client.get(
             "/api/v1/database/oauth2/",
             query_string={
-                "state": "some%2Estate",
+                "state": encode_oauth2_state(state),
                 "code": "XXX",
             },
         )

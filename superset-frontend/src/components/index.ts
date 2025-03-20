@@ -42,7 +42,8 @@ export {
 } from 'antd-v5';
 
 // Vanilla Ant Design components from v4 that require migration
-export { Upload } from 'antd';
+// eslint-disable-next-line no-restricted-imports
+export { Upload } from 'antd'; // TODO: Remove antd
 
 /*
  * Components that conflict with the ones in src/components.
@@ -50,19 +51,18 @@ export { Upload } from 'antd';
  * listed below may need review. Avoid incrementing this list by using
  * or extending the components in src/components.
  */
+// TODO: Remove these imports
+// eslint-disable-next-line no-restricted-imports
 export {
-  Breadcrumb as AntdBreadcrumb, // TODO: Make this a real Component
-  Card as AntdCard,
+  Breadcrumb as AntdBreadcrumb,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
   Form as AntdForm,
-  Input as AntdInput,
   Select as AntdSelect,
-  Slider as AntdSlider,
-  Tabs as AntdTabs,
-  Tooltip as AntdTooltip,
 } from 'antd';
 
 // Exported types
-export type { FormInstance } from 'antd/lib/form';
-export type { RadioChangeEvent } from 'antd/lib/radio';
+// eslint-disable-next-line no-restricted-imports
+export type { FormInstance } from 'antd/lib/form'; // TODO: Remove antd
+// eslint-disable-next-line no-restricted-imports
+export type { RadioChangeEvent } from 'antd/lib/radio'; // TODO: Remove antd
