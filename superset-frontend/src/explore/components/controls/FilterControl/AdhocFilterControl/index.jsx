@@ -19,6 +19,7 @@
 import { Component } from 'react';
 import PropTypes from 'prop-types';
 import {
+  css,
   t,
   logging,
   SupersetClient,
@@ -362,8 +363,8 @@ class AdhocFilterControl extends Component {
           <ControlHeader {...this.props} />
           {this.addNewFilterPopoverTrigger(
             <AddIconButton data-test="add-filter-button">
-              <Icons.PlusLarge
-                iconSize="s"
+              <Icons.PlusOutlined
+                iconSize="m"
                 iconColor={theme.colors.grayscale.light5}
               />
             </AddIconButton>,
@@ -376,7 +377,13 @@ class AdhocFilterControl extends Component {
               )
             : this.addNewFilterPopoverTrigger(
                 <AddControlLabel>
-                  <Icons.PlusSmall iconColor={theme.colors.grayscale.light1} />
+                  <Icons.PlusOutlined
+                    css={css`
+                      margin: auto ${theme.gridUnit}px auto 0;
+                    `}
+                    iconSize="m"
+                    iconColor={theme.colors.grayscale.light1}
+                  />
                   {t('Add filter')}
                 </AddControlLabel>,
               )}

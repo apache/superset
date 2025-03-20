@@ -40,6 +40,8 @@ import {
   ClientErrorObject,
   getClientErrorObject,
   SLOW_DEBOUNCE,
+  useTheme,
+  css,
 } from '@superset-ui/core';
 import { debounce, isEqual } from 'lodash';
 import {
@@ -209,11 +211,6 @@ const DefaultValueContainer = styled.div`
   align-items: center;
 `;
 
-const RefreshIcon = styled(Icons.Refresh)`
-  margin-left: ${({ theme }) => theme.gridUnit * 2}px;
-  color: ${({ theme }) => theme.colors.primary.base};
-`;
-
 const StyledCollapse = styled(Collapse)`
   border-left: 0;
   border-top: 1px solid ${({ theme }) => theme.colors.grayscale.light2};
@@ -355,6 +352,7 @@ const FiltersConfigForm = (
   }: FiltersConfigFormProps,
   ref: RefObject<any>,
 ) => {
+  const theme = useTheme();
   const isRemoved = !!removedFilters[filterId];
   const [error, setError] = useState<ClientErrorObject>();
   const [metrics, setMetrics] = useState<Metric[]>([]);
@@ -1275,7 +1273,7 @@ const FiltersConfigForm = (
                             return [...prevErroredFilters, filterId];
                           });
                           return Promise.reject(
-                            new Error(t('Default value is required')),
+                            new Error(t('Please choose a valid value')),
                           );
                         },
                       },
@@ -1323,7 +1321,14 @@ const FiltersConfigForm = (
                         )}
                         {hasDataset && datasetId && (
                           <Tooltip title={t('Refresh the default values')}>
-                            <RefreshIcon onClick={() => refreshHandler(true)} />
+                            <Icons.SyncOutlined
+                              iconSize="xl"
+                              iconColor={theme.colors.primary.base}
+                              css={css`
+                                margin-left: ${theme.gridUnit * 2}px;
+                              `}
+                              onClick={() => refreshHandler(true)}
+                            />
                           </Tooltip>
                         )}
                       </DefaultValueContainer>

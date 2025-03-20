@@ -228,7 +228,7 @@ test('should render a warning', async () => {
   };
   render(<DatasourcePanel {...newProps} />, { useRedux: true, useDnd: true });
   expect(
-    await screen.findByRole('img', { name: 'alert-solid' }),
+    await screen.findByRole('img', { name: 'warning' }),
   ).toBeInTheDocument();
 });
 

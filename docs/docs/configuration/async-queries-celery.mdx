@@ -42,13 +42,13 @@ CELERY_CONFIG = CeleryConfig
 
 To start a Celery worker to leverage the configuration, run the following command:
 
-```
+```bash
 celery --app=superset.tasks.celery_app:app worker --pool=prefork -O fair -c 4
 ```
 
 To start a job which schedules periodic background jobs, run the following command:
 
-```
+```bash
 celery --app=superset.tasks.celery_app:app beat
 ```
 
@@ -93,12 +93,12 @@ issues arise. Please clear your existing results cache store when upgrading an e
 
 Flower is a web based tool for monitoring the Celery cluster which you can install from pip:
 
-```python
+```bash
 pip install flower
 ```
 
 You can run flower using:
 
-```
+```bash
 celery --app=superset.tasks.celery_app:app flower
 ```

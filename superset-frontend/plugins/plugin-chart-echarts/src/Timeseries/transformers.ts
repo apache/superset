@@ -226,7 +226,7 @@ export function transformSeries(
     stackId = forecastSeries.name;
   } else if (stack && isObservation) {
     // the suffix of the observation series is '' (falsy), which disables
-    // stacking. Therefore we need to set something that is truthy.
+    // stacking. Therefore, we need to set something that is truthy.
     stackId = getTimeCompareStackId('obs', timeCompare, name);
   } else if (stack && isTrend) {
     stackId = getTimeCompareStackId(forecastSeries.type, timeCompare, name);
@@ -322,6 +322,15 @@ export function transformSeries(
       show: !!showValue,
       position: isHorizontal ? 'right' : 'top',
       formatter: (params: any) => {
+        // don't show confidence band value labels, as they're already visible on the tooltip
+        if (
+          [
+            ForecastSeriesEnum.ForecastUpper,
+            ForecastSeriesEnum.ForecastLower,
+          ].includes(forecastSeries.type)
+        ) {
+          return '';
+        }
         const { value, dataIndex, seriesIndex, seriesName } = params;
         const numericValue = isHorizontal ? value[0] : value[1];
         const isSelectedLegend = !legendState || legendState[seriesName];
