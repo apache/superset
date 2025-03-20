@@ -110,14 +110,14 @@ export default function transformProps(
 
     timestamp = sortedData[0][0];
 
-    const metricValues = sortedData
+    const metricValues: number[] = sortedData
       .map(d => d[1])
-      .filter(value => value !== null);
+      .filter((value): value is number => value !== null);
 
     if (metricValues.length > 0) {
-      const sortedValues = [...metricValues].sort((a, b) => a - b);
-      const totalSum = metricValues.reduce(
-        (sum, value) => sum + (value || 0),
+      const sortedValues: number[] = [...metricValues].sort((a, b) => a - b);
+      const totalSum: number = metricValues.reduce(
+        (sum, value) => sum + value,
         0,
       );
       const mid = Math.floor(sortedValues.length / 2);
@@ -130,23 +130,25 @@ export default function transformProps(
           bigNumber = totalSum / metricValues.length;
           break;
         case 'MIN':
-          bigNumber = Math.min(...metricValues);
+          bigNumber =
+            metricValues.length > 0 ? Math.min(...metricValues) : null;
           break;
         case 'MAX':
-          bigNumber = Math.max(...metricValues);
+          bigNumber =
+            metricValues.length > 0 ? Math.max(...metricValues) : null;
           break;
         case 'MEDIAN':
           bigNumber =
             sortedValues.length % 2 === 0
-              ? (sortedValues[mid - 1] + sortedValues[mid]) / 2
-              : sortedValues[mid];
+              ? ((sortedValues[mid - 1] ?? 0) + (sortedValues[mid] ?? 0)) / 2
+              : (sortedValues[mid] ?? 0);
           break;
         case 'LAST_VALUE':
         default:
-          bigNumber = sortedData[0][1];
+          bigNumber = sortedData.length > 0 ? (sortedData[0][1] ?? null) : null;
 
           if (bigNumber === null) {
-            bigNumberFallback = sortedData.find(d => d[1] !== null);
+            bigNumberFallback = sortedData.find(d => d[1] !== null) ?? null;
             bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
             timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
           }
