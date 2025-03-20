@@ -173,7 +173,7 @@ class ExtraCache:
                 self.cache_key_wrapper(email_address)
             return email_address
         return None
-    
+
     def current_user_roles(self, add_to_cache_keys: bool = True) -> str | None:
         """
         Return the roles of the user who is currently logged in.

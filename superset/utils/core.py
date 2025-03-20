@@ -1290,7 +1290,8 @@ def get_user_email() -> str | None:
         return g.user.email
     except Exception:  # pylint: disable=broad-except
         return None
-    
+
+
 def get_user_roles() -> list[str] | None:
     """
     Get the roles (if defined) associated with the current user.

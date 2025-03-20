@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
 from jinja2.sandbox import SandboxedEnvironment
@@ -43,7 +44,6 @@ from superset.jinja_context import (
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
-from flask_appbuilder.security.sqla.models import Role
 
 
 def test_filter_values_adhoc_filters() -> None:
