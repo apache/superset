@@ -19,7 +19,7 @@
 
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { NativeFilterScope, styled } from '@superset-ui/core';
-import { Form } from 'src/components/Form';
+import { FormItem } from 'src/components/Form';
 import ScopingTree from './ScopingTree';
 import { getDefaultScopeValue } from './utils';
 
@@ -42,7 +42,7 @@ const Wrapper = styled.div`
   padding: 0px ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
-const CleanFormItem = styled(Form.Item)`
+const CleanFormItem = styled(FormItem)`
   margin-bottom: 0;
 `;
 
