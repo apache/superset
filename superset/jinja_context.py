@@ -44,7 +44,6 @@ from superset.utils.core import (
     AdhocFilterClause,
     convert_legacy_filters_into_adhoc,
     FilterOperator,
-    get_user,
     get_user_email,
     get_user_id,
     get_user_roles,
