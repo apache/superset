@@ -63,6 +63,7 @@ export default function transformProps(
     compareSuffix = '',
     timeFormat,
     headerFontSize,
+    aggregation = '',
     metric = 'value',
     showTimestamp,
     showTrendLine,
@@ -107,13 +108,52 @@ export default function transformProps(
       // sort in time descending order
       .sort((a, b) => (a[0] !== null && b[0] !== null ? b[0] - a[0] : 0));
 
-    bigNumber = sortedData[0][1];
     timestamp = sortedData[0][0];
 
-    if (bigNumber === null) {
-      bigNumberFallback = sortedData.find(d => d[1] !== null);
-      bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
-      timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
+    const metricValues = sortedData
+      .map(d => d[1])
+      .filter(value => value !== null);
+
+    if (metricValues.length > 0) {
+      const sortedValues = [...metricValues].sort((a, b) => a - b);
+      const totalSum = metricValues.reduce(
+        (sum, value) => sum + (value || 0),
+        0,
+      );
+      const mid = Math.floor(sortedValues.length / 2);
+
+      switch (aggregation) {
+        case 'SUM':
+          bigNumber = totalSum;
+          break;
+        case 'AVG':
+          bigNumber = totalSum / metricValues.length;
+          break;
+        case 'MIN':
+          bigNumber = Math.min(...metricValues);
+          break;
+        case 'MAX':
+          bigNumber = Math.max(...metricValues);
+          break;
+        case 'MEDIAN':
+          bigNumber =
+            sortedValues.length % 2 === 0
+              ? (sortedValues[mid - 1] + sortedValues[mid]) / 2
+              : sortedValues[mid];
+          break;
+        case 'LAST_VALUE':
+        default:
+          bigNumber = sortedData[0][1];
+
+          if (bigNumber === null) {
+            bigNumberFallback = sortedData.find(d => d[1] !== null);
+            bigNumber = bigNumberFallback ? bigNumberFallback[1] : null;
+            timestamp = bigNumberFallback ? bigNumberFallback[0] : null;
+          }
+          break;
+      }
+    } else {
+      bigNumber = null;
     }
 
     if (compareLag > 0) {
