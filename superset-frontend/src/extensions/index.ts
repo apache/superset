@@ -1,4 +1,4 @@
-import { Disposable } from './core';
+import { Disposable } from '@apache-superset/primitives';
 
 // Export an object what contains a commands key and a registerCommand function
 export const commands = {
