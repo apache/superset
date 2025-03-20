@@ -885,15 +885,15 @@ describe('UploadDataModal Collapse Tabs', () => {
     const generalInfoTab = screen.getByRole('tab', {
       name: /right General information Upload a file to a database./i,
     });
-    expect(generalInfoTab.getAttribute('aria-expanded')).toBe('true');
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
       name: /right File Settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
     });
     userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab.getAttribute('aria-expanded')).toBe('true');
+    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
     rerender(<UploadDataModal {...csvProps} show={false} />);
-    rerender(<UploadDataModal {...csvProps} show={true} />);
-    expect(generalInfoTab.getAttribute('aria-expanded')).toBe('true');
+    rerender(<UploadDataModal {...csvProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('renders the collaps tab Excel correctly and resets to default tab after closing', () => {
@@ -903,15 +903,15 @@ describe('UploadDataModal Collapse Tabs', () => {
     const generalInfoTab = screen.getByRole('tab', {
       name: /right General information Upload a file to a database./i,
     });
-    expect(generalInfoTab.getAttribute('aria-expanded')).toBe('true');
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
       name: /right File Settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
     });
     userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab.getAttribute('aria-expanded')).toBe('true');
+    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
     rerender(<UploadDataModal {...excelProps} show={false} />);
-    rerender(<UploadDataModal {...excelProps} show={true} />);
-    expect(generalInfoTab.getAttribute('aria-expanded')).toBe('true');
+    rerender(<UploadDataModal {...excelProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('renders the collaps tab Columnar correctly and resets to default tab after closing', () => {
@@ -921,14 +921,14 @@ describe('UploadDataModal Collapse Tabs', () => {
     const generalInfoTab = screen.getByRole('tab', {
       name: /right General information Upload a file to a database./i,
     });
-    expect(generalInfoTab.getAttribute('aria-expanded')).toBe('true');
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
     const fileSettingsTab = screen.getByRole('tab', {
       name: /right File Settings Adjust how spaces, blank lines, null values are handled and other file wide settings./i,
     });
     userEvent.click(fileSettingsTab);
-    expect(fileSettingsTab.getAttribute('aria-expanded')).toBe('true');
+    expect(fileSettingsTab).toHaveAttribute('aria-expanded', 'true');
     rerender(<UploadDataModal {...columnarProps} show={false} />);
-    rerender(<UploadDataModal {...columnarProps} show={true} />);
-    expect(generalInfoTab.getAttribute('aria-expanded')).toBe('true');
+    rerender(<UploadDataModal {...columnarProps} />);
+    expect(generalInfoTab).toHaveAttribute('aria-expanded', 'true');
   });
 });
