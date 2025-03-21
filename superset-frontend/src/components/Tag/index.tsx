@@ -17,5 +17,88 @@
  * under the License.
  */
 
-export { default as TagsList } from './TagsList';
-export { default as Tag } from './Tag';
+import { styled } from '@superset-ui/core';
+import TagType from 'src/types/TagType';
+import { Tag as AntdTag } from 'antd-v5';
+import type { TagProps } from 'antd-v5/es';
+import type { CheckableTagProps } from 'antd-v5/es/tag';
+import { useMemo } from 'react';
+import { Tooltip } from 'src/components/Tooltip';
+
+const StyledTag = styled(AntdTag)`
+  ${({ theme }) => `
+  margin-top: ${theme.sizeUnit}px;
+  margin-bottom: ${theme.sizeUnit}px;
+  `};
+`;
+
+const MAX_DISPLAY_CHAR = 20;
+
+const SupersetTag = ({
+  name,
+  id,
+  index = undefined,
+  onDelete = undefined,
+  editable = false,
+  onClick = undefined,
+  toolTipTitle = name,
+  children,
+  ...rest
+}: TagType) => {
+  const isLongTag = useMemo(() => name.length > MAX_DISPLAY_CHAR, [name]);
+  const tagDisplay = isLongTag ? `${name.slice(0, MAX_DISPLAY_CHAR)}...` : name;
+
+  const handleClose = () => (index !== undefined ? onDelete?.(index) : null);
+
+  const whatRole = onClick ? (!id ? 'button' : 'link') : undefined;
+
+  const tagElem = (
+    <>
+      {editable ? (
+        <Tooltip title={toolTipTitle} key={toolTipTitle}>
+          <StyledTag
+            key={id}
+            closable={editable}
+            onClose={handleClose}
+            closeIcon={editable}
+            {...rest}
+          >
+            {children || tagDisplay}
+          </StyledTag>
+        </Tooltip>
+      ) : (
+        <Tooltip title={toolTipTitle} key={toolTipTitle}>
+          <StyledTag
+            data-test="tag"
+            key={id}
+            onClick={onClick}
+            role={whatRole}
+            {...rest}
+          >
+            {' '}
+            {id ? (
+              <a
+                href={`/superset/all_entities/?id=${id}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {children || tagDisplay}
+              </a>
+            ) : (
+              children || tagDisplay
+            )}
+          </StyledTag>
+        </Tooltip>
+      )}
+    </>
+  );
+
+  return tagElem;
+};
+
+export const Tag = Object.assign(SupersetTag, {
+  CheckableTag: AntdTag.CheckableTag,
+});
+
+export default Tag;
+export type { TagProps, CheckableTagProps };

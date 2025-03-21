@@ -16,38 +16,42 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import TagType from 'src/types/TagType';
-import { TagsList } from '.';
-import { TagsListProps } from './TagsList';
+import { Meta, StoryObj } from '@storybook/react';
+import TagsList, { TagsListProps } from '.';
 
 export default {
-  title: 'Tags',
+  title: 'TagsList',
   component: TagsList,
-};
+  argsTypes: {
+    tags: {
+      control: 'array',
+      description: 'List of tags to display',
+    },
+    editable: {
+      control: 'boolean',
+      description: 'Whether tags are editable or not',
+    },
+    maxTags: {
+      control: 'number',
+      description: 'Maximum number of tags to display',
+    },
+  },
+} as Meta<typeof TagsList>;
 
-export const InteractiveTagsList = ({
-  tags,
-  editable,
-  maxTags,
-}: TagsListProps) => (
-  <TagsList tags={tags} editable={editable} maxTags={maxTags} />
-);
+type Story = StoryObj<typeof TagsList>;
 
-const tags: TagType[] = [
-  { name: 'tag1' },
-  { name: 'tag2' },
-  { name: 'tag3' },
-  { name: 'tag4' },
-  { name: 'tag5' },
-  { name: 'tag6' },
-];
-
-const editable = true;
-
-const maxTags = 3;
-
-InteractiveTagsList.args = {
-  tags,
-  editable,
-  maxTags,
+export const TagsListStory: Story = {
+  args: {
+    tags: [
+      { name: 'tag1' },
+      { name: 'tag2' },
+      { name: 'tag3' },
+      { name: 'tag4' },
+      { name: 'tag5' },
+      { name: 'tag6' },
+    ],
+    editable: true,
+    maxTags: 3,
+  },
+  render: (args: TagsListProps) => <TagsList {...args} />,
 };

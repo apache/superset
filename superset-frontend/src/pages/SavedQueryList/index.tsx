@@ -49,7 +49,7 @@ import ListView, {
 import Loading from 'src/components/Loading';
 import DeleteModal from 'src/components/DeleteModal';
 import ActionsBar, { ActionProps } from 'src/components/ListView/ActionsBar';
-import { TagsList } from 'src/components/Tag';
+import TagsList from 'src/components/TagsList';
 import { Tooltip } from 'src/components/Tooltip';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';

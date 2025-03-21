@@ -18,7 +18,7 @@
  */
 import { render, screen } from 'spec/helpers/testing-library';
 import TagType from 'src/types/TagType';
-import Tag from './Tag';
+import Tag from '.';
 
 const mockedProps: TagType = {
   name: 'example-tag',

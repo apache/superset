@@ -16,16 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
+import { Meta, StoryObj } from '@storybook/react';
+import Tag from 'src/components/Tag';
+import type { CheckableTagProps } from 'src/components/Tag';
 import TagType from 'src/types/TagType';
-import { Tag } from '.';
 
 export default {
-  title: 'Tags',
+  title: 'Tag',
   component: Tag,
-};
-export const InteractiveTag = (args: TagType) => <Tag {...args} />;
+  argTypes: {
+    name: {
+      control: 'text',
+      description: 'The name of the tag displayed inside',
+    },
+    editable: {
+      control: 'boolean',
+      description: 'Whether the tag is editable or not',
+    },
+    toolTipTitle: {
+      control: 'text',
+      description: 'Tooltip text for the tag',
+    },
+    children: {
+      control: 'text',
+      description: 'Children elements or text inside the tag',
+    },
+  },
+} as Meta<typeof Tag>;
 
-InteractiveTag.args = {
-  editable: false,
-  name: 'Tag',
+type Story = StoryObj<TagType>;
+
+export const TagStory: Story = {
+  args: {
+    name: 'Tag',
+    onDelete: undefined,
+    editable: false,
+    onClick: undefined,
+    toolTipTitle: 'tooltip',
+    children: undefined,
+  },
+  render: args => <Tag {...args} />,
+};
+
+type CheckableTagStoryType = StoryObj<CheckableTagProps>;
+
+export const CheckableTagStory: CheckableTagStoryType = {
+  args: {
+    checked: false,
+  },
+  render: args => {
+    const [checked, setChecked] = useState(args?.checked || false);
+    return (
+      <Tag.CheckableTag
+        {...args}
+        checked={checked}
+        onClick={() => setChecked((prev: boolean) => !prev)}
+      >
+        Click me
+      </Tag.CheckableTag>
+    );
+  },
 };

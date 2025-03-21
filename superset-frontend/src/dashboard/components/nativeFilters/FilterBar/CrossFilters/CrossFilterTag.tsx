@@ -25,11 +25,11 @@ import {
   useCSSTextTruncation,
 } from '@superset-ui/core';
 import { CrossFilterIndicator } from 'src/dashboard/components/nativeFilters/selectors';
-import { Tag } from 'src/components/Tag';
+import Tag from 'src/components/Tag';
 import { Tooltip } from 'src/components/Tooltip';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { ellipsisCss } from './styles';
 import Icons from 'src/components/Icons';
+import { ellipsisCss } from './styles';
 
 const StyledCrossFilterValue = styled.b`
   ${({ theme }) => `
