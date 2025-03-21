@@ -621,7 +621,7 @@ msgstr "大數字"
 
 #, fuzzy
 msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "从下拉列表中选择要作为日期分析的列名"
+msgstr "从下拉列表中选择要分析的日期列名称。"
 
 #, fuzzy
 msgid "A comma-separated list of schemas that files are allowed to upload to."

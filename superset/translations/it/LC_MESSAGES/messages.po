@@ -602,7 +602,7 @@ msgid "A Big Number"
 msgstr "Numero Grande"
 
 msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr ""
+msgstr "Selezionare i nomi delle colonne da elaborare come date dall'elenco a discesa."
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr ""
