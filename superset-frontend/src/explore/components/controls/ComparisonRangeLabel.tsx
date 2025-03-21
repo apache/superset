@@ -30,12 +30,10 @@ import {
   SimpleAdhocFilter,
   t,
 } from '@superset-ui/core';
-import ControlHeader, {
-  ControlHeaderProps,
-} from 'src/explore/components/ControlHeader';
-import { RootState } from 'src/views/store';
 import { DEFAULT_DATE_PATTERN } from '@superset-ui/chart-controls';
-import { extendedDayjs } from 'src/utils/dates';
+import ControlHeader from '../ControlHeader';
+import { RootState } from '../../../views/store';
+import { extendedDayjs } from '../../../utils/dates';
 
 const DAYJS_FORMAT = 'YYYY-MM-DD';
 
@@ -46,8 +44,6 @@ const isTimeRangeEqual = (
 
 const isShiftEqual = (left: string[], right: string[]) => isEqual(left, right);
 
-type ComparisonRangeLabelProps = ControlHeaderProps;
-
 const oldChoices = {
   r: 'inherit',
   y: '1 year ago',
@@ -56,7 +52,7 @@ const oldChoices = {
   c: 'custom',
 };
 
-export const ComparisonRangeLabel = (_props: ComparisonRangeLabelProps) => {
+export const ComparisonRangeLabel = () => {
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
