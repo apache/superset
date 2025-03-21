@@ -174,18 +174,18 @@ class ExtraCache:
             return email_address
         return None
 
-    def current_user_roles(self, add_to_cache_keys: bool = True) -> str | None:
+    def current_user_roles(self, add_to_cache_keys: bool = True) -> list[str] | None:
         """
-        Return the roles of the user who is currently logged in.
+        Return the list of roles of the user who is currently logged in.
 
         :param add_to_cache_keys: Whether the value should be included in the cache key
-        :returns: List of role names as a JSON string
+        :returns: List of role names
         """
 
         if user_roles := get_user_roles():
             if add_to_cache_keys:
                 self.cache_key_wrapper(json.dumps(user_roles))
-            return json.dumps(user_roles)
+            return user_roles
         return None
 
     def cache_key_wrapper(self, key: Any) -> Any:

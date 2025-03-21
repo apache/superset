@@ -373,7 +373,7 @@ def test_user_macros(mocker: MockerFixture):
     assert cache.current_user_id() == 1
     assert cache.current_username() == "my_username"
     assert cache.current_user_email() == "my_email@test.com"
-    assert cache.current_user_roles() == '["my_role1", "my_role2"]'
+    assert cache.current_user_roles() == ["my_role1", "my_role2"]
     assert mock_cache_key_wrapper.call_count == 4
 
 
@@ -393,7 +393,7 @@ def test_user_macros_without_cache_key_inclusion(mocker: MockerFixture):
     assert cache.current_user_id(False) == 1
     assert cache.current_username(False) == "my_username"
     assert cache.current_user_email(False) == "my_email@test.com"
-    assert cache.current_user_roles(False) == '["my_role1", "my_role2"]'
+    assert cache.current_user_roles(False) == ["my_role1", "my_role2"]
     assert mock_cache_key_wrapper.call_count == 0
 
 
