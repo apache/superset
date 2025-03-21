@@ -852,7 +852,7 @@ SQLOXIDE_DIALECTS = {
     "ansi": {"trino", "trinonative", "presto"},
     "hive": {"hive", "databricks"},
     "ms": {"mssql"},
-    "mysql": {"mysql"},
+    "mysql": {"mysql", "singlestore"},
     "postgres": {
         "cockroachdb",
         "hana",
