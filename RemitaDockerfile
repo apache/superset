@@ -181,8 +181,7 @@ RUN if [ "$BUILD_TRANSLATIONS" = "true" ]; then \
 FROM python-base AS python-common
 
 # Install build dependencies first
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN /app/docker/apt-install.sh \
     build-essential \
     pkg-config \
     default-libmysqlclient-dev \
@@ -206,11 +205,6 @@ ENV SUPERSET_HOME="/app/superset_home" \
 
 # Copy the entrypoints, make them executable in userspace
 COPY --chmod=755 docker/entrypoints /app/docker/entrypoints
-
-# Ensure the superset user owns the directory
-RUN mkdir -p $SUPERSET_HOME \
-    && chown -R superset:superset $SUPERSET_HOME \
-    && chmod -R 1777 $SUPERSET_HOME
 
 WORKDIR /app
 # Set up necessary directories and user
@@ -282,8 +276,7 @@ EXPOSE ${SUPERSET_PORT}
 FROM python-common AS lean
 
 # Install all required build dependencies first
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN /app/docker/apt-install.sh \
     build-essential \
     gcc \
     g++ \
@@ -314,12 +307,8 @@ ENV SUPERSET_HOME="/app/superset_home" \
 # Ensure the superset user owns the directory
 RUN mkdir -p $SUPERSET_HOME \
     && chown -R superset:superset $SUPERSET_HOME \
-    && chmod -R 1777 $SUPERSET_HOME
-
-# Install Python dependencies using docker/pip-install.sh
-#COPY requirements/base.txt requirements/
-#RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-#    /app/docker/pip-install.sh --requires-build-essential -r requirements/base.txt
+    && chmod -R 1777 $SUPERSET_HOME \
+    && chown -R superset:superset /app/.venv
 
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
@@ -334,7 +323,8 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install .
 
 RUN python -m compileall /app/superset
-RUN chown -R superset:superset /app/.venv
+
+
 USER superset
 
 ######################################################################
@@ -342,8 +332,7 @@ USER superset
 ######################################################################
 FROM python-common AS dev
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+RUN /app/docker/apt-install.sh \
     build-essential \
     gcc \
     g++ \
