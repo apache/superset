@@ -46,9 +46,7 @@ const isTimeRangeEqual = (
 
 const isShiftEqual = (left: string[], right: string[]) => isEqual(left, right);
 
-type ComparisonRangeLabelProps = ControlHeaderProps & {
-  multi?: boolean;
-};
+type ComparisonRangeLabelProps = ControlHeaderProps;
 
 const oldChoices = {
   r: 'inherit',
@@ -58,9 +56,7 @@ const oldChoices = {
   c: 'custom',
 };
 
-export const ComparisonRangeLabel = ({
-  multi = true,
-}: ComparisonRangeLabelProps) => {
+export const ComparisonRangeLabel = (_props: ComparisonRangeLabelProps) => {
   const [labels, setLabels] = useState<string[]>([]);
   const currentTimeRangeFilters = useSelector<RootState, BinaryAdhocFilter[]>(
     state =>
