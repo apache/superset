@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createRef, Component } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Button from 'src/components/Button';
 import { styled, t } from '@superset-ui/core';
@@ -90,188 +90,170 @@ const FilterActionsContainer = styled.div`
   margin-top: ${({ theme }) => theme.gridUnit * 2}px;
 `;
 
-export default class AdhocFilterEditPopover extends Component {
-  constructor(props) {
-    super(props);
-    this.onSave = this.onSave.bind(this);
-    this.onDragDown = this.onDragDown.bind(this);
-    this.onMouseMove = this.onMouseMove.bind(this);
-    this.onMouseUp = this.onMouseUp.bind(this);
-    this.onAdhocFilterChange = this.onAdhocFilterChange.bind(this);
-    this.setSimpleTabIsValid = this.setSimpleTabIsValid.bind(this);
-    this.adjustHeight = this.adjustHeight.bind(this);
-    this.onTabChange = this.onTabChange.bind(this);
+const AdhocFilterEditPopover = props => {
+  const {
+    adhocFilter: propsAdhocFilter,
+    options,
+    onChange,
+    onClose,
+    onResize,
+    datasource,
+    partitionColumn,
+    theme,
+    operators,
+    requireSave,
+    ...popoverProps
+  } = props;
 
-    this.state = {
-      adhocFilter: this.props.adhocFilter,
-      width: POPOVER_INITIAL_WIDTH,
-      height: POPOVER_INITIAL_HEIGHT,
-      activeKey: this.props?.adhocFilter?.expressionType || 'SIMPLE',
-      isSimpleTabValid: true,
-    };
+  const [adhocFilter, setAdhocFilter] = useState(propsAdhocFilter);
+  const [width, setWidth] = useState(POPOVER_INITIAL_WIDTH);
+  const [height, setHeight] = useState(POPOVER_INITIAL_HEIGHT);
+  const [activeKey, setActiveKey] = useState(
+    propsAdhocFilter?.expressionType || 'SIMPLE',
+  );
+  const [isSimpleTabValid, setIsSimpleTabValid] = useState(true);
 
-    this.popoverContentRef = createRef();
-  }
+  const popoverContentRef = useRef(null);
+  const dragStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
-  componentDidMount() {
-    document.addEventListener('mouseup', this.onMouseUp);
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('mouseup', this.onMouseUp);
-    document.removeEventListener('mousemove', this.onMouseMove);
-  }
-
-  onAdhocFilterChange(adhocFilter) {
-    this.setState({ adhocFilter });
-  }
-
-  setSimpleTabIsValid(isValid) {
-    this.setState({ isSimpleTabValid: isValid });
-  }
-
-  onSave() {
-    this.props.onChange(this.state.adhocFilter);
-    this.props.onClose();
-  }
-
-  onDragDown(e) {
-    this.dragStartX = e.clientX;
-    this.dragStartY = e.clientY;
-    this.dragStartWidth = this.state.width;
-    this.dragStartHeight = this.state.height;
-    document.addEventListener('mousemove', this.onMouseMove);
-  }
-
-  onMouseMove(e) {
-    this.props.onResize();
-    this.setState({
-      width: Math.max(
-        this.dragStartWidth + (e.clientX - this.dragStartX),
+  const onMouseMove = e => {
+    onResize();
+    setWidth(
+      Math.max(
+        dragStartRef.current.width + (e.clientX - dragStartRef.current.x),
         POPOVER_INITIAL_WIDTH,
       ),
-      height: Math.max(
-        this.dragStartHeight + (e.clientY - this.dragStartY),
+    );
+    setHeight(
+      Math.max(
+        dragStartRef.current.height + (e.clientY - dragStartRef.current.y),
         POPOVER_INITIAL_HEIGHT,
       ),
-    });
-  }
-
-  onMouseUp() {
-    document.removeEventListener('mousemove', this.onMouseMove);
-  }
-
-  onTabChange(activeKey) {
-    this.setState({
-      activeKey,
-    });
-  }
-
-  adjustHeight(heightDifference) {
-    this.setState(state => ({ height: state.height + heightDifference }));
-  }
-
-  render() {
-    const {
-      adhocFilter: propsAdhocFilter,
-      options,
-      onChange,
-      onClose,
-      onResize,
-      datasource,
-      partitionColumn,
-      theme,
-      operators,
-      requireSave,
-      ...popoverProps
-    } = this.props;
-
-    const { adhocFilter } = this.state;
-    const stateIsValid = adhocFilter.isValid();
-    const hasUnsavedChanges =
-      requireSave || !adhocFilter.equals(propsAdhocFilter);
-
-    return (
-      <FilterPopoverContentContainer
-        id="filter-edit-popover"
-        {...popoverProps}
-        data-test="filter-edit-popover"
-        ref={this.popoverContentRef}
-      >
-        <Tabs
-          id="adhoc-filter-edit-tabs"
-          defaultActiveKey={adhocFilter.expressionType}
-          className="adhoc-filter-edit-tabs"
-          data-test="adhoc-filter-edit-tabs"
-          style={{ minHeight: this.state.height, width: this.state.width }}
-          allowOverflow
-          onChange={this.onTabChange}
-        >
-          <Tabs.TabPane
-            className="adhoc-filter-edit-tab"
-            key={ExpressionTypes.Simple}
-            tab={t('Simple')}
-          >
-            <ErrorBoundary>
-              <AdhocFilterEditPopoverSimpleTabContent
-                operators={operators}
-                adhocFilter={this.state.adhocFilter}
-                onChange={this.onAdhocFilterChange}
-                options={options}
-                datasource={datasource}
-                onHeightChange={this.adjustHeight}
-                partitionColumn={partitionColumn}
-                popoverRef={this.popoverContentRef.current}
-                validHandler={this.setSimpleTabIsValid}
-              />
-            </ErrorBoundary>
-          </Tabs.TabPane>
-          <Tabs.TabPane
-            className="adhoc-filter-edit-tab"
-            key={ExpressionTypes.Sql}
-            tab={t('Custom SQL')}
-          >
-            <ErrorBoundary>
-              <AdhocFilterEditPopoverSqlTabContent
-                adhocFilter={this.state.adhocFilter}
-                onChange={this.onAdhocFilterChange}
-                options={this.props.options}
-                height={this.state.height}
-                activeKey={this.state.activeKey}
-              />
-            </ErrorBoundary>
-          </Tabs.TabPane>
-        </Tabs>
-        <FilterActionsContainer>
-          <Button buttonSize="small" onClick={this.props.onClose} cta>
-            {t('Close')}
-          </Button>
-          <Button
-            data-test="adhoc-filter-edit-popover-save-button"
-            disabled={
-              !stateIsValid ||
-              !this.state.isSimpleTabValid ||
-              !hasUnsavedChanges
-            }
-            buttonStyle="primary"
-            buttonSize="small"
-            className="m-r-5"
-            onClick={this.onSave}
-            cta
-          >
-            {t('Save')}
-          </Button>
-          <ResizeIcon
-            role="button"
-            aria-label="Resize"
-            tabIndex={0}
-            onMouseDown={this.onDragDown}
-            className="fa fa-expand edit-popover-resize text-muted"
-          />
-        </FilterActionsContainer>
-      </FilterPopoverContentContainer>
     );
-  }
-}
+  };
+
+  useEffect(() => {
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+    };
+
+    document.addEventListener('mouseup', onMouseUp);
+
+    return () => {
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('mousemove', onMouseMove);
+    };
+  }, []);
+
+  const onAdhocFilterChange = newAdhocFilter => {
+    setAdhocFilter(newAdhocFilter);
+  };
+
+  const onSave = () => {
+    onChange(adhocFilter);
+    onClose();
+  };
+
+  const onDragDown = e => {
+    dragStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width,
+      height,
+    };
+    document.addEventListener('mousemove', onMouseMove);
+  };
+
+  const onTabChange = newActiveKey => {
+    setActiveKey(newActiveKey);
+  };
+
+  const adjustHeight = heightDifference => {
+    setHeight(prevHeight => prevHeight + heightDifference);
+  };
+
+  const stateIsValid = adhocFilter.isValid();
+  const hasUnsavedChanges =
+    requireSave || !adhocFilter.equals(propsAdhocFilter);
+
+  return (
+    <FilterPopoverContentContainer
+      id="filter-edit-popover"
+      {...popoverProps}
+      data-test="filter-edit-popover"
+      ref={popoverContentRef}
+    >
+      <Tabs
+        id="adhoc-filter-edit-tabs"
+        defaultActiveKey={adhocFilter.expressionType}
+        className="adhoc-filter-edit-tabs"
+        data-test="adhoc-filter-edit-tabs"
+        style={{ minHeight: height, width }}
+        allowOverflow
+        onChange={onTabChange}
+      >
+        <Tabs.TabPane
+          className="adhoc-filter-edit-tab"
+          key={ExpressionTypes.Simple}
+          tab={t('Simple')}
+        >
+          <ErrorBoundary>
+            <AdhocFilterEditPopoverSimpleTabContent
+              operators={operators}
+              adhocFilter={adhocFilter}
+              onChange={onAdhocFilterChange}
+              options={options}
+              datasource={datasource}
+              onHeightChange={adjustHeight}
+              partitionColumn={partitionColumn}
+              popoverRef={popoverContentRef.current}
+              validHandler={setIsSimpleTabValid}
+            />
+          </ErrorBoundary>
+        </Tabs.TabPane>
+        <Tabs.TabPane
+          className="adhoc-filter-edit-tab"
+          key={ExpressionTypes.Sql}
+          tab={t('Custom SQL')}
+        >
+          <ErrorBoundary>
+            <AdhocFilterEditPopoverSqlTabContent
+              adhocFilter={adhocFilter}
+              onChange={onAdhocFilterChange}
+              options={options}
+              height={height}
+              activeKey={activeKey}
+            />
+          </ErrorBoundary>
+        </Tabs.TabPane>
+      </Tabs>
+      <FilterActionsContainer>
+        <Button buttonSize="small" onClick={onClose} cta>
+          {t('Close')}
+        </Button>
+        <Button
+          data-test="adhoc-filter-edit-popover-save-button"
+          disabled={!stateIsValid || !isSimpleTabValid || !hasUnsavedChanges}
+          buttonStyle="primary"
+          buttonSize="small"
+          className="m-r-5"
+          onClick={onSave}
+          cta
+        >
+          {t('Save')}
+        </Button>
+        <ResizeIcon
+          role="button"
+          aria-label="Resize"
+          tabIndex={0}
+          onMouseDown={onDragDown}
+          className="fa fa-expand edit-popover-resize text-muted"
+        />
+      </FilterActionsContainer>
+    </FilterPopoverContentContainer>
+  );
+};
 
 AdhocFilterEditPopover.propTypes = propTypes;
+
+export default AdhocFilterEditPopover;

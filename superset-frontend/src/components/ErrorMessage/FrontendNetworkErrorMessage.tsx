@@ -23,7 +23,6 @@ import ErrorAlert from './ErrorAlert';
 
 function FrontendNetworkErrorMessage({
   error,
-  subtitle,
   compact,
 }: ErrorMessageComponentProps) {
   const { level, message } = error;

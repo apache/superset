@@ -447,6 +447,7 @@ module.exports = {
     'react/sort-comp': 0, // TODO: re-enable in separate PR
     'react/static-property-placement': 0, // disabled temporarily
     'react-prefer-function-component/react-prefer-function-component': 1,
+    'react-hooks/exhaustive-deps': 0, // disable for now... too much noise
     'prettier/prettier': 'error',
     // disabling some things that come with the eslint 7->8 upgrade. Will address these in a separate PR
     'react/no-unknown-property': 0,
