@@ -141,7 +141,6 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
       }, 200),
     [],
   );
-
   useEffect(() => {
     document.onscroll = onScroll;
     return () => {

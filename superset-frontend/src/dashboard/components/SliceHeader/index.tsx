@@ -61,9 +61,8 @@ const CrossFilterIcon = styled(Icons.ApartmentOutlined)`
     line-height: 1.8;
   `}
 `;
-
-const ChartHeaderStyles = styled.div`
-  ${({ theme }) => css`
+const ChartHeaderStyles = styled.div<{ $showTitle: boolean }>`
+  ${({ theme, $showTitle }) => css`
     font-size: ${theme.typography.sizes.l}px;
     font-weight: ${theme.typography.weights.bold};
     margin-bottom: ${theme.gridUnit}px;
@@ -71,6 +70,7 @@ const ChartHeaderStyles = styled.div`
     max-width: 100%;
     align-items: flex-start;
     min-height: 0;
+    justify-content: ${$showTitle ? 'space-between' : 'flex-end'};
 
     & > .header-title {
       overflow: hidden;
@@ -90,6 +90,11 @@ const ChartHeaderStyles = styled.div`
       display: flex;
       align-items: center;
       height: 24px;
+      flex-shrink: 0;
+      margin-left: auto; /* Ensures right alignment */
+      & > * {
+        margin-left: ${theme.gridUnit * 2}px;
+      }
     }
 
     .dropdown.btn-group {
@@ -194,9 +199,10 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
     }, [sliceName, width, height, canExplore]);
 
     const exploreUrl = `/explore/?dashboard_page_id=${dashboardPageId}&slice_id=${slice.slice_id}`;
-
+    const showTitle = true;
     return (
-      <ChartHeaderStyles data-test="slice-header" ref={ref}>
+      <ChartHeaderStyles data-test="slice-header" ref={ref}  $showTitle={showTitle}>
+        {showTitle && (
         <div className="header-title" ref={headerRef}>
           <Tooltip title={headerTooltip}>
             <EditableTitle
@@ -243,6 +249,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
             </Tooltip>
           )}
         </div>
+          )}
         <div className="header-controls">
           {!editMode && (
             <>
@@ -259,11 +266,11 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                     'This chart applies cross-filters to charts whose datasets contain columns with the same name.',
                   )}
                 >
-                  <CrossFilterIcon iconSize="m" />
+                  <CrossFilterIcon iconSize="m"/>
                 </Tooltip>
               )}
               {!uiConfig.hideChartControls && (
-                <FiltersBadge chartId={slice.slice_id} />
+                <FiltersBadge chartId={slice.slice_id}/>
               )}
               {!uiConfig.hideChartControls && (
                 <SliceHeaderControls
