@@ -51,13 +51,20 @@ import { CanvasRenderer } from 'echarts/renderers';
 import {
   TooltipComponent,
   GridComponent,
+  // @ts-ignore
   VisualMapComponent,
   LegendComponent,
+  // @ts-ignore
   DataZoomComponent,
+  // @ts-ignore
   ToolboxComponent,
+  // @ts-ignore
   GraphicComponent,
+  // @ts-ignore
   AriaComponent,
+  // @ts-ignore
   MarkAreaComponent,
+  // @ts-ignore
   MarkLineComponent,
 } from 'echarts/components';
 import { LabelLayout } from 'echarts/features';
@@ -77,6 +84,7 @@ const Styles = styled.div<EchartsStylesProps>`
   width: ${({ width }) => width};
 `;
 
+// @ts-ignore
 use([
   CanvasRenderer,
   BarChart,
@@ -93,15 +101,22 @@ use([
   SunburstChart,
   TreeChart,
   TreemapChart,
+  // @ts-ignore
   AriaComponent,
+  // @ts-ignore
   DataZoomComponent,
+  // @ts-ignore
   GraphicComponent,
   GridComponent,
+  // @ts-ignore
   MarkAreaComponent,
+  // @ts-ignore
   MarkLineComponent,
   LegendComponent,
+  // @ts-ignore
   ToolboxComponent,
   TooltipComponent,
+  // @ts-ignore
   VisualMapComponent,
   LabelLayout,
 ]);
@@ -203,6 +218,7 @@ function Echart(
     handleSizeChange({ width, height });
   }, [width, height, handleSizeChange]);
 
+  // @ts-ignore
   return <Styles ref={divRef} height={height} width={width} />;
 }
 

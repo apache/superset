@@ -104,7 +104,7 @@ export default function transformProps(
       label: {
         show: showValue,
         position: 'top',
-        formatter: params => {
+        formatter: (params: CallbackDataParams) => {
           const { value } = params;
           return yAxisFormatter.format(value as number);
         },

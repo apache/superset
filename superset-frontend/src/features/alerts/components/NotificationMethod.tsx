@@ -307,7 +307,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
           }
         }
       })
-      .catch(e => {
+      .catch(() => {
         // Fallback to slack v1 if slack v2 is not compatible
         setUseSlackV1(true);
       })

@@ -199,7 +199,7 @@ const AnnotationModal: FunctionComponent<AnnotationModalProps> = ({
     setCurrentAnnotation(data);
   };
 
-  const onDateChange = (dates: any, dateString: Array<string>) => {
+  const onDateChange = (dates: any) => {
     if (!dates?.[0] || !dates?.[1]) {
       const data = {
         ...currentAnnotation,

@@ -74,11 +74,11 @@ export function fetchTags(
   {
     objectType,
     objectId,
-    includeTypes = false,
+    _includeTypes = false, // Prefix with underscore to indicate intentionally unused
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
+    _includeTypes: boolean;
   },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
@@ -151,11 +151,11 @@ export function addTag(
   {
     objectType,
     objectId,
-    includeTypes = false,
+    _includeTypes = false, // Prefix with underscore to indicate intentionally unused
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
+    _includeTypes: boolean;
   },
   tag: string,
   callback: (text: string) => void,

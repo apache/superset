@@ -225,6 +225,7 @@ module.exports = {
         'import/no-relative-packages': 0,
         'prefer-exponentiation-operator': 0,
         'react/react-in-jsx-scope': 0,
+        'react-hooks/exhaustive-deps': 0, // disable for now... too much noise
         'no-restricted-syntax': [
           'error',
           {

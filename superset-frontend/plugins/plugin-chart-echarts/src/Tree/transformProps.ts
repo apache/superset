@@ -23,11 +23,11 @@ import {
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { TreeSeriesOption } from 'echarts/charts';
+import type { TreeSeriesNodeItemOption } from 'echarts/types/src/chart/tree/TreeSeries';
 import type {
-  TreeSeriesCallbackDataParams,
-  TreeSeriesNodeItemOption,
-} from 'echarts/types/src/chart/tree/TreeSeries';
-import type { OptionName } from 'echarts/types/src/util/types';
+  CallbackDataParams,
+  OptionName,
+} from 'echarts/types/src/util/types';
 import {
   EchartsTreeChartProps,
   EchartsTreeFormData,
@@ -38,6 +38,12 @@ import { DEFAULT_FORM_DATA, DEFAULT_TREE_SERIES_OPTION } from './constants';
 import { Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
 
+// Define a custom type for TreeSeriesCallbackDataParams since it's not exported
+interface TreeSeriesCallbackDataParams extends CallbackDataParams {
+  treeAncestors?: Array<{ name?: string }>;
+  value?: any;
+}
+
 export function formatTooltip({
   params,
   metricLabel,
@@ -47,8 +53,8 @@ export function formatTooltip({
 }): string {
   const { value, treeAncestors } = params;
   const treePath = (treeAncestors ?? [])
-    .map(pathInfo => pathInfo?.name || '')
-    .filter(path => path !== '');
+    .map((pathInfo: any) => pathInfo?.name || '')
+    .filter((path: string) => path !== '');
   const row = value ? [metricLabel, String(value)] : [];
   return tooltipHtml([row], treePath.join(' ▸ '));
 }
@@ -95,7 +101,7 @@ export default function transformProps(
     let totalChildren = 0;
 
     function traverse(tree: TreeSeriesNodeItemOption) {
-      tree.children!.forEach(node => {
+      tree.children!.forEach((node: TreeSeriesNodeItemOption) => {
         traverse(node);
       });
       totalChildren += 1;

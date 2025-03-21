@@ -32,23 +32,23 @@ import { assetUrl } from 'src/utils/assetUrl';
 interface TagCardProps {
   tag: Tag;
   hasPerm: (name: string) => boolean;
-  bulkSelectEnabled: boolean;
+  _bulkSelectEnabled: boolean; // Renamed to match function parameter
   refreshData: () => void;
   loading: boolean;
   addDangerToast: (msg: string) => void;
   addSuccessToast: (msg: string) => void;
-  tagFilter?: string;
-  userId?: string | number;
+  _tagFilter?: string; // Renamed to match function parameter
+  _userId?: string | number; // Renamed to match function parameter
   showThumbnails?: boolean;
 }
 
 function TagCard({
   tag,
   hasPerm,
-  bulkSelectEnabled,
-  tagFilter,
+  _bulkSelectEnabled, // Prefix with underscore to indicate intentionally unused
+  _tagFilter, // Prefix with underscore to indicate intentionally unused
   refreshData,
-  userId,
+  _userId, // Prefix with underscore to indicate intentionally unused
   addDangerToast,
   addSuccessToast,
   showThumbnails,
