@@ -151,8 +151,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {warning && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={warning}>
-                <Icons.AlertSolid
+                <Icons.WarningOutlined
                   iconColor={colors.warning.base}
+                  css={css`
+                    vertical-align: baseline;
+                  `}
                   iconSize="s"
                 />
               </Tooltip>{' '}
@@ -161,7 +164,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
           {danger && (
             <span>
               <Tooltip id="error-tooltip" placement="top" title={danger}>
-                <Icons.ErrorSolid iconColor={colors.error.base} iconSize="s" />
+                <Icons.ExclamationCircleOutlined
+                  iconColor={colors.error.base}
+                  iconSize="s"
+                />
               </Tooltip>{' '}
             </span>
           )}

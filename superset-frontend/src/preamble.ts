@@ -23,7 +23,8 @@ import dayjs from 'dayjs';
 import {
   configure,
   makeApi,
-  supersetTheme,
+  // eslint-disable-next-line no-restricted-imports
+  supersetTheme, // TODO: DO not import theme directly
   initFeatureFlags,
 } from '@superset-ui/core';
 import { merge } from 'lodash';

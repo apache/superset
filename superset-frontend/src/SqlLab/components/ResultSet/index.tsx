@@ -150,6 +150,15 @@ const ResultSetButtons = styled.div`
   padding-right: ${({ theme }) => 2 * theme.gridUnit}px;
 `;
 
+const copyButtonStyles = css`
+  &:hover {
+    text-decoration: unset;
+  }
+  span > :first-of-type {
+    margin: 0px;
+  }
+`;
+
 const ROWS_CHIP_WIDTH = 100;
 const GAP = 8;
 
@@ -342,6 +351,7 @@ const ResultSet = ({
             )}
             {csv && canExportData && (
               <Button
+                css={copyButtonStyles}
                 buttonSize="small"
                 href={getExportCsvUrl(query.id)}
                 data-test="export-csv-button"
@@ -361,7 +371,11 @@ const ResultSet = ({
                   }
                 }}
               >
-                <i className="fa fa-file-text-o" /> {t('Download to CSV')}
+                <Icons.DownloadOutlined
+                  iconSize="m"
+                  iconColor={theme.colors.primary.dark2}
+                />{' '}
+                {t('Download to CSV')}
               </Button>
             )}
 
@@ -371,10 +385,15 @@ const ResultSet = ({
                 wrapped={false}
                 copyNode={
                   <Button
+                    css={copyButtonStyles}
                     buttonSize="small"
                     data-test="copy-to-clipboard-button"
                   >
-                    <i className="fa fa-clipboard" /> {t('Copy to Clipboard')}
+                    <Icons.CopyOutlined
+                      iconSize="s"
+                      iconColor={theme.colors.primary.dark2}
+                    />{' '}
+                    {t('Copy to Clipboard')}
                   </Button>
                 }
                 hideTooltip

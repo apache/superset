@@ -92,7 +92,6 @@ const ChartHeaderStyles = styled.div<{ $showTitle: boolean }>`
       height: 24px;
       flex-shrink: 0;
       margin-left: auto; /* Ensures right alignment */
-
       & > * {
         margin-left: ${theme.gridUnit * 2}px;
       }
@@ -225,6 +224,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsLoading}
             >
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
               <i
                 role="img"
                 aria-label={annotationsLoading}
@@ -238,6 +239,8 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               placement="top"
               title={annotationsError}
             >
+              {/* TODO: Remove fa-icon */}
+              {/* eslint-disable-next-line icons/no-fa-icons-usage */}
               <i
                 role="img"
                 aria-label={annotationsError}

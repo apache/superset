@@ -41,7 +41,7 @@ test('Should render', () => {
   render(<FilterIndicator {...props} />);
 
   expect(
-    screen.getByRole('button', { name: 'Vaccine Approach' }),
+    screen.getByRole('button', { name: 'search Vaccine Approach' }),
   ).toBeInTheDocument();
   expect(screen.getByRole('img')).toBeInTheDocument();
 });
@@ -51,7 +51,9 @@ test('Should call "onClick"', () => {
   render(<FilterIndicator {...props} />);
 
   expect(props.onClick).toHaveBeenCalledTimes(0);
-  userEvent.click(screen.getByRole('button', { name: 'Vaccine Approach' }));
+  userEvent.click(
+    screen.getByRole('button', { name: 'search Vaccine Approach' }),
+  );
   expect(props.onClick).toHaveBeenCalledTimes(1);
 });
 
@@ -62,7 +64,7 @@ test('Should render "value"', () => {
 
   expect(
     screen.getByRole('button', {
-      name: 'Vaccine Approach: any, string',
+      name: 'search Vaccine Approach: any, string',
     }),
   ).toBeInTheDocument();
 });

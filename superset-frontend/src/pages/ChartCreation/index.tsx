@@ -26,6 +26,7 @@ import {
   SupersetClient,
   t,
 } from '@superset-ui/core';
+import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
 import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
@@ -44,10 +45,12 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import Icons from 'src/components/Icons';
 
 export interface ChartCreationProps extends RouteComponentProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
+  theme: Theme;
 }
 
 export type ChartCreationState = {
@@ -291,12 +294,13 @@ export class ChartCreation extends PureComponent<
   }
 
   render() {
+    const { theme } = this.props;
     const isButtonDisabled = this.isBtnDisabled();
     const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
     const datasetHelpText = this.state.canCreateDataset ? (
       <span data-test="dataset-write">
         <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-          {t('Add a dataset')}{' '}
+          {t('Add a dataset')}
         </Link>
         {t('or')}{' '}
         <a
@@ -306,7 +310,7 @@ export class ChartCreation extends PureComponent<
           data-test="add-chart-new-dataset-instructions"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <i className="fa fa-external-link" />
+          <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
         </a>
         .
       </span>
@@ -318,7 +322,7 @@ export class ChartCreation extends PureComponent<
           target="_blank"
         >
           {`${VIEW_INSTRUCTIONS_TEXT} `}
-          <i className="fa fa-external-link" />
+          <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
         </a>
         .
       </span>
@@ -383,4 +387,4 @@ export class ChartCreation extends PureComponent<
   }
 }
 
-export default withRouter(withToasts(ChartCreation));
+export default withRouter(withToasts(withTheme(ChartCreation)));
