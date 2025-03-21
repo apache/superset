@@ -102,6 +102,7 @@ def validate_data_uri(data_uri: str) -> None:
     raise DatasetForbiddenDataURI()
 
 
+# pylint: disable=too-many-branches
 def import_dataset(
     config: dict[str, Any],
     overwrite: bool = False,
@@ -113,10 +114,18 @@ def import_dataset(
         "Dataset",
     )
     existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
+        if overwrite and can_write and user:
+            if user not in existing.owners and not security_manager.is_admin():
+                raise ImportFailedError(
+                    "A dataset already exists and user doesn't "
+                    "have permissions to overwrite it"
+                )
         if not overwrite or not can_write:
             return existing
         config["id"] = existing.id
+
     elif not can_write:
         raise ImportFailedError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"

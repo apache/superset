@@ -39,6 +39,7 @@ from superset.commands.importers.v1.utils import (
     validate_metadata_type,
 )
 from superset.commands.query.importers.v1.utils import import_saved_query
+from superset.commands.utils import update_chart_config_dataset
 from superset.dashboards.schemas import ImportV1DashboardSchema
 from superset.databases.schemas import ImportV1DatabaseSchema
 from superset.datasets.schemas import ImportV1DatasetSchema
@@ -113,11 +114,7 @@ class ImportAssetsCommand(BaseCommand):
         for file_name, config in configs.items():
             if file_name.startswith("charts/"):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
-                config.update(dataset_dict)
-                dataset_uid = f"{dataset_dict['datasource_id']}__{dataset_dict['datasource_type']}"
-                config["params"].update({"datasource": dataset_uid})
-                if "query_context" in config:
-                    config["query_context"] = None
+                config = update_chart_config_dataset(config, dataset_dict)
                 chart = import_chart(config, overwrite=True)
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id

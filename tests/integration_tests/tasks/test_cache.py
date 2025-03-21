@@ -22,17 +22,32 @@ from tests.integration_tests.test_app import app
 
 
 @pytest.mark.parametrize(
-    "base_url",
+    "base_url, expected_referer",
     [
-        "http://base-url",
-        "http://base-url/",
+        ("http://base-url", None),
+        ("http://base-url/", None),
+        ("https://base-url", "https://base-url/api/v1/chart/warm_up_cache"),
+        ("https://base-url/", "https://base-url/api/v1/chart/warm_up_cache"),
     ],
-    ids=["Without trailing slash", "With trailing slash"],
+    ids=[
+        "Without trailing slash (HTTP)",
+        "With trailing slash (HTTP)",
+        "Without trailing slash (HTTPS)",
+        "With trailing slash (HTTPS)",
+    ],
 )
 @mock.patch("superset.tasks.cache.fetch_csrf_token")
 @mock.patch("superset.tasks.cache.request.Request")
 @mock.patch("superset.tasks.cache.request.urlopen")
-def test_fetch_url(mock_urlopen, mock_request_cls, mock_fetch_csrf_token, base_url):
+@mock.patch("superset.tasks.cache.is_secure_url")
+def test_fetch_url(
+    mock_is_secure_url,
+    mock_urlopen,
+    mock_request_cls,
+    mock_fetch_csrf_token,
+    base_url,
+    expected_referer,
+):
     from superset.tasks.cache import fetch_url
 
     mock_request = mock.MagicMock()
@@ -41,8 +56,17 @@ def test_fetch_url(mock_urlopen, mock_request_cls, mock_fetch_csrf_token, base_u
     mock_urlopen.return_value = mock.MagicMock()
     mock_urlopen.return_value.code = 200
 
+    # Mock the URL validation to return True for HTTPS and False for HTTP
+    mock_is_secure_url.return_value = base_url.startswith("https")
+
     initial_headers = {"Cookie": "cookie", "key": "value"}
     csrf_headers = initial_headers | {"X-CSRF-Token": "csrf_token"}
+
+    # Conditionally add the Referer header and assert its presence
+    if expected_referer:
+        csrf_headers = csrf_headers | {"Referer": expected_referer}
+        assert csrf_headers["Referer"] == expected_referer
+
     mock_fetch_csrf_token.return_value = csrf_headers
 
     app.config["WEBDRIVER_BASEURL"] = base_url
@@ -51,13 +75,21 @@ def test_fetch_url(mock_urlopen, mock_request_cls, mock_fetch_csrf_token, base_u
 
     result = fetch_url(data, initial_headers)
 
-    assert data == result["success"]
+    expected_url = (
+        f"{base_url}/api/v1/chart/warm_up_cache"
+        if not base_url.endswith("/")
+        else f"{base_url}api/v1/chart/warm_up_cache"
+    )
+
     mock_fetch_csrf_token.assert_called_once_with(initial_headers)
+
     mock_request_cls.assert_called_once_with(
-        "http://base-url/api/v1/chart/warm_up_cache",
+        expected_url,  # Use the dynamic URL based on base_url
         data=data_encoded,
         headers=csrf_headers,
         method="PUT",
     )
     # assert the same Request object is used
     mock_urlopen.assert_called_once_with(mock_request, timeout=mock.ANY)
+
+    assert data == result["success"]

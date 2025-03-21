@@ -21,6 +21,7 @@ from collections.abc import Iterator
 from typing import Any, Callable, Optional, Union
 from uuid import uuid4
 
+import sqlalchemy as sa
 from alembic import op
 from sqlalchemy import inspect
 from sqlalchemy.dialects.mysql.base import MySQLDialect
@@ -182,3 +183,17 @@ def has_table(table_name: str) -> bool:
     table_exists = insp.has_table(table_name)
 
     return table_exists
+
+
+def add_column_if_not_exists(table_name: str, column: sa.Column) -> None:
+    """
+    Adds a column to a table if it does not already exist.
+
+    :param table_name: Name of the table.
+    :param column: SQLAlchemy Column object.
+    """
+    if not table_has_column(table_name, column.name):
+        print(f"Adding column '{column.name}' to table '{table_name}'.\n")
+        op.add_column(table_name, column)
+    else:
+        print(f"Column '{column.name}' already exists in table '{table_name}'.\n")

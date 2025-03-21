@@ -50,9 +50,12 @@ def import_chart(
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
     existing = db.session.query(Slice).filter_by(uuid=config["uuid"]).first()
+    user = get_user()
     if existing:
-        if overwrite and can_write and get_user():
-            if not security_manager.can_access_chart(existing):
+        if overwrite and can_write and user:
+            if not security_manager.can_access_chart(existing) or (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A chart already exists and user doesn't "
                     "have permissions to overwrite it"

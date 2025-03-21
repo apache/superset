@@ -27,3 +27,4 @@ export * from './defineSavedMetrics';
 export * from './getStandardizedControls';
 export * from './getTemporalColumns';
 export { default as displayTimeRelatedControls } from './displayTimeRelatedControls';
+export * from './colorControls';

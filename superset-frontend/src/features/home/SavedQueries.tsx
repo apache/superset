@@ -278,7 +278,7 @@ const SavedQueries = ({
                 url={`/sqllab?savedQueryId=${q.id}`}
                 title={q.label}
                 imgFallbackURL="/static/assets/images/empty-query.svg"
-                description={t('Ran %s', q.changed_on_delta_humanized)}
+                description={t('Modified %s', q.changed_on_delta_humanized)}
                 cover={
                   q?.sql?.length && showThumbnails && featureFlag ? (
                     <QueryContainer>

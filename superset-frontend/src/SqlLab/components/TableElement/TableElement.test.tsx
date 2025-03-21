@@ -51,11 +51,13 @@ const getTableMetadataEndpoint =
   /\/api\/v1\/database\/\d+\/table_metadata\/(?:\?.*)?$/;
 const getExtraTableMetadataEndpoint =
   /\/api\/v1\/database\/\d+\/table_metadata\/extra\/(?:\?.*)?$/;
-const updateTableSchemaEndpoint = 'glob:*/tableschemaview/*/expanded';
+const updateTableSchemaExpandedEndpoint = 'glob:*/tableschemaview/*/expanded';
+const updateTableSchemaEndpoint = 'glob:*/tableschemaview/';
 
 beforeEach(() => {
   fetchMock.get(getTableMetadataEndpoint, table);
   fetchMock.get(getExtraTableMetadataEndpoint, {});
+  fetchMock.post(updateTableSchemaExpandedEndpoint, {});
   fetchMock.post(updateTableSchemaEndpoint, {});
 });
 
@@ -84,7 +86,7 @@ test('has 4 IconTooltip elements', async () => {
     initialState,
   });
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(4),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
   );
 });
 
@@ -104,7 +106,7 @@ test('fades table', async () => {
     initialState,
   });
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(4),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
   );
   const style = window.getComputedStyle(getAllByTestId('fade')[0]);
   expect(style.opacity).toBe('0');
@@ -125,7 +127,7 @@ test('sorts columns', async () => {
     },
   );
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(4),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
   );
   expect(
     getAllByTestId('mock-column-element').map(el => el.textContent),
@@ -154,7 +156,7 @@ test('removes the table', async () => {
     },
   );
   await waitFor(() =>
-    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(4),
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
   );
   expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
   fireEvent.click(getByText('Remove table preview'));
@@ -174,6 +176,29 @@ test('fetches table metadata when expanded', async () => {
   await waitFor(() =>
     expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1),
   );
-  expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(updateTableSchemaExpandedEndpoint)).toHaveLength(0);
   expect(fetchMock.calls(getExtraTableMetadataEndpoint)).toHaveLength(1);
+});
+
+test('refreshes table metadata when triggered', async () => {
+  const { getAllByTestId, getByText } = render(
+    <TableElement {...mockedProps} />,
+    {
+      useRedux: true,
+      initialState,
+    },
+  );
+  await waitFor(() =>
+    expect(getAllByTestId('mock-icon-tooltip')).toHaveLength(5),
+  );
+  expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(0);
+  expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(1);
+
+  fireEvent.click(getByText('Refresh table schema'));
+  await waitFor(() =>
+    expect(fetchMock.calls(getTableMetadataEndpoint)).toHaveLength(2),
+  );
+  await waitFor(() =>
+    expect(fetchMock.calls(updateTableSchemaEndpoint)).toHaveLength(1),
+  );
 });

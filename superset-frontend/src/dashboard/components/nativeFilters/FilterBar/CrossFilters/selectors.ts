@@ -33,7 +33,7 @@ export const crossFiltersSelector = (props: {
   verboseMaps: { [key: string]: Record<string, string> };
 }): CrossFilterIndicator[] => {
   const { dataMask, chartConfiguration, dashboardLayout, verboseMaps } = props;
-  const chartsIds = Object.keys(chartConfiguration);
+  const chartsIds = Object.keys(chartConfiguration || {});
 
   return chartsIds
     .map(chartId => {

@@ -117,6 +117,13 @@ const tableApi = api.injectEndpoints({
       }),
     }),
     tableMetadata: builder.query<TableMetaData, FetchTableMetadataQueryParams>({
+      providesTags: result =>
+        result
+          ? [
+              { type: 'TableMetadatas', id: result.name },
+              { type: 'TableMetadatas', id: 'LIST' },
+            ]
+          : [{ type: 'TableMetadatas', id: 'LIST' }],
       query: ({ dbId, catalog, schema, table }) => ({
         endpoint: `/api/v1/database/${dbId}/table_metadata/${toQueryString({
           name: table,

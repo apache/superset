@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import re
-from typing import Any, Union
+from typing import Any, Mapping, Union
 
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
 from marshmallow.validate import Length, ValidationError
@@ -116,6 +116,28 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError(errors)
 
 
+class SharedLabelsColorsField(fields.Field):
+    """
+    A custom field that accepts either a list of strings or a dictionary.
+    """
+
+    def _deserialize(
+        self,
+        value: Union[list[str], dict[str, str]],
+        attr: Union[str, None],
+        data: Union[Mapping[str, Any], None],
+        **kwargs: dict[str, Any],
+    ) -> list[str]:
+        if isinstance(value, list):
+            if all(isinstance(item, str) for item in value):
+                return value
+        elif isinstance(value, dict):
+            # Enforce list (for backward compatibility)
+            return []
+
+        raise ValidationError("Not a valid list")
+
+
 class DashboardJSONMetadataSchema(Schema):
     # native_filter_configuration is for dashboard-native filters
     native_filter_configuration = fields.List(fields.Dict(), allow_none=True)
@@ -137,7 +159,8 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
-    shared_label_colors = fields.Dict()
+    shared_label_colors = SharedLabelsColorsField()
+    map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
     # used for v0 import/export

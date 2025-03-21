@@ -91,7 +91,7 @@ export function prepareDashboardFilters(
         refresh_frequency: 0,
         color_scheme: '',
         label_colors: {},
-        shared_label_colors: {},
+        shared_label_colors: [],
         color_scheme_domain: [],
         cross_filters_enabled: false,
         positions: {

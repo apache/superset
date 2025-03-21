@@ -255,12 +255,26 @@ def test_get_prequeries() -> None:
 
     assert DatabricksNativeEngineSpec.get_prequeries() == []
     assert DatabricksNativeEngineSpec.get_prequeries(schema="test") == [
-        "USE SCHEMA test",
+        "USE SCHEMA `test`",
     ]
     assert DatabricksNativeEngineSpec.get_prequeries(catalog="test") == [
-        "USE CATALOG test",
+        "USE CATALOG `test`",
     ]
     assert DatabricksNativeEngineSpec.get_prequeries(catalog="foo", schema="bar") == [
-        "USE CATALOG foo",
-        "USE SCHEMA bar",
+        "USE CATALOG `foo`",
+        "USE SCHEMA `bar`",
+    ]
+
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        catalog="with-hyphen", schema="hyphen-again"
+    ) == [
+        "USE CATALOG `with-hyphen`",
+        "USE SCHEMA `hyphen-again`",
+    ]
+
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        catalog="`escaped-hyphen`", schema="`hyphen-escaped`"
+    ) == [
+        "USE CATALOG `escaped-hyphen`",
+        "USE SCHEMA `hyphen-escaped`",
     ]

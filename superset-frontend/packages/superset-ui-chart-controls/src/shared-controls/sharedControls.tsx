@@ -50,6 +50,7 @@ import {
 import {
   formatSelectOptions,
   displayTimeRelatedControls,
+  getColorControlsProps,
   D3_FORMAT_OPTIONS,
   D3_FORMAT_DOCS,
   D3_TIME_FORMAT_OPTIONS,
@@ -142,9 +143,7 @@ const linear_color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   renderTrigger: true,
   schemes: () => sequentialSchemeRegistry.getMap(),
   isLinear: true,
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const granularity: SharedControlConfig<'SelectControl'> = {
@@ -333,9 +332,7 @@ const color_scheme: SharedControlConfig<'ColorSchemeControl'> = {
   choices: () => categoricalSchemeRegistry.keys().map(s => [s, s]),
   description: t('The color scheme for rendering chart'),
   schemes: () => categoricalSchemeRegistry.getMap(),
-  mapStateToProps: state => ({
-    dashboardId: state?.form_data?.dashboardId,
-  }),
+  mapStateToProps: state => getColorControlsProps(state),
 };
 
 const truncate_metric: SharedControlConfig<'CheckboxControl'> = {

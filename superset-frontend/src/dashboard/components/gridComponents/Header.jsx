@@ -47,6 +47,7 @@ const propTypes = {
   parentComponent: componentShape.isRequired,
   index: PropTypes.number.isRequired,
   editMode: PropTypes.bool.isRequired,
+  embeddedMode: PropTypes.bool.isRequired,
 
   // redux
   handleComponentDrop: PropTypes.func.isRequired,
@@ -166,6 +167,7 @@ class Header extends PureComponent {
       index,
       handleComponentDrop,
       editMode,
+      embeddedMode,
     } = this.props;
 
     const headerStyle = headerStyleOptions.find(
@@ -234,7 +236,7 @@ class Header extends PureComponent {
                   onSaveTitle={this.handleChangeText}
                   showTooltip={false}
                 />
-                {!editMode && (
+                {!editMode && !embeddedMode && (
                   <AnchorLink id={component.id} dashboardId={dashboardId} />
                 )}
               </HeaderStyles>

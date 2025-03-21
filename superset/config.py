@@ -1326,7 +1326,7 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "table_to_xml_and_xmlschema",
         "version",
     },
-    "clickhouse": {"url"},
+    "clickhouse": {"url", "version", "currentDatabase", "hostName"},
     "mysql": {"version"},
 }
 
@@ -1848,6 +1848,15 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
+
+
+# The migrations that add catalog permissions might take a considerably long time
+# to execute as it has to create permissions to all schemas and catalogs from all
+# other catalogs accessible by the credentials. This flag allows to skip the
+# creation of these secondary perms, and focus only on permissions for the default
+# catalog. These secondary permissions can be created later by editing the DB
+# connection via the UI (without downtime).
+CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
 
 # -------------------------------------------------------------------

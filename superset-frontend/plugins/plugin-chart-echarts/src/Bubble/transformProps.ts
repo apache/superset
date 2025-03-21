@@ -108,8 +108,8 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
     legendOrientation,
     legendMargin,
     legendType,
+    sliceId,
   }: EchartsBubbleFormData = { ...DEFAULT_FORM_DATA, ...formData };
-
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
 
   const legends = new Set<string>();
@@ -138,7 +138,10 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
         ],
       ],
       type: 'scatter',
-      itemStyle: { color: colorFn(name), opacity },
+      itemStyle: {
+        color: colorFn(name, sliceId),
+        opacity,
+      },
     });
     legends.add(name);
   });

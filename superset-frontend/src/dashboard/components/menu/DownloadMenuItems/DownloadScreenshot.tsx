@@ -156,7 +156,7 @@ export default function DownloadScreenshot({
         anchor,
         activeTabs,
         dataMask,
-        urlParams: getDashboardUrlParams(),
+        urlParams: getDashboardUrlParams(['edit']),
       },
     })
       .then(({ json }) => {
