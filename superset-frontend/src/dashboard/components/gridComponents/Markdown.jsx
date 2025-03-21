@@ -295,15 +295,17 @@ class Markdown extends PureComponent {
     const { hasError } = this.state;
 
     return (
-      <SafeMarkdown
-        source={
-          hasError
-            ? MARKDOWN_ERROR_MESSAGE
-            : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
-        }
-        htmlSanitization={this.props.htmlSanitization}
-        htmlSchemaOverrides={this.props.htmlSchemaOverrides}
-      />
+      <div style={{ pointerEvents: 'none' }}>
+        <SafeMarkdown
+          source={
+            hasError
+              ? MARKDOWN_ERROR_MESSAGE
+              : this.state.markdownSource || MARKDOWN_PLACE_HOLDER
+          }
+          htmlSanitization={this.props.htmlSanitization}
+          htmlSchemaOverrides={this.props.htmlSchemaOverrides}
+        />
+      </div>
     );
   }
 
