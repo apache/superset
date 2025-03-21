@@ -103,7 +103,7 @@ function AllEntities() {
   const editableTitleProps = {
     title: tag?.name || '',
     placeholder: 'testing',
-    onSave: (_newDatasetName: string) => {}, // Prefix with underscore to indicate intentionally unused
+    onSave: () => {}, // No parameters needed since we're not using them
     canEdit: false,
     label: t('dataset name'),
   };
@@ -148,7 +148,7 @@ function AllEntities() {
         setObjects(objects);
         setLoading(false);
       },
-      (_error: Response) => {
+      () => {
         addDangerToast('Error Fetching Tagged Objects');
         setLoading(false);
       },
@@ -162,7 +162,7 @@ function AllEntities() {
         setTag(tag);
         setLoading(false);
       },
-      (_error: Response) => {
+      () => {
         addDangerToast(t('Error Fetching Tagged Objects'));
         setLoading(false);
       },

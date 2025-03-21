@@ -33,7 +33,7 @@ export default {
   title: 'Filter Plugins',
 };
 
-export const range = ({ width, height }: { width: number; height: number }) => (
+export const Range = ({ width, height }: { width: number; height: number }) => (
   <SuperChart
     chartType="filter_range"
     width={width}

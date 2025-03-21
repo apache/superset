@@ -74,11 +74,9 @@ export function fetchTags(
   {
     objectType,
     objectId,
-    _includeTypes = false, // Prefix with underscore to indicate intentionally unused
   }: {
     objectType: string;
     objectId: number;
-    _includeTypes: boolean;
   },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
@@ -151,11 +149,9 @@ export function addTag(
   {
     objectType,
     objectId,
-    _includeTypes = false, // Prefix with underscore to indicate intentionally unused
   }: {
     objectType: string;
     objectId: number;
-    _includeTypes: boolean;
   },
   tag: string,
   callback: (text: string) => void,
