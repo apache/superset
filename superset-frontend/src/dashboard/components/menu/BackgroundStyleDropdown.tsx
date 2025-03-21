@@ -57,8 +57,10 @@ const BackgroundStyleOption = styled.div`
 
     /* Create the transparent rect icon */
     &.background--transparent:before {
-      background-image: linear-gradient(
-          45deg,
+      background-image:
+        linear-gradient(45deg, ${theme.colors.text.label} 25%, transparent 25%),
+        linear-gradient(
+          -45deg,
           ${theme.colors.text.label} 25%,
           transparent 25%
         ),

@@ -70,7 +70,7 @@ jest.mock('src/components/Icons', () => ({
 }));
 
 jest.mock('src/components/Dropdown', () => ({
-  Dropdown: ({ overlay }: { overlay: React.ReactChild }) => (
+  MenuDotsDropdown: ({ overlay }: { overlay: React.ReactChild }) => (
     <div data-test="mock-Dropdown">{overlay}</div>
   ),
 }));

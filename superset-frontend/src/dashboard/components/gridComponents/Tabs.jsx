@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import PropTypes from 'prop-types';
-import { styled, t, usePrevious } from '@superset-ui/core';
+import { styled, t, usePrevious, css } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { LineEditableTabs } from 'src/components/Tabs';
 import Icons from 'src/components/Icons';
@@ -77,36 +77,33 @@ const defaultProps = {
 };
 
 const StyledTabsContainer = styled.div`
-  width: 100%;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    width: 100%;
+    background-color: ${theme.colors.grayscale.light5};
 
-  .dashboard-component-tabs-content {
-    min-height: ${({ theme }) => theme.gridUnit * 12}px;
-    margin-top: ${({ theme }) => theme.gridUnit / 4}px;
-    position: relative;
-  }
-
-  .ant-tabs {
-    overflow: visible;
-
-    .ant-tabs-nav-wrap {
-      min-height: ${({ theme }) => theme.gridUnit * 12.5}px;
+    .dashboard-component-tabs-content {
+      min-height: ${theme.gridUnit * 12}px;
+      margin-top: ${theme.gridUnit / 4}px;
+      position: relative;
     }
 
-    .ant-tabs-content-holder {
+    .ant-tabs {
       overflow: visible;
+
+      .ant-tabs-nav-wrap {
+        min-height: ${theme.gridUnit * 12.5}px;
+      }
+
+      .ant-tabs-content-holder {
+        overflow: visible;
+      }
     }
-  }
 
-  div .ant-tabs-tab-btn {
-    text-transform: none;
-  }
+    div .ant-tabs-tab-btn {
+      text-transform: none;
+    }
+  `}
 `;
-
-const StyledCancelXIcon = styled(Icons.CancelX)`
-  color: ${({ theme }) => theme.colors.grayscale.base};
-`;
-
 const DropIndicator = styled.div`
   border: 2px solid ${({ theme }) => theme.colors.primary.base};
   width: 5px;
@@ -119,7 +116,7 @@ const DropIndicator = styled.div`
 
 const CloseIconWithDropIndicator = props => (
   <>
-    <StyledCancelXIcon />
+    <Icons.CloseOutlined iconSize="s" />
     {props.showDropIndicators.right && (
       <DropIndicator className="drop-indicator-right" pos="right" />
     )}

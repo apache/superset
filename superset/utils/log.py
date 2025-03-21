@@ -394,8 +394,8 @@ class DBEventLogger(AbstractEventLogger):
             log = Log(
                 action=action,
                 json=json_string,
-                dashboard_id=dashboard_id,
-                slice_id=slice_id,
+                dashboard_id=dashboard_id or record.get("dashboard_id"),
+                slice_id=slice_id or record.get("slice_id"),
                 duration_ms=duration_ms,
                 referrer=referrer,
                 user_id=user_id,

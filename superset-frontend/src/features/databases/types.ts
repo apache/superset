@@ -1,5 +1,6 @@
 import { JsonObject } from '@superset-ui/core';
-import { InputProps } from 'antd/lib/input';
+// eslint-disable-next-line no-restricted-imports
+import { InputProps } from 'antd/lib/input'; // TODO: Remove antd
 import { ChangeEvent, EventHandler, FormEvent } from 'react';
 
 /**

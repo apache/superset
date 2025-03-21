@@ -1682,18 +1682,26 @@ def normalize_dttm_col(
                     utc=False,
                     unit=unit,
                     origin="unix",
-                    errors="raise",
+                    errors="coerce",
                     exact=False,
                 )
             else:
                 # Column has already been formatted as a timestamp.
-                df[_col.col_label] = dttm_series.apply(pd.Timestamp)
+                try:
+                    df[_col.col_label] = dttm_series.apply(
+                        lambda x: pd.Timestamp(x) if pd.notna(x) else pd.NaT
+                    )
+                except ValueError:
+                    logger.warning(
+                        "Unable to convert column %s to datetime, ignoring",
+                        _col.col_label,
+                    )
         else:
             df[_col.col_label] = pd.to_datetime(
                 df[_col.col_label],
                 utc=False,
                 format=_col.timestamp_format,
-                errors="raise",
+                errors="coerce",
                 exact=False,
             )
         if _col.offset:
@@ -1805,7 +1813,20 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
         return value_if_invalid
 
 
+def get_query_source_from_request() -> QuerySource | None:
+    if not request or not request.referrer:
+        return None
+    if "/superset/dashboard/" in request.referrer:
+        return QuerySource.DASHBOARD
+    if "/explore/" in request.referrer:
+        return QuerySource.CHART
+    if "/sqllab/" in request.referrer:
+        return QuerySource.SQL_LAB
+    return None
+
+
 def get_user_agent(database: Database, source: QuerySource | None) -> str:
+    source = source or get_query_source_from_request()
     if user_agent_func := current_app.config["USER_AGENT_FUNC"]:
         return user_agent_func(database, source)
 

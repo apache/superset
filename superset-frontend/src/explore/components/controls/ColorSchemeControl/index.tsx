@@ -23,13 +23,13 @@ import {
   ColorScheme,
   ColorSchemeGroup,
   SequentialScheme,
-  styled,
   t,
   useTheme,
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import AntdSelect from 'antd/lib/select';
+// eslint-disable-next-line no-restricted-imports
+import AntdSelect from 'antd/lib/select'; // TODO: Remove antd
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Tooltip } from 'src/components/Tooltip';
@@ -70,10 +70,6 @@ export interface ColorSchemeControlProps {
   hovered?: boolean;
 }
 
-const StyledAlert = styled(Icons.AlertSolid)`
-  color: ${({ theme }) => theme.colors.warning.base};
-`;
-
 const CUSTOM_LABEL_ALERT = t(
   `The colors of this chart might be overridden by custom label colors of the related dashboard.
     Check the JSON metadata in the Advanced settings.`,
@@ -108,6 +104,7 @@ const Label = ({
   | 'hasSharedLabelsColor'
   | 'hasDashboardColorScheme'
 >) => {
+  const theme = useTheme();
   if (hasSharedLabelsColor || hasCustomLabelsColor || hasDashboardColorScheme) {
     const alertTitle =
       hasCustomLabelsColor && !hasSharedLabelsColor
@@ -115,12 +112,17 @@ const Label = ({
         : dashboardId && hasDashboardColorScheme
           ? DASHBOARD_ALERT
           : DASHBOARD_CONTEXT_ALERT;
-
     return (
       <>
         {label}{' '}
         <Tooltip title={alertTitle}>
-          <StyledAlert iconSize="s" />
+          <Icons.WarningOutlined
+            iconColor={theme.colors.warning.base}
+            css={css`
+              vertical-align: baseline;
+            `}
+            iconSize="s"
+          />
         </Tooltip>
       </>
     );

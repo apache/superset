@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Any, Optional
 
 from marshmallow import Schema, validate  # noqa: F401
@@ -33,6 +34,8 @@ from superset.commands.importers.v1.utils import (
 from superset.daos.base import BaseDAO
 from superset.models.core import Database  # noqa: F401
 from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
 
 
 class ImportModelsCommand(BaseCommand):
@@ -104,6 +107,8 @@ class ImportModelsCommand(BaseCommand):
         self._prevent_overwrite_existing_model(exceptions)
 
         if exceptions:
+            for ex in exceptions:
+                logger.warning("Import Error: %s", ex)
             raise CommandInvalidError(
                 f"Error importing {self.model_name}",
                 exceptions,

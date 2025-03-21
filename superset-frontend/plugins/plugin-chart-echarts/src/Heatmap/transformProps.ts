@@ -153,7 +153,7 @@ export default function transformProps(
           if (!value) {
             return NULL_STRING;
           }
-          if (typeof value === 'boolean') {
+          if (typeof value === 'boolean' || typeof value === 'bigint') {
             return String(value);
           }
           return value;
