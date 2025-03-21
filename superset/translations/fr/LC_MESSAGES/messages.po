@@ -624,7 +624,7 @@ msgstr ">= (plus grand ou égal)"
 msgid "A Big Number"
 msgstr "Gros nombre"
 
-msgid "A comma separated list of columns that should be parsed as dates"
+msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
 "Une liste de colonnes séparées par des virgules qui doivent être analysées comme "
 "des dates"

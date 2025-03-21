@@ -629,7 +629,7 @@ msgstr ">= (Groter of gelijk)"
 msgid "A Big Number"
 msgstr "Een groot getal"
 
-msgid "A comma separated list of columns that should be parsed as dates"
+msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
 "Een door komma's gescheiden lijst van kolommen die als datums moeten "
 "worden geïnterpreteerd"
