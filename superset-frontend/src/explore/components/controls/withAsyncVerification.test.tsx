@@ -38,7 +38,7 @@ const defaultProps = {
   multi: true,
   needAsyncVerification: true,
   actions: { setControlValue: mockSetControlValue },
-  onChange: (p0: string[]) => {},
+  onChange: (_: string[]) => {},
   columns: [
     { type: 'VARCHAR(255)', column_name: 'source' },
     { type: 'VARCHAR(255)', column_name: 'target' },

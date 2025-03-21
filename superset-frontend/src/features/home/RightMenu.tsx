@@ -638,6 +638,7 @@ const RightMenuWithQueryWrapper: FC<RightMenuProps> = props => {
 // Superset still has multiple entry points, and not all of them have
 // the same setup, and critically, not all of them have the QueryParamProvider.
 // This wrapper ensures the RightMenu renders regardless of the provider being present.
+// Note: Error boundaries must be class components in React
 class RightMenuErrorWrapper extends PureComponent<RightMenuProps> {
   state = {
     hasError: false,
