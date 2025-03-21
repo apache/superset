@@ -125,7 +125,7 @@ const TagModal: FC<TagModalProps> = ({
           setChartsToTag(resourceMap[TaggableResources.Chart]);
           setSavedQueriesToTag(resourceMap[TaggableResources.SavedQuery]);
         },
-        (error: Response) => {
+        () => {
           addDangerToast('Error Fetching Tagged Objects');
         },
       );
@@ -233,7 +233,7 @@ const TagModal: FC<TagModalProps> = ({
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       })
-        .then(({ json = {} }) => {
+        .then(() => {
           refreshData();
           clearTagForm();
           addSuccessToast(t('Tag updated'));
@@ -251,7 +251,7 @@ const TagModal: FC<TagModalProps> = ({
           objects_to_tag: [...dashboards, ...charts, ...savedQueries],
         },
       })
-        .then(({ json = {} }) => {
+        .then(() => {
           refreshData();
           clearTagForm();
           addSuccessToast(t('Tag created'));

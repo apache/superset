@@ -45,10 +45,7 @@ interface TagCardProps {
 function TagCard({
   tag,
   hasPerm,
-  _bulkSelectEnabled, // Prefix with underscore to indicate intentionally unused
-  _tagFilter, // Prefix with underscore to indicate intentionally unused
   refreshData,
-  _userId, // Prefix with underscore to indicate intentionally unused
   addDangerToast,
   addSuccessToast,
   showThumbnails,

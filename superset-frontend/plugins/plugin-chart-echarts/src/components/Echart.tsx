@@ -30,7 +30,9 @@ import {
 import { useSelector } from 'react-redux';
 
 import { styled } from '@superset-ui/core';
-import { use, init, EChartsType, registerLocale } from 'echarts/core';
+import { use, init, EChartsType } from 'echarts/core';
+// @ts-ignore
+import { registerLocale } from 'echarts/lib/core/locale';
 import {
   SankeyChart,
   PieChart,
@@ -174,6 +176,7 @@ function Echart(
       }
 
       if (!chartRef.current) {
+        // @ts-ignore
         chartRef.current = init(divRef.current, null, { locale });
       }
 
