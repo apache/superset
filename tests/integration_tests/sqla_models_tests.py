@@ -797,9 +797,10 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ current_user_id() }}' as id,
             '{{ current_username() }}' as username,
-            '{{ current_user_email() }}' as email
+            '{{ current_user_email() }}' as email,
+            '{{ current_user_roles()|tojson }}' as roles
             """,
-            {1, "abc", "abc@test.com"},
+            {1, "abc", "abc@test.com", '["role1", "role2"]'},
             True,
         ),
         (
@@ -809,9 +810,10 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ current_user_id() }}' as id,
             '{{ current_username() }}' as username,
-            '{{ user_email }}' as email
+            '{{ user_email }}' as email,
+            '{{ current_user_roles()|tojson }}' as roles
             """,
-            {1, "abc", "abc@test.com"},
+            {1, "abc", "abc@test.com", '["role1", "role2"]'},
             True,
         ),
         (
@@ -830,7 +832,8 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
             SELECT
             '{{ current_user_id(False) }}' as id,
             '{{ current_username(False) }}' as username,
-            '{{ current_user_email(False) }}' as email
+            '{{ current_user_email(False) }}' as email,
+            '{{ current_user_roles(False)|tojson }}' as roles
             """,
             [],
             True,
@@ -841,7 +844,9 @@ def test_none_operand_in_filter(login_as_admin, physical_dataset):
 @patch("superset.jinja_context.get_user_id", return_value=1)
 @patch("superset.jinja_context.get_username", return_value="abc")
 @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
+@patch("superset.jinja_context.get_user_roles", return_value=["role1", "role2"])
 def test_extra_cache_keys(
+    mock_get_user_roles,
     mock_user_email,
     mock_username,
     mock_user_id,
@@ -883,7 +888,9 @@ def test_extra_cache_keys(
 @patch("superset.jinja_context.get_user_id", return_value=1)
 @patch("superset.jinja_context.get_username", return_value="abc")
 @patch("superset.jinja_context.get_user_email", return_value="abc@test.com")
+@patch("superset.jinja_context.get_user_roles", return_value=["role1", "role2"])
 def test_extra_cache_keys_in_sql_expression(
+    mock_get_user_roles,
     mock_user_email,
     mock_username,
     mock_user_id,
