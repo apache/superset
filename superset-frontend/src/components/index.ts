@@ -57,12 +57,8 @@ export {
   Breadcrumb as AntdBreadcrumb,
   Checkbox as AntdCheckbox,
   Collapse as AntdCollapse,
-  Form as AntdForm,
   Select as AntdSelect,
 } from 'antd';
 
-// Exported types
-// eslint-disable-next-line no-restricted-imports
-export type { FormInstance } from 'antd/lib/form'; // TODO: Remove antd
 // eslint-disable-next-line no-restricted-imports
 export type { RadioChangeEvent } from 'antd/lib/radio'; // TODO: Remove antd

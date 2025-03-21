@@ -18,7 +18,7 @@
  */
 import { styled } from '@superset-ui/core';
 import { PluginFilterStylesProps } from './types';
-import FormItem from '../../components/Form/FormItem';
+import { FormItem } from '../../components/Form';
 
 export const RESPONSIVE_WIDTH = 0;
 
@@ -28,7 +28,7 @@ export const FilterPluginStyle = styled.div<PluginFilterStylesProps>`
 `;
 
 export const StyledFormItem = styled(FormItem)`
-  &.ant-row.ant-form-item {
+  &.antd5-row.antd5-form-item-row {
     margin: 0;
   }
 `;
