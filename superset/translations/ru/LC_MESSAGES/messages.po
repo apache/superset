@@ -647,8 +647,8 @@ msgstr "Карточка"
 
 msgid "Select column names from a dropdown list that should be parsed as dates."
 msgstr ""
-"Разделенный запятыми список столбцов, которые должны быть "
-"интерпретированы как даты."
+"Выберите из выпадающего списка имена столбцов, которые должны быть "
+"обработаны как даты"
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "Разделенный запятыми список схем, в которые можно загружать файлы."

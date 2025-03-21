@@ -647,7 +647,7 @@ msgstr "Duża liczba"
 
 #, fuzzy
 msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "Lista kolumn oddzielonych przecinkami, które powinny być traktowane jako daty."
+msgstr "Z listy rozwijanej wybierz nazwy kolumn, które mają być traktowane jako daty."
 
 #, fuzzy
 msgid "A comma-separated list of schemas that files are allowed to upload to."

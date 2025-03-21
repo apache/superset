@@ -631,7 +631,7 @@ msgid "A Big Number"
 msgstr "عدد كبير"
 
 msgid "Select column names from a dropdown list that should be parsed as dates."
-msgstr "قائمة مفصولة بفواصل من الأعمدة التي يجب تحليلها كتواريخ"
+msgstr "حدد أسماء الأعمدة من القائمة المنسدلة التي يجب معاملتها كتواريخ."
 
 msgid "A comma-separated list of schemas that files are allowed to upload to."
 msgstr "قائمة مفصولة بفواصل من المخططات التي يسمح للملفات بالتحميل إليها."
