@@ -16,143 +16,56 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, useCallback } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
-import { AntdForm, Select } from 'src/components';
-import Modal from 'src/components/Modal';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { FormattedPermission } from './types';
+import { t } from '@superset-ui/core';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import FormModal from 'src/components/Modal/FormModal';
+import { createRole, updateRolePermissions } from './utils';
+import { PermissionsField, RoleNameField } from './RoleFormItems';
+import { BaseModalProps, FormattedPermission, RoleForm } from './types';
 
-export interface AddRoleModalProps {
-  show: boolean;
-  onHide: () => void;
-  addDangerToast: (message: string) => void;
-  onSave: () => void;
+export interface RoleListAddModalProps extends BaseModalProps {
   permissions: FormattedPermission[];
-  addSuccessToast: (message: string) => void;
 }
 
-function AddRoleModal({
+function RoleListAddModal({
   show,
   onHide,
-  addDangerToast,
   onSave,
   permissions,
-  addSuccessToast,
-}: AddRoleModalProps) {
-  const [form] = AntdForm.useForm();
-  const FormItem = AntdForm.Item;
-  const [isSaving, setIsSaving] = useState(false);
-  const [roleName, setRoleName] = useState('');
+}: RoleListAddModalProps) {
+  const { addDangerToast, addSuccessToast } = useToasts();
 
-  const resetForm = useCallback(() => {
-    form.resetFields();
-    setIsSaving(false);
-  }, [form]);
+  const handleFormSubmit = async (values: RoleForm) => {
+    try {
+      const { json: roleResponse } = await createRole(values.roleName);
 
-  const handleClose = useCallback(() => {
-    resetForm();
-    onHide();
-  }, [onHide, resetForm]);
-
-  useEffect(() => {
-    if (show) {
-      resetForm();
-    }
-  }, [show, resetForm]);
-
-  const handleFormSubmit = useCallback(
-    async values => {
-      try {
-        setIsSaving(true);
-        const { json: roleResponse } = await SupersetClient.post({
-          endpoint: '/api/v1/security/roles/',
-          jsonPayload: { name: values.roleName },
-        });
-
-        if (
-          values.selectedPermissions &&
-          values.selectedPermissions.length > 0
-        ) {
-          await SupersetClient.post({
-            endpoint: `/api/v1/security/roles/${roleResponse.id}/permissions`,
-            jsonPayload: {
-              permission_view_menu_ids: values.selectedPermissions,
-            },
-          });
-        }
-        addSuccessToast(t('Role successfully created!'));
-        resetForm();
-        onSave();
-      } catch (err) {
-        addDangerToast(t('Error while adding role'));
-      } finally {
-        setIsSaving(false);
+      if (values.rolePermissions?.length > 0) {
+        await updateRolePermissions(roleResponse.id, values.rolePermissions);
       }
-    },
-    [permissions, addDangerToast, addSuccessToast, onSave, resetForm],
-  );
+
+      addSuccessToast(t('Role was successfully created!'));
+    } catch (err) {
+      addDangerToast(t('Error while adding role!'));
+      throw err;
+    }
+  };
 
   return (
-    <Modal
+    <FormModal
       show={show}
+      onHide={onHide}
       title={t('Add Role')}
-      onHide={handleClose}
-      footer={
-        <>
-          <Button
-            buttonStyle="secondary"
-            data-test="add-role-modal-cancel-button"
-            onClick={handleClose}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            buttonStyle="primary"
-            htmlType="submit"
-            onClick={() => form.submit()}
-            data-test="add-role-modal-save-button"
-            disabled={isSaving || !roleName.trim()}
-          >
-            {isSaving ? t('Saving...') : t('Save')}
-          </Button>
-        </>
-      }
+      onSave={onSave}
+      formSubmitHandler={handleFormSubmit}
+      requiredFields={['roleName']}
+      initialValues={{}}
     >
-      <AntdForm form={form} layout="vertical" onFinish={handleFormSubmit}>
-        <FormItem
-          name="roleName"
-          label={t('Role Name')}
-          rules={[
-            { required: true, message: t('Role name is required') },
-            { whitespace: true, message: t('Role name cannot be empty') },
-          ]}
-        >
-          <Input
-            name="roleName"
-            data-test="role-name-input"
-            onChange={e => setRoleName(e.target.value)}
-          />
-        </FormItem>
-
-        <FormItem name="selectedPermissions" label={t('Permissions')}>
-          <Select
-            mode="multiple"
-            name="selectedPermissions"
-            options={permissions.map(p => ({
-              label: p.label,
-              value: p.id,
-            }))}
-            getPopupContainer={trigger =>
-              trigger.closest('.antd5-modal-content')
-            }
-            data-test="permissions-select"
-          />
-        </FormItem>
-      </AntdForm>
-    </Modal>
+      <>
+        <RoleNameField />
+        <PermissionsField permissions={permissions} />
+      </>
+    </FormModal>
   );
 }
 
-export default AddRoleModal;
+export default RoleListAddModal;

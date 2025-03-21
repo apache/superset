@@ -22,7 +22,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.api import rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
 from flask_appbuilder.security.decorators import permission_name, protect
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import Role
 from flask_wtf.csrf import generate_csrf
 from marshmallow import EXCLUDE, fields, post_load, Schema, ValidationError
 from sqlalchemy import asc, desc
@@ -94,15 +94,7 @@ class RolesResponseSchema(PermissiveSchema):
     result = fields.List(fields.Nested(RoleResponseSchema))
 
 
-class UpdateRoleUsersSchema(PermissiveSchema):
-    user_ids = fields.List(
-        fields.Integer(),
-        required=True,
-    )
-
-
 guest_token_create_schema = GuestTokenCreateSchema()
-update_roles_users_schema = UpdateRoleUsersSchema()
 
 
 class SecurityRestApi(BaseSupersetApi):
@@ -212,7 +204,6 @@ class RoleRestAPI(BaseSupersetApi):
     openapi_spec_component_schemas = (
         RoleResponseSchema,
         RolesResponseSchema,
-        UpdateRoleUsersSchema,
     )
 
     @expose("/search/", methods=["GET"])
@@ -340,84 +331,5 @@ class RoleRestAPI(BaseSupersetApi):
             )
         except ForbiddenError as e:
             return self.response_403(message=str(e))
-        except Exception as e:
-            return self.response_500(message=str(e))
-
-    @expose("/<int:pk>/users", methods=["PUT"])
-    @protect()
-    @safe
-    @permission_name("update_roles_users")
-    def update_role_users(self, pk: int) -> Response:
-        """
-        Updates the users assigned to a role.
-        ---
-        put:
-        parameters:
-        - in: path
-            schema:
-            type: integer
-            name: pk
-            required: true
-            description: Role ID
-        requestBody:
-            description: Update role users schema
-            required: true
-            content:
-            application/json:
-                schema:
-                $ref: '#/components/schemas/UpdateRoleUsersSchema'
-        responses:
-            200:
-            description: Users updated successfully
-            content:
-                application/json:
-                schema:
-                    type: object
-                    properties:
-                    role_id:
-                        type: integer
-                    role_name:
-                        type: string
-                    user_ids:
-                        type: array
-                        items:
-                        type: integer
-            400:
-            $ref: '#/components/responses/400'
-            401:
-            $ref: '#/components/responses/401'
-            404:
-            $ref: '#/components/responses/404'
-            422:
-            $ref: '#/components/responses/422'
-            500:
-            $ref: '#/components/responses/500'
-        """
-        try:
-            data = update_roles_users_schema.load(request.json)
-
-            user_ids = data["user_ids"]
-
-            role = db.session.query(Role).filter_by(id=pk).first()
-            if not role:
-                return self.response_404(message=f"Role with ID {pk} not found.")
-
-            users = db.session.query(User).filter(User.id.in_(user_ids)).all()
-
-            role.user = users
-            db.session.commit()
-
-            return self.response(
-                200,
-                message=f"Updated users for role {role.name}.",
-                result={
-                    "role_id": role.id,
-                    "role_name": role.name,
-                    "user_ids": [user.id for user in users],
-                },
-            )
-
-        except ValidationError as error:
-            return self.response_400(message=error.messages)
         except Exception as e:
             return self.response_500(message=str(e))

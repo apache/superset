@@ -134,7 +134,7 @@ export interface ButtonProps {
     | 'warning'
     | 'success'
     | 'tertiary';
-  disabled?: boolean;
+  loading?: boolean;
 }
 
 export interface SubMenuProps {
@@ -283,6 +283,7 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
               buttonStyle={btn.buttonStyle}
               onClick={btn.onClick}
               data-test={btn['data-test']}
+              loading={btn.loading ?? false}
             >
               {btn.name}
             </Button>

@@ -16,28 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, useCallback } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
+import { useState } from 'react';
+import { t } from '@superset-ui/core';
 import Tabs from 'src/components/Tabs';
-import { AntdForm, Select } from 'src/components/';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
 import { RoleObject } from 'src/pages/RolesList';
 import TableView, { EmptyWrapperType } from 'src/components/TableView';
-import { FormattedPermission, UserObject } from 'src/features/roles/types';
+import {
+  BaseModalProps,
+  FormattedPermission,
+  RoleForm,
+  UserObject,
+} from 'src/features/roles/types';
 import { CellProps } from 'react-table';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import FormModal from 'src/components/Modal/FormModal';
+import { PermissionsField, RoleNameField, UsersField } from './RoleFormItems';
+import {
+  updateRoleName,
+  updateRolePermissions,
+  updateRoleUsers,
+} from './utils';
 
-type EditRoleModalProps = {
-  show: boolean;
-  onHide: () => void;
-  addDangerToast: (message: string) => void;
-  addSuccessToast: (message: string) => void;
-  onSave: () => void;
+export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;
   permissions: FormattedPermission[];
   users: UserObject[];
-};
+}
 
 const roleTabs = {
   edit: {
@@ -75,100 +79,49 @@ const userColumns = [
   },
 ];
 
-function EditRoleModal({
+function RoleListEditModal({
   show,
   onHide,
-  addDangerToast,
   role,
   onSave,
-  addSuccessToast,
   permissions,
   users,
-}: EditRoleModalProps) {
+}: RoleListEditModalProps) {
   const { id, name, permission_ids, user_ids } = role;
   const [activeTabKey, setActiveTabKey] = useState(roleTabs.edit.key);
-  const [form] = AntdForm.useForm();
-  const FormItem = AntdForm.Item;
-  const [isSaving, setIsSaving] = useState(false);
+  const { addDangerToast, addSuccessToast } = useToasts();
   const filteredUsers = users.filter(user =>
     user?.roles.some(role => role.id === id),
   );
 
-  const [roleName, setRoleName] = useState(name);
-
-  const resetForm = useCallback(() => {
-    form.resetFields();
-    setIsSaving(false);
-  }, [form]);
-
-  const handleClose = useCallback(() => {
-    resetForm();
-    onHide();
-  }, [onHide, resetForm]);
-
-  useEffect(() => {
-    if (show) {
-      resetForm();
+  const handleFormSubmit = async (values: RoleForm) => {
+    try {
+      await updateRoleName(id, values.roleName);
+      await updateRolePermissions(id, values.rolePermissions);
+      await updateRoleUsers(id, values.roleUsers);
+      addSuccessToast(t('Role successfully updated!'));
+    } catch (err) {
+      addDangerToast(t('Error while updating role!'));
+      throw err;
     }
-  }, [show, resetForm]);
+  };
 
-  const handleFormSubmit = useCallback(
-    async values => {
-      try {
-        setIsSaving(true);
-        await SupersetClient.put({
-          endpoint: `/api/v1/security/roles/${id}`,
-          jsonPayload: { name: values.roleName },
-        });
-
-        await SupersetClient.post({
-          endpoint: `/api/v1/security/roles/${id}/permissions`,
-          jsonPayload: { permission_view_menu_ids: values.selectedPermissions },
-        });
-
-        await SupersetClient.put({
-          endpoint: `/api/v1/security/roles/${id}/users`,
-          jsonPayload: { user_ids: values.selectedUsers },
-        });
-
-        addSuccessToast(t('Role successfully updated!'));
-        resetForm();
-        onSave();
-      } catch (err) {
-        addDangerToast(t('Error while updating role'));
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [id, addDangerToast, addSuccessToast, onSave, resetForm],
-  );
+  const initialValues = {
+    roleName: name,
+    rolePermissions: permission_ids,
+    roleUsers: user_ids,
+  };
 
   return (
-    <Modal
+    <FormModal
       show={show}
+      onHide={onHide}
       title={t('Edit Role')}
-      onHide={handleClose}
+      onSave={onSave}
+      formSubmitHandler={handleFormSubmit}
+      initialValues={initialValues}
       bodyStyle={{ height: '400px' }}
-      footer={
-        <>
-          <Button
-            buttonStyle="secondary"
-            data-test="edit-role-modal-cancel-button"
-            onClick={handleClose}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            buttonStyle="primary"
-            htmlType="submit"
-            onClick={() => form.submit()}
-            data-test="edit-role-modal-save-button"
-            disabled={isSaving || !roleName.trim()}
-          >
-            {isSaving ? t('Saving...') : t('Save')}
-          </Button>
-        </>
-      }
+      requiredFields={['roleName']}
     >
       <Tabs
         activeKey={activeTabKey}
@@ -179,50 +132,11 @@ function EditRoleModal({
           key={roleTabs.edit.key}
           forceRender
         >
-          <AntdForm
-            form={form}
-            layout="vertical"
-            onFinish={handleFormSubmit}
-            initialValues={{
-              roleName: name,
-              selectedPermissions: permission_ids,
-              selectedUsers: user_ids,
-            }}
-          >
-            <FormItem
-              name="roleName"
-              label={t('Role Name')}
-              rules={[{ required: true, message: t('Role name is required') }]}
-            >
-              <Input
-                name="roleName"
-                data-test="role-name-input"
-                onChange={e => setRoleName(e.target.value)}
-              />
-            </FormItem>
-            <FormItem name="selectedPermissions" label={t('Permissions')}>
-              <Select
-                mode="multiple"
-                name="selectedPermissions"
-                options={permissions.map(p => ({
-                  label: p.label,
-                  value: p.id,
-                }))}
-                getPopupContainer={trigger =>
-                  trigger.closest('.antd5-modal-content')
-                }
-                data-test="permissions-select"
-              />
-            </FormItem>
-            <FormItem name="selectedUsers" label={t('Users')}>
-              <Select
-                mode="multiple"
-                name="selectedUsers"
-                options={users.map(u => ({ label: u.username, value: u.id }))}
-                data-test="users-select"
-              />
-            </FormItem>
-          </AntdForm>
+          <>
+            <RoleNameField />
+            <PermissionsField permissions={permissions} />
+            <UsersField users={users} />
+          </>
         </Tabs.TabPane>
         <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
           <TableView
@@ -232,8 +146,8 @@ function EditRoleModal({
           />
         </Tabs.TabPane>
       </Tabs>
-    </Modal>
+    </FormModal>
   );
 }
 
-export default EditRoleModal;
+export default RoleListEditModal;

@@ -16,116 +16,54 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useEffect } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
-import Modal from 'src/components/Modal';
-import { Input } from 'src/components/Input';
-import Button from 'src/components/Button';
-import { AntdForm } from 'src/components';
-import { RoleObject } from 'src/pages/RolesList';
 
-export interface DuplicateRoleModalProps {
+import { t } from '@superset-ui/core';
+import { RoleObject } from 'src/pages/RolesList';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import FormModal from 'src/components/Modal/FormModal';
+import { RoleNameField } from './RoleFormItems';
+import { BaseModalProps, RoleForm } from './types';
+import { createRole, updateRolePermissions } from './utils';
+
+export interface RoleListDuplicateModalProps extends BaseModalProps {
   role: RoleObject;
-  show: boolean;
-  onHide: () => void;
-  addDangerToast: (message: string) => void;
-  onSave: () => void;
-  addSuccessToast: (message: string) => void;
 }
 
-function DuplicateRoleModal({
+function RoleListDuplicateModal({
   role,
   show,
   onHide,
-  addDangerToast,
   onSave,
-  addSuccessToast,
-}: DuplicateRoleModalProps) {
+}: RoleListDuplicateModalProps) {
   const { name, permission_ids } = role;
-  const [isSaving, setIsSaving] = useState(false);
-  const [form] = AntdForm.useForm();
-  const FormItem = AntdForm.Item;
-  const [roleName, setRoleName] = useState('');
+  const { addDangerToast, addSuccessToast } = useToasts();
 
-  const handleClose = useCallback(() => {
-    form.resetFields();
-    setIsSaving(false);
-    onHide();
-  }, [onHide, form]);
-
-  const handleSave = async (values: { roleName: string }) => {
-    setIsSaving(true);
-
+  const handleFormSubmit = async (values: RoleForm) => {
     try {
-      const { json: roleResponse } = await SupersetClient.post({
-        endpoint: '/api/v1/security/roles/',
-        jsonPayload: { name: values.roleName },
-      });
+      const { json: roleResponse } = await createRole(values.roleName);
 
       if (permission_ids.length > 0) {
-        await SupersetClient.post({
-          endpoint: `/api/v1/security/roles/${roleResponse.id}/permissions`,
-          jsonPayload: { permission_view_menu_ids: permission_ids },
-        });
+        await updateRolePermissions(roleResponse.id, permission_ids);
       }
-
-      addSuccessToast(t('Role successfully duplicated!'));
-      handleClose();
-      onSave();
+      addSuccessToast(t('Role was successfully duplicated!'));
     } catch (err) {
-      addDangerToast(t('Error while duplicating role'));
-    } finally {
-      setIsSaving(false);
+      addDangerToast(t('Error while duplicating role!'));
+      throw err;
     }
   };
 
-  useEffect(() => {
-    if (show) {
-      form.resetFields();
-    }
-  }, [show, form]);
-
   return (
-    <Modal
+    <FormModal
       show={show}
+      onHide={onHide}
       title={t('Duplicate role %(name)s', { name })}
-      onHide={handleClose}
-      footer={
-        <>
-          <Button
-            buttonStyle="secondary"
-            data-test="duplicate-role-modal-cancel-button"
-            onClick={handleClose}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            disabled={isSaving || !roleName.trim()}
-            buttonStyle="primary"
-            htmlType="submit"
-            onClick={() => form.submit()}
-            data-test="duplicate-role-modal-save-button"
-          >
-            {isSaving ? t('Saving...') : t('Save')}
-          </Button>
-        </>
-      }
+      onSave={onSave}
+      formSubmitHandler={handleFormSubmit}
+      requiredFields={['roleName']}
+      initialValues={{}}
     >
-      <AntdForm form={form} layout="vertical" onFinish={handleSave}>
-        <FormItem
-          name="roleName"
-          label={t('Role Name')}
-          rules={[{ required: true, message: t('Role name is required') }]}
-        >
-          <Input
-            name="roleName"
-            data-test="role-name-input"
-            onChange={e => setRoleName(e.target.value)}
-          />
-        </FormItem>
-      </AntdForm>
-    </Modal>
+      <RoleNameField />
+    </FormModal>
   );
 }
-
-export default DuplicateRoleModal;
+export default RoleListDuplicateModal;

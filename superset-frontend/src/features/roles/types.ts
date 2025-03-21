@@ -52,3 +52,15 @@ export type RoleInfo = {
   id: number;
   name: string;
 };
+
+export type RoleForm = {
+  roleName: string;
+  rolePermissions: number[];
+  roleUsers: number[];
+};
+
+export interface BaseModalProps {
+  show: boolean;
+  onHide: () => void;
+  onSave: () => void;
+}
